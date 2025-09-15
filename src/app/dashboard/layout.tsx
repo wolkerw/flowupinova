@@ -56,7 +56,7 @@ const allNavigationItems = [
   },
   {
     title: "Meu Negócio",
-    url: "#",
+    url: "/dashboard/meu-negocio",
     icon: Building2,
   },
   {
