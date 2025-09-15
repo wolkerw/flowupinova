@@ -433,12 +433,13 @@ export default function GerarConteudoPage() {
                                     }
                                 </div>
                                 
-                                {loadingAI ? (
+                                {loadingAI && (
                                     <div className="flex items-center justify-center text-gray-500 py-8">
                                         <Loader2 className="w-6 h-6 animate-spin mr-2" />
                                         <p>Gerando imagem...</p>
                                     </div>
-                                ) : generatedImages.length > 0 && (
+                                )}
+                                {generatedImages.length > 0 && !loadingAI && (
                                     <div className="space-y-2">
                                         <h5 className="text-sm font-medium text-gray-700">Imagem para Edição:</h5>
                                         <img 
@@ -581,3 +582,5 @@ export default function GerarConteudoPage() {
         </div>
     );
 }
+
+    
