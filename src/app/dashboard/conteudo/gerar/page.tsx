@@ -50,11 +50,7 @@ export default function GerarConteudoPage() {
 
     const splitTextIntoSegments = (text: string) => {
         if (!text) return [];
-        const paragraphs = text.split('\n').filter(p => p.trim());
-        if (paragraphs.length <= 2) {
-            return text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 10);
-        }
-        return paragraphs;
+        return text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 10);
     };
 
     const handleGenerateText = async () => {
