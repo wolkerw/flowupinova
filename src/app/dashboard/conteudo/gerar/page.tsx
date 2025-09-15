@@ -63,13 +63,43 @@ export default function GerarConteudoPage() {
         setGeneratedText("");
         setSelectedTextSegments(new Set());
 
-        setTimeout(() => {
-            const demoText = `✨ Café: Mais que uma bebida, uma inspiração! ☕\n\nComece seu dia com a energia e o foco que só um bom café pode oferecer. Cada xícara é um convite para criar, inovar e conquistar seus objetivos. Permita-se essa pausa revigorante e transforme sua rotina.\n\n#Café #Inspiração #Produtividade #FlowUp`;
-            setGeneratedText(demoText);
-            const segments = splitTextIntoSegments(demoText);
+        try {
+            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudo";
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors',
+                body: JSON.stringify({
+                    prompt: aiPrompt,
+                    tone: aiTone,
+                    contentType: 'text',
+                    step: 1
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro na chamada do webhook: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            let outputText = "";
+
+            if (data.output) {
+                outputText = data.output;
+            } else if (Array.isArray(data) && data.length > 0 && data[0]?.output) {
+                outputText = data[0].output;
+            }
+            
+            setGeneratedText(outputText);
+            const segments = splitTextIntoSegments(outputText);
             setSelectedTextSegments(new Set(segments.map((_, index) => index)));
+
+        } catch (error: any) {
+            console.error("Erro ao gerar texto:", error);
+            setGeneratedText(`Desculpe, não foi possível gerar o texto. Erro: ${error.message}`);
+        } finally {
             setLoadingAI(false);
-        }, 1500);
+        }
     };
 
     const handleSegmentToggle = (segmentIndex: number) => {
