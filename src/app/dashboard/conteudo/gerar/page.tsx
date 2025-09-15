@@ -141,18 +141,51 @@ export default function GerarConteudoPage() {
         setGeneratedImages([]);
         setSelectedImageIndex(0);
 
-        setTimeout(() => {
+        try {
             if (source === 'upload' && selectedFile) {
                 setGeneratedImages([URL.createObjectURL(selectedFile)]);
-            } else {
-                setGeneratedImages([
-                    "https://picsum.photos/seed/1/1024/1024",
-                    "https://picsum.photos/seed/2/1024/1024",
-                    "https://picsum.photos/seed/3/1024/1024"
-                ]);
+            } else if (source === 'ai') {
+                const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/imagem";
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        prompt: imagePrompt,
+                        contentType: 'image',
+                        step: 2,
+                        baseText: getComposedText()
+                    })
+                });
+    
+                if (!response.ok) {
+                    throw new Error(`Erro na chamada do webhook de imagem: ${response.statusText}`);
+                }
+    
+                const data = await response.json();
+                let imageUrls = [];
+    
+                if (data.output) {
+                    imageUrls = Array.isArray(data.output) ? data.output : [data.output];
+                } else if (Array.isArray(data) && data.length > 0 && data[0]?.output) {
+                    const output = data[0].output;
+                    imageUrls = Array.isArray(output) ? output : [output];
+                }
+    
+                if (imageUrls.length > 0) {
+                    setGeneratedImages(imageUrls);
+                } else {
+                    throw new Error("Nenhuma imagem foi retornada pelo serviço.");
+                }
             }
+        } catch (error: any) {
+            console.error("Erro ao processar imagem:", error);
+            alert(`Erro ao processar imagem: ${error.message}`);
+            // Fallback to placeholder if error
+            setGeneratedImages(["https://picsum.photos/seed/error/1024/1024"]);
+        } finally {
             setLoadingAI(false);
-        }, 2000);
+        }
     };
 
     const handleNextStep = () => {
@@ -400,7 +433,12 @@ export default function GerarConteudoPage() {
                                     }
                                 </div>
                                 
-                                {generatedImages.length > 0 && (
+                                {loadingAI ? (
+                                    <div className="flex items-center justify-center text-gray-500 py-8">
+                                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                                        <p>Gerando imagem...</p>
+                                    </div>
+                                ) : generatedImages.length > 0 && (
                                     <div className="space-y-2">
                                         <h5 className="text-sm font-medium text-gray-700">Imagem para Edição:</h5>
                                         <img 
