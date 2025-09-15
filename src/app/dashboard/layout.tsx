@@ -76,7 +76,7 @@ const allNavigationItems = [
   },
   {
     title: "Relatórios",
-    url: "#",
+    url: "/dashboard/relatorios",
     icon: BarChart3,
   },
   {
