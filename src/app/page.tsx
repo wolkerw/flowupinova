@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, Loader2, HomeIcon, Sparkles } from "lucide-react";
+import { Send, Bot, Loader2, HomeIcon, Sparkles, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 
@@ -117,7 +117,7 @@ export default function Home() {
 
         <Link href="/dashboard">
           <Button variant="outline" className="flex items-center gap-2 border-accent shadow-lg transition-all duration-300 hover:shadow-xl hover:bg-accent/10">
-            <HomeIcon className="h-5 w-5" />
+            <LayoutDashboard className="h-5 w-5" />
             Ir para o Dashboard
           </Button>
         </Link>
