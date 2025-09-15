@@ -90,8 +90,11 @@ export default function GerarConteudoPage() {
                 outputText = data[0].output;
             }
             
-            setGeneratedText(outputText);
-            const segments = splitTextIntoSegments(outputText);
+            // Remove markdown characters
+            const cleanedText = outputText.replace(/[*#]/g, '');
+
+            setGeneratedText(cleanedText);
+            const segments = splitTextIntoSegments(cleanedText);
             setSelectedTextSegments(new Set(segments.map((_, index) => index)));
 
         } catch (error: any) {
@@ -582,5 +585,3 @@ export default function GerarConteudoPage() {
         </div>
     );
 }
-
-    
