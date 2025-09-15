@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, Loader2, HomeIcon, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
-import { getAiResponse } from "./actions";
 
 const initialMessages: Message[] = [
   {
@@ -36,25 +35,15 @@ export default function Home() {
 
     const userMessage: Message = { sender: 'user', text: prompt };
     setMessages(prev => [...prev, userMessage]);
-    const currentPrompt = prompt;
     setPrompt("");
     setLoading(true);
 
-    try {
-      const aiResponseText = await getAiResponse(currentPrompt);
-      const aiMessage: Message = { sender: 'ai', text: aiResponseText };
+    // Simula uma chamada de API
+    setTimeout(() => {
+      const aiMessage: Message = { sender: 'ai', text: "Esta é uma resposta simulada. A funcionalidade de IA foi removida." };
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Erro no chat:", error);
-      const errorMessage: Message = { 
-        sender: 'ai', 
-        text: "Desculpe, um erro inesperado ocorreu. Por favor, tente novamente.", 
-        isError: true 
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setLoading(false);
-    }
+    }, 1000);
   };
 
   return (
