@@ -81,7 +81,7 @@ const allNavigationItems = [
   },
   {
     title: "Marketplace",
-    url: "#",
+    url: "/dashboard/marketplace",
     icon: Store,
   },
 ];
@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className="w-full text-white shadow-sm"
                     style={{ background: 'var(--flowup-gradient)' }}
                   >
-                    <Link href="#">
+                    <Link href="/dashboard/marketplace">
                       <Plus className="w-4 h-4 mr-2" />
                       Adicionar Módulo
                     </Link>
