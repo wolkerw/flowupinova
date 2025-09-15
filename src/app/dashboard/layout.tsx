@@ -71,7 +71,7 @@ const allNavigationItems = [
   },
   {
     title: "Relacionamento",
-    url: "#",
+    url: "/dashboard/relacionamento",
     icon: Users,
   },
   {
@@ -245,5 +245,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
