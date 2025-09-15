@@ -61,7 +61,7 @@ const allNavigationItems = [
   },
   {
     title: "Conteúdo",
-    url: "#",
+    url: "/dashboard/conteudo",
     icon: FileText,
   },
   {
