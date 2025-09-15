@@ -66,7 +66,7 @@ const allNavigationItems = [
   },
   {
     title: "Anúncios",
-    url: "#",
+    url: "/dashboard/anuncios",
     icon: Megaphone,
   },
   {
@@ -245,3 +245,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
