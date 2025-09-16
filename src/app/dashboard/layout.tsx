@@ -158,16 +158,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-sm text-gray-600 mb-3">
                     Descubra novos módulos para expandir sua estratégia
                   </p>
-                  <Button
-                    asChild
-                    className="w-full text-white shadow-sm"
-                    style={{ background: 'var(--flowup-gradient)' }}
-                  >
-                    <Link href="/dashboard/marketplace">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Módulo
-                    </Link>
-                  </Button>
                 </div>
               </div>
             </SidebarGroup>
