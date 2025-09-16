@@ -76,8 +76,11 @@ export default function GerarConteudoPage() {
             if (!response.ok) {
                 throw new Error(`Erro na chamada do webhook: ${response.statusText}`);
             }
+            
+            const rawResponse = await response.text();
+            console.log("Resposta bruta da API:", rawResponse);
 
-            const data = await response.json();
+            const data = JSON.parse(rawResponse);
             let outputText = "";
 
             if (data.output) {
