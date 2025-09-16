@@ -36,9 +36,7 @@ export default function Conteudo() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [postToSchedule, setPostToSchedule] = useState({ text: "", imageUrl: null });
   const [selectedAccounts, setSelectedAccounts] = useState(new Set());
-  const [isCanvaConnected, setIsCanvaConnected] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-
+  
   const [connectedAccounts] = useState([
     { id: 'ig1', platform: 'instagram', name: '@impulso_app', icon: Instagram },
     { id: 'fb1', platform: 'facebook', name: 'Página Impulso Marketing', icon: Facebook },
@@ -91,22 +89,6 @@ export default function Conteudo() {
     image: Image,
     video: Video,
     text: FileText
-  };
-
-  const handleConnectCanva = async () => {
-    setAuthLoading(true);
-    setTimeout(() => {
-      setIsCanvaConnected(true);
-      setAuthLoading(false);
-    }, 1000);
-  };
-
-  const handleDisconnectCanva = async () => {
-    setAuthLoading(true);
-    setTimeout(() => {
-      setIsCanvaConnected(false);
-      setAuthLoading(false);
-    }, 1000);
   };
 
   const handleOpenScheduler = (postContent = { text: "", imageUrl: null }) => {
@@ -270,70 +252,6 @@ export default function Conteudo() {
                       </div>
                     </motion.div>
                   ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-            >
-              <Card className="shadow-lg border-none bg-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <img src="https://static.canva.com/static/images/favicon.ico" alt="Canva Icon" className="w-5 h-5"/>
-                    Integração Canva
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Crie designs profissionais a partir do conteúdo gerado.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className={`p-4 border rounded-xl transition-all duration-300 ease-in-out ${isCanvaConnected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isCanvaConnected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                          {isCanvaConnected ? 
-                            <CheckCircle className="w-6 h-6 text-green-600" /> :
-                            <LinkIcon className="w-6 h-6 text-gray-500" />
-                          }
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Canva</h4>
-                          <p className={`text-xs font-medium ${isCanvaConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                            {isCanvaConnected ? 'Conectado' : 'Não conectado'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="w-full sm:w-auto flex-shrink-0">
-                         {isCanvaConnected ? (
-                           <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleDisconnectCanva}
-                              disabled={authLoading}
-                              className="w-full sm:w-auto text-red-600 hover:bg-red-50 hover:text-red-700"
-                           >
-                              {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Settings className="w-4 h-4 mr-2" />}
-                              Desconectar
-                           </Button>
-                         ) : (
-                           <Button
-                              size="sm"
-                              onClick={handleConnectCanva}
-                              disabled={authLoading}
-                              className="w-full sm:w-auto text-white border-transparent"
-                              style={{ background: 'var(--flowup-gradient)' }}
-                           >
-                              {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Plus className="w-4 h-4 mr-2" />}
-                              Conectar
-                           </Button>
-                         )}
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </motion.div>
