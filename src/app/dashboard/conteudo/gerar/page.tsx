@@ -60,7 +60,7 @@ export default function GerarConteudoPage() {
         setSelectedTextSegments(new Set());
 
         try {
-            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudo";
+            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudopersonal";
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
