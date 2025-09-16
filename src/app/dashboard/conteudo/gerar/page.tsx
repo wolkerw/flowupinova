@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -80,7 +81,17 @@ export default function GerarConteudoPage() {
             const rawResponse = await response.text();
             console.log("Resposta bruta da API:", rawResponse);
 
-            const data = JSON.parse(rawResponse);
+            if (!rawResponse) {
+                throw new Error("A resposta da API está vazia.");
+            }
+
+            let data;
+            try {
+                data = JSON.parse(rawResponse);
+            } catch (jsonError: any) {
+                throw new Error(`Falha ao processar JSON: ${jsonError.message}`);
+            }
+
             let outputText = "";
 
             if (data.output) {
@@ -584,3 +595,5 @@ export default function GerarConteudoPage() {
         </div>
     );
 }
+
+    
