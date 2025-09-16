@@ -150,17 +150,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-
-            <SidebarGroup className="mt-8">
-              <div className="px-3">
-                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border rounded-xl p-4" style={{ borderColor: 'var(--flowup-cyan)' }}>
-                  <h3 className="font-semibold text-gray-900 mb-2">Marketplace</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Descubra novos módulos para expandir sua estratégia
-                  </p>
-                </div>
-              </div>
-            </SidebarGroup>
           </SidebarContent>
 
           <SidebarFooter className="border-t border-gray-100 p-4">
