@@ -6,12 +6,12 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDo_gGOLx3...",
-  authDomain: "fir-app-...",
-  projectId: "fir-app-...",
-  storageBucket: "fir-app-....",
-  messagingSenderId: "...",
-  appId: "1:..."
+  apiKey: "AIzaSyD2guuZbx-YhbrQD_-kEHCRlPyjcmVAiwE",
+  authDomain: "studio-7502195980-3983c.firebaseapp.com",
+  projectId: "studio-7502195980-3983c",
+  storageBucket: "studio-7502195980-3983c.firebasestorage.app",
+  messagingSenderId: "569130702994",
+  appId: "1:569130702994:web:47f5c0b95cdb9369e2ee4b"
 };
 
 // Initialize Firebase
