@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 
 import {
   LayoutDashboard,
@@ -21,7 +22,8 @@ import {
   Shield,
   LogOut,
   Eye,
-  X
+  X,
+  Loader2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -79,15 +81,27 @@ const allNavigationItems = [
     url: "/dashboard/relatorios",
     icon: BarChart3,
   },
-  {
-    title: "Marketplace",
-    url: "/dashboard/marketplace",
-    icon: Store,
-  },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-gray-50">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -191,22 +205,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="hover:bg-gray-100 rounded-full">
-                      <UserIcon className="w-5 h-5" />
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt="Foto do usuário" className="w-6 h-6 rounded-full" />
+                      ) : (
+                        <UserIcon className="w-5 h-5" />
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                       <>
                         <div className="px-3 py-2">
                           <p className="text-sm font-medium text-gray-900">
-                            Usuário
+                            {user?.displayName || "Usuário"}
                           </p>
                           <p className="text-xs text-gray-500">
-                            usuario@email.com
+                            {user?.email || "email@exemplo.com"}
                           </p>
                         </div>
                         <DropdownMenuSeparator />
                       </>
-                      <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                      <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={logout}>
                         <LogOut className="w-4 h-4 mr-2" />
                         Sair da conta
                       </DropdownMenuItem>
@@ -224,3 +242,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
