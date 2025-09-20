@@ -61,7 +61,7 @@ export default function GerarConteudoPage() {
         setSelectedTextSegments(new Set());
 
         try {
-            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudopersonal";
+            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudo_personal";
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -87,17 +87,24 @@ export default function GerarConteudoPage() {
 
             let data;
             try {
+                // Tenta analisar como JSON, mas se falhar, usa o texto bruto.
                 data = JSON.parse(rawResponse);
             } catch (jsonError: any) {
-                throw new Error(`Falha ao processar JSON: ${jsonError.message}`);
+                console.log("Não foi possível analisar a resposta como JSON, usando como texto bruto.");
+                data = { output: rawResponse };
             }
 
             let outputText = "";
 
-            if (data.output) {
+            if (typeof data.output === 'string') {
                 outputText = data.output;
-            } else if (Array.isArray(data) && data.length > 0 && data[0]?.output) {
+            } else if (Array.isArray(data) && data.length > 0 && typeof data[0]?.output === 'string') {
                 outputText = data[0].output;
+            } else if (typeof data === 'string') {
+                outputText = data;
+            } else {
+                // Se o formato ainda for inesperado, converta o objeto em string
+                outputText = JSON.stringify(data);
             }
             
             // Remove markdown characters
