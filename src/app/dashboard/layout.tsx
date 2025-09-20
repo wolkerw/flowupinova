@@ -88,20 +88,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     router.push('/login');
+  //   }
+  // }, [user, loading, router]);
 
 
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  // if (loading || !user) {
+  //   return (
+  //     <div className="flex min-h-screen w-full items-center justify-center bg-gray-50">
+  //       <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+  //     </div>
+  //   );
+  // }
 
   return (
     <SidebarProvider>
@@ -242,5 +242,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
