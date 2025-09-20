@@ -20,11 +20,18 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+type GeneratedContent = {
+    titulo: string;
+    subtitulo: string;
+    hashtags: string[];
+};
+
 export default function GerarConteudoPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [aiPrompt, setAiPrompt] = useState("");
     const [aiTone, setAiTone] = useState("");
+    const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
     const [generatedText, setGeneratedText] = useState("");
     const [generatedImages, setGeneratedImages] = useState<string[]>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -57,9 +64,10 @@ export default function GerarConteudoPage() {
     const handleGenerateText = async () => {
         if (!aiPrompt) return;
         setLoadingAI(true);
+        setGeneratedContent([]);
         setGeneratedText("");
         setSelectedTextSegments(new Set());
-
+    
         try {
             const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudo_personal";
             const response = await fetch(webhookUrl, {
@@ -73,47 +81,31 @@ export default function GerarConteudoPage() {
                     step: 1
                 })
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Erro na chamada do webhook: ${response.statusText}`);
             }
             
-            const rawResponse = await response.text();
+            const rawResponse = await response.json();
             console.log("Resposta bruta da API:", rawResponse);
-
-            if (!rawResponse) {
-                throw new Error("A resposta da API está vazia.");
+    
+            if (!rawResponse || !rawResponse.conteudos) {
+                throw new Error("A resposta da API não contém a propriedade 'conteudos'.");
             }
-
-            let data;
-            try {
-                // Tenta analisar como JSON, mas se falhar, usa o texto bruto.
-                data = JSON.parse(rawResponse);
-            } catch (jsonError: any) {
-                console.log("Não foi possível analisar a resposta como JSON, usando como texto bruto.");
-                data = { output: rawResponse };
-            }
-
-            let outputText = "";
-
-            if (typeof data.output === 'string') {
-                outputText = data.output;
-            } else if (Array.isArray(data) && data.length > 0 && typeof data[0]?.output === 'string') {
-                outputText = data[0].output;
-            } else if (typeof data === 'string') {
-                outputText = data;
-            } else {
-                // Se o formato ainda for inesperado, converta o objeto em string
-                outputText = JSON.stringify(data);
-            }
+    
+            const contentData = rawResponse.conteudos;
             
-            // Remove markdown characters
-            const cleanedText = outputText.replace(/[*#]/g, '');
+            setGeneratedContent(contentData);
 
-            setGeneratedText(cleanedText);
-            const segments = splitTextIntoSegments(cleanedText);
-            setSelectedTextSegments(new Set(segments.map((_, index) => index)));
-
+            // Combina o primeiro conteúdo gerado para os próximos passos
+            if (contentData.length > 0) {
+                const firstContent = contentData[0];
+                const combinedText = `${firstContent.titulo}\n\n${firstContent.subtitulo}\n\n${firstContent.hashtags.join(' ')}`;
+                setGeneratedText(combinedText);
+                const segments = splitTextIntoSegments(combinedText);
+                setSelectedTextSegments(new Set(segments.map((_, index) => index)));
+            }
+    
         } catch (error: any) {
             console.error("Erro ao gerar texto:", error);
             setGeneratedText(`Desculpe, não foi possível gerar o texto. Erro: ${error.message}`);
@@ -315,7 +307,7 @@ export default function GerarConteudoPage() {
 
                             <div className="bg-gray-50 rounded-lg p-4 min-h-[200px]">
                                 <div className="flex items-center justify-between mb-4">
-                                <h5 className="font-medium text-gray-900">Prévia do Texto</h5>
+                                <h5 className="font-medium text-gray-900">Sugestões de Conteúdo</h5>
                                 {generatedText && (
                                     <div className="flex gap-2">
                                     <Button 
@@ -341,14 +333,23 @@ export default function GerarConteudoPage() {
                                     <Loader2 className="w-6 h-6 animate-spin mr-2" />
                                     <p>Gerando texto...</p>
                                 </div>
-                                ) : generatedText ? (
-                                <div className="space-y-3">
-                                    <div className="bg-white p-4 rounded border">
-                                    <p className="whitespace-pre-wrap">{generatedText}</p>
-                                    </div>
+                                ) : generatedContent.length > 0 ? (
+                                <div className="space-y-4">
+                                    {generatedContent.map((content, index) => (
+                                        <div key={index} className="bg-white p-4 rounded-lg border shadow-sm">
+                                            <h6 className="font-bold text-base text-gray-800">{content.titulo}</h6>
+                                            <p className="text-sm text-gray-600 mt-2 mb-3 whitespace-pre-wrap">{content.subtitulo}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {content.hashtags.map((tag, tagIndex) => (
+                                                    <span key={tagIndex} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{tag}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
                                     
-                                    <div className="border-t pt-4">
-                                    <h6 className="font-medium text-gray-800 mb-3">Selecione os trechos para usar na imagem:</h6>
+                                    {generatedText && (
+                                    <div className="border-t pt-4 mt-4">
+                                    <h6 className="font-medium text-gray-800 mb-3">Selecione os trechos do 1º conteúdo para usar na imagem:</h6>
                                     <div className="space-y-2 max-h-48 overflow-y-auto">
                                         {splitTextIntoSegments(generatedText).map((segment, index) => (
                                         <div key={index} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded">
@@ -376,9 +377,12 @@ export default function GerarConteudoPage() {
                                         </div>
                                     )}
                                     </div>
+                                    )}
                                 </div>
+                                ) : generatedText ? (
+                                    <p className="whitespace-pre-wrap text-red-500">{generatedText}</p>
                                 ) : (
-                                <p className="text-gray-500 italic">Clique em "Gerar Texto" para criar seu conteúdo...</p>
+                                <p className="text-gray-500 italic text-center py-8">Clique em "Gerar Texto" para criar seu conteúdo...</p>
                                 )}
                             </div>
                         </div>
