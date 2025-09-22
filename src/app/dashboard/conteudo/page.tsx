@@ -127,7 +127,7 @@ export default function Conteudo() {
     setShowSchedulerModal(false);
   };
 
-  const handleConnectMeta = () => {
+  const handleConnectMeta = async () => {
     if (typeof window.FB === 'undefined') {
       alert('O SDK do Facebook não foi carregado. Tente recarregar a página.');
       return;
@@ -282,7 +282,7 @@ export default function Conteudo() {
                         <div className="w-full sm:w-auto flex-shrink-0">
                            <Button
                             size="sm"
-                            onClick={account.name === 'Facebook' || account.name === 'Instagram' ? handleConnectMeta : undefined}
+                            onClick={account.name === 'Facebook' || account.name === 'Instagram' ? () => handleConnectMeta() : undefined}
                             className={`w-full sm:w-auto transition-all ${
                               account.connected 
                                 ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' 
