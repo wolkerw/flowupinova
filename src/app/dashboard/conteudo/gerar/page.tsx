@@ -77,7 +77,6 @@ export default function GerarConteudoPage() {
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                mode: 'cors',
                 body: JSON.stringify({
                     prompt: aiPrompt,
                     tone: aiTone,
@@ -92,15 +91,19 @@ export default function GerarConteudoPage() {
 
             const responseText = await response.text();
             if (!responseText) {
-                // If the response is empty, it's not a valid JSON.
                 setGeneratedContent([]);
+                setGeneratedText("A resposta da API estava vazia.");
                 return;
             }
             
-            let data = JSON.parse(responseText);
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch(e) {
+                throw new Error("A resposta da API não é um JSON válido.");
+            }
             console.log("Resposta da API:", data);
     
-            // Logic to find the array of content
             let contentArray = [];
             if (Array.isArray(data)) {
                 contentArray = data;
@@ -108,8 +111,20 @@ export default function GerarConteudoPage() {
                 contentArray = data.output;
             } else if (Array.isArray(data) && data.length > 0 && data[0].output && Array.isArray(data[0].output)) {
                  contentArray = data[0].output;
+            } else {
+                 // Try to find the array in the response object
+                 for (const key in data) {
+                    if (Array.isArray(data[key])) {
+                        contentArray = data[key];
+                        break;
+                    }
+                }
             }
     
+            if (contentArray.length === 0) {
+                 throw new Error("Nenhum conteúdo foi encontrado na resposta da API.");
+            }
+
             setGeneratedContent(contentArray);
 
         } catch (error: any) {
