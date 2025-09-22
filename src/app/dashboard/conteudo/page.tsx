@@ -88,7 +88,7 @@ export default function Conteudo() {
         try {
             errorData = JSON.parse(responseText);
         } catch (e) {
-            throw new Error(`Falha na API do backend: ${apiResponse.status} ${apiResponse.statusText}. Resposta não é JSON.`);
+            throw new Error(`Falha na API do backend: ${apiResponse.status} ${apiResponse.statusText}. Resposta não é JSON: ${responseText}`);
         }
         throw new Error(errorData.error || "Falha ao processar a autenticação da Meta no backend.");
       }
@@ -137,7 +137,7 @@ export default function Conteudo() {
     }
   
     console.log("[DEBUG] Initiating FB.login");
-    window.FB.login(null, {
+    window.FB.login(() => {}, {
       config_id: '1144870397620037',
       response_type: 'code',
       override_default_response_type: true,
