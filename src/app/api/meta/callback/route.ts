@@ -32,14 +32,7 @@ export async function POST(request: NextRequest) {
   const appId = "826418333144156";
   const appSecret = "944e053d34b162c13408cd00ad276aa2";
   
-  const origin = request.headers.get('origin');
-  if (!origin) {
-    return NextResponse.json(
-      { success: false, error: "Could not determine request origin." },
-      { status: 400 }
-    );
-  }
-  const redirectUri = `${origin}/dashboard/conteudo`;
+  const redirectUri = "https://6000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
   console.log("[DEBUG] Using redirect_uri for token exchange:", redirectUri);
 
 
