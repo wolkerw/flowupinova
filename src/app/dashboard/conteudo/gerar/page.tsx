@@ -92,27 +92,25 @@ export default function GerarConteudoPage() {
 
             const responseText = await response.text();
             if (!responseText) {
-                throw new Error("A resposta da API está vazia.");
+                // If the response is empty, it's not a valid JSON.
+                setGeneratedContent([]);
+                return;
             }
             
-            let contentData = JSON.parse(responseText);
-            console.log("Resposta da API:", contentData);
+            let data = JSON.parse(responseText);
+            console.log("Resposta da API:", data);
     
-            // Check if the actual content is nested under an 'output' property
-            if (contentData.output && Array.isArray(contentData.output)) {
-                contentData = contentData.output;
-            }
-
-            if (!Array.isArray(contentData)) {
-                // Handle cases where the response might be a single object in an array
-                if (Array.isArray(contentData) && contentData.length > 0 && contentData[0].output) {
-                    contentData = contentData[0].output;
-                } else {
-                    throw new Error("A resposta da API não é uma lista de conteúdos.");
-                }
+            // Logic to find the array of content
+            let contentArray = [];
+            if (Array.isArray(data)) {
+                contentArray = data;
+            } else if (data.output && Array.isArray(data.output)) {
+                contentArray = data.output;
+            } else if (Array.isArray(data) && data.length > 0 && data[0].output && Array.isArray(data[0].output)) {
+                 contentArray = data[0].output;
             }
     
-            setGeneratedContent(contentData);
+            setGeneratedContent(contentArray);
 
         } catch (error: any) {
             console.error("Erro ao gerar texto:", error);
