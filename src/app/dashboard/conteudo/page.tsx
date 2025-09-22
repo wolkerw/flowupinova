@@ -44,8 +44,8 @@ export default function Conteudo() {
   ]);
 
   const socialAccounts = [
-    { name: 'Instagram', icon: Instagram, color: '#E4405F', connected: true },
-    { name: 'Facebook', icon: Facebook, color: '#1877F2', connected: true },
+    { name: 'Instagram', icon: Instagram, color: '#E4405F', connected: false },
+    { name: 'Facebook', icon: Facebook, color: '#1877F2', connected: false },
     { name: 'LinkedIn', icon: Linkedin, color: '#0A66C2', connected: false },
   ];
 
@@ -118,6 +118,11 @@ export default function Conteudo() {
     console.log("Conteúdo:", postToSchedule);
     alert("Simulação: Post agendado com sucesso!");
     setShowSchedulerModal(false);
+  };
+
+  const handleConnectMeta = () => {
+    // Esta função irá futuramente chamar o Login do Facebook
+    alert("Iniciando conexão com Meta (Facebook/Instagram)...");
   };
 
   return (
@@ -229,6 +234,7 @@ export default function Conteudo() {
                         <div className="w-full sm:w-auto flex-shrink-0">
                            <Button
                             size="sm"
+                            onClick={account.name === 'Facebook' || account.name === 'Instagram' ? handleConnectMeta : undefined}
                             className={`w-full sm:w-auto transition-all ${
                               account.connected 
                                 ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' 
