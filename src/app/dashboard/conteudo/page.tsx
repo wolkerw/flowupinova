@@ -30,6 +30,8 @@ import {
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useRouter } from "next/navigation";
+
 
 declare global {
   interface Window {
@@ -43,6 +45,7 @@ export default function Conteudo() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [postToSchedule, setPostToSchedule] = useState({ text: "", imageUrl: null });
   const [selectedAccounts, setSelectedAccounts] = useState(new Set());
+  const router = useRouter();
   
   const [connectedAccounts] = useState([
     { id: 'ig1', platform: 'instagram', name: '@impulso_app', icon: Instagram },
@@ -138,6 +141,7 @@ export default function Conteudo() {
       if (data.success) {
         alert('Conta Meta conectada com sucesso!');
         // TODO: Atualizar o estado para mostrar a conta como conectada
+        router.refresh();
       } else {
         throw new Error(data.error);
       }
@@ -154,8 +158,7 @@ export default function Conteudo() {
   
     window.FB.login((response: any) => {
       console.log('FB.login response:', response);
-      if (response.authResponse && response.authResponse.grantedScopes) {
-        console.log('Autorização concedida.');
+      if (response.authResponse) {
         const code = response.authResponse.code;
         if (code) {
           processMetaAuthCode(code);
@@ -167,13 +170,23 @@ export default function Conteudo() {
         alert('A autorização foi cancelada ou falhou.');
       }
     }, {
-      scope: 'email,public_profile,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_insights',
-      redirect_uri: `${window.location.origin}/dashboard/conteudo`,
+      config_id: '1504958183427014', // Business Login configuration ID
       response_type: 'code',
-      auth_type: 'rerequest',
-      config_id: '1504958183427014',
+      override_default_response_type: true,
     });
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state'); // O 'state' pode ser usado para segurança
+
+    // Remove os parâmetros da URL para evitar que sejam processados novamente.
+    if(code && state) {
+      processMetaAuthCode(code);
+      window.history.replaceState({}, document.title, "/dashboard/conteudo");
+    }
+  }, []);
 
 
   return (
