@@ -80,8 +80,6 @@ export default function GerarConteudoPage() {
                 body: JSON.stringify({
                     prompt: aiPrompt,
                     tone: aiTone,
-                    contentType: 'text',
-                    step: 1
                 })
             });
     
@@ -104,7 +102,8 @@ export default function GerarConteudoPage() {
             }
             console.log("Resposta da API:", data);
     
-            const contentData = Array.isArray(data) ? data : data.output;
+            // A resposta do webhook é a própria lista de conteúdos
+            const contentData = data;
     
             if (!Array.isArray(contentData)) {
                 throw new Error("A resposta da API não é uma lista de conteúdos.");
