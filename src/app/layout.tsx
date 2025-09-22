@@ -29,17 +29,18 @@ export default function RootLayout({
         </AuthProvider>
         <Toaster />
         <Script
+          id="fb-sdk"
           src="https://connect.facebook.net/en_US/sdk.js"
           strategy="lazyOnload"
           onLoad={() => {
-            window.fbAsyncInit = function() {
+            if (window.FB) {
               window.FB.init({
                 appId      : '826418333144156',
                 cookie     : true,                     
                 xfbml      : true,                     
                 version    : 'v19.0'
               });
-            };
+            }
           }}
         />
       </body>
