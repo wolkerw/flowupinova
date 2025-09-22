@@ -16,9 +16,12 @@ import {
   Check,
   Paperclip,
   Calendar as CalendarIcon,
-  ArrowLeft
+  ArrowLeft,
+  CheckCircle2
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
 
 type GeneratedContent = {
     titulo: string;
@@ -32,6 +35,7 @@ export default function GerarConteudoPage() {
     const [aiPrompt, setAiPrompt] = useState("");
     const [aiTone, setAiTone] = useState("");
     const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+    const [selectedContentIndex, setSelectedContentIndex] = useState<number | null>(null);
     const [generatedText, setGeneratedText] = useState("");
     const [generatedImages, setGeneratedImages] = useState<string[]>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -66,7 +70,7 @@ export default function GerarConteudoPage() {
         setLoadingAI(true);
         setGeneratedContent([]);
         setGeneratedText("");
-        setSelectedTextSegments(new Set());
+        setSelectedContentIndex(null);
     
         try {
             const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
@@ -100,15 +104,6 @@ export default function GerarConteudoPage() {
     
             setGeneratedContent(contentData);
 
-            // Combina o primeiro conteúdo gerado para os próximos passos
-            if (contentData.length > 0) {
-                const firstContent = contentData[0];
-                const combinedText = `${firstContent.titulo}\n\n${firstContent.subtitulo}\n\n${firstContent.hashtags.join(' ')}`;
-                setGeneratedText(combinedText);
-                const segments = splitTextIntoSegments(combinedText);
-                setSelectedTextSegments(new Set(segments.map((_, index) => index)));
-            }
-    
         } catch (error: any) {
             console.error("Erro ao gerar texto:", error);
             setGeneratedText(`Desculpe, não foi possível gerar o texto. Erro: ${error.message}`);
@@ -117,29 +112,20 @@ export default function GerarConteudoPage() {
         }
     };
 
-    const handleSegmentToggle = (segmentIndex: number) => {
-        setSelectedTextSegments(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(segmentIndex)) {
-                newSet.delete(segmentIndex);
-            } else {
-                newSet.add(segmentIndex);
-            }
-            return newSet;
-        });
+    const handleContentSelection = (index: number) => {
+        setSelectedContentIndex(index);
+        const selected = generatedContent[index];
+        if (selected) {
+            const combinedText = `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags.join(' ')}`;
+            setGeneratedText(combinedText);
+            setImagePrompt(`Criar uma imagem para acompanhar este conteúdo: ${combinedText.substring(0, 200)}...`);
+        }
     };
 
     const getComposedText = () => {
-        if (!generatedText) return "";
-        const segments = splitTextIntoSegments(generatedText);
-        const selectedSegmentsArray = Array.from(selectedTextSegments).sort((a, b) => a - b);
-        return selectedSegmentsArray.map(index => segments[index]?.trim()).filter(Boolean).join('\n\n');
-    };
-
-    const getSelectedTextForImagePrompt = () => {
-        const composedText = getComposedText();
-        if (!composedText) return "";
-        return `Criar uma imagem para acompanhar este conteúdo: ${composedText.substring(0, 200)}...`;
+        if (selectedContentIndex === null || !generatedContent[selectedContentIndex]) return "";
+        const selected = generatedContent[selectedContentIndex];
+        return `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags.join(' ')}`;
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,10 +190,6 @@ export default function GerarConteudoPage() {
     };
 
     const handleNextStep = () => {
-        if (currentStep === 1) {
-            const imagePromptFromSelection = getSelectedTextForImagePrompt();
-            setImagePrompt(imagePromptFromSelection);
-        }
         setCurrentStep(currentStep + 1);
     };
 
@@ -309,27 +291,7 @@ export default function GerarConteudoPage() {
                             </div>
 
                             <div className="bg-gray-50 rounded-lg p-4 min-h-[200px]">
-                                <div className="flex items-center justify-between mb-4">
-                                <h5 className="font-medium text-gray-900">Sugestões de Conteúdo</h5>
-                                {generatedText && (
-                                    <div className="flex gap-2">
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={() => setSelectedTextSegments(new Set(splitTextIntoSegments(generatedText).map((_, i) => i)))}
-                                    >
-                                        Selecionar Tudo
-                                    </Button>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={() => setSelectedTextSegments(new Set())}
-                                    >
-                                        Limpar Seleção
-                                    </Button>
-                                    </div>
-                                )}
-                                </div>
+                                <h5 className="font-medium text-gray-900 mb-4">Sugestões de Conteúdo (Escolha 1)</h5>
                                 
                                 {loadingAI ? (
                                 <div className="flex items-center justify-center h-full text-gray-500">
@@ -337,50 +299,31 @@ export default function GerarConteudoPage() {
                                     <p>Gerando texto...</p>
                                 </div>
                                 ) : generatedContent.length > 0 ? (
-                                <div className="space-y-4">
-                                    {generatedContent.map((content, index) => (
-                                        <div key={index} className="bg-white p-4 rounded-lg border shadow-sm">
-                                            <h6 className="font-bold text-base text-gray-800">{content.titulo}</h6>
-                                            <p className="text-sm text-gray-600 mt-2 mb-3 whitespace-pre-wrap">{content.subtitulo}</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {content.hashtags.map((tag, tagIndex) => (
-                                                    <span key={tagIndex} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{tag}</span>
-                                                ))}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {generatedContent.map((content, index) => {
+                                        const isSelected = selectedContentIndex === index;
+                                        return (
+                                            <div 
+                                                key={index}
+                                                onClick={() => handleContentSelection(index)}
+                                                className={cn(
+                                                    "bg-white p-4 rounded-lg border-2 shadow-sm cursor-pointer transition-all relative",
+                                                    isSelected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200 hover:border-gray-300"
+                                                )}
+                                            >
+                                                {isSelected && (
+                                                    <CheckCircle2 className="w-5 h-5 text-white bg-blue-500 rounded-full absolute -top-2 -right-2" />
+                                                )}
+                                                <h6 className="font-bold text-base text-gray-800">{content.titulo}</h6>
+                                                <p className="text-sm text-gray-600 mt-2 mb-3 whitespace-pre-wrap">{content.subtitulo}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {content.hashtags.map((tag, tagIndex) => (
+                                                        <span key={tagIndex} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{tag}</span>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                    
-                                    {generatedText && (
-                                    <div className="border-t pt-4 mt-4">
-                                    <h6 className="font-medium text-gray-800 mb-3">Selecione os trechos do 1º conteúdo para usar na imagem:</h6>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                                        {splitTextIntoSegments(generatedText).map((segment, index) => (
-                                        <div key={index} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded">
-                                            <Checkbox
-                                            id={`segment-${index}`}
-                                            checked={selectedTextSegments.has(index)}
-                                            onCheckedChange={() => handleSegmentToggle(index)}
-                                            className="mt-1"
-                                            />
-                                            <label htmlFor={`segment-${index}`} className="text-sm text-gray-700 flex-1 cursor-pointer">
-                                            {segment.trim()}
-                                            </label>
-                                        </div>
-                                        ))}
-                                    </div>
-                                    
-                                    {selectedTextSegments.size > 0 && (
-                                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                                        <p className="text-xs text-blue-700 font-medium mb-1">
-                                            Prévia do prompt para imagem ({selectedTextSegments.size} trecho{selectedTextSegments.size !== 1 ? 's' : ''} selecionado{selectedTextSegments.size !== 1 ? 's' : ''}):
-                                        </p>
-                                        <p className="text-sm text-blue-800 italic">
-                                            {getSelectedTextForImagePrompt()}
-                                        </p>
-                                        </div>
-                                    )}
-                                    </div>
-                                    )}
+                                        )
+                                    })}
                                 </div>
                                 ) : generatedText ? (
                                     <p className="whitespace-pre-wrap text-red-500">{generatedText}</p>
@@ -573,7 +516,7 @@ export default function GerarConteudoPage() {
                             </Button>
                             <Button 
                                 onClick={handleNextStep}
-                                disabled={!generatedText || selectedTextSegments.size === 0}
+                                disabled={selectedContentIndex === null}
                                 className="bg-blue-600 hover:bg-blue-700"
                             >
                                 Próximo
@@ -609,3 +552,4 @@ export default function GerarConteudoPage() {
         </div>
     );
 }
+
