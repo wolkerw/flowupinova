@@ -102,12 +102,16 @@ export default function GerarConteudoPage() {
             }
             console.log("Resposta da API:", data);
     
-            const contentData = data?.output?.publicacoes;
-    
-            if (!Array.isArray(contentData)) {
-                throw new Error("A resposta da API não contém 'output.publicacoes' como uma lista de conteúdos.");
+             if (!Array.isArray(data)) {
+                throw new Error("A resposta da API não é uma lista de conteúdos.");
             }
-    
+
+            const contentData = data.map(item => item['output.publicacoes']).filter(Boolean);
+
+            if (contentData.length === 0) {
+                throw new Error("A resposta da API não continha publicações válidas no formato esperado.");
+            }
+
             setGeneratedContent(contentData);
 
         } catch (error: any) {
