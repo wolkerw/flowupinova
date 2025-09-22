@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -26,13 +24,14 @@ import {
   Check,
   Paperclip,
   Link as LinkIcon,
-  Settings
+  Settings,
+  Users,
+  BarChart,
+  RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useRouter } from "next/navigation";
-
+import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 
 declare global {
   interface Window {
@@ -47,18 +46,86 @@ export default function Conteudo() {
   const [postToSchedule, setPostToSchedule] = useState({ text: "", imageUrl: null });
   const [selectedAccounts, setSelectedAccounts] = useState(new Set());
   const router = useRouter();
+
+  const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  const [connectedAccounts] = useState([
+  const connectedAccounts = [
     { id: 'ig1', platform: 'instagram', name: '@impulso_app', icon: Instagram },
     { id: 'fb1', platform: 'facebook', name: 'Página Impulso Marketing', icon: Facebook },
     { id: 'li1', platform: 'linkedin', name: 'Impulso Co.', icon: Linkedin },
-  ]);
-
-  const socialAccounts = [
-    { name: 'Instagram', icon: Instagram, color: '#E4405F', connected: false },
-    { name: 'Facebook', icon: Facebook, color: '#1877F2', connected: false },
-    { name: 'LinkedIn', icon: Linkedin, color: '#0A66C2', connected: false },
   ];
+
+  const fetchMetaConnection = async () => {
+    setLoading(true);
+    const data = await getMetaConnection();
+    setMetaData(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+
+    const processCode = async (authCode: string) => {
+      await processMetaAuthCode(authCode);
+      window.history.replaceState({}, document.title, "/dashboard/conteudo");
+    };
+
+    if (code && state) {
+      processCode(code);
+    } else {
+      fetchMetaConnection();
+    }
+  }, []);
+
+  const processMetaAuthCode = async (code: string) => {
+    setLoading(true);
+    try {
+      const apiResponse = await fetch('/api/meta/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code }),
+      });
+      const data = await apiResponse.json();
+      if (data.success) {
+        alert('Conta Meta conectada com sucesso!');
+        setMetaData(data.data);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      alert(`Falha ao conectar a conta Meta: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleConnectMeta = () => {
+    if (typeof window.FB === 'undefined') {
+      alert('O SDK do Facebook não foi carregado. Tente recarregar a página.');
+      return;
+    }
+  
+    window.FB.login((response: any) => {
+      console.log('FB.login response:', response);
+      if (response.authResponse) {
+        const code = response.authResponse.code;
+        if (code) {
+           processMetaAuthCode(code);
+        } else {
+           alert('Não foi possível obter o código de autorização do Facebook.');
+        }
+      } else {
+        console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
+      }
+    }, {
+      config_id: '1144870397620037',
+      response_type: 'code',
+      override_default_response_type: true
+    });
+  };
 
   const scheduledPosts = [
     {
@@ -131,75 +198,94 @@ export default function Conteudo() {
     setShowSchedulerModal(false);
   };
 
-  const processMetaAuthCode = async (code: string) => {
-    try {
-      const apiResponse = await fetch('/api/meta/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code }),
-      });
-      const data = await apiResponse.json();
-      if (data.success) {
-        alert('Conta Meta conectada com sucesso!');
-        // TODO: Atualizar o estado para mostrar a conta como conectada
-        router.refresh();
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      alert(`Falha ao conectar a conta Meta: ${error.message}`);
-    }
-  };
+  const SocialConnectionCard = ({ platform, icon: Icon, color, data, onConnect }: { platform: string, icon: React.FC<any>, color: string, data: MetaConnectionData | null, onConnect: () => void }) => {
+    const isConnected = data?.isConnected;
+    const isInstagram = platform === 'Instagram';
+    const profileName = isInstagram ? data?.instagramAccountName : data?.facebookPageName;
+    const followers = isInstagram ? data?.igFollowersCount : data?.followersCount;
+    const profilePic = isInstagram ? data?.igProfilePictureUrl : data?.profilePictureUrl;
   
-  const handleConnectMeta = () => {
-    if (typeof window.FB === 'undefined') {
-      alert('O SDK do Facebook não foi carregado. Tente recarregar a página.');
-      return;
-    }
-  
-    window.FB.login((response: any) => {
-      console.log('FB.login response:', response);
-      if (response.authResponse) {
-        const code = response.authResponse.code;
-        if (code) {
-          processMetaAuthCode(code);
-        } else {
-           alert('Não foi possível obter o código de autorização do Facebook.');
-        }
-      } else {
-        console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
-        alert('A autorização foi cancelada ou falhou.');
-      }
-    }, {
-      config_id: '1144870397620037', // Business Login configuration ID
-      response_type: 'code',
-      override_default_response_type: true,
-    });
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="p-4 border rounded-xl transition-all duration-300 ease-in-out hover:shadow-md hover:border-blue-200"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: color + '1A'}}>
+              <Icon className="w-6 h-6" style={{ color: color }} />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900">{platform}</h4>
+              <p className={`text-xs font-medium ${isConnected ? 'text-green-600' : 'text-gray-500'}`}>
+                {isConnected ? `Conectado como ${profileName}` : 'Não conectado'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="w-full sm:w-auto flex-shrink-0">
+             <Button
+              size="sm"
+              onClick={onConnect}
+              disabled={loading}
+              className={`w-full sm:w-auto transition-all ${
+                isConnected 
+                  ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' 
+                  : 'text-white border-transparent'
+              }`}
+              style={!isConnected ? { background: 'linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)' } : {}}
+            >
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : isConnected ? (
+                <>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Gerenciar
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Conectar
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+        {isConnected && (
+             <Card className="mt-4 bg-gray-50 border-gray-200">
+                <CardHeader className="p-3">
+                    <CardTitle className="text-sm font-semibold flex justify-between items-center">
+                        Métricas Principais
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchMetaConnection()}>
+                            <RefreshCw className="w-3 h-3"/>
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0 grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                        {profilePic ? <img src={profilePic} className="w-8 h-8 rounded-full" alt="profile"/> : <Users className="w-6 h-6 text-gray-500"/>}
+                        <div>
+                            <p className="text-xs text-gray-600">Seguidores</p>
+                            <p className="text-base font-bold">{followers?.toLocaleString() ?? 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <BarChart className="w-6 h-6 text-gray-500"/>
+                        <div>
+                            <p className="text-xs text-gray-600">Alcance (30d)</p>
+                            <p className="text-base font-bold">12.3K</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
+      </motion.div>
+    );
   };
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state'); // O 'state' pode ser usado para segurança
-
-    // Remove os parâmetros da URL para evitar que sejam processados novamente.
-    if(code && state) {
-      processMetaAuthCode(code);
-      window.history.replaceState({}, document.title, "/dashboard/conteudo");
-    }
-  }, []);
 
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      <style>{`
-        :root {
-          --flowup-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
-          --flowup-cyan: #7DD3FC;
-          --flowup-blue: #3B82F6;
-        }
-      `}</style>
-
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
@@ -242,7 +328,6 @@ export default function Conteudo() {
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    locale={ptBR}
                     className="rounded-md border-none"
                   />
                   <div className="mt-4 space-y-2">
@@ -275,58 +360,16 @@ export default function Conteudo() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {socialAccounts.map((account, index) => (
-                    <motion.div
-                      key={account.name}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="p-4 border rounded-xl transition-all duration-300 ease-in-out hover:shadow-md hover:border-blue-200"
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: account.color + '1A'}}>
-                            <account.icon className="w-6 h-6" style={{ color: account.color }} />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{account.name}</h4>
-                            <p className={`text-xs font-medium ${account.connected ? 'text-green-600' : 'text-gray-500'}`}>
-                              {account.connected ? 'Conectado' : 'Não conectado'}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="w-full sm:w-auto flex-shrink-0">
-                           <Button
-                            size="sm"
-                            onClick={() => {
-                              if (account.name === 'Facebook' || account.name === 'Instagram') {
-                                handleConnectMeta();
-                              }
-                            }}
-                            className={`w-full sm:w-auto transition-all ${
-                              account.connected 
-                                ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' 
-                                : 'text-white border-transparent'
-                            }`}
-                            style={!account.connected ? { background: 'var(--flowup-gradient)' } : {}}
-                          >
-                            {account.connected ? (
-                              <>
-                                <Settings className="w-4 h-4 mr-2" />
-                                Gerenciar
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Conectar
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : (
+                    <>
+                      <SocialConnectionCard platform="Facebook" icon={Facebook} color="#1877F2" data={metaData} onConnect={handleConnectMeta} />
+                      <SocialConnectionCard platform="Instagram" icon={Instagram} color="#E4405F" data={metaData} onConnect={handleConnectMeta} />
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -479,7 +522,7 @@ export default function Conteudo() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Data
                   </label>
-                  <Input type="date" defaultValue={format(new Date(), "yyyy-MM-dd")}/>
+                  <Input type="date" defaultValue={new Date().toISOString().split('T')[0]}/>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -504,5 +547,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
