@@ -58,27 +58,16 @@ export default function Conteudo() {
 
   const fetchMetaConnection = async () => {
     setLoading(true);
-    const data = await getMetaConnection();
-    setMetaData(data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-
-    const processCode = async (authCode: string) => {
-      await processMetaAuthCode(authCode);
-      window.history.replaceState({}, document.title, "/dashboard/conteudo");
-    };
-
-    if (code && state) {
-      processCode(code);
-    } else {
-      fetchMetaConnection();
+    try {
+        const data = await getMetaConnection();
+        setMetaData(data);
+    } catch (error) {
+        console.error("Failed to fetch meta connection:", error);
+        alert("Não foi possível carregar os dados da conexão Meta.");
+    } finally {
+        setLoading(false);
     }
-  }, []);
+  };
 
   const processMetaAuthCode = async (code: string) => {
     setLoading(true);
@@ -86,21 +75,40 @@ export default function Conteudo() {
       const apiResponse = await fetch('/api/meta/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code }),
+        body: JSON.stringify({ code }),
       });
       const data = await apiResponse.json();
       if (data.success) {
         alert('Conta Meta conectada com sucesso!');
+        // Atualiza o estado local com os dados retornados pela API
         setMetaData(data.data);
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || "Falha ao processar a autenticação da Meta.");
       }
     } catch (error: any) {
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
+      // Em caso de erro, busca o último estado conhecido do banco de dados.
+      await fetchMetaConnection();
     } finally {
       setLoading(false);
+      // Limpa os parâmetros da URL
+      window.history.replaceState({}, document.title, "/dashboard/conteudo");
     }
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state'); // O state pode ser usado para validação
+
+    if (code && state) {
+      processMetaAuthCode(code);
+    } else {
+      fetchMetaConnection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   
   const handleConnectMeta = () => {
     if (typeof window.FB === 'undefined') {
@@ -109,21 +117,22 @@ export default function Conteudo() {
     }
   
     window.FB.login((response: any) => {
-      console.log('FB.login response:', response);
-      if (response.authResponse) {
-        const code = response.authResponse.code;
-        if (code) {
-           processMetaAuthCode(code);
-        } else {
-           alert('Não foi possível obter o código de autorização do Facebook.');
-        }
+      // O callback do FB.login não precisa ser async.
+      // A lógica async está em processMetaAuthCode.
+      if (response.authResponse && response.authResponse.code) {
+        // A função processMetaAuthCode já é chamada pelo useEffect
+        // quando a URL muda. O redirecionamento com o código na URL
+        // é o gatilho. Não é necessário chamar aqui.
+        // Apenas recarregamos a página ou esperamos o useEffect pegar a mudança
+        // que o redirect_uri causará.
+        // A lógica do redirect fará a página recarregar e o useEffect fará o resto.
       } else {
         console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
       }
     }, {
       config_id: '1144870397620037',
       response_type: 'code',
-      override_default_response_type: true
+      override_default_response_type: true,
     });
   };
 
@@ -220,7 +229,7 @@ export default function Conteudo() {
             <div>
               <h4 className="font-semibold text-gray-900">{platform}</h4>
               <p className={`text-xs font-medium ${isConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                {isConnected ? `Conectado como ${profileName}` : 'Não conectado'}
+                {isConnected && profileName ? `Conectado como ${profileName}` : 'Não conectado'}
               </p>
             </div>
           </div>
@@ -360,7 +369,7 @@ export default function Conteudo() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {loading ? (
+                  {loading && !metaData ? (
                     <div className="flex items-center justify-center p-8">
                       <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                     </div>
@@ -547,3 +556,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
