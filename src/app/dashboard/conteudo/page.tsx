@@ -31,6 +31,13 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+declare global {
+  interface Window {
+    FB: any;
+    fbAsyncInit: () => void;
+  }
+}
+
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
@@ -97,7 +104,7 @@ export default function Conteudo() {
     setShowSchedulerModal(true);
   };
 
-  const handleAccountSelection = (accountId) => {
+  const handleAccountSelection = (accountId: any) => {
     setSelectedAccounts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(accountId)) {
@@ -121,9 +128,50 @@ export default function Conteudo() {
   };
 
   const handleConnectMeta = () => {
-    // Esta função irá futuramente chamar o Login do Facebook
-    alert("Iniciando conexão com Meta (Facebook/Instagram)...");
+    if (typeof window.FB === 'undefined') {
+      alert('O SDK do Facebook não foi carregado. Tente recarregar a página.');
+      return;
+    }
+
+    window.FB.login(async (response: any) => {
+      console.log('FB.login response:', response);
+      if (response.authResponse && response.authResponse.grantedScopes) {
+        console.log('Autorização concedida.');
+        const code = response.authResponse.code;
+        if (code) {
+          try {
+            const apiResponse = await fetch('/api/meta/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: code }),
+            });
+            const data = await apiResponse.json();
+            if (data.success) {
+              alert('Conta Meta conectada com sucesso!');
+              // TODO: Atualizar o estado para mostrar a conta como conectada
+            } else {
+              throw new Error(data.error);
+            }
+          } catch (error: any) {
+            alert(`Falha ao conectar a conta Meta: ${error.message}`);
+          }
+        } else {
+           alert('Não foi possível obter o código de autorização do Facebook.');
+        }
+      } else {
+        console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
+        alert('A autorização foi cancelada ou falhou.');
+      }
+    }, {
+      scope: 'email,public_profile,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_insights',
+      // Este é o mesmo redirect_uri configurado no backend e no seu app da Meta
+      redirect_uri: `${window.location.origin}/dashboard/conteudo`,
+      response_type: 'code', // Solicita um código de autorização
+      auth_type: 'rerequest',
+      config_id: '1504958183427014', // Você pode precisar criar uma Configuração de Login no seu App da Meta
+    });
   };
+
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -285,12 +333,12 @@ export default function Conteudo() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-3">
-                        {React.createElement(typeIcons[post.type], { 
+                        {React.createElement(typeIcons[post.type as keyof typeof typeIcons], { 
                           className: "w-5 h-5 text-gray-500" 
                         })}
                         <div className="flex">
                           {post.platforms.map((platform, pIdx) => {
-                            const PlatformIcon = platformIcons[platform];
+                            const PlatformIcon = platformIcons[platform as keyof typeof platformIcons];
                             return (
                               <PlatformIcon 
                                 key={platform}

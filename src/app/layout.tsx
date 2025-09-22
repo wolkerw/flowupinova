@@ -1,7 +1,10 @@
+"use client";
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth/auth-provider';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'FlowUp Chat',
@@ -25,9 +28,21 @@ export default function RootLayout({
           {children}
         </AuthProvider>
         <Toaster />
+        <Script
+          src="https://connect.facebook.net/en_US/sdk.js"
+          strategy="lazyOnload"
+          onLoad={() => {
+            window.fbAsyncInit = function() {
+              window.FB.init({
+                appId      : '826418333144156',
+                cookie     : true,                     
+                xfbml      : true,                     
+                version    : 'v19.0'
+              });
+            };
+          }}
+        />
       </body>
     </html>
   );
 }
-
-    

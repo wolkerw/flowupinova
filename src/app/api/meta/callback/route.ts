@@ -11,8 +11,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appId = "YOUR_FACEBOOK_APP_ID";
-  const appSecret = "YOUR_FACEBOOK_APP_SECRET";
+  const appId = "826418333144156";
+  const appSecret = "944e053d34b162c13408cd00ad276aa2";
   
   const origin = request.headers.get('origin');
   if (!origin) {
