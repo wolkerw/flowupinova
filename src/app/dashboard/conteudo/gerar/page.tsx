@@ -139,7 +139,7 @@ export default function GerarConteudoPage() {
         setSelectedContentIndex(index);
         const selected = generatedContent[index];
         if (selected) {
-            const combinedText = `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags.join(' ')}`;
+            const combinedText = `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags ? selected.hashtags.join(' ') : ''}`;
             setGeneratedText(combinedText);
             setImagePrompt(`Criar uma imagem para acompanhar este conteúdo: ${combinedText.substring(0, 200)}...`);
         }
@@ -148,7 +148,7 @@ export default function GerarConteudoPage() {
     const getComposedText = () => {
         if (selectedContentIndex === null || !generatedContent[selectedContentIndex]) return "";
         const selected = generatedContent[selectedContentIndex];
-        return `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags.join(' ')}`;
+        return `${selected.titulo}\n\n${selected.subtitulo}\n\n${selected.hashtags ? selected.hashtags.join(' ') : ''}`;
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,7 +340,7 @@ export default function GerarConteudoPage() {
                                                 <h6 className="font-bold text-base text-gray-800">{content.titulo}</h6>
                                                 <p className="text-sm text-gray-600 mt-2 mb-3 whitespace-pre-wrap">{content.subtitulo}</p>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {content.hashtags.map((tag, tagIndex) => (
+                                                    {Array.isArray(content.hashtags) && content.hashtags.map((tag, tagIndex) => (
                                                         <span key={tagIndex} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{tag}</span>
                                                     ))}
                                                 </div>
