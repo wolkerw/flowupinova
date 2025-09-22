@@ -119,7 +119,7 @@ export default function Conteudo() {
     const code = urlParams.get('code');
     const state = urlParams.get('state');
 
-    if (code && state) {
+    if (code) {
       console.log("[DEBUG] Auth code found in URL. Processing...");
       processMetaAuthCode(code);
     } else {
@@ -131,17 +131,17 @@ export default function Conteudo() {
 
   
   const handleConnectMeta = () => {
-    if (typeof window.FB === 'undefined') {
-      alert('O SDK do Facebook não foi carregado. Tente recarregar a página.');
-      return;
-    }
-  
-    console.log("[DEBUG] Initiating FB.login");
-    window.FB.login(() => {}, {
-      config_id: '1144870397620037',
-      response_type: 'code',
-      override_default_response_type: true,
-    });
+    setLoading(true);
+    const appId = "826418333144156";
+    const redirectUri = window.location.href.split('?')[0]; // Use current URL without query params
+    const permissions = "instagram_basic,pages_show_list,business_management,instagram_manage_insights,pages_read_engagement,public_profile";
+    const configId = "1144870397620037"; // Your Business Login Config ID
+    
+    console.log(`[DEBUG] Redirecting to Meta for auth. Redirect URI: ${redirectUri}`);
+
+    const metaAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&config_id=${configId}`;
+
+    window.location.href = metaAuthUrl;
   };
 
   const scheduledPosts = [
@@ -564,5 +564,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    

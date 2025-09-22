@@ -20,33 +20,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
-        <Script
-          id="fb-sdk-config"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.fbAsyncInit = function() {
-                window.FB.init({
-                  appId      : '826418333144156',
-                  cookie     : true,
-                  xfbml      : true,
-                  version    : 'v19.0'
-                });
-              };
-            `,
-          }}
-        />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>
           {children}
         </AuthProvider>
         <Toaster />
-        <Script
-          id="fb-sdk"
-          src="https://connect.facebook.net/en_US/sdk.js"
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );
