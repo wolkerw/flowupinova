@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -170,7 +171,7 @@ export default function Conteudo() {
         alert('A autorização foi cancelada ou falhou.');
       }
     }, {
-      config_id: '1504958183427014', // Business Login configuration ID
+      config_id: '1144870397620037', // Business Login configuration ID
       response_type: 'code',
       override_default_response_type: true,
     });
@@ -503,3 +504,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
