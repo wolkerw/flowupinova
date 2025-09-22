@@ -104,28 +104,13 @@ export default function GerarConteudoPage() {
             }
             console.log("Resposta da API:", data);
     
-            let contentArray = [];
-            if (Array.isArray(data)) {
-                contentArray = data;
-            } else if (data.output && Array.isArray(data.output)) {
-                contentArray = data.output;
-            } else if (Array.isArray(data) && data.length > 0 && data[0].output && Array.isArray(data[0].output)) {
-                 contentArray = data[0].output;
-            } else {
-                 // Try to find the array in the response object
-                 for (const key in data) {
-                    if (Array.isArray(data[key])) {
-                        contentArray = data[key];
-                        break;
-                    }
-                }
+            const contentData = Array.isArray(data) ? data : data.output;
+    
+            if (!Array.isArray(contentData)) {
+                throw new Error("A resposta da API não é uma lista de conteúdos.");
             }
     
-            if (contentArray.length === 0) {
-                 throw new Error("Nenhum conteúdo foi encontrado na resposta da API.");
-            }
-
-            setGeneratedContent(contentArray);
+            setGeneratedContent(contentData);
 
         } catch (error: any) {
             console.error("Erro ao gerar texto:", error);
