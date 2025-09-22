@@ -69,7 +69,7 @@ export default function GerarConteudoPage() {
         setSelectedTextSegments(new Set());
     
         try {
-            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/conteudo_personal";
+            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -91,15 +91,13 @@ export default function GerarConteudoPage() {
                 throw new Error("A resposta da API está vazia.");
             }
             
-            const rawResponse = JSON.parse(responseText);
-            console.log("Resposta bruta da API:", rawResponse);
+            const contentData = JSON.parse(responseText);
+            console.log("Resposta da API:", contentData);
     
-            if (!rawResponse || !rawResponse.conteudos) {
-                throw new Error("A resposta da API não contém a propriedade 'conteudos'.");
+            if (!Array.isArray(contentData)) {
+                throw new Error("A resposta da API não é uma lista de conteúdos.");
             }
     
-            const contentData = rawResponse.conteudos;
-            
             setGeneratedContent(contentData);
 
             // Combina o primeiro conteúdo gerado para os próximos passos
