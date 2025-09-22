@@ -80,18 +80,16 @@ export default function Conteudo() {
       const data = await apiResponse.json();
       if (data.success) {
         alert('Conta Meta conectada com sucesso!');
-        // Atualiza o estado local com os dados retornados pela API
         setMetaData(data.data);
       } else {
         throw new Error(data.error || "Falha ao processar a autenticação da Meta.");
       }
     } catch (error: any) {
+      console.error(`Falha ao conectar a conta Meta: ${error.message}`);
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
-      // Em caso de erro, busca o último estado conhecido do banco de dados.
       await fetchMetaConnection();
     } finally {
       setLoading(false);
-      // Limpa os parâmetros da URL
       window.history.replaceState({}, document.title, "/dashboard/conteudo");
     }
   };
@@ -99,7 +97,7 @@ export default function Conteudo() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state'); // O state pode ser usado para validação
+    const state = urlParams.get('state');
 
     if (code && state) {
       processMetaAuthCode(code);
@@ -116,18 +114,9 @@ export default function Conteudo() {
       return;
     }
   
-    window.FB.login((response: any) => {
-      // O callback do FB.login não precisa ser async.
-      // A lógica async está em processMetaAuthCode.
-      if (response.authResponse && response.authResponse.code) {
-        // A função processMetaAuthCode já é chamada pelo useEffect
-        // quando a URL muda. O redirecionamento com o código na URL
-        // é o gatilho. Não é necessário chamar aqui.
-        // A lógica do redirect fará a página recarregar e o useEffect fará o resto.
-      } else {
-        console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
-      }
-    }, {
+    // Esta função invoca o diálogo. O SDK do JS cuida do redirecionamento
+    // para a 'redirect_uri' configurada no seu painel de Apps da Meta.
+    window.FB.login(null, {
       config_id: '1144870397620037',
       response_type: 'code',
       override_default_response_type: true,
@@ -226,7 +215,7 @@ export default function Conteudo() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-900">{platform}</h4>
-              <p className={`text-xs font-medium ${isConnected ? 'text-green-600' : 'text-gray-500'}`}>
+              <p className={`text-xs font-medium ${isConnected && profileName ? 'text-green-600' : 'text-gray-500'}`}>
                 {isConnected && profileName ? `Conectado como ${profileName}` : 'Não conectado'}
               </p>
             </div>
@@ -554,3 +543,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    

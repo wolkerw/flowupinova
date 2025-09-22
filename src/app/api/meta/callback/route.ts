@@ -6,8 +6,14 @@ import { updateMetaConnection } from "@/lib/services/meta-service";
 
 async function fetchWithToken(url: string, token: string) {
     const response = await fetch(`${url}&access_token=${token}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: { message: 'Failed to parse error response' }}));
+        console.error(`Graph API error response from ${url.split('?')[0]}:`, errorData);
+        throw new Error(`Graph API error at ${url.split('?')[0]}: ${errorData.error?.message || `HTTP status ${response.status}`}`);
+    }
     const data = await response.json();
     if (data.error) {
+        console.error(`Graph API error from ${url.split('?')[0]}:`, data.error);
         throw new Error(`Graph API error at ${url.split('?')[0]}: ${data.error.message}`);
     }
     return data;
@@ -36,35 +42,40 @@ export async function POST(request: NextRequest) {
   const redirectUri = `${origin}/dashboard/conteudo`;
 
   try {
-    // Step 1: Exchange code for a short-lived access token
+    console.log("Exchanging code for short-lived token...");
     const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${redirectUri}&client_secret=${appSecret}&code=${code}`;
     const tokenResponse = await fetch(tokenUrl);
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
+      console.error("Error getting short-lived token:", tokenData.error);
       throw new Error(`Error getting short-lived token: ${tokenData.error.message}`);
     }
     const shortLivedToken = tokenData.access_token;
+    console.log("Short-lived token received.");
 
-    // Step 2: Exchange short-lived token for a long-lived one
+    console.log("Exchanging for long-lived token...");
     const longLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
     const longLivedTokenResponse = await fetch(longLivedTokenUrl);
     const longLivedTokenData = await longLivedTokenResponse.json();
     
     if (longLivedTokenData.error) {
+        console.error("Error getting long-lived token:", longLivedTokenData.error);
         throw new Error(`Error getting long-lived token: ${longLivedTokenData.error.message}`);
     }
     const longLivedToken = longLivedTokenData.access_token;
+    console.log("Long-lived token received.");
 
-    // Step 3: Fetch user's pages
-    const pagesData = await fetchWithToken(`https://graph.facebook.com/me/accounts?fields=name,access_token,instagram_business_account{name,username,followers_count,profile_picture_url},followers_count,picture`, longLivedToken);
+    console.log("Fetching user's pages...");
+    const pagesData = await fetchWithToken(`https://graph.facebook.com/me/accounts?fields=name,access_token,instagram_business_account{name,username,followers_count,profile_picture_url},followers_count,picture{url}`, longLivedToken);
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa de pelo menos uma página para conectar.");
     }
-    const page = pagesData.data[0]; // Use the first page
-
+    const page = pagesData.data[0];
+    console.log(`Found page: ${page.name}`);
     const instagramAccount = page.instagram_business_account;
+    if(instagramAccount) console.log(`Found Instagram account: ${instagramAccount.username}`);
 
     const metaData = {
         longLivedToken: longLivedToken,
@@ -79,7 +90,9 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
 
+    console.log("Updating database with Meta data...");
     await updateMetaConnection(metaData);
+    console.log("Database update successful.");
 
     return NextResponse.json({
       success: true,
@@ -96,3 +109,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+    
