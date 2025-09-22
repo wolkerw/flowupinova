@@ -95,11 +95,21 @@ export default function GerarConteudoPage() {
                 throw new Error("A resposta da API está vazia.");
             }
             
-            const contentData = JSON.parse(responseText);
+            let contentData = JSON.parse(responseText);
             console.log("Resposta da API:", contentData);
     
+            // Check if the actual content is nested under an 'output' property
+            if (contentData.output && Array.isArray(contentData.output)) {
+                contentData = contentData.output;
+            }
+
             if (!Array.isArray(contentData)) {
-                throw new Error("A resposta da API não é uma lista de conteúdos.");
+                // Handle cases where the response might be a single object in an array
+                if (Array.isArray(contentData) && contentData.length > 0 && contentData[0].output) {
+                    contentData = contentData[0].output;
+                } else {
+                    throw new Error("A resposta da API não é uma lista de conteúdos.");
+                }
             }
     
             setGeneratedContent(contentData);
