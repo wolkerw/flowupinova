@@ -102,11 +102,10 @@ export default function GerarConteudoPage() {
             }
             console.log("Resposta da API:", data);
     
-            // A resposta pode ser a lista diretamente ou aninhada em 'output'.
-            const contentData = Array.isArray(data) ? data : data.output;
+            const contentData = data?.output?.publicacoes;
     
             if (!Array.isArray(contentData)) {
-                throw new Error("A resposta da API não é uma lista de conteúdos.");
+                throw new Error("A resposta da API não contém 'output.publicacoes' como uma lista de conteúdos.");
             }
     
             setGeneratedContent(contentData);
@@ -559,6 +558,3 @@ export default function GerarConteudoPage() {
         </div>
     );
 }
-
-
-    
