@@ -71,41 +71,59 @@ export default function Conteudo() {
 
   const processMetaAuthCode = async (code: string) => {
     setLoading(true);
+    console.log("[DEBUG] processMetaAuthCode called with code:", code);
     try {
-      console.log("Sending auth code to backend:", code)
+      console.log("[DEBUG] Sending auth code to backend:", code);
       const apiResponse = await fetch('/api/meta/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
-      const data = await apiResponse.json();
+
+      const responseText = await apiResponse.text();
+      console.log("[DEBUG] Raw response from backend:", responseText);
+
+      if (!apiResponse.ok) {
+        let errorData;
+        try {
+            errorData = JSON.parse(responseText);
+        } catch (e) {
+            throw new Error(`Falha na API do backend: ${apiResponse.status} ${apiResponse.statusText}. Resposta não é JSON.`);
+        }
+        throw new Error(errorData.error || "Falha ao processar a autenticação da Meta no backend.");
+      }
+      
+      const data = JSON.parse(responseText);
+      console.log("[DEBUG] Parsed successful response from backend:", data);
+
       if (data.success) {
         alert('Conta Meta conectada com sucesso!');
-        setMetaData(data.data); // <-- Atualiza o estado com os dados do backend
+        setMetaData(data.data); 
       } else {
-        throw new Error(data.error || "Falha ao processar a autenticação da Meta.");
+        throw new Error(data.error || "Ocorreu um erro desconhecido no backend.");
       }
     } catch (error: any) {
-      console.error(`Falha ao conectar a conta Meta: ${error.message}`);
+      console.error("[DEBUG] Error in processMetaAuthCode:", error);
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
-      await fetchMetaConnection(); // Tenta recarregar os dados em caso de erro
+      await fetchMetaConnection(); 
     } finally {
       setLoading(false);
-      // Limpa os parâmetros da URL para evitar re-processamento
+      console.log("[DEBUG] Cleaning up URL.");
       window.history.replaceState({}, document.title, "/dashboard/conteudo");
     }
   };
 
   useEffect(() => {
+    console.log("[DEBUG] Page loaded. Checking for auth code...");
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state'); // State é usado pelo FB, é bom checar
+    const state = urlParams.get('state');
 
     if (code && state) {
-      // O código só é processado se existir na URL
+      console.log("[DEBUG] Auth code found in URL. Processing...");
       processMetaAuthCode(code);
     } else {
-      // Caso contrário, apenas busca os dados existentes
+      console.log("[DEBUG] No auth code found. Fetching existing connection data...");
       fetchMetaConnection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,6 +136,7 @@ export default function Conteudo() {
       return;
     }
   
+    console.log("[DEBUG] Initiating FB.login");
     window.FB.login(null, {
       config_id: '1144870397620037',
       response_type: 'code',
@@ -545,3 +564,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
