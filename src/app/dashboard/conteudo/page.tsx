@@ -123,8 +123,6 @@ export default function Conteudo() {
         // A função processMetaAuthCode já é chamada pelo useEffect
         // quando a URL muda. O redirecionamento com o código na URL
         // é o gatilho. Não é necessário chamar aqui.
-        // Apenas recarregamos a página ou esperamos o useEffect pegar a mudança
-        // que o redirect_uri causará.
         // A lógica do redirect fará a página recarregar e o useEffect fará o resto.
       } else {
         console.log('O usuário não autorizou o aplicativo ou fechou a janela de login.');
@@ -556,5 +554,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
