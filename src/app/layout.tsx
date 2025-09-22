@@ -1,5 +1,3 @@
-"use client";
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -22,6 +20,20 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.fbAsyncInit = function() {
+                window.FB.init({
+                  appId      : '826418333144156',
+                  cookie     : true,
+                  xfbml      : true,
+                  version    : 'v19.0'
+                });
+              };
+            `,
+          }}
+        />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>
@@ -32,16 +44,6 @@ export default function RootLayout({
           id="fb-sdk"
           src="https://connect.facebook.net/en_US/sdk.js"
           strategy="lazyOnload"
-          onLoad={() => {
-            if (window.FB) {
-              window.FB.init({
-                appId      : '826418333144156',
-                cookie     : true,                     
-                xfbml      : true,                     
-                version    : 'v19.0'
-              });
-            }
-          }}
         />
       </body>
     </html>
