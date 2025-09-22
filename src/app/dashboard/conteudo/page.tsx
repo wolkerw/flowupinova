@@ -72,6 +72,7 @@ export default function Conteudo() {
   const processMetaAuthCode = async (code: string) => {
     setLoading(true);
     try {
+      console.log("Sending auth code to backend:", code)
       const apiResponse = await fetch('/api/meta/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,16 +81,17 @@ export default function Conteudo() {
       const data = await apiResponse.json();
       if (data.success) {
         alert('Conta Meta conectada com sucesso!');
-        setMetaData(data.data);
+        setMetaData(data.data); // <-- Atualiza o estado com os dados do backend
       } else {
         throw new Error(data.error || "Falha ao processar a autenticação da Meta.");
       }
     } catch (error: any) {
       console.error(`Falha ao conectar a conta Meta: ${error.message}`);
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
-      await fetchMetaConnection();
+      await fetchMetaConnection(); // Tenta recarregar os dados em caso de erro
     } finally {
       setLoading(false);
+      // Limpa os parâmetros da URL para evitar re-processamento
       window.history.replaceState({}, document.title, "/dashboard/conteudo");
     }
   };
@@ -97,11 +99,13 @@ export default function Conteudo() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state');
+    const state = urlParams.get('state'); // State é usado pelo FB, é bom checar
 
     if (code && state) {
+      // O código só é processado se existir na URL
       processMetaAuthCode(code);
     } else {
+      // Caso contrário, apenas busca os dados existentes
       fetchMetaConnection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,8 +118,6 @@ export default function Conteudo() {
       return;
     }
   
-    // Esta função invoca o diálogo. O SDK do JS cuida do redirecionamento
-    // para a 'redirect_uri' configurada no seu painel de Apps da Meta.
     window.FB.login(null, {
       config_id: '1144870397620037',
       response_type: 'code',
@@ -543,5 +545,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    

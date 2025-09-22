@@ -4,23 +4,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
 
 
-async function fetchWithToken(url: string, token: string) {
-    const response = await fetch(`${url}&access_token=${token}`);
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: { message: 'Failed to parse error response' }}));
-        console.error(`Graph API error response from ${url.split('?')[0]}:`, errorData);
-        throw new Error(`Graph API error at ${url.split('?')[0]}: ${errorData.error?.message || `HTTP status ${response.status}`}`);
-    }
+async function fetchGraphAPI(url: string) {
+    const response = await fetch(url);
     const data = await response.json();
+
     if (data.error) {
-        console.error(`Graph API error from ${url.split('?')[0]}:`, data.error);
-        throw new Error(`Graph API error at ${url.split('?')[0]}: ${data.error.message}`);
+        console.error(`Graph API error at ${url.split('?')[0]}:`, data.error);
+        throw new Error(`Graph API error: ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
     return data;
 }
 
 export async function POST(request: NextRequest) {
   const { code } = await request.json();
+  console.log("API /api/meta/callback received code:", code);
+
 
   if (!code) {
     return NextResponse.json(
@@ -40,42 +38,39 @@ export async function POST(request: NextRequest) {
     );
   }
   const redirectUri = `${origin}/dashboard/conteudo`;
+  console.log("Using redirect_uri for token exchange:", redirectUri);
+
 
   try {
-    console.log("Exchanging code for short-lived token...");
-    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${redirectUri}&client_secret=${appSecret}&code=${code}`;
-    const tokenResponse = await fetch(tokenUrl);
-    const tokenData = await tokenResponse.json();
-
-    if (tokenData.error) {
-      console.error("Error getting short-lived token:", tokenData.error);
-      throw new Error(`Error getting short-lived token: ${tokenData.error.message}`);
-    }
+    console.log("Step 1: Exchanging code for a short-lived access token...");
+    const shortLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
+    const tokenData = await fetchGraphAPI(shortLivedTokenUrl);
     const shortLivedToken = tokenData.access_token;
-    console.log("Short-lived token received.");
+    console.log("Step 1 successful: Received short-lived token.");
 
-    console.log("Exchanging for long-lived token...");
+    console.log("Step 2: Exchanging short-lived token for a long-lived access token...");
     const longLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
-    const longLivedTokenResponse = await fetch(longLivedTokenUrl);
-    const longLivedTokenData = await longLivedTokenResponse.json();
-    
-    if (longLivedTokenData.error) {
-        console.error("Error getting long-lived token:", longLivedTokenData.error);
-        throw new Error(`Error getting long-lived token: ${longLivedTokenData.error.message}`);
-    }
+    const longLivedTokenData = await fetchGraphAPI(longLivedTokenUrl);
     const longLivedToken = longLivedTokenData.access_token;
-    console.log("Long-lived token received.");
+    console.log("Step 2 successful: Received long-lived token.");
 
-    console.log("Fetching user's pages...");
-    const pagesData = await fetchWithToken(`https://graph.facebook.com/me/accounts?fields=name,access_token,instagram_business_account{name,username,followers_count,profile_picture_url},followers_count,picture{url}`, longLivedToken);
+    console.log("Step 3: Fetching user's Facebook pages and linked Instagram accounts...");
+    const fields = "name,access_token,followers_count,picture{url},instagram_business_account{name,username,followers_count,profile_picture_url}";
+    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=${fields}&access_token=${longLivedToken}`;
+    const pagesData = await fetchGraphAPI(pagesUrl);
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa de pelo menos uma página para conectar.");
     }
     const page = pagesData.data[0];
-    console.log(`Found page: ${page.name}`);
+    console.log(`Step 3 successful: Found page '${page.name}' (ID: ${page.id})`);
+
     const instagramAccount = page.instagram_business_account;
-    if(instagramAccount) console.log(`Found Instagram account: ${instagramAccount.username}`);
+    if (instagramAccount) {
+        console.log(`Found linked Instagram account: '${instagramAccount.username}' (ID: ${instagramAccount.id})`);
+    } else {
+        console.log("No linked Instagram business account found for this page.");
+    }
 
     const metaData = {
         longLivedToken: longLivedToken,
@@ -90,9 +85,9 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
 
-    console.log("Updating database with Meta data...");
+    console.log("Step 4: Updating database with new Meta connection data...");
     await updateMetaConnection(metaData);
-    console.log("Database update successful.");
+    console.log("Step 4 successful: Database updated.");
 
     return NextResponse.json({
       success: true,
@@ -101,7 +96,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Error during Meta OAuth callback:", error);
+    console.error("Error during Meta OAuth callback flow:", error);
+    // In case of error, ensure the connection status is set to false in the DB.
     await updateMetaConnection({ isConnected: false, longLivedToken: "" });
     return NextResponse.json(
       { success: false, error: error.message },
@@ -109,5 +105,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-    
