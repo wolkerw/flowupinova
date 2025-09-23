@@ -32,6 +32,8 @@ import {
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 declare global {
   interface Window {
@@ -90,7 +92,7 @@ export default function Conteudo() {
         } catch (e) {
             throw new Error(`Falha na API do backend: ${apiResponse.status} ${apiResponse.statusText}. Resposta não é JSON: ${responseText}`);
         }
-        throw new Error(errorData.error || "Falha ao processar a autenticação da Meta no backend.");
+        throw new Error(errorData.error || "Falha ao processar la autenticação da Meta no backend.");
       }
       
       const data = JSON.parse(responseText);
@@ -114,16 +116,12 @@ export default function Conteudo() {
   };
 
   useEffect(() => {
-    console.log("[DEBUG] Page loaded. Checking for auth code...");
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state');
 
     if (code) {
-      console.log("[DEBUG] Auth code found in URL. Processing...");
       processMetaAuthCode(code);
     } else {
-      console.log("[DEBUG] No auth code found. Fetching existing connection data...");
       fetchMetaConnection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,7 +131,7 @@ export default function Conteudo() {
   const handleConnectMeta = () => {
     setLoading(true);
     const appId = "826418333144156";
-    const redirectUri = "https://6000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
+    const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const configId = "1144870397620037";
     
     console.log(`[DEBUG] Redirecting to Meta for auth. Redirect URI: ${redirectUri}`);
@@ -253,9 +251,7 @@ export default function Conteudo() {
               }`}
               style={!isConnected ? { background: 'linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)' } : {}}
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : isConnected ? (
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : isConnected ? (
                 <>
                   <Settings className="w-4 h-4 mr-2" />
                   Gerenciar
@@ -311,6 +307,12 @@ export default function Conteudo() {
         </div>
         
         <div className="flex gap-3">
+          <Button 
+            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Gerar conteúdo com IA
+          </Button>
           <Button 
             onClick={() => handleOpenScheduler()}
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
@@ -519,7 +521,7 @@ export default function Conteudo() {
                       Média
                     </label>
                     <div className="relative">
-                        <img src={postToSchedule.imageUrl} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
+                        <img src={postToSchedule.imageUrl as string} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
                     </div>
                 </div>
               )}
@@ -559,3 +561,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
