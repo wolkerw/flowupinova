@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -441,17 +441,20 @@ export default function GerarConteudoPage() {
                     </TabsContent>
                 </div>
                </Tabs>
+               <div className="mt-6 flex justify-center">
+                <Button
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  size="lg"
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  Publicar / Agendar Post
+                </Button>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(3)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
-              </Button>
-              <Button
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              >
-                Finalizar
-                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
           </Card>
