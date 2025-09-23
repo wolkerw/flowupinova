@@ -159,7 +159,7 @@ export default function GerarConteudoPage() {
               <p className="text-gray-600 mb-4">
                 Selecione uma das opções geradas para o seu post.
               </p>
-              <RadioGroup value={selectedContentId} onValuechange={setSelectedContentId}>
+              <RadioGroup value={selectedContentId} onValueChange={setSelectedContentId}>
                 {generatedContent.map((content, index) => (
                   <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
                     <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
@@ -231,4 +231,3 @@ export default function GerarConteudoPage() {
   );
 }
 
-    
