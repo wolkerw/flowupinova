@@ -166,6 +166,7 @@ export default function GerarConteudoPage() {
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       <h4 className="font-bold text-base text-gray-900">{content.titulo}</h4>
                       <p className="text-sm text-gray-600 mt-1">{content.subtitulo}</p>
+                      <p className="text-xs text-blue-500 mt-2 break-words">{content.hashtags.join(' ')}</p>
                     </Label>
                   </div>
                 ))}
@@ -229,3 +230,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
