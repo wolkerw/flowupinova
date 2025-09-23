@@ -5,11 +5,12 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
+import { cn } from "@/lib/utils";
 
 interface GeneratedContent {
   titulo: string;
@@ -23,11 +24,15 @@ export default function GerarConteudoPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const handleGenerate = async () => {
+
+  const handleGenerateText = async () => {
     setIsLoading(true);
     const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
     
+    // Mock data em caso de falha do webhook
     const mockData: GeneratedContent[] = [
       {
         titulo: "🚀 Impulsione seu Negócio com Vídeos!",
@@ -83,6 +88,22 @@ export default function GerarConteudoPage() {
       setIsLoading(false);
     }
   };
+
+  const handleGenerateImages = () => {
+    setIsLoading(true);
+    // Simulação de geração de imagens
+    setTimeout(() => {
+        const images = [
+            "https://picsum.photos/seed/img1/400/600",
+            "https://picsum.photos/seed/img2/400/600",
+            "https://picsum.photos/seed/img3/400/600"
+        ];
+        setGeneratedImages(images);
+        setSelectedImage(images[0]);
+        setIsLoading(false);
+        setStep(3);
+    }, 1500);
+  };
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
@@ -92,9 +113,9 @@ export default function GerarConteudoPage() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
         <p className="text-gray-600 mt-1">
-          {step === 1 
-            ? "Dê à nossa IA uma ideia e ela criará posts incríveis para você." 
-            : "Selecione uma opção e visualize o rascunho do seu post."}
+          {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
+          {step === 2 && "Selecione uma opção e visualize o rascunho do seu post."}
+          {step === 3 && "Escolha a imagem perfeita para o seu post."}
         </p>
       </div>
 
@@ -124,7 +145,7 @@ export default function GerarConteudoPage() {
             </CardContent>
             <CardFooter className="flex justify-end">
               <Button
-                onClick={handleGenerate}
+                onClick={handleGenerateText}
                 disabled={!postSummary.trim() || isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
@@ -183,11 +204,21 @@ export default function GerarConteudoPage() {
                 Voltar
               </Button>
               <Button
-                disabled={!selectedContentId}
+                onClick={handleGenerateImages}
+                disabled={!selectedContentId || isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
-                Próxima Etapa
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando Imagens...
+                  </>
+                ) : (
+                  <>
+                    Próxima Etapa
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -230,6 +261,62 @@ export default function GerarConteudoPage() {
             </div>
           </div>
 
+        </motion.div>
+      )}
+
+      {step === 3 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ImageIcon className="w-6 h-6 text-purple-500" />
+                Etapa 3: Escolha a imagem para o seu post
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-6">
+                A IA gerou estas imagens com base no conteúdo que você escolheu. Selecione a sua preferida.
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                {generatedImages.map((imgSrc, index) => (
+                  <div 
+                    key={index}
+                    onClick={() => setSelectedImage(imgSrc)}
+                    className={cn(
+                        "relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
+                        "ring-4 ring-offset-2",
+                        selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
+                    )}
+                  >
+                    <Image
+                      src={imgSrc}
+                      alt={`Imagem gerada ${index + 1}`}
+                      layout="fill"
+                      objectFit="cover"
+                      className="hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                disabled={!selectedImage}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                Agendar Post
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardFooter>
+          </Card>
         </motion.div>
       )}
     </div>
