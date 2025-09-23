@@ -58,9 +58,10 @@ export default function GerarConteudoPage() {
       if (!response.ok) {
         throw new Error("Falha ao buscar conteúdo da IA.");
       }
-
-      const data = await response.json();
       
+      const data = await response.json();
+      console.log("Resposta do Webhook:", data); // AQUI ESTÁ O LOG
+
       // Valida que 'data' é um array antes de mapear
       if (!Array.isArray(data)) {
          throw new Error("A resposta da API não é um array.");
