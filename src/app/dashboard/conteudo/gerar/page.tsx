@@ -59,15 +59,13 @@ export default function GerarConteudoPage() {
         throw new Error("Falha ao buscar conteúdo da IA.");
       }
       
-      const data = await response.json();
-      console.log("Resposta do Webhook:", data); // AQUI ESTÁ O LOG
+      let data = await response.json();
+      console.log("Resposta do Webhook:", data);
 
-      // Valida que 'data' é um array antes de mapear
-      if (!Array.isArray(data)) {
-         throw new Error("A resposta da API não é um array.");
-      }
+      // Garante que 'data' seja um array para o .map funcionar
+      const dataArray = Array.isArray(data) ? data : [data];
       
-      const formattedData = data.map((item: any) => item['output.publicacoes']);
+      const formattedData = dataArray.map((item: any) => item['output.publicacoes']);
 
       setGeneratedContent(formattedData);
       setSelectedContentId("0");
@@ -75,6 +73,7 @@ export default function GerarConteudoPage() {
 
     } catch (error) {
       console.error(error);
+      // Fallback para dados mockados em caso de erro
       setGeneratedContent(mockData);
       setSelectedContentId("0");
       setStep(2);
