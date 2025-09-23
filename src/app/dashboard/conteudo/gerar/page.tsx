@@ -26,8 +26,7 @@ export default function GerarConteudoPage() {
 
   const handleGenerate = async () => {
     setIsLoading(true);
-    // TODO: Substitua pela URL do seu webhook
-    const webhookUrl = "https://webhook.site/c5e93361-7501-4a25-9c31-3151b753a4e9";
+    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
     
     try {
       const response = await fetch(webhookUrl, {
@@ -44,7 +43,16 @@ export default function GerarConteudoPage() {
 
       const data = await response.json();
       
-      // Simulação de dados caso o webhook não retorne o formato esperado.
+      // Mapeia a resposta para o formato esperado, acessando item['output.publicacoes']
+      const formattedData = data.map((item: any) => item['output.publicacoes']);
+
+      setGeneratedContent(formattedData);
+      setSelectedContentId("0");
+      setStep(2);
+
+    } catch (error) {
+      console.error(error);
+      // Fallback para dados mockados em caso de erro na API
       const mockData: GeneratedContent[] = [
         {
           titulo: "🚀 Impulsione seu Negócio com Vídeos!",
@@ -62,14 +70,10 @@ export default function GerarConteudoPage() {
           hashtags: ["#Resultados", "#ROI", "#MarketingDeConteudo"]
         }
       ];
-
-      setGeneratedContent(data.length ? data : mockData);
+      setGeneratedContent(mockData);
       setSelectedContentId("0");
       setStep(2);
-
-    } catch (error) {
-      console.error(error);
-      alert("Ocorreu um erro ao gerar o conteúdo. Tente novamente.");
+      alert("Ocorreu um erro ao gerar o conteúdo. Usando dados de exemplo.");
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +159,7 @@ export default function GerarConteudoPage() {
               <p className="text-gray-600 mb-4">
                 Selecione uma das opções geradas para o seu post.
               </p>
-              <RadioGroup value={selectedContentId} onValueChange={setSelectedContentId}>
+              <RadioGroup value={selectedContentId} onValuechange={setSelectedContentId}>
                 {generatedContent.map((content, index) => (
                   <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
                     <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
@@ -225,5 +229,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
