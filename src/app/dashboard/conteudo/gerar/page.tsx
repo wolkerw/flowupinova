@@ -498,7 +498,7 @@ export default function GerarConteudoPage() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col"
+            className="bg-white rounded-xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col"
           >
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">Publicar ou Agendar Post</h3>
@@ -506,69 +506,57 @@ export default function GerarConteudoPage() {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="p-6 space-y-6 overflow-y-auto">
-              <div className="flex gap-6">
-                <div className="w-1/3">
-                  <p className="font-medium mb-2">Pré-visualização</p>
-                  <div className="relative aspect-square w-full rounded-lg overflow-hidden border">
-                    <Image src={selectedImage || ''} layout="fill" objectFit="cover" alt="Post preview" />
+            <div className="p-6 space-y-4 overflow-y-auto">
+              {[
+                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
+                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700' },
+                { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800' }
+              ].map(platform => (
+                <Card key={platform.id} className={cn("p-4", !scheduleOptions[platform.id].enabled && "bg-gray-50")}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <platform.icon className={cn("w-6 h-6", platform.color)} />
+                      <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
+                    </div>
+                    <Switch
+                      id={`switch-${platform.id}`}
+                      checked={scheduleOptions[platform.id].enabled}
+                      onCheckedChange={(checked) => handleScheduleOptionChange(platform.id, 'enabled', checked)}
+                    />
                   </div>
-                  <Textarea className="mt-4 h-24" defaultValue={`${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(' ')}`} />
-                </div>
-
-                <div className="w-2/3 space-y-4">
-                  {[
-                    { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
-                    { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700' },
-                    { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800' }
-                  ].map(platform => (
-                    <Card key={platform.id} className={cn("p-4", !scheduleOptions[platform.id].enabled && "bg-gray-50")}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <platform.icon className={cn("w-6 h-6", platform.color)} />
-                          <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
+                  {scheduleOptions[platform.id].enabled && (
+                    <div className="mt-4 pl-8">
+                      <RadioGroup
+                        value={scheduleOptions[platform.id].publishMode}
+                        onValueChange={(value: "now" | "schedule") => handleScheduleOptionChange(platform.id, 'publishMode', value)}
+                        className="flex gap-6"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="now" id={`${platform.id}-now`} />
+                          <Label htmlFor={`${platform.id}-now`}>Publicar Agora</Label>
                         </div>
-                        <Switch
-                          id={`switch-${platform.id}`}
-                          checked={scheduleOptions[platform.id].enabled}
-                          onCheckedChange={(checked) => handleScheduleOptionChange(platform.id, 'enabled', checked)}
-                        />
-                      </div>
-                      {scheduleOptions[platform.id].enabled && (
-                        <div className="mt-4 pl-8">
-                          <RadioGroup
-                            value={scheduleOptions[platform.id].publishMode}
-                            onValueChange={(value: "now" | "schedule") => handleScheduleOptionChange(platform.id, 'publishMode', value)}
-                            className="flex gap-6"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="now" id={`${platform.id}-now`} />
-                              <Label htmlFor={`${platform.id}-now`}>Publicar Agora</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="schedule" id={`${platform.id}-schedule`} />
-                              <Label htmlFor={`${platform.id}-schedule`}>Agendar</Label>
-                            </div>
-                          </RadioGroup>
-                          {scheduleOptions[platform.id].publishMode === 'schedule' && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="mt-4"
-                            >
-                              <Input
-                                type="datetime-local"
-                                value={scheduleOptions[platform.id].dateTime}
-                                onChange={(e) => handleScheduleOptionChange(platform.id, 'dateTime', e.target.value)}
-                              />
-                            </motion.div>
-                          )}
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="schedule" id={`${platform.id}-schedule`} />
+                          <Label htmlFor={`${platform.id}-schedule`}>Agendar</Label>
                         </div>
+                      </RadioGroup>
+                      {scheduleOptions[platform.id].publishMode === 'schedule' && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="mt-4"
+                        >
+                          <Input
+                            type="datetime-local"
+                            value={scheduleOptions[platform.id].dateTime}
+                            onChange={(e) => handleScheduleOptionChange(platform.id, 'dateTime', e.target.value)}
+                          />
+                        </motion.div>
                       )}
-                    </Card>
-                  ))}
-                </div>
-              </div>
+                    </div>
+                  )}
+                </Card>
+              ))}
             </div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
               <Button variant="outline" onClick={() => setShowSchedulerModal(false)}>
@@ -586,5 +574,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
