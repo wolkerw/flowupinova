@@ -89,20 +89,49 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleGenerateImages = () => {
+  const handleGenerateImages = async () => {
+    if (!selectedContentId) return;
+  
     setIsLoading(true);
-    // Simulação de geração de imagens
-    setTimeout(() => {
-        const images = [
-            "https://picsum.photos/seed/img1/400/600",
-            "https://picsum.photos/seed/img2/400/600",
-            "https://picsum.photos/seed/img3/400/600"
-        ];
-        setGeneratedImages(images);
-        setSelectedImage(images[0]);
-        setIsLoading(false);
-        setStep(3);
-    }, 1500);
+    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_imagem";
+    const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
+    
+    // Mock de imagens em caso de falha
+    const mockImages = [
+      "https://picsum.photos/seed/img1/400/600",
+      "https://picsum.photos/seed/img2/400/600",
+      "https://picsum.photos/seed/img3/400/600"
+    ];
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ publicacoes: selectedPublication }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao gerar imagens da IA.");
+      }
+      
+      const imageData = await response.json();
+
+      const imageUrls = imageData.map((item: any) => item.url);
+
+      setGeneratedImages(imageUrls);
+      setSelectedImage(imageUrls[0]);
+
+    } catch (error) {
+      console.error("Erro ao gerar imagens:", error);
+      alert("Ocorreu um erro ao gerar as imagens. Usando imagens de exemplo.");
+      setGeneratedImages(mockImages);
+      setSelectedImage(mockImages[0]);
+    } finally {
+      setIsLoading(false);
+      setStep(3);
+    }
   };
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
@@ -229,7 +258,7 @@ export default function GerarConteudoPage() {
                 <div className="relative w-full h-[60%]">
                     <Image 
                         src="https://picsum.photos/seed/1/320/480"
-                        alt="Imagem gerada"
+                        alt="Imagem genérica"
                         data-ai-hint="digital marketing"
                         layout="fill"
                         objectFit="cover"
