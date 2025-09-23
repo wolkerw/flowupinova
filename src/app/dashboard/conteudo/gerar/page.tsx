@@ -55,14 +55,15 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ summary: postSummary }),
       });
 
+      console.log("Resposta do Webhook:", response);
+
       if (!response.ok) {
         throw new Error("Falha ao buscar conteúdo da IA.");
       }
       
       const data = await response.json();
-      console.log("Resposta do Webhook:", data);
-
-      // Garante que 'data' seja um array para o .map funcionar
+      console.log("Dados recebidos:", data);
+      
       const dataArray = Array.isArray(data) ? data : [data];
       
       const formattedData = dataArray.map((item: any) => item['output.publicacoes']);
@@ -192,37 +193,37 @@ export default function GerarConteudoPage() {
           </Card>
           
           {/* Coluna da Direita: Preview */}
-          <div className="flex items-center justify-center">
-            <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl p-4 border flex flex-col justify-between">
-                <div className="h-[60%] bg-gray-200 rounded-lg relative overflow-hidden">
+           <div className="flex items-center justify-center">
+            <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
+                <div className="relative w-full h-[60%]">
                     <Image 
                         src="https://picsum.photos/seed/1/320/480"
                         alt="Imagem gerada"
                         data-ai-hint="digital marketing"
                         layout="fill"
                         objectFit="cover"
+                        className="bg-gray-200"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
+                        {selectedContent ? (
+                            <h2 className="text-2xl font-bold leading-tight text-white text-center shadow-lg">{selectedContent.titulo}</h2>
+                        ) : (
+                            <div className="h-8 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
+                        )}
+                    </div>
                 </div>
-                <div className="flex-1 pt-4 text-center flex flex-col justify-center">
-                   {selectedContent ? (
-                       <>
-                           <h2 className="text-2xl font-bold leading-tight px-2">{selectedContent.titulo}</h2>
-                       </>
-                   ) : (
-                       <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto animate-pulse"></div>
-                   )}
-                </div>
-                 <div className="text-center pb-2">
+                <div className="flex-1 p-4 text-left">
                    {selectedContent ? (
                      <>
-                       <p className="text-sm px-2 mb-3">{selectedContent.subtitulo}</p>
+                       <p className="text-sm mb-3">{selectedContent.subtitulo}</p>
                        <p className="text-xs text-blue-500 break-words">{selectedContent.hashtags.join(' ')}</p>
                      </>
                    ) : (
                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-full mx-auto animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto animate-pulse"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto animate-pulse mt-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-4"></div>
                      </div>
                    )}
                 </div>
