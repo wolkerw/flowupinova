@@ -132,11 +132,10 @@ export default function Conteudo() {
     setLoading(true);
     const appId = "826418333144156";
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
-    const configId = "1144870397620037";
     
     console.log(`[DEBUG] Redirecting to Meta for auth. Redirect URI: ${redirectUri}`);
 
-    const metaAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&config_id=${configId}`;
+    const metaAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_basic,pages_show_list,business_management,instagram_manage_insights,pages_read_engagement,public_profile`;
 
     window.location.href = metaAuthUrl;
   };
@@ -251,7 +250,9 @@ export default function Conteudo() {
               }`}
               style={!isConnected ? { background: 'linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)' } : {}}
             >
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : isConnected ? (
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : isConnected ? (
                 <>
                   <Settings className="w-4 h-4 mr-2" />
                   Gerenciar
@@ -307,12 +308,14 @@ export default function Conteudo() {
         </div>
         
         <div className="flex gap-3">
-          <Button 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Gerar conteúdo com IA
-          </Button>
+          <Link href="/dashboard/conteudo/gerar">
+            <Button 
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Gerar conteúdo com IA
+            </Button>
+          </Link>
           <Button 
             onClick={() => handleOpenScheduler()}
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
@@ -561,5 +564,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
