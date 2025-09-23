@@ -450,7 +450,7 @@ export default function GerarConteudoPage() {
               <Button
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
-                Agendar Post
+                Finalizar
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
