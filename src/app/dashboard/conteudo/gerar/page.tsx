@@ -59,7 +59,7 @@ export default function GerarConteudoPage() {
         throw new Error("Falha ao buscar conteúdo da IA.");
       }
       
-      let data = await response.json();
+      const data = await response.json();
       console.log("Resposta do Webhook:", data);
 
       // Garante que 'data' seja um array para o .map funcionar
