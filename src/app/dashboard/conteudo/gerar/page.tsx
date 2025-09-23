@@ -5,12 +5,15 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 interface GeneratedContent {
   titulo: string;
@@ -143,8 +146,9 @@ export default function GerarConteudoPage() {
         <h1 className="text-3xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
         <p className="text-gray-600 mt-1">
           {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
-          {step === 2 && "Selecione uma opção e visualize o rascunho do seu post."}
+          {step === 2 && "Selecione uma opção de texto para o seu post."}
           {step === 3 && "Escolha a imagem perfeita para o seu post."}
+          {step === 4 && "Revise e agende seu post para as redes sociais."}
         </p>
       </div>
 
@@ -255,14 +259,13 @@ export default function GerarConteudoPage() {
           {/* Coluna da Direita: Preview */}
            <div className="flex items-center justify-center">
             <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
-                <div className="relative w-full h-[60%]">
+                <div className="relative w-full h-[60%] bg-gray-200">
                     <Image 
                         src="https://picsum.photos/seed/1/320/480"
                         alt="Imagem genérica"
                         data-ai-hint="digital marketing"
                         layout="fill"
                         objectFit="cover"
-                        className="bg-gray-200"
                     />
                     <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
                         {selectedContent ? (
@@ -340,14 +343,123 @@ export default function GerarConteudoPage() {
               <Button
                 disabled={!selectedImage}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                onClick={() => setStep(4)}
               >
-                próxima etapa
+                Próxima Etapa
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
           </Card>
         </motion.div>
       )}
+      
+      {step === 4 && selectedContent && selectedImage && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Sparkles className="w-6 h-6 text-purple-500" />
+                Etapa 4: Revise e agende seu post
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+               <Tabs defaultValue="instagram" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Instagram</TabsTrigger>
+                  <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2"/>Facebook</TabsTrigger>
+                  <TabsTrigger value="linkedin"><Linkedin className="w-4 h-4 mr-2"/>LinkedIn</TabsTrigger>
+                </TabsList>
+                <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
+                    <TabsContent value="instagram">
+                        <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
+                            <div className="p-3 flex items-center gap-2 border-b">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src="https://picsum.photos/seed/avatar/40/40" />
+                                    <AvatarFallback>Flow</AvatarFallback>
+                                </Avatar>
+                                <span className="font-bold text-sm">flowup</span>
+                            </div>
+                            <div className="relative w-full aspect-square">
+                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                            </div>
+                            <div className="p-3 text-sm">
+                                <p>
+                                    <span className="font-bold">flowup</span> {selectedContent.subtitulo}
+                                </p>
+                                <p className="text-blue-500 mt-2">{selectedContent.hashtags.join(' ')}</p>
+                            </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="facebook">
+                       <div className="w-[500px] bg-white rounded-lg shadow-lg border flex flex-col">
+                            <div className="p-4 flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src="https://picsum.photos/seed/avatar/40/40" />
+                                    <AvatarFallback>Flow</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-bold">FlowUp</p>
+                                    <p className="text-xs text-gray-500">Agora mesmo</p>
+                                </div>
+                            </div>
+                            <div className="px-4 pb-2 text-sm">
+                                <p>{selectedContent.titulo}</p>
+                                <p className="mt-2">{selectedContent.subtitulo}</p>
+                            </div>
+                            <div className="relative w-full aspect-video bg-gray-200">
+                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                            </div>
+                            <div className="p-4 text-sm text-blue-500">{selectedContent.hashtags.join(' ')}</div>
+                       </div>
+                    </TabsContent>
+                    <TabsContent value="linkedin">
+                       <div className="w-[550px] bg-white rounded-lg shadow-lg border flex flex-col">
+                            <div className="p-4 flex items-center gap-3 border-b">
+                                <Avatar className="h-12 w-12">
+                                    <AvatarImage src="https://picsum.photos/seed/avatar/50/50" />
+                                    <AvatarFallback>Flow</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-bold">FlowUp Marketing Digital</p>
+                                    <p className="text-xs text-gray-500">1.234 seguidores</p>
+                                    <p className="text-xs text-gray-500">Promovido</p>
+                                </div>
+                            </div>
+                            <div className="p-4 text-sm space-y-3">
+                                <h3 className="font-bold text-lg">{selectedContent.titulo}</h3>
+                                <p>{selectedContent.subtitulo}</p>
+                            </div>
+                            <div className="relative w-full aspect-[1.91/1] bg-gray-200">
+                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                            </div>
+                             <div className="p-4 text-sm text-gray-600">{selectedContent.hashtags.join(' ')}</div>
+                       </div>
+                    </TabsContent>
+                </div>
+               </Tabs>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(3)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              >
+                Agendar Post
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      )}
+
     </div>
   );
 }
+
+    
