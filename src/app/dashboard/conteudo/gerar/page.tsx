@@ -5,61 +5,225 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import Image from 'next/image';
+
+interface GeneratedContent {
+  titulo: string;
+  subtitulo: string;
+  hashtags: string[];
+}
 
 export default function GerarConteudoPage() {
+  const [step, setStep] = useState(1);
   const [postSummary, setPostSummary] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
 
-  const handleGenerate = () => {
-    // Lógica para gerar conteúdo será adicionada aqui
-    console.log("Gerando conteúdo com o resumo:", postSummary);
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    // TODO: Substitua pela URL do seu webhook
+    const webhookUrl = "https://webhook.site/c5e93361-7501-4a25-9c31-3151b753a4e9";
+    
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ summary: postSummary }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao buscar conteúdo da IA.");
+      }
+
+      const data = await response.json();
+      
+      // Simulação de dados caso o webhook não retorne o formato esperado.
+      const mockData: GeneratedContent[] = [
+        {
+          titulo: "🚀 Impulsione seu Negócio com Vídeos!",
+          subtitulo: "Descubra como o conteúdo audiovisual pode transformar sua marca e engajar seu público como nunca antes.",
+          hashtags: ["#VideoMarketing", "#MarketingDigital", "#Engajamento"]
+        },
+        {
+          titulo: "✨ A Mágica do Storytelling em Vídeos",
+          subtitulo: "Conecte-se emocionalmente com seus clientes contando histórias que vendem. O vídeo é sua melhor ferramenta.",
+          hashtags: ["#Storytelling", "#Branding", "#Conexao"]
+        },
+        {
+          titulo: "📈 Resultados Reais: O ROI do Vídeo Marketing",
+          subtitulo: "Vídeos não são apenas bonitos, eles trazem resultados. Aumente suas conversões e veja seu ROI decolar.",
+          hashtags: ["#Resultados", "#ROI", "#MarketingDeConteudo"]
+        }
+      ];
+
+      setGeneratedContent(data.length ? data : mockData);
+      setSelectedContentId("0");
+      setStep(2);
+
+    } catch (error) {
+      console.error(error);
+      alert("Ocorreu um erro ao gerar o conteúdo. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
+  const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
   return (
-    <div className="p-6 space-y-8 max-w-4xl mx-auto">
+    <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Cabeçalho */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
-        <p className="text-gray-600 mt-1">Dê à nossa IA uma ideia e ela criará posts incríveis para você.</p>
+        <p className="text-gray-600 mt-1">
+          {step === 1 
+            ? "Dê à nossa IA uma ideia e ela criará posts incríveis para você." 
+            : "Selecione uma opção e visualize o rascunho do seu post."}
+        </p>
       </div>
 
-      {/* Etapa 1 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="shadow-lg border-none w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Sparkles className="w-6 h-6 text-purple-500" />
-              Etapa 1: Sobre o que é o post?
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar. Quanto mais detalhes você fornecer, melhores serão as sugestões.
-            </p>
-            <Textarea
-              placeholder="Ex: um post para o Instagram sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador."
-              className="h-40 text-base"
-              value={postSummary}
-              onChange={(e) => setPostSummary(e.target.value)}
-            />
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button
-              onClick={handleGenerate}
-              disabled={!postSummary.trim()}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              Gerar Conteúdo
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
+      {step === 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Sparkles className="w-6 h-6 text-purple-500" />
+                Etapa 1: Sobre o que é o post?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar. Quanto mais detalhes você fornecer, melhores serão as sugestões.
+              </p>
+              <Textarea
+                placeholder="Ex: um post para o Instagram sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador."
+                className="h-40 text-base"
+                value={postSummary}
+                onChange={(e) => setPostSummary(e.target.value)}
+              />
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button
+                onClick={handleGenerate}
+                disabled={!postSummary.trim() || isLoading}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    Gerar Conteúdo
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      )}
+
+      {step === 2 && (
+         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        >
+          {/* Coluna da Esquerda: Opções */}
+          <Card className="shadow-lg border-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Bot className="w-6 h-6 text-purple-500" />
+                Etapa 2: Sugestões da IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Selecione uma das opções geradas para o seu post.
+              </p>
+              <RadioGroup value={selectedContentId} onValueChange={setSelectedContentId}>
+                {generatedContent.map((content, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
+                    <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
+                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                      <h4 className="font-bold text-base text-gray-900">{content.titulo}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{content.subtitulo}</p>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+               <Button variant="outline" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                disabled={!selectedContentId}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                Próxima Etapa
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Coluna da Direita: Preview */}
+          <div className="flex items-center justify-center">
+            <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl p-4 border flex flex-col justify-between">
+                <div className="h-[60%] bg-gray-200 rounded-lg relative overflow-hidden">
+                    <Image 
+                        src="https://picsum.photos/seed/1/320/480"
+                        alt="Imagem gerada"
+                        data-ai-hint="digital marketing"
+                        layout="fill"
+                        objectFit="cover"
+                    />
+                </div>
+                <div className="flex-1 pt-4 text-center flex flex-col justify-center">
+                   {selectedContent ? (
+                       <>
+                           <h2 className="text-2xl font-bold leading-tight px-2">{selectedContent.titulo}</h2>
+                       </>
+                   ) : (
+                       <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto animate-pulse"></div>
+                   )}
+                </div>
+                 <div className="text-center pb-2">
+                   {selectedContent ? (
+                     <>
+                       <p className="text-sm px-2 mb-3">{selectedContent.subtitulo}</p>
+                       <p className="text-xs text-blue-500 break-words">{selectedContent.hashtags.join(' ')}</p>
+                     </>
+                   ) : (
+                     <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-full mx-auto animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto animate-pulse"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto animate-pulse mt-2"></div>
+                     </div>
+                   )}
+                </div>
+            </div>
+          </div>
+
+        </motion.div>
+      )}
     </div>
   );
 }
+
+    
