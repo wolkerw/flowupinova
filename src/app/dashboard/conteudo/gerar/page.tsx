@@ -28,6 +28,24 @@ export default function GerarConteudoPage() {
     setIsLoading(true);
     const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
     
+    const mockData: GeneratedContent[] = [
+      {
+        titulo: "🚀 Impulsione seu Negócio com Vídeos!",
+        subtitulo: "Descubra como o conteúdo audiovisual pode transformar sua marca e engajar seu público como nunca antes.",
+        hashtags: ["#VideoMarketing", "#MarketingDigital", "#Engajamento"]
+      },
+      {
+        titulo: "✨ A Mágica do Storytelling em Vídeos",
+        subtitulo: "Conecte-se emocionalmente com seus clientes contando histórias que vendem. O vídeo é sua melhor ferramenta.",
+        hashtags: ["#Storytelling", "#Branding", "#Conexao"]
+      },
+      {
+        titulo: "📈 Resultados Reais: O ROI do Vídeo Marketing",
+        subtitulo: "Vídeos não são apenas bonitos, eles trazem resultados. Aumente suas conversões e veja seu ROI decolar.",
+        hashtags: ["#Resultados", "#ROI", "#MarketingDeConteudo"]
+      }
+    ];
+
     try {
       const response = await fetch(webhookUrl, {
         method: "POST",
@@ -43,7 +61,11 @@ export default function GerarConteudoPage() {
 
       const data = await response.json();
       
-      // Mapeia a resposta para o formato esperado, acessando item['output.publicacoes']
+      // Valida que 'data' é um array antes de mapear
+      if (!Array.isArray(data)) {
+         throw new Error("A resposta da API não é um array.");
+      }
+      
       const formattedData = data.map((item: any) => item['output.publicacoes']);
 
       setGeneratedContent(formattedData);
@@ -52,24 +74,6 @@ export default function GerarConteudoPage() {
 
     } catch (error) {
       console.error(error);
-      // Fallback para dados mockados em caso de erro na API
-      const mockData: GeneratedContent[] = [
-        {
-          titulo: "🚀 Impulsione seu Negócio com Vídeos!",
-          subtitulo: "Descubra como o conteúdo audiovisual pode transformar sua marca e engajar seu público como nunca antes.",
-          hashtags: ["#VideoMarketing", "#MarketingDigital", "#Engajamento"]
-        },
-        {
-          titulo: "✨ A Mágica do Storytelling em Vídeos",
-          subtitulo: "Conecte-se emocionalmente com seus clientes contando histórias que vendem. O vídeo é sua melhor ferramenta.",
-          hashtags: ["#Storytelling", "#Branding", "#Conexao"]
-        },
-        {
-          titulo: "📈 Resultados Reais: O ROI do Vídeo Marketing",
-          subtitulo: "Vídeos não são apenas bonitos, eles trazem resultados. Aumente suas conversões e veja seu ROI decolar.",
-          hashtags: ["#Resultados", "#ROI", "#MarketingDeConteudo"]
-        }
-      ];
       setGeneratedContent(mockData);
       setSelectedContentId("0");
       setStep(2);
@@ -230,4 +234,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
