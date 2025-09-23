@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 
 
 interface GeneratedContent {
@@ -20,6 +22,15 @@ interface GeneratedContent {
   subtitulo: string;
   hashtags: string[];
 }
+
+interface ScheduleOptions {
+  [key: string]: {
+    enabled: boolean;
+    publishMode: "now" | "schedule";
+    dateTime: string;
+  };
+}
+
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -29,6 +40,20 @@ export default function GerarConteudoPage() {
   const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showSchedulerModal, setShowSchedulerModal] = useState(false);
+  
+  const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
+    instagram: { enabled: true, publishMode: 'now', dateTime: '' },
+    facebook: { enabled: true, publishMode: 'now', dateTime: '' },
+    linkedin: { enabled: true, publishMode: 'now', dateTime: '' }
+  });
+
+  const handleScheduleOptionChange = (platform: string, field: keyof ScheduleOptions[string], value: any) => {
+    setScheduleOptions(prev => ({
+      ...prev,
+      [platform]: { ...prev[platform], [field]: value }
+    }));
+  };
 
 
   const handleGenerateText = async () => {
@@ -443,6 +468,7 @@ export default function GerarConteudoPage() {
                </Tabs>
                <div className="mt-6 flex justify-center">
                 <Button
+                  onClick={() => setShowSchedulerModal(true)}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                   size="lg"
                 >
@@ -458,6 +484,102 @@ export default function GerarConteudoPage() {
               </Button>
             </CardFooter>
           </Card>
+        </motion.div>
+      )}
+
+      {showSchedulerModal && selectedContent && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSchedulerModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col"
+          >
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold">Publicar ou Agendar Post</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="p-6 space-y-6 overflow-y-auto">
+              <div className="flex gap-6">
+                <div className="w-1/3">
+                  <p className="font-medium mb-2">Pré-visualização</p>
+                  <div className="relative aspect-square w-full rounded-lg overflow-hidden border">
+                    <Image src={selectedImage || ''} layout="fill" objectFit="cover" alt="Post preview" />
+                  </div>
+                  <Textarea className="mt-4 h-24" defaultValue={`${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(' ')}`} />
+                </div>
+
+                <div className="w-2/3 space-y-4">
+                  {[
+                    { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
+                    { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700' },
+                    { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800' }
+                  ].map(platform => (
+                    <Card key={platform.id} className={cn("p-4", !scheduleOptions[platform.id].enabled && "bg-gray-50")}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <platform.icon className={cn("w-6 h-6", platform.color)} />
+                          <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
+                        </div>
+                        <Switch
+                          id={`switch-${platform.id}`}
+                          checked={scheduleOptions[platform.id].enabled}
+                          onCheckedChange={(checked) => handleScheduleOptionChange(platform.id, 'enabled', checked)}
+                        />
+                      </div>
+                      {scheduleOptions[platform.id].enabled && (
+                        <div className="mt-4 pl-8">
+                          <RadioGroup
+                            value={scheduleOptions[platform.id].publishMode}
+                            onValueChange={(value: "now" | "schedule") => handleScheduleOptionChange(platform.id, 'publishMode', value)}
+                            className="flex gap-6"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="now" id={`${platform.id}-now`} />
+                              <Label htmlFor={`${platform.id}-now`}>Publicar Agora</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="schedule" id={`${platform.id}-schedule`} />
+                              <Label htmlFor={`${platform.id}-schedule`}>Agendar</Label>
+                            </div>
+                          </RadioGroup>
+                          {scheduleOptions[platform.id].publishMode === 'schedule' && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="mt-4"
+                            >
+                              <Input
+                                type="datetime-local"
+                                value={scheduleOptions[platform.id].dateTime}
+                                onChange={(e) => handleScheduleOptionChange(platform.id, 'dateTime', e.target.value)}
+                              />
+                            </motion.div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
+              <Button variant="outline" onClick={() => setShowSchedulerModal(false)}>
+                Cancelar
+              </Button>
+              <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+                <Check className="w-4 h-4 mr-2" />
+                Confirmar Agendamento
+              </Button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
 
