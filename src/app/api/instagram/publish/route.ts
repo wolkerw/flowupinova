@@ -1,75 +1,80 @@
-
 // src/app/api/instagram/publish/route.ts
 import { NextResponse, type NextRequest } from "next/server";
 
 const GRAPH_API_VERSION = "v20.0";
 const GRAPH_API_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 
-async function fetchGraphAPI(url: string, method: "POST" | "GET" = "GET", body?: any) {
-    console.log(`[GRAPH_API] Request: ${method} ${url}`);
-    if (body) {
-        console.log(`[GRAPH_API] Body: ${JSON.stringify(body)}`);
-    }
+async function publishInstagramPhoto(igUserId: string, pageToken: string, imageUrl: string, caption = '') {
+  try {
+    // 1) Criar container (apenas 3 campos)
+    console.log('[PUBLISH] Etapa 1: Criando contêiner de mídia...');
+    const createBody = new URLSearchParams({
+      image_url: imageUrl,
+      caption,
+      access_token: pageToken
+    }).toString();
 
-    const response = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
+    console.log(`[PUBLISH] Request Body (Create): ${createBody.replace(pageToken, '***')}`);
+
+    const createRes = await fetch(`${GRAPH_API_URL}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: createBody
     });
-    
-    const data = await response.json();
+    const createJson = await createRes.json();
 
-    if (data.error) {
-        console.error(`[GRAPH_API] Error:`, data.error);
-        throw new Error(`Erro na API do Instagram: ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
+    console.log('[PUBLISH] Response (Create):', createJson);
+    if (!createJson.id || createJson.error) {
+      throw new Error(`Falha ao criar contêiner: ${JSON.stringify(createJson.error || createJson)}`);
     }
+
+    // 2) Publicar
+    console.log(`[PUBLISH] Etapa 2: Publicando o contêiner ${createJson.id}...`);
+    const publishBody = new URLSearchParams({
+      creation_id: createJson.id,
+      access_token: pageToken
+    }).toString();
     
-    console.log(`[GRAPH_API] Success Response:`, data);
-    return data;
+    console.log(`[PUBLISH] Request Body (Publish): ${publishBody.replace(pageToken, '***')}`);
+
+    const pubRes = await fetch(`${GRAPH_API_URL}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: publishBody
+    });
+    const pubJson = await pubRes.json();
+    
+    console.log('[PUBLISH] Response (Publish):', pubJson);
+    if (!pubJson.id || pubJson.error) {
+      throw new Error(`Falha ao publicar contêiner: ${JSON.stringify(pubJson.error || pubJson)}`);
+    }
+
+    return pubJson.id;
+
+  } catch (error: any) {
+    // Re-throw a mais limpa e específica mensagem de erro
+    let errorMessage = error.message || "Ocorreu um erro desconhecido na publicação.";
+    if (errorMessage.includes("CREATE_FAIL") || errorMessage.includes("PUBLISH_FAIL")) {
+       // Apenas usa a mensagem já formatada
+    } else if (errorMessage.includes("code 190")) {
+        errorMessage = "Token de acesso expirado ou inválido. Por favor, reconecte sua conta Meta.";
+    } else if (errorMessage.includes("code 200")) {
+         errorMessage = "Permissão 'instagram_content_publish' faltando. Por favor, reconecte sua conta e conceda a permissão necessária.";
+    }
+    throw new Error(errorMessage);
+  }
 }
 
+
 export async function POST(request: NextRequest) {
-  const { igUserId, pageToken, caption, imageUrl } = await request.json();
-
-  if (!igUserId || !pageToken || !caption || !imageUrl) {
-    return NextResponse.json({ success: false, error: "Parâmetros faltando. É necessário igUserId, pageToken, caption, e imageUrl." }, { status: 400 });
-  }
-
   try {
-    // Etapa 1: Criar o contêiner de mídia
-    console.log("[PUBLISH] Etapa 1: Criando contêiner de mídia...");
-    const createContainerUrl = `${GRAPH_API_URL}/${igUserId}/media`;
-    const containerParams = new URLSearchParams({
-        image_url: imageUrl,
-        caption: caption,
-        access_token: pageToken,
-    });
-    
-    const containerData = await fetchGraphAPI(`${createContainerUrl}?${containerParams.toString()}`, "POST");
-    const creationId = containerData.id;
+    const { igUserId, pageToken, caption, imageUrl } = await request.json();
 
-    if (!creationId) {
-        throw new Error("Falha ao obter o creation_id na Etapa 1.");
+    if (!igUserId || !pageToken || !caption || !imageUrl) {
+      return NextResponse.json({ success: false, error: "Parâmetros faltando. É necessário igUserId, pageToken, caption, e imageUrl." }, { status: 400 });
     }
-    console.log(`[PUBLISH] Contêiner criado com sucesso. creation_id: ${creationId}`);
-    
-    // Etapa 2: Publicar o contêiner
-    console.log("[PUBLISH] Etapa 2: Publicando o contêiner...");
-    const publishUrl = `${GRAPH_API_URL}/${igUserId}/media_publish`;
-    const publishParams = new URLSearchParams({
-        creation_id: creationId,
-        access_token: pageToken,
-    });
 
-    const publishData = await fetchGraphAPI(`${publishUrl}?${publishParams.toString()}`, "POST");
-    const postId = publishData.id;
-    
-    if (!postId) {
-        throw new Error("Falha ao obter o post_id na Etapa 2.");
-    }
-    console.log(`[PUBLISH] Post publicado com sucesso! postId: ${postId}`);
+    const postId = await publishInstagramPhoto(igUserId, pageToken, imageUrl, caption);
 
     return NextResponse.json({
         success: true,
@@ -78,16 +83,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("[PUBLISH] Erro durante o processo de publicação:", error);
-
-    let errorMessage = error.message || "Ocorreu um erro desconhecido.";
-    // Tratar erros específicos da API do Graph
-    if (errorMessage.includes("code 190")) {
-        errorMessage = "Token de acesso expirado ou inválido. Por favor, reconecte sua conta Meta.";
-    } else if (errorMessage.includes("code 200")) {
-         errorMessage = "Permissão 'instagram_content_publish' faltando. Por favor, reconecte sua conta e conceda a permissão necessária.";
-    }
-
-    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+    console.error("[PUBLISH] Erro durante o processo de publicação:", error.message);
+    return NextResponse.json({ success: false, error: `Erro na API do Instagram: ${error.message}` }, { status: 500 });
   }
 }

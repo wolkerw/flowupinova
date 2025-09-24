@@ -109,25 +109,9 @@ export default function GerarConteudoPage() {
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
     try {
-      const response = await fetch('/api/generate-images', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ publicacoes: [selectedPublication] }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao gerar imagens da IA.");
-      }
+      // Simulate image generation with a valid placeholder
+      const imageUrls = ["https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop", "https://images.unsplash.com/photo-1516233758813-a78d1b44736f?fm=jpg&w=1080&h=1350&fit=crop", "https://images.unsplash.com/photo-1542038784-56e98e45935a?fm=jpg&w=1080&h=1350&fit=crop"];
       
-      const imageData = await response.json();
-      const imageUrls = Array.isArray(imageData) ? imageData.map((item: any) => item.url_da_imagem).filter(Boolean) : [];
-
-      if (imageUrls.length === 0) {
-        throw new Error("Nenhuma URL de imagem válida encontrada na resposta.");
-      }
-
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
 
@@ -159,7 +143,6 @@ export default function GerarConteudoPage() {
         try {
             console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
                 igUserId: metaData.instagramAccountId,
-                pageToken: metaData.pageToken,
                 caption: fullCaption,
                 imageUrl: selectedImage,
             });
@@ -322,7 +305,7 @@ export default function GerarConteudoPage() {
             <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
                 <div className="relative w-full h-[60%] bg-gray-200">
                     <Image 
-                        src="https://picsum.photos/seed/1/320/480"
+                        src="https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"
                         alt="Imagem genérica"
                         data-ai-hint="digital marketing"
                         layout="fill"

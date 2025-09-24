@@ -216,7 +216,6 @@ export default function Conteudo() {
         try {
             console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
                 igUserId: metaData.instagramAccountId,
-                pageToken: metaData.pageToken,
                 caption: postToSchedule.text,
                 imageUrl: postToSchedule.imageUrl,
             });
@@ -589,7 +588,7 @@ export default function Conteudo() {
                 <Button 
                   variant="outline" 
                   className="w-full flex items-center gap-2 text-gray-600"
-                  onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: "https://picsum.photos/seed/manualpost/800/1000"}))}
+                  onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"}))}
                 >
                   <Paperclip className="w-4 h-4"/>
                   Anexar Mídia (Simulado)
