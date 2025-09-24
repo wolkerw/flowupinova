@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 
 
 interface GeneratedContent {
@@ -41,12 +42,22 @@ export default function GerarConteudoPage() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
+  const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   
   const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
     instagram: { enabled: true, publishMode: 'now', dateTime: '' },
     facebook: { enabled: true, publishMode: 'now', dateTime: '' },
     linkedin: { enabled: true, publishMode: 'now', dateTime: '' }
   });
+
+  useEffect(() => {
+    async function fetchConnection() {
+        const data = await getMetaConnection();
+        setMetaData(data);
+    }
+    fetchConnection();
+  }, []);
 
   const handleScheduleOptionChange = (platform: string, field: keyof ScheduleOptions[string], value: any) => {
     setScheduleOptions(prev => ({
@@ -59,25 +70,6 @@ export default function GerarConteudoPage() {
   const handleGenerateText = async () => {
     setIsLoading(true);
     
-    // Mock data em caso de falha do webhook
-    const mockData: GeneratedContent[] = [
-      {
-        titulo: "🚀 Impulsione seu Negócio com Vídeos!",
-        subtitulo: "Descubra como o conteúdo audiovisual pode transformar sua marca e engajar seu público como nunca antes.",
-        hashtags: ["#VideoMarketing", "#MarketingDigital", "#Engajamento"]
-      },
-      {
-        titulo: "✨ A Mágica do Storytelling em Vídeos",
-        subtitulo: "Conecte-se emocionalmente com seus clientes contando histórias que vendem. O vídeo é sua melhor ferramenta.",
-        hashtags: ["#Storytelling", "#Branding", "#Conexao"]
-      },
-      {
-        titulo: "📈 Resultados Reais: O ROI do Vídeo Marketing",
-        subtitulo: "Vídeos não são apenas bonitos, eles trazem resultados. Aumente suas conversões e veja seu ROI decolar.",
-        hashtags: ["#Resultados", "#ROI", "#MarketingDeConteudo"]
-      }
-    ];
-
     try {
       const response = await fetch('/api/generate-text', {
         method: "POST",
@@ -92,7 +84,6 @@ export default function GerarConteudoPage() {
       }
       
       const data = await response.json();
-      
       const contentArray = Array.isArray(data) ? data : [];
 
       if (contentArray.length === 0) {
@@ -105,11 +96,7 @@ export default function GerarConteudoPage() {
 
     } catch (error) {
       console.error(error);
-      // Fallback para dados mockados em caso de erro
-      setGeneratedContent(mockData);
-      setSelectedContentId("0");
-      setStep(2);
-      alert("Ocorreu um erro ao gerar o conteúdo. Usando dados de exemplo.");
+      alert("Ocorreu um erro ao gerar o conteúdo.");
     } finally {
       setIsLoading(false);
     }
@@ -121,19 +108,13 @@ export default function GerarConteudoPage() {
     setIsLoading(true);
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
-    const mockImages = [
-      "https://picsum.photos/seed/img1/400/600",
-      "https://picsum.photos/seed/img2/400/600",
-      "https://picsum.photos/seed/img3/400/600"
-    ];
-
     try {
       const response = await fetch('/api/generate-images', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ publicacoes: selectedPublication }),
+        body: JSON.stringify({ publicacoes: [selectedPublication] }),
       });
 
       if (!response.ok) {
@@ -141,10 +122,7 @@ export default function GerarConteudoPage() {
       }
       
       const imageData = await response.json();
-
-      const imageUrls = Array.isArray(imageData) 
-        ? imageData.map((item: any) => item.url_da_imagem).filter(Boolean)
-        : [];
+      const imageUrls = Array.isArray(imageData) ? imageData.map((item: any) => item.url_da_imagem).filter(Boolean) : [];
 
       if (imageUrls.length === 0) {
         throw new Error("Nenhuma URL de imagem válida encontrada na resposta.");
@@ -155,14 +133,59 @@ export default function GerarConteudoPage() {
 
     } catch (error) {
       console.error("Erro ao gerar imagens:", error);
-      alert("Ocorreu um erro ao gerar as imagens. Usando imagens de exemplo.");
-      setGeneratedImages(mockImages);
-      setSelectedImage(mockImages[0]);
+      alert("Ocorreu um erro ao gerar as imagens.");
     } finally {
       setIsLoading(false);
       setStep(3);
     }
   };
+
+  const handlePublish = async () => {
+    if (!selectedContent || !selectedImage || !metaData || isPublishing) return;
+
+    setIsPublishing(true);
+
+    const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
+
+    if (scheduleOptions.instagram.enabled && scheduleOptions.instagram.publishMode === 'now') {
+        if (!metaData.instagramAccountId || !metaData.longLivedToken) {
+            alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
+            setIsPublishing(false);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/instagram/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    igUserId: metaData.instagramAccountId,
+                    pageToken: metaData.longLivedToken,
+                    caption: fullCaption,
+                    imageUrl: selectedImage,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
+            } else {
+                throw new Error(result.error || 'Falha ao publicar no Instagram.');
+            }
+        } catch (error: any) {
+            console.error("Erro ao publicar no Instagram:", error);
+            alert(`Erro ao publicar: ${error.message}`);
+        }
+    }
+    
+    // Futuramente, adicionar lógica para Facebook e LinkedIn aqui.
+    // ...
+
+    setIsPublishing(false);
+    setShowSchedulerModal(false);
+};
+
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
@@ -510,23 +533,25 @@ export default function GerarConteudoPage() {
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
               {[
-                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
-                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700' },
-                { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800' }
+                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', connected: metaData?.isConnected && metaData?.instagramAccountId },
+                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700', connected: metaData?.isConnected && metaData?.facebookPageId },
+                { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800', connected: false }
               ].map(platform => (
-                <Card key={platform.id} className={cn("p-4", !scheduleOptions[platform.id].enabled && "bg-gray-50")}>
+                <Card key={platform.id} className={cn("p-4", (!scheduleOptions[platform.id].enabled || !platform.connected) && "bg-gray-50 opacity-60")}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <platform.icon className={cn("w-6 h-6", platform.color)} />
                       <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
+                      {!platform.connected && <span className="text-xs text-red-500">(não conectado)</span>}
                     </div>
                     <Switch
                       id={`switch-${platform.id}`}
                       checked={scheduleOptions[platform.id].enabled}
                       onCheckedChange={(checked) => handleScheduleOptionChange(platform.id, 'enabled', checked)}
+                      disabled={!platform.connected}
                     />
                   </div>
-                  {scheduleOptions[platform.id].enabled && (
+                  {scheduleOptions[platform.id].enabled && platform.connected && (
                     <div className="mt-4 pl-8">
                       <RadioGroup
                         value={scheduleOptions[platform.id].publishMode}
@@ -561,12 +586,16 @@ export default function GerarConteudoPage() {
               ))}
             </div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
-              <Button variant="outline" onClick={() => setShowSchedulerModal(false)}>
+              <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
                 Cancelar
               </Button>
-              <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
-                <Check className="w-4 h-4 mr-2" />
-                Confirmar Agendamento
+              <Button 
+                onClick={handlePublish}
+                disabled={isPublishing || !Object.values(scheduleOptions).some(o => o.enabled)}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              >
+                {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                Confirmar
               </Button>
             </div>
           </motion.div>

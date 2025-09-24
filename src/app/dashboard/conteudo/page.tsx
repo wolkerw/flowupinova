@@ -27,7 +27,8 @@ import {
   Settings,
   Users,
   BarChart,
-  RefreshCw
+  RefreshCw,
+  X
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -35,27 +36,20 @@ import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-servi
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-declare global {
-  interface Window {
-    FB: any;
-    fbAsyncInit: () => void;
-  }
-}
-
 export default function Conteudo() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
-  const [postToSchedule, setPostToSchedule] = useState({ text: "", imageUrl: null });
-  const [selectedAccounts, setSelectedAccounts] = useState(new Set());
+  const [postToSchedule, setPostToSchedule] = useState<{ text: string, imageUrl: string | null }>({ text: "", imageUrl: null });
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   
   const connectedAccounts = [
-    { id: 'ig1', platform: 'instagram', name: '@impulso_app', icon: Instagram },
-    { id: 'fb1', platform: 'facebook', name: 'Página Impulso Marketing', icon: Facebook },
-    { id: 'li1', platform: 'linkedin', name: 'Impulso Co.', icon: Linkedin },
+    { id: 'ig1', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
+    { id: 'fb1', platform: 'facebook', name: metaData?.facebookPageName || 'Facebook', icon: Facebook, isConnected: metaData?.isConnected && !!metaData.facebookPageId },
+    { id: 'li1', platform: 'linkedin', name: 'LinkedIn', icon: Linkedin, isConnected: false },
   ];
 
   const fetchMetaConnection = async () => {
@@ -73,44 +67,28 @@ export default function Conteudo() {
 
   const processMetaAuthCode = async (code: string) => {
     setLoading(true);
-    console.log("[DEBUG] processMetaAuthCode called with code:", code);
     try {
-      console.log("[DEBUG] Sending auth code to backend:", code);
       const apiResponse = await fetch('/api/meta/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
 
-      const responseText = await apiResponse.text();
-      console.log("[DEBUG] Raw response from backend:", responseText);
+      const data = await apiResponse.json();
 
-      if (!apiResponse.ok) {
-        let errorData;
-        try {
-            errorData = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error(`Falha na API do backend: ${apiResponse.status} ${apiResponse.statusText}. Resposta não é JSON: ${responseText}`);
-        }
-        throw new Error(errorData.error || "Falha ao processar la autenticação da Meta no backend.");
+      if (!apiResponse.ok || !data.success) {
+        throw new Error(data.error || "Falha ao processar a autenticação da Meta no backend.");
       }
       
-      const data = JSON.parse(responseText);
-      console.log("[DEBUG] Parsed successful response from backend:", data);
-
-      if (data.success) {
-        alert('Conta Meta conectada com sucesso!');
-        setMetaData(data.data); 
-      } else {
-        throw new Error(data.error || "Ocorreu um erro desconhecido no backend.");
-      }
+      alert('Conta Meta conectada com sucesso!');
+      await fetchMetaConnection(); 
+      
     } catch (error: any) {
-      console.error("[DEBUG] Error in processMetaAuthCode:", error);
+      console.error("Error in processMetaAuthCode:", error);
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
       await fetchMetaConnection(); 
     } finally {
       setLoading(false);
-      console.log("[DEBUG] Cleaning up URL.");
       window.history.replaceState({}, document.title, "/dashboard/conteudo");
     }
   };
@@ -133,9 +111,16 @@ export default function Conteudo() {
     const appId = "826418333144156";
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     
-    console.log(`[DEBUG] Redirecting to Meta for auth. Redirect URI: ${redirectUri}`);
+    const requiredScopes = [
+        "public_profile",
+        "pages_show_list",
+        "business_management",
+        "instagram_basic",
+        "instagram_content_publish",
+        "pages_read_engagement"
+    ];
 
-    const metaAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_basic,pages_show_list,business_management,instagram_manage_insights,pages_read_engagement,public_profile`;
+    const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}`;
 
     window.location.href = metaAuthUrl;
   };
@@ -170,13 +155,13 @@ export default function Conteudo() {
     }
   ];
 
-  const platformIcons = {
+  const platformIcons: { [key: string]: React.ElementType } = {
     instagram: Instagram,
     facebook: Facebook,
     linkedin: Linkedin
   };
 
-  const typeIcons = {
+  const typeIcons: { [key: string]: React.ElementType } = {
     image: Image,
     video: Video,
     text: FileText
@@ -217,7 +202,9 @@ export default function Conteudo() {
     const profileName = isInstagram ? data?.instagramAccountName : data?.facebookPageName;
     const followers = isInstagram ? data?.igFollowersCount : data?.followersCount;
     const profilePic = isInstagram ? data?.igProfilePictureUrl : data?.profilePictureUrl;
-  
+    
+    const isPlatformConnected = isInstagram ? !!data?.instagramAccountId : !!data?.facebookPageId;
+
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -232,8 +219,8 @@ export default function Conteudo() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-900">{platform}</h4>
-              <p className={`text-xs font-medium ${isConnected && profileName ? 'text-green-600' : 'text-gray-500'}`}>
-                {isConnected && profileName ? `Conectado como ${profileName}` : 'Não conectado'}
+              <p className={`text-xs font-medium ${isPlatformConnected ? 'text-green-600' : 'text-gray-500'}`}>
+                {isPlatformConnected && profileName ? `Conectado como ${profileName}` : 'Não conectado'}
               </p>
             </div>
           </div>
@@ -266,7 +253,7 @@ export default function Conteudo() {
             </Button>
           </div>
         </div>
-        {isConnected && (
+        {isPlatformConnected && (
              <Card className="mt-4 bg-gray-50 border-gray-200">
                 <CardHeader className="p-3">
                     <CardTitle className="text-sm font-semibold flex justify-between items-center">
@@ -466,19 +453,24 @@ export default function Conteudo() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSchedulerModal(false)}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col"
           >
-            <div className="p-6 border-b">
+            <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Plus className="w-6 h-6 text-blue-500" />
                 Agendar Nova Postagem
               </h3>
+               <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
+                <X className="w-5 h-5" />
+              </Button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Publicar em:
@@ -490,16 +482,21 @@ export default function Conteudo() {
                     return (
                       <div
                         key={account.id}
-                        onClick={() => handleAccountSelection(account.id)}
-                        className={`p-3 border rounded-lg flex items-center gap-3 cursor-pointer transition-all ${
+                        onClick={() => account.isConnected && handleAccountSelection(account.id)}
+                        className={`p-3 border rounded-lg flex items-center gap-3 transition-all ${
+                          account.isConnected 
+                            ? 'cursor-pointer' 
+                            : 'cursor-not-allowed opacity-50 bg-gray-50'
+                        } ${
                           isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <div className={`w-5 h-5 rounded-full border-2 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'} flex items-center justify-center`}>
                           {isSelected && <Check className="w-3 h-3 text-white"/>}
                         </div>
-                        <Icon className="w-5 h-5 text-blue-600" />
+                        <Icon className="w-5 h-5 text-gray-600" />
                         <span className="font-medium text-sm">{account.name}</span>
+                        {!account.isConnected && <Badge variant="destructive" className="ml-auto text-xs">Não conectado</Badge>}
                       </div>
                     )
                   })}
@@ -518,21 +515,21 @@ export default function Conteudo() {
                 />
               </div>
               
-              {postToSchedule.imageUrl && (
+              {postToSchedule.imageUrl ? (
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Média
+                      Mídia
                     </label>
                     <div className="relative">
-                        <img src={postToSchedule.imageUrl as string} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
+                        <img src={postToSchedule.imageUrl} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
                     </div>
                 </div>
+              ) : (
+                <Button variant="outline" className="w-full flex items-center gap-2 text-gray-600">
+                  <Paperclip className="w-4 h-4"/>
+                  Anexar Mídia
+                </Button>
               )}
-              
-              <Button variant="outline" className="w-full flex items-center gap-2 text-gray-600">
-                <Paperclip className="w-4 h-4"/>
-                Anexar Mídia
-              </Button>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
