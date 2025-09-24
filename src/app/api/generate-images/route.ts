@@ -22,13 +22,13 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
 
-    // Corrige as URLs que vêm com "https://" duplicado
+    // Corrige as URLs que vêm com "https://https://" duplicado e extrai apenas a URL
     const processedData = data.map((item: any) => {
       let imageUrl = item.url_da_imagem || "";
       if (imageUrl.startsWith("https://https://")) {
         imageUrl = imageUrl.substring(8); // Remove o "https://" extra
       }
-      return { ...item, url_da_imagem: imageUrl };
+      return { url_da_imagem: imageUrl };
     });
 
     return NextResponse.json(processedData);
