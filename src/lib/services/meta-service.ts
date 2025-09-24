@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export interface MetaConnectionData {
-    pageToken: string; // Changed from longLivedToken
+    pageToken: string; 
     facebookPageId?: string;
     facebookPageName?: string;
     instagramAccountId?: string;
@@ -44,12 +44,14 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
     try {
         const docSnap = await getDoc(metaDocRef);
         if (docSnap.exists()) {
+            // If document exists, update it
             await updateDoc(metaDocRef, data);
         } else {
+            // If document does not exist, create it with the provided data and defaults
             await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
         console.log("Meta connection data updated successfully.");
     } catch (error) {
-        console.error("Error updating meta connection data:", error);
+        console.error("Error updating/creating meta connection data:", error);
     }
 }
