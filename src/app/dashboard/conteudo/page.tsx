@@ -45,11 +45,12 @@ export default function Conteudo() {
 
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const connectedAccounts = [
-    { id: 'ig1', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
-    { id: 'fb1', platform: 'facebook', name: metaData?.facebookPageName || 'Facebook', icon: Facebook, isConnected: metaData?.isConnected && !!metaData.facebookPageId },
-    { id: 'li1', platform: 'linkedin', name: 'LinkedIn', icon: Linkedin, isConnected: false },
+    { id: 'instagram', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
+    { id: 'facebook', platform: 'facebook', name: metaData?.facebookPageName || 'Facebook', icon: Facebook, isConnected: metaData?.isConnected && !!metaData.facebookPageId },
+    { id: 'linkedin', platform: 'linkedin', name: 'LinkedIn', icon: Linkedin, isConnected: false },
   ];
 
   const fetchMetaConnection = async () => {
@@ -187,13 +188,57 @@ export default function Conteudo() {
 
   const handleSchedulePost = async () => {
     if (selectedAccounts.size === 0) {
-      alert("Selecione pelo menos uma conta para agendar a postagem.");
+      alert("Selecione pelo menos uma conta para publicar.");
       return;
     }
-    console.log("Agendando post para as contas:", Array.from(selectedAccounts));
-    console.log("Conteúdo:", postToSchedule);
-    alert("Simulação: Post agendado com sucesso!");
-    setShowSchedulerModal(false);
+     if (!postToSchedule.text.trim()) {
+      alert("O conteúdo do post não pode estar vazio.");
+      return;
+    }
+    if (!postToSchedule.imageUrl) {
+      alert("Anexe uma imagem para o post.");
+      return;
+    }
+    
+    setIsPublishing(true);
+
+    if(selectedAccounts.has('instagram')) {
+        if (!metaData?.instagramAccountId || !metaData?.longLivedToken) {
+            alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
+            setIsPublishing(false);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/instagram/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    igUserId: metaData.instagramAccountId,
+                    pageToken: metaData.longLivedToken,
+                    caption: postToSchedule.text,
+                    imageUrl: postToSchedule.imageUrl,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
+                setShowSchedulerModal(false);
+            } else {
+                throw new Error(result.error || 'Falha ao publicar no Instagram.');
+            }
+        } catch (error: any) {
+            console.error("Erro ao publicar no Instagram:", error);
+            alert(`Erro ao publicar: ${error.message}`);
+        }
+    }
+
+    // Futura lógica para Facebook e LinkedIn
+    // ...
+
+    setIsPublishing(false);
   };
 
   const SocialConnectionCard = ({ platform, icon: Icon, color, data, onConnect }: { platform: string, icon: React.FC<any>, color: string, data: MetaConnectionData | null, onConnect: () => void }) => {
@@ -464,7 +509,7 @@ export default function Conteudo() {
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Plus className="w-6 h-6 text-blue-500" />
-                Agendar Nova Postagem
+                Criar Nova Postagem
               </h3>
                <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
                 <X className="w-5 h-5" />
@@ -518,16 +563,23 @@ export default function Conteudo() {
               {postToSchedule.imageUrl ? (
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mídia
+                      Mídia Anexada
                     </label>
                     <div className="relative">
                         <img src={postToSchedule.imageUrl} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
+                         <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: null}))}>
+                           <X className="w-4 h-4" />
+                         </Button>
                     </div>
                 </div>
               ) : (
-                <Button variant="outline" className="w-full flex items-center gap-2 text-gray-600">
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center gap-2 text-gray-600"
+                  onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: "https://picsum.photos/seed/manualpost/800/1000"}))}
+                >
                   <Paperclip className="w-4 h-4"/>
-                  Anexar Mídia
+                  Anexar Mídia (Simulado)
                 </Button>
               )}
 
@@ -547,12 +599,20 @@ export default function Conteudo() {
               </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowSchedulerModal(false)}>
+              <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
                 Cancelar
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSchedulePost}>
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                Agendar Post
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                onClick={handleSchedulePost}
+                disabled={isPublishing}
+              >
+                {isPublishing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                )}
+                Publicar Post
               </Button>
             </div>
           </motion.div>
@@ -561,3 +621,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
