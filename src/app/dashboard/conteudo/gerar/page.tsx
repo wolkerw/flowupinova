@@ -144,13 +144,13 @@ export default function GerarConteudoPage() {
       
       const imageData = await response.json();
 
-      // Ajuste para lidar com diferentes formatos de resposta
+      // Ajustado para extrair a `url_da_imagem` da resposta do webhook
       const imageUrls = Array.isArray(imageData) 
-        ? imageData.map((item: any) => item.url || item)
-        : [imageData.url || imageData];
+        ? imageData.map((item: any) => item.url_da_imagem || item.url)
+        : [];
 
       if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
-        throw new Error("Nenhuma URL de imagem encontrada na resposta.");
+        throw new Error("Nenhuma URL de imagem válida encontrada na resposta.");
       }
 
       setGeneratedImages(imageUrls);
