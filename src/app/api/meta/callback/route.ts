@@ -38,22 +38,28 @@ export async function POST(request: NextRequest) {
 
 
   try {
+    // 1. Trocar código por token de curta duração
     const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
     const tokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived token");
     const userAccessToken = tokenData.access_token;
 
-    const fields = "name,access_token,followers_count,picture{url},instagram_business_account{name,username,followers_count,profile_picture_url}";
-    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=${fields}&access_token=${userAccessToken}`;
-    const pagesData = await fetchGraphAPI(pagesUrl, "Step 2: Fetch user pages with Page Access Tokens");
+    // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens
+    const pagesListUrl = `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`;
+    const pagesData = await fetchGraphAPI(pagesListUrl, "Step 2: Fetch user pages");
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa de pelo menos uma página para conectar.");
     }
     const page = pagesData.data[0];
-    const pageAccessToken = page.access_token; // This is the Page Access Token
-    console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id})`);
+    const pageAccessToken = page.access_token; 
+    console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id}) with its own Page Access Token.`);
 
-    const instagramAccount = page.instagram_business_account;
+    // 3. Obter detalhes da página, incluindo a conta do Instagram vinculada
+    const pageDetailsFields = "name,followers_count,picture{url},instagram_business_account{name,username,followers_count,profile_picture_url}";
+    const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
+    const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details and linked Instagram account");
+
+    const instagramAccount = pageDetailsData.instagram_business_account;
     if (instagramAccount) {
         console.log(`[DEBUG] Found linked Instagram account: '${instagramAccount.username}' (ID: ${instagramAccount.id})`);
     } else {
@@ -61,11 +67,11 @@ export async function POST(request: NextRequest) {
     }
 
     const metaData = {
-        pageToken: pageAccessToken, // Storing the correct Page Access Token
-        facebookPageId: page.id,
-        facebookPageName: page.name,
-        followersCount: page.followers_count,
-        profilePictureUrl: page.picture?.data?.url,
+        pageToken: pageAccessToken,
+        facebookPageId: pageDetailsData.id,
+        facebookPageName: pageDetailsData.name,
+        followersCount: pageDetailsData.followers_count,
+        profilePictureUrl: pageDetailsData.picture?.data?.url,
         instagramAccountId: instagramAccount?.id,
         instagramAccountName: instagramAccount?.username,
         igFollowersCount: instagramAccount?.followers_count,
@@ -73,9 +79,9 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
 
-    console.log("[DEBUG] Step 3: Updating database with new Meta connection data...");
+    console.log("[DEBUG] Step 4: Updating database with new Meta connection data...");
     await updateMetaConnection(metaData);
-    console.log("[DEBUG] Step 3 successful: Database updated.");
+    console.log("[DEBUG] Step 4 successful: Database updated.");
 
     return NextResponse.json({
       success: true,
