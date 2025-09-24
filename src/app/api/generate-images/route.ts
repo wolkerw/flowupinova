@@ -21,12 +21,20 @@ export async function POST(request: Request) {
     }
 
     const data = await webhookResponse.json();
-    return NextResponse.json(data);
+
+    // Corrige as URLs que vêm com "https://" duplicado
+    const processedData = data.map((item: any) => {
+      let imageUrl = item.url_da_imagem || "";
+      if (imageUrl.startsWith("https://https://")) {
+        imageUrl = imageUrl.substring(8); // Remove o "https://" extra
+      }
+      return { ...item, url_da_imagem: imageUrl };
+    });
+
+    return NextResponse.json(processedData);
 
   } catch (error: any) {
     console.error("Internal server error:", error);
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
 }
-
-    
