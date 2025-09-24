@@ -439,17 +439,17 @@ export default function GerarConteudoPage() {
                         <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
                             <div className="p-3 flex items-center gap-2 border-b">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src="https://picsum.photos/seed/avatar/40/40" />
+                                    <AvatarImage src={metaData?.igProfilePictureUrl || "https://picsum.photos/seed/avatar/40/40"} />
                                     <AvatarFallback>Flow</AvatarFallback>
                                 </Avatar>
-                                <span className="font-bold text-sm">flowup</span>
+                                <span className="font-bold text-sm">{metaData?.instagramAccountName || 'flowup'}</span>
                             </div>
                             <div className="relative w-full aspect-square">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
                             <div className="p-3 text-sm">
                                 <p>
-                                    <span className="font-bold">flowup</span> {selectedContent.subtitulo}
+                                    <span className="font-bold">{metaData?.instagramAccountName || 'flowup'}</span> {selectedContent.subtitulo}
                                 </p>
                                 <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                             </div>
@@ -459,11 +459,11 @@ export default function GerarConteudoPage() {
                        <div className="w-[500px] bg-white rounded-lg shadow-lg border flex flex-col">
                             <div className="p-4 flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
-                                    <AvatarImage src="https://picsum.photos/seed/avatar/40/40" />
+                                    <AvatarImage src={metaData?.profilePictureUrl || "https://picsum.photos/seed/avatar/40/40"} />
                                     <AvatarFallback>Flow</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <p className="font-bold">FlowUp</p>
+                                    <p className="font-bold">{metaData?.facebookPageName || 'FlowUp'}</p>
                                     <p className="text-xs text-gray-500">Agora mesmo</p>
                                 </div>
                             </div>
@@ -616,3 +616,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
