@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const shortLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
+    const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
     const tokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived token");
     const userAccessToken = tokenData.access_token;
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
     // In case of error, ensure the connection status is set to false in the DB.
-    await updateMetaConnection({ isConnected: false, pageToken: "" });
+    await updateMetaConnection({ isConnected: false, pageToken: "", instagramAccountId: undefined });
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

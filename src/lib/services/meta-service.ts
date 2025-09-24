@@ -46,7 +46,7 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
         if (docSnap.exists()) {
             await updateDoc(metaDocRef, data);
         } else {
-            await setDoc(metaDocRef, data);
+            await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
         console.log("Meta connection data updated successfully.");
     } catch (error) {
