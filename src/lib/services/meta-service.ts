@@ -1,11 +1,10 @@
-
 'use server';
 
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export interface MetaConnectionData {
-    longLivedToken: string;
+    pageToken: string; // Changed from longLivedToken
     facebookPageId?: string;
     facebookPageName?: string;
     instagramAccountId?: string;
@@ -20,7 +19,7 @@ export interface MetaConnectionData {
 const metaDocRef = doc(db, "integrations", "meta");
 
 const defaultMeta: MetaConnectionData = {
-    longLivedToken: "",
+    pageToken: "",
     isConnected: false,
 };
 

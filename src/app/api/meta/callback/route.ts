@@ -1,4 +1,3 @@
-
 // src/app/api/meta/callback/route.ts
 import { NextResponse, type NextRequest } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
@@ -41,20 +40,17 @@ export async function POST(request: NextRequest) {
   try {
     const shortLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
     const tokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived token");
-    const shortLivedToken = tokenData.access_token;
-
-    const longLivedTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;
-    const longLivedTokenData = await fetchGraphAPI(longLivedTokenUrl, "Step 2: Exchange short-lived for long-lived token");
-    const longLivedToken = longLivedTokenData.access_token;
+    const userAccessToken = tokenData.access_token;
 
     const fields = "name,access_token,followers_count,picture{url},instagram_business_account{name,username,followers_count,profile_picture_url}";
-    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=${fields}&access_token=${longLivedToken}`;
-    const pagesData = await fetchGraphAPI(pagesUrl, "Step 3: Fetch user pages");
+    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=${fields}&access_token=${userAccessToken}`;
+    const pagesData = await fetchGraphAPI(pagesUrl, "Step 2: Fetch user pages with Page Access Tokens");
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa de pelo menos uma página para conectar.");
     }
     const page = pagesData.data[0];
+    const pageAccessToken = page.access_token; // This is the Page Access Token
     console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id})`);
 
     const instagramAccount = page.instagram_business_account;
@@ -65,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const metaData = {
-        longLivedToken: longLivedToken,
+        pageToken: pageAccessToken, // Storing the correct Page Access Token
         facebookPageId: page.id,
         facebookPageName: page.name,
         followersCount: page.followers_count,
@@ -77,9 +73,9 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
 
-    console.log("[DEBUG] Step 4: Updating database with new Meta connection data...");
+    console.log("[DEBUG] Step 3: Updating database with new Meta connection data...");
     await updateMetaConnection(metaData);
-    console.log("[DEBUG] Step 4 successful: Database updated.");
+    console.log("[DEBUG] Step 3 successful: Database updated.");
 
     return NextResponse.json({
       success: true,
@@ -90,7 +86,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
     // In case of error, ensure the connection status is set to false in the DB.
-    await updateMetaConnection({ isConnected: false, longLivedToken: "" });
+    await updateMetaConnection({ isConnected: false, pageToken: "" });
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

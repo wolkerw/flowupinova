@@ -117,6 +117,7 @@ export default function Conteudo() {
         "public_profile",
         "pages_show_list",
         "business_management",
+        "pages_manage_posts",
         "instagram_basic",
         "instagram_content_publish",
         "pages_read_engagement"
@@ -206,7 +207,7 @@ export default function Conteudo() {
 
     if(selectedAccounts.has('instagram')) {
         console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
-        if (!metaData?.instagramAccountId || !metaData?.longLivedToken) {
+        if (!metaData?.instagramAccountId || !metaData?.pageToken) {
             alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
             setIsPublishing(false);
             return;
@@ -215,7 +216,7 @@ export default function Conteudo() {
         try {
             console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
                 igUserId: metaData.instagramAccountId,
-                pageToken: metaData.longLivedToken,
+                pageToken: metaData.pageToken,
                 caption: postToSchedule.text,
                 imageUrl: postToSchedule.imageUrl,
             });
@@ -225,7 +226,7 @@ export default function Conteudo() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     igUserId: metaData.instagramAccountId,
-                    pageToken: metaData.longLivedToken,
+                    pageToken: metaData.pageToken,
                     caption: postToSchedule.text,
                     imageUrl: postToSchedule.imageUrl,
                 }),

@@ -150,7 +150,7 @@ export default function GerarConteudoPage() {
 
     if (scheduleOptions.instagram.enabled && scheduleOptions.instagram.publishMode === 'now') {
         console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
-        if (!metaData.instagramAccountId || !metaData.longLivedToken) {
+        if (!metaData.instagramAccountId || !metaData.pageToken) {
             alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
             setIsPublishing(false);
             return;
@@ -159,7 +159,7 @@ export default function GerarConteudoPage() {
         try {
             console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
                 igUserId: metaData.instagramAccountId,
-                pageToken: metaData.longLivedToken,
+                pageToken: metaData.pageToken,
                 caption: fullCaption,
                 imageUrl: selectedImage,
             });
@@ -169,7 +169,7 @@ export default function GerarConteudoPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     igUserId: metaData.instagramAccountId,
-                    pageToken: metaData.longLivedToken,
+                    pageToken: metaData.pageToken,
                     caption: fullCaption,
                     imageUrl: selectedImage,
                 }),
@@ -616,5 +616,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
