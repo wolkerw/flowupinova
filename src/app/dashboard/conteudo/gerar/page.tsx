@@ -88,20 +88,19 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ summary: postSummary }),
       });
 
-      console.log("Resposta do Webhook:", response);
-
       if (!response.ok) {
         throw new Error("Falha ao buscar conteúdo da IA.");
       }
       
       const data = await response.json();
-      console.log("Dados recebidos:", data);
       
-      const dataArray = Array.isArray(data) ? data : [data];
-      
-      const formattedData = dataArray.map((item: any) => item['output.publicacoes']);
+      const contentArray = Array.isArray(data) ? data : (data['output.publicacoes'] ? [data['output.publicacoes']] : []);
 
-      setGeneratedContent(formattedData);
+      if (contentArray.length === 0) {
+        throw new Error("Formato de dados inesperado recebido do webhook.");
+      }
+
+      setGeneratedContent(contentArray);
       setSelectedContentId("0");
       setStep(2);
 
@@ -124,7 +123,6 @@ export default function GerarConteudoPage() {
     const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_imagem";
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
-    // Mock de imagens em caso de falha
     const mockImages = [
       "https://picsum.photos/seed/img1/400/600",
       "https://picsum.photos/seed/img2/400/600",
@@ -146,7 +144,14 @@ export default function GerarConteudoPage() {
       
       const imageData = await response.json();
 
-      const imageUrls = imageData.map((item: any) => item.url);
+      // Ajuste para lidar com diferentes formatos de resposta
+      const imageUrls = Array.isArray(imageData) 
+        ? imageData.map((item: any) => item.url || item)
+        : [imageData.url || imageData];
+
+      if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
+        throw new Error("Nenhuma URL de imagem encontrada na resposta.");
+      }
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
