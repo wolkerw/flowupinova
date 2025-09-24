@@ -28,7 +28,8 @@ import {
   Users,
   BarChart,
   RefreshCw,
-  X
+  X,
+  Send
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -621,7 +622,7 @@ export default function Conteudo() {
                 {isPublishing ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  <Send className="w-4 h-4 mr-2" />
                 )}
                 Publicar Post
               </Button>
