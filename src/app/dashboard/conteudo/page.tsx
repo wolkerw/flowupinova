@@ -201,8 +201,10 @@ export default function Conteudo() {
     }
     
     setIsPublishing(true);
+    console.log("[PUBLISH_START] Iniciando processo de publicação manual...");
 
     if(selectedAccounts.has('instagram')) {
+        console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
         if (!metaData?.instagramAccountId || !metaData?.longLivedToken) {
             alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
             setIsPublishing(false);
@@ -210,6 +212,13 @@ export default function Conteudo() {
         }
 
         try {
+            console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
+                igUserId: metaData.instagramAccountId,
+                pageToken: metaData.longLivedToken,
+                caption: postToSchedule.text,
+                imageUrl: postToSchedule.imageUrl,
+            });
+
             const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -222,6 +231,7 @@ export default function Conteudo() {
             });
 
             const result = await response.json();
+            console.log("[PUBLISH_API_RESPONSE] Resposta da API recebida:", result);
 
             if (result.success) {
                 alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
@@ -238,6 +248,7 @@ export default function Conteudo() {
     // Futura lógica para Facebook e LinkedIn
     // ...
 
+    console.log("[PUBLISH_END] Processo de publicação manual finalizado.");
     setIsPublishing(false);
   };
 
@@ -621,5 +632,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    

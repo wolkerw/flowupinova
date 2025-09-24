@@ -144,10 +144,12 @@ export default function GerarConteudoPage() {
     if (!selectedContent || !selectedImage || !metaData || isPublishing) return;
 
     setIsPublishing(true);
+    console.log("[PUBLISH_START] Iniciando processo de publicação...");
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
 
     if (scheduleOptions.instagram.enabled && scheduleOptions.instagram.publishMode === 'now') {
+        console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
         if (!metaData.instagramAccountId || !metaData.longLivedToken) {
             alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
             setIsPublishing(false);
@@ -155,6 +157,13 @@ export default function GerarConteudoPage() {
         }
 
         try {
+            console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
+                igUserId: metaData.instagramAccountId,
+                pageToken: metaData.longLivedToken,
+                caption: fullCaption,
+                imageUrl: selectedImage,
+            });
+
             const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -167,6 +176,7 @@ export default function GerarConteudoPage() {
             });
 
             const result = await response.json();
+            console.log("[PUBLISH_API_RESPONSE] Resposta da API recebida:", result);
 
             if (result.success) {
                 alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
@@ -182,6 +192,7 @@ export default function GerarConteudoPage() {
     // Futuramente, adicionar lógica para Facebook e LinkedIn aqui.
     // ...
 
+    console.log("[PUBLISH_END] Processo de publicação finalizado.");
     setIsPublishing(false);
     setShowSchedulerModal(false);
 };
