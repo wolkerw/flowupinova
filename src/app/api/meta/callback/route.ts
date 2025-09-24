@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const userAccessToken = tokenData.access_token;
 
     // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens
-    const pagesListUrl = `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`;
+    const pagesListUrl = `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`;
     const pagesData = await fetchGraphAPI(pagesListUrl, "Step 2: Fetch user pages");
     
     if (!pagesData.data || pagesData.data.length === 0) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id}) with its own Page Access Token.`);
 
     // 3. Obter detalhes da página, incluindo a conta do Instagram vinculada
-    const pageDetailsFields = "name,followers_count,picture{url},instagram_business_account{name,username,followers_count,profile_picture_url}";
+    const pageDetailsFields = "id,name,followers_count,picture{url},instagram_business_account{id,name,username,followers_count,profile_picture_url}";
     const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
     const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details and linked Instagram account");
 
