@@ -12,7 +12,7 @@ async function fetchGraphAPI(url: string, step: string) {
         console.error(`[DEBUG] Graph API error at ${step}:`, data.error);
         throw new Error(`Graph API error (${step}): ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
-    console.log(`[DEBUG] ${step} successful. Received data.`);
+    console.log(`[DEBUG] ${step} successful. Received data:`, JSON.stringify(data, null, 2));
     return data;
 }
 
@@ -71,16 +71,16 @@ export async function POST(request: NextRequest) {
         pageToken: pageAccessToken,
         facebookPageId: page.id,
         facebookPageName: page.name,
-        followersCount: pageDetailsData.followers_count,
-        profilePictureUrl: pageDetailsData.picture?.data?.url,
-        instagramAccountId: instagramAccount?.id,
-        instagramAccountName: instagramAccount?.username,
-        igFollowersCount: instagramAccount?.followers_count,
-        igProfilePictureUrl: instagramAccount?.profile_picture_url,
+        followersCount: pageDetailsData.followers_count ?? null,
+        profilePictureUrl: pageDetailsData.picture?.data?.url ?? null,
+        instagramAccountId: instagramAccount?.id ?? null,
+        instagramAccountName: instagramAccount?.username ?? null,
+        igFollowersCount: instagramAccount?.followers_count ?? null,
+        igProfilePictureUrl: instagramAccount?.profile_picture_url ?? null,
         isConnected: true,
     };
 
-    console.log("[DEBUG] Step 4: Updating database with new Meta connection data...");
+    console.log("[DEBUG] Step 4: Updating database with new Meta connection data...", metaData);
     await updateMetaConnection(metaData);
     console.log("[DEBUG] Step 4 successful: Database updated.");
 
@@ -92,8 +92,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
-    // In case of error, ensure the connection status is set to false in the DB.
-    // This will only run if the initial creation fails or if we want to reset state on error.
     try {
         await updateMetaConnection({ isConnected: false, pageToken: "" });
     } catch (dbError) {
