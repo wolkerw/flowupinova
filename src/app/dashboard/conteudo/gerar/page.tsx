@@ -58,7 +58,6 @@ export default function GerarConteudoPage() {
 
   const handleGenerateText = async () => {
     setIsLoading(true);
-    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
     
     // Mock data em caso de falha do webhook
     const mockData: GeneratedContent[] = [
@@ -80,7 +79,7 @@ export default function GerarConteudoPage() {
     ];
 
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch('/api/generate-text', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -120,7 +119,6 @@ export default function GerarConteudoPage() {
     if (!selectedContentId) return;
   
     setIsLoading(true);
-    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_imagem";
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
     const mockImages = [
@@ -130,7 +128,7 @@ export default function GerarConteudoPage() {
     ];
 
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch('/api/generate-images', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,12 +142,11 @@ export default function GerarConteudoPage() {
       
       const imageData = await response.json();
 
-      // Ajustado para extrair a `url_da_imagem` da resposta do webhook
       const imageUrls = Array.isArray(imageData) 
-        ? imageData.map((item: any) => item.url_da_imagem || item.url)
+        ? imageData.map((item: any) => item.url_da_imagem)
         : [];
 
-      if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
+      if (!imageUrls || imageUrls.length === 0 || !imageUrls.every(url => url)) {
         throw new Error("Nenhuma URL de imagem válida encontrada na resposta.");
       }
 
@@ -255,7 +252,7 @@ export default function GerarConteudoPage() {
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       <h4 className="font-bold text-base text-gray-900">{content.titulo}</h4>
                       <p className="text-sm text-gray-600 mt-1">{content.subtitulo}</p>
-                      <p className="text-xs text-blue-500 mt-2 break-words">{content.hashtags.join(' ')}</p>
+                      <p className="text-xs text-blue-500 mt-2 break-words">{Array.isArray(content.hashtags) ? content.hashtags.join(' ') : content.hashtags}</p>
                     </Label>
                   </div>
                 ))}
@@ -309,7 +306,7 @@ export default function GerarConteudoPage() {
                    {selectedContent ? (
                      <>
                        <p className="text-sm mb-3">{selectedContent.subtitulo}</p>
-                       <p className="text-xs text-blue-500 break-words">{selectedContent.hashtags.join(' ')}</p>
+                       <p className="text-xs text-blue-500 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</p>
                      </>
                    ) : (
                      <div className="space-y-2">
@@ -420,7 +417,7 @@ export default function GerarConteudoPage() {
                                 <p>
                                     <span className="font-bold">flowup</span> {selectedContent.subtitulo}
                                 </p>
-                                <p className="text-blue-500 mt-2">{selectedContent.hashtags.join(' ')}</p>
+                                <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</p>
                             </div>
                         </div>
                     </TabsContent>
@@ -443,7 +440,7 @@ export default function GerarConteudoPage() {
                             <div className="relative w-full aspect-video bg-gray-200">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
-                            <div className="p-4 text-sm text-blue-500">{selectedContent.hashtags.join(' ')}</div>
+                            <div className="p-4 text-sm text-blue-500">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</div>
                        </div>
                     </TabsContent>
                     <TabsContent value="linkedin">
@@ -466,7 +463,7 @@ export default function GerarConteudoPage() {
                             <div className="relative w-full aspect-[1.91/1] bg-gray-200">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
-                             <div className="p-4 text-sm text-gray-600">{selectedContent.hashtags.join(' ')}</div>
+                             <div className="p-4 text-sm text-gray-600">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</div>
                        </div>
                     </TabsContent>
                 </div>
@@ -579,3 +576,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
