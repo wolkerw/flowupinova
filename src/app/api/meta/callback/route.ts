@@ -44,32 +44,33 @@ export async function POST(request: NextRequest) {
     const userAccessToken = tokenData.access_token;
 
     // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens
-    const pagesListUrl = `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`;
-    const pagesData = await fetchGraphAPI(pagesListUrl, "Step 2: Fetch user pages");
+    const pagesListUrl = `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&access_token=${userAccessToken}`;
+    const pagesData = await fetchGraphAPI(pagesListUrl, "Step 2: Fetch user pages and linked IG accounts");
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa de pelo menos uma página para conectar.");
     }
     const page = pagesData.data[0];
     const pageAccessToken = page.access_token; 
+    const instagramAccount = page.instagram_business_account;
+
     console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id}) with its own Page Access Token.`);
 
-    // 3. Obter detalhes da página, incluindo a conta do Instagram vinculada
-    const pageDetailsFields = "id,name,followers_count,picture{url},instagram_business_account{id,name,username,followers_count,profile_picture_url}";
-    const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
-    const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details and linked Instagram account");
-
-    const instagramAccount = pageDetailsData.instagram_business_account;
     if (instagramAccount) {
         console.log(`[DEBUG] Found linked Instagram account: '${instagramAccount.username}' (ID: ${instagramAccount.id})`);
     } else {
-        console.log("[DEBUG] No linked Instagram business account found for this page.");
+        console.log("[DEBUG] No linked Instagram business account found for this page in initial fetch.");
     }
+
+    // 3. Obter detalhes da página (followers, picture)
+    const pageDetailsFields = "followers_count,picture{url}";
+    const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
+    const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details (followers, picture)");
 
     const metaData = {
         pageToken: pageAccessToken,
-        facebookPageId: pageDetailsData.id,
-        facebookPageName: pageDetailsData.name,
+        facebookPageId: page.id,
+        facebookPageName: page.name,
         followersCount: pageDetailsData.followers_count,
         profilePictureUrl: pageDetailsData.picture?.data?.url,
         instagramAccountId: instagramAccount?.id,
@@ -92,7 +93,13 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
     // In case of error, ensure the connection status is set to false in the DB.
-    await updateMetaConnection({ isConnected: false, pageToken: "", instagramAccountId: undefined });
+    // This will only run if the initial creation fails or if we want to reset state on error.
+    try {
+        await updateMetaConnection({ isConnected: false, pageToken: "" });
+    } catch (dbError) {
+        console.error("[DEBUG] Failed to even update the DB to disconnected state:", dbError);
+    }
+    
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

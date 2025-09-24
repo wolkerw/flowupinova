@@ -50,8 +50,10 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
             // If document does not exist, create it with the provided data and defaults
             await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
-        console.log("Meta connection data updated successfully.");
+        console.log("Meta connection data updated/created successfully.");
     } catch (error) {
         console.error("Error updating/creating meta connection data:", error);
+        // We throw the error here to be caught by the API route
+        throw error;
     }
 }
