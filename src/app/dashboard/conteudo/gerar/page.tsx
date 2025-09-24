@@ -93,7 +93,7 @@ export default function GerarConteudoPage() {
       
       const data = await response.json();
       
-      const contentArray = Array.isArray(data) ? data : (data['output.publicacoes'] ? [data['output.publicacoes']] : []);
+      const contentArray = Array.isArray(data) ? data : [];
 
       if (contentArray.length === 0) {
         throw new Error("Formato de dados inesperado recebido do webhook.");
@@ -143,10 +143,10 @@ export default function GerarConteudoPage() {
       const imageData = await response.json();
 
       const imageUrls = Array.isArray(imageData) 
-        ? imageData.map((item: any) => item.url_da_imagem)
+        ? imageData.map((item: any) => item.url_da_imagem).filter(Boolean)
         : [];
 
-      if (!imageUrls || imageUrls.length === 0 || !imageUrls.every(url => url)) {
+      if (imageUrls.length === 0) {
         throw new Error("Nenhuma URL de imagem válida encontrada na resposta.");
       }
 
@@ -252,7 +252,7 @@ export default function GerarConteudoPage() {
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       <h4 className="font-bold text-base text-gray-900">{content.titulo}</h4>
                       <p className="text-sm text-gray-600 mt-1">{content.subtitulo}</p>
-                      <p className="text-xs text-blue-500 mt-2 break-words">{Array.isArray(content.hashtags) ? content.hashtags.join(' ') : content.hashtags}</p>
+                      <p className="text-xs text-blue-500 mt-2 break-words">{Array.isArray(content.hashtags) ? content.hashtags.join(' ') : ''}</p>
                     </Label>
                   </div>
                 ))}
@@ -306,7 +306,7 @@ export default function GerarConteudoPage() {
                    {selectedContent ? (
                      <>
                        <p className="text-sm mb-3">{selectedContent.subtitulo}</p>
-                       <p className="text-xs text-blue-500 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</p>
+                       <p className="text-xs text-blue-500 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                      </>
                    ) : (
                      <div className="space-y-2">
@@ -417,7 +417,7 @@ export default function GerarConteudoPage() {
                                 <p>
                                     <span className="font-bold">flowup</span> {selectedContent.subtitulo}
                                 </p>
-                                <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</p>
+                                <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                             </div>
                         </div>
                     </TabsContent>
@@ -440,7 +440,7 @@ export default function GerarConteudoPage() {
                             <div className="relative w-full aspect-video bg-gray-200">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
-                            <div className="p-4 text-sm text-blue-500">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</div>
+                            <div className="p-4 text-sm text-blue-500">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</div>
                        </div>
                     </TabsContent>
                     <TabsContent value="linkedin">
@@ -463,7 +463,7 @@ export default function GerarConteudoPage() {
                             <div className="relative w-full aspect-[1.91/1] bg-gray-200">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
-                             <div className="p-4 text-sm text-gray-600">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : selectedContent.hashtags}</div>
+                             <div className="p-4 text-sm text-gray-600">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</div>
                        </div>
                     </TabsContent>
                 </div>
@@ -576,5 +576,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    

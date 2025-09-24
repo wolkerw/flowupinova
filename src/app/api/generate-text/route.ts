@@ -27,10 +27,16 @@ export async function POST(request: Request) {
         let hashtags = item.hashtags;
         if (typeof hashtags === 'string') {
             try {
-                hashtags = JSON.parse(hashtags);
+                // Tenta fazer o parse da string JSON
+                const parsedHashtags = JSON.parse(hashtags);
+                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags];
             } catch (e) {
-                console.warn("Could not parse hashtags string:", hashtags);
-                hashtags = hashtags.split(/[ ,]+/).filter(Boolean); // Fallback to splitting by space or comma
+                console.warn("Could not parse hashtags string, splitting by space/comma:", hashtags);
+                // Fallback para strings que não são JSON, como "tag1, tag2" ou "tag1 tag2"
+                hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
+                if (hashtags.length === 0) {
+                    hashtags = hashtags.split(/[ ,]+/).filter(Boolean);
+                }
             }
         }
         return { ...item, hashtags };
@@ -43,5 +49,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
 }
-
-    
