@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -103,12 +103,28 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const router = useRouter();
+    
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const handleNextStep = () => {
         if(selectedType) {
             setStep(2);
         }
     }
+
+    const handleFileSelect = (ref: React.RefObject<HTMLInputElement>) => {
+        ref.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            console.log("Arquivo selecionado:", file.name);
+            // Aqui você pode adicionar a lógica para lidar com o arquivo (ex: upload, preview)
+        }
+    };
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
 
@@ -195,18 +211,21 @@ export default function CriarConteudoPage() {
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos, imagens e sua logomarca.</p>
+                                    <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                                    <input type="file" ref={videoInputRef} onChange={handleFileChange} accept="video/*" className="hidden" />
+                                    <input type="file" ref={logoInputRef} onChange={handleFileChange} accept="image/png, image/jpeg" className="hidden" />
                                     <div className="grid grid-cols-2 gap-4 pt-2">
-                                        <Button variant="outline" className="flex items-center gap-2">
+                                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
                                             <FileImage className="w-4 h-4 text-blue-500" />
                                             Anexar Imagem
                                         </Button>
-                                        <Button variant="outline" className="flex items-center gap-2">
+                                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
                                             <Video className="w-4 h-4 text-green-500" />
                                             Anexar Vídeo
                                         </Button>
                                     </div>
                                     <div className="pt-2">
-                                         <Button variant="outline" className="flex items-center gap-2 w-full justify-center">
+                                         <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)}>
                                             <UploadCloud className="w-4 h-4 text-purple-500" />
                                             Adicionar Logomarca
                                         </Button>
