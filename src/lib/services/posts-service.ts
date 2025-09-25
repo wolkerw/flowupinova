@@ -35,7 +35,7 @@ const postsCollectionRef = collection(db, "posts");
  */
 export async function schedulePost(postData: PostDataInput): Promise<PostDataOutput> {
     try {
-        const postToSave = {
+        const postToSave: Omit<PostData, 'id'> = {
             ...postData,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
             status: 'scheduled' as const,
@@ -129,4 +129,3 @@ export async function updatePostStatus(postId: string, status: 'published' | 'fa
         throw new Error("Failed to update post status.");
     }
 }
-

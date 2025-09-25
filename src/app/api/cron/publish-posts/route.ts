@@ -30,9 +30,10 @@ async function publishInstagramPhoto(igUserId: string, pageToken: string, imageU
     let containerStatus = 'IN_PROGRESS';
     let attempts = 0;
     
-    // Aguarda o container ficar pronto
+    console.log(`[CRON] Container ${creationId} criado. Aguardando finalização...`);
+    
     while (containerStatus === 'IN_PROGRESS' && attempts < 10) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // espera 5s
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const statusRes = await fetch(`${GRAPH_API_URL}/${creationId}?fields=status_code&access_token=${pageToken}`);
         const statusJson = await statusRes.json();
         containerStatus = statusJson.status_code;
@@ -60,6 +61,7 @@ async function publishInstagramPhoto(igUserId: string, pageToken: string, imageU
       throw new Error(`Falha ao publicar contêiner: ${JSON.stringify(pubJson.error || pubJson)}`);
     }
 
+    console.log(`[CRON] Container ${creationId} publicado com sucesso. Media ID: ${pubJson.id}`);
     return pubJson.id;
 
   } catch (error: any) {
@@ -78,18 +80,19 @@ export async function POST(request: NextRequest) {
   console.log("[CRON] Job iniciado: Buscando posts agendados...");
 
   try {
+    const metaConnection = await getMetaConnection();
+    if (!metaConnection || !metaConnection.isConnected || !metaConnection.pageToken || !metaConnection.instagramAccountId) {
+        console.error("[CRON] Erro crítico: A conta da Meta não está conectada ou as credenciais (pageToken, instagramAccountId) estão ausentes.");
+        return NextResponse.json({ success: false, error: "A conta da Meta não está conectada ou configurada corretamente." }, { status: 500 });
+    }
+    
     const duePosts = await getDuePosts();
     if (duePosts.length === 0) {
-      console.log("[CRON] Nenhum post para publicar.");
+      console.log("[CRON] Nenhum post para publicar no momento.");
       return NextResponse.json({ success: true, message: "Nenhum post para publicar." });
     }
 
-    console.log(`[CRON] Encontrado(s) ${duePosts.length} post(s) para publicar.`);
-    const metaConnection = await getMetaConnection();
-
-    if (!metaConnection.isConnected || !metaConnection.pageToken) {
-        throw new Error("A conta da Meta não está conectada ou o token de página está ausente.");
-    }
+    console.log(`[CRON] Encontrado(s) ${duePosts.length} post(s) para publicar:`, duePosts.map(p => p.id));
     
     let publishedCount = 0;
     let failedCount = 0;
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
     for (const post of duePosts) {
         console.log(`[CRON] Processando post ID: ${post.id}`);
         try {
-            if (post.platforms.includes("instagram") && metaConnection.instagramAccountId) {
+            if (post.platforms.includes("instagram")) {
                 const fullCaption = `${post.title}\n\n${post.text}`;
                 if (!post.imageUrl) {
                     throw new Error("Publicação no Instagram requer uma imagem (imageUrl).");
@@ -114,8 +117,7 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
             failedCount++;
             console.error(`[CRON] Falha ao publicar o post ID: ${post.id}. Erro: ${error.message}`);
-            // Opcional: Atualizar post com status de 'failed'
-            // await updatePostStatus(post.id, "failed");
+            await updatePostStatus(post.id, "failed");
         }
     }
 
