@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
+import { schedulePost } from "@/lib/services/posts-service";
 
 
 interface GeneratedContent {
@@ -139,59 +140,78 @@ export default function GerarConteudoPage() {
   };
 
   const handlePublish = async () => {
-    if (!selectedContent || !selectedImage || !metaData || isPublishing) return;
+    if (!selectedContent || !selectedImage || isPublishing) return;
 
     setIsPublishing(true);
-    console.log("[PUBLISH_START] Iniciando processo de publicação...");
+    console.log("[PUBLISH_START] Iniciando processo de publicação/agendamento...");
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
-
-    if (scheduleOptions.instagram.enabled && scheduleOptions.instagram.publishMode === 'now') {
-        console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
-        if (!metaData.instagramAccountId || !metaData.pageToken) {
-            alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
-            setIsPublishing(false);
-            return;
-        }
-
-        try {
-            console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
-                igUserId: metaData.instagramAccountId,
-                caption: fullCaption,
-                imageUrl: selectedImage,
-            });
-
-            const response = await fetch('/api/instagram/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    igUserId: metaData.instagramAccountId,
-                    pageToken: metaData.pageToken,
-                    caption: fullCaption,
-                    imageUrl: selectedImage,
-                }),
-            });
-
-            const result = await response.json();
-            console.log("[PUBLISH_API_RESPONSE] Resposta da API recebida:", result);
-
-            if (result.success) {
-                alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
-            } else {
-                throw new Error(result.error || 'Falha ao publicar no Instagram.');
-            }
-        } catch (error: any) {
-            console.error("Erro ao publicar no Instagram:", error);
-            alert(`Erro ao publicar: ${error.message}`);
-        }
-    }
     
-    // Futuramente, adicionar lógica para Facebook e LinkedIn aqui.
-    // ...
+    const enabledPlatforms = Object.keys(scheduleOptions).filter(p => scheduleOptions[p].enabled);
 
-    console.log("[PUBLISH_END] Processo de publicação finalizado.");
-    setIsPublishing(false);
-    setShowSchedulerModal(false);
+    try {
+        let publicationHandled = false;
+
+        for (const platform of enabledPlatforms) {
+            const options = scheduleOptions[platform];
+
+            if (options.publishMode === 'now') {
+                console.log(`[PUBLISH_NOW] Tentando publicar agora no ${platform}.`);
+                if (platform === 'instagram') {
+                    if (!metaData?.instagramAccountId || !metaData?.pageToken) {
+                        alert("Conta do Instagram não está configurada para publicação imediata.");
+                        continue;
+                    }
+                    const response = await fetch('/api/instagram/publish', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            igUserId: metaData.instagramAccountId,
+                            pageToken: metaData.pageToken,
+                            caption: fullCaption,
+                            imageUrl: selectedImage,
+                        }),
+                    });
+                    const result = await response.json();
+                    if (!result.success) throw new Error(result.error || `Falha ao publicar no ${platform}.`);
+                    alert(`Post publicado no ${platform} com sucesso!`);
+                    publicationHandled = true;
+                }
+                // Adicionar lógica para outros canais (Facebook, etc.) aqui
+            } else if (options.publishMode === 'schedule') {
+                console.log(`[PUBLISH_SCHEDULE] Tentando agendar para ${platform}.`);
+                if (!options.dateTime) {
+                    alert(`Por favor, selecione data e hora para o agendamento no ${platform}.`);
+                    continue;
+                }
+                
+                await schedulePost({
+                    title: selectedContent.titulo,
+                    text: fullCaption,
+                    imageUrl: selectedImage,
+                    platforms: enabledPlatforms,
+                    scheduledAt: new Date(options.dateTime),
+                });
+
+                alert(`Post agendado com sucesso para ${enabledPlatforms.join(', ')}!`);
+                publicationHandled = true;
+                // Como o agendamento é único para todas as plataformas, podemos sair do loop
+                break; 
+            }
+        }
+
+        if (publicationHandled) {
+            setShowSchedulerModal(false);
+        } else if (enabledPlatforms.length > 0) {
+            alert("Nenhuma ação de publicação ou agendamento foi executada. Verifique as configurações.");
+        }
+
+    } catch (error: any) {
+        console.error("Erro no processo de publicação/agendamento:", error);
+        alert(`Erro: ${error.message}`);
+    } finally {
+        setIsPublishing(false);
+    }
 };
 
   
@@ -613,3 +633,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
