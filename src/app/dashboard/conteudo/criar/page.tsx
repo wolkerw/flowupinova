@@ -98,8 +98,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         case 'single_post':
             return (
                 <div className="w-full max-w-sm aspect-[4/5] bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                    {renderContent(singleItem)}
-                    {!singleItem && placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
+                    {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
                     )}
