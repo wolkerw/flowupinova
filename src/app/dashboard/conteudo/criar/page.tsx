@@ -45,7 +45,8 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
 const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrl: string | null, logoUrl: string | null }) => {
     const renderContent = () => {
         if (imageUrl) {
-            return <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+            // Usar 'fill' e 'object-cover' com um contêiner pai relativo e dimensões definidas.
+            return <Image src={imageUrl} alt="Preview da imagem" fill style={{ objectFit: 'cover' }} />;
         }
         if (videoUrl) {
             return <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
@@ -338,3 +339,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
