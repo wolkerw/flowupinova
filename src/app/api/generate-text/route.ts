@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { summary } = await request.json();
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
+    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
