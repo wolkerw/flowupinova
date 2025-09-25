@@ -14,6 +14,10 @@ import { useRouter } from "next/navigation";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
+type MediaItem = {
+    type: 'image' | 'video';
+    url: string;
+};
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
     {
@@ -42,37 +46,43 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type, videoUrl, imageUrls, logoUrl, onRemoveImage }: { type: ContentType, videoUrl: string | null, imageUrls: string[], logoUrl: string | null, onRemoveImage: (index: number) => void }) => {
+const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
-        if (currentSlide >= imageUrls.length && imageUrls.length > 0) {
-            setCurrentSlide(imageUrls.length - 1);
+        if (currentSlide >= mediaItems.length && mediaItems.length > 0) {
+            setCurrentSlide(mediaItems.length - 1);
         }
-    }, [imageUrls, currentSlide]);
+    }, [mediaItems, currentSlide]);
 
 
     const handleNextSlide = () => {
-        if (imageUrls.length > 1) {
-            setCurrentSlide((prev) => (prev + 1) % imageUrls.length);
+        if (mediaItems.length > 1) {
+            setCurrentSlide((prev) => (prev + 1) % mediaItems.length);
         }
     }
     
     const handlePrevSlide = () => {
-        if (imageUrls.length > 1) {
-            setCurrentSlide((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+        if (mediaItems.length > 1) {
+            setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
         }
     }
 
     const renderContent = (isCarousel = false) => {
-        const currentImageUrl = imageUrls.length > 0 ? (isCarousel ? imageUrls[currentSlide] : imageUrls[0]) : null;
+        const currentItem = mediaItems.length > 0 ? (isCarousel ? mediaItems[currentSlide] : mediaItems[0]) : null;
 
-        if (currentImageUrl) {
-            return <Image src={currentImageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+        if (!currentItem) {
+            return null;
         }
-        if (videoUrl) {
-            return <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+
+        if (currentItem.type === 'image') {
+            return <Image src={currentItem.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
+        
+        if (currentItem.type === 'video') {
+            return <video src={currentItem.url} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+        }
+        
         return null;
     };
 
@@ -101,37 +111,37 @@ const Preview = ({ type, videoUrl, imageUrls, logoUrl, onRemoveImage }: { type: 
                         <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {renderContent(true)}
-                                {imageUrls.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
+                                {mediaItems.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
 
-                                {imageUrls.length > 0 && (
-                                     <button onClick={() => onRemoveImage(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
+                                {mediaItems.length > 0 && (
+                                     <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
                                         <X className="w-4 h-4"/>
                                      </button>
                                 )}
 
-                                {imageUrls.length > 1 && (
+                                {mediaItems.length > 1 && (
                                     <>
                                         <div className="absolute top-1/2 left-2 right-2 flex justify-between z-10">
                                             <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                             <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
                                         </div>
                                         <div className="absolute bottom-4 flex gap-1.5 z-10">
-                                            {imageUrls.map((_, index) => (
+                                            {mediaItems.map((_, index) => (
                                                  <div key={index} className={cn("w-2 h-2 rounded-full", currentSlide === index ? 'bg-blue-500' : 'bg-gray-400')}></div>
                                             ))}
                                         </div>
                                     </>
                                 )}
-                                {imageUrls.length > 0 && (
+                                {mediaItems.length > 0 && (
                                     <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-10">
-                                        {currentSlide + 1} / {imageUrls.length}
+                                        {currentSlide + 1} / {mediaItems.length}
                                     </div>
                                 )}
                            </div>
                         </div>
                     </div>
                     <div className="w-full max-w-sm text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-800 font-medium mb-2">Sequência de 2 a 10 imagens que o usuário desliza.</p>
+                        <p className="text-sm text-blue-800 font-medium mb-2">Sequência de 2 a 10 imagens ou vídeos que o usuário desliza.</p>
                         <h5 className="font-bold text-blue-900">Ótimo para:</h5>
                         <ul className="mt-2 space-y-1 text-sm text-blue-800 list-none">
                             <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>“Passo a passo”</span></li>
@@ -162,8 +172,7 @@ const Preview = ({ type, videoUrl, imageUrls, logoUrl, onRemoveImage }: { type: 
 export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
-    const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-    const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const router = useRouter();
     
@@ -174,8 +183,7 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         // Cleanup function to revoke Object URLs on component unmount
         return () => {
-            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-            imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+            mediaItems.forEach(item => URL.revokeObjectURL(item.url));
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,22 +203,19 @@ export default function CriarConteudoPage() {
         const file = event.target.files?.[0];
         if (file) {
             const url = URL.createObjectURL(file);
-            if (fileType === 'video') {
-                if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl); // Revoke old URL
-                setVideoPreviewUrl(url);
-                if (imagePreviewUrls.length > 0) {
-                    imagePreviewUrls.forEach(u => URL.revokeObjectURL(u));
-                    setImagePreviewUrls([]); 
-                }
-            } else if (fileType === 'image') {
-                setImagePreviewUrls(prev => [...prev, url]);
-                if (videoPreviewUrl) {
-                    URL.revokeObjectURL(videoPreviewUrl);
-                    setVideoPreviewUrl(null);
-                }
-            } else if (fileType === 'logo') {
+            const newMediaItem: MediaItem = { type: fileType === 'video' ? 'video' : 'image', url };
+
+            if (fileType === 'logo') {
                 if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
                 setLogoPreviewUrl(url);
+            } else {
+                 if (selectedType === 'carousel') {
+                    setMediaItems(prev => [...prev, newMediaItem]);
+                } else {
+                    // For single media types, replace the existing item
+                    mediaItems.forEach(item => URL.revokeObjectURL(item.url));
+                    setMediaItems([newMediaItem]);
+                }
             }
         }
         // Reset the input value to allow selecting the same file again
@@ -219,22 +224,20 @@ export default function CriarConteudoPage() {
         }
     };
     
-    const clearPreview = (fileType: 'image' | 'video' | 'logo', index?: number) => {
-        if (fileType === 'video') {
-            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-            setVideoPreviewUrl(null);
-        } else if (fileType === 'image') {
-            if(typeof index === 'number') {
-                const urlToRemove = imagePreviewUrls[index];
-                if (urlToRemove) URL.revokeObjectURL(urlToRemove);
-                setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
-            } else {
-                imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-                setImagePreviewUrls([]);
-            }
-        } else if (fileType === 'logo') {
+    const clearPreview = (fileType: 'item' | 'logo', index?: number) => {
+        if (fileType === 'logo') {
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
             setLogoPreviewUrl(null);
+        } else if (fileType === 'item') {
+            if(typeof index === 'number') {
+                const urlToRemove = mediaItems[index]?.url;
+                if (urlToRemove) URL.revokeObjectURL(urlToRemove);
+                setMediaItems(prev => prev.filter((_, i) => i !== index));
+            } else {
+                // Clear all media items
+                mediaItems.forEach(item => URL.revokeObjectURL(item.url));
+                setMediaItems([]);
+            }
         }
     }
     
@@ -324,7 +327,7 @@ export default function CriarConteudoPage() {
                                     <Label className="font-semibold">Seu Acervo</Label>
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos, imagens e sua logomarca.</p>
                                     <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
-                                    <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" />
+                                    <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     
                                     <div className="grid grid-cols-2 gap-4 pt-2">
@@ -333,8 +336,8 @@ export default function CriarConteudoPage() {
                                                 <FileImage className="w-4 h-4 text-blue-500" />
                                                 Anexar Imagem
                                             </Button>
-                                            {imagePreviewUrls.length > 0 && selectedType !== 'carousel' && (
-                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('image')}><X className="w-4 h-4"/></Button>
+                                            {mediaItems.length > 0 && selectedType !== 'carousel' && (
+                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('item')}><X className="w-4 h-4"/></Button>
                                             )}
                                         </div>
                                          <div className="relative">
@@ -342,8 +345,8 @@ export default function CriarConteudoPage() {
                                                 <Video className="w-4 h-4 text-green-500" />
                                                 Anexar Vídeo
                                             </Button>
-                                            {videoPreviewUrl && (
-                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('video')}><X className="w-4 h-4"/></Button>
+                                            {mediaItems.some(i => i.type === 'video') && selectedType !== 'carousel' && (
+                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('item')}><X className="w-4 h-4"/></Button>
                                             )}
                                         </div>
                                     </div>
@@ -368,7 +371,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrls={imagePreviewUrls} logoUrl={logoPreviewUrl} onRemoveImage={(index) => clearPreview('image', index)} />
+                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={(index) => clearPreview('item', index)} />
                            </div>
                         </div>
                     </div>
