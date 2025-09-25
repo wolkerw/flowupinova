@@ -96,7 +96,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
     switch (type) {
         case 'single_post':
             return (
-                <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="w-full max-w-sm aspect-[4/5] bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
                     {renderContent()}
                     {renderContent() === null && placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
@@ -209,7 +209,7 @@ export default function CriarConteudoPage() {
                 if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
                 setLogoPreviewUrl(url);
             } else {
-                 if (selectedType === 'carousel') {
+                 if (selectedType === 'carousel' || selectedType === 'story' || selectedType === 'reels') {
                     setMediaItems(prev => [...prev, newMediaItem]);
                 } else {
                     // For single media types, replace the existing item
