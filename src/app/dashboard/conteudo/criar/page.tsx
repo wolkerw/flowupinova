@@ -68,11 +68,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         }
     }
 
-    const renderContent = (item: MediaItem | null) => {
-        if (!item) {
-            return null;
-        }
-
+    const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
             return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
@@ -110,8 +106,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
                     <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
                         <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
-                                {renderContent(currentCarouselItem)}
-                                {mediaItems.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
+                                {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
 
                                 {mediaItems.length > 0 && (
                                      <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
@@ -391,5 +386,6 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
 
     
