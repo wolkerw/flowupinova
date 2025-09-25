@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -43,18 +43,28 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
 ]
 
 const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrl: string | null, logoUrl: string | null }) => {
+    const renderContent = () => {
+        if (imageUrl) {
+            return <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+        }
+        if (videoUrl) {
+            return <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+        }
+        return null;
+    };
+
+    const placeholder = (icon: React.ElementType, text: string) => (
+        <div className="flex flex-col items-center justify-center text-center p-4 h-full">
+            {React.createElement(icon, { className: "w-16 h-16 text-gray-400 mb-4" })}
+            <p className="text-gray-500">{text}</p>
+        </div>
+    );
+
     switch (type) {
         case 'single_post':
             return (
-                <div className="w-full max-w-sm aspect-[1/1] bg-gray-200 rounded-lg flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                    {imageUrl ? (
-                        <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />
-                    ) : (
-                        <>
-                            <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
-                            <p className="text-gray-600 text-center">Pré-visualização de Post Único (Feed)</p>
-                        </>
-                    )}
+                <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+                    {renderContent() || placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
                     )}
@@ -64,16 +74,9 @@ const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, vid
             return (
                  <div className="flex flex-col items-center gap-6">
                     <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
-                        <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                        <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
-                                {imageUrl ? (
-                                    <Image src={imageUrl} alt="Preview do carrossel" layout="fill" objectFit="cover" />
-                                ) : (
-                                    <>
-                                        <Copy className="w-16 h-16 text-gray-400 mb-4" />
-                                        <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
-                                    </>
-                                )}
+                                {renderContent() || placeholder(Copy, "Pré-visualização de Carrossel")}
                                 <div className="absolute top-1/2 left-2 right-2 flex justify-between">
                                     <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                     <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
@@ -102,19 +105,7 @@ const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, vid
         case 'reels':
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
-                    {videoUrl ? (
-                        <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
-                    ) : imageUrl ? (
-                        <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />
-                    ) : (
-                        <>
-                           {type === 'story' ? 
-                                <Film className="w-16 h-16 text-gray-400 mb-4" /> : 
-                                <Sparkles className="w-16 h-16 text-gray-400 mb-4" />
-                            }
-                            <p className="text-gray-300 text-center text-sm">Pré-visualização de {type === 'story' ? 'Story' : 'Reels'}</p>
-                        </>
-                    )}
+                    {renderContent() || placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
                     {logoUrl && (
                          <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
                     )}
@@ -138,6 +129,16 @@ export default function CriarConteudoPage() {
     const videoInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
+    useEffect(() => {
+        // Cleanup function to revoke Object URLs on component unmount
+        return () => {
+            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+            if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+            if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleNextStep = () => {
         if(selectedType) {
             setStep(2);
@@ -151,19 +152,40 @@ export default function CriarConteudoPage() {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
         const file = event.target.files?.[0];
         if (file) {
-            console.log("Arquivo selecionado:", file.name, "Tipo:", fileType);
             const url = URL.createObjectURL(file);
             if (fileType === 'video') {
+                if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl); // Revoke old URL
                 setVideoPreviewUrl(url);
+                if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
                 setImagePreviewUrl(null); 
             } else if (fileType === 'image') {
+                if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
                 setImagePreviewUrl(url);
+                if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
                 setVideoPreviewUrl(null);
             } else if (fileType === 'logo') {
+                if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
                 setLogoPreviewUrl(url);
             }
         }
+        // Reset the input value to allow selecting the same file again
+        if(event.target) {
+            event.target.value = "";
+        }
     };
+    
+    const clearPreview = (fileType: 'image' | 'video' | 'logo') => {
+        if (fileType === 'video') {
+            if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+            setVideoPreviewUrl(null);
+        } else if (fileType === 'image') {
+            if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+            setImagePreviewUrl(null);
+        } else if (fileType === 'logo') {
+            if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+            setLogoPreviewUrl(null);
+        }
+    }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
 
@@ -253,21 +275,35 @@ export default function CriarConteudoPage() {
                                     <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" />
                                     <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" />
                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
+                                    
                                     <div className="grid grid-cols-2 gap-4 pt-2">
-                                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
-                                            <FileImage className="w-4 h-4 text-blue-500" />
-                                            Anexar Imagem
-                                        </Button>
-                                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
-                                            <Video className="w-4 h-4 text-green-500" />
-                                            Anexar Vídeo
-                                        </Button>
+                                        <div className="relative">
+                                            <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
+                                                <FileImage className="w-4 h-4 text-blue-500" />
+                                                Anexar Imagem
+                                            </Button>
+                                            {imagePreviewUrl && (
+                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('image')}><X className="w-4 h-4"/></Button>
+                                            )}
+                                        </div>
+                                         <div className="relative">
+                                            <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
+                                                <Video className="w-4 h-4 text-green-500" />
+                                                Anexar Vídeo
+                                            </Button>
+                                            {videoPreviewUrl && (
+                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('video')}><X className="w-4 h-4"/></Button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="pt-2">
+                                    <div className="pt-2 relative">
                                          <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)}>
                                             <UploadCloud className="w-4 h-4 text-purple-500" />
                                             Adicionar Logomarca
                                         </Button>
+                                        {logoPreviewUrl && (
+                                            <Button variant="ghost" size="icon" className="absolute -top-1 right-0 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('logo')}><X className="w-4 h-4"/></Button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -302,5 +338,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
