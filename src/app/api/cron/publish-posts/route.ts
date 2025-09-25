@@ -32,6 +32,7 @@ async function publishInstagramPhoto(igUserId: string, pageToken: string, imageU
     
     console.log(`[CRON] Container ${creationId} criado. Aguardando finalização...`);
     
+    // Esta é a etapa crucial que estava faltando: aguardar o contêiner ficar pronto.
     while (containerStatus === 'IN_PROGRESS' && attempts < 10) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         const statusRes = await fetch(`${GRAPH_API_URL}/${creationId}?fields=status_code&access_token=${pageToken}`);
