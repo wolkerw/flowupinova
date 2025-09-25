@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -349,7 +350,7 @@ export default function Conteudo() {
             onClick={() => setShowNewPostModal(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Agendar Post
+            Criar Conteúdo
           </Button>
         </div>
       </div>
@@ -500,3 +501,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
