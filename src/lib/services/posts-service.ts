@@ -16,12 +16,12 @@ export interface PostData {
 }
 
 // Interface for data coming from the client to the server action
-type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
+export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
     scheduledAt: Date; // Client sends a native Date object
 };
 
 // Interface for data being sent from the server action to the client
-type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
+export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
     scheduledAt: Date; // Server sends a native Date object
 };
 

@@ -38,12 +38,13 @@ import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-servi
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
-import { getScheduledPosts, schedulePost, PostData } from "@/lib/services/posts-service";
+import { getScheduledPosts, schedulePost, PostData, PostDataOutput } from "@/lib/services/posts-service";
 
 
-interface DisplayPost extends Omit<PostData, 'scheduledAt' | 'text'> {
+interface DisplayPost extends PostDataOutput {
     date: Date;
     time: string;
+    type: 'image' | 'text';
 }
 
 
@@ -78,11 +79,7 @@ export default function Conteudo() {
         const displayPosts = postsResult.map(post => {
             const scheduledDate = post.scheduledAt; // Already a Date object
             return {
-                id: post.id,
-                title: post.title,
-                imageUrl: post.imageUrl,
-                platforms: post.platforms,
-                status: post.status,
+                ...post,
                 date: scheduledDate,
                 time: format(scheduledDate, 'HH:mm'),
                 type: post.imageUrl ? 'image' : 'text'
@@ -254,9 +251,19 @@ export default function Conteudo() {
             scheduledAt: scheduledDateTime,
         };
 
-        await schedulePost(postDataToSave);
+        const { id } = await schedulePost(postDataToSave);
         
-        await fetchConnectionsAndPosts();
+        // Update local state to show the new post immediately
+        const newDisplayPost: DisplayPost = {
+            id,
+            ...postDataToSave,
+            status: 'scheduled',
+            date: scheduledDateTime,
+            time: format(scheduledDateTime, 'HH:mm'),
+            type: postDataToSave.imageUrl ? 'image' : 'text'
+        };
+
+        setScheduledPosts(prev => [newDisplayPost, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime()));
 
         alert("Post agendado com sucesso!");
         setShowSchedulerModal(false);
