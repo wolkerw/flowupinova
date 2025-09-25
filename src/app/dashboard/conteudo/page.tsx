@@ -38,50 +38,14 @@ import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-servi
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
+import { getScheduledPosts, schedulePost, PostData } from "@/lib/services/posts-service";
+import { Timestamp } from "firebase/firestore";
 
 
-interface Post {
-    id: number;
-    title: string;
-    platforms: string[];
+interface DisplayPost extends Omit<PostData, 'scheduledAt' | 'text'> {
     date: Date;
     time: string;
-    status: 'scheduled' | 'published';
-    type: 'image' | 'video' | 'text';
-    imageUrl?: string | null;
 }
-
-const initialScheduledPosts: Post[] = [
-    {
-      id: 1,
-      title: "Dica sobre produtividade",
-      platforms: ["instagram", "facebook"],
-      date: new Date(),
-      time: "14:00",
-      status: "scheduled",
-      type: "image",
-      imageUrl: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"
-    },
-    {
-      id: 2,
-      title: "Novidade do produto",
-      platforms: ["facebook"],
-      date: new Date(),
-      time: "18:30",
-      status: "published",
-      type: "video",
-      imageUrl: "https://images.unsplash.com/photo-1516233758813-a78d1b44736f?fm=jpg&w=1080&h=1350&fit=crop"
-    },
-    {
-      id: 3,
-      title: "Artigo sobre marketing",
-      platforms: ["linkedin"],
-      date: new Date(),
-      time: "09:00",
-      status: "scheduled",
-      type: "text"
-    }
-  ];
 
 
 export default function Conteudo() {
@@ -94,7 +58,7 @@ export default function Conteudo() {
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [scheduledPosts, setScheduledPosts] = useState<Post[]>(initialScheduledPosts);
+  const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
 
   const connectedAccounts = [
     { id: 'instagram', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
@@ -102,18 +66,39 @@ export default function Conteudo() {
     { id: 'linkedin', platform: 'linkedin', name: 'LinkedIn', icon: Linkedin, isConnected: false },
   ];
 
-  const fetchMetaConnection = async () => {
+  const fetchConnectionsAndPosts = async () => {
     setLoading(true);
     try {
-        const data = await getMetaConnection();
-        setMetaData(data);
+        const metaPromise = getMetaConnection();
+        const postsPromise = getScheduledPosts();
+        
+        const [metaResult, postsResult] = await Promise.all([metaPromise, postsPromise]);
+
+        setMetaData(metaResult);
+
+        const displayPosts = postsResult.map(post => {
+            const scheduledDate = post.scheduledAt.toDate();
+            return {
+                id: post.id,
+                title: post.title,
+                imageUrl: post.imageUrl,
+                platforms: post.platforms,
+                status: post.status,
+                date: scheduledDate,
+                time: format(scheduledDate, 'HH:mm'),
+                type: post.imageUrl ? 'image' : 'text'
+            };
+        });
+        setScheduledPosts(displayPosts);
+
     } catch (error) {
-        console.error("Failed to fetch meta connection:", error);
-        alert("Não foi possível carregar os dados da conexão Meta.");
+        console.error("Failed to fetch initial data:", error);
+        alert("Não foi possível carregar os dados. Tente recarregar a página.");
     } finally {
         setLoading(false);
     }
   };
+
 
   const processMetaAuthCode = async (code: string) => {
     setLoading(true);
@@ -131,12 +116,12 @@ export default function Conteudo() {
       }
       
       alert('Conta Meta conectada com sucesso!');
-      await fetchMetaConnection(); 
+      await fetchConnectionsAndPosts(); 
       
     } catch (error: any) {
       console.error("Error in processMetaAuthCode:", error);
       alert(`Falha ao conectar a conta Meta: ${error.message}`);
-      await fetchMetaConnection(); 
+      await fetchConnectionsAndPosts(); 
     } finally {
       setLoading(false);
       window.history.replaceState({}, document.title, "/dashboard/conteudo");
@@ -150,7 +135,7 @@ export default function Conteudo() {
     if (code) {
       processMetaAuthCode(code);
     } else {
-      fetchMetaConnection();
+      fetchConnectionsAndPosts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -253,26 +238,35 @@ export default function Conteudo() {
     }
   };
 
-  const handleSchedulePost = () => {
+  const handleSchedulePost = async () => {
     if (selectedAccounts.size === 0 || !postToSchedule.text.trim()) {
       alert("Selecione uma conta e adicione conteúdo para agendar.");
       return;
     }
 
-    const newPost: Post = {
-        id: Date.now(),
-        title: postToSchedule.text.substring(0, 30) + "...",
-        platforms: Array.from(selectedAccounts),
-        date: new Date(`${postToSchedule.date}T${postToSchedule.time}`),
-        time: postToSchedule.time,
-        status: 'scheduled',
-        type: postToSchedule.imageUrl ? 'image' : 'text',
-        imageUrl: postToSchedule.imageUrl
-    };
+    setIsPublishing(true);
+    try {
+        const scheduledDateTime = new Date(`${postToSchedule.date}T${postToSchedule.time}`);
+        const postDataToSave = {
+            title: postToSchedule.text.substring(0, 50) + (postToSchedule.text.length > 50 ? "..." : ""),
+            text: postToSchedule.text,
+            imageUrl: postToSchedule.imageUrl,
+            platforms: Array.from(selectedAccounts),
+            scheduledAt: Timestamp.fromDate(scheduledDateTime),
+        };
 
-    setScheduledPosts(prev => [...prev, newPost]);
-    alert("Post agendado com sucesso!");
-    setShowSchedulerModal(false);
+        await schedulePost(postDataToSave);
+        
+        await fetchConnectionsAndPosts();
+
+        alert("Post agendado com sucesso!");
+        setShowSchedulerModal(false);
+    } catch (error: any) {
+        console.error("Error scheduling post:", error);
+        alert(`Falha ao agendar post: ${error.message}`);
+    } finally {
+        setIsPublishing(false);
+    }
   };
 
 
@@ -338,7 +332,7 @@ export default function Conteudo() {
                 <CardHeader className="p-3">
                     <CardTitle className="text-sm font-semibold flex justify-between items-center">
                         Métricas Principais
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchMetaConnection()}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchConnectionsAndPosts()}>
                             <RefreshCw className="w-3 h-3"/>
                         </Button>
                     </CardTitle>
@@ -413,6 +407,7 @@ export default function Conteudo() {
                     selected={selectedDate}
                     onSelect={setSelectedDate}
                     className="rounded-md border-none"
+                    disabled={loading}
                   />
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm">
@@ -483,14 +478,15 @@ export default function Conteudo() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-3">
-                        {React.createElement(typeIcons[post.type as keyof typeof typeIcons], { 
-                          className: "w-5 h-5 text-gray-500" 
-                        })}
+                        {post.imageUrl ? 
+                            <Image className="w-5 h-5 text-gray-500" /> :
+                            <FileText className="w-5 h-5 text-gray-500" />
+                        }
                         <div className="flex">
                           {post.platforms.map((platform, pIdx) => {
                             const PlatformIcon = platformIcons[platform as keyof typeof platformIcons];
                             return (
-                              <PlatformIcon 
+                              PlatformIcon && <PlatformIcon 
                                 key={platform}
                                 className={`w-5 h-5 text-blue-500 bg-white rounded-full p-0.5 border ${pIdx > 0 ? '-ml-2' : ''}`} 
                               />
@@ -509,7 +505,7 @@ export default function Conteudo() {
                     <div className="flex items-center gap-3">
                       <Badge 
                         variant={post.status === 'published' ? 'default' : 'outline'}
-                        className={post.status === 'published' ? 'bg-green-100 text-green-700' : ''}
+                        className={post.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}
                       >
                         {post.status === 'published' ? (
                           <CheckCircle className="w-3 h-3 mr-1" />
@@ -526,7 +522,7 @@ export default function Conteudo() {
                 ))}
                 {scheduledPosts.filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')).length === 0 && (
                     <div className="text-center text-gray-500 py-8">
-                        Nenhum post para a data selecionada.
+                       {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /> : "Nenhum post para a data selecionada."}
                     </div>
                 )}
               </div>
@@ -650,7 +646,7 @@ export default function Conteudo() {
                 onClick={handleSchedulePost}
                 disabled={isPublishing}
               >
-                  <CalendarClock className="w-4 h-4 mr-2" />
+                  {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CalendarClock className="w-4 h-4 mr-2" />}
                   Agendar
               </Button>
               <Button 
@@ -672,5 +668,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
