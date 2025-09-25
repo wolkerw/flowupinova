@@ -35,9 +35,13 @@ export async function POST(request: Request) {
                 // Fallback para strings que não são JSON, como "tag1, tag2" ou "tag1 tag2"
                 hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
                 if (hashtags.length === 0) {
+                    // Se não encontrar hashtags com '#', apenas separa por espaço/vírgula
                     hashtags = hashtags.split(/[ ,]+/).filter(Boolean);
                 }
             }
+        } else if (!Array.isArray(hashtags)) {
+            // Garante que se não for string nem array, se torne um array vazio
+            hashtags = [];
         }
         return { ...item, hashtags };
     });
