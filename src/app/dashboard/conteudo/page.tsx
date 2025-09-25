@@ -29,24 +29,72 @@ import {
   BarChart,
   RefreshCw,
   X,
-  Send
+  Send,
+  CalendarClock
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { format } from 'date-fns';
+
+
+interface Post {
+    id: number;
+    title: string;
+    platforms: string[];
+    date: Date;
+    time: string;
+    status: 'scheduled' | 'published';
+    type: 'image' | 'video' | 'text';
+    imageUrl?: string | null;
+}
+
+const initialScheduledPosts: Post[] = [
+    {
+      id: 1,
+      title: "Dica sobre produtividade",
+      platforms: ["instagram", "facebook"],
+      date: new Date(),
+      time: "14:00",
+      status: "scheduled",
+      type: "image",
+      imageUrl: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"
+    },
+    {
+      id: 2,
+      title: "Novidade do produto",
+      platforms: ["facebook"],
+      date: new Date(),
+      time: "18:30",
+      status: "published",
+      type: "video",
+      imageUrl: "https://images.unsplash.com/photo-1516233758813-a78d1b44736f?fm=jpg&w=1080&h=1350&fit=crop"
+    },
+    {
+      id: 3,
+      title: "Artigo sobre marketing",
+      platforms: ["linkedin"],
+      date: new Date(),
+      time: "09:00",
+      status: "scheduled",
+      type: "text"
+    }
+  ];
+
 
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
-  const [postToSchedule, setPostToSchedule] = useState<{ text: string, imageUrl: string | null }>({ text: "", imageUrl: null });
+  const [postToSchedule, setPostToSchedule] = useState<{ text: string, imageUrl: string | null, date: string, time: string }>({ text: "", imageUrl: null, date: format(new Date(), 'yyyy-MM-dd'), time: '10:00' });
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [scheduledPosts, setScheduledPosts] = useState<Post[]>(initialScheduledPosts);
 
   const connectedAccounts = [
     { id: 'instagram', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
@@ -128,35 +176,6 @@ export default function Conteudo() {
     window.location.href = metaAuthUrl;
   };
 
-  const scheduledPosts = [
-    {
-      id: 1,
-      title: "Dica sobre produtividade",
-      platforms: ["instagram", "facebook"],
-      date: new Date(),
-      time: "14:00",
-      status: "scheduled",
-      type: "image"
-    },
-    {
-      id: 2,
-      title: "Novidade do produto",
-      platforms: ["facebook"],
-      date: new Date(),
-      time: "18:30",
-      status: "published",
-      type: "video"
-    },
-    {
-      id: 3,
-      title: "Artigo sobre marketing",
-      platforms: ["linkedin"],
-      date: new Date(),
-      time: "09:00",
-      status: "scheduled",
-      type: "text"
-    }
-  ];
 
   const platformIcons: { [key: string]: React.ElementType } = {
     instagram: Instagram,
@@ -170,7 +189,7 @@ export default function Conteudo() {
     text: FileText
   };
 
-  const handleOpenScheduler = (postContent = { text: "", imageUrl: null }) => {
+  const handleOpenScheduler = (postContent = { text: "", imageUrl: null, date: format(new Date(), 'yyyy-MM-dd'), time: '10:00' }) => {
     setPostToSchedule(postContent);
     setSelectedAccounts(new Set());
     setShowSchedulerModal(true);
@@ -188,38 +207,23 @@ export default function Conteudo() {
     });
   };
 
-  const handleSchedulePost = async () => {
-    if (selectedAccounts.size === 0) {
-      alert("Selecione pelo menos uma conta para publicar.");
-      return;
-    }
-     if (!postToSchedule.text.trim()) {
-      alert("O conteúdo do post não pode estar vazio.");
-      return;
-    }
-    if (!postToSchedule.imageUrl) {
-      alert("Anexe uma imagem para o post.");
+  const handlePublishNow = async () => {
+    if (selectedAccounts.size === 0 || !postToSchedule.text.trim() || !postToSchedule.imageUrl) {
+      alert("Selecione uma conta, adicione conteúdo e anexe uma imagem para publicar.");
       return;
     }
     
     setIsPublishing(true);
-    console.log("[PUBLISH_START] Iniciando processo de publicação manual...");
-
-    if(selectedAccounts.has('instagram')) {
-        console.log("[PUBLISH_INSTAGRAM] Tentando publicar no Instagram.");
+    let success = false;
+    
+    if (selectedAccounts.has('instagram')) {
         if (!metaData?.instagramAccountId || !metaData?.pageToken) {
-            alert("Conta do Instagram não está configurada corretamente. Verifique a conexão.");
+            alert("Conta do Instagram não está configurada corretamente.");
             setIsPublishing(false);
             return;
         }
 
         try {
-            console.log("[PUBLISH_API_CALL] Enviando para /api/instagram/publish com os seguintes dados:", {
-                igUserId: metaData.instagramAccountId,
-                caption: postToSchedule.text,
-                imageUrl: postToSchedule.imageUrl,
-            });
-
             const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -230,13 +234,10 @@ export default function Conteudo() {
                     imageUrl: postToSchedule.imageUrl,
                 }),
             });
-
             const result = await response.json();
-            console.log("[PUBLISH_API_RESPONSE] Resposta da API recebida:", result);
-
             if (result.success) {
                 alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
-                setShowSchedulerModal(false);
+                success = true;
             } else {
                 throw new Error(result.error || 'Falha ao publicar no Instagram.');
             }
@@ -246,12 +247,34 @@ export default function Conteudo() {
         }
     }
 
-    // Futura lógica para Facebook e LinkedIn
-    // ...
-
-    console.log("[PUBLISH_END] Processo de publicação manual finalizado.");
     setIsPublishing(false);
+    if (success) {
+      setShowSchedulerModal(false);
+    }
   };
+
+  const handleSchedulePost = () => {
+    if (selectedAccounts.size === 0 || !postToSchedule.text.trim()) {
+      alert("Selecione uma conta e adicione conteúdo para agendar.");
+      return;
+    }
+
+    const newPost: Post = {
+        id: Date.now(),
+        title: postToSchedule.text.substring(0, 30) + "...",
+        platforms: Array.from(selectedAccounts),
+        date: new Date(`${postToSchedule.date}T${postToSchedule.time}`),
+        time: postToSchedule.time,
+        status: 'scheduled',
+        type: postToSchedule.imageUrl ? 'image' : 'text',
+        imageUrl: postToSchedule.imageUrl
+    };
+
+    setScheduledPosts(prev => [...prev, newPost]);
+    alert("Post agendado com sucesso!");
+    setShowSchedulerModal(false);
+  };
+
 
   const SocialConnectionCard = ({ platform, icon: Icon, color, data, onConnect }: { platform: string, icon: React.FC<any>, color: string, data: MetaConnectionData | null, onConnect: () => void }) => {
     const isConnected = data?.isConnected;
@@ -448,7 +471,9 @@ export default function Conteudo() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {scheduledPosts.map((post, index) => (
+                {scheduledPosts
+                  .filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
+                  .map((post, index) => (
                   <motion.div
                     key={post.id}
                     initial={{ opacity: 0, x: 20 }}
@@ -499,6 +524,11 @@ export default function Conteudo() {
                     </div>
                   </motion.div>
                 ))}
+                {scheduledPosts.filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')).length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                        Nenhum post para a data selecionada.
+                    </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -600,13 +630,13 @@ export default function Conteudo() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Data
                   </label>
-                  <Input type="date" defaultValue={new Date().toISOString().split('T')[0]}/>
+                  <Input type="date" value={postToSchedule.date} onChange={(e) => setPostToSchedule(prev => ({...prev, date: e.target.value}))} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Horário
                   </label>
-                  <Input type="time" defaultValue="10:00"/>
+                  <Input type="time" value={postToSchedule.time} onChange={(e) => setPostToSchedule(prev => ({...prev, time: e.target.value}))}/>
                 </div>
               </div>
             </div>
@@ -615,8 +645,17 @@ export default function Conteudo() {
                 Cancelar
               </Button>
               <Button 
-                className="bg-blue-600 hover:bg-blue-700" 
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700" 
                 onClick={handleSchedulePost}
+                disabled={isPublishing}
+              >
+                  <CalendarClock className="w-4 h-4 mr-2" />
+                  Agendar
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                onClick={handlePublishNow}
                 disabled={isPublishing}
               >
                 {isPublishing ? (
@@ -624,7 +663,7 @@ export default function Conteudo() {
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                Publicar Post
+                Publicar Agora
               </Button>
             </div>
           </motion.div>
@@ -633,3 +672,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
