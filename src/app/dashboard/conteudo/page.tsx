@@ -252,7 +252,7 @@ export default function Conteudo() {
             text: postToSchedule.text,
             imageUrl: postToSchedule.imageUrl,
             platforms: Array.from(selectedAccounts),
-            scheduledAt: Timestamp.fromDate(scheduledDateTime),
+            scheduledAt: scheduledDateTime,
         };
 
         await schedulePost(postDataToSave);
