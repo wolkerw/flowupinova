@@ -156,8 +156,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         case 'reels':
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
-                    {renderContent(singleItem)}
-                    {!singleItem && placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
+                    {singleItem ? renderContent(singleItem) : placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
                     {logoUrl && (
                          <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
                     )}
@@ -209,7 +208,7 @@ export default function CriarConteudoPage() {
                 if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
                 setLogoPreviewUrl(url);
             } else {
-                 if (selectedType === 'carousel' || ( (selectedType === 'story' || selectedType === 'reels') && mediaItems.length > 0) ) {
+                 if (selectedType === 'carousel' || (mediaItems.length === 0) ) {
                     setMediaItems(prev => [...prev, newMediaItem]);
                 } else {
                     // For single media types, replace the existing item
@@ -336,7 +335,7 @@ export default function CriarConteudoPage() {
                                                 <FileImage className="w-4 h-4 text-blue-500" />
                                                 Anexar Imagem
                                             </Button>
-                                            {mediaItems.length > 0 && selectedType !== 'carousel' && (
+                                            {mediaItems.some(i => i.type === 'image') && selectedType !== 'carousel' && (
                                                 <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('item')}><X className="w-4 h-4"/></Button>
                                             )}
                                         </div>
@@ -392,3 +391,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
