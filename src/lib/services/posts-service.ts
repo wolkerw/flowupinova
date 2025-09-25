@@ -4,7 +4,7 @@
 import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, Timestamp, orderBy, query } from "firebase/firestore";
 
-// Interface no cliente permanece a mesma, mas a entrada para a Server Action muda.
+// Interface for data stored in Firestore
 export interface PostData {
     id?: string;
     title: string;
@@ -15,9 +15,16 @@ export interface PostData {
     scheduledAt: Timestamp;
 }
 
+// Interface for data coming from the client to the server action
 type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
-    scheduledAt: Date; // Recebemos um objeto Date do cliente
+    scheduledAt: Date; // Client sends a native Date object
 };
+
+// Interface for data being sent from the server action to the client
+type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
+    scheduledAt: Date; // Server sends a native Date object
+};
+
 
 /**
  * Schedules a new post by saving it to the Firestore database.
@@ -27,7 +34,7 @@ export async function schedulePost(postData: PostDataInput): Promise<{ id: strin
     try {
         const docRef = await addDoc(postsCollectionRef, {
             ...postData,
-            scheduledAt: Timestamp.fromDate(postData.scheduledAt), // Conversão para Timestamp no servidor
+            scheduledAt: Timestamp.fromDate(postData.scheduledAt), // Convert to Timestamp on the server
             status: 'scheduled',
         });
         console.log("Post scheduled successfully with ID:", docRef.id);
@@ -45,18 +52,24 @@ const postsCollectionRef = collection(db, "posts");
  * Retrieves all scheduled and published posts from Firestore, ordered by schedule date.
  * @returns An array of posts.
  */
-export async function getScheduledPosts(): Promise<PostData[]> {
+export async function getScheduledPosts(): Promise<PostDataOutput[]> {
     try {
         const q = query(postsCollectionRef, orderBy("scheduledAt", "desc"));
         const querySnapshot = await getDocs(q);
         
-        const posts: PostData[] = [];
+        const posts: PostDataOutput[] = [];
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
+            const data = doc.data() as PostData;
             posts.push({
                 id: doc.id,
-                ...data
-            } as PostData);
+                title: data.title,
+                text: data.text,
+                imageUrl: data.imageUrl,
+                platforms: data.platforms,
+                status: data.status,
+                // Convert Timestamp to Date object before sending to client
+                scheduledAt: data.scheduledAt.toDate(), 
+            });
         });
 
         console.log(`Fetched ${posts.length} posts from the database.`);

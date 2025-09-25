@@ -39,7 +39,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
 import { getScheduledPosts, schedulePost, PostData } from "@/lib/services/posts-service";
-import { Timestamp } from "firebase/firestore";
 
 
 interface DisplayPost extends Omit<PostData, 'scheduledAt' | 'text'> {
@@ -77,7 +76,7 @@ export default function Conteudo() {
         setMetaData(metaResult);
 
         const displayPosts = postsResult.map(post => {
-            const scheduledDate = post.scheduledAt.toDate();
+            const scheduledDate = post.scheduledAt; // Already a Date object
             return {
                 id: post.id,
                 title: post.title,
