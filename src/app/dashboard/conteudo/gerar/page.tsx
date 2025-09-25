@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { schedulePost } from "@/lib/services/posts-service";
+import { useRouter } from "next/navigation";
 
 
 interface GeneratedContent {
@@ -45,6 +46,7 @@ export default function GerarConteudoPage() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const router = useRouter();
   
   const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
     instagram: { enabled: true, publishMode: 'now', dateTime: '' },
@@ -151,6 +153,7 @@ export default function GerarConteudoPage() {
 
     try {
         let publicationHandled = false;
+        let scheduled = false;
 
         for (const platform of enabledPlatforms) {
             const options = scheduleOptions[platform];
@@ -195,6 +198,7 @@ export default function GerarConteudoPage() {
 
                 alert(`Post agendado com sucesso para ${enabledPlatforms.join(', ')}!`);
                 publicationHandled = true;
+                scheduled = true;
                 // Como o agendamento é único para todas as plataformas, podemos sair do loop
                 break; 
             }
@@ -202,6 +206,9 @@ export default function GerarConteudoPage() {
 
         if (publicationHandled) {
             setShowSchedulerModal(false);
+            if (scheduled) {
+              router.push('/dashboard/conteudo');
+            }
         } else if (enabledPlatforms.length > 0) {
             alert("Nenhuma ação de publicação ou agendamento foi executada. Verifique as configurações.");
         }
@@ -634,4 +641,3 @@ export default function GerarConteudoPage() {
   );
 }
 
-    
