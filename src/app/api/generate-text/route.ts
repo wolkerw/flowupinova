@@ -22,29 +22,33 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
     
-    // Assegurando que hashtags seja um array
+    // Assegurando que hashtags seja um array e acessando a chave correta
     const processedData = data.map((item: any) => {
-        let hashtags = item.hashtags;
+        // A chave é uma string literal "output.publicacoes"
+        const publicacao = item['output.publicacoes'];
+        if (!publicacao) {
+          return {
+            titulo: "Erro de formato",
+            subtitulo: "Não foi possível encontrar 'output.publicacoes' na resposta.",
+            hashtags: []
+          };
+        }
+
+        let hashtags = publicacao.hashtags;
         if (typeof hashtags === 'string') {
             try {
-                // Tenta fazer o parse da string JSON, que pode ser '["#tag1", "#tag2"]'
                 const parsedHashtags = JSON.parse(hashtags);
                 hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags];
             } catch (e) {
-                // Se não for JSON, trata como string separada por espaço ou vírgula, ex: "#tag1, #tag2" ou "#tag1 #tag2"
                 hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
-                if (hashtags.length === 0) {
-                     // Fallback se não houver '#', apenas separa por espaço/vírgula
-                    hashtags = item.hashtags.split(/[ ,]+/).filter(Boolean);
-                }
             }
         } else if (!Array.isArray(hashtags)) {
-            // Garante que se não for string nem array, se torne um array vazio para evitar erros
             hashtags = [];
         }
+
         return { 
-            titulo: item.titulo || "Título não gerado", 
-            subtitulo: item.subtitulo || "Subtítulo não gerado", 
+            titulo: publicacao.titulo || "Título não gerado", 
+            subtitulo: publicacao.subtitulo || "Subtítulo não gerado", 
             hashtags 
         };
     });
