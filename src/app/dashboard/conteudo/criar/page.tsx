@@ -42,10 +42,26 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrl: string | null, logoUrl: string | null }) => {
-    const renderContent = () => {
-        if (imageUrl) {
-            return <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+const Preview = ({ type, videoUrl, imageUrls, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrls: string[], logoUrl: string | null }) => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    const handleNextSlide = () => {
+        if (imageUrls.length > 1) {
+            setCurrentSlide((prev) => (prev + 1) % imageUrls.length);
+        }
+    }
+    
+    const handlePrevSlide = () => {
+        if (imageUrls.length > 1) {
+            setCurrentSlide((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+        }
+    }
+
+    const renderContent = (isCarousel = false) => {
+        const currentImageUrl = imageUrls.length > 0 ? (isCarousel ? imageUrls[currentSlide] : imageUrls[0]) : null;
+
+        if (currentImageUrl) {
+            return <Image src={currentImageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
         if (videoUrl) {
             return <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
@@ -64,7 +80,8 @@ const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, vid
         case 'single_post':
             return (
                 <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                    {renderContent() || placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
+                    {renderContent()}
+                    {renderContent() === null && placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
                     )}
@@ -76,16 +93,27 @@ const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, vid
                     <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
                         <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
-                                {renderContent() || placeholder(Copy, "Pré-visualização de Carrossel")}
-                                <div className="absolute top-1/2 left-2 right-2 flex justify-between">
-                                    <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
-                                    <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
-                                </div>
-                                <div className="absolute bottom-4 flex gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                </div>
+                                {renderContent(true)}
+                                {imageUrls.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
+
+                                {imageUrls.length > 1 && (
+                                    <>
+                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between">
+                                            <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
+                                            <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
+                                        </div>
+                                        <div className="absolute bottom-4 flex gap-1.5">
+                                            {imageUrls.map((_, index) => (
+                                                 <div key={index} className={cn("w-2 h-2 rounded-full", currentSlide === index ? 'bg-blue-500' : 'bg-gray-400')}></div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                                {imageUrls.length > 0 && (
+                                    <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                        {currentSlide + 1} / {imageUrls.length}
+                                    </div>
+                                )}
                            </div>
                         </div>
                     </div>
@@ -105,7 +133,8 @@ const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, vid
         case 'reels':
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
-                    {renderContent() || placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
+                    {renderContent()}
+                    {renderContent() === null && placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
                     {logoUrl && (
                          <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
                     )}
@@ -121,7 +150,7 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const router = useRouter();
     
@@ -133,7 +162,7 @@ export default function CriarConteudoPage() {
         // Cleanup function to revoke Object URLs on component unmount
         return () => {
             if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-            if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+            imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,13 +185,12 @@ export default function CriarConteudoPage() {
             if (fileType === 'video') {
                 if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl); // Revoke old URL
                 setVideoPreviewUrl(url);
-                if (imagePreviewUrl) {
-                    URL.revokeObjectURL(imagePreviewUrl);
-                    setImagePreviewUrl(null); 
+                if (imagePreviewUrls.length > 0) {
+                    imagePreviewUrls.forEach(u => URL.revokeObjectURL(u));
+                    setImagePreviewUrls([]); 
                 }
             } else if (fileType === 'image') {
-                if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-                setImagePreviewUrl(url);
+                setImagePreviewUrls(prev => [...prev, url]);
                 if (videoPreviewUrl) {
                     URL.revokeObjectURL(videoPreviewUrl);
                     setVideoPreviewUrl(null);
@@ -178,13 +206,19 @@ export default function CriarConteudoPage() {
         }
     };
     
-    const clearPreview = (fileType: 'image' | 'video' | 'logo') => {
+    const clearPreview = (fileType: 'image' | 'video' | 'logo', index?: number) => {
         if (fileType === 'video') {
             if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
             setVideoPreviewUrl(null);
         } else if (fileType === 'image') {
-            if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-            setImagePreviewUrl(null);
+            if(typeof index === 'number') {
+                const urlToRemove = imagePreviewUrls[index];
+                URL.revokeObjectURL(urlToRemove);
+                setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+            } else {
+                imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+                setImagePreviewUrls([]);
+            }
         } else if (fileType === 'logo') {
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
             setLogoPreviewUrl(null);
@@ -286,7 +320,7 @@ export default function CriarConteudoPage() {
                                                 <FileImage className="w-4 h-4 text-blue-500" />
                                                 Anexar Imagem
                                             </Button>
-                                            {imagePreviewUrl && (
+                                            {imagePreviewUrls.length > 0 && (
                                                 <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('image')}><X className="w-4 h-4"/></Button>
                                             )}
                                         </div>
@@ -321,7 +355,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrl={imagePreviewUrl} logoUrl={logoPreviewUrl} />
+                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrls={imagePreviewUrls} logoUrl={logoPreviewUrl} />
                            </div>
                         </div>
                     </div>
@@ -342,4 +376,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
- 
+
+    
