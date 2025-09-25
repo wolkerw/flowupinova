@@ -41,7 +41,7 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type }: { type: ContentType }) => {
+const Preview = ({ type, videoUrl }: { type: ContentType, videoUrl: string | null }) => {
     switch (type) {
         case 'single_post':
             return (
@@ -85,12 +85,18 @@ const Preview = ({ type }: { type: ContentType }) => {
         case 'story':
         case 'reels':
             return (
-                <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-4">
-                    {type === 'story' ? 
-                        <Film className="w-16 h-16 text-gray-400 mb-4" /> : 
-                        <Sparkles className="w-16 h-16 text-gray-400 mb-4" />
-                    }
-                    <p className="text-gray-300 text-center text-sm">Pré-visualização de {type === 'story' ? 'Story' : 'Reels'}</p>
+                <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden">
+                    {videoUrl ? (
+                        <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
+                    ) : (
+                        <>
+                           {type === 'story' ? 
+                                <Film className="w-16 h-16 text-gray-400 mb-4" /> : 
+                                <Sparkles className="w-16 h-16 text-gray-400 mb-4" />
+                            }
+                            <p className="text-gray-300 text-center text-sm">Pré-visualização de {type === 'story' ? 'Story' : 'Reels'}</p>
+                        </>
+                    )}
                 </div>
             );
         default:
@@ -102,6 +108,7 @@ const Preview = ({ type }: { type: ContentType }) => {
 export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
+    const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
     const router = useRouter();
     
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -118,11 +125,15 @@ export default function CriarConteudoPage() {
         ref.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
         const file = event.target.files?.[0];
         if (file) {
-            console.log("Arquivo selecionado:", file.name);
-            // Aqui você pode adicionar a lógica para lidar com o arquivo (ex: upload, preview)
+            console.log("Arquivo selecionado:", file.name, "Tipo:", fileType);
+            if (fileType === 'video') {
+                const url = URL.createObjectURL(file);
+                setVideoPreviewUrl(url);
+            }
+            // Aqui você pode adicionar a lógica para lidar com o arquivo (ex: upload, preview de imagem)
         }
     };
     
@@ -211,9 +222,9 @@ export default function CriarConteudoPage() {
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos, imagens e sua logomarca.</p>
-                                    <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                                    <input type="file" ref={videoInputRef} onChange={handleFileChange} accept="video/*" className="hidden" />
-                                    <input type="file" ref={logoInputRef} onChange={handleFileChange} accept="image/png, image/jpeg" className="hidden" />
+                                    <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" />
+                                    <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" />
+                                    <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <Button variant="outline" className="flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
                                             <FileImage className="w-4 h-4 text-blue-500" />
@@ -242,7 +253,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} />
+                             <Preview type={selectedType} videoUrl={videoPreviewUrl} />
                            </div>
                         </div>
                     </div>
