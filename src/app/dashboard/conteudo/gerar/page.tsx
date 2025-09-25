@@ -109,18 +109,32 @@ export default function GerarConteudoPage() {
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
     try {
-      // Simulate image generation with a valid placeholder
-      const imageUrls = ["https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop", "https://images.unsplash.com/photo-1516233758813-a78d1b44736f?fm=jpg&w=1080&h=1350&fit=crop", "https://images.unsplash.com/photo-1542038784-56e98e45935a?fm=jpg&w=1080&h=1350&fit=crop"];
+      const response = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicacoes: [selectedPublication] }),
+      });
       
+      if (!response.ok) {
+        throw new Error('Falha ao gerar imagens.');
+      }
+      
+      const imagesData = await response.json();
+      const imageUrls = imagesData.map((item: any) => item.url_da_imagem).filter(Boolean);
+
+      if (imageUrls.length === 0) {
+        throw new Error("Nenhuma URL de imagem foi retornada pelo webhook.");
+      }
+
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
+      setStep(3);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao gerar imagens:", error);
-      alert("Ocorreu um erro ao gerar as imagens.");
+      alert(`Ocorreu um erro ao gerar as imagens: ${error.message}`);
     } finally {
       setIsLoading(false);
-      setStep(3);
     }
   };
 
@@ -363,7 +377,7 @@ export default function GerarConteudoPage() {
                     key={index}
                     onClick={() => setSelectedImage(imgSrc)}
                     className={cn(
-                        "relative aspect-[9/16] rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
+                        "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
                         "ring-4 ring-offset-2",
                         selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
                     )}
