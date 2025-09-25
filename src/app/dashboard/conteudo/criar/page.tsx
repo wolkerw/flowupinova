@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -45,20 +45,29 @@ const Preview = ({ type }: { type: ContentType }) => {
     switch (type) {
         case 'single_post':
             return (
-                <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-sm aspect-[1/1] bg-gray-200 rounded-lg flex flex-col items-center justify-center p-4">
                     <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-gray-600 text-center">Pré-visualização de Post Único</p>
+                    <p className="text-gray-600 text-center">Pré-visualização de Post Único (Feed)</p>
                 </div>
             );
         case 'carousel':
             return (
                  <div className="flex flex-col items-center gap-6">
-                    <div className="w-full max-w-sm h-64 bg-gray-200 rounded-lg flex items-center justify-center p-4 relative">
-                        <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform -rotate-6 transition-transform group-hover:rotate-[-8deg]"></div>
-                        <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform rotate-6 absolute transition-transform group-hover:rotate-[8deg]"></div>
-                        <div className="w-full h-full border-4 border-white rounded-lg bg-gray-200 absolute flex flex-col items-center justify-center p-4">
-                            <Copy className="w-16 h-16 text-gray-400 mb-4" />
-                            <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
+                    <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
+                        <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                           <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center">
+                                <Copy className="w-16 h-16 text-gray-400 mb-4" />
+                                <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
+                                <div className="absolute top-1/2 left-2 right-2 flex justify-between">
+                                    <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
+                                    <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
+                                </div>
+                                <div className="absolute bottom-4 flex gap-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                </div>
+                           </div>
                         </div>
                     </div>
                     <div className="w-full max-w-sm text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
