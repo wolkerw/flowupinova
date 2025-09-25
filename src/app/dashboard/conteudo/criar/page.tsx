@@ -42,8 +42,15 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type, videoUrl, imageUrls, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrls: string[], logoUrl: string | null }) => {
+const Preview = ({ type, videoUrl, imageUrls, logoUrl, onRemoveImage }: { type: ContentType, videoUrl: string | null, imageUrls: string[], logoUrl: string | null, onRemoveImage: (index: number) => void }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
+
+    useEffect(() => {
+        if (currentSlide >= imageUrls.length && imageUrls.length > 0) {
+            setCurrentSlide(imageUrls.length - 1);
+        }
+    }, [imageUrls, currentSlide]);
+
 
     const handleNextSlide = () => {
         if (imageUrls.length > 1) {
@@ -96,13 +103,19 @@ const Preview = ({ type, videoUrl, imageUrls, logoUrl }: { type: ContentType, vi
                                 {renderContent(true)}
                                 {imageUrls.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
 
+                                {imageUrls.length > 0 && (
+                                     <button onClick={() => onRemoveImage(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
+                                        <X className="w-4 h-4"/>
+                                     </button>
+                                )}
+
                                 {imageUrls.length > 1 && (
                                     <>
-                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between">
+                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-10">
                                             <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                             <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
                                         </div>
-                                        <div className="absolute bottom-4 flex gap-1.5">
+                                        <div className="absolute bottom-4 flex gap-1.5 z-10">
                                             {imageUrls.map((_, index) => (
                                                  <div key={index} className={cn("w-2 h-2 rounded-full", currentSlide === index ? 'bg-blue-500' : 'bg-gray-400')}></div>
                                             ))}
@@ -110,7 +123,7 @@ const Preview = ({ type, videoUrl, imageUrls, logoUrl }: { type: ContentType, vi
                                     </>
                                 )}
                                 {imageUrls.length > 0 && (
-                                    <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-10">
                                         {currentSlide + 1} / {imageUrls.length}
                                     </div>
                                 )}
@@ -213,7 +226,7 @@ export default function CriarConteudoPage() {
         } else if (fileType === 'image') {
             if(typeof index === 'number') {
                 const urlToRemove = imagePreviewUrls[index];
-                URL.revokeObjectURL(urlToRemove);
+                if (urlToRemove) URL.revokeObjectURL(urlToRemove);
                 setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
             } else {
                 imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
@@ -310,7 +323,7 @@ export default function CriarConteudoPage() {
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos, imagens e sua logomarca.</p>
-                                    <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" />
+                                    <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
                                     <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" />
                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     
@@ -320,7 +333,7 @@ export default function CriarConteudoPage() {
                                                 <FileImage className="w-4 h-4 text-blue-500" />
                                                 Anexar Imagem
                                             </Button>
-                                            {imagePreviewUrls.length > 0 && (
+                                            {imagePreviewUrls.length > 0 && selectedType !== 'carousel' && (
                                                 <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('image')}><X className="w-4 h-4"/></Button>
                                             )}
                                         </div>
@@ -355,7 +368,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrls={imagePreviewUrls} logoUrl={logoPreviewUrl} />
+                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrls={imagePreviewUrls} logoUrl={logoPreviewUrl} onRemoveImage={(index) => clearPreview('image', index)} />
                            </div>
                         </div>
                     </div>
@@ -376,5 +389,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
