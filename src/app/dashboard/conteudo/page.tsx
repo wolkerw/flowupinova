@@ -1,8 +1,6 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +48,7 @@ interface DisplayPost extends PostDataOutput {
 
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
   const router = useRouter();
 
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
@@ -145,6 +144,84 @@ export default function Conteudo() {
     const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}`;
 
     window.location.href = metaAuthUrl;
+  };
+
+
+  const NewPostModal = ({ onClose, onPostScheduled }: { onClose: () => void, onPostScheduled: () => void }) => {
+    const [title, setTitle] = useState('');
+    const [text, setText] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
+    const [dateTime, setDateTime] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title || !text || !dateTime) {
+            alert('Por favor, preencha o título, texto e data/hora.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        const postData: PostDataInput = {
+            title,
+            text,
+            imageUrl: imageUrl || null,
+            platforms: ['instagram', 'facebook'], // Exemplo
+            scheduledAt: new Date(dateTime),
+        };
+        
+        try {
+            await schedulePost(postData);
+            alert('Post agendado com sucesso!');
+            onPostScheduled();
+            onClose();
+        } catch (error) {
+            alert('Falha ao agendar post.');
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full"
+          >
+            <form onSubmit={handleSubmit}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    Agendar Novo Post
+                    <Button variant="ghost" size="icon" onClick={onClose}><X className="w-5 h-5" /></Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Input placeholder="Título do Post" value={title} onChange={(e) => setTitle(e.target.value)} required/>
+                  <Textarea placeholder="Texto do post..." value={text} onChange={(e) => setText(e.target.value)} required/>
+                  <Input placeholder="URL da Imagem (opcional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}/>
+                  <Input type="datetime-local" value={dateTime} onChange={(e) => setDateTime(e.target.value)} required/>
+                </CardContent>
+                <CardContent className="flex justify-end gap-3">
+                  <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <CalendarClock className="w-4 h-4 mr-2"/>}
+                    Agendar
+                  </Button>
+                </CardContent>
+              </Card>
+            </form>
+          </motion.div>
+        </motion.div>
+    );
   };
 
 
@@ -252,6 +329,7 @@ export default function Conteudo() {
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      {showNewPostModal && <NewPostModal onClose={() => setShowNewPostModal(false)} onPostScheduled={fetchConnectionsAndPosts} />}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
@@ -259,22 +337,20 @@ export default function Conteudo() {
         </div>
         
         <div className="flex gap-3">
-          <Link href="/dashboard/conteudo/gerar">
-            <Button 
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Gerar conteúdo com IA
-            </Button>
-          </Link>
-          <Link href="/dashboard/conteudo/criar">
-            <Button 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Conteúdo
-            </Button>
-          </Link>
+          <Button 
+            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            onClick={() => router.push('/dashboard/conteudo/gerar')}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Gerar com IA
+          </Button>
+          <Button 
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+            onClick={() => setShowNewPostModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Agendar Post
+          </Button>
         </div>
       </div>
 
