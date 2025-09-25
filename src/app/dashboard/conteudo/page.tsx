@@ -38,7 +38,7 @@ import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-servi
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
-import { getScheduledPosts, schedulePost, PostData, PostDataOutput } from "@/lib/services/posts-service";
+import { getScheduledPosts, schedulePost, PostDataInput, PostDataOutput } from "@/lib/services/posts-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -82,7 +82,7 @@ export default function Conteudo() {
                 ...post,
                 date: scheduledDate,
                 time: format(scheduledDate, 'HH:mm'),
-                type: post.imageUrl ? 'image' : 'text'
+                type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
             };
         });
         setScheduledPosts(displayPosts);
@@ -243,7 +243,7 @@ export default function Conteudo() {
     setIsPublishing(true);
     try {
         const scheduledDateTime = new Date(`${postToSchedule.date}T${postToSchedule.time}`);
-        const postDataToSave = {
+        const postDataToSave: PostDataInput = {
             title: postToSchedule.text.substring(0, 50) + (postToSchedule.text.length > 50 ? "..." : ""),
             text: postToSchedule.text,
             imageUrl: postToSchedule.imageUrl,
@@ -251,16 +251,13 @@ export default function Conteudo() {
             scheduledAt: scheduledDateTime,
         };
 
-        const { id } = await schedulePost(postDataToSave);
+        const newPost = await schedulePost(postDataToSave);
         
-        // Update local state to show the new post immediately
         const newDisplayPost: DisplayPost = {
-            id,
-            ...postDataToSave,
-            status: 'scheduled',
-            date: scheduledDateTime,
-            time: format(scheduledDateTime, 'HH:mm'),
-            type: postDataToSave.imageUrl ? 'image' : 'text'
+            ...newPost,
+            date: newPost.scheduledAt,
+            time: format(newPost.scheduledAt, 'HH:mm'),
+            type: (newPost.imageUrl ? 'image' : 'text') as 'image' | 'text'
         };
 
         setScheduledPosts(prev => [newDisplayPost, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime()));

@@ -22,6 +22,7 @@ export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
 
 // Interface for data being sent from the server action to the client
 export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
+    id: string; // Ensure ID is always present on output
     scheduledAt: Date; // Server sends a native Date object
 };
 
@@ -29,16 +30,23 @@ export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
 /**
  * Schedules a new post by saving it to the Firestore database.
  * @param postData The data for the post to be scheduled.
+ * @returns The full post data including the new ID and status.
  */
-export async function schedulePost(postData: PostDataInput): Promise<{ id: string }> {
+export async function schedulePost(postData: PostDataInput): Promise<PostDataOutput> {
     try {
-        const docRef = await addDoc(postsCollectionRef, {
+        const postToSave = {
             ...postData,
-            scheduledAt: Timestamp.fromDate(postData.scheduledAt), // Convert to Timestamp on the server
-            status: 'scheduled',
-        });
+            scheduledAt: Timestamp.fromDate(postData.scheduledAt),
+            status: 'scheduled' as const,
+        };
+        const docRef = await addDoc(postsCollectionRef, postToSave);
         console.log("Post scheduled successfully with ID:", docRef.id);
-        return { id: docRef.id };
+        
+        return {
+            ...postData,
+            id: docRef.id,
+            status: 'scheduled',
+        };
     } catch (error) {
         console.error("Error scheduling post:", error);
         throw new Error("Failed to schedule post in database.");
