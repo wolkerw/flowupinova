@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -41,13 +42,22 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type, videoUrl }: { type: ContentType, videoUrl: string | null }) => {
+const Preview = ({ type, videoUrl, imageUrl, logoUrl }: { type: ContentType, videoUrl: string | null, imageUrl: string | null, logoUrl: string | null }) => {
     switch (type) {
         case 'single_post':
             return (
-                <div className="w-full max-w-sm aspect-[1/1] bg-gray-200 rounded-lg flex flex-col items-center justify-center p-4">
-                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-gray-600 text-center">Pré-visualização de Post Único (Feed)</p>
+                <div className="w-full max-w-sm aspect-[1/1] bg-gray-200 rounded-lg flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                    {imageUrl ? (
+                        <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />
+                    ) : (
+                        <>
+                            <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                            <p className="text-gray-600 text-center">Pré-visualização de Post Único (Feed)</p>
+                        </>
+                    )}
+                    {logoUrl && (
+                        <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
+                    )}
                 </div>
             );
         case 'carousel':
@@ -55,9 +65,15 @@ const Preview = ({ type, videoUrl }: { type: ContentType, videoUrl: string | nul
                  <div className="flex flex-col items-center gap-6">
                     <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
                         <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                           <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center">
-                                <Copy className="w-16 h-16 text-gray-400 mb-4" />
-                                <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
+                           <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
+                                {imageUrl ? (
+                                    <Image src={imageUrl} alt="Preview do carrossel" layout="fill" objectFit="cover" />
+                                ) : (
+                                    <>
+                                        <Copy className="w-16 h-16 text-gray-400 mb-4" />
+                                        <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
+                                    </>
+                                )}
                                 <div className="absolute top-1/2 left-2 right-2 flex justify-between">
                                     <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                     <button className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
@@ -85,9 +101,11 @@ const Preview = ({ type, videoUrl }: { type: ContentType, videoUrl: string | nul
         case 'story':
         case 'reels':
             return (
-                <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden">
+                <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
                     {videoUrl ? (
                         <video src={videoUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
+                    ) : imageUrl ? (
+                        <Image src={imageUrl} alt="Preview da imagem" layout="fill" objectFit="cover" />
                     ) : (
                         <>
                            {type === 'story' ? 
@@ -96,6 +114,9 @@ const Preview = ({ type, videoUrl }: { type: ContentType, videoUrl: string | nul
                             }
                             <p className="text-gray-300 text-center text-sm">Pré-visualização de {type === 'story' ? 'Story' : 'Reels'}</p>
                         </>
+                    )}
+                    {logoUrl && (
+                         <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
                     )}
                 </div>
             );
@@ -109,6 +130,8 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const router = useRouter();
     
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -129,11 +152,16 @@ export default function CriarConteudoPage() {
         const file = event.target.files?.[0];
         if (file) {
             console.log("Arquivo selecionado:", file.name, "Tipo:", fileType);
+            const url = URL.createObjectURL(file);
             if (fileType === 'video') {
-                const url = URL.createObjectURL(file);
                 setVideoPreviewUrl(url);
+                setImagePreviewUrl(null); 
+            } else if (fileType === 'image') {
+                setImagePreviewUrl(url);
+                setVideoPreviewUrl(null);
+            } else if (fileType === 'logo') {
+                setLogoPreviewUrl(url);
             }
-            // Aqui você pode adicionar a lógica para lidar com o arquivo (ex: upload, preview de imagem)
         }
     };
     
@@ -253,7 +281,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} videoUrl={videoPreviewUrl} />
+                             <Preview type={selectedType} videoUrl={videoPreviewUrl} imageUrl={imagePreviewUrl} logoUrl={logoPreviewUrl} />
                            </div>
                         </div>
                     </div>
@@ -274,3 +302,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
