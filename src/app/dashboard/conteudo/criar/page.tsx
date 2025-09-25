@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
@@ -70,7 +72,6 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
 
     const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
-            // Usando width e height 100% para forçar a imagem a preencher o container pai.
             return <Image src={item.url} alt="Preview da imagem" width={100} height={100} className="w-full h-full object-cover" />;
         }
         
@@ -169,6 +170,9 @@ export default function CriarConteudoPage() {
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+    const [title, setTitle] = useState("");
+    const [text, setText] = useState("");
+    const [isGeneratingText, setIsGeneratingText] = useState(false);
     const router = useRouter();
     
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -235,6 +239,15 @@ export default function CriarConteudoPage() {
             }
         }
     }
+
+    const handleGenerateText = () => {
+        // Mock function for now
+        setIsGeneratingText(true);
+        setTimeout(() => {
+            setText(prevText => prevText + "\n\nTexto melhorado pela IA: " + prevText);
+            setIsGeneratingText(false);
+        }, 1500);
+    };
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
 
@@ -355,10 +368,40 @@ export default function CriarConteudoPage() {
                                         )}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="font-semibold">Textos</Label>
-                                    <p className="text-xs text-gray-500">Escreva o título e a legenda da sua publicação.</p>
-                                    {/* Adicionar inputs de texto aqui */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="post-title" className="font-semibold">Título</Label>
+                                        <Input
+                                            id="post-title"
+                                            placeholder="Um título chamativo para seu post"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="post-text" className="font-semibold">Legenda</Label>
+                                        <p className="text-xs text-gray-500 mb-2">Escreva o que quiser sobre sua publicação e peça para a IA melhorar seu texto.</p>
+                                        <Textarea
+                                            id="post-text"
+                                            placeholder="Escreva aqui a legenda da sua publicação..."
+                                            value={text}
+                                            onChange={(e) => setText(e.target.value)}
+                                            className="h-32"
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full flex items-center gap-2"
+                                        onClick={handleGenerateText}
+                                        disabled={isGeneratingText}
+                                    >
+                                        {isGeneratingText ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                                        ) : (
+                                            <Sparkles className="w-4 h-4 text-purple-500" />
+                                        )}
+                                        Melhorar com IA
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -387,3 +430,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
