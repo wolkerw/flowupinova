@@ -68,19 +68,17 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         }
     }
 
-    const renderContent = (isCarousel = false) => {
-        const currentItem = mediaItems.length > 0 ? (isCarousel ? mediaItems[currentSlide] : mediaItems[0]) : null;
-
-        if (!currentItem) {
+    const renderContent = (item: MediaItem | null) => {
+        if (!item) {
             return null;
         }
 
-        if (currentItem.type === 'image') {
-            return <Image src={currentItem.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+        if (item.type === 'image') {
+            return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
         
-        if (currentItem.type === 'video') {
-            return <video src={currentItem.url} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+        if (item.type === 'video') {
+            return <video src={item.url} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
         }
         
         return null;
@@ -93,12 +91,15 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         </div>
     );
 
+    const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+    const currentCarouselItem = mediaItems.length > 0 ? mediaItems[currentSlide] : null;
+
     switch (type) {
         case 'single_post':
             return (
                 <div className="w-full max-w-sm aspect-[4/5] bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                    {renderContent()}
-                    {renderContent() === null && placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
+                    {renderContent(singleItem)}
+                    {!singleItem && placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
                     )}
@@ -110,7 +111,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
                     <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
                         <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
-                                {renderContent(true)}
+                                {renderContent(currentCarouselItem)}
                                 {mediaItems.length === 0 && placeholder(Copy, "Pré-visualização de Carrossel")}
 
                                 {mediaItems.length > 0 && (
@@ -156,8 +157,8 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         case 'reels':
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
-                    {renderContent()}
-                    {renderContent() === null && placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
+                    {renderContent(singleItem)}
+                    {!singleItem && placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
                     {logoUrl && (
                          <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
                     )}
@@ -209,7 +210,7 @@ export default function CriarConteudoPage() {
                 if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
                 setLogoPreviewUrl(url);
             } else {
-                 if (selectedType === 'carousel' || selectedType === 'story' || selectedType === 'reels') {
+                 if (selectedType === 'carousel' || ( (selectedType === 'story' || selectedType === 'reels') && mediaItems.length > 0) ) {
                     setMediaItems(prev => [...prev, newMediaItem]);
                 } else {
                     // For single media types, replace the existing item
