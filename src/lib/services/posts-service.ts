@@ -2,7 +2,7 @@
 "use server";
 
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, Timestamp, orderBy, query } from "firebase/firestore";
+import { collection, addDoc, getDocs, Timestamp, orderBy, query, doc, where, updateDoc } from "firebase/firestore";
 
 // Interface for data stored in Firestore
 export interface PostData {
@@ -11,7 +11,7 @@ export interface PostData {
     text: string;
     imageUrl: string | null;
     platforms: string[];
-    status: 'scheduled' | 'published';
+    status: 'scheduled' | 'published' | 'failed';
     scheduledAt: Timestamp;
 }
 
@@ -26,6 +26,7 @@ export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
     scheduledAt: Date; // Server sends a native Date object
 };
 
+const postsCollectionRef = collection(db, "posts");
 
 /**
  * Schedules a new post by saving it to the Firestore database.
@@ -53,8 +54,6 @@ export async function schedulePost(postData: PostDataInput): Promise<PostDataOut
     }
 }
 
-const postsCollectionRef = collection(db, "posts");
-
 
 /**
  * Retrieves all scheduled and published posts from Firestore, ordered by schedule date.
@@ -69,12 +68,8 @@ export async function getScheduledPosts(): Promise<PostDataOutput[]> {
         querySnapshot.forEach((doc) => {
             const data = doc.data() as PostData;
             posts.push({
+                ...data,
                 id: doc.id,
-                title: data.title,
-                text: data.text,
-                imageUrl: data.imageUrl,
-                platforms: data.platforms,
-                status: data.status,
                 // Convert Timestamp to Date object before sending to client
                 scheduledAt: data.scheduledAt.toDate(), 
             });
@@ -85,5 +80,52 @@ export async function getScheduledPosts(): Promise<PostDataOutput[]> {
     } catch (error) {
         console.error("Error getting posts:", error);
         return [];
+    }
+}
+
+/**
+ * Retrieves all posts that are scheduled to be published now or in the past.
+ * @returns An array of due posts.
+ */
+export async function getDuePosts(): Promise<PostDataOutput[]> {
+    try {
+        const now = Timestamp.now();
+        const q = query(
+            postsCollectionRef, 
+            where("status", "==", "scheduled"), 
+            where("scheduledAt", "<=", now)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        const posts: PostDataOutput[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data() as PostData;
+            posts.push({
+                ...data,
+                id: doc.id,
+                scheduledAt: data.scheduledAt.toDate(),
+            });
+        });
+
+        return posts;
+    } catch (error) {
+        console.error("Error getting due posts:", error);
+        return [];
+    }
+}
+
+/**
+ * Updates the status of a specific post.
+ * @param postId The ID of the post to update.
+ * @param status The new status for the post.
+ */
+export async function updatePostStatus(postId: string, status: 'published' | 'failed'): Promise<void> {
+    try {
+        const postRef = doc(db, "posts", postId);
+        await updateDoc(postRef, { status });
+    } catch (error) {
+        console.error(`Error updating post ${postId} status to ${status}:`, error);
+        throw new Error("Failed to update post status.");
     }
 }
