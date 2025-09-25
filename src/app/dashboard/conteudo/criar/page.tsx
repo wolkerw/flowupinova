@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -52,12 +52,24 @@ const Preview = ({ type }: { type: ContentType }) => {
             );
         case 'carousel':
             return (
-                 <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex items-center justify-center p-4 relative">
-                    <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform -rotate-6"></div>
-                    <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform rotate-6 absolute"></div>
-                    <div className="w-full h-full border-4 border-white rounded-lg bg-gray-200 absolute flex flex-col items-center justify-center p-4">
-                        <Copy className="w-16 h-16 text-gray-400 mb-4" />
-                        <p className="text-gray-600 text-center">Pré-visualização de Carrossel</p>
+                 <div className="flex flex-col items-center gap-6">
+                    <div className="w-full max-w-sm h-64 bg-gray-200 rounded-lg flex items-center justify-center p-4 relative">
+                        <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform -rotate-6 transition-transform group-hover:rotate-[-8deg]"></div>
+                        <div className="w-full h-full border-4 border-gray-300 rounded-lg bg-gray-100 transform rotate-6 absolute transition-transform group-hover:rotate-[8deg]"></div>
+                        <div className="w-full h-full border-4 border-white rounded-lg bg-gray-200 absolute flex flex-col items-center justify-center p-4">
+                            <Copy className="w-16 h-16 text-gray-400 mb-4" />
+                            <p className="text-gray-600 text-center font-semibold">Pré-visualização de Carrossel</p>
+                        </div>
+                    </div>
+                    <div className="w-full max-w-sm text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 font-medium mb-2">Sequência de 2 a 10 imagens que o usuário desliza.</p>
+                        <h5 className="font-bold text-blue-900">Ótimo para:</h5>
+                        <ul className="mt-2 space-y-1 text-sm text-blue-800 list-none">
+                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>“Passo a passo”</span></li>
+                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Comparativos (antes e depois)</span></li>
+                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Listas (“5 dicas rápidas…”)</span></li>
+                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Mostrar vários produtos/serviços</span></li>
+                        </ul>
                     </div>
                 </div>
             );
@@ -200,7 +212,7 @@ export default function CriarConteudoPage() {
                         </Card>
                         
                         {/* Coluna da direita: Preview */}
-                        <div className="flex flex-col items-center justify-start h-full">
+                        <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
                              <Preview type={selectedType} />
                            </div>
