@@ -50,21 +50,11 @@ interface DisplayPost extends PostDataOutput {
 
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [showSchedulerModal, setShowSchedulerModal] = useState(false);
-  const [postToSchedule, setPostToSchedule] = useState<{ text: string, imageUrl: string | null, date: string, time: string }>({ text: "", imageUrl: null, date: format(new Date(), 'yyyy-MM-dd'), time: '10:00' });
-  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPublishing, setIsPublishing] = useState(false);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
-
-  const connectedAccounts = [
-    { id: 'instagram', platform: 'instagram', name: metaData?.instagramAccountName || 'Instagram', icon: Instagram, isConnected: metaData?.isConnected && !!metaData.instagramAccountId },
-    { id: 'facebook', platform: 'facebook', name: metaData?.facebookPageName || 'Facebook', icon: Facebook, isConnected: metaData?.isConnected && !!metaData.facebookPageId },
-    { id: 'linkedin', platform: 'linkedin', name: 'LinkedIn', icon: Linkedin, isConnected: false },
-  ];
 
   const fetchConnectionsAndPosts = async () => {
     setLoading(true);
@@ -169,109 +159,6 @@ export default function Conteudo() {
     video: Video,
     text: FileText
   };
-
-  const handleOpenScheduler = (postContent = { text: "", imageUrl: null, date: format(new Date(), 'yyyy-MM-dd'), time: '10:00' }) => {
-    setPostToSchedule(postContent);
-    setSelectedAccounts(new Set());
-    setShowSchedulerModal(true);
-  };
-
-  const handleAccountSelection = (accountId: any) => {
-    setSelectedAccounts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(accountId)) {
-        newSet.delete(accountId);
-      } else {
-        newSet.add(accountId);
-      }
-      return newSet;
-    });
-  };
-
-  const handlePublishNow = async () => {
-    if (selectedAccounts.size === 0 || !postToSchedule.text.trim() || !postToSchedule.imageUrl) {
-      alert("Selecione uma conta, adicione conteúdo e anexe uma imagem para publicar.");
-      return;
-    }
-    
-    setIsPublishing(true);
-    let success = false;
-    
-    if (selectedAccounts.has('instagram')) {
-        if (!metaData?.instagramAccountId || !metaData?.pageToken) {
-            alert("Conta do Instagram não está configurada corretamente.");
-            setIsPublishing(false);
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/instagram/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    igUserId: metaData.instagramAccountId,
-                    pageToken: metaData.pageToken,
-                    caption: postToSchedule.text,
-                    imageUrl: postToSchedule.imageUrl,
-                }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                alert(`Post publicado no Instagram com sucesso! Post ID: ${result.postId}`);
-                success = true;
-            } else {
-                throw new Error(result.error || 'Falha ao publicar no Instagram.');
-            }
-        } catch (error: any) {
-            console.error("Erro ao publicar no Instagram:", error);
-            alert(`Erro ao publicar: ${error.message}`);
-        }
-    }
-
-    setIsPublishing(false);
-    if (success) {
-      setShowSchedulerModal(false);
-    }
-  };
-
-  const handleSchedulePost = async () => {
-    if (selectedAccounts.size === 0 || !postToSchedule.text.trim()) {
-        alert("Selecione uma conta e adicione conteúdo para agendar.");
-        return;
-    }
-
-    setIsPublishing(true);
-    try {
-        const scheduledDateTime = new Date(`${postToSchedule.date}T${postToSchedule.time}`);
-        const postDataToSave: PostDataInput = {
-            title: postToSchedule.text.substring(0, 50) + (postToSchedule.text.length > 50 ? "..." : ""),
-            text: postToSchedule.text,
-            imageUrl: postToSchedule.imageUrl,
-            platforms: Array.from(selectedAccounts),
-            scheduledAt: scheduledDateTime,
-        };
-
-        const newPost = await schedulePost(postDataToSave);
-        
-        const newDisplayPost: DisplayPost = {
-            ...newPost,
-            date: newPost.scheduledAt,
-            time: format(newPost.scheduledAt, 'HH:mm'),
-            type: (newPost.imageUrl ? 'image' : 'text') as 'image' | 'text'
-        };
-
-        setScheduledPosts(prev => [newDisplayPost, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime()));
-
-        alert("Post agendado com sucesso!");
-        setShowSchedulerModal(false);
-    } catch (error: any) {
-        console.error("Error scheduling post:", error);
-        alert(`Falha ao agendar post: ${error.message}`);
-    } finally {
-        setIsPublishing(false);
-    }
-  };
-
 
   const SocialConnectionCard = ({ platform, icon: Icon, color, data, onConnect }: { platform: string, icon: React.FC<any>, color: string, data: MetaConnectionData | null, onConnect: () => void }) => {
     const isConnected = data?.isConnected;
@@ -381,7 +268,6 @@ export default function Conteudo() {
             </Button>
           </Link>
           <Button 
-            onClick={() => handleOpenScheduler()}
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -533,141 +419,6 @@ export default function Conteudo() {
           </Card>
         </motion.div>
       </div>
-
-      {showSchedulerModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowSchedulerModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col"
-          >
-            <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Plus className="w-6 h-6 text-blue-500" />
-                Criar Nova Postagem
-              </h3>
-               <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Publicar em:
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {connectedAccounts.map(account => {
-                    const Icon = account.icon;
-                    const isSelected = selectedAccounts.has(account.id);
-                    return (
-                      <div
-                        key={account.id}
-                        onClick={() => account.isConnected && handleAccountSelection(account.id)}
-                        className={`p-3 border rounded-lg flex items-center gap-3 transition-all ${
-                          account.isConnected 
-                            ? 'cursor-pointer' 
-                            : 'cursor-not-allowed opacity-50 bg-gray-50'
-                        } ${
-                          isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-full border-2 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'} flex items-center justify-center`}>
-                          {isSelected && <Check className="w-3 h-3 text-white"/>}
-                        </div>
-                        <Icon className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-sm">{account.name}</span>
-                        {!account.isConnected && <Badge variant="destructive" className="ml-auto text-xs">Não conectado</Badge>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Conteúdo
-                </label>
-                <Textarea 
-                  placeholder="Digite o conteúdo do seu post..."
-                  className="h-32"
-                  value={postToSchedule.text}
-                  onChange={(e) => setPostToSchedule(prev => ({ ...prev, text: e.target.value }))}
-                />
-              </div>
-              
-              {postToSchedule.imageUrl ? (
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mídia Anexada
-                    </label>
-                    <div className="relative">
-                        <img src={postToSchedule.imageUrl} alt="Prévia da imagem" className="rounded-lg w-full h-auto max-h-60 object-cover border"/>
-                         <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: null}))}>
-                           <X className="w-4 h-4" />
-                         </Button>
-                    </div>
-                </div>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  className="w-full flex items-center gap-2 text-gray-600"
-                  onClick={() => setPostToSchedule(prev => ({...prev, imageUrl: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"}))}
-                >
-                  <Paperclip className="w-4 h-4"/>
-                  Anexar Mídia (Simulado)
-                </Button>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data
-                  </label>
-                  <Input type="date" value={postToSchedule.date} onChange={(e) => setPostToSchedule(prev => ({...prev, date: e.target.value}))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Horário
-                  </label>
-                  <Input type="time" value={postToSchedule.time} onChange={(e) => setPostToSchedule(prev => ({...prev, time: e.target.value}))}/>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
-                Cancelar
-              </Button>
-              <Button 
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700" 
-                onClick={handleSchedulePost}
-                disabled={isPublishing}
-              >
-                  {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CalendarClock className="w-4 h-4 mr-2" />}
-                  Agendar
-              </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700" 
-                onClick={handlePublishNow}
-                disabled={isPublishing}
-              >
-                {isPublishing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4 mr-2" />
-                )}
-                Publicar Agora
-              </Button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
     </div>
   );
 }
