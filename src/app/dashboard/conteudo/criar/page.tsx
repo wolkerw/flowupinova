@@ -70,7 +70,8 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
 
     const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+            // Usando width e height 100% para forçar a imagem a preencher o container pai.
+            return <Image src={item.url} alt="Preview da imagem" width={100} height={100} className="w-full h-full object-cover" />;
         }
         
         if (item.type === 'video') {
@@ -386,6 +387,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-
-    
