@@ -129,3 +129,4 @@ export async function updatePostStatus(postId: string, status: 'published' | 'fa
         throw new Error("Failed to update post status.");
     }
 }
+

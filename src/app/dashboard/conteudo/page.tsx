@@ -236,8 +236,8 @@ export default function Conteudo() {
 
   const handleSchedulePost = async () => {
     if (selectedAccounts.size === 0 || !postToSchedule.text.trim()) {
-      alert("Selecione uma conta e adicione conteúdo para agendar.");
-      return;
+        alert("Selecione uma conta e adicione conteúdo para agendar.");
+        return;
     }
 
     setIsPublishing(true);
