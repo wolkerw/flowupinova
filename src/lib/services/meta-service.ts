@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from "@/lib/firebase";
@@ -15,6 +16,22 @@ export interface MetaConnectionData {
     igProfilePictureUrl?: string;
     isConnected: boolean;
 }
+
+// Helper para chamadas à Graph API
+export async function fetchGraphAPI(url: string, accessToken: string, step: string) {
+    const fullUrl = url.includes('access_token=') ? url : `${url}${url.includes('?') ? '&' : '?'}access_token=${accessToken}`;
+    console.log(`[GRAPH_API] Executing ${step} with URL...`);
+    const response = await fetch(fullUrl);
+    const data = await response.json();
+
+    if (data.error) {
+        console.error(`[GRAPH_API_ERROR] at ${step}:`, data.error);
+        throw new Error(`Graph API error (${step}): ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
+    }
+    console.log(`[GRAPH_API_SUCCESS] ${step} successful.`);
+    return data;
+}
+
 
 const metaDocRef = doc(db, "integrations", "meta");
 
