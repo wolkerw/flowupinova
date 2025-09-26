@@ -36,7 +36,7 @@ export async function createAdSet(adAccountId: string, accessToken: string, camp
     if (campaignObjective === 'OUTCOME_AWARENESS') {
         optimizationGoal = 'REACH';
     } else if (campaignObjective === 'OUTCOME_SALES') {
-        optimizationGoal = 'CONVERSIONS';
+        optimizationGoal = 'OFFSITE_CONVERSIONS'; // Para vendas, o objetivo de otimização geralmente é esse
     }
 
     const body = new URLSearchParams({
@@ -44,7 +44,8 @@ export async function createAdSet(adAccountId: string, accessToken: string, camp
         campaign_id: campaignId,
         daily_budget: (budget.daily * 100).toString(), // Orçamento em centavos
         billing_event: 'IMPRESSIONS',
-        optimization_goal: optimizationGoal, 
+        optimization_goal: optimizationGoal,
+        bid_strategy: 'LOWEST_COST_WITHOUT_CAP', // Estratégia de lance automático
         start_time: budget.startDate || new Date().toISOString(),
         targeting: JSON.stringify(targeting),
         status: 'PAUSED',
