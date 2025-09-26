@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         const accessToken = metaConnection.pageToken;
         let allAdAccounts: AdAccount[] = [];
 
-        // 1. Listar Business Managers
+        // 1. Listar Business Managers - CORREÇÃO: Acessar o endpoint 'me'
         const businessesUrl = `${GRAPH_API_URL}/me/businesses?fields=id,name`;
         const businessesData = await fetchGraphAPI(businessesUrl, accessToken, "Listar Business Managers");
         const businesses = businessesData.data || [];
