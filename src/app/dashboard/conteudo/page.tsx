@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -263,7 +262,7 @@ export default function Conteudo() {
             onClick={() => router.push('/dashboard/conteudo/gerar')}
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Gerar com IA
+            Gerar Conteúdo com IA
           </Button>
           <Button 
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
