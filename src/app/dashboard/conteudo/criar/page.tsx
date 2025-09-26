@@ -105,8 +105,8 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         case 'carousel':
             return (
                  <div className="flex flex-col items-center gap-6">
-                    <div className="w-full max-w-[280px] flex flex-col items-center gap-4">
-                        <div className="aspect-[9/16] w-full bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 relative overflow-hidden">
+                    <div className="w-full max-w-sm flex flex-col items-center gap-4">
+                        <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
 
@@ -118,7 +118,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
 
                                 {mediaItems.length > 1 && (
                                     <>
-                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-10">
+                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-10 transform -translate-y-1/2">
                                             <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                             <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
                                         </div>
