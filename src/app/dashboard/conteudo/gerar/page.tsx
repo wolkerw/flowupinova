@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,12 @@ interface ScheduleOptions {
   };
 }
 
+type ReferenceFile = {
+    file: File;
+    previewUrl: string;
+    type: 'image' | 'video';
+}
+
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -54,12 +60,24 @@ export default function GerarConteudoPage() {
     linkedin: { enabled: true, publishMode: 'now', dateTime: '' }
   });
 
+  const [referenceFile, setReferenceFile] = useState<ReferenceFile | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
   useEffect(() => {
     async function fetchConnection() {
         const data = await getMetaConnection();
         setMetaData(data);
     }
     fetchConnection();
+
+     // Cleanup object URL
+    return () => {
+        if (referenceFile) {
+            URL.revokeObjectURL(referenceFile.previewUrl);
+        }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScheduleOptionChange = (platform: string, field: keyof ScheduleOptions[string], value: any) => {
@@ -67,6 +85,32 @@ export default function GerarConteudoPage() {
       ...prev,
       [platform]: { ...prev[platform], [field]: value }
     }));
+  };
+
+  const handleFileReferenceClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        if (referenceFile) {
+            URL.revokeObjectURL(referenceFile.previewUrl);
+        }
+        const previewUrl = URL.createObjectURL(file);
+        const fileType = file.type.startsWith('video') ? 'video' : 'image';
+        setReferenceFile({ file, previewUrl, type: fileType });
+    }
+  };
+
+  const removeReferenceFile = () => {
+    if (referenceFile) {
+        URL.revokeObjectURL(referenceFile.previewUrl);
+    }
+    setReferenceFile(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
   };
 
 
@@ -261,11 +305,37 @@ export default function GerarConteudoPage() {
                 onChange={(e) => setPostSummary(e.target.value)}
               />
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">
-                <Paperclip className="w-4 h-4 mr-2" />
-                Adicionar arquivo de referência
-              </Button>
+            <CardFooter className="flex justify-between items-center">
+               <div className="flex items-center gap-4">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*,video/*"
+                />
+                <Button variant="outline" onClick={handleFileReferenceClick}>
+                    <Paperclip className="w-4 h-4 mr-2" />
+                    Adicionar arquivo de referência
+                </Button>
+                {referenceFile && (
+                    <div className="relative group w-16 h-16">
+                        {referenceFile.type === 'image' ? (
+                            <Image src={referenceFile.previewUrl} alt="Preview" layout="fill" objectFit="cover" className="rounded-md" />
+                        ) : (
+                            <video src={referenceFile.previewUrl} className="w-full h-full object-cover rounded-md" />
+                        )}
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={removeReferenceFile}
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
+                    </div>
+                )}
+               </div>
               <Button
                 onClick={handleGenerateText}
                 disabled={!postSummary.trim() || isLoading}
@@ -644,5 +714,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
