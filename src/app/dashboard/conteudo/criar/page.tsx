@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerBottomRight, CornerTopLeft, CornerTopRight, CornerBottomLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,9 @@ type MediaItem = {
     type: 'image' | 'video';
     url: string;
 };
+type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type LogoSize = 'small' | 'medium' | 'large';
+
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
     {
@@ -48,7 +51,7 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ]
 
-const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void }) => {
+const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSize }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void, logoPosition: LogoPosition, logoSize: LogoSize }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -57,6 +60,18 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
         }
     }, [mediaItems, currentSlide]);
 
+    const positionClasses: Record<LogoPosition, string> = {
+        'top-left': 'top-4 left-4',
+        'top-right': 'top-4 right-4',
+        'bottom-left': 'bottom-4 left-4',
+        'bottom-right': 'bottom-4 right-4',
+    };
+
+    const sizeClasses: Record<LogoSize, string> = {
+        'small': 'w-12 h-12',
+        'medium': 'w-16 h-16',
+        'large': 'w-20 h-20',
+    }
 
     const handleNextSlide = () => {
         if (mediaItems.length > 1) {
@@ -72,7 +87,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
 
     const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" width={100} height={100} className="w-full h-full object-cover" />;
+            return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
         
         if (item.type === 'video') {
@@ -98,7 +113,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
                 <div className="w-full max-w-sm aspect-[4/5] bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
                     {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
-                        <Image src={logoUrl} alt="Logo preview" width={64} height={64} className="absolute bottom-4 right-4 w-16 h-16 object-contain" />
+                        <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                     )}
                 </div>
             );
@@ -109,6 +124,10 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
                         <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
+                                
+                                {logoUrl && (
+                                    <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
+                                )}
 
                                 {mediaItems.length > 0 && (
                                      <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
@@ -155,7 +174,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem }: { type: ContentTyp
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
                     {singleItem ? renderContent(singleItem) : placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
                     {logoUrl && (
-                         <Image src={logoUrl} alt="Logo preview" width={48} height={48} className="absolute bottom-4 right-4 w-12 h-12 object-contain" />
+                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                     )}
                 </div>
             );
@@ -173,6 +192,8 @@ export default function CriarConteudoPage() {
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
+    const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
+    const [logoSize, setLogoSize] = useState<LogoSize>('medium');
     const router = useRouter();
     
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -244,7 +265,7 @@ export default function CriarConteudoPage() {
         // Mock function for now
         setIsGeneratingText(true);
         setTimeout(() => {
-            setText(prevText => prevText + "\n\nTexto melhorado pela IA: " + prevText);
+            setText(prevText => prevText + "\\n\\nTexto melhorado pela IA: " + prevText);
             setIsGeneratingText(false);
         }, 1500);
     };
@@ -367,6 +388,48 @@ export default function CriarConteudoPage() {
                                             <Button variant="ghost" size="icon" className="absolute -top-1 right-0 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('logo')}><X className="w-4 h-4"/></Button>
                                         )}
                                     </div>
+                                     {logoPreviewUrl && (
+                                        <div className="space-y-4 pt-2">
+                                            <div>
+                                                <Label className="font-medium text-sm">Posição da Logo</Label>
+                                                <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="flex gap-2 mt-2">
+                                                    <Label htmlFor="pos-tl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="top-left" id="pos-tl" className="sr-only"/>
+                                                        <CornerTopLeft />
+                                                    </Label>
+                                                    <Label htmlFor="pos-tr" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="top-right" id="pos-tr" className="sr-only"/>
+                                                        <CornerTopRight />
+                                                    </Label>
+                                                    <Label htmlFor="pos-bl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="bottom-left" id="pos-bl" className="sr-only"/>
+                                                        <CornerBottomLeft />
+                                                    </Label>
+                                                     <Label htmlFor="pos-br" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="bottom-right" id="pos-br" className="sr-only"/>
+                                                        <CornerBottomRight />
+                                                    </Label>
+                                                </RadioGroup>
+                                            </div>
+                                             <div>
+                                                <Label className="font-medium text-sm">Tamanho da Logo</Label>
+                                                <RadioGroup value={logoSize} onValueChange={(v) => setLogoSize(v as LogoSize)} className="grid grid-cols-3 gap-2 mt-2">
+                                                    <Label htmlFor="size-s" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="small" id="size-s" className="sr-only"/>
+                                                        Pequeno
+                                                    </Label>
+                                                    <Label htmlFor="size-m" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="medium" id="size-m" className="sr-only"/>
+                                                        Médio
+                                                    </Label>
+                                                    <Label htmlFor="size-l" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="large" id="size-l" className="sr-only"/>
+                                                        Grande
+                                                    </Label>
+                                                </RadioGroup>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-4">
                                     <div>
@@ -409,7 +472,7 @@ export default function CriarConteudoPage() {
                         {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={(index) => clearPreview('item', index)} />
+                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={(index) => clearPreview('item', index)} logoPosition={logoPosition} logoSize={logoSize} />
                            </div>
                         </div>
                     </div>
