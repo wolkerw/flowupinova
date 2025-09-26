@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -261,7 +261,11 @@ export default function GerarConteudoPage() {
                 onChange={(e) => setPostSummary(e.target.value)}
               />
             </CardContent>
-            <CardFooter className="flex justify-end">
+            <CardFooter className="flex justify-between">
+              <Button variant="outline">
+                <Paperclip className="w-4 h-4 mr-2" />
+                Adicionar arquivo de referência
+              </Button>
               <Button
                 onClick={handleGenerateText}
                 disabled={!postSummary.trim() || isLoading}
@@ -274,7 +278,7 @@ export default function GerarConteudoPage() {
                   </>
                 ) : (
                   <>
-                    Gerar Conteúdo
+                    Gerar Conteúdo com IA
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}
@@ -641,3 +645,4 @@ export default function GerarConteudoPage() {
   );
 }
 
+    
