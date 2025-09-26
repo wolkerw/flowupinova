@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -36,6 +37,20 @@ interface AdAccount {
     name: string;
 }
 
+interface Campaign {
+    id: string;
+    name: string;
+    status: string;
+    daily_budget?: string;
+    lifetime_budget?: string;
+    insights: {
+        impressions: string;
+        clicks: string;
+        spend: string;
+        conversions: number;
+    };
+}
+
 
 export default function Anuncios() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -55,6 +70,55 @@ export default function Anuncios() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+
+ useEffect(() => {
+    const fetchInitialData = async () => {
+        setLoadingCampaigns(true);
+        try {
+            // 1. Fetch Ad Accounts
+            const accountsResponse = await fetch('/api/ads/accounts');
+            const accountsData = await accountsResponse.json();
+
+            if (accountsData.success && accountsData.accounts.length > 0) {
+                const firstAccountId = accountsData.accounts[0].id;
+
+                // 2. Fetch Campaigns for the first Ad Account
+                const campaignsResponse = await fetch(`/api/ads/campaigns?adAccountId=${firstAccountId}`);
+                const campaignsData = await campaignsResponse.json();
+
+                if (campaignsData.success) {
+                    setCampaigns(campaignsData.campaigns);
+                } else {
+                     toast({
+                        title: "Erro ao buscar campanhas",
+                        description: campaignsData.error || "Não foi possível carregar as campanhas.",
+                        variant: "destructive",
+                    });
+                }
+            } else if (!accountsData.success) {
+                 toast({
+                    title: "Erro ao buscar contas",
+                    description: accountsData.error || "Não foi possível carregar as contas de anúncio.",
+                    variant: "destructive",
+                });
+            }
+        } catch (err: any) {
+            toast({
+                title: "Erro de Rede",
+                description: "Não foi possível conectar ao servidor.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingCampaigns(false);
+        }
+    };
+
+    fetchInitialData();
+  }, [toast]);
+
+
   useEffect(() => {
     const fetchAdAccounts = async () => {
         if (showCampaignWizard) {
@@ -71,7 +135,7 @@ export default function Anuncios() {
                         variant: "destructive",
                     });
                 }
-            } catch (err: any) {
+            } catch (err: any)                 {
                  toast({
                     title: "Erro de Rede",
                     description: "Não foi possível conectar ao servidor para buscar as contas.",
@@ -84,43 +148,6 @@ export default function Anuncios() {
     };
     fetchAdAccounts();
   }, [showCampaignWizard, toast]);
-
-
-  const campaigns = [
-    {
-      id: 1,
-      name: "Black Friday 2024",
-      status: "active",
-      budget: 2500,
-      spent: 1850,
-      impressions: 45230,
-      clicks: 892,
-      conversions: 23,
-      cpc: 2.07
-    },
-    {
-      id: 2,
-      name: "Lançamento Produto X",
-      status: "paused",
-      budget: 1200,
-      spent: 540,
-      impressions: 18560,
-      clicks: 234,
-      conversions: 8,
-      cpc: 2.31
-    },
-    {
-      id: 3,
-      name: "Retargeting Site",
-      status: "active",
-      budget: 800,
-      spent: 720,
-      impressions: 32100,
-      clicks: 456,
-      conversions: 18,
-      cpc: 1.58
-    }
-  ];
 
   const campaignSteps = [
     { id: 1, title: "Conta", description: "Selecione a conta de anúncios" },
@@ -187,6 +214,16 @@ export default function Anuncios() {
         setIsPublishing(false);
     }
   };
+
+  const formatCurrency = (value: string | number, currency = 'BRL') => {
+    const numberValue = Number(value) || 0;
+    // Se o valor já vem em centavos, dividimos por 100
+    if (String(value).length > 2 && !String(value).includes('.')) {
+        return (numberValue / 100).toLocaleString('pt-BR', { style: 'currency', currency: currency });
+    }
+    return numberValue.toLocaleString('pt-BR', { style: 'currency', currency: currency });
+  };
+  
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -295,72 +332,85 @@ export default function Anuncios() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {campaigns.map((campaign, index) => (
-                <motion.div
-                  key={campaign.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="border rounded-lg p-6 hover:shadow-sm transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
-                      <Badge 
-                        variant={campaign.status === 'active' ? 'default' : 'outline'}
-                        className={campaign.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}
-                      >
-                        {campaign.status === 'active' ? 'Ativa' : 'Pausada'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon">
-                        {campaign.status === 'active' ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4" />
-                        )}
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+            {loadingCampaigns ? (
+                 <div className="flex items-center justify-center h-48">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    <p className="ml-3 text-gray-600">Buscando campanhas...</p>
+                 </div>
+            ) : campaigns.length > 0 ? (
+                <div className="space-y-4">
+                  {campaigns.map((campaign, index) => (
+                    <motion.div
+                      key={campaign.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="border rounded-lg p-6 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                          <Badge 
+                            variant={campaign.status.toLowerCase() === 'active' ? 'default' : 'outline'}
+                            className={campaign.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}
+                          >
+                            {campaign.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon">
+                            {campaign.status.toLowerCase() === 'active' ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Orçamento</p>
-                      <p className="font-semibold">R$ {campaign.budget.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Gasto</p>
-                      <p className="font-semibold">R$ {campaign.spent.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Impressões</p>
-                      <p className="font-semibold">{campaign.impressions.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Cliques</p>
-                      <p className="font-semibold">{campaign.clicks}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Conversões</p>
-                      <p className="font-semibold">{campaign.conversions}</p>
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Orçamento</p>
+                          <p className="font-semibold">{formatCurrency(campaign.daily_budget || campaign.lifetime_budget || 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Gasto</p>
+                          <p className="font-semibold">{formatCurrency(campaign.insights.spend)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Impressões</p>
+                          <p className="font-semibold">{Number(campaign.insights.impressions).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Cliques</p>
+                          <p className="font-semibold">{campaign.insights.clicks}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Conversões</p>
+                          <p className="font-semibold">{campaign.insights.conversions}</p>
+                        </div>
+                      </div>
 
-                  <div className="mb-2">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>Progresso do orçamento</span>
-                      <span>{Math.round((campaign.spent / campaign.budget) * 100)}%</span>
-                    </div>
-                    <Progress value={(campaign.spent / campaign.budget) * 100} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                      { (campaign.daily_budget || campaign.lifetime_budget) &&
+                        <div className="mb-2">
+                            <div className="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Progresso do orçamento</span>
+                            <span>{Math.round((Number(campaign.insights.spend) / (Number(campaign.lifetime_budget || campaign.daily_budget) / 100)) * 100)}%</span>
+                            </div>
+                            <Progress value={(Number(campaign.insights.spend) / (Number(campaign.lifetime_budget || campaign.daily_budget) / 100)) * 100} />
+                        </div>
+                      }
+                    </motion.div>
+                  ))}
+                </div>
+            ) : (
+                <div className="text-center py-12 text-gray-500">
+                    <p>Nenhuma campanha encontrada para esta conta.</p>
+                </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -596,3 +646,6 @@ export default function Anuncios() {
     </div>
   );
 }
+
+
+    
