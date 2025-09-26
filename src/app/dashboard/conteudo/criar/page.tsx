@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerDownRight, CornerUpLeft, CornerDownLeft, ArrowUpToLine, ArrowDownToLine } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine, Instagram, Facebook, Linkedin, Send, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
@@ -196,6 +199,9 @@ export default function CriarConteudoPage() {
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
     const [logoSize, setLogoSize] = useState<LogoSize>('medium');
+    const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
+    const [scheduleDate, setScheduleDate] = useState('');
+
     const router = useRouter();
     
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -212,8 +218,10 @@ export default function CriarConteudoPage() {
     }, []);
 
     const handleNextStep = () => {
-        if(selectedType) {
+        if(step === 1 && selectedType) {
             setStep(2);
+        } else if (step === 2) {
+            setStep(3);
         }
     }
 
@@ -275,12 +283,13 @@ export default function CriarConteudoPage() {
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
 
     return (
-        <div className="p-6 space-y-8 max-w-6xl mx-auto">
+        <div className="p-6 space-y-8 max-w-7xl mx-auto">
             <div className="text-center">
                 <h1 className="text-3xl font-bold text-gray-900">Criar Novo Conteúdo</h1>
                 <p className="text-gray-600 mt-1">
                     {step === 1 && "Escolha o formato do conteúdo que você deseja criar."}
                     {step === 2 && `Etapa 2 de 3: Personalize seu ${selectedOption?.title || 'conteúdo'}`}
+                    {step === 3 && `Etapa 3 de 3: Revise e agende sua publicação`}
                 </p>
             </div>
 
@@ -411,7 +420,7 @@ export default function CriarConteudoPage() {
                                                         <RadioGroupItem value="bottom-left" id="pos-bl" className="sr-only"/>
                                                         <CornerDownLeft />
                                                     </Label>
-                                                    <Label htmlFor="pos-bc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                     <Label htmlFor="pos-bc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
                                                         <RadioGroupItem value="bottom-center" id="pos-bc" className="sr-only"/>
                                                         <ArrowDownToLine />
                                                     </Label>
@@ -492,12 +501,177 @@ export default function CriarConteudoPage() {
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Voltar
                         </Button>
-                        <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                        <Button 
+                          onClick={handleNextStep}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
                            Próxima Etapa
                            <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                     </div>
 
+                </motion.div>
+            )}
+
+            {step === 3 && selectedType && (
+                 <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
+                >
+                    {/* Coluna da esquerda: Preview Final */}
+                    <div className="flex flex-col items-center justify-start h-full">
+                        <div className="sticky top-24 w-full">
+                             <Card className="shadow-lg border-none">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Preview Final</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex justify-center">
+                                    <Tabs defaultValue="instagram" className="w-full max-w-sm">
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Instagram</TabsTrigger>
+                                            <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2"/>Facebook</TabsTrigger>
+                                        </TabsList>
+                                        <TabsContent value="instagram">
+                                            <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
+                                                <div className="p-3 flex items-center gap-2 border-b">
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src={"https://picsum.photos/seed/avatar1/40/40"} />
+                                                        <AvatarFallback>FU</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-bold text-sm">seu_usuario</span>
+                                                </div>
+                                                <div className="relative w-full aspect-square bg-gray-200">
+                                                    {mediaItems[0] && (
+                                                      <div className="w-full h-full relative">
+                                                          {mediaItems[0].type === 'image' ? (
+                                                              <Image src={mediaItems[0].url} layout="fill" objectFit="cover" alt="Post preview" />
+                                                          ) : (
+                                                              <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                                          )}
+                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", { 'top-4 left-4': logoPosition === 'top-left', 'top-4 right-4': logoPosition === 'top-right', 'bottom-4 left-4': logoPosition === 'bottom-left', 'bottom-4 right-4': logoPosition === 'bottom-right' }, { 'w-12 h-12': logoSize === 'small', 'w-16 h-16': logoSize === 'medium', 'w-20 h-20': logoSize === 'large' })} />}
+                                                      </div>
+                                                    )}
+                                                </div>
+                                                <div className="p-3 text-sm">
+                                                    <p>
+                                                        <span className="font-bold">seu_usuario</span> {text.substring(0, 100)}{text.length > 100 && '...'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="facebook">
+                                            <div className="w-full bg-white rounded-lg shadow-lg border flex flex-col mt-4">
+                                                <div className="p-4 flex items-center gap-3">
+                                                    <Avatar className="h-10 w-10">
+                                                        <AvatarImage src={"https://picsum.photos/seed/avatar2/40/40"} />
+                                                        <AvatarFallback>FU</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-bold">Sua Página</p>
+                                                        <p className="text-xs text-gray-500">Agora mesmo</p>
+                                                    </div>
+                                                </div>
+                                                <div className="px-4 pb-2 text-sm">
+                                                    <p className="font-bold">{title}</p>
+                                                    <p className="mt-2">{text}</p>
+                                                </div>
+                                                <div className="relative w-full aspect-video bg-gray-200">
+                                                     {mediaItems[0] && (
+                                                      <div className="w-full h-full relative">
+                                                          {mediaItems[0].type === 'image' ? (
+                                                              <Image src={mediaItems[0].url} layout="fill" objectFit="cover" alt="Post preview" />
+                                                          ) : (
+                                                              <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                                          )}
+                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", { 'top-4 left-4': logoPosition === 'top-left', 'top-4 right-4': logoPosition === 'top-right', 'bottom-4 left-4': logoPosition === 'bottom-left', 'bottom-4 right-4': logoPosition === 'bottom-right' }, { 'w-12 h-12': logoSize === 'small', 'w-16 h-16': logoSize === 'medium', 'w-20 h-20': logoSize === 'large' })} />}
+                                                      </div>
+                                                    )}
+                                                </div>
+                                           </div>
+                                        </TabsContent>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* Coluna da direita: Agendamento */}
+                    <Card className="shadow-lg border-none">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Agendamento</CardTitle>
+                            <p className="text-sm text-gray-600">Escolha onde e quando publicar seu conteúdo.</p>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <Label className="font-semibold">Plataformas</Label>
+                                <div className="space-y-3 mt-2">
+                                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <Instagram className="w-6 h-6 text-pink-600" />
+                                            <Label htmlFor="insta-switch" className="font-medium">Instagram</Label>
+                                        </div>
+                                        <Switch id="insta-switch" defaultChecked />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <Facebook className="w-6 h-6 text-blue-700" />
+                                            <Label htmlFor="fb-switch" className="font-medium">Facebook</Label>
+                                        </div>
+                                        <Switch id="fb-switch" />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 opacity-60">
+                                        <div className="flex items-center gap-3">
+                                            <Linkedin className="w-6 h-6 text-sky-800" />
+                                            <Label htmlFor="linkedin-switch" className="font-medium">LinkedIn</Label>
+                                        </div>
+                                        <Switch id="linkedin-switch" disabled />
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="font-semibold">Quando publicar?</Label>
+                                <RadioGroup value={scheduleType} onValueChange={(v) => setScheduleType(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
+                                     <div>
+                                        <RadioGroupItem value="now" id="now" className="peer sr-only" />
+                                        <Label htmlFor="now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                                            <Clock className="w-6 h-6 mb-2" />
+                                            Publicar Agora
+                                        </Label>
+                                     </div>
+                                     <div>
+                                        <RadioGroupItem value="schedule" id="schedule" className="peer sr-only" />
+                                        <Label htmlFor="schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                                            <CalendarIcon className="w-6 h-6 mb-2" />
+                                            Agendar
+                                        </Label>
+                                     </div>
+                                </RadioGroup>
+                                {scheduleType === 'schedule' && (
+                                    <motion.div 
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className="mt-4"
+                                    >
+                                        <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                                    </motion.div>
+                                )}
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex-col items-stretch">
+                             <Button size="lg" className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+                                <Send className="w-4 h-4 mr-2" />
+                                {scheduleType === 'now' ? 'Publicar Post' : 'Agendar Post'}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                     <div className="col-span-full flex justify-between mt-8">
+                        <Button variant="outline" onClick={() => setStep(2)}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Voltar
+                        </Button>
+                    </div>
                 </motion.div>
             )}
         </div>
