@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -21,13 +22,21 @@ import {
   Play,
   Pause,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  UploadCloud,
+  Link as LinkIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Anuncios() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
+
+  // State for the new campaign wizard
+  const [campaignObjective, setCampaignObjective] = useState("");
+  const [audience, setAudience] = useState({ ageMin: 18, ageMax: 65, location: "BR" });
+  const [creative, setCreative] = useState({ message: "", link: "", image: null });
+  const [budget, setBudget] = useState({ daily: 50, startDate: ""});
 
   const campaigns = [
     {
@@ -72,6 +81,16 @@ export default function Anuncios() {
     { id: 4, title: "Orçamento", description: "Defina investimento e duração" },
     { id: 5, title: "Revisão", description: "Confirme e publique" }
   ];
+
+  const handleObjectiveSelect = (objective: string) => {
+    setCampaignObjective(objective);
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCreative(prev => ({...prev, image: e.target.files[0] as any}));
+    }
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -260,12 +279,10 @@ export default function Anuncios() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto"
+            className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto flex flex-col"
           >
-            <div className="p-6 border-b">
+            <div className="p-6 border-b sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold">Criar Nova Campanha</h3>
-              
-              {/* Steps */}
               <div className="flex items-center gap-4 mt-6">
                 {campaignSteps.map((step) => (
                   <div key={step.id} className="flex items-center">
@@ -284,32 +301,24 @@ export default function Anuncios() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-8 flex-grow">
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Qual é o objetivo da sua campanha?</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300">
-                      <CardContent className="p-6 text-center">
-                        <Eye className="w-8 h-8 text-blue-500 mx-auto mb-3" />
-                        <h5 className="font-semibold">Reconhecimento</h5>
-                        <p className="text-sm text-gray-600 mt-1">Aumentar visibilidade da marca</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300">
-                      <CardContent className="p-6 text-center">
-                        <Users className="w-8 h-8 text-green-500 mx-auto mb-3" />
-                        <h5 className="font-semibold">Leads</h5>
-                        <p className="text-sm text-gray-600 mt-1">Capturar potenciais clientes</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300">
-                      <CardContent className="p-6 text-center">
-                        <ShoppingCart className="w-8 h-8 text-purple-500 mx-auto mb-3" />
-                        <h5 className="font-semibold">Vendas</h5>
-                        <p className="text-sm text-gray-600 mt-1">Aumentar conversões</p>
-                      </CardContent>
-                    </Card>
+                    {[
+                      { key: 'LINK_CLICKS', title: 'Cliques no Link', desc: 'Gerar tráfego para seu site.', icon: MousePointer },
+                      { key: 'REACH', title: 'Alcance', desc: 'Mostrar para o máximo de pessoas.', icon: Eye },
+                      { key: 'CONVERSIONS', title: 'Conversões', desc: 'Gerar vendas ou leads.', icon: ShoppingCart }
+                    ].map(obj => (
+                        <Card key={obj.key} onClick={() => handleObjectiveSelect(obj.key)} className={`cursor-pointer hover:shadow-md transition-shadow border-2 ${campaignObjective === obj.key ? 'border-blue-500' : 'hover:border-blue-300'}`}>
+                          <CardContent className="p-6 text-center">
+                            <obj.icon className="w-8 h-8 text-blue-500 mx-auto mb-3" />
+                            <h5 className="font-semibold">{obj.title}</h5>
+                            <p className="text-sm text-gray-600 mt-1">{obj.desc}</p>
+                          </CardContent>
+                        </Card>
+                    ))}
                   </div>
                 </div>
               )}
@@ -317,65 +326,89 @@ export default function Anuncios() {
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Defina seu público-alvo</h4>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
-                      <div>
-                        <h5 className="font-semibold text-blue-900">Sugestão de IA</h5>
-                        <p className="text-sm text-blue-700 mt-1">
-                          Baseado no seu histórico, recomendamos: Pessoas de 25-45 anos interessadas em produtividade e tecnologia.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Idade
-                      </label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Faixa etária" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="18-24">18-24 anos</SelectItem>
-                          <SelectItem value="25-34">25-34 anos</SelectItem>
-                          <SelectItem value="35-44">35-44 anos</SelectItem>
-                          <SelectItem value="45-54">45-54 anos</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <label htmlFor="age-min" className="block text-sm font-medium text-gray-700 mb-2">Idade Mínima</label>
+                      <Input id="age-min" type="number" placeholder="18" value={audience.ageMin} onChange={(e) => setAudience(prev => ({ ...prev, ageMin: parseInt(e.target.value) || 18 }))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Localização
-                      </label>
-                      <Input placeholder="Ex: São Paulo, SP" />
+                      <label htmlFor="age-max" className="block text-sm font-medium text-gray-700 mb-2">Idade Máxima</label>
+                      <Input id="age-max" type="number" placeholder="65" value={audience.ageMax} onChange={(e) => setAudience(prev => ({ ...prev, ageMax: parseInt(e.target.value) || 65 }))} />
+                    </div>
+                    <div className="md:col-span-2">
+                       <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">Localização (País)</label>
+                       <Input id="location" placeholder="Ex: BR para Brasil" value={audience.location} onChange={(e) => setAudience(prev => ({ ...prev, location: e.target.value }))} />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                 <div className="space-y-6">
+                  <h4 className="text-lg font-semibold">Crie o seu anúncio</h4>
+                   <div>
+                    <label htmlFor="creative-message" className="block text-sm font-medium text-gray-700 mb-2">Texto do Anúncio</label>
+                    <Textarea id="creative-message" placeholder="Escreva o texto principal do seu anúncio..." value={creative.message} onChange={e => setCreative(prev => ({...prev, message: e.target.value}))} />
+                  </div>
+                  <div>
+                    <label htmlFor="creative-link" className="block text-sm font-medium text-gray-700 mb-2">Link de Destino</label>
+                    <Input id="creative-link" type="url" placeholder="https://seusite.com/oferta" value={creative.link} onChange={e => setCreative(prev => ({...prev, link: e.target.value}))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagem do Anúncio</label>
+                    <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <UploadCloud className="w-8 h-8 mb-4 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para enviar</span> ou arraste e solte</p>
+                          <p className="text-xs text-gray-500">PNG, JPG (Recomendado: 1080x1080px)</p>
+                       </div>
+                       <input id="image-upload" type="file" className="hidden" accept="image/png, image/jpeg" onChange={handleFileChange} />
+                    </label>
+                    {creative.image && <p className="text-sm text-green-600 mt-2">Imagem selecionada: {(creative.image as File).name}</p>}
+                  </div>
+                </div>
+              )}
+
+               {currentStep === 4 && (
+                <div className="space-y-6">
+                   <h4 className="text-lg font-semibold">Defina o orçamento e a duração</h4>
+                    <div>
+                      <label htmlFor="daily-budget" className="block text-sm font-medium text-gray-700 mb-2">Orçamento Diário (em centavos)</label>
+                      <Input id="daily-budget" type="number" placeholder="5000 (para R$50,00)" value={budget.daily * 100} onChange={e => setBudget(prev => ({ ...prev, daily: parseInt(e.target.value)/100 || 0}))} />
+                      <p className="text-xs text-gray-500 mt-1">Ex: insira 5000 para um orçamento de R$50,00/dia.</p>
+                    </div>
+                     <div>
+                      <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 mb-2">Data e Hora de Início</label>
+                      <Input id="start-date" type="datetime-local" value={budget.startDate} onChange={e => setBudget(prev => ({ ...prev, startDate: e.target.value}))}/>
+                    </div>
                 </div>
               )}
 
               {currentStep === 5 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Revisão da Campanha</h4>
-                  
                   <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <h5 className="font-medium text-gray-900">Objetivo</h5>
-                        <p className="text-gray-600">Geração de Leads</p>
+                        <p className="text-gray-600">{campaignObjective}</p>
                       </div>
                       <div>
                         <h5 className="font-medium text-gray-900">Público</h5>
-                        <p className="text-gray-600">25-34 anos, São Paulo</p>
+                        <p className="text-gray-600">{audience.ageMin}-{audience.ageMax} anos, em {audience.location}</p>
                       </div>
                       <div>
                         <h5 className="font-medium text-gray-900">Orçamento</h5>
-                        <p className="text-gray-600">R$ 500/dia por 7 dias</p>
+                        <p className="text-gray-600">R$ {budget.daily.toFixed(2)}/dia</p>
                       </div>
-                      <div>
-                        <h5 className="font-medium text-gray-900">Alcance Estimado</h5>
-                        <p className="text-gray-600">15.000 - 45.000 pessoas</p>
+                       <div>
+                        <h5 className="font-medium text-gray-900">Início</h5>
+                        <p className="text-gray-600">{new Date(budget.startDate).toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <h5 className="font-medium text-gray-900">Criativo</h5>
+                        <p className="text-gray-600 mt-1 truncate">{creative.message}</p>
+                        {creative.image && <p className="text-sm text-blue-600 mt-1">Imagem: {(creative.image as File).name}</p>}
                       </div>
                     </div>
                   </div>
@@ -386,7 +419,7 @@ export default function Anuncios() {
                       <div>
                         <h5 className="font-semibold text-green-900">Previsão de Resultados</h5>
                         <p className="text-sm text-green-700 mt-1">
-                          Estimamos entre 80-120 leads com um CPA de R$ 35-50.
+                          Estimativas de alcance e cliques serão exibidas após a publicação.
                         </p>
                       </div>
                     </div>
@@ -395,7 +428,7 @@ export default function Anuncios() {
               )}
             </div>
 
-            <div className="p-6 border-t flex justify-between">
+            <div className="p-6 border-t flex justify-between sticky bottom-0 bg-white z-10">
               <Button variant="outline" onClick={() => setShowCampaignWizard(false)}>
                 Cancelar
               </Button>
