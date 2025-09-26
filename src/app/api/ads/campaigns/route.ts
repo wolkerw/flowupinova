@@ -1,25 +1,19 @@
 
 // src/app/api/ads/campaigns/route.ts
 
-import { getMetaConnection } from "@/lib/services/meta-service";
+import { getMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
 import { NextResponse, type NextRequest } from "next/server";
+import { createCampaign, createAdSet, createAdCreative, createAd, publishAd } from "@/lib/services/ads-service";
 
-const GRAPH_API_VERSION = "v20.0";
-const GRAPH_API_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 
 // Função para fazer o upload de uma imagem e obter o hash
-async function uploadImage(adAccountId: string, accessToken: string, imageUrl: string) {
-  const adImagesUrl = `${GRAPH_API_URL}/${adAccountId}/adimages`;
+async function uploadImage(adAccountId: string, accessToken: string, imageFile: File) {
+  const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId}/adimages`;
   const formData = new FormData();
   formData.append('access_token', accessToken);
+  formData.append('source', imageFile);
 
   try {
-    // A API da Meta espera que a imagem seja buscada e enviada como um blob
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) throw new Error('Falha ao buscar a imagem da URL fornecida.');
-    const imageBlob = await imageResponse.blob();
-    formData.append('source', imageBlob);
-
     const response = await fetch(adImagesUrl, {
       method: 'POST',
       body: formData,
@@ -27,102 +21,70 @@ async function uploadImage(adAccountId: string, accessToken: string, imageUrl: s
 
     const data = await response.json();
     
-    if (data.error || !data.images?.['source']?.hash) {
+    if (data.error || !data.images?.[imageFile.name]?.hash) {
       console.error('[API_ERROR] Image Upload Failed:', data.error || 'Nenhum hash de imagem retornado.');
-      throw new Error(`Falha no upload da imagem: ${data.error?.message || 'Erro desconhecido'}`);
+      const errorMessage = data.error?.message || 'Erro desconhecido durante o upload da imagem.';
+      throw new Error(`Falha no upload da imagem: ${errorMessage}`);
     }
 
-    console.log('[API_SUCCESS] Image uploaded, hash:', data.images['source'].hash);
-    return data.images['source'].hash;
+    console.log('[API_SUCCESS] Image uploaded, hash:', data.images[imageFile.name].hash);
+    return data.images[imageFile.name].hash;
   } catch (error: any) {
     console.error('[API_FATAL] Erro catastrófico no upload da imagem:', error);
     throw error;
   }
 }
 
-// Função para criar o Ad Creative
-async function createAdCreative(adAccountId: string, accessToken: string, pageId: string, message: string, link: string, imageHash: string) {
-    const adCreativeUrl = `${GRAPH_API_URL}/${adAccountId}/adcreatives`;
-    const objectStorySpec = {
-        page_id: pageId,
-        link_data: {
-            link: link,
-            message: message,
-            image_hash: imageHash,
-        },
-    };
-
-    const creativeBody = new URLSearchParams({
-        name: `Criativo - ${new Date().toISOString()}`,
-        object_story_spec: JSON.stringify(objectStorySpec),
-        access_token: accessToken
-    });
-
-    const response = await fetch(adCreativeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: creativeBody.toString()
-    });
-
-    const data = await response.json();
-    if (data.error || !data.id) {
-        console.error('[API_ERROR] Ad Creative Failed:', data.error);
-        throw new Error(`Falha ao criar o criativo: ${data.error?.message || 'Erro desconhecido'}`);
-    }
-
-    console.log('[API_SUCCESS] Ad Creative created, ID:', data.id);
-    return data.id;
-}
-
 
 export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  
+  const adAccountId = formData.get('adAccountId') as string;
+  const objective = formData.get('objective') as string;
+  const audience = JSON.parse(formData.get('audience') as string);
+  const creative = JSON.parse(formData.get('creative') as string);
+  const budget = JSON.parse(formData.get('budget') as string);
+  const imageFile = formData.get('image') as File | null;
+  
+  if (!adAccountId) {
+    return NextResponse.json({ success: false, error: "ID da Conta de Anúncios não foi fornecido." }, { status: 400 });
+  }
+  if (!imageFile) {
+    return NextResponse.json({ success: false, error: "Nenhuma imagem foi enviada." }, { status: 400 });
+  }
+
   try {
-    const formData = await request.formData();
-    
-    // **CORREÇÃO APLICADA AQUI**
-    // Obter o adAccountId do formulário enviado pelo frontend
-    const adAccountId = formData.get('adAccountId') as string;
-    const objective = formData.get('objective') as string;
-    const audience = JSON.parse(formData.get('audience') as string);
-    const creative = JSON.parse(formData.get('creative') as string);
-    const budget = JSON.parse(formData.get('budget') as string);
-    const imageFile = formData.get('image') as File | null;
-    
-    // Validar se o adAccountId foi recebido
-    if (!adAccountId) {
-      throw new Error("ID da Conta de Anúncios não foi fornecido pelo cliente.");
-    }
-    
     const metaConnection = await getMetaConnection();
-    // Usar o userAccessToken para máxima compatibilidade de permissões
-    const accessToken = metaConnection.userAccessToken || metaConnection.pageToken;
+    const accessToken = metaConnection.userAccessToken;
 
     if (!metaConnection.isConnected || !accessToken || !metaConnection.facebookPageId) {
       throw new Error("Conexão com a Meta não está ativa, o token de acesso ou o ID da Página não estão disponíveis.");
     }
     const pageId = metaConnection.facebookPageId;
 
-    if (!imageFile) {
-      return NextResponse.json({ success: false, error: "Nenhuma imagem foi enviada." }, { status: 400 });
-    }
+    // ETAPA 1: Criar a Campanha
+    const campaignId = await createCampaign(adAccountId, accessToken, objective);
 
-    // Convertendo o File para uma URL local temporária para o upload
-    const imageUrl = URL.createObjectURL(imageFile);
+    // ETAPA 2: Criar o Ad Set
+    const adSetId = await createAdSet(adAccountId, accessToken, campaignId, budget, audience);
 
-    // ETAPA 1: Fazer o upload da imagem para obter o hash
-    const imageHash = await uploadImage(adAccountId, accessToken, imageUrl);
-    URL.revokeObjectURL(imageUrl); // Limpar a URL temporária
+    // ETAPA 3: Fazer o upload da imagem para obter o hash
+    const imageHash = await uploadImage(adAccountId, accessToken, imageFile);
 
-    // ETAPA 2: Criar o Ad Creative
+    // ETAPA 4: Criar o Ad Creative
     const creativeId = await createAdCreative(adAccountId, accessToken, pageId, creative.message, creative.link, imageHash);
     
-    // ETAPAS FUTURAS: Criar Campanha, Ad Set e Ad
-    // ... lógica a ser implementada
+    // ETAPA 5: Criar o Anúncio
+    const adId = await createAd(adAccountId, accessToken, adSetId, creativeId);
+
+    // ETAPA 6: Publicar o Anúncio
+    await publishAd(adId, accessToken);
 
     return NextResponse.json({
       success: true,
-      message: "Criativo do anúncio criado com sucesso! Próximas etapas pendentes.",
-      creativeId: creativeId,
+      message: "Campanha publicada com sucesso!",
+      campaignId: campaignId,
+      adId: adId,
     });
 
   } catch (error: any) {

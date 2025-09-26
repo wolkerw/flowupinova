@@ -19,15 +19,35 @@ export interface MetaConnectionData {
 }
 
 // Helper para chamadas à Graph API
-export async function fetchGraphAPI(url: string, accessToken: string, step: string) {
-    const fullUrl = url.includes('access_token=') ? url : `${url}${url.includes('?') ? '&' : '?'}access_token=${accessToken}`;
-    console.log(`[GRAPH_API] Executing ${step} with URL...`);
-    const response = await fetch(fullUrl);
+export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | null = null) {
+    const headers: HeadersInit = {};
+    let requestUrl = url;
+    let requestBody: string | null = null;
+    
+    if (method === 'GET') {
+         const separator = url.includes('?') ? '&' : '?';
+         requestUrl = `${url}${separator}access_token=${accessToken}`;
+    } else { // POST
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        const postBody = new URLSearchParams(body || '');
+        postBody.append('access_token', accessToken);
+        requestBody = postBody.toString();
+    }
+    
+    console.log(`[GRAPH_API] Executing ${step} with method ${method}...`);
+
+    const response = await fetch(requestUrl, {
+        method,
+        headers,
+        body: requestBody
+    });
+
     const data = await response.json();
 
     if (data.error) {
         console.error(`[GRAPH_API_ERROR] at ${step}:`, data.error);
-        throw new Error(`Graph API error (${step}): ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
+        const errorMessage = data.error.error_user_title ? `${data.error.error_user_title}: ${data.error.error_user_msg}` : data.error.message;
+        throw new Error(`Graph API error (${step}): ${errorMessage} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
     console.log(`[GRAPH_API_SUCCESS] ${step} successful.`);
     return data;
