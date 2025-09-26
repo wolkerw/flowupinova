@@ -11,7 +11,8 @@ async function uploadImage(adAccountId: string, accessToken: string, imageFile: 
   const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId}/adimages`;
   const formData = new FormData();
   formData.append('access_token', accessToken);
-  formData.append('source', imageFile);
+  // A API da Meta espera 'source' para o upload do arquivo
+  formData.append('source', imageFile as Blob, imageFile.name);
 
   try {
     const response = await fetch(adImagesUrl, {
@@ -33,6 +34,56 @@ async function uploadImage(adAccountId: string, accessToken: string, imageFile: 
     console.error('[API_FATAL] Erro catastrófico no upload da imagem:', error);
     throw error;
   }
+}
+
+// GET - Listar Campanhas e Métricas
+export async function GET(request: NextRequest) {
+    const adAccountId = request.nextUrl.searchParams.get('adAccountId');
+
+    if (!adAccountId) {
+        return NextResponse.json({ success: false, error: "ID da Conta de Anúncios não foi fornecido." }, { status: 400 });
+    }
+
+    try {
+        const metaConnection = await getMetaConnection();
+        const accessToken = metaConnection.userAccessToken;
+
+        if (!metaConnection.isConnected || !accessToken) {
+            throw new Error("Conexão com a Meta não está ativa ou o token de acesso não está disponível.");
+        }
+
+        const campaignsUrl = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,budget_remaining`;
+        const campaignsData = await fetchGraphAPI(campaignsUrl, accessToken, "Listar Campanhas");
+        
+        const campaigns = campaignsData.data || [];
+
+        const campaignsWithInsights = await Promise.all(campaigns.map(async (campaign: any) => {
+            const insightsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/insights?fields=impressions,clicks,spend,actions,action_values&date_preset=maximum`;
+            const insightsData = await fetchGraphAPI(insightsUrl, accessToken, `Buscar Insights para Campanha ${campaign.id}`);
+            const insights = insightsData.data?.[0] || {};
+            
+            // Calcula conversões de compra
+            const conversions = (insights.actions || [])
+                .filter((a: any) => /purchase|offsite_conversion/i.test(a.action_type))
+                .reduce((sum: number, a: any) => sum + Number(a.value || 0), 0);
+
+            return {
+                ...campaign,
+                insights: {
+                    impressions: insights.impressions || 0,
+                    clicks: insights.clicks || 0,
+                    spend: insights.spend || 0,
+                    conversions: conversions,
+                }
+            };
+        }));
+        
+        return NextResponse.json({ success: true, campaigns: campaignsWithInsights });
+
+    } catch (error: any) {
+        console.error("[CAMPAIGNS_API_ERROR]", error.message);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
 }
 
 
