@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details (followers, picture)");
 
     const metaData = {
+        userAccessToken: userAccessToken, // Salvar o token do usuário
         pageToken: pageAccessToken,
         facebookPageId: page.id,
         facebookPageName: page.name,
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
     try {
-        await updateMetaConnection({ isConnected: false, pageToken: "" });
+        await updateMetaConnection({ isConnected: false, pageToken: "", userAccessToken: "" });
     } catch (dbError) {
         console.error("[DEBUG] Failed to even update the DB to disconnected state:", dbError);
     }

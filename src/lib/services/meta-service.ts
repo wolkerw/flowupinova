@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export interface MetaConnectionData {
+    userAccessToken?: string; // Token do usuário com permissões mais amplas
     pageToken: string; 
     facebookPageId?: string;
     facebookPageName?: string;
@@ -36,6 +37,7 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
 const metaDocRef = doc(db, "integrations", "meta");
 
 const defaultMeta: MetaConnectionData = {
+    userAccessToken: "",
     pageToken: "",
     isConnected: false,
 };
