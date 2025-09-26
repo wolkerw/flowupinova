@@ -1,4 +1,3 @@
-
 'use server';
 
 import { fetchGraphAPI } from "./meta-service";
@@ -24,7 +23,7 @@ export async function createCampaign(adAccountId: string, accessToken: string, o
 }
 
 // 2. Criar Ad Set
-export async function createAdSet(adAccountId: string, accessToken: string, campaignId: string, budget: any, audience: any): Promise<string> {
+export async function createAdSet(adAccountId: string, accessToken: string, campaignId: string, budget: any, audience: any, campaignObjective: string): Promise<string> {
     const url = `${GRAPH_API_URL}/${adAccountId}/adsets`;
     
     const targeting = {
@@ -33,12 +32,19 @@ export async function createAdSet(adAccountId: string, accessToken: string, camp
         age_max: audience.ageMax || 65,
     };
 
+    let optimizationGoal = 'LINK_CLICKS'; // Default
+    if (campaignObjective === 'OUTCOME_AWARENESS') {
+        optimizationGoal = 'REACH';
+    } else if (campaignObjective === 'OUTCOME_SALES') {
+        optimizationGoal = 'CONVERSIONS';
+    }
+
     const body = new URLSearchParams({
         name: `AdSet FlowUp - ${new Date().toLocaleTimeString()}`,
         campaign_id: campaignId,
         daily_budget: (budget.daily * 100).toString(), // Orçamento em centavos
         billing_event: 'IMPRESSIONS',
-        optimization_goal: 'LINK_CLICKS', // Alinhado com o objetivo da campanha
+        optimization_goal: optimizationGoal, 
         start_time: budget.startDate || new Date().toISOString(),
         targeting: JSON.stringify(targeting),
         status: 'PAUSED',

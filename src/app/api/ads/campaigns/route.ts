@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const campaignId = await createCampaign(adAccountId, accessToken, objective);
 
     // ETAPA 2: Criar o Ad Set
-    const adSetId = await createAdSet(adAccountId, accessToken, campaignId, budget, audience);
+    const adSetId = await createAdSet(adAccountId, accessToken, campaignId, budget, audience, objective);
 
     // ETAPA 3: Fazer o upload da imagem para obter o hash
     const imageHash = await uploadImage(adAccountId, accessToken, imageFile);

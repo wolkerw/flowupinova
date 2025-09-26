@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -434,9 +433,9 @@ export default function Anuncios() {
                   <h4 className="text-lg font-semibold">Qual é o objetivo da sua campanha?</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
-                      { key: 'LINK_CLICKS', title: 'Cliques no Link', desc: 'Gerar tráfego para seu site.', icon: MousePointer },
-                      { key: 'REACH', title: 'Alcance', desc: 'Mostrar para o máximo de pessoas.', icon: Eye },
-                      { key: 'CONVERSIONS', title: 'Conversões', desc: 'Gerar vendas ou leads.', icon: ShoppingCart }
+                      { key: 'OUTCOME_TRAFFIC', title: 'Cliques no Link', desc: 'Gerar tráfego para seu site.', icon: MousePointer },
+                      { key: 'OUTCOME_AWARENESS', title: 'Alcance', desc: 'Mostrar para o máximo de pessoas.', icon: Eye },
+                      { key: 'OUTCOME_SALES', title: 'Conversões', desc: 'Gerar vendas ou leads.', icon: ShoppingCart }
                     ].map(obj => (
                         <Card key={obj.key} onClick={() => handleObjectiveSelect(obj.key)} className={`cursor-pointer hover:shadow-md transition-shadow border-2 ${campaignObjective === obj.key ? 'border-blue-500' : 'hover:border-blue-300'}`}>
                           <CardContent className="p-6 text-center">
@@ -597,5 +596,3 @@ export default function Anuncios() {
     </div>
   );
 }
-
-    
