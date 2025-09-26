@@ -79,22 +79,27 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     
+    // **CORREÇÃO APLICADA AQUI**
+    // Obter o adAccountId do formulário enviado pelo frontend
+    const adAccountId = formData.get('adAccountId') as string;
     const objective = formData.get('objective') as string;
     const audience = JSON.parse(formData.get('audience') as string);
     const creative = JSON.parse(formData.get('creative') as string);
     const budget = JSON.parse(formData.get('budget') as string);
     const imageFile = formData.get('image') as File | null;
     
-    const adAccountId = process.env.META_AD_ACCOUNT_ID;
+    // Validar se o adAccountId foi recebido
     if (!adAccountId) {
-      throw new Error("ID da Conta de Anúncios (META_AD_ACCOUNT_ID) não configurado no servidor.");
+      throw new Error("ID da Conta de Anúncios não foi fornecido pelo cliente.");
     }
     
     const metaConnection = await getMetaConnection();
-    if (!metaConnection.isConnected || !metaConnection.pageToken || !metaConnection.facebookPageId) {
-      throw new Error("Conexão com a Meta não está ativa ou o ID da Página não está disponível.");
+    // Usar o userAccessToken para máxima compatibilidade de permissões
+    const accessToken = metaConnection.userAccessToken || metaConnection.pageToken;
+
+    if (!metaConnection.isConnected || !accessToken || !metaConnection.facebookPageId) {
+      throw new Error("Conexão com a Meta não está ativa, o token de acesso ou o ID da Página não estão disponíveis.");
     }
-    const accessToken = metaConnection.pageToken;
     const pageId = metaConnection.facebookPageId;
 
     if (!imageFile) {
@@ -105,11 +110,11 @@ export async function POST(request: NextRequest) {
     const imageUrl = URL.createObjectURL(imageFile);
 
     // ETAPA 1: Fazer o upload da imagem para obter o hash
-    const imageHash = await uploadImage(`act_${adAccountId}`, accessToken, imageUrl);
+    const imageHash = await uploadImage(adAccountId, accessToken, imageUrl);
     URL.revokeObjectURL(imageUrl); // Limpar a URL temporária
 
     // ETAPA 2: Criar o Ad Creative
-    const creativeId = await createAdCreative(`act_${adAccountId}`, accessToken, pageId, creative.message, creative.link, imageHash);
+    const creativeId = await createAdCreative(adAccountId, accessToken, pageId, creative.message, creative.link, imageHash);
     
     // ETAPAS FUTURAS: Criar Campanha, Ad Set e Ad
     // ... lógica a ser implementada
