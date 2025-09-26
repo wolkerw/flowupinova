@@ -24,9 +24,11 @@ import {
   Sparkles,
   ChevronRight,
   UploadCloud,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Anuncios() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -35,8 +37,13 @@ export default function Anuncios() {
   // State for the new campaign wizard
   const [campaignObjective, setCampaignObjective] = useState("");
   const [audience, setAudience] = useState({ ageMin: 18, ageMax: 65, location: "BR" });
-  const [creative, setCreative] = useState({ message: "", link: "", image: null });
+  const [creative, setCreative] = useState<{message: string, link: string, image: File | null}>({ message: "", link: "", image: null });
   const [budget, setBudget] = useState({ daily: 50, startDate: ""});
+
+  // State for API interaction
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const campaigns = [
     {
@@ -88,9 +95,55 @@ export default function Anuncios() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setCreative(prev => ({...prev, image: e.target.files[0] as any}));
+      setCreative(prev => ({...prev, image: e.target.files[0]}));
     }
   }
+
+  const handlePublishCampaign = async () => {
+    setIsPublishing(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('objective', campaignObjective);
+    formData.append('audience', JSON.stringify(audience));
+    formData.append('creative', JSON.stringify({ message: creative.message, link: creative.link }));
+    formData.append('budget', JSON.stringify(budget));
+    if (creative.image) {
+      formData.append('image', creative.image);
+    }
+    
+    try {
+        const response = await fetch('/api/ads/campaigns', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Falha ao publicar a campanha.');
+        }
+
+        toast({
+            title: "Sucesso!",
+            description: "Sua campanha foi enviada para a plataforma da Meta.",
+            variant: "default",
+        });
+
+        setShowCampaignWizard(false);
+        // Reset state here if needed
+        
+    } catch (err: any) {
+        setError(err.message);
+        toast({
+            title: "Erro ao Publicar",
+            description: err.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsPublishing(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -364,7 +417,7 @@ export default function Anuncios() {
                        </div>
                        <input id="image-upload" type="file" className="hidden" accept="image/png, image/jpeg" onChange={handleFileChange} />
                     </label>
-                    {creative.image && <p className="text-sm text-green-600 mt-2">Imagem selecionada: {(creative.image as File).name}</p>}
+                    {creative.image && <p className="text-sm text-green-600 mt-2">Imagem selecionada: {creative.image.name}</p>}
                   </div>
                 </div>
               )}
@@ -408,7 +461,7 @@ export default function Anuncios() {
                       <div className="col-span-2">
                         <h5 className="font-medium text-gray-900">Criativo</h5>
                         <p className="text-gray-600 mt-1 truncate">{creative.message}</p>
-                        {creative.image && <p className="text-sm text-blue-600 mt-1">Imagem: {(creative.image as File).name}</p>}
+                        {creative.image && <p className="text-sm text-blue-600 mt-1">Imagem: {creative.image.name}</p>}
                       </div>
                     </div>
                   </div>
@@ -429,21 +482,31 @@ export default function Anuncios() {
             </div>
 
             <div className="p-6 border-t flex justify-between sticky bottom-0 bg-white z-10">
-              <Button variant="outline" onClick={() => setShowCampaignWizard(false)}>
+              <Button variant="outline" onClick={() => setShowCampaignWizard(false)} disabled={isPublishing}>
                 Cancelar
               </Button>
               <div className="flex gap-3">
                 {currentStep > 1 && (
-                  <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
+                  <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)} disabled={isPublishing}>
                     Anterior
                   </Button>
                 )}
-                <Button 
-                  onClick={() => currentStep < 5 ? setCurrentStep(currentStep + 1) : setShowCampaignWizard(false)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {currentStep < 5 ? 'Próximo' : 'Publicar Campanha'}
-                </Button>
+                {currentStep < 5 ? (
+                    <Button 
+                        onClick={() => setCurrentStep(currentStep + 1)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        Próximo
+                    </Button>
+                ) : (
+                    <Button 
+                        onClick={handlePublishCampaign}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={isPublishing}
+                    >
+                      {isPublishing ? <Loader2 className="animate-spin" /> : 'Publicar Campanha'}
+                    </Button>
+                )}
               </div>
             </div>
           </motion.div>
