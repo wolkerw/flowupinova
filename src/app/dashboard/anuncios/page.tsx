@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,25 +25,67 @@ import {
   ChevronRight,
   UploadCloud,
   Link as LinkIcon,
-  Loader2
+  Loader2,
+  Building,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+
+interface AdAccount {
+    id: string;
+    account_id: string;
+    name: string;
+}
+
 
 export default function Anuncios() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // State for the new campaign wizard
+  const [selectedAdAccount, setSelectedAdAccount] = useState("");
   const [campaignObjective, setCampaignObjective] = useState("");
   const [audience, setAudience] = useState({ ageMin: 18, ageMax: 65, location: "BR" });
   const [creative, setCreative] = useState<{message: string, link: string, image: File | null}>({ message: "", link: "", image: null });
   const [budget, setBudget] = useState({ daily: 50, startDate: ""});
 
   // State for API interaction
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchAdAccounts = async () => {
+        if (showCampaignWizard) {
+            setLoadingAccounts(true);
+            try {
+                const response = await fetch('/api/ads/accounts');
+                const data = await response.json();
+                if (data.success) {
+                    setAdAccounts(data.accounts);
+                } else {
+                    toast({
+                        title: "Erro ao buscar contas",
+                        description: data.error || "Não foi possível carregar as contas de anúncio.",
+                        variant: "destructive",
+                    });
+                }
+            } catch (err: any) {
+                 toast({
+                    title: "Erro de Rede",
+                    description: "Não foi possível conectar ao servidor para buscar as contas.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoadingAccounts(false);
+            }
+        }
+    };
+    fetchAdAccounts();
+  }, [showCampaignWizard, toast]);
+
 
   const campaigns = [
     {
@@ -82,11 +124,12 @@ export default function Anuncios() {
   ];
 
   const campaignSteps = [
-    { id: 1, title: "Objetivo", description: "Defina o objetivo da campanha" },
-    { id: 2, title: "Público", description: "Configure o público-alvo" },
-    { id: 3, title: "Criativo", description: "Textos e imagens" },
-    { id: 4, title: "Orçamento", description: "Defina investimento e duração" },
-    { id: 5, title: "Revisão", description: "Confirme e publique" }
+    { id: 1, title: "Conta", description: "Selecione a conta de anúncios" },
+    { id: 2, title: "Objetivo", description: "Defina o objetivo da campanha" },
+    { id: 3, title: "Público", description: "Configure o público-alvo" },
+    { id: 4, title: "Criativo", description: "Textos e imagens" },
+    { id: 5, title: "Orçamento", description: "Defina investimento e duração" },
+    { id: 6, title: "Revisão", description: "Confirme e publique" }
   ];
 
   const handleObjectiveSelect = (objective: string) => {
@@ -104,6 +147,7 @@ export default function Anuncios() {
     setError(null);
 
     const formData = new FormData();
+    formData.append('adAccountId', selectedAdAccount);
     formData.append('objective', campaignObjective);
     formData.append('audience', JSON.stringify(audience));
     formData.append('creative', JSON.stringify({ message: creative.message, link: creative.link }));
@@ -356,6 +400,36 @@ export default function Anuncios() {
 
             <div className="p-8 flex-grow">
               {currentStep === 1 && (
+                 <div className="space-y-6">
+                    <h4 className="text-lg font-semibold">Qual conta de anúncios você quer usar?</h4>
+                    {loadingAccounts ? (
+                         <div className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Buscando contas de anúncio...</span>
+                         </div>
+                    ) : adAccounts.length > 0 ? (
+                        <Select onValueChange={setSelectedAdAccount} value={selectedAdAccount}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione uma conta de anúncio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {adAccounts.map(account => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                        <div className="flex items-center gap-2">
+                                            <Building className="w-4 h-4 text-gray-500" />
+                                            <span>{account.name} ({account.account_id})</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                         <p className="text-red-500">Nenhuma conta de anúncios ativa foi encontrada. Verifique sua conexão com a Meta.</p>
+                    )}
+                 </div>
+              )}
+
+              {currentStep === 2 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Qual é o objetivo da sua campanha?</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -376,7 +450,7 @@ export default function Anuncios() {
                 </div>
               )}
 
-              {currentStep === 2 && (
+              {currentStep === 3 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Defina seu público-alvo</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -396,7 +470,7 @@ export default function Anuncios() {
                 </div>
               )}
 
-              {currentStep === 3 && (
+              {currentStep === 4 && (
                  <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Crie o seu anúncio</h4>
                    <div>
@@ -422,7 +496,7 @@ export default function Anuncios() {
                 </div>
               )}
 
-               {currentStep === 4 && (
+               {currentStep === 5 && (
                 <div className="space-y-6">
                    <h4 className="text-lg font-semibold">Defina o orçamento e a duração</h4>
                     <div>
@@ -437,11 +511,15 @@ export default function Anuncios() {
                 </div>
               )}
 
-              {currentStep === 5 && (
+              {currentStep === 6 && (
                 <div className="space-y-6">
                   <h4 className="text-lg font-semibold">Revisão da Campanha</h4>
                   <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                     <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <h5 className="font-medium text-gray-900">Conta de Anúncio</h5>
+                        <p className="text-gray-600">{adAccounts.find(a => a.id === selectedAdAccount)?.name || 'N/A'}</p>
+                      </div>
                       <div>
                         <h5 className="font-medium text-gray-900">Objetivo</h5>
                         <p className="text-gray-600">{campaignObjective}</p>
@@ -491,10 +569,14 @@ export default function Anuncios() {
                     Anterior
                   </Button>
                 )}
-                {currentStep < 5 ? (
+                {currentStep < 6 ? (
                     <Button 
                         onClick={() => setCurrentStep(currentStep + 1)}
                         className="bg-blue-600 hover:bg-blue-700"
+                        disabled={
+                            (currentStep === 1 && !selectedAdAccount) ||
+                            (currentStep === 2 && !campaignObjective)
+                        }
                     >
                         Próximo
                     </Button>
