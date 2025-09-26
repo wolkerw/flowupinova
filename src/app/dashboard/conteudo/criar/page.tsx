@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerDownRight, CornerUpLeft, CornerUpRight, CornerDownLeft } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerDownRight, CornerUpLeft, CornerDownLeft, ArrowUpToLine, ArrowDownToLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ type MediaItem = {
     type: 'image' | 'video';
     url: string;
 };
-type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
 type LogoSize = 'small' | 'medium' | 'large';
 
 
@@ -65,6 +65,8 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
         'top-right': 'top-4 right-4',
         'bottom-left': 'bottom-4 left-4',
         'bottom-right': 'bottom-4 right-4',
+        'top-center': 'top-4 left-1/2 -translate-x-1/2',
+        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
     };
 
     const sizeClasses: Record<LogoSize, string> = {
@@ -392,10 +394,14 @@ export default function CriarConteudoPage() {
                                         <div className="space-y-4 pt-2">
                                             <div>
                                                 <Label className="font-medium text-sm">Posição da Logo</Label>
-                                                <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="flex gap-2 mt-2">
+                                                <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="flex flex-wrap gap-2 mt-2">
                                                     <Label htmlFor="pos-tl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
                                                         <RadioGroupItem value="top-left" id="pos-tl" className="sr-only"/>
                                                         <CornerUpLeft />
+                                                    </Label>
+                                                    <Label htmlFor="pos-tc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="top-center" id="pos-tc" className="sr-only"/>
+                                                        <ArrowUpToLine />
                                                     </Label>
                                                     <Label htmlFor="pos-tr" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
                                                         <RadioGroupItem value="top-right" id="pos-tr" className="sr-only"/>
@@ -404,6 +410,10 @@ export default function CriarConteudoPage() {
                                                     <Label htmlFor="pos-bl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
                                                         <RadioGroupItem value="bottom-left" id="pos-bl" className="sr-only"/>
                                                         <CornerDownLeft />
+                                                    </Label>
+                                                    <Label htmlFor="pos-bc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                        <RadioGroupItem value="bottom-center" id="pos-bc" className="sr-only"/>
+                                                        <ArrowDownToLine />
                                                     </Label>
                                                      <Label htmlFor="pos-br" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
                                                         <RadioGroupItem value="bottom-right" id="pos-br" className="sr-only"/>
@@ -493,7 +503,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
 
     
