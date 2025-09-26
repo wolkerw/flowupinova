@@ -21,18 +21,14 @@ export async function GET(request: NextRequest) {
             throw new Error("Conexão com a Meta não está ativa ou o token de acesso não está disponível.");
         }
         const accessToken = metaConnection.pageToken;
+        let allAdAccounts: AdAccount[] = [];
 
-        // 1. Listar Ad Accounts pessoais
-        const personalAccountsUrl = `${GRAPH_API_URL}/me/adaccounts?fields=id,account_id,name,account_status`;
-        const personalAccountsData = await fetchGraphAPI(personalAccountsUrl, accessToken, "Listar Contas de Anúncio Pessoais");
-        let allAdAccounts: AdAccount[] = personalAccountsData.data || [];
-
-        // 2. Listar Business Managers
+        // 1. Listar Business Managers
         const businessesUrl = `${GRAPH_API_URL}/me/businesses?fields=id,name`;
         const businessesData = await fetchGraphAPI(businessesUrl, accessToken, "Listar Business Managers");
         const businesses = businessesData.data || [];
         
-        // 3. Para cada BM, listar contas de anúncio (owned e client)
+        // 2. Para cada BM, listar contas de anúncio (owned e client)
         for (const business of businesses) {
             const ownedAccountsUrl = `${GRAPH_API_URL}/${business.id}/owned_ad_accounts?fields=id,account_id,name,account_status&limit=100`;
             const clientAccountsUrl = `${GRAPH_API_URL}/${business.id}/client_ad_accounts?fields=id,account_id,name,account_status&limit=100`;
