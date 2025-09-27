@@ -33,7 +33,7 @@ export default function LoginPage() {
     const { loginWithGoogle, loading } = useAuth();
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
              <style>{`
                 :root {
                     --flowup-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
@@ -44,23 +44,25 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <Card className="w-full max-w-sm shadow-xl">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: 'var(--flowup-gradient)' }}>
+                <Card className="w-full max-w-sm shadow-xl border-none">
+                    <CardHeader className="text-center space-y-4 pt-8">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: 'var(--flowup-gradient)' }}>
                             <Waves className="h-8 w-8 text-white" />
                         </div>
-                        <CardTitle className="text-2xl font-bold">Bem-vindo à FlowUp</CardTitle>
-                        <CardDescription>Faça login para continuar</CardDescription>
+                        <div className="space-y-1">
+                            <CardTitle className="text-2xl font-bold">Acesse sua conta</CardTitle>
+                            <CardDescription>Use sua conta Google para entrar ou criar seu acesso de forma rápida e segura.</CardDescription>
+                        </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                         <Button 
                             onClick={loginWithGoogle}
                             disabled={loading}
                             variant="outline" 
-                            className="w-full h-12 text-base"
+                            className="w-full h-12 text-base border-gray-300 hover:bg-gray-50"
                         >
                             <GoogleIcon />
-                            Entrar com Google
+                            Continuar com Google
                         </Button>
                     </CardContent>
                 </Card>
@@ -68,4 +70,3 @@ export default function LoginPage() {
         </div>
     );
 }
-    
