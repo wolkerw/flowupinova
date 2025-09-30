@@ -117,38 +117,16 @@ export default function GerarConteudoPage() {
   const handleGenerateText = async () => {
     if (!postSummary.trim()) return;
 
-    setIsLoading(true);
+    // Criar conteúdo diretamente do resumo e ir para a etapa 2.
+    const directContent: GeneratedContent = {
+      titulo: "Rascunho do Post",
+      subtitulo: postSummary,
+      hashtags: ["#marketingdigital", "#conteudo", "#negocios"],
+    };
 
-    try {
-      const response = await fetch('/api/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: postSummary }),
-      });
-
-      if (!response.ok) {
-        // If the response is not OK, we should parse the error message from the body
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Falha ao gerar o conteúdo de texto.');
-      }
-      
-      const data = await response.json();
-      
-      // Verifica se a resposta é um array e não está vazio
-      if (Array.isArray(data) && data.length > 0) {
-        setGeneratedContent(data);
-        setSelectedContentId("0");
-        setStep(2);
-      } else {
-        alert("Ocorreu um erro: o formato dos dados recebidos é inesperado ou nenhuma sugestão foi gerada.");
-      }
-
-    } catch (error: any) {
-      console.error("Erro ao gerar texto:", error);
-      alert(`Ocorreu um erro: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+    setGeneratedContent([directContent]);
+    setSelectedContentId("0");
+    setStep(2);
   };
 
   const handleGenerateImages = async () => {
@@ -716,5 +694,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
