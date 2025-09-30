@@ -131,9 +131,9 @@ export default function GerarConteudoPage() {
       }
       
       const data = await response.json();
-      const contentArray = Array.isArray(data) ? data : [];
+      const contentArray = Array.isArray(data) ? data : [data];
 
-      if (contentArray.length === 0) {
+      if (contentArray.length === 0 || !contentArray[0] || !contentArray[0].titulo) {
         throw new Error("Formato de dados inesperado ou nenhuma sugestão foi gerada pelo webhook.");
       }
 
@@ -586,7 +586,7 @@ export default function GerarConteudoPage() {
                                     <p className="font-bold">FlowUp Marketing Digital</p>
                                     <p className="text-xs text-gray-500">1.234 seguidores</p>
                                     <p className="text-xs text-gray-500">Promovido</p>
-                                </div>
+                                 </div>
                             </div>
                             <div className="p-4 text-sm space-y-3">
                                 <h3 className="font-bold text-lg">{selectedContent.titulo}</h3>
