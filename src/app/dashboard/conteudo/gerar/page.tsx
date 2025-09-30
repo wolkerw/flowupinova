@@ -115,21 +115,46 @@ export default function GerarConteudoPage() {
 
 
   const handleGenerateText = async () => {
+    if (!postSummary.trim()) return;
+
     setIsLoading(true);
-    // Simula um pequeno delay para a transição
-    setTimeout(() => {
-      const content: GeneratedContent[] = [
-        {
-          titulo: "Conteúdo Personalizado",
-          subtitulo: postSummary,
-          hashtags: ["#MarketingDigital", "#FlowUp"],
+
+    try {
+      const response = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: postSummary }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar o conteúdo de texto.');
+      }
+      
+      const data = await response.json();
+
+      // Verifica se a resposta é um array e não está vazio
+      if (Array.isArray(data) && data.length > 0) {
+        setGeneratedContent(data);
+        setSelectedContentId("0");
+        setStep(2);
+      } else {
+        // Se não for um array, tenta converter para um. Se falhar, mostra erro.
+        const contentArray = Array.isArray(data) ? data : (data ? [data] : []);
+        if (contentArray.length > 0) {
+           setGeneratedContent(contentArray);
+           setSelectedContentId("0");
+           setStep(2);
+        } else {
+          alert("Ocorreu um erro: o formato dos dados recebidos é inesperado ou nenhuma sugestão foi gerada.");
         }
-      ];
-      setGeneratedContent(content);
-      setSelectedContentId("0");
-      setStep(2);
+      }
+
+    } catch (error: any) {
+      console.error("Erro ao gerar texto:", error);
+      alert(`Ocorreu um erro: ${error.message}`);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleGenerateImages = async () => {
@@ -697,5 +722,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
