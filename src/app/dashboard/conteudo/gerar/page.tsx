@@ -125,13 +125,15 @@ export default function GerarConteudoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ summary: postSummary }),
       });
-      
-      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
+        // If the response is not OK, we should parse the error message from the body
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Falha ao gerar o conteúdo de texto.');
       }
-
+      
+      const data = await response.json();
+      
       // Verifica se a resposta é um array e não está vazio
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
