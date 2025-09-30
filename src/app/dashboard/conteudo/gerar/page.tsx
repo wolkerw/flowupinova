@@ -115,18 +115,39 @@ export default function GerarConteudoPage() {
 
 
   const handleGenerateText = async () => {
-    if (!postSummary.trim()) return;
+    if (!postSummary.trim() || isLoading) return;
+    setIsLoading(true);
 
-    // Criar conteúdo diretamente do resumo e ir para a etapa 2.
-    const directContent: GeneratedContent = {
-      titulo: "Rascunho do Post",
-      subtitulo: postSummary,
-      hashtags: ["#marketingdigital", "#conteudo", "#negocios"],
-    };
+    try {
+      const response = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: postSummary }),
+      });
 
-    setGeneratedContent([directContent]);
-    setSelectedContentId("0");
-    setStep(2);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
+      }
+      
+      const data = await response.json();
+
+      // Verifica se a resposta é um array e não está vazio
+      if (Array.isArray(data) && data.length > 0) {
+        setGeneratedContent(data);
+        setSelectedContentId("0");
+        setStep(2);
+      } else {
+         // Trata o caso de a resposta não ser um array ou estar vazia
+        throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
+      }
+
+    } catch (error: any) {
+      console.error("Erro ao gerar texto:", error);
+      alert(`Ocorreu um erro: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGenerateImages = async () => {
@@ -694,3 +715,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
