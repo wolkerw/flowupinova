@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { summary } = await request.json();
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
+    const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_de_ideias";
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
@@ -22,14 +22,13 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
     
-    // Assegurando que hashtags seja um array e acessando a chave correta
+    // Ajustado para o novo formato de resposta do webhook de teste
     const processedData = data.map((item: any) => {
-        // A chave é uma string literal "output.publicacoes"
-        const publicacao = item['output.publicacoes'];
+        const publicacao = item.json; // Acessa o objeto 'json' diretamente
         if (!publicacao) {
           return {
             titulo: "Erro de formato",
-            subtitulo: "Não foi possível encontrar 'output.publicacoes' na resposta.",
+            subtitulo: "Não foi possível encontrar o objeto 'json' na resposta.",
             hashtags: []
           };
         }
@@ -37,9 +36,11 @@ export async function POST(request: Request) {
         let hashtags = publicacao.hashtags;
         if (typeof hashtags === 'string') {
             try {
+                // Tenta fazer o parse de uma string JSON
                 const parsedHashtags = JSON.parse(hashtags);
                 hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags];
             } catch (e) {
+                // Se falhar, trata como string separada por vírgula ou espaço
                 hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
             }
         } else if (!Array.isArray(hashtags)) {
