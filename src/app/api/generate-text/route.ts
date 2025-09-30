@@ -25,18 +25,17 @@ export async function POST(request: Request) {
     console.log(JSON.stringify(data, null, 2));
     console.log("================================================");
     
-    // Ajustado para o novo formato de resposta do webhook de teste
+    // Ajustado para o formato de resposta direto do webhook
     const processedData = data.map((item: any) => {
-        const publicacao = item.json; // Acessa o objeto 'json' diretamente
-        if (!publicacao) {
+        if (!item || !item.titulo) {
           return {
             titulo: "Erro de formato",
-            subtitulo: "Não foi possível encontrar o objeto 'json' na resposta.",
+            subtitulo: "A resposta do webhook não continha um título válido.",
             hashtags: []
           };
         }
 
-        let hashtags = publicacao.hashtags;
+        let hashtags = item.hashtags;
         if (typeof hashtags === 'string') {
             try {
                 // Tenta fazer o parse de uma string JSON
@@ -51,8 +50,8 @@ export async function POST(request: Request) {
         }
 
         return { 
-            titulo: publicacao.titulo || "Título não gerado", 
-            subtitulo: publicacao.subtitulo || "Subtítulo não gerado", 
+            titulo: item.titulo || "Título não gerado", 
+            subtitulo: item.subtitulo || "Subtítulo não gerado", 
             hashtags 
         };
     });
