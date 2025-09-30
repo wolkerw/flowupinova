@@ -116,37 +116,20 @@ export default function GerarConteudoPage() {
 
   const handleGenerateText = async () => {
     setIsLoading(true);
-    
-    try {
-      const response = await fetch('/api/generate-text', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ summary: postSummary }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Falha ao buscar conteúdo da IA.");
-      }
-      
-      const data = await response.json();
-      const contentArray = Array.isArray(data) ? data : [data];
-
-      if (contentArray.length === 0 || !contentArray[0] || !contentArray[0].titulo) {
-        throw new Error("Formato de dados inesperado ou nenhuma sugestão foi gerada pelo webhook.");
-      }
-
-      setGeneratedContent(contentArray);
+    // Simula um pequeno delay para a transição
+    setTimeout(() => {
+      const content: GeneratedContent[] = [
+        {
+          titulo: "Conteúdo Personalizado",
+          subtitulo: postSummary,
+          hashtags: ["#MarketingDigital", "#FlowUp"],
+        }
+      ];
+      setGeneratedContent(content);
       setSelectedContentId("0");
       setStep(2);
-
-    } catch (error: any) {
-      console.error(error);
-      alert(`Ocorreu um erro ao gerar o conteúdo: ${error.message}`);
-    } finally {
       setIsLoading(false);
-    }
+    }, 500);
   };
 
   const handleGenerateImages = async () => {
