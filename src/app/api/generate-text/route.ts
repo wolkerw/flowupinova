@@ -21,6 +21,9 @@ export async function POST(request: Request) {
     }
 
     const data = await webhookResponse.json();
+    console.log("=============== WEBHOOK RESPONSE ===============");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("================================================");
     
     // Ajustado para o novo formato de resposta do webhook de teste
     const processedData = data.map((item: any) => {
