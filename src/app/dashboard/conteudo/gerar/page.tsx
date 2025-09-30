@@ -125,13 +125,12 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ summary: postSummary }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
       }
       
-      const data = await response.json();
-
       // Verifica se a resposta é um array e não está vazio
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
@@ -715,5 +714,6 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
 
     
