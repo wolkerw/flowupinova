@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     console.log(JSON.stringify(data, null, 2));
     console.log("================================================");
     
-    // Ajustado para o formato de resposta direto do webhook
+    // Ajustado para o formato de resposta direto do array do webhook
     const processedData = data.map((item: any) => {
         if (!item || !item.titulo) {
           return {
@@ -38,11 +38,11 @@ export async function POST(request: Request) {
         let hashtags = item.hashtags;
         if (typeof hashtags === 'string') {
             try {
-                // Tenta fazer o parse de uma string JSON
+                // Tenta fazer o parse se for uma string JSON
                 const parsedHashtags = JSON.parse(hashtags);
-                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags];
+                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags.toString()];
             } catch (e) {
-                // Se falhar, trata como string separada por vírgula ou espaço
+                // Se não for JSON, trata como string separada por vírgula/espaço
                 hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
             }
         } else if (!Array.isArray(hashtags)) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         return { 
             titulo: item.titulo || "Título não gerado", 
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
-            hashtags 
+            hashtags: hashtags.map((h: any) => typeof h === 'string' ? h : String(h))
         };
     });
 
