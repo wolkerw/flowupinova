@@ -134,16 +134,16 @@ export default function GerarConteudoPage() {
       const contentArray = Array.isArray(data) ? data : [];
 
       if (contentArray.length === 0) {
-        throw new Error("Formato de dados inesperado recebido do webhook.");
+        throw new Error("Formato de dados inesperado ou nenhuma sugestão foi gerada pelo webhook.");
       }
 
       setGeneratedContent(contentArray);
       setSelectedContentId("0");
       setStep(2);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Ocorreu um erro ao gerar o conteúdo.");
+      alert(`Ocorreu um erro ao gerar o conteúdo: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -714,3 +714,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
