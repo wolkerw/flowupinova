@@ -131,7 +131,7 @@ export default function GerarConteudoPage() {
         throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
       }
       
-      // Verifica se a resposta é um array e não está vazio
+      // A resposta da API já é o array que queremos
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
         setSelectedContentId("0");
@@ -714,6 +714,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
 
     
