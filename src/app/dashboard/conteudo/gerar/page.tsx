@@ -125,11 +125,13 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ summary: postSummary }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
+        // Se a resposta não for OK, lemos o JSON do erro para obter mais detalhes.
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Falha ao gerar o conteúdo de texto.');
       }
+      
+      const data = await response.json();
       
       // A resposta da API já é o array que queremos
       if (Array.isArray(data) && data.length > 0) {
@@ -137,7 +139,6 @@ export default function GerarConteudoPage() {
         setSelectedContentId("0");
         setStep(2);
       } else {
-         // Trata o caso de a resposta não ser um array ou estar vazia
         throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
       }
 
