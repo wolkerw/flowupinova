@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
       console.error("Webhook error:", errorText);
-      return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de texto." }, { status: webhookResponse.status });
+      return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de texto.", details: errorText }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
