@@ -138,15 +138,7 @@ export default function GerarConteudoPage() {
         setSelectedContentId("0");
         setStep(2);
       } else {
-        // Se não for um array, tenta converter para um. Se falhar, mostra erro.
-        const contentArray = Array.isArray(data) ? data : (data ? [data] : []);
-        if (contentArray.length > 0) {
-           setGeneratedContent(contentArray);
-           setSelectedContentId("0");
-           setStep(2);
-        } else {
-          alert("Ocorreu um erro: o formato dos dados recebidos é inesperado ou nenhuma sugestão foi gerada.");
-        }
+        alert("Ocorreu um erro: o formato dos dados recebidos é inesperado ou nenhuma sugestão foi gerada.");
       }
 
     } catch (error: any) {

@@ -25,25 +25,27 @@ export async function POST(request: Request) {
     console.log(JSON.stringify(data, null, 2));
     console.log("================================================");
     
-    // Ajustado para o formato de resposta direto do array do webhook
+    // O webhook retorna um array diretamente, então processamos cada item.
     const processedData = data.map((item: any) => {
         if (!item || !item.titulo) {
+          // Se um item no array estiver malformado, retornamos um erro para ele.
           return {
             titulo: "Erro de formato",
-            subtitulo: "A resposta do webhook não continha um título válido.",
+            subtitulo: "A resposta do webhook para este item não continha um título válido.",
             hashtags: []
           };
         }
 
         let hashtags = item.hashtags;
+        // Garante que as hashtags sejam sempre um array de strings.
         if (typeof hashtags === 'string') {
             try {
                 // Tenta fazer o parse se for uma string JSON
                 const parsedHashtags = JSON.parse(hashtags);
-                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [parsedHashtags.toString()];
+                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [String(parsedHashtags)];
             } catch (e) {
                 // Se não for JSON, trata como string separada por vírgula/espaço
-                hashtags = hashtags.split(/[ ,]+/).filter(h => h.startsWith('#'));
+                hashtags = hashtags.split(/[ ,]+/).filter(h => h && h.startsWith('#'));
             }
         } else if (!Array.isArray(hashtags)) {
             hashtags = [];
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
         return { 
             titulo: item.titulo || "Título não gerado", 
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
-            hashtags: hashtags.map((h: any) => typeof h === 'string' ? h : String(h))
+            hashtags: hashtags.map((h: any) => String(h)) // Garante que todos os elementos sejam strings
         };
     });
 
