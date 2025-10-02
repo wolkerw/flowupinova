@@ -124,13 +124,12 @@ export default function GerarConteudoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ summary: postSummary }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.details || 'Falha ao gerar o conteúdo de texto.');
-      }
       
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
+      }
       
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
@@ -163,7 +162,7 @@ export default function GerarConteudoPage() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Falha ao gerar imagens.');
+        throw new Error(errorData.error || errorData.details || 'Falha ao gerar imagens.');
       }
       
       const imagesData = await response.json();
@@ -714,5 +713,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    

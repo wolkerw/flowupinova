@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
       console.error("Webhook error:", errorText);
-      return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de imagem." }, { status: webhookResponse.status });
+      return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de imagem.", details: errorText }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
@@ -38,5 +38,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
 }
-
-    
