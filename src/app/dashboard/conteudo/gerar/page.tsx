@@ -126,14 +126,12 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        // Se a resposta não for OK, lemos o JSON do erro para obter mais detalhes.
         const errorData = await response.json();
         throw new Error(errorData.error || errorData.details || 'Falha ao gerar o conteúdo de texto.');
       }
       
       const data = await response.json();
       
-      // A resposta da API já é o array que queremos
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
         setSelectedContentId("0");
@@ -164,7 +162,8 @@ export default function GerarConteudoPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Falha ao gerar imagens.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Falha ao gerar imagens.');
       }
       
       const imagesData = await response.json();
