@@ -47,6 +47,7 @@ export default function HomePage() {
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
             <Link href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary">Como Funciona</Link>
+            <Link href="#pricing" className="text-sm font-medium text-gray-600 hover:text-primary">Preços</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
@@ -137,6 +138,50 @@ export default function HomePage() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-20 px-6">
+            <div className="container mx-auto">
+                <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
+                <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
+                <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <Card className="shadow-lg border-gray-200">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-2xl font-bold">Plano Fundamental</CardTitle>
+                            <p className="text-4xl font-bold text-primary pt-2">R$299<span className="text-lg font-medium text-gray-500">/mês</span></p>
+                            <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <ul className="space-y-3 text-gray-700">
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Integração com Google Meu Negócio</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
+                            </ul>
+                            <Button className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>Assinar Agora</Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-lg border-primary border-2 relative">
+                        <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Mais Popular</div>
+                        </div>
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-2xl font-bold">Plano Personal</CardTitle>
+                             <p className="text-4xl font-bold text-gray-800 pt-2">Personalizado</p>
+                            <p className="text-gray-600 text-sm">Tudo do Fundamental, e mais!</p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <ul className="space-y-3 text-gray-700">
+                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Fundamental, e mais:</span></li>
+                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Consultoria profissional de marketing 24h para auxiliar na maximização dos resultados.</li>
+                            </ul>
+                            <Button variant="outline" className="w-full mt-4 border-primary text-primary hover:bg-primary/10 hover:text-primary">Quero saber mais</Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </section>
 
         {/* CTA Section */}
