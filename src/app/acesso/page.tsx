@@ -54,9 +54,9 @@ export default function AcessoPage() {
 
                     <CardContent className="p-0">
                         <Tabs defaultValue="login" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 rounded-none">
-                                <TabsTrigger value="login" className="py-3 text-sm font-semibold rounded-none data-[state=active]:bg-accent/20 data-[state=active]:text-primary">Login</TabsTrigger>
-                                <TabsTrigger value="cadastrar" className="py-3 text-sm font-semibold rounded-none data-[state=active]:bg-accent/20 data-[state=active]:text-primary">Cadastrar</TabsTrigger>
+                            <TabsList className="w-full justify-center bg-transparent rounded-none border-b">
+                                <TabsTrigger value="login" className="text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground">Login</TabsTrigger>
+                                <TabsTrigger value="cadastrar" className="text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground">Cadastrar</TabsTrigger>
                             </TabsList>
                             <TabsContent value="login" className="p-6">
                                 <form onSubmit={handleLogin} className="space-y-4">
