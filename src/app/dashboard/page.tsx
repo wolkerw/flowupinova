@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -108,11 +109,47 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Resumo da semana */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
+          <CardHeader>
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" style={{ color: 'var(--flowup-blue)' }} />
+              Resumo da Semana
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {metrics.map((metric, index) => (
+                <motion.div
+                  key={metric.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="text-center"
+                >
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3`}>
+                    <metric.icon className={`w-6 h-6 ${metric.color}`} />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
+                  <div className="text-sm text-gray-600">{metric.title}</div>
+                  <div className="text-green-600 text-sm font-medium mt-1">{metric.change}</div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
        {/* Chat Section */}
        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
        >
         <Card className="shadow-lg border-none">
           <CardHeader>
@@ -169,42 +206,6 @@ export default function Dashboard() {
               >
                 <Send className="h-5 w-5" />
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Resumo da semana */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold flex items-center gap-2">
-              <TrendingUp className="w-6 h-6" style={{ color: 'var(--flowup-blue)' }} />
-              Resumo da Semana
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {metrics.map((metric, index) => (
-                <motion.div
-                  key={metric.title}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3`}>
-                    <metric.icon className={`w-6 h-6 ${metric.color}`} />
-                  </div>
-                  <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
-                  <div className="text-sm text-gray-600">{metric.title}</div>
-                  <div className="text-green-600 text-sm font-medium mt-1">{metric.change}</div>
-                </motion.div>
-              ))}
             </div>
           </CardContent>
         </Card>
