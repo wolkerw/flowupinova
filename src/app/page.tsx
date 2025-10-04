@@ -75,7 +75,7 @@ export default function HomePage() {
               Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
             </p>
             <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-              <Link href="/acesso/cadastro">Começar Gratuitamente</Link>
+              <Link href="/acesso/cadastro">Começar</Link>
             </Button>
           </motion.div>
         </section>
@@ -220,5 +220,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
