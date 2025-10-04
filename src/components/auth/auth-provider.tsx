@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      router.push('/login');
+      router.push('/acesso');
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
@@ -59,5 +59,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

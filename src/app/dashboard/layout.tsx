@@ -193,7 +193,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuItem>
-                        <Link href="/login" className="flex items-center w-full">
+                        <Link href="/acesso" className="flex items-center w-full">
                             <LogOut className="w-4 h-4 mr-2" />
                             Fazer Login
                         </Link>
