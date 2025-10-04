@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,11 +21,52 @@ import {
   BarChart3,
   Calendar,
   Target,
-  Sparkles
+  Sparkles,
+  Send,
+  Bot,
+  Loader2
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
+
+const initialMessages: Message[] = [
+  {
+    sender: 'ai',
+    text: 'Olá! Sou o **FlowUp**, seu assistente de marketing. Como posso ajudar você a decolar hoje? ✨'
+  }
+];
 
 export default function Dashboard() {
+  const [prompt, setPrompt] = useState("");
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
+
+  const handleSendMessage = async () => {
+    if (!prompt.trim() || loading) return;
+
+    const userMessage: Message = { sender: 'user', text: prompt };
+    setMessages(prev => [...prev, userMessage]);
+    setPrompt("");
+    setLoading(true);
+
+    // Simula uma chamada de API
+    setTimeout(() => {
+      const aiMessage: Message = { sender: 'ai', text: "Esta é uma resposta simulada. A funcionalidade de IA foi removida." };
+      setMessages(prev => [...prev, aiMessage]);
+      setLoading(false);
+    }, 1000);
+  };
+
   const metrics = [
     { title: "Alcance", value: "124.5K", change: "+12%", icon: Users, color: "text-blue-600" },
     { title: "Engajamento", value: "8.7%", change: "+3.2%", icon: Heart, color: "text-pink-600" },
@@ -66,6 +107,72 @@ export default function Dashboard() {
           <span>Última atualização: há 2 minutos</span>
         </div>
       </div>
+
+       {/* Chat Section */}
+       <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+       >
+        <Card className="shadow-lg border-none">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Bot className="w-6 h-6 text-primary" />
+              Converse com sua IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full overflow-y-auto rounded-lg bg-gray-50 p-4 border mb-4">
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <ChatBubble key={index} message={message} />
+                ))}
+              </AnimatePresence>
+              
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 flex items-start justify-start gap-3"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary">
+                    <Bot className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <div className="mr-12 rounded-2xl rounded-bl-none border bg-card px-4 py-3 text-card-foreground shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm italic text-muted-foreground">Pensando...</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+             <div className="relative flex w-full items-center">
+              <Input
+                className="flex-grow border-gray-300 py-3 pl-4 pr-12 text-base focus-visible:ring-primary"
+                placeholder="Pergunte sobre marketing, crie conteúdos..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") handleSendMessage();
+                }}
+                disabled={loading}
+              />
+              <Button
+                size="icon"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
+                style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)))' }}
+                onClick={handleSendMessage}
+                disabled={loading || !prompt.trim()}
+                aria-label="Enviar mensagem"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Resumo da semana */}
       <motion.div
