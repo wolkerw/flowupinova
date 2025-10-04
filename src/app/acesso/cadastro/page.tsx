@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, Building, Loader2 } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
 import { useAuth } from '@/components/auth/auth-provider';
 
@@ -28,10 +28,10 @@ export default function CadastroPage() {
         <TabsContent value="cadastrar" className="p-6">
             <form onSubmit={handleSignUp} className="space-y-4">
                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo</Label>
+                    <Label htmlFor="signup-name">Nome da Empresa</Label>
                     <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="signup-name" placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
+                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="signup-name" placeholder="Sua empresa" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
                     </div>
                 </div>
                 <div className="space-y-2">
