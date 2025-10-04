@@ -5,17 +5,23 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
+import { useAuth } from '@/components/auth/auth-provider';
 
 export default function CadastroPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { signUpWithEmail } = useAuth();
 
-    const handleSignUp = (e: React.FormEvent) => {
+
+    const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Cadastro com:", name, email, password);
+        setIsLoading(true);
+        await signUpWithEmail(name, email, password);
+        setIsLoading(false);
     };
 
     return (
@@ -39,11 +45,11 @@ export default function CadastroPage() {
                     <Label htmlFor="signup-password">Senha</Label>
                     <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="signup-password" type="password" placeholder="Crie uma senha forte" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
+                        <Input id="signup-password" type="password" placeholder="Mínimo de 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" minLength={6}/>
                     </div>
                 </div>
-                <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                    Criar Minha Conta
+                <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : 'Criar Minha Conta'}
                 </Button>
             </form>
         </TabsContent>

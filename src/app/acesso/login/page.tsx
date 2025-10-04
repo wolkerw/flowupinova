@@ -5,16 +5,21 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
+import { useAuth } from '@/components/auth/auth-provider';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { loginWithEmail } = useAuth();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Login com:", email, password);
+        setIsLoading(true);
+        await loginWithEmail(email, password);
+        setIsLoading(false);
     };
 
     return (
@@ -34,8 +39,8 @@ export default function LoginPage() {
                         <Input id="login-password" type="password" placeholder="Sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
                     </div>
                 </div>
-                <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                    Entrar na Plataforma
+                <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }} disabled={isLoading}>
+                     {isLoading ? <Loader2 className="animate-spin" /> : 'Entrar na Plataforma'}
                 </Button>
             </form>
         </TabsContent>

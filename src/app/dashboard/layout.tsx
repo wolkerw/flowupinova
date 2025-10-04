@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -45,10 +46,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 const allNavigationItems = [
   {
@@ -85,6 +89,23 @@ const allNavigationItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/acesso');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <SidebarProvider>
@@ -187,16 +208,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hover:bg-gray-100 rounded-full">
-                        <UserIcon className="w-5 h-5" />
-                    </Button>
+                     <Button variant="ghost" className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.photoURL || undefined} />
+                            <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem>
-                        <Link href="/acesso" className="flex items-center w-full">
+                       <DropdownMenuLabel>
+                          <p className="font-bold">{user.displayName}</p>
+                          <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
+                       </DropdownMenuLabel>
+                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={logout}>
                             <LogOut className="w-4 h-4 mr-2" />
-                            Fazer Login
-                        </Link>
+                            Sair
                       </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
