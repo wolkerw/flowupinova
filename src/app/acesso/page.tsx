@@ -28,10 +28,10 @@ export default function AcessoPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
              <style>{`
                 :root {
-                    --flowup-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
+                    --flowup-gradient: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--primary)) 100%);
                 }
             `}</style>
             <motion.div
@@ -39,7 +39,7 @@ export default function AcessoPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <Card className="w-full max-w-sm shadow-xl border-none overflow-hidden">
+                <Card className="w-full max-w-sm shadow-xl border-none overflow-hidden bg-card">
                     <div className="p-6" style={{ background: 'var(--flowup-gradient)' }}>
                          <div className="flex justify-center mb-4">
                             <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
@@ -55,26 +55,26 @@ export default function AcessoPage() {
                     <CardContent className="p-0">
                         <Tabs defaultValue="login" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 rounded-none">
-                                <TabsTrigger value="login" className="py-3 text-sm font-semibold rounded-none">Login</TabsTrigger>
-                                <TabsTrigger value="cadastrar" className="py-3 text-sm font-semibold rounded-none">Cadastrar</TabsTrigger>
+                                <TabsTrigger value="login" className="py-3 text-sm font-semibold rounded-none data-[state=active]:bg-accent/20 data-[state=active]:text-primary">Login</TabsTrigger>
+                                <TabsTrigger value="cadastrar" className="py-3 text-sm font-semibold rounded-none data-[state=active]:bg-accent/20 data-[state=active]:text-primary">Cadastrar</TabsTrigger>
                             </TabsList>
                             <TabsContent value="login" className="p-6">
                                 <form onSubmit={handleLogin} className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="login-email">E-mail</Label>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input id="login-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="login-password">Senha</Label>
                                         <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input id="login-password" type="password" placeholder="Sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
                                         </div>
                                     </div>
-                                    <Button type="submit" className="w-full !mt-6" style={{ background: 'var(--flowup-gradient)' }}>
+                                    <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }}>
                                         Entrar na Plataforma
                                     </Button>
                                 </form>
@@ -84,25 +84,25 @@ export default function AcessoPage() {
                                      <div className="space-y-2">
                                         <Label htmlFor="signup-name">Nome Completo</Label>
                                         <div className="relative">
-                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input id="signup-name" placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="signup-email">E-mail</Label>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input id="signup-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="signup-password">Senha</Label>
                                         <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input id="signup-password" type="password" placeholder="Crie uma senha forte" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
                                         </div>
                                     </div>
-                                    <Button type="submit" className="w-full !mt-6" style={{ background: 'var(--flowup-gradient)' }}>
+                                    <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }}>
                                         Criar Minha Conta
                                     </Button>
                                 </form>
