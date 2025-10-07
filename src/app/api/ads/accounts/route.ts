@@ -18,36 +18,37 @@ export async function GET(request: NextRequest) {
     try {
         const metaConnection = await getMetaConnection();
         // **A CORREÇÃO PRINCIPAL ESTÁ AQUI**
-        // Usar o userAccessToken para listar os BMs, e o pageToken como fallback se o primeiro não existir.
-        const accessToken = metaConnection.userAccessToken || metaConnection.pageToken;
+        // Usar o userAccessToken para listar os BMs e as contas.
+        const accessToken = metaConnection.userAccessToken;
 
         if (!metaConnection.isConnected || !accessToken) {
-            throw new Error("Conexão com a Meta não está ativa ou o token de acesso não está disponível.");
+            throw new Error("Conexão com a Meta não está ativa ou o token de acesso de usuário não está disponível.");
         }
         
         let allAdAccounts: AdAccount[] = [];
 
-        // 1. Listar Business Managers usando o token de ACESSO DO USUÁRIO
+        // 1. Listar Business Managers (BMs) aos quais o usuário tem acesso.
+        // O endpoint /me/businesses requer um token de acesso de usuário.
         const businessesUrl = `${GRAPH_API_URL}/me/businesses?fields=id,name`;
         const businessesData = await fetchGraphAPI(businessesUrl, accessToken, "Listar Business Managers");
         const businesses = businessesData.data || [];
         
-        // Se não encontrar BMs, tenta buscar contas de anúncio pessoais como um fallback.
+        // Se o usuário não tiver acesso a nenhum BM, tenta buscar contas de anúncio pessoais como fallback.
         if (businesses.length === 0) {
-            console.log("[WARN] Nenhum Business Manager encontrado. Tentando buscar contas de anúncio pessoais.");
+            console.log("[WARN] Nenhum Business Manager encontrado. Buscando contas de anúncio pessoais.");
             const personalAccountsUrl = `${GRAPH_API_URL}/me/adaccounts?fields=id,account_id,name,account_status&limit=100`;
             const personalAccountsData = await fetchGraphAPI(personalAccountsUrl, accessToken, "Listar Contas Pessoais");
             if (personalAccountsData.data) {
                 allAdAccounts.push(...personalAccountsData.data);
             }
         } else {
-            // 2. Para cada BM, listar contas de anúncio (owned e client)
+            // 2. Para cada BM, listar as contas de anúncio (tanto as próprias quanto as de clientes).
             for (const business of businesses) {
                 const ownedAccountsUrl = `${GRAPH_API_URL}/${business.id}/owned_ad_accounts?fields=id,account_id,name,account_status&limit=100`;
                 const clientAccountsUrl = `${GRAPH_API_URL}/${business.id}/client_ad_accounts?fields=id,account_id,name,account_status&limit=100`;
 
                 try {
-                    // Usamos o mesmo token para listar as contas dentro do BM
+                    // Importante: Usamos o mesmo userAccessToken para listar as contas dentro do BM.
                     const [ownedAccountsData, clientAccountsData] = await Promise.all([
                         fetchGraphAPI(ownedAccountsUrl, accessToken, `Listar Contas Próprias do BM ${business.name}`),
                         fetchGraphAPI(clientAccountsUrl, accessToken, `Listar Contas de Cliente do BM ${business.name}`)
@@ -58,12 +59,12 @@ export async function GET(request: NextRequest) {
 
                 } catch (error: any) {
                      console.warn(`[WARN] Falha ao buscar contas para o BM ${business.name} (ID: ${business.id}): ${error.message}`);
-                     // Continua para o próximo BM mesmo que um falhe
+                     // Continua para o próximo BM mesmo que um falhe, para não interromper todo o processo.
                 }
             }
         }
         
-        // Remover duplicatas e filtrar apenas contas ativas (status 1)
+        // Remove duplicatas (uma conta pode aparecer em mais de uma chamada) e filtra apenas contas ativas (status 1).
         const uniqueAccounts = Array.from(new Map(allAdAccounts.map(item => [item.id, item])).values());
         const activeAccounts = uniqueAccounts.filter(acc => acc.account_status === 1);
         
