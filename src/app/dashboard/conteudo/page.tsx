@@ -27,6 +27,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
+import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -42,11 +43,15 @@ export default function Conteudo() {
 
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
+  const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
-        const postsResult = await getScheduledPosts();
+        const [postsResult, metaResult] = await Promise.all([
+          getScheduledPosts(),
+          getMetaConnection()
+        ]);
 
         const displayPosts = postsResult.map(post => {
             const scheduledDate = post.scheduledAt; // Already a Date object
@@ -58,13 +63,33 @@ export default function Conteudo() {
             };
         });
         setScheduledPosts(displayPosts);
+        setMetaConnection(metaResult);
 
     } catch (error) {
-        console.error("Failed to fetch posts:", error);
-        alert("Não foi possível carregar os posts. Tente recarregar a página.");
+        console.error("Failed to fetch page data:", error);
+        alert("Não foi possível carregar os dados da página. Tente recarregar.");
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleConnectMeta = () => {
+    const appId = "826418333144156";
+    const redirectUri = "https://studio-7502195980-3983c.web.app/api/meta/callback";
+    const scopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_manage_comments",
+      "instagram_manage_insights",
+      "instagram_content_publish",
+      "business_management",
+      "ads_management"
+    ].join(",");
+
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=flowup-auth-state&scope=${scopes}&auth_type=rerequest&display=popup`;
+    window.location.href = authUrl;
   };
 
 
@@ -153,28 +178,53 @@ export default function Conteudo() {
               <Card className="shadow-lg border-none bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                     <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                     <LinkIcon className="w-5 h-5 text-gray-700" />
                     Contas Conectadas
                   </CardTitle>
                 </CardHeader>
                  <CardContent className="p-4 border rounded-lg m-6 mt-0">
+                  {loading ? (
+                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                  ) : metaConnection?.isConnected ? (
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white" style={{ background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}>
+                                    <Instagram className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center text-white border-2 border-white">
+                                    <Facebook className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <div>
+                               <p className="font-semibold text-gray-800">{metaConnection.instagramAccountName}</p>
+                               <p className="text-xs text-gray-500">{metaConnection.facebookPageName}</p>
+                            </div>
+                        </div>
+                        <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Conectado
+                        </Badge>
+                    </div>
+                  ) : (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-2">
-                                <div className="w-6 h-6 bg-pink-600 rounded-full flex items-center justify-center text-white border-2 border-white">
-                                    <Instagram className="w-3 h-3" />
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
+                                    <Instagram className="w-4 h-4" />
                                 </div>
-                                <div className="w-6 h-6 bg-blue-700 rounded-full flex items-center justify-center text-white border-2 border-white">
-                                    <Facebook className="w-3 h-3" />
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
+                                    <Facebook className="w-4 h-4" />
                                 </div>
                             </div>
                             <span className="font-semibold text-gray-800">Contas Meta</span>
                         </div>
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={handleConnectMeta}>
                             <LinkIcon className="w-4 h-4 mr-2" />
                             Conectar
                         </Button>
                     </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
