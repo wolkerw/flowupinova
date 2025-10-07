@@ -49,8 +49,12 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading]);
+    // A small delay ensures that the new message has been rendered before scrolling.
+    const timer = setTimeout(() => {
+        scrollToBottom();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -76,8 +80,8 @@ export default function Dashboard() {
 
       const data = await response.json();
       
-      // Assumindo que a resposta do webhook tem um formato como { "response": "texto da IA" }
-      const aiText = data.response || "Não recebi uma resposta válida.";
+      // A resposta do webhook deve ter um formato como { "text": "texto da IA" }
+      const aiText = data.text || "Não recebi uma resposta válida.";
 
       const aiMessage: Message = { sender: 'ai', text: aiText };
       setMessages(prev => [...prev, aiMessage]);
