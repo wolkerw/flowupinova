@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check, Paperclip } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check, Paperclip, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
 
@@ -50,7 +49,6 @@ export default function GerarConteudoPage() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
-  const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const router = useRouter();
   
@@ -65,12 +63,6 @@ export default function GerarConteudoPage() {
 
 
   useEffect(() => {
-    async function fetchConnection() {
-        const data = await getMetaConnection();
-        setMetaData(data);
-    }
-    fetchConnection();
-
      // Cleanup object URL
     return () => {
         if (referenceFile) {
@@ -184,81 +176,47 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handlePublish = async () => {
+  const handleSchedule = async () => {
     if (!selectedContent || !selectedImage || isPublishing) return;
 
     setIsPublishing(true);
-    console.log("[PUBLISH_START] Iniciando processo de publicação/agendamento...");
-
+    
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
     const enabledPlatforms = Object.keys(scheduleOptions).filter(p => scheduleOptions[p].enabled);
 
     try {
-        let publicationHandled = false;
-        let scheduled = false;
-
-        for (const platform of enabledPlatforms) {
-            const options = scheduleOptions[platform];
-
-            if (options.publishMode === 'now') {
-                console.log(`[PUBLISH_NOW] Tentando publicar agora no ${platform}.`);
-                if (platform === 'instagram') {
-                    if (!metaData?.instagramAccountId || !metaData?.pageToken) {
-                        alert("Conta do Instagram não está configurada para publicação imediata.");
-                        continue;
-                    }
-                    const response = await fetch('/api/instagram/publish', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            igUserId: metaData.instagramAccountId,
-                            pageToken: metaData.pageToken,
-                            caption: fullCaption,
-                            imageUrl: selectedImage,
-                        }),
-                    });
-                    const result = await response.json();
-                    if (!result.success) throw new Error(result.error || `Falha ao publicar no ${platform}.`);
-                    alert(`Post publicado no ${platform} com sucesso!`);
-                    publicationHandled = true;
-                }
-                // Adicionar lógica para outros canais (Facebook, etc.) aqui
-            } else if (options.publishMode === 'schedule') {
-                console.log(`[PUBLISH_SCHEDULE] Tentando agendar para ${platform}.`);
-                if (!options.dateTime) {
-                    alert(`Por favor, selecione data e hora para o agendamento no ${platform}.`);
-                    continue;
-                }
-                
-                await schedulePost({
-                    title: selectedContent.titulo,
-                    text: fullCaption,
-                    imageUrl: selectedImage,
-                    platforms: enabledPlatforms,
-                    scheduledAt: new Date(options.dateTime),
-                });
-
-                alert(`Post agendado com sucesso para ${enabledPlatforms.join(', ')}!`);
-                publicationHandled = true;
-                scheduled = true;
-                // Como o agendamento é único para todas as plataformas, podemos sair do loop
-                break; 
-            }
+        if (enabledPlatforms.length === 0) {
+            alert("Selecione ao menos uma plataforma para agendar.");
+            setIsPublishing(false);
+            return;
         }
 
-        if (publicationHandled) {
-            setShowSchedulerModal(false);
-            if (scheduled) {
-              router.push('/dashboard/conteudo');
-            }
-        } else if (enabledPlatforms.length > 0) {
-            alert("Nenhuma ação de publicação ou agendamento foi executada. Verifique as configurações.");
+        // Para este fluxo simplificado, vamos assumir que o primeiro agendamento definido vale para todos.
+        const mainScheduleOption = scheduleOptions[enabledPlatforms[0]];
+
+        if (mainScheduleOption.publishMode === 'schedule' && !mainScheduleOption.dateTime) {
+            alert("Por favor, selecione data e hora para o agendamento.");
+            setIsPublishing(false);
+            return;
         }
+
+        await schedulePost({
+            title: selectedContent.titulo,
+            text: fullCaption,
+            imageUrl: selectedImage,
+            platforms: enabledPlatforms,
+            // Se for 'now', agendamos para o momento atual.
+            scheduledAt: mainScheduleOption.publishMode === 'schedule' ? new Date(mainScheduleOption.dateTime) : new Date(),
+        });
+
+        alert(`Post agendado com sucesso para ${enabledPlatforms.join(', ')}!`);
+        setShowSchedulerModal(false);
+        router.push('/dashboard/conteudo');
 
     } catch (error: any) {
-        console.error("Erro no processo de publicação/agendamento:", error);
-        alert(`Erro: ${error.message}`);
+        console.error("Erro no processo de agendamento:", error);
+        alert(`Erro ao agendar: ${error.message}`);
     } finally {
         setIsPublishing(false);
     }
@@ -536,17 +494,17 @@ export default function GerarConteudoPage() {
                         <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
                             <div className="p-3 flex items-center gap-2 border-b">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src={metaData?.igProfilePictureUrl || "https://picsum.photos/seed/avatar/40/40"} />
+                                    <AvatarImage src={"https://picsum.photos/seed/avatar/40/40"} />
                                     <AvatarFallback>Flow</AvatarFallback>
                                 </Avatar>
-                                <span className="font-bold text-sm">{metaData?.instagramAccountName || 'flowup'}</span>
+                                <span className="font-bold text-sm">seu_usuario</span>
                             </div>
                             <div className="relative w-full aspect-square">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
                             <div className="p-3 text-sm">
                                 <p>
-                                    <span className="font-bold">{metaData?.instagramAccountName || 'flowup'}</span> {selectedContent.subtitulo}
+                                    <span className="font-bold">seu_usuario</span> {selectedContent.subtitulo}
                                 </p>
                                 <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                             </div>
@@ -556,11 +514,11 @@ export default function GerarConteudoPage() {
                        <div className="w-[500px] bg-white rounded-lg shadow-lg border flex flex-col">
                             <div className="p-4 flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
-                                    <AvatarImage src={metaData?.profilePictureUrl || "https://picsum.photos/seed/avatar/40/40"} />
+                                    <AvatarImage src={"https://picsum.photos/seed/avatar/40/40"} />
                                     <AvatarFallback>Flow</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <p className="font-bold">{metaData?.facebookPageName || 'FlowUp'}</p>
+                                    <p className="font-bold">Sua Página</p>
                                     <p className="text-xs text-gray-500">Agora mesmo</p>
                                 </div>
                             </div>
@@ -606,7 +564,7 @@ export default function GerarConteudoPage() {
                   size="lg"
                 >
                   <Send className="w-5 h-5 mr-2" />
-                  Publicar / Agendar Post
+                  Agendar Post
                 </Button>
               </div>
             </CardContent>
@@ -634,23 +592,23 @@ export default function GerarConteudoPage() {
             className="bg-white rounded-xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col"
           >
             <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold">Publicar ou Agendar Post</h3>
+              <h3 className="text-xl font-bold">Agendar Post</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
               {[
-                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', connected: metaData?.isConnected && metaData?.instagramAccountId },
-                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700', connected: metaData?.isConnected && metaData?.facebookPageId },
+                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', connected: false },
+                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700', connected: false },
                 { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800', connected: false }
               ].map(platform => (
-                <Card key={platform.id} className={cn("p-4", (!scheduleOptions[platform.id].enabled || !platform.connected) && "bg-gray-50 opacity-60")}>
+                <Card key={platform.id} className={cn("p-4", (!scheduleOptions[platform.id].enabled || !platform.connected) && "bg-gray-100 opacity-70")}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <platform.icon className={cn("w-6 h-6", platform.color)} />
                       <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
-                      {!platform.connected && <span className="text-xs text-red-500">(não conectado)</span>}
+                      {!platform.connected && <Badge variant="destructive" className="text-xs">Não conectado</Badge>}
                     </div>
                     <Switch
                       id={`switch-${platform.id}`}
@@ -698,12 +656,12 @@ export default function GerarConteudoPage() {
                 Cancelar
               </Button>
               <Button 
-                onClick={handlePublish}
+                onClick={handleSchedule}
                 disabled={isPublishing || !Object.values(scheduleOptions).some(o => o.enabled)}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
                 {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                Confirmar
+                Confirmar Agendamento
               </Button>
             </div>
           </motion.div>

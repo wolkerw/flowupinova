@@ -20,24 +20,12 @@ import {
   Clock,
   CheckCircle,
   Loader2,
-  Check,
-  Paperclip,
-  Link as LinkIcon,
-  Settings,
-  Users,
-  BarChart,
-  RefreshCw,
-  X,
-  Send,
-  CalendarClock
+  AlertTriangle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
-import { getScheduledPosts, schedulePost, PostDataInput, PostDataOutput } from "@/lib/services/posts-service";
+import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -51,19 +39,13 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
 
-  const [metaData, setMetaData] = useState<MetaConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
 
-  const fetchConnectionsAndPosts = async () => {
+  const fetchPosts = async () => {
     setLoading(true);
     try {
-        const metaPromise = getMetaConnection();
-        const postsPromise = getScheduledPosts();
-        
-        const [metaResult, postsResult] = await Promise.all([metaPromise, postsPromise]);
-
-        setMetaData(metaResult);
+        const postsResult = await getScheduledPosts();
 
         const displayPosts = postsResult.map(post => {
             const scheduledDate = post.scheduledAt; // Already a Date object
@@ -77,180 +59,25 @@ export default function Conteudo() {
         setScheduledPosts(displayPosts);
 
     } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-        alert("Não foi possível carregar os dados. Tente recarregar a página.");
+        console.error("Failed to fetch posts:", error);
+        alert("Não foi possível carregar os posts. Tente recarregar a página.");
     } finally {
         setLoading(false);
     }
   };
 
 
-  const processMetaAuthCode = async (code: string) => {
-    setLoading(true);
-    try {
-      const apiResponse = await fetch('/api/meta/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-
-      const data = await apiResponse.json();
-
-      if (!apiResponse.ok || !data.success) {
-        throw new Error(data.error || "Falha ao processar la autenticação da Meta no backend.");
-      }
-      
-      alert('Conta Meta conectada com sucesso!');
-      await fetchConnectionsAndPosts(); 
-      
-    } catch (error: any) {
-      console.error("Error in processMetaAuthCode:", error);
-      alert(`Falha ao conectar a conta Meta: ${error.message}`);
-      await fetchConnectionsAndPosts(); 
-    } finally {
-      setLoading(false);
-      window.history.replaceState({}, document.title, "/dashboard/conteudo");
-    }
-  };
-
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-
-    if (code) {
-      processMetaAuthCode(code);
-    } else {
-      fetchConnectionsAndPosts();
-    }
+    fetchPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   
-  const handleConnectMeta = () => {
-    setLoading(true);
-    const appId = "826418333144156";
-    const redirectUri = `${window.location.origin}/dashboard/conteudo`;
-    
-    const requiredScopes = [
-        'public_profile', 
-        'email', 
-        'pages_show_list', 
-        'business_management',
-        'pages_manage_posts', 
-        'instagram_basic', 
-        'instagram_content_publish', 
-        'pages_read_engagement',
-        'ads_management',
-        'ads_read'
-    ];
-
-    const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}&auth_type=rerequest`;
-
-    window.location.href = metaAuthUrl;
-  };
-
-
   const platformIcons: { [key: string]: React.ElementType } = {
     instagram: Instagram,
     facebook: Facebook,
     linkedin: Linkedin
   };
-
-  const typeIcons: { [key: string]: React.ElementType } = {
-    image: Image,
-    video: Video,
-    text: FileText
-  };
-
-  const SocialConnectionCard = ({ platform, icon: Icon, color, data, onConnect }: { platform: string, icon: React.FC<any>, color: string, data: MetaConnectionData | null, onConnect: () => void }) => {
-    const isConnected = data?.isConnected;
-    const isInstagram = platform === 'Instagram';
-    const profileName = isInstagram ? data?.instagramAccountName : data?.facebookPageName;
-    const followers = isInstagram ? data?.igFollowersCount : data?.followersCount;
-    const profilePic = isInstagram ? data?.igProfilePictureUrl : data?.profilePictureUrl;
-    
-    const isPlatformConnected = isInstagram ? !!data?.instagramAccountId : !!data?.facebookPageId;
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="p-4 border rounded-xl transition-all duration-300 ease-in-out hover:shadow-md hover:border-blue-200"
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: color + '1A'}}>
-              <Icon className="w-6 h-6" style={{ color: color }} />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900">{platform}</h4>
-              <p className={`text-xs font-medium ${isPlatformConnected ? 'text-green-600' : 'text-gray-500'}`}>
-                {isPlatformConnected && profileName ? `Conectado como ${profileName}` : 'Não conectado'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="w-full sm:w-auto flex-shrink-0">
-             <Button
-              size="sm"
-              onClick={onConnect}
-              disabled={loading}
-              className={`w-full sm:w-auto transition-all ${
-                isConnected 
-                  ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' 
-                  : 'text-white border-transparent'
-              }`}
-              style={!isConnected ? { background: 'linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%)' } : {}}
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : isConnected ? (
-                <>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Gerenciar
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Conectar
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-        {isPlatformConnected && (
-             <Card className="mt-4 bg-gray-50 border-gray-200">
-                <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-semibold flex justify-between items-center">
-                        Métricas Principais
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fetchConnectionsAndPosts()}>
-                            <RefreshCw className="w-3 h-3"/>
-                        </Button>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-0 grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                        {profilePic ? <img src={profilePic} className="w-8 h-8 rounded-full" alt="profile"/> : <Users className="w-6 h-6 text-gray-500"/>}
-                        <div>
-                            <p className="text-xs text-gray-600">Seguidores</p>
-                            <p className="text-base font-bold">{followers?.toLocaleString() ?? 'N/A'}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <BarChart className="w-6 h-6 text-gray-500"/>
-                        <div>
-                            <p className="text-xs text-gray-600">Alcance (30d)</p>
-                            <p className="text-base font-bold">12.3K</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        )}
-      </motion.div>
-    );
-  };
-
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -309,12 +136,15 @@ export default function Conteudo() {
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-gray-600">Posts publicados</span>
                     </div>
+                     <div className="flex items-center gap-2 text-sm">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-gray-600">Posts com falha</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
-            
-            <motion.div
+             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
@@ -322,24 +152,12 @@ export default function Conteudo() {
               <Card className="shadow-lg border-none bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <LinkIcon className="w-5 h-5 text-blue-600" />
+                     <AlertTriangle className="w-5 h-5 text-yellow-500" />
                     Contas Conectadas
                   </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Conecte suas redes sociais para publicar automaticamente
-                  </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {loading && !metaData ? (
-                    <div className="flex items-center justify-center p-8">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                    </div>
-                  ) : (
-                    <>
-                      <SocialConnectionCard platform="Facebook" icon={Facebook} color="#1877F2" data={metaData} onConnect={handleConnectMeta} />
-                      <SocialConnectionCard platform="Instagram" icon={Instagram} color="#E4405F" data={metaData} onConnect={handleConnectMeta} />
-                    </>
-                  )}
+                <CardContent className="space-y-4 text-center">
+                    <p className="text-gray-600">A funcionalidade de conexão com redes sociais está temporariamente desativada.</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -396,14 +214,15 @@ export default function Conteudo() {
                     <div className="flex items-center gap-3">
                       <Badge 
                         variant={post.status === 'published' ? 'default' : 'outline'}
-                        className={post.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}
+                        className={
+                            post.status === 'published' ? 'bg-green-100 text-green-700' 
+                            : post.status === 'failed' ? 'bg-red-100 text-red-700'
+                            : 'bg-blue-100 text-blue-700'}
                       >
-                        {post.status === 'published' ? (
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                        ) : (
-                          <Clock className="w-3 h-3 mr-1" />
-                        )}
-                        {post.status === 'published' ? 'Publicado' : 'Agendado'}
+                        {post.status === 'published' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {post.status === 'scheduled' && <Clock className="w-3 h-3 mr-1" />}
+                        {post.status === 'failed' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {post.status}
                       </Badge>
                       <Button variant="ghost" size="icon">
                         <Edit className="w-4 h-4" />
