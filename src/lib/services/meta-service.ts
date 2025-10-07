@@ -25,12 +25,18 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     let requestBody: string | null = null;
     
     if (method === 'GET') {
-         const separator = url.includes('?') ? '&' : '?';
-         requestUrl = `${url}${separator}access_token=${accessToken}`;
+        const urlObj = new URL(url);
+        // Adiciona o token aos parâmetros de busca apenas se não estiver lá
+        if (!urlObj.searchParams.has('access_token')) {
+            urlObj.searchParams.append('access_token', accessToken);
+        }
+        requestUrl = urlObj.toString();
     } else { // POST
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
         const postBody = new URLSearchParams(body || '');
-        postBody.append('access_token', accessToken);
+        if (!postBody.has('access_token')) {
+            postBody.append('access_token', accessToken);
+        }
         requestBody = postBody.toString();
     }
     
@@ -39,7 +45,8 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     const response = await fetch(requestUrl, {
         method,
         headers,
-        body: requestBody
+        body: requestBody,
+        cache: 'no-store'
     });
 
     const data = await response.json();

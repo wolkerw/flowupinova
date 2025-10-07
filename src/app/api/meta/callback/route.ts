@@ -2,86 +2,116 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
 
+const GRAPH_API_VERSION = "v20.0";
+const GRAPH_API_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
+const APP_ID = "826418333144156";
+const APP_SECRET = "944e053d34b162c13408cd00ad276aa2";
 
-async function fetchGraphAPI(url: string, accessToken: string, step: string) {
-    console.log(`[DEBUG] Executing ${step} with URL: ${url.replace(accessToken, '***')}`);
+
+async function fetchGraphAPI(url: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | null = null, customAccessToken?: string) {
+    const headers: HeadersInit = {};
+    let requestUrl = url;
+    let requestBody: string | null = null;
     
-    // O access_token já está na URL, não precisa adicionar de novo
-    const response = await fetch(url);
+    const accessToken = customAccessToken || ''; // Use custom token if provided
+
+    if (method === 'GET') {
+         const separator = url.includes('?') ? '&' : '?';
+         // Only add token if one is provided
+         if (accessToken) {
+            requestUrl = `${url}${separator}access_token=${accessToken}`;
+         }
+    } else { // POST
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        const postBody = new URLSearchParams(body || '');
+        if(accessToken) {
+            postBody.append('access_token', accessToken);
+        }
+        requestBody = postBody.toString();
+    }
+    
+    console.log(`[GRAPH_API] Executing ${step} with method ${method}. URL: ${requestUrl.replace(APP_SECRET, '***').replace(accessToken, '***')}`);
+
+    const response = await fetch(requestUrl, {
+        method,
+        headers,
+        body: requestBody,
+        cache: 'no-store'
+    });
+
     const data = await response.json();
 
     if (data.error) {
-        console.error(`[DEBUG] Graph API error at ${step}:`, data.error);
-        throw new Error(`Graph API error (${step}): ${data.error.message} (Code: ${data.error.code}, Type: ${data.error.type})`);
+        console.error(`[GRAPH_API_ERROR] at ${step}:`, data.error);
+        const errorMessage = data.error.error_user_title 
+            ? `${data.error.error_user_title}: ${data.error.error_user_msg}` 
+            : data.error.message;
+        throw new Error(`Graph API error (${step}): ${errorMessage} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
-    console.log(`[DEBUG] ${step} successful.`);
+
+    console.log(`[GRAPH_API_SUCCESS] ${step} successful.`);
     return data;
 }
 
 export async function POST(request: NextRequest) {
   const { code } = await request.json();
-  console.log("[DEBUG] API /api/meta/callback received code:", code);
-
-
-  if (!code) {
-    return NextResponse.json(
-      { success: false, error: "Authorization code not provided." },
-      { status: 400 }
-    );
-  }
-
-  const appId = "826418333144156";
-  const appSecret = "944e053d34b162c13408cd00ad276aa2";
-  
-  // Dynamically determine redirect URI from request origin
   const origin = request.headers.get('origin');
   const redirectUri = `${origin}/dashboard/conteudo`;
-  console.log("[DEBUG] Using redirect_uri for token exchange:", redirectUri);
 
+  if (!code) {
+    return NextResponse.json({ success: false, error: "Authorization code not provided." }, { status: 400 });
+  }
 
   try {
-    // 1. Trocar código por token de curta duração (User Access Token)
-    const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
-    // Não passamos token aqui, pois estamos obtendo um
-    const tokenResponse = await fetch(tokenUrl);
-    const tokenData = await tokenResponse.json();
-    if (tokenData.error) {
-        throw new Error(`Graph API error (Step 1: Exchange code): ${tokenData.error.message}`);
-    }
-    const userAccessToken = tokenData.access_token;
-    console.log("[DEBUG] Step 1 successful: Got short-lived user access token.");
-
-    // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens (usando o User Access Token)
-    const pagesListUrl = `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&access_token=${userAccessToken}`;
-    const pagesData = await fetchGraphAPI(pagesListUrl, userAccessToken, "Step 2: Fetch user pages and linked IG accounts");
+    // 1. Trocar código por token de acesso de usuário de curta duração
+    const shortLivedTokenUrl = `${GRAPH_API_URL}/oauth/access_token`;
+    const shortLivedTokenParams = new URLSearchParams({
+        client_id: APP_ID,
+        redirect_uri: redirectUri,
+        client_secret: APP_SECRET,
+        code: code,
+    });
+    const shortLivedTokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived user token", 'GET', shortLivedTokenParams);
+    const shortLivedUserToken = shortLivedTokenData.access_token;
+    
+    // 2. Trocar token de curta duração por um de longa duração
+    const longLivedTokenUrl = `${GRAPH_API_URL}/oauth/access_token`;
+    const longLivedTokenParams = new URLSearchParams({
+        grant_type: 'fb_exchange_token',
+        client_id: APP_ID,
+        client_secret: APP_SECRET,
+        fb_exchange_token: shortLivedUserToken,
+    });
+    const longLivedTokenData = await fetchGraphAPI(longLivedTokenUrl, "Step 2: Exchange for long-lived user token", 'GET', longLivedTokenParams);
+    const userAccessToken = longLivedTokenData.access_token; // Este é o token de usuário de longa duração
+    
+    // 3. Obter Páginas do usuário e contas do Instagram vinculadas, usando o token de usuário de longa duração
+    const pagesListUrl = `${GRAPH_API_URL}/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}`;
+    const pagesData = await fetchGraphAPI(pagesListUrl, "Step 3: Fetch user pages and linked IG accounts", 'GET', null, userAccessToken);
     
     if (!pagesData.data || pagesData.data.length === 0) {
       throw new Error("Nenhuma Página do Facebook encontrada para esta conta. Você precisa ter pelo menos uma página com uma conta do Instagram Business vinculada.");
     }
     
-    // LÓGICA MELHORADA: Encontra a primeira página que TEM uma conta do Instagram Business vinculada.
-    const page = pagesData.data.find((p: any) => p.instagram_business_account);
-    
-    if (!page) {
-        throw new Error("Nenhuma de suas Páginas do Facebook possui uma conta do Instagram Business vinculada. Por favor, vincule uma conta para continuar.");
+    const pageWithIg = pagesData.data.find((p: any) => p.instagram_business_account);
+    if (!pageWithIg) {
+      throw new Error("Nenhuma de suas Páginas do Facebook possui uma conta do Instagram Business vinculada. Por favor, vincule uma conta para continuar.");
     }
-    
-    const pageAccessToken = page.access_token; 
-    const instagramAccount = page.instagram_business_account;
 
-    console.log(`[DEBUG] Found page '${page.name}' (ID: ${page.id}) with its own Page Access Token.`);
-    console.log(`[DEBUG] Found linked Instagram account: '${instagramAccount.username}' (ID: ${instagramAccount.id})`);
+    const pageAccessToken = pageWithIg.access_token; // Este é o token da página, que também pode ser de longa duração
+    const instagramAccount = pageWithIg.instagram_business_account;
 
-    // 3. Obter detalhes da página (followers, picture), usando o Page Access Token específico
+    // 4. Obter detalhes da página (followers, picture), usando o Page Access Token específico
     const pageDetailsFields = "followers_count,picture{url}";
-    const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
-    const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, pageAccessToken, "Step 3: Fetch page details (followers, picture)");
-
+    const pageDetailsUrl = `${GRAPH_API_URL}/${pageWithIg.id}?fields=${pageDetailsFields}`;
+    const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 4: Fetch page details", 'GET', null, pageAccessToken);
+    
+    // 5. Salvar os dados no banco de dados
     const metaData = {
-        userAccessToken: userAccessToken, // Salvar o token do usuário
+        userAccessToken: userAccessToken, // SALVAR O TOKEN DE USUÁRIO DE LONGA DURAÇÃO
         pageToken: pageAccessToken,
-        facebookPageId: page.id,
-        facebookPageName: page.name,
+        facebookPageId: pageWithIg.id,
+        facebookPageName: pageWithIg.name,
         followersCount: pageDetailsData.followers_count ?? null,
         profilePictureUrl: pageDetailsData.picture?.data?.url ?? null,
         instagramAccountId: instagramAccount?.id ?? null,
@@ -90,10 +120,8 @@ export async function POST(request: NextRequest) {
         igProfilePictureUrl: instagramAccount?.profile_picture_url ?? null,
         isConnected: true,
     };
-
-    console.log("[DEBUG] Step 4: Updating database with new Meta connection data...", metaData);
+    
     await updateMetaConnection(metaData);
-    console.log("[DEBUG] Step 4 successful: Database updated.");
 
     return NextResponse.json({
       success: true,
@@ -102,12 +130,11 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("[DEBUG] Error during Meta OAuth callback flow:", error);
+    console.error("[META_CALLBACK_ERROR] Full flow failed:", error);
     try {
-        // Tenta redefinir a conexão para um estado desconectado em caso de erro
         await updateMetaConnection({ isConnected: false, pageToken: "", userAccessToken: "" });
     } catch (dbError) {
-        console.error("[DEBUG] Failed to even update the DB to disconnected state:", dbError);
+        console.error("[META_CALLBACK_ERROR] Failed to set DB to disconnected state:", dbError);
     }
     
     return NextResponse.json(
