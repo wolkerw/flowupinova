@@ -44,14 +44,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    // We don't want to scroll on input change, only on new messages.
-    // The dependency array is now just `messages`, so this effect
-    // only runs when the messages array changes.
+    // This effect runs when the messages array changes.
+    // We don't want to scroll on input change.
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -85,17 +80,15 @@ export default function Dashboard() {
       let aiText;
       try {
         const data = JSON.parse(responseText);
-        // Adjusted to look for 'text' field
-        aiText = data.text;
+        // Adjusted to look for 'text' field, but also handle plain text response
+        aiText = data.text || responseText;
       } catch (jsonError) {
-         const errorMessage: Message = { sender: 'ai', text: `Erro: a resposta do webhook não é um JSON válido. Resposta recebida: ${responseText}`, isError: true };
-         setMessages(prev => [...prev, errorMessage]);
-         setLoading(false);
-         return;
+         // If parsing fails, we assume the response is plain text.
+         aiText = responseText;
       }
 
       if (!aiText) {
-        throw new Error("Não recebi uma resposta válida do webhook. O campo 'text' está faltando no JSON.");
+        throw new Error("Não recebi uma resposta válida do webhook.");
       }
 
       const aiMessage: Message = { sender: 'ai', text: aiText };
