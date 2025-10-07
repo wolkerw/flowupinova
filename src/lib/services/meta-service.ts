@@ -26,15 +26,17 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     
     if (method === 'GET') {
         const urlObj = new URL(url);
-        // Adiciona o token aos parâmetros de busca apenas se não estiver lá
-        if (!urlObj.searchParams.has('access_token')) {
-            urlObj.searchParams.append('access_token', accessToken);
+        if (body) {
+            body.forEach((value, key) => urlObj.searchParams.append(key, value));
+        }
+        if (accessToken) {
+             urlObj.searchParams.append('access_token', accessToken);
         }
         requestUrl = urlObj.toString();
     } else { // POST
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
         const postBody = new URLSearchParams(body || '');
-        if (!postBody.has('access_token')) {
+        if(accessToken) {
             postBody.append('access_token', accessToken);
         }
         requestBody = postBody.toString();
