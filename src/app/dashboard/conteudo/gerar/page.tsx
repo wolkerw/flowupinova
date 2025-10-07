@@ -419,9 +419,9 @@ export default function GerarConteudoPage() {
             <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
                 <div className="relative w-full h-[60%] bg-gray-200">
                     <Image 
-                        src="https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?fm=jpg&w=1080&h=1350&fit=crop"
-                        alt="Imagem genérica"
-                        data-ai-hint="digital marketing"
+                        src="https://picsum.photos/seed/mascot/600/600"
+                        alt="Mascote robô da FlowUp"
+                        data-ai-hint="robot mascot"
                         layout="fill"
                         objectFit="cover"
                     />
