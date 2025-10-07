@@ -20,7 +20,8 @@ import {
   Clock,
   CheckCircle,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Link as LinkIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -156,21 +157,24 @@ export default function Conteudo() {
                     Contas Conectadas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Instagram className="w-6 h-6 text-pink-600" />
-                      <span className="font-medium">Instagram</span>
+                 <CardContent className="p-4 border rounded-lg m-6 mt-0">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                                <div className="w-6 h-6 bg-pink-600 rounded-full flex items-center justify-center text-white border-2 border-white">
+                                    <Instagram className="w-3 h-3" />
+                                </div>
+                                <div className="w-6 h-6 bg-blue-700 rounded-full flex items-center justify-center text-white border-2 border-white">
+                                    <Facebook className="w-3 h-3" />
+                                </div>
+                            </div>
+                            <span className="font-semibold text-gray-800">Contas Meta</span>
+                        </div>
+                        <Button variant="outline">
+                            <LinkIcon className="w-4 h-4 mr-2" />
+                            Conectar
+                        </Button>
                     </div>
-                    <Button variant="outline">Conectar</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Facebook className="w-6 h-6 text-blue-700" />
-                      <span className="font-medium">Facebook</span>
-                    </div>
-                    <Button variant="outline">Conectar</Button>
-                  </div>
                 </CardContent>
               </Card>
             </motion.div>
