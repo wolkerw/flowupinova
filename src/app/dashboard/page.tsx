@@ -44,9 +44,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
-    // This effect runs when the messages array changes.
-    // We don't want to scroll on input change.
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -70,13 +73,17 @@ export default function Dashboard() {
       if (!response.ok) {
         throw new Error(`Falha na comunicação com o webhook. Status: ${response.status}`);
       }
+      
+      const responseData = await response.json();
+      
+      // O webhook retorna um array com um objeto: [{"output": "texto"}]
+      const aiText = responseData?.[0]?.output;
 
-      const responseText = await response.text();
-      if (!responseText) {
-          throw new Error("O webhook retornou uma resposta vazia.");
+      if (!aiText) {
+        throw new Error("Não recebi uma resposta válida do webhook.");
       }
       
-      const aiMessage: Message = { sender: 'ai', text: responseText };
+      const aiMessage: Message = { sender: 'ai', text: aiText };
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (error: any) {
@@ -132,7 +139,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
       >
         <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
           <CardHeader>
@@ -168,7 +175,7 @@ export default function Dashboard() {
        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        transition={{ duration: 0.5 }}
        >
         <Card className="shadow-lg border-none">
           <CardHeader>
@@ -363,3 +370,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
