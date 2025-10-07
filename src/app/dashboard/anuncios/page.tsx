@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,25 +24,26 @@ import {
   Sparkles,
   ChevronRight,
   UploadCloud,
-  Link as LinkIcon,
   Loader2,
   Building,
+  RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdAccount {
-    id: string;
-    account_id: string;
+    id: string; // no formato act_...
+    account_id: string; // Apenas o número
     name: string;
 }
 
 interface Campaign {
     id: string;
     name: string;
-    status: string;
+    status: 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
     daily_budget?: string;
     lifetime_budget?: string;
+    budget_remaining?: string;
     insights: {
         impressions: string;
         clicks: string;
@@ -58,86 +59,89 @@ export default function Anuncios() {
 
   // State for the new campaign wizard
   const [selectedAdAccount, setSelectedAdAccount] = useState("");
-  const [campaignObjective, setCampaignObjective] = useState("");
+  const [campaignObjective, setCampaignObjective] = useState("OUTCOME_TRAFFIC"); // Default
   const [audience, setAudience] = useState({ ageMin: 18, ageMax: 65, location: "BR" });
   const [creative, setCreative] = useState<{message: string, link: string, image: File | null}>({ message: "", link: "", image: null });
-  const [budget, setBudget] = useState({ daily: 50, startDate: ""});
+  const [budget, setBudget] = useState({ daily: 50, startDate: new Date().toISOString().slice(0, 16)}); // Default R$50
 
   // State for API interaction
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [selectedAccountForView, setSelectedAccountForView] = useState<string | null>(null);
 
- useEffect(() => {
-    const fetchAdAccounts = async () => {
-        setLoadingAccounts(true);
-        try {
-            const response = await fetch('/api/ads/accounts');
-            const data = await response.json();
-            if (data.success && data.accounts.length > 0) {
-                setAdAccounts(data.accounts);
-                // Pré-seleciona a primeira conta para visualização
-                if (!selectedAccountForView) {
-                    setSelectedAccountForView(data.accounts[0].id);
-                }
-            } else if (!data.success) {
-                 toast({
-                    title: "Erro ao buscar contas",
-                    description: data.error || "Não foi possível carregar as contas de anúncio.",
-                    variant: "destructive",
-                });
+ const fetchAdAccounts = useCallback(async () => {
+    setLoadingAccounts(true);
+    try {
+        const response = await fetch('/api/ads/accounts');
+        const data = await response.json();
+        if (data.success) {
+            setAdAccounts(data.accounts || []);
+            if (data.accounts?.length > 0 && !selectedAccountForView) {
+                // Auto-select the first account to view campaigns
+                setSelectedAccountForView(data.accounts[0].id);
             }
-        } catch (err: any) {
+        } else {
              toast({
-                title: "Erro de Rede",
-                description: "Não foi possível conectar ao servidor para buscar as contas.",
+                title: "Erro ao buscar contas",
+                description: data.error || "Não foi possível carregar as contas de anúncio.",
                 variant: "destructive",
             });
-        } finally {
-            setLoadingAccounts(false);
         }
-    };
-    fetchAdAccounts();
+    } catch (err: any) {
+         toast({
+            title: "Erro de Rede",
+            description: "Não foi possível conectar ao servidor para buscar as contas.",
+            variant: "destructive",
+        });
+    } finally {
+        setLoadingAccounts(false);
+    }
   }, [toast, selectedAccountForView]);
+
+  const fetchCampaigns = useCallback(async () => {
+    if (!selectedAccountForView) return;
+
+    setLoadingCampaigns(true);
+    try {
+        const campaignsResponse = await fetch(`/api/ads/campaigns?adAccountId=${selectedAccountForView}`);
+        const campaignsData = await campaignsResponse.json();
+
+        if (campaignsData.success) {
+            setCampaigns(campaignsData.campaigns || []);
+        } else {
+             toast({
+                title: "Erro ao buscar campanhas",
+                description: campaignsData.error || "Não foi possível carregar as campanhas.",
+                variant: "destructive",
+            });
+        }
+    } catch (err: any) {
+        toast({
+            title: "Erro de Rede",
+            description: "Não foi possível conectar ao servidor para buscar campanhas.",
+            variant: "destructive",
+        });
+    } finally {
+        setLoadingCampaigns(false);
+    }
+  }, [selectedAccountForView, toast]);
+
+
+ useEffect(() => {
+    fetchAdAccounts();
+  }, [fetchAdAccounts]);
 
 
   useEffect(() => {
-    const fetchCampaigns = async () => {
-        if (!selectedAccountForView) return;
-
-        setLoadingCampaigns(true);
-        try {
-            const campaignsResponse = await fetch(`/api/ads/campaigns?adAccountId=${selectedAccountForView}`);
-            const campaignsData = await campaignsResponse.json();
-
-            if (campaignsData.success) {
-                setCampaigns(campaignsData.campaigns);
-            } else {
-                 toast({
-                    title: "Erro ao buscar campanhas",
-                    description: campaignsData.error || "Não foi possível carregar as campanhas.",
-                    variant: "destructive",
-                });
-            }
-        } catch (err: any) {
-            toast({
-                title: "Erro de Rede",
-                description: "Não foi possível conectar ao servidor para buscar campanhas.",
-                variant: "destructive",
-            });
-        } finally {
-            setLoadingCampaigns(false);
-        }
-    };
-
-    fetchCampaigns();
-  }, [selectedAccountForView, toast]);
+    if (selectedAccountForView) {
+      fetchCampaigns();
+    }
+  }, [selectedAccountForView, fetchCampaigns]);
 
 
   const campaignSteps = [
@@ -161,7 +165,6 @@ export default function Anuncios() {
 
   const handlePublishCampaign = async () => {
     setIsPublishing(true);
-    setError(null);
 
     const formData = new FormData();
     formData.append('adAccountId', selectedAdAccount);
@@ -187,15 +190,15 @@ export default function Anuncios() {
 
         toast({
             title: "Sucesso!",
-            description: "Sua campanha foi enviada para a plataforma da Meta.",
+            description: "Sua campanha foi publicada na plataforma da Meta.",
             variant: "default",
         });
-
+        
         setShowCampaignWizard(false);
-        // Reset state here if needed
+        setCurrentStep(1);
+        fetchCampaigns();
         
     } catch (err: any) {
-        setError(err.message);
         toast({
             title: "Erro ao Publicar",
             description: err.message,
@@ -206,15 +209,21 @@ export default function Anuncios() {
     }
   };
 
-  const formatCurrency = (value: string | number, currency = 'BRL') => {
+ const formatCurrency = (value: string | number, currency = 'BRL') => {
     const numberValue = Number(value) || 0;
-    // Se o valor já vem em centavos, dividimos por 100
-    if (String(value).length > 2 && !String(value).includes('.')) {
+    // A API da Meta pode retornar o valor em centavos ou unidades.
+    // Uma heurística comum é que se o número for grande e inteiro, provavelmente está em centavos.
+    if (Number.isInteger(numberValue) && numberValue > 1000) {
         return (numberValue / 100).toLocaleString('pt-BR', { style: 'currency', currency: currency });
     }
     return numberValue.toLocaleString('pt-BR', { style: 'currency', currency: currency });
   };
   
+ const totalSpend = campaigns.reduce((acc, c) => acc + parseFloat(c.insights.spend || "0"), 0);
+ const totalImpressions = campaigns.reduce((acc, c) => acc + parseInt(c.insights.impressions || "0", 10), 0);
+ const totalClicks = campaigns.reduce((acc, c) => acc + parseInt(c.insights.clicks || "0", 10), 0);
+ const totalConversions = campaigns.reduce((acc, c) => acc + c.insights.conversions, 0);
+
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -222,11 +231,12 @@ export default function Anuncios() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Anúncios Online</h1>
-          <p className="text-gray-600 mt-1">Gerencie suas campanhas pagas</p>
+          <p className="text-gray-600 mt-1">Crie e gerencie suas campanhas pagas na Meta</p>
         </div>
         
         <Button 
           onClick={() => setShowCampaignWizard(true)}
+          disabled={adAccounts.length === 0}
           className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -236,17 +246,13 @@ export default function Anuncios() {
 
       {/* Métricas gerais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Card className="shadow-lg border-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Impressões</p>
-                  <p className="text-2xl font-bold text-gray-900">95.9K</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalImpressions.toLocaleString()}</p>
                 </div>
                 <Eye className="w-8 h-8 text-blue-500" />
               </div>
@@ -254,17 +260,13 @@ export default function Anuncios() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
           <Card className="shadow-lg border-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Cliques</p>
-                  <p className="text-2xl font-bold text-gray-900">1.58K</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalClicks.toLocaleString()}</p>
                 </div>
                 <MousePointer className="w-8 h-8 text-purple-500" />
               </div>
@@ -272,17 +274,13 @@ export default function Anuncios() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
           <Card className="shadow-lg border-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Conversões</p>
-                  <p className="text-2xl font-bold text-gray-900">49</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalConversions.toLocaleString()}</p>
                 </div>
                 <ShoppingCart className="w-8 h-8 text-green-500" />
               </div>
@@ -290,17 +288,13 @@ export default function Anuncios() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
           <Card className="shadow-lg border-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">CPC Médio</p>
-                  <p className="text-2xl font-bold text-gray-900">R$ 1,95</p>
+                  <p className="text-sm text-gray-600">Total Gasto</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalSpend)}</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-orange-500" />
               </div>
@@ -310,35 +304,36 @@ export default function Anuncios() {
       </div>
 
       {/* Lista de campanhas */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
         <Card className="shadow-lg border-none">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
               Campanhas
             </CardTitle>
-            {loadingAccounts ? (
-                 <Loader2 className="w-5 h-5 animate-spin" />
-            ) : adAccounts.length > 0 ? (
-                <Select onValueChange={setSelectedAccountForView} value={selectedAccountForView ?? ""}>
-                    <SelectTrigger className="w-[350px]">
-                        <SelectValue placeholder="Selecione uma conta para visualizar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {adAccounts.map(account => (
-                            <SelectItem key={account.id} value={account.id}>
-                                {account.name} ({account.account_id})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            ) : (
-                <p className="text-sm text-red-500">Nenhuma conta de anúncios encontrada.</p>
-            )}
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="icon" onClick={() => fetchAdAccounts().then(() => fetchCampaigns())} disabled={loadingAccounts || loadingCampaigns}>
+                    <RefreshCw className={`w-4 h-4 ${loadingAccounts || loadingCampaigns ? 'animate-spin' : ''}`} />
+                 </Button>
+                {loadingAccounts ? (
+                     <Loader2 className="w-5 h-5 animate-spin" />
+                ) : adAccounts.length > 0 ? (
+                    <Select onValueChange={setSelectedAccountForView} value={selectedAccountForView ?? ""}>
+                        <SelectTrigger className="w-[350px]">
+                            <SelectValue placeholder="Selecione uma conta para visualizar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {adAccounts.map(account => (
+                                <SelectItem key={account.id} value={account.id}>
+                                    {account.name} ({account.account_id})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <p className="text-sm text-red-500">Nenhuma conta de anúncios encontrada.</p>
+                )}
+            </div>
           </CardHeader>
           <CardContent>
             {loadingCampaigns ? (
@@ -360,15 +355,15 @@ export default function Anuncios() {
                         <div className="flex items-center gap-3">
                           <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
                           <Badge 
-                            variant={campaign.status.toLowerCase() === 'active' ? 'default' : 'outline'}
-                            className={campaign.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}
+                            variant={campaign.status === 'ACTIVE' ? 'default' : 'outline'}
+                            className={campaign.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}
                           >
                             {campaign.status}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button variant="ghost" size="icon">
-                            {campaign.status.toLowerCase() === 'active' ? (
+                            {campaign.status === 'ACTIVE' ? (
                               <Pause className="w-4 h-4" />
                             ) : (
                               <Play className="w-4 h-4" />
@@ -383,7 +378,7 @@ export default function Anuncios() {
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-4">
                         <div>
                           <p className="text-sm text-gray-600">Orçamento</p>
-                          <p className="font-semibold">{formatCurrency(campaign.daily_budget || campaign.lifetime_budget || 0)}</p>
+                          <p className="font-semibold">{formatCurrency(campaign.daily_budget || campaign.lifetime_budget || 0)} {campaign.daily_budget ? '/ dia' : ''}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Gasto</p>
@@ -395,7 +390,7 @@ export default function Anuncios() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Cliques</p>
-                          <p className="font-semibold">{campaign.insights.clicks}</p>
+                          <p className="font-semibold">{Number(campaign.insights.clicks).toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Conversões</p>
@@ -403,13 +398,13 @@ export default function Anuncios() {
                         </div>
                       </div>
 
-                      { (campaign.daily_budget || campaign.lifetime_budget) &&
+                      { (campaign.lifetime_budget && parseFloat(campaign.lifetime_budget) > 0) &&
                         <div className="mb-2">
                             <div className="flex justify-between text-sm text-gray-600 mb-1">
                             <span>Progresso do orçamento</span>
-                            <span>{Math.round((Number(campaign.insights.spend) / (Number(campaign.lifetime_budget || campaign.daily_budget) / 100)) * 100)}%</span>
+                            <span>{Math.round((parseFloat(campaign.insights.spend) / parseFloat(campaign.lifetime_budget)) * 100)}%</span>
                             </div>
-                            <Progress value={(Number(campaign.insights.spend) / (Number(campaign.lifetime_budget || campaign.daily_budget) / 100)) * 100} />
+                            <Progress value={(parseFloat(campaign.insights.spend) / parseFloat(campaign.lifetime_budget)) * 100} />
                         </div>
                       }
                     </motion.div>
@@ -492,9 +487,9 @@ export default function Anuncios() {
                   <h4 className="text-lg font-semibold">Qual é o objetivo da sua campanha?</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
-                      { key: 'OUTCOME_TRAFFIC', title: 'Cliques no Link', desc: 'Gerar tráfego para seu site.', icon: MousePointer },
+                      { key: 'OUTCOME_TRAFFIC', title: 'Tráfego', desc: 'Gerar cliques para seu site.', icon: MousePointer },
                       { key: 'OUTCOME_AWARENESS', title: 'Alcance', desc: 'Mostrar para o máximo de pessoas.', icon: Eye },
-                      { key: 'OUTCOME_SALES', title: 'Conversões', desc: 'Gerar vendas ou leads.', icon: ShoppingCart }
+                      { key: 'OUTCOME_SALES', title: 'Vendas', desc: 'Gerar vendas ou leads.', icon: ShoppingCart }
                     ].map(obj => (
                         <Card key={obj.key} onClick={() => handleObjectiveSelect(obj.key)} className={`cursor-pointer hover:shadow-md transition-shadow border-2 ${campaignObjective === obj.key ? 'border-blue-500' : 'hover:border-blue-300'}`}>
                           <CardContent className="p-6 text-center">
@@ -604,11 +599,11 @@ export default function Anuncios() {
 
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                      <TrendingUp className="w-5 h-5 text-green-500 mt-0.5" />
+                      <Sparkles className="w-5 h-5 text-green-500 mt-0.5" />
                       <div>
-                        <h5 className="font-semibold text-green-900">Previsão de Resultados</h5>
+                        <h5 className="font-semibold text-green-900">Tudo pronto!</h5>
                         <p className="text-sm text-green-700 mt-1">
-                          Estimativas de alcance e cliques serão exibidas após a publicação.
+                          Sua campanha será criada e ativada na Meta.
                         </p>
                       </div>
                     </div>
@@ -633,7 +628,8 @@ export default function Anuncios() {
                         className="bg-blue-600 hover:bg-blue-700"
                         disabled={
                             (currentStep === 1 && !selectedAdAccount) ||
-                            (currentStep === 2 && !campaignObjective)
+                            (currentStep === 2 && !campaignObjective) ||
+                            (currentStep === 4 && (!creative.image || !creative.link || !creative.message))
                         }
                     >
                         Próximo

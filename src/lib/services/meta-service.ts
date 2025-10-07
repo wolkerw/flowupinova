@@ -22,8 +22,11 @@ export interface MetaConnectionData {
 export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
     const headers: HeadersInit = {};
     let requestUrl = url;
-    let requestBody: URLSearchParams | FormData | null = null;
+    let requestBody: URLSearchParams | FormData | string | null = null;
     
+    // Log para depuração
+    console.log(`[GRAPH_API] Executing: ${step} | Method: ${method} | Token Type: ${accessToken.startsWith('EAA') ? 'user' : 'page'} (ends with ...${accessToken.slice(-6)})`);
+
     if (method === 'GET') {
         const urlObj = new URL(url);
         if (body instanceof URLSearchParams) {
@@ -36,20 +39,25 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     } else { // POST
         if (body instanceof FormData) {
             // FormData lida com seu próprio Content-Type
-            if (accessToken) body.append('access_token', accessToken);
-            requestBody = body;
+            // O access_token deve ser o primeiro campo para uploads de imagem na Graph API
+            const tempBody = new FormData();
+            tempBody.append('access_token', accessToken);
+            for (const [key, value] of body.entries()) {
+                if (key !== 'access_token') {
+                   tempBody.append(key, value);
+                }
+            }
+            requestBody = tempBody;
         } else {
             headers['Content-Type'] = 'application/x-www-form-urlencoded';
-            const postBody = new URLSearchParams(body || '');
+            const postBody = new URLSearchParams(body?.toString() || '');
             if(accessToken) {
                 postBody.append('access_token', accessToken);
             }
-            requestBody = postBody;
+            requestBody = postBody.toString();
         }
     }
     
-    console.log(`[GRAPH_API] Executing ${step} with method ${method}...`);
-
     const response = await fetch(requestUrl, {
         method,
         headers,

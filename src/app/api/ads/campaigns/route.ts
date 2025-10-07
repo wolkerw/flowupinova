@@ -3,37 +3,28 @@
 
 import { getMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
 import { NextResponse, type NextRequest } from "next/server";
-import { createCampaign, createAdSet, createAdCreative, createAd, publishAd } from "@/lib/services/ads-service";
+import { createCampaign, createAdSet, createAdCreative, createAd, publishCampaign } from "@/lib/services/ads-service";
 
+const GRAPH_API_VERSION = "v20.0";
 
 // Função para fazer o upload de uma imagem e obter o hash
 async function uploadImage(adAccountId: string, accessToken: string, imageFile: File) {
-  const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId}/adimages`;
+  // A URL para upload de imagem usa o Ad Account ID sem o prefixo 'act_'
+  const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId.replace('act_', '')}/adimages`;
   const formData = new FormData();
-  // Atenção: O access_token deve ser o primeiro campo no FormData para uploads
-  formData.append('access_token', accessToken);
+  // Para upload, o token vai no body do FormData
   formData.append('source', imageFile as Blob, imageFile.name);
 
-  try {
-    const response = await fetch(adImagesUrl, {
-      method: 'POST',
-      body: formData,
-    });
+  // A função fetchGraphAPI foi ajustada para lidar com FormData
+  const data = await fetchGraphAPI(adImagesUrl, accessToken, "Image Upload", 'POST', formData);
 
-    const data = await response.json();
-    
-    if (data.error || !data.images?.[imageFile.name]?.hash) {
-      console.error('[API_ERROR] Image Upload Failed:', data.error || 'Nenhum hash de imagem retornado.');
-      const errorMessage = data.error?.message || 'Erro desconhecido durante o upload da imagem.';
-      throw new Error(`Falha no upload da imagem: ${errorMessage}`);
-    }
-
-    console.log('[API_SUCCESS] Image uploaded, hash:', data.images[imageFile.name].hash);
-    return data.images[imageFile.name].hash;
-  } catch (error: any) {
-    console.error('[API_FATAL] Erro catastrófico no upload da imagem:', error);
-    throw error;
+  if (!data.images?.[imageFile.name]?.hash) {
+    const errorMessage = data.error?.message || 'Nenhum hash de imagem retornado.';
+    throw new Error(`Falha no upload da imagem: ${errorMessage}`);
   }
+
+  console.log('[API_SUCCESS] Image uploaded, hash:', data.images[imageFile.name].hash);
+  return data.images[imageFile.name].hash;
 }
 
 // GET - Listar Campanhas e Métricas
@@ -46,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const metaConnection = await getMetaConnection();
-        // Usando o USER ACCESS TOKEN para todas as chamadas relacionadas a anúncios
+        // **CORREÇÃO CRÍTICA**: Usar o userAccessToken para todas as chamadas de anúncios
         const accessToken = metaConnection.userAccessToken;
 
         if (!metaConnection.isConnected || !accessToken) {
@@ -54,16 +45,18 @@ export async function GET(request: NextRequest) {
         }
 
         const campaignsUrl = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,budget_remaining`;
-        const campaignsData = await fetchGraphAPI(campaignsUrl, accessToken, "Listar Campanhas");
+        // Passando o userAccessToken para a chamada da API
+        const campaignsData = await fetchGraphAPI(campaignsUrl, accessToken, "List Campaigns");
         
         const campaigns = campaignsData.data || [];
 
         const campaignsWithInsights = await Promise.all(campaigns.map(async (campaign: any) => {
             const insightsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/insights?fields=impressions,clicks,spend,actions,action_values&date_preset=maximum`;
-            const insightsData = await fetchGraphAPI(insightsUrl, accessToken, `Buscar Insights para Campanha ${campaign.id}`);
+            // Passando o userAccessToken para a chamada de insights
+            const insightsData = await fetchGraphAPI(insightsUrl, accessToken, `Fetch Insights for Campaign ${campaign.id}`);
             const insights = insightsData.data?.[0] || {};
             
-            // Calcula conversões de compra
+            // Calcula conversões de compra (exemplo)
             const conversions = (insights.actions || [])
                 .filter((a: any) => /purchase|offsite_conversion/i.test(a.action_type))
                 .reduce((sum: number, a: any) => sum + Number(a.value || 0), 0);
@@ -71,10 +64,10 @@ export async function GET(request: NextRequest) {
             return {
                 ...campaign,
                 insights: {
-                    impressions: insights.impressions || 0,
-                    clicks: insights.clicks || 0,
-                    spend: insights.spend || 0,
-                    conversions: conversions,
+                    impressions: insights.impressions || "0",
+                    clicks: insights.clicks || "0",
+                    spend: insights.spend || "0",
+                    conversions: conversions || 0,
                 }
             };
         }));
@@ -107,9 +100,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const metaConnection = await getMetaConnection();
-    // Usando o USER ACCESS TOKEN para todas as chamadas de criação/gerenciamento de anúncios
+    // **CORREÇÃO CRÍTICA**: Usar o userAccessToken para todas as chamadas de criação/gerenciamento de anúncios
     const accessToken = metaConnection.userAccessToken;
-    const pageId = metaConnection.facebookPageId; // Page ID ainda é necessário para o criativo
+    const pageId = metaConnection.facebookPageId; 
 
     if (!metaConnection.isConnected || !accessToken || !pageId) {
       throw new Error("Conexão com a Meta não está ativa, o token de acesso de usuário ou o ID da Página não estão disponíveis.");
@@ -122,16 +115,16 @@ export async function POST(request: NextRequest) {
     const adSetId = await createAdSet(adAccountId, accessToken, campaignId, budget, audience, objective);
 
     // ETAPA 3: Fazer o upload da imagem para obter o hash
-    const imageHash = await uploadImage(`act_${adAccountId.replace('act_', '')}`, accessToken, imageFile);
+    const imageHash = await uploadImage(adAccountId, accessToken, imageFile);
 
     // ETAPA 4: Criar o Ad Creative
-    const creativeId = await createAdCreative(`act_${adAccountId.replace('act_', '')}`, accessToken, pageId, creative.message, creative.link, imageHash);
+    const creativeId = await createAdCreative(adAccountId, accessToken, pageId, creative.message, creative.link, imageHash);
     
     // ETAPA 5: Criar o Anúncio
-    const adId = await createAd(`act_${adAccountId.replace('act_', '')}`, accessToken, adSetId, creativeId);
+    const adId = await createAd(adAccountId, accessToken, adSetId, creativeId);
 
-    // ETAPA 6: Publicar o Anúncio
-    await publishAd(adId, accessToken);
+    // ETAPA 6: Publicar a Campanha (que ativa os adsets e ads filhos se configurados para herdar)
+    await publishCampaign(campaignId, accessToken);
 
     return NextResponse.json({
       success: true,
