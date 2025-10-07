@@ -60,7 +60,7 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/chat', {
+      const response = await fetch('https://webhook.flowupinova.com.br/webhook/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -366,3 +366,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
