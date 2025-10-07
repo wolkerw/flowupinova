@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Waves, Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function HomePage() {
   const features = [
@@ -62,21 +63,36 @@ export default function HomePage() {
 
       <main className="pt-24">
         {/* Hero Section */}
-        <section className="text-center py-20 px-6 bg-gray-50">
+        <section className="py-20 px-6 bg-gray-50">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
+            className="container mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
-              Sua plataforma de marketing com <span className="text-primary">Inteligência Artificial</span>
-            </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-              Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
-            </p>
-            <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-              <Link href="/acesso/cadastro">Começar</Link>
-            </Button>
+            <div className="grid md:grid-cols-2 items-center gap-12">
+              <div className="text-center md:text-left">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
+                  Sua plataforma de marketing com <span className="text-primary">Inteligência Artificial</span>
+                </h1>
+                <p className="text-lg text-gray-600 max-w-xl mx-auto md:mx-0 mb-8">
+                  Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
+                </p>
+                <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                  <Link href="/acesso/cadastro">Começar</Link>
+                </Button>
+              </div>
+              <div className="hidden md:block">
+                 <Image 
+                    src="https://picsum.photos/seed/mascot/600/600" 
+                    alt="Mascote da plataforma FlowUp" 
+                    width={500} 
+                    height={500} 
+                    className="rounded-lg"
+                    data-ai-hint="robot mascot"
+                  />
+              </div>
+            </div>
           </motion.div>
         </section>
 
