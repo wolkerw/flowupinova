@@ -57,15 +57,37 @@ export default function Dashboard() {
 
     const userMessage: Message = { sender: 'user', text: prompt };
     setMessages(prev => [...prev, userMessage]);
+    const currentPrompt = prompt;
     setPrompt("");
     setLoading(true);
 
-    // Simula uma chamada de API
-    setTimeout(() => {
-      const aiMessage: Message = { sender: 'ai', text: "Esta é uma resposta simulada. A funcionalidade de IA foi removida." };
+    try {
+      const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: currentPrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na comunicação com o webhook.');
+      }
+
+      const data = await response.json();
+      
+      // Assumindo que a resposta do webhook tem um formato como { "response": "texto da IA" }
+      const aiText = data.response || "Não recebi uma resposta válida.";
+
+      const aiMessage: Message = { sender: 'ai', text: aiText };
       setMessages(prev => [...prev, aiMessage]);
-      setLoading(false);
-    }, 1000);
+
+    } catch (error: any) {
+       const errorMessage: Message = { sender: 'ai', text: `Ocorreu um erro: ${error.message}`, isError: true };
+       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const metrics = [
