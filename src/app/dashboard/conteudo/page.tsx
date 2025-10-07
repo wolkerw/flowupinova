@@ -156,8 +156,21 @@ export default function Conteudo() {
                     Contas Conectadas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-center">
-                    <p className="text-gray-600">A funcionalidade de conexão com redes sociais está temporariamente desativada.</p>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Instagram className="w-6 h-6 text-pink-600" />
+                      <span className="font-medium">Instagram</span>
+                    </div>
+                    <Button variant="outline">Conectar</Button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Facebook className="w-6 h-6 text-blue-700" />
+                      <span className="font-medium">Facebook</span>
+                    </div>
+                    <Button variant="outline">Conectar</Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
