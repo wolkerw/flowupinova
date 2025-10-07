@@ -39,9 +39,9 @@ const initialMessages: Message[] = [
 ];
 
 export default function Dashboard() {
-  const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [loading, setLoading] = useState(false);
+  const [prompt, setPrompt = useState("");
+  const [messages, setMessages = useState<Message[]>(initialMessages);
+  const [loading, setLoading = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,11 +49,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // A small delay ensures that the new message has been rendered before scrolling.
-    const timer = setTimeout(() => {
-        scrollToBottom();
-    }, 100);
-    return () => clearTimeout(timer);
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -75,13 +71,26 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error('Falha na comunicação com o webhook.');
+        throw new Error(`Falha na comunicação com o webhook. Status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      // A resposta do webhook deve ter um formato como { "text": "texto da IA" }
-      const aiText = data.text || "Não recebi uma resposta válida.";
+      const responseText = await response.text();
+      if (!responseText) {
+          throw new Error("O webhook retornou uma resposta vazia.");
+      }
+
+      // Try to parse as JSON. If it fails, treat as plain text.
+      let aiText;
+      try {
+        const data = JSON.parse(responseText);
+        aiText = data.text;
+      } catch (jsonError) {
+        aiText = responseText; // Use the raw text if JSON parsing fails
+      }
+
+      if (!aiText) {
+        throw new Error("Não recebi uma resposta válida do webhook. O campo 'text' está faltando no JSON.");
+      }
 
       const aiMessage: Message = { sender: 'ai', text: aiText };
       setMessages(prev => [...prev, aiMessage]);
@@ -135,7 +144,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Resumo da semana */}
+       {/* Resumo da semana */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -367,3 +376,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
