@@ -7,13 +7,12 @@ import { createCampaign, createAdSet, createAdCreative, createAd, publishCampaig
 
 // Função para fazer o upload de uma imagem e obter o hash
 async function uploadImage(adAccountId: string, accessToken: string, imageFile: File) {
-  // A URL para upload de imagem usa o Ad Account ID sem o prefixo 'act_'
   const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId.replace('act_', '')}/adimages`;
+  
   const formData = new FormData();
-  // Para upload, o token vai no body do FormData. A fetchGraphAPI irá adicioná-lo.
   formData.append('source', imageFile as Blob, imageFile.name);
 
-  // **CORREÇÃO**: A fetchGraphAPI foi ajustada para lidar com FormData
+  // Usa o fetchGraphAPI para o upload, que já lida com o token
   const data = await fetchGraphAPI(adImagesUrl, accessToken, "Image Upload", 'POST', formData);
 
   if (!data.images?.[imageFile.name]?.hash) {
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
 
     try {
         const metaConnection = await getMetaConnection();
-        // **CORREÇÃO CRÍTICA**: Usar o userAccessToken para todas as chamadas de anúncios
         const accessToken = metaConnection.userAccessToken;
 
         if (!metaConnection.isConnected || !accessToken) {
@@ -43,14 +41,12 @@ export async function GET(request: NextRequest) {
         }
 
         const campaignsUrl = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,budget_remaining`;
-        // Passando o userAccessToken para a chamada da API
         const campaignsData = await fetchGraphAPI(campaignsUrl, accessToken, "List Campaigns");
         
         const campaigns = campaignsData.data || [];
 
         const campaignsWithInsights = await Promise.all(campaigns.map(async (campaign: any) => {
             const insightsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/insights?fields=impressions,clicks,spend,actions,action_values&date_preset=maximum`;
-            // Passando o userAccessToken para a chamada de insights
             const insightsData = await fetchGraphAPI(insightsUrl, accessToken, `Fetch Insights for Campaign ${campaign.id}`);
             const insights = insightsData.data?.[0] || {};
             
@@ -97,7 +93,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const metaConnection = await getMetaConnection();
-    // **CORREÇÃO CRÍTICA**: Usar o userAccessToken para todas as chamadas de criação/gerenciamento de anúncios
     const accessToken = metaConnection.userAccessToken;
     const pageId = metaConnection.facebookPageId; 
 

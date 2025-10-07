@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         throw e;
     }
 
-    const pageAccessToken = pageWithIg.access_token; // Este é o token da página, que também pode ser de longa duração
+    const pageAccessToken = pageWithIg.access_token;
     const instagramAccount = pageWithIg.instagram_business_account;
 
     // 4. Obter detalhes da página (followers, picture), usando o Page Access Token específico
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     
     // 5. Salvar os dados no banco de dados
     const metaData = {
-        userAccessToken: userAccessToken, // SALVAR O TOKEN DE USUÁRIO DE LONGA DURAÇÃO
+        userAccessToken: userAccessToken,
         pageToken: pageAccessToken,
         facebookPageId: pageWithIg.id,
         facebookPageName: pageWithIg.name,
@@ -95,7 +95,6 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
     
-    // Log para depuração, conforme solicitado
     console.log("[DEBUG_CALLBACK] Saving to DB, userAccessToken (last 10):", metaData.userAccessToken?.slice(-10));
     await updateMetaConnection(metaData);
 
