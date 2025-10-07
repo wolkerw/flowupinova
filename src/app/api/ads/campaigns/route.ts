@@ -10,8 +10,8 @@ import { createCampaign, createAdSet, createAdCreative, createAd, publishAd } fr
 async function uploadImage(adAccountId: string, accessToken: string, imageFile: File) {
   const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId}/adimages`;
   const formData = new FormData();
+  // Atenção: O access_token deve ser o primeiro campo no FormData para uploads
   formData.append('access_token', accessToken);
-  // A API da Meta espera 'source' para o upload do arquivo
   formData.append('source', imageFile as Blob, imageFile.name);
 
   try {
@@ -46,10 +46,11 @@ export async function GET(request: NextRequest) {
 
     try {
         const metaConnection = await getMetaConnection();
+        // Usando o USER ACCESS TOKEN para todas as chamadas relacionadas a anúncios
         const accessToken = metaConnection.userAccessToken;
 
         if (!metaConnection.isConnected || !accessToken) {
-            throw new Error("Conexão com a Meta não está ativa ou o token de acesso não está disponível.");
+            throw new Error("Conexão com a Meta não está ativa ou o token de acesso de usuário não está disponível.");
         }
 
         const campaignsUrl = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,budget_remaining`;
@@ -106,13 +107,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const metaConnection = await getMetaConnection();
+    // Usando o USER ACCESS TOKEN para todas as chamadas de criação/gerenciamento de anúncios
     const accessToken = metaConnection.userAccessToken;
+    const pageId = metaConnection.facebookPageId; // Page ID ainda é necessário para o criativo
 
-    if (!metaConnection.isConnected || !accessToken || !metaConnection.facebookPageId) {
-      throw new Error("Conexão com a Meta não está ativa, o token de acesso ou o ID da Página não estão disponíveis.");
+    if (!metaConnection.isConnected || !accessToken || !pageId) {
+      throw new Error("Conexão com a Meta não está ativa, o token de acesso de usuário ou o ID da Página não estão disponíveis.");
     }
-    const pageId = metaConnection.facebookPageId;
-
+    
     // ETAPA 1: Criar a Campanha
     const campaignId = await createCampaign(adAccountId, accessToken, objective);
 
@@ -120,13 +122,13 @@ export async function POST(request: NextRequest) {
     const adSetId = await createAdSet(adAccountId, accessToken, campaignId, budget, audience, objective);
 
     // ETAPA 3: Fazer o upload da imagem para obter o hash
-    const imageHash = await uploadImage(adAccountId, accessToken, imageFile);
+    const imageHash = await uploadImage(`act_${adAccountId.replace('act_', '')}`, accessToken, imageFile);
 
     // ETAPA 4: Criar o Ad Creative
-    const creativeId = await createAdCreative(adAccountId, accessToken, pageId, creative.message, creative.link, imageHash);
+    const creativeId = await createAdCreative(`act_${adAccountId.replace('act_', '')}`, accessToken, pageId, creative.message, creative.link, imageHash);
     
     // ETAPA 5: Criar o Anúncio
-    const adId = await createAd(adAccountId, accessToken, adSetId, creativeId);
+    const adId = await createAd(`act_${adAccountId.replace('act_', '')}`, accessToken, adSetId, creativeId);
 
     // ETAPA 6: Publicar o Anúncio
     await publishAd(adId, accessToken);
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("[CAMPAIGN_API_ERROR]", error.message);
+    console.error("[CAMPAIGN_API_ERROR]", error.message, error.stack);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

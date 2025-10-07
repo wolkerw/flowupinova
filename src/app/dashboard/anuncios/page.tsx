@@ -72,42 +72,63 @@ export default function Anuncios() {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [selectedAccountForView, setSelectedAccountForView] = useState<string | null>(null);
 
  useEffect(() => {
-    const fetchInitialData = async () => {
-        setLoadingCampaigns(true);
+    const fetchAdAccounts = async () => {
+        setLoadingAccounts(true);
         try {
-            // 1. Fetch Ad Accounts
-            const accountsResponse = await fetch('/api/ads/accounts');
-            const accountsData = await accountsResponse.json();
-
-            if (accountsData.success && accountsData.accounts.length > 0) {
-                const firstAccountId = accountsData.accounts[0].id;
-
-                // 2. Fetch Campaigns for the first Ad Account
-                const campaignsResponse = await fetch(`/api/ads/campaigns?adAccountId=${firstAccountId}`);
-                const campaignsData = await campaignsResponse.json();
-
-                if (campaignsData.success) {
-                    setCampaigns(campaignsData.campaigns);
-                } else {
-                     toast({
-                        title: "Erro ao buscar campanhas",
-                        description: campaignsData.error || "Não foi possível carregar as campanhas.",
-                        variant: "destructive",
-                    });
+            const response = await fetch('/api/ads/accounts');
+            const data = await response.json();
+            if (data.success && data.accounts.length > 0) {
+                setAdAccounts(data.accounts);
+                // Pré-seleciona a primeira conta para visualização
+                if (!selectedAccountForView) {
+                    setSelectedAccountForView(data.accounts[0].id);
                 }
-            } else if (!accountsData.success) {
+            } else if (!data.success) {
                  toast({
                     title: "Erro ao buscar contas",
-                    description: accountsData.error || "Não foi possível carregar as contas de anúncio.",
+                    description: data.error || "Não foi possível carregar as contas de anúncio.",
+                    variant: "destructive",
+                });
+            }
+        } catch (err: any) {
+             toast({
+                title: "Erro de Rede",
+                description: "Não foi possível conectar ao servidor para buscar as contas.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingAccounts(false);
+        }
+    };
+    fetchAdAccounts();
+  }, [toast, selectedAccountForView]);
+
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+        if (!selectedAccountForView) return;
+
+        setLoadingCampaigns(true);
+        try {
+            const campaignsResponse = await fetch(`/api/ads/campaigns?adAccountId=${selectedAccountForView}`);
+            const campaignsData = await campaignsResponse.json();
+
+            if (campaignsData.success) {
+                setCampaigns(campaignsData.campaigns);
+            } else {
+                 toast({
+                    title: "Erro ao buscar campanhas",
+                    description: campaignsData.error || "Não foi possível carregar as campanhas.",
                     variant: "destructive",
                 });
             }
         } catch (err: any) {
             toast({
                 title: "Erro de Rede",
-                description: "Não foi possível conectar ao servidor.",
+                description: "Não foi possível conectar ao servidor para buscar campanhas.",
                 variant: "destructive",
             });
         } finally {
@@ -115,39 +136,9 @@ export default function Anuncios() {
         }
     };
 
-    fetchInitialData();
-  }, [toast]);
+    fetchCampaigns();
+  }, [selectedAccountForView, toast]);
 
-
-  useEffect(() => {
-    const fetchAdAccounts = async () => {
-        if (showCampaignWizard) {
-            setLoadingAccounts(true);
-            try {
-                const response = await fetch('/api/ads/accounts');
-                const data = await response.json();
-                if (data.success) {
-                    setAdAccounts(data.accounts);
-                } else {
-                    toast({
-                        title: "Erro ao buscar contas",
-                        description: data.error || "Não foi possível carregar as contas de anúncio.",
-                        variant: "destructive",
-                    });
-                }
-            } catch (err: any)                 {
-                 toast({
-                    title: "Erro de Rede",
-                    description: "Não foi possível conectar ao servidor para buscar as contas.",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoadingAccounts(false);
-            }
-        }
-    };
-    fetchAdAccounts();
-  }, [showCampaignWizard, toast]);
 
   const campaignSteps = [
     { id: 1, title: "Conta", description: "Selecione a conta de anúncios" },
@@ -325,11 +316,29 @@ export default function Anuncios() {
         transition={{ duration: 0.5, delay: 0.4 }}
       >
         <Card className="shadow-lg border-none">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
-              Campanhas Ativas
+              Campanhas
             </CardTitle>
+            {loadingAccounts ? (
+                 <Loader2 className="w-5 h-5 animate-spin" />
+            ) : adAccounts.length > 0 ? (
+                <Select onValueChange={setSelectedAccountForView} value={selectedAccountForView ?? ""}>
+                    <SelectTrigger className="w-[350px]">
+                        <SelectValue placeholder="Selecione uma conta para visualizar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {adAccounts.map(account => (
+                            <SelectItem key={account.id} value={account.id}>
+                                {account.name} ({account.account_id})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            ) : (
+                <p className="text-sm text-red-500">Nenhuma conta de anúncios encontrada.</p>
+            )}
           </CardHeader>
           <CardContent>
             {loadingCampaigns ? (
@@ -408,7 +417,7 @@ export default function Anuncios() {
                 </div>
             ) : (
                 <div className="text-center py-12 text-gray-500">
-                    <p>Nenhuma campanha encontrada para esta conta.</p>
+                    <p>Nenhuma campanha encontrada para a conta selecionada.</p>
                 </div>
             )}
           </CardContent>
@@ -549,9 +558,9 @@ export default function Anuncios() {
                 <div className="space-y-6">
                    <h4 className="text-lg font-semibold">Defina o orçamento e a duração</h4>
                     <div>
-                      <label htmlFor="daily-budget" className="block text-sm font-medium text-gray-700 mb-2">Orçamento Diário (em centavos)</label>
-                      <Input id="daily-budget" type="number" placeholder="5000 (para R$50,00)" value={budget.daily * 100} onChange={e => setBudget(prev => ({ ...prev, daily: parseInt(e.target.value)/100 || 0}))} />
-                      <p className="text-xs text-gray-500 mt-1">Ex: insira 5000 para um orçamento de R$50,00/dia.</p>
+                      <label htmlFor="daily-budget" className="block text-sm font-medium text-gray-700 mb-2">Orçamento Diário (R$)</label>
+                      <Input id="daily-budget" type="number" placeholder="50,00" value={budget.daily} onChange={e => setBudget(prev => ({ ...prev, daily: parseFloat(e.target.value) || 0}))} />
+                      <p className="text-xs text-gray-500 mt-1">Ex: insira 50 para um orçamento de R$50,00/dia.</p>
                     </div>
                      <div>
                       <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 mb-2">Data e Hora de Início</label>
@@ -646,6 +655,3 @@ export default function Anuncios() {
     </div>
   );
 }
-
-
-    

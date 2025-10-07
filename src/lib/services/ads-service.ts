@@ -1,3 +1,4 @@
+
 'use server';
 
 import { fetchGraphAPI } from "./meta-service";
@@ -30,6 +31,10 @@ export async function createAdSet(adAccountId: string, accessToken: string, camp
         geo_locations: { countries: [audience.location || 'BR'] },
         age_min: audience.ageMin || 18,
         age_max: audience.ageMax || 65,
+        publisher_platforms: ["facebook", "instagram"],
+        facebook_positions: ["feed"],
+        instagram_positions: ["stream"],
+        device_platforms: ["mobile", "desktop"],
     };
 
     let optimizationGoal = 'LINK_CLICKS'; // Default
@@ -67,6 +72,7 @@ export async function createAdCreative(adAccountId: string, accessToken: string,
             link: link,
             message: message,
             image_hash: imageHash,
+            call_to_action: { type: 'LEARN_MORE' }
         },
     };
 
