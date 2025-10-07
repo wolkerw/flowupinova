@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    // 1. Trocar código por token de curta duração
+    // 1. Trocar código por token de curta duração (User Access Token)
     const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`;
-    const tokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived token");
+    const tokenData = await fetchGraphAPI(shortLivedTokenUrl, "Step 1: Exchange code for short-lived user token");
     const userAccessToken = tokenData.access_token;
 
-    // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens
+    // 2. Obter Páginas do usuário com seus respectivos Page Access Tokens (usando o User Access Token)
     const pagesListUrl = `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&access_token=${userAccessToken}`;
     const pagesData = await fetchGraphAPI(pagesListUrl, "Step 2: Fetch user pages and linked IG accounts");
     
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         console.log("[DEBUG] No linked Instagram business account found for this page in initial fetch.");
     }
 
-    // 3. Obter detalhes da página (followers, picture)
+    // 3. Obter detalhes da página (followers, picture), usando o Page Access Token específico
     const pageDetailsFields = "followers_count,picture{url}";
     const pageDetailsUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=${pageDetailsFields}&access_token=${pageAccessToken}`;
     const pageDetailsData = await fetchGraphAPI(pageDetailsUrl, "Step 3: Fetch page details (followers, picture)");
