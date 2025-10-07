@@ -1,5 +1,7 @@
+
 // src/app/api/instagram/publish/route.ts
 import { NextResponse, type NextRequest } from "next/server";
+import { getMetaConnection } from "@/lib/services/meta-service";
 
 const GRAPH_API_VERSION = "v20.0";
 const GRAPH_API_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -87,12 +89,20 @@ async function publishInstagramPhoto(igUserId: string, pageToken: string, imageU
 
 export async function POST(request: NextRequest) {
   try {
-    const { igUserId, pageToken, caption, imageUrl } = await request.json();
+    const { caption, imageUrl } = await request.json();
     
-    console.log("[DEBUG_TOKEN] Page Token completo para teste cURL:", pageToken);
+    const metaConnection = await getMetaConnection();
+    const igUserId = metaConnection.instagramAccountId;
+    const pageToken = metaConnection.pageToken;
 
     if (!igUserId || !pageToken || !caption || !imageUrl) {
-      return NextResponse.json({ success: false, error: "Parâmetros faltando. É necessário igUserId, pageToken, caption, e imageUrl." }, { status: 400 });
+      const missing = [
+          !igUserId && "igUserId",
+          !pageToken && "pageToken",
+          !caption && "caption",
+          !imageUrl && "imageUrl",
+      ].filter(Boolean).join(", ");
+      return NextResponse.json({ success: false, error: `Parâmetros faltando. É necessário ${missing}. Verifique a conexão com a Meta.` }, { status: 400 });
     }
 
     const postId = await publishInstagramPhoto(igUserId, pageToken, imageUrl, caption);

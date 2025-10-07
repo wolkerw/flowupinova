@@ -35,8 +35,7 @@ async function publishInstagramPhoto(igUserId: string, pageToken: string, imageU
     
     console.log(`[CRON_PUBLISH] Contêiner ${creationId} criado. Aguardando finalização do processamento...`);
     
-    // Etapa crucial: aguardar o contêiner ficar pronto.
-    while (containerStatus === 'IN_PROGRESS' && attempts < 15) { // Aumentado para ~75 segundos de espera
+    while (containerStatus === 'IN_PROGRESS' && attempts < 15) { 
         await new Promise(resolve => setTimeout(resolve, 5000));
         
         const statusRes = await fetch(`${GRAPH_API_URL}/${creationId}?fields=status_code&access_token=${pageToken}`);
@@ -112,7 +111,7 @@ export async function POST(request: NextRequest) {
         try {
             if (post.platforms.includes("instagram")) {
                 console.log(`[CRON_JOB] Post ${post.id} será publicado no Instagram.`);
-                const fullCaption = `${post.title}\n\n${post.text}`;
+                const fullCaption = `${post.title}\\n\\n${post.text}`;
                 if (!post.imageUrl) {
                     throw new Error(`Publicação no Instagram (post ${post.id}) requer uma imagem (imageUrl).`);
                 }

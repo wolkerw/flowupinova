@@ -5,17 +5,15 @@ import { getMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
 import { NextResponse, type NextRequest } from "next/server";
 import { createCampaign, createAdSet, createAdCreative, createAd, publishCampaign } from "@/lib/services/ads-service";
 
-const GRAPH_API_VERSION = "v20.0";
-
 // Função para fazer o upload de uma imagem e obter o hash
 async function uploadImage(adAccountId: string, accessToken: string, imageFile: File) {
   // A URL para upload de imagem usa o Ad Account ID sem o prefixo 'act_'
   const adImagesUrl = `https://graph.facebook.com/v20.0/${adAccountId.replace('act_', '')}/adimages`;
   const formData = new FormData();
-  // Para upload, o token vai no body do FormData
+  // Para upload, o token vai no body do FormData. A fetchGraphAPI irá adicioná-lo.
   formData.append('source', imageFile as Blob, imageFile.name);
 
-  // A função fetchGraphAPI foi ajustada para lidar com FormData
+  // **CORREÇÃO**: A fetchGraphAPI foi ajustada para lidar com FormData
   const data = await fetchGraphAPI(adImagesUrl, accessToken, "Image Upload", 'POST', formData);
 
   if (!data.images?.[imageFile.name]?.hash) {
@@ -79,7 +77,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();

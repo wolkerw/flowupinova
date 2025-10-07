@@ -1,3 +1,4 @@
+
 // src/app/api/meta/callback/route.ts
 import { NextResponse, type NextRequest } from "next/server";
 import { updateMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
@@ -11,7 +12,6 @@ const APP_SECRET = "944e053d34b162c13408cd00ad276aa2";
 export async function POST(request: NextRequest) {
   const { code } = await request.json();
   const origin = request.headers.get('origin');
-  // O redirecionamento DEVE corresponder exatamente ao configurado no painel de desenvolvedores da Meta
   const redirectUri = `${origin}/dashboard/conteudo`;
 
   if (!code) {
@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
         isConnected: true,
     };
     
+    // Log para depuração, conforme solicitado
+    console.log("[DEBUG_CALLBACK] Saving to DB, userAccessToken (last 10):", metaData.userAccessToken?.slice(-10));
     await updateMetaConnection(metaData);
 
     return NextResponse.json({
@@ -87,9 +89,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[META_CALLBACK_ERROR] Full flow failed:", error);
-    // Tenta definir o status como desconectado no banco de dados em caso de falha
     try {
-        await updateMetaConnection({ isConnected: false, pageToken: "", userAccessToken: "" });
+        await updateMetaConnection({ isConnected: false, userAccessToken: "", pageToken: "" });
     } catch (dbError) {
         console.error("[META_CALLBACK_ERROR] Failed to set DB to disconnected state:", dbError);
     }

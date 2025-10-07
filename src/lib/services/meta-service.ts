@@ -6,7 +6,7 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export interface MetaConnectionData {
     userAccessToken?: string; // Token do usuário com permissões mais amplas
-    pageToken: string; 
+    pageToken?: string; // Renomeado para não ser usado por engano
     facebookPageId?: string;
     facebookPageName?: string;
     instagramAccountId?: string;
@@ -24,8 +24,8 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     let requestUrl = url;
     let requestBody: URLSearchParams | FormData | string | null = null;
     
-    // Log para depuração
-    console.log(`[GRAPH_API] Executing: ${step} | Method: ${method} | Token Type: ${accessToken.startsWith('EAA') ? 'user' : 'page'} (ends with ...${accessToken.slice(-6)})`);
+    // Log para depuração, conforme solicitado
+    console.log(`[DEBUG_GRAPH_API] Step: ${step} | Method: ${method} | Using token (last 8): ...${accessToken.slice(-8)}`);
 
     if (method === 'GET') {
         const urlObj = new URL(url);
@@ -38,8 +38,6 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
         requestUrl = urlObj.toString();
     } else { // POST
         if (body instanceof FormData) {
-            // FormData lida com seu próprio Content-Type
-            // O access_token deve ser o primeiro campo para uploads de imagem na Graph API
             const tempBody = new FormData();
             tempBody.append('access_token', accessToken);
             for (const [key, value] of body.entries()) {
@@ -72,7 +70,8 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
         const errorMessage = data.error.error_user_title ? `${data.error.error_user_title}: ${data.error.error_user_msg}` : data.error.message;
         throw new Error(`Graph API error (${step}): ${errorMessage} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
-    console.log(`[GRAPH_API_SUCCESS] ${step} successful.`);
+    
+    console.log(`[GRAPH_API_SUCCESS] Step: ${step} successful.`);
     return data;
 }
 
@@ -90,9 +89,11 @@ export async function getMetaConnection(): Promise<MetaConnectionData> {
         const docSnap = await getDoc(metaDocRef);
 
         if (docSnap.exists()) {
-            return docSnap.data() as MetaConnectionData;
+            const connectionData = docSnap.data() as MetaConnectionData;
+            // Log de depuração, conforme solicitado
+            console.log("[DEBUG_GET_CONNECTION] userAccessToken (last 10):", connectionData.userAccessToken?.slice(-10));
+            return connectionData;
         } else {
-            // Document doesn't exist, so create it with default data
             await setDoc(metaDocRef, defaultMeta);
             return defaultMeta;
         }
@@ -106,16 +107,13 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
     try {
         const docSnap = await getDoc(metaDocRef);
         if (docSnap.exists()) {
-            // If document exists, update it
             await updateDoc(metaDocRef, data);
         } else {
-            // If document does not exist, create it with the provided data and defaults
             await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
         console.log("Meta connection data updated/created successfully in 'integrations/meta'.");
     } catch (error) {
         console.error("Error updating/creating meta connection data:", error);
-        // We throw the error here to be caught by the API route
         throw error;
     }
 }

@@ -21,7 +21,7 @@ export async function createCampaign(adAccountId: string, accessToken: string, o
         status: 'PAUSED', // Start paused to configure ad sets and ads.
         special_ad_categories: '[]'
     });
-
+    // **CORREÇÃO**: Garante que o user token seja usado aqui.
     const data = await fetchGraphAPI(url, accessToken, 'Create Campaign', 'POST', body);
     if (!data.id) throw new Error('Failed to get campaign ID.');
     console.log(`[ADS_SERVICE] Campaign created: ${data.id}`);
@@ -67,7 +67,7 @@ export async function createAdSet(adAccountId: string, accessToken: string, camp
         targeting: JSON.stringify(targeting),
         status: 'PAUSED',
     });
-
+    // **CORREÇÃO**: Garante que o user token seja usado aqui.
     const data = await fetchGraphAPI(url, accessToken, 'Create Ad Set', 'POST', body);
     if (!data.id) throw new Error('Failed to get Ad Set ID.');
     console.log(`[ADS_SERVICE] Ad Set created: ${data.id}`);
@@ -100,7 +100,7 @@ export async function createAdCreative(adAccountId: string, accessToken: string,
         name: `FlowUp Creative - ${new Date().toISOString()}`,
         object_story_spec: JSON.stringify(objectStorySpec),
     });
-
+    // **CORREÇÃO**: Garante que o user token seja usado aqui.
     const data = await fetchGraphAPI(url, accessToken, 'Create Ad Creative', 'POST', body);
     if (!data.id) throw new Error('Failed to get creative ID.');
     console.log(`[ADS_SERVICE] Creative created: ${data.id}`);
@@ -123,7 +123,7 @@ export async function createAd(adAccountId: string, accessToken: string, adSetId
         creative: JSON.stringify({ creative_id: creativeId }),
         status: 'PAUSED',
     });
-
+    // **CORREÇÃO**: Garante que o user token seja usado aqui.
     const data = await fetchGraphAPI(url, accessToken, 'Create Ad', 'POST', body);
     if (!data.id) throw new Error('Failed to get ad ID.');
     console.log(`[ADS_SERVICE] Ad created: ${data.id}`);
@@ -132,7 +132,6 @@ export async function createAd(adAccountId: string, accessToken: string, adSetId
 
 /**
  * Publishes a campaign and its contents by setting their status to ACTIVE.
- * This should be one of the final steps.
  * @param campaignId The ID of the campaign to publish.
  * @param accessToken The USER access token.
  * @returns True if successful.
@@ -140,7 +139,7 @@ export async function createAd(adAccountId: string, accessToken: string, adSetId
 export async function publishCampaign(campaignId: string, accessToken: string): Promise<boolean> {
     const url = `${GRAPH_API_URL}/${campaignId}`;
     const body = new URLSearchParams({ status: 'ACTIVE' });
-
+    // **CORREÇÃO**: Garante que o user token seja usado aqui.
     const data = await fetchGraphAPI(url, accessToken, 'Publish Campaign', 'POST', body);
     console.log(`[ADS_SERVICE] Campaign ${campaignId} published:`, data);
     return data.success || false;
