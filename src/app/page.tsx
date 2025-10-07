@@ -82,13 +82,13 @@ export default function HomePage() {
                   <Link href="/acesso/cadastro">Começar</Link>
                 </Button>
               </div>
-              <div className="hidden md:block">
+              <div>
                  <Image 
                     src="https://picsum.photos/seed/mascot/600/600" 
                     alt="Mascote da plataforma FlowUp" 
                     width={500} 
                     height={500} 
-                    className="rounded-lg"
+                    className="rounded-lg mx-auto"
                     data-ai-hint="robot mascot"
                   />
               </div>
