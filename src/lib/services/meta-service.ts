@@ -66,7 +66,7 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     const data = await response.json();
 
     if (data.error) {
-        console.error(`[GRAPH_API_ERROR] at ${step}:`, data.error);
+        console.error(`[GRAPH_API_ERROR] ${method} ${requestUrl} ::`, JSON.stringify(data.error));
         const errorMessage = data.error.error_user_title ? `${data.error.error_user_title}: ${data.error.error_user_msg}` : data.error.message;
         throw new Error(`Graph API error (${step}): ${errorMessage} (Code: ${data.error.code}, Type: ${data.error.type})`);
     }
