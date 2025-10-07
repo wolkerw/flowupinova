@@ -144,7 +144,7 @@ export default function Conteudo() {
         'ads_read'
     ];
 
-    const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}`;
+    const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}&auth_type=rerequest`;
 
     window.location.href = metaAuthUrl;
   };
