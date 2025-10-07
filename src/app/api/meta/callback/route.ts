@@ -16,11 +16,14 @@ async function fetchGraphAPI(url: string, step: string, method: 'GET' | 'POST' =
     const accessToken = customAccessToken || ''; // Use custom token if provided
 
     if (method === 'GET') {
-         const separator = url.includes('?') ? '&' : '?';
-         // Only add token if one is provided
-         if (accessToken) {
-            requestUrl = `${url}${separator}access_token=${accessToken}`;
-         }
+        const urlObj = new URL(url);
+        if (body) {
+            body.forEach((value, key) => urlObj.searchParams.append(key, value));
+        }
+        if (accessToken) {
+            urlObj.searchParams.append('access_token', accessToken);
+        }
+        requestUrl = urlObj.toString();
     } else { // POST
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
         const postBody = new URLSearchParams(body || '');
