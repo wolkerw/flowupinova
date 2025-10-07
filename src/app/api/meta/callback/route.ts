@@ -11,6 +11,7 @@ const APP_SECRET = "944e053d34b162c13408cd00ad276aa2";
 export async function POST(request: NextRequest) {
   const { code } = await request.json();
   const origin = request.headers.get('origin');
+  // O redirecionamento DEVE corresponder exatamente ao configurado no painel de desenvolvedores da Meta
   const redirectUri = `${origin}/dashboard/conteudo`;
 
   if (!code) {
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[META_CALLBACK_ERROR] Full flow failed:", error);
+    // Tenta definir o status como desconectado no banco de dados em caso de falha
     try {
         await updateMetaConnection({ isConnected: false, pageToken: "", userAccessToken: "" });
     } catch (dbError) {

@@ -18,15 +18,15 @@ export interface MetaConnectionData {
     isConnected: boolean;
 }
 
-// Helper para chamadas à Graph API
-export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | null = null) {
+// Helper para chamadas à Graph API, agora centralizado.
+export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
     const headers: HeadersInit = {};
     let requestUrl = url;
-    let requestBody: string | null = null;
+    let requestBody: URLSearchParams | FormData | null = null;
     
     if (method === 'GET') {
         const urlObj = new URL(url);
-        if (body) {
+        if (body instanceof URLSearchParams) {
             body.forEach((value, key) => urlObj.searchParams.append(key, value));
         }
         if (accessToken) {
@@ -34,12 +34,18 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
         }
         requestUrl = urlObj.toString();
     } else { // POST
-        headers['Content-Type'] = 'application/x-www-form-urlencoded';
-        const postBody = new URLSearchParams(body || '');
-        if(accessToken) {
-            postBody.append('access_token', accessToken);
+        if (body instanceof FormData) {
+            // FormData lida com seu próprio Content-Type
+            if (accessToken) body.append('access_token', accessToken);
+            requestBody = body;
+        } else {
+            headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            const postBody = new URLSearchParams(body || '');
+            if(accessToken) {
+                postBody.append('access_token', accessToken);
+            }
+            requestBody = postBody;
         }
-        requestBody = postBody.toString();
     }
     
     console.log(`[GRAPH_API] Executing ${step} with method ${method}...`);
@@ -98,7 +104,7 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
             // If document does not exist, create it with the provided data and defaults
             await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
-        console.log("Meta connection data updated/created successfully.");
+        console.log("Meta connection data updated/created successfully in 'integrations/meta'.");
     } catch (error) {
         console.error("Error updating/creating meta connection data:", error);
         // We throw the error here to be caught by the API route
