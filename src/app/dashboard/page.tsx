@@ -75,23 +75,8 @@ export default function Dashboard() {
       if (!responseText) {
           throw new Error("O webhook retornou uma resposta vazia.");
       }
-
-      // Try to parse as JSON. If it fails, treat as plain text.
-      let aiText;
-      try {
-        const data = JSON.parse(responseText);
-        // Adjusted to look for 'text' field, but also handle plain text response
-        aiText = data.text || responseText;
-      } catch (jsonError) {
-         // If parsing fails, we assume the response is plain text.
-         aiText = responseText;
-      }
-
-      if (!aiText) {
-        throw new Error("Não recebi uma resposta válida do webhook.");
-      }
-
-      const aiMessage: Message = { sender: 'ai', text: aiText };
+      
+      const aiMessage: Message = { sender: 'ai', text: responseText };
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (error: any) {
