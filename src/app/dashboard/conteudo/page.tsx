@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -131,13 +132,16 @@ export default function Conteudo() {
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     
     const requiredScopes = [
-        "public_profile",
-        "pages_show_list",
-        "business_management",
-        "pages_manage_posts",
-        "instagram_basic",
-        "instagram_content_publish",
-        "pages_read_engagement"
+        'public_profile', 
+        'email', 
+        'pages_show_list', 
+        'business_management',
+        'pages_manage_posts', 
+        'instagram_basic', 
+        'instagram_content_publish', 
+        'pages_read_engagement',
+        'ads_management',
+        'ads_read'
     ];
 
     const metaAuthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${requiredScopes.join(',')}`;
