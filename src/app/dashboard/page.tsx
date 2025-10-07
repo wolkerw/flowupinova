@@ -39,9 +39,9 @@ const initialMessages: Message[] = [
 ];
 
 export default function Dashboard() {
-  const [prompt, setPrompt = useState("");
-  const [messages, setMessages = useState<Message[]>(initialMessages);
-  const [loading, setLoading = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,7 +49,9 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // We don't want to scroll on input change, only on new messages.
+    // The dependency array is now just `messages`, so this effect
+    // only runs when the messages array changes.
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -83,9 +85,13 @@ export default function Dashboard() {
       let aiText;
       try {
         const data = JSON.parse(responseText);
+        // Adjusted to look for 'text' field
         aiText = data.text;
       } catch (jsonError) {
-        aiText = responseText; // Use the raw text if JSON parsing fails
+         const errorMessage: Message = { sender: 'ai', text: `Erro: a resposta do webhook não é um JSON válido. Resposta recebida: ${responseText}`, isError: true };
+         setMessages(prev => [...prev, errorMessage]);
+         setLoading(false);
+         return;
       }
 
       if (!aiText) {
@@ -227,7 +233,10 @@ export default function Dashboard() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyPress={(e) => {
-                  if (e.key === "Enter") handleSendMessage();
+                  if (e.key === "Enter") {
+                    handleSendMessage();
+                    e.preventDefault(); // Prevents adding a new line in some browsers
+                  }
                 }}
                 disabled={loading}
               />
@@ -376,5 +385,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
