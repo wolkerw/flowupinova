@@ -42,14 +42,12 @@ export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -76,11 +74,10 @@ export default function Dashboard() {
       
       const responseData = await response.json();
       
-      // O webhook retorna um array com um objeto: [{"output": "texto"}]
       const aiText = responseData?.[0]?.output;
 
       if (!aiText) {
-        throw new Error("Não recebi uma resposta válida do webhook.");
+        throw new Error("Não recebi uma resposta válida do webhook. O formato esperado é: `[{\"output\":\"sua resposta\"}]`");
       }
       
       const aiMessage: Message = { sender: 'ai', text: aiText };
@@ -185,7 +182,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64 w-full overflow-y-auto rounded-lg bg-gray-50 p-4 border mb-4">
+            <div ref={chatContainerRef} className="h-64 w-full overflow-y-auto rounded-lg bg-gray-50 p-4 border mb-4">
               <AnimatePresence>
                 {messages.map((message, index) => (
                   <ChatBubble key={index} message={message} />
@@ -209,7 +206,6 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
               )}
-              <div ref={messagesEndRef} />
             </div>
              <div className="relative flex w-full items-center">
               <Input
@@ -370,5 +366,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
