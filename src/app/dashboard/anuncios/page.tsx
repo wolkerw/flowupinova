@@ -196,7 +196,11 @@ export default function Anuncios() {
         
         setShowCampaignWizard(false);
         setCurrentStep(1);
-        fetchCampaigns();
+        if (selectedAccountForView === selectedAdAccount) {
+            fetchCampaigns();
+        } else {
+            setSelectedAccountForView(selectedAdAccount);
+        }
         
     } catch (err: any) {
         toast({
@@ -213,7 +217,7 @@ export default function Anuncios() {
     const numberValue = Number(value) || 0;
     // A API da Meta pode retornar o valor em centavos ou unidades.
     // Uma heurística comum é que se o número for grande e inteiro, provavelmente está em centavos.
-    if (Number.isInteger(numberValue) && numberValue > 1000) {
+    if (Number.isInteger(numberValue) && numberValue > 100000) {
         return (numberValue / 100).toLocaleString('pt-BR', { style: 'currency', currency: currency });
     }
     return numberValue.toLocaleString('pt-BR', { style: 'currency', currency: currency });
