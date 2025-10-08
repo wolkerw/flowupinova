@@ -5,11 +5,32 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Waves, Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
+import { Waves, Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Lightbulb, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 export default function HomePage() {
+  const whyWeExistFeatures = [
+    {
+      icon: Lightbulb,
+      title: "Simplicidade",
+      description: "Fazer marketing sem complicar.",
+      color: "bg-yellow-400",
+    },
+    {
+      icon: Bot,
+      title: "Tecnologia Amigável",
+      description: "IA que fala a língua do empreendedor.",
+      color: "bg-cyan-400",
+    },
+    {
+      icon: Heart,
+      title: "Acessibilidade",
+      description: "Soluções que cabem no seu bolso.",
+      color: "bg-red-400",
+    }
+  ];
+
   const features = [
     {
       icon: Bot,
@@ -79,7 +100,7 @@ export default function HomePage() {
                   Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
                 </p>
                 <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                  <Link href="/acesso/cadastro">Começar</Link>
+                  <Link href="/acesso/cadastro">Começar Grátis</Link>
                 </Button>
               </div>
               <div>
@@ -93,6 +114,40 @@ export default function HomePage() {
               </div>
             </div>
           </motion.div>
+        </section>
+        
+        {/* Why We Exist Section */}
+        <section id="why-we-exist" className="py-20 px-6 bg-[#F8FAFC] overflow-hidden">
+            <div className="container mx-auto">
+                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                    <div className="text-center lg:text-left">
+                        <h2 className="text-4xl font-bold text-slate-800 mb-4">Por que existimos</h2>
+                        <p className="text-slate-600 text-lg mb-8 max-w-xl mx-auto lg:mx-0">
+                            A FlowUp nasceu para democratizar o marketing digital, tornando-o simples e acessível para pequenos empreendedores. Chega de complicação e de sentir que está tudo sozinho – a nossa missão é dar a você as ferramentas mais inteligentes e acessíveis.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                            {whyWeExistFeatures.map((feature) => (
+                                <div key={feature.title}>
+                                    <div className={`mx-auto lg:mx-0 w-16 h-16 rounded-full flex items-center justify-center ${feature.color} mb-3`}>
+                                        <feature.icon className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">{feature.title}</h3>
+                                    <p className="text-slate-500">{feature.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                     <div className="relative h-96 lg:h-full flex items-end justify-center">
+                        <Image 
+                            src="/bora-crescer.png"
+                            alt="Mascote FlowUp dizendo 'Bora crescer juntos?'"
+                            width={450}
+                            height={450}
+                            className="object-contain"
+                        />
+                    </div>
+                </div>
+            </div>
         </section>
 
         {/* How it Works Section */}
