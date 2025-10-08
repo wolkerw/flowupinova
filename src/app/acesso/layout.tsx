@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { motion } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
-import { FlowUpLogo } from '@/components/logo';
+import Image from 'next/image';
 
 export default function AcessoLayout({
   children,
@@ -33,8 +33,8 @@ export default function AcessoLayout({
                 <Card className="w-full max-w-sm shadow-xl border-none overflow-hidden bg-card">
                     <div className="p-6" style={{ background: 'var(--flowup-gradient)' }}>
                          <div className="flex justify-center mb-4">
-                            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm p-2">
-                                <FlowUpLogo className="text-white" />
+                            <div className="w-24 h-8 flex items-center justify-center">
+                                <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
                             </div>
                         </div>
                         <CardHeader className="text-center space-y-2 p-0">

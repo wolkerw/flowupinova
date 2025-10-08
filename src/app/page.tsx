@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FlowUpLogo } from '@/components/logo';
 
 export default function HomePage() {
   const features = [
@@ -41,10 +40,7 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8">
-              <FlowUpLogo />
-            </div>
-            <span className="font-bold text-xl text-gray-900">FlowUp</span>
+            <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
@@ -217,10 +213,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20">
-                  <FlowUpLogo className="text-white" />
-                </div>
-                <span className="font-bold text-xl">FlowUp</span>
+                <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="#" className="text-gray-400 hover:text-white">Termos</Link>

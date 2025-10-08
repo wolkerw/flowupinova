@@ -5,6 +5,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import Image from "next/image";
 
 import {
   LayoutDashboard,
@@ -44,7 +45,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FlowUpLogo } from "@/components/logo";
 
 
 const allNavigationItems = [
@@ -110,13 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar className="border-r border-gray-200/60 bg-white">
           <SidebarHeader className="border-b border-gray-100 p-6">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10">
-                <FlowUpLogo />
-              </div>
-              <div>
-                <h2 className="font-bold text-gray-900 text-lg">FlowUp</h2>
-                <p className="text-xs text-gray-500">Marketing Digital</p>
-              </div>
+              <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
             </Link>
           </SidebarHeader>
 
