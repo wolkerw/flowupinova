@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,29 +22,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-      if (user) {
-        // Se o usuário estiver logado e na página de acesso, redireciona para o dashboard
-        if (window.location.pathname.startsWith('/acesso')) {
-          router.push('/dashboard');
-        }
-      }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
+
+  useEffect(() => {
+    // Não executa a lógica de redirecionamento se ainda estiver carregando
+    if (loading) return;
+
+    const isAuthPage = pathname.startsWith('/acesso');
+    const isHomePage = pathname === '/';
+
+    if (user) {
+      // Se o usuário está logado e em uma página de autenticação, redireciona para o dashboard
+      if (isAuthPage) {
+        router.push('/dashboard');
+      }
+    } else {
+      // Se o usuário não está logado, redireciona para a página de acesso,
+      // a menos que ele já esteja em uma página pública (home ou acesso).
+      if (!isAuthPage && !isHomePage) {
+        router.push('/acesso');
+      }
+    }
+  }, [user, loading, router, pathname]);
 
   const signUpWithEmail = async (name: string, email: string, pass: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
       setUser(auth.currentUser); 
-      router.push('/dashboard');
+      // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
       console.error("Erro ao criar conta:", error.code);
       let errorMessage = "Ocorreu um erro desconhecido ao criar a conta.";
@@ -70,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithEmail = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      router.push('/dashboard');
+      // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.code);
       let errorMessage = "Ocorreu um erro desconhecido ao tentar fazer login.";
@@ -97,8 +113,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      router.push('/acesso');
-    } catch (error: any) {
+      // O useEffect cuidará do redirecionamento
+    } catch (error: any)
+{
       console.error("Erro ao fazer logout:", error);
        toast({
         variant: "destructive",
@@ -110,14 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = { user, loading, signUpWithEmail, loginWithEmail, logout };
 
-  useEffect(() => {
-    if (!loading && !user && !window.location.pathname.startsWith('/acesso')) {
-        router.push('/acesso');
-    }
-  }, [user, loading, router]);
-
-
-  if (loading && (typeof window === 'undefined' || !window.location.pathname.startsWith('/acesso'))) {
+  // Mostra um loader em páginas protegidas enquanto o estado de auth está sendo verificado
+  if (loading && !pathname.startsWith('/acesso') && pathname !== '/') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

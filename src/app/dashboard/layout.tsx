@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 
 import {
@@ -90,14 +90,9 @@ const allNavigationItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/acesso');
-    }
-  }, [user, loading, router]);
-
+  
+  // A lógica de redirecionamento agora está centralizada no AuthProvider.
+  // Apenas renderizamos o loader se o estado ainda estiver carregando.
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
