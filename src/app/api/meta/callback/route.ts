@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getMetaConnection, updateMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
-import { META_APP_ID, META_APP_SECRET } from "@/lib/config";
+import { META_APP_ID, META_APP_SECRET, META_REDIRECT_URI } from "@/lib/config";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v20.0";
 
@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   
-  // A URI de redirecionamento deve ser construída dinamicamente para garantir consistência.
-  const redirectUri = `${new URL(request.url).origin}/api/meta/callback`;
+  // A URI de redirecionamento agora é importada do arquivo de configuração para garantir consistência.
+  const redirectUri = META_REDIRECT_URI;
 
   if (!META_APP_ID || !META_APP_SECRET) {
     console.error("[META_CB] Missing Meta App credentials in config file.");

@@ -28,7 +28,7 @@ import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
-import { META_APP_ID } from "@/lib/config";
+import { META_APP_ID, META_REDIRECT_URI } from "@/lib/config";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -75,9 +75,8 @@ export default function Conteudo() {
   };
 
   const handleConnectMeta = () => {
-    // A URL de redirecionamento é construída dinamicamente no lado do cliente
-    // para garantir que seja sempre a correta para o ambiente atual.
-    const redirectUri = `${window.location.origin}/api/meta/callback`;
+    // A URL de redirecionamento agora vem do arquivo de configuração central.
+    const redirectUri = META_REDIRECT_URI;
     
     const scopes = [
       "pages_show_list",
