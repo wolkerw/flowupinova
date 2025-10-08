@@ -1,41 +1,63 @@
 
+// src/app/api/meta/callback/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import { getMetaConnection, updateMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
+import { updateMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
 import { META_APP_ID, META_APP_SECRET, META_REDIRECT_URI } from "@/lib/config";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v20.0";
 
+// Garante que a rota seja executada no Node.js runtime e não no Edge,
+// e que seja sempre dinâmica para evitar cache.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Em um ambiente de produção, isso seria um Redis ou banco de dados para evitar "dupla troca".
+// Para desenvolvimento, um Set em memória é suficiente.
+const seenCodes = new Set<string>();
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
-  
-  // A URI de redirecionamento agora é importada do arquivo de configuração para garantir consistência.
-  const redirectUri = META_REDIRECT_URI;
+  const state = searchParams.get("state");
+  const error = searchParams.get("error");
+  const errorDescription = searchParams.get("error_description");
 
-  if (!META_APP_ID || !META_APP_SECRET) {
-    console.error("[META_CB] Missing Meta App credentials in config file.");
-    return NextResponse.redirect(new URL("/dashboard/conteudo?error=config_missing", request.url));
-  }
-
-  if (!code) {
-    const error = searchParams.get("error");
-    const errorDescription = searchParams.get("error_description");
-    console.error(`[META_CB] Auth failed: ${error} - ${errorDescription}`);
+  // Se a Meta retornou um erro explícito (ex: usuário cancelou)
+  if (error) {
+    console.error(`[META_CB] Auth failed explicitly: ${error} - ${errorDescription}`);
     return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${error}&desc=${errorDescription}`, request.url));
   }
 
+  // Validações essenciais
+  if (!code) {
+    return NextResponse.json({ error: "Authorization code not provided." }, { status: 400 });
+  }
+  if (state !== "flowup-auth-state") {
+      return NextResponse.json({ error: "Invalid state parameter." }, { status: 400 });
+  }
+
+  // Evita a "dupla troca" do mesmo código
+  if (seenCodes.has(code)) {
+    console.warn("[META_CB] Attempted to redeem an already used authorization code.");
+    return NextResponse.redirect(new URL("/dashboard/conteudo?error=code_already_used", request.url));
+  }
+  seenCodes.add(code);
+  
+  // Limpa o Set periodicamente para não consumir memória indefinidamente
+  setTimeout(() => seenCodes.delete(code), 300000); // 5 minutos
+
   try {
-    // Step 1: Exchange code for a short-lived user access token
-    const tokenUrl = `${GRAPH_API_URL}/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&client_secret=${META_APP_SECRET}&code=${code}`;
+    // Etapa 1: Trocar o 'code' por um token de acesso de curta duração
+    const tokenUrl = `${GRAPH_API_URL}/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${META_REDIRECT_URI}&client_secret=${META_APP_SECRET}&code=${code}`;
     const tokenResponse = await fetchGraphAPI(tokenUrl, '', 'Step 1: Exchange code for token');
     const shortLivedUserToken = tokenResponse.access_token;
     
-    // Step 2: Exchange short-lived token for a long-lived one
+    // Etapa 2: Trocar o token de curta duração por um de longa duração
     const longLivedTokenUrl = `${GRAPH_API_URL}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${shortLivedUserToken}`;
     const longLivedTokenResponse = await fetchGraphAPI(longLivedTokenUrl, '', 'Step 2: Exchange for long-lived token');
     const userAccessToken = longLivedTokenResponse.access_token;
 
-    // Step 3: Get user's pages and find one with a linked Instagram account
+    // Etapa 3: Obter as páginas do usuário para encontrar a que tem uma conta do Instagram
     const pagesListUrl = `${GRAPH_API_URL}/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&limit=500`;
     const pagesData = await fetchGraphAPI(pagesListUrl, userAccessToken, "Step 3: Fetch user pages");
 
@@ -51,7 +73,7 @@ export async function GET(request: NextRequest) {
     const { access_token: pageToken, id: facebookPageId, name: facebookPageName, instagram_business_account: igAccount } = pageWithIg;
     const { id: instagramAccountId, username: instagramAccountName } = igAccount;
     
-    // Step 4: Save all data to Firestore
+    // Etapa 4: Salvar todos os dados no Firestore de forma minimalista
     await updateMetaConnection({
         userAccessToken,
         pageToken,
@@ -63,12 +85,14 @@ export async function GET(request: NextRequest) {
     });
 
     console.log("[META_CB] Connection successful. Redirecting to dashboard.");
+    // Redireciona para o dashboard com um indicador de sucesso
     return NextResponse.redirect(new URL("/dashboard/conteudo?connected=true", request.url));
 
-  } catch (error: any) {
-    console.error("[META_CB_FATAL]", error);
+  } catch (err: any) {
+    console.error("[META_CB_FATAL]", err);
+    // Em caso de qualquer erro, garante que a conexão seja marcada como falsa
     await updateMetaConnection({ isConnected: false });
-    // Redirect to the dashboard with a clear error message in the URL
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(error.message)}`, request.url));
+    // Redireciona para o dashboard com uma mensagem de erro clara
+    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(err.message)}`, request.url));
   }
 }

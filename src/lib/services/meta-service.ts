@@ -64,51 +64,58 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
  * @returns The JSON response from the API.
  * @throws An error if the fetch fails at any stage.
  */
-export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
-    const headers: HeadersInit = {
-      'Authorization': `Bearer ${accessToken}`,
-    };
-
+export async function fetchGraphAPI(url: string, accessToken?: string, step?: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
     const config: RequestInit = {
         method,
-        headers,
+        headers: {},
+        cache: 'no-store', // Essencial para chamadas de API OAuth
     };
+    
+    if (accessToken) {
+        (config.headers as HeadersInit)['Authorization'] = `Bearer ${accessToken}`;
+    }
     
     if (body && method === 'POST') {
         config.body = body;
     }
 
     try {
+        console.log(`[GRAPH_API_REQUEST] Step: ${step} | URL: ${url}`);
         const response = await fetch(url, config);
+        
+        // Lê a resposta como texto bruto para evitar erros de parsing de JSON
         const text = await response.text();
         
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            // The response was not valid JSON, likely an HTML error page.
+            // A resposta não era JSON, o que pode ser um erro de HTML da Meta ou falha de rede.
             console.error(`[GRAPH_API_PARSE_ERROR] Step: ${step} | Status: ${response.status} | Response (not JSON):`, text);
-            throw new Error(`A API da Meta retornou uma resposta inesperada (não-JSON) na etapa: ${step}.`);
+            throw new Error(`A API da Meta retornou uma resposta inesperada (não-JSON) na etapa: ${step}. Status: ${response.status}`);
         }
 
         console.log(`[GRAPH_API_RESPONSE] Step: ${step} | Status: ${response.status} | Data:`, JSON.stringify(data));
 
+        // Se a resposta não for OK (status >= 400) ou contiver um objeto de erro
         if (!response.ok || data.error) {
             const errorMessage = data.error?.error_user_title 
                 ? `${data.error.error_user_title}: ${data.error.error_user_msg}` 
-                : data.error?.message || 'Erro desconhecido na API da Meta.';
+                : data.error?.message || `Erro desconhecido na API da Meta em '${step}'.`;
             
             throw new Error(`Erro na API (${step}): ${errorMessage}`);
         }
         
         return data;
 
-    } catch (error) {
-        console.error(`[FETCH_ERROR] A chamada de rede para a Meta falhou na etapa '${step}'. URL: ${url}`, error);
-        // Re-throw a more user-friendly error to be caught by the API route.
-        if (error instanceof Error && error.message.includes('Erro na API')) {
-            throw error;
+    } catch (networkError: any) {
+        console.error(`[FETCH_NETWORK_ERROR] A chamada de rede para a Meta falhou na etapa '${step}'. URL: ${url}`, networkError);
+        
+        // Re-lança o erro para ser pego pelo bloco catch principal na rota da API
+        // Se a mensagem já for um erro da nossa API, propaga. Senão, cria uma nova.
+        if (networkError.message.includes('Erro na API')) {
+            throw networkError;
         }
-        throw new Error(`Falha de comunicação com os servidores da Meta. Verifique sua conexão ou as permissões de rede do ambiente. Etapa: ${step}.`);
+        throw new Error(`Falha de comunicação com os servidores da Meta. Verifique a rede. Etapa: ${step}. Detalhes: ${networkError.message}`);
     }
 }
