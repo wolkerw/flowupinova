@@ -12,18 +12,11 @@ import {
   Megaphone,
   Users,
   BarChart3,
-  Plus,
   Search,
   Bell,
   HelpCircle,
-  User as UserIcon,
-  Waves,
-  Store,
   Building2,
-  Shield,
   LogOut,
-  Eye,
-  X,
   Loader2,
 } from "lucide-react";
 import {
@@ -50,8 +43,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FlowUpLogo } from "@/components/logo";
 
 
 const allNavigationItems = [
@@ -107,23 +100,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen flex w-full bg-gray-50">
         <style>{`
           :root {
-            --flowup-cyan: #7DD3FC;
-            --flowup-blue: #3B82F6;
-            --flowup-blue-dark: #1E40AF;
-            --flowup-blue-darker: #1E3A8A;
-            --flowup-text-dark: #1F2937;
-            --flowup-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
+            --flowup-cyan: #40E0D0;
+            --flowup-blue: #2D8EFF;
+            --flowup-blue-dark: #1B355E;
+            --flowup-gradient: linear-gradient(135deg, #40E0D0 0%, #2D8EFF 100%);
           }
         `}</style>
 
         <Sidebar className="border-r border-gray-200/60 bg-white">
           <SidebarHeader className="border-b border-gray-100 p-6">
             <Link href="/" className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--flowup-gradient)' }}>
-                  <Waves className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-400 rounded-full border-2 border-white"></div>
+              <div className="w-10 h-10">
+                <FlowUpLogo />
               </div>
               <div>
                 <h2 className="font-bold text-gray-900 text-lg">FlowUp</h2>

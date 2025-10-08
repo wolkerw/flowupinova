@@ -1,12 +1,14 @@
+
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Waves, Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
+import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { FlowUpLogo } from '@/components/logo';
 
 export default function HomePage() {
   const features = [
@@ -39,8 +41,8 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--flowup-gradient)' }}>
-              <Waves className="w-5 h-5 text-white" />
+            <div className="w-8 h-8">
+              <FlowUpLogo />
             </div>
             <span className="font-bold text-xl text-gray-900">FlowUp</span>
           </Link>
@@ -216,7 +218,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20">
-                  <Waves className="w-5 h-5 text-white" />
+                  <FlowUpLogo className="text-white" />
                 </div>
                 <span className="font-bold text-xl">FlowUp</span>
             </div>
