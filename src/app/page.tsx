@@ -84,12 +84,11 @@ export default function HomePage() {
               </div>
               <div>
                  <Image 
-                    src="https://picsum.photos/seed/mascot/600/600" 
+                    src="/mascote-flowup.png" 
                     alt="Mascote da plataforma FlowUp" 
                     width={500} 
                     height={500} 
                     className="rounded-lg mx-auto"
-                    data-ai-hint="robot mascot"
                   />
               </div>
             </div>
