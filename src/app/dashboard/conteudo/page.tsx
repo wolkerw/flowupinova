@@ -27,7 +27,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
-import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
+import { getMetaConnection, MetaConnectionData, META_REDIRECT_URI } from "@/lib/services/meta-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -75,7 +75,8 @@ export default function Conteudo() {
 
   const handleConnectMeta = () => {
     const appId = "826418333144156";
-    const redirectUri = "https://studio-7502195980-3983c.web.app/api/meta/callback";
+    // A URI de redirecionamento agora é importada do serviço central
+    const redirectUri = META_REDIRECT_URI;
     const scopes = [
       "pages_show_list",
       "pages_read_engagement",
@@ -207,19 +208,20 @@ export default function Conteudo() {
                         </Badge>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex -space-x-2">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
-                                    <Instagram className="w-4 h-4" />
-                                </div>
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
-                                    <Facebook className="w-4 h-4" />
-                                </div>
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="flex -space-x-2">
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
+                                <Instagram className="w-5 h-5" />
                             </div>
-                            <span className="font-semibold text-gray-800">Contas Meta</span>
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border-2 border-white">
+                                <Facebook className="w-5 h-5" />
+                            </div>
                         </div>
-                        <Button variant="outline" onClick={handleConnectMeta}>
+                         <div>
+                            <p className="font-semibold text-gray-800">Conectar Contas Meta</p>
+                            <p className="text-xs text-gray-500">Instagram & Facebook</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={handleConnectMeta}>
                             <LinkIcon className="w-4 h-4 mr-2" />
                             Conectar
                         </Button>
