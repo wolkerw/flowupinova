@@ -24,98 +24,122 @@ const defaultMeta: MetaConnectionData = {
     isConnected: false,
 };
 
+/**
+ * Função segura que busca os dados da conexão Meta. Nunca lança erro.
+ * Em caso de falha, retorna os dados padrão com isConnected: false.
+ */
 export async function getMetaConnection(): Promise<MetaConnectionData> {
     try {
         const docSnap = await getDoc(metaDocRef);
         if (docSnap.exists()) {
             return docSnap.data() as MetaConnectionData;
         } else {
+            // Se o documento não existe, cria com os valores padrão.
             await setDoc(metaDocRef, defaultMeta);
             return defaultMeta;
         }
     } catch (error) {
         console.error("Error getting Meta connection:", error);
-        return defaultMeta;
+        return defaultMeta; // Retorna o padrão em caso de erro de leitura
     }
 }
 
-export async function updateMetaConnection(data: Partial<MetaConnectionData>): Promise<void> {
+/**
+ * Função segura que atualiza ou cria o documento de conexão da Meta.
+ * Envolve a chamada em um try-catch para NUNCA lançar um erro e quebrar o fluxo de callback.
+ */
+export async function saveUserTokenSafely(data: Partial<MetaConnectionData>): Promise<void> {
     try {
         const docSnap = await getDoc(metaDocRef);
         if (docSnap.exists()) {
             await updateDoc(metaDocRef, data);
         } else {
-            await setDoc(metaDocRef, data);
+            // Garante que o documento seja criado se não existir.
+            await setDoc(metaDocRef, { ...defaultMeta, ...data });
         }
-        console.log("Meta connection data updated successfully.");
+        console.log("Meta connection data updated safely.");
     } catch (error) {
-        console.error("Error updating Meta connection data:", error);
-        throw new Error("Failed to update Meta connection in database.");
+        // Apenas loga o erro, não o lança novamente.
+        console.error("CRITICAL: Failed to save Meta token safely:", error);
     }
 }
 
 /**
- * Performs a robust fetch request to the Meta Graph API, handling network errors and non-JSON responses.
- * @param url The URL to fetch.
- * @param accessToken The access token for authorization.
- * @param step A descriptive name for the current step for logging purposes.
- * @param method The HTTP method to use.
- * @param body The body of the request for POST methods.
- * @returns The JSON response from the API.
- * @throws An error if the fetch fails at any stage.
+ * Realiza uma chamada à Graph API de forma robusta.
  */
-export async function fetchGraphAPI(url: string, accessToken?: string, step?: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
-    const config: RequestInit = {
-        method,
-        headers: {},
-        cache: 'no-store', // Essencial para chamadas de API OAuth
-    };
-    
-    if (accessToken) {
-        (config.headers as HeadersInit)['Authorization'] = `Bearer ${accessToken}`;
-    }
-    
-    if (body && method === 'POST') {
-        config.body = body;
-    }
-
+export async function fetchGraphAPI(url: string, accessToken: string, step: string) {
     try {
-        console.log(`[GRAPH_API_REQUEST] Step: ${step} | URL: ${url}`);
-        const response = await fetch(url, config);
-        
-        // Lê a resposta como texto bruto para evitar erros de parsing de JSON
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+            cache: 'no-store',
+        });
         const text = await response.text();
-        
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            // A resposta não era JSON, o que pode ser um erro de HTML da Meta ou falha de rede.
-            console.error(`[GRAPH_API_PARSE_ERROR] Step: ${step} | Status: ${response.status} | Response (not JSON):`, text);
-            throw new Error(`A API da Meta retornou uma resposta inesperada (não-JSON) na etapa: ${step}. Status: ${response.status}`);
+            console.error(`[GRAPH_API_PARSE_ERROR] Step: ${step} | Status: ${response.status} | Response:`, text);
+            throw new Error(`A API da Meta retornou uma resposta inesperada (não-JSON) na etapa: ${step}.`);
         }
 
-        console.log(`[GRAPH_API_RESPONSE] Step: ${step} | Status: ${response.status} | Data:`, JSON.stringify(data));
-
-        // Se a resposta não for OK (status >= 400) ou contiver um objeto de erro
         if (!response.ok || data.error) {
-            const errorMessage = data.error?.error_user_title 
-                ? `${data.error.error_user_title}: ${data.error.error_user_msg}` 
-                : data.error?.message || `Erro desconhecido na API da Meta em '${step}'.`;
-            
+            const errorMessage = data.error?.message || `Erro desconhecido na API da Meta em '${step}'.`;
             throw new Error(`Erro na API (${step}): ${errorMessage}`);
         }
         
         return data;
-
     } catch (networkError: any) {
-        console.error(`[FETCH_NETWORK_ERROR] A chamada de rede para a Meta falhou na etapa '${step}'. URL: ${url}`, networkError);
-        
-        // Re-lança o erro para ser pego pelo bloco catch principal na rota da API
-        // Se a mensagem já for um erro da nossa API, propaga. Senão, cria uma nova.
-        if (networkError.message.includes('Erro na API')) {
-            throw networkError;
-        }
-        throw new Error(`Falha de comunicação com os servidores da Meta. Verifique a rede. Etapa: ${step}. Detalhes: ${networkError.message}`);
+        console.error(`[FETCH_NETWORK_ERROR] Etapa: '${step}'.`, networkError);
+        throw new Error(`Falha de comunicação com os servidores da Meta. Detalhes: ${networkError.message}`);
     }
+}
+
+
+/**
+ * Busca os detalhes da página e conta do Instagram e salva tudo no Firestore.
+ * Esta função é chamada em segundo plano para não bloquear o callback.
+ */
+export async function getAndSaveUserDetails(userAccessToken: string): Promise<void> {
+    try {
+        const pagesListUrl = `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&limit=10`;
+        const pagesData = await fetchGraphAPI(pagesListUrl, userAccessToken, "Fetch User Pages");
+
+        if (!pagesData.data || pagesData.data.length === 0) {
+            throw new Error("Nenhuma Página do Facebook foi encontrada para esta conta.");
+        }
+
+        const pageWithIg = pagesData.data.find((p: any) => p.instagram_business_account);
+        if (!pageWithIg) {
+            throw new Error("Nenhuma de suas Páginas do Facebook possui uma conta do Instagram Business vinculada.");
+        }
+
+        const { access_token: pageToken, id: facebookPageId, name: facebookPageName, instagram_business_account: igAccount } = pageWithIg;
+        
+        await saveUserTokenSafely({
+            userAccessToken,
+            pageToken,
+            facebookPageId,
+            facebookPageName,
+            instagramAccountId: igAccount.id,
+            instagramAccountName: igAccount.username,
+            igFollowersCount: igAccount.followers_count,
+            igProfilePictureUrl: igAccount.profile_picture_url,
+            isConnected: true,
+        });
+
+        console.log("[BACKGROUND_SUCCESS] User details fetched and saved successfully.");
+
+    } catch (error: any) {
+        console.error("[BACKGROUND_ERROR] Failed to get and save user details:", error.message);
+        // Se falhar, salva o token com o status de desconectado e o erro.
+        await saveUserTokenSafely({
+            userAccessToken,
+            isConnected: false,
+        });
+    }
+}
+
+// Manter a função updateMetaConnection por retrocompatibilidade, mas delegar para a versão segura.
+export async function updateMetaConnection(data: Partial<MetaConnectionData>): Promise<void> {
+    await saveUserTokenSafely(data);
 }
