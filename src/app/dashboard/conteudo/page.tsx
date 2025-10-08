@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
+import { META_APP_ID } from "@/lib/config";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -74,8 +75,7 @@ export default function Conteudo() {
   };
 
   const handleConnectMeta = () => {
-    const appId = "826418333144156";
-    // A URL de redirecionamento deve ser construída dinamicamente no lado do cliente
+    // A URL de redirecionamento é construída dinamicamente no lado do cliente
     // para garantir que seja sempre a correta para o ambiente atual.
     const redirectUri = `${window.location.origin}/api/meta/callback`;
     
@@ -91,7 +91,7 @@ export default function Conteudo() {
       "ads_management"
     ].join(",");
 
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=flowup-auth-state&scope=${scopes}&auth_type=rerequest&display=popup`;
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=flowup-auth-state&scope=${scopes}&auth_type=rerequest&display=popup`;
     window.location.href = authUrl;
   };
 
@@ -314,5 +314,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    

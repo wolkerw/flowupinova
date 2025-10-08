@@ -89,5 +89,3 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
         throw error; // Re-throw the error to be handled by the caller
     }
 }
-
-    

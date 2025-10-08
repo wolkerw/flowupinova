@@ -1,19 +1,19 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getMetaConnection, updateMetaConnection, fetchGraphAPI } from "@/lib/services/meta-service";
+import { META_APP_ID, META_APP_SECRET } from "@/lib/config";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v20.0";
-const APP_ID = process.env.META_APP_ID;
-const APP_SECRET = process.env.META_APP_SECRET;
-// A URI de redirecionamento é lida das variáveis de ambiente para garantir consistência.
-const REDIRECT_URI = process.env.META_REDIRECT_URI;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  
+  // A URI de redirecionamento deve ser construída dinamicamente para garantir consistência.
+  const redirectUri = `${new URL(request.url).origin}/api/meta/callback`;
 
-  if (!APP_ID || !APP_SECRET || !REDIRECT_URI) {
-    console.error("[META_CB] Missing Meta App credentials in environment variables.");
+  if (!META_APP_ID || !META_APP_SECRET) {
+    console.error("[META_CB] Missing Meta App credentials in config file.");
     return NextResponse.redirect(new URL("/dashboard/conteudo?error=config_missing", request.url));
   }
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Step 1: Exchange code for a short-lived user access token
-    const tokenUrl = `${GRAPH_API_URL}/oauth/access_token?client_id=${APP_ID}&redirect_uri=${REDIRECT_URI}&client_secret=${APP_SECRET}&code=${code}`;
+    const tokenUrl = `${GRAPH_API_URL}/oauth/access_token?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&client_secret=${META_APP_SECRET}&code=${code}`;
     const tokenResponse = await fetch(tokenUrl).then(res => res.json());
 
     if (tokenResponse.error) throw new Error(`Step 1 (short-lived token): ${tokenResponse.error.message}`);
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 
     // Step 2: Exchange short-lived token for a long-lived one
-    const longLivedTokenUrl = `${GRAPH_API_URL}/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${shortLivedUserToken}`;
+    const longLivedTokenUrl = `${GRAPH_API_URL}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${shortLivedUserToken}`;
     const longLivedTokenResponse = await fetch(longLivedTokenUrl).then(res => res.json());
 
     if (longLivedTokenResponse.error) throw new Error(`Step 2 (long-lived token): ${longLivedTokenResponse.error.message}`);
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     console.log("[META_CB] step2 long-lived token tail:", (userAccessToken || "").slice(-10));
     
     // Debug the token to check scopes
-    const dbgUrl = `https://graph.facebook.com/debug_token?input_token=${userAccessToken}&access_token=${APP_ID}|${APP_SECRET}`;
+    const dbgUrl = `https://graph.facebook.com/debug_token?input_token=${userAccessToken}&access_token=${META_APP_ID}|${META_APP_SECRET}`;
     const dbg = await fetch(dbgUrl).then(r => r.json()).catch(e => ({ error: String(e) }));
     console.log("[META_CB] debug_token:", JSON.stringify(dbg));
 
@@ -100,5 +100,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(error.message)}`, request.url));
   }
 }
-
-    
