@@ -81,8 +81,8 @@ export default function HomePage() {
               </div>
               <div>
                  <Image 
-                    src="/mascote-flowup.png" 
-                    alt="Mascote da plataforma FlowUp" 
+                    src="/mascote-flowy.svg" 
+                    alt="Mascote Flowy da FlowUp" 
                     width={500} 
                     height={500} 
                     className="rounded-lg mx-auto"
