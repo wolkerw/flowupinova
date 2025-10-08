@@ -21,7 +21,16 @@ export interface MetaConnectionData {
 const metaDocRef = doc(db, "integrations", "meta");
 
 // Esta é a única URI que será usada para o redirecionamento do OAuth.
-export const META_REDIRECT_URI = "https://studio-7502195980-3983c.web.app/api/meta/callback";
+const META_REDIRECT_URI = "https://studio-7502195980-3983c.web.app/api/meta/callback";
+
+/**
+ * Retorna a URI de redirecionamento do OAuth da Meta.
+ * @returns A URI de redirecionamento.
+ */
+export async function getMetaRedirectURI(): Promise<string> {
+    return META_REDIRECT_URI;
+}
+
 
 const defaultMeta: MetaConnectionData = {
     isConnected: false,

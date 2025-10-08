@@ -27,7 +27,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
-import { getMetaConnection, MetaConnectionData, META_REDIRECT_URI } from "@/lib/services/meta-service";
+import { getMetaConnection, MetaConnectionData, getMetaRedirectURI } from "@/lib/services/meta-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -73,10 +73,9 @@ export default function Conteudo() {
     }
   };
 
-  const handleConnectMeta = () => {
+  const handleConnectMeta = async () => {
     const appId = "826418333144156";
-    // A URI de redirecionamento agora é importada do serviço central
-    const redirectUri = META_REDIRECT_URI;
+    const redirectUri = await getMetaRedirectURI();
     const scopes = [
       "pages_show_list",
       "pages_read_engagement",
