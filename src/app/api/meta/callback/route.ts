@@ -6,7 +6,7 @@ import { META_APP_ID, META_APP_SECRET, META_REDIRECT_URI } from "@/lib/config";
 const GRAPH_API_URL = "https://graph.facebook.com/v20.0";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   
   // A URI de redirecionamento agora é importada do arquivo de configuração para garantir consistência.
