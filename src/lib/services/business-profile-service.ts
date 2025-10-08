@@ -1,4 +1,6 @@
 
+'use server';
+
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
@@ -14,43 +16,57 @@ export interface BusinessProfileData {
     isVerified: boolean;
 }
 
-const profileDocRef = doc(db, "business", "profile");
-
 const defaultProfile: BusinessProfileData = {
     name: "Minha Empresa",
-    category: "Consultoria em Marketing",
-    address: "Rua das Flores, 123 - São Paulo, SP",
-    phone: "(11) 99999-9999",
-    website: "www.minhaempresa.com",
-    description: "Especialistas em marketing digital e estratégias de crescimento para pequenas e médias empresas.",
-    rating: 4.8,
-    totalReviews: 47,
-    isVerified: true
+    category: "Consultoria de Marketing",
+    address: "Seu Endereço",
+    phone: "(00) 00000-0000",
+    website: "www.suaempresa.com.br",
+    description: "Descreva sua empresa aqui.",
+    rating: 0,
+    totalReviews: 0,
+    isVerified: false
 };
 
-export async function getBusinessProfile(): Promise<BusinessProfileData | null> {
+
+function getProfileDocRef(userId: string) {
+    return doc(db, "users", userId, "business", "profile");
+}
+
+export async function getBusinessProfile(userId: string): Promise<BusinessProfileData | null> {
+     if (!userId) {
+        console.error("getBusinessProfile called without userId.");
+        return null;
+    }
     try {
+        const profileDocRef = getProfileDocRef(userId);
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
             return docSnap.data() as BusinessProfileData;
         } else {
-            // Document doesn't exist, so create it with default data
+            // Document doesn't exist, so create it with default data for this user
             await setDoc(profileDocRef, defaultProfile);
-            console.log("Profile document created with default data.");
+            console.log(`Profile document created with default data for user ${userId}.`);
             return defaultProfile;
         }
     } catch (error) {
-        console.error("Error getting business profile:", error);
+        console.error(`Error getting business profile for user ${userId}:`, error);
         return null;
     }
 }
 
-export async function updateBusinessProfile(data: Partial<BusinessProfileData>): Promise<void> {
+export async function updateBusinessProfile(userId: string, data: Partial<BusinessProfileData>): Promise<void> {
+    if (!userId) {
+        console.error("updateBusinessProfile called without userId.");
+        return;
+    }
     try {
-        await updateDoc(profileDocRef, data);
-        console.log("Business profile updated successfully.");
+        const profileDocRef = getProfileDocRef(userId);
+        // Use set with merge to create or update
+        await setDoc(profileDocRef, data, { merge: true });
+        console.log(`Business profile updated successfully for user ${userId}.`);
     } catch (error) {
-        console.error("Error updating business profile:", error);
+        console.error(`Error updating business profile for user ${userId}:`, error);
     }
 }

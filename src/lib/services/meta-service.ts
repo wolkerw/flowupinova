@@ -18,59 +18,70 @@ export interface MetaConnectionData {
     isConnected: boolean;
 }
 
-const metaDocRef = doc(db, "integrations", "meta");
-
-const defaultMeta: MetaConnectionData = {
+const defaultMeta: Omit<MetaConnectionData, 'userAccessToken'> = {
     isConnected: false,
 };
 
 /**
- * Função segura que busca os dados da conexão Meta. Nunca lança erro.
- * Em caso de falha, retorna os dados padrão com isConnected: false.
+ * Retrieves the Meta connection data for a specific user.
+ * This function is safe and will never throw an error.
+ * @param userId The UID of the user.
+ * @returns The user's Meta connection data, or default values if not found or on error.
  */
-export async function getMetaConnection(): Promise<MetaConnectionData> {
+export async function getMetaConnection(userId: string): Promise<MetaConnectionData> {
+    if (!userId) {
+        console.error("getMetaConnection called without a userId.");
+        return { ...defaultMeta };
+    }
     try {
+        const metaDocRef = doc(db, "users", userId, "integrations", "meta");
         const docSnap = await getDoc(metaDocRef);
+
         if (docSnap.exists()) {
             return docSnap.data() as MetaConnectionData;
         } else {
-            // Se o documento não existe, cria com os valores padrão.
-            await setDoc(metaDocRef, defaultMeta);
-            return defaultMeta;
+            // If the document doesn't exist, create it with default values.
+            await setDoc(metaDocRef, defaultMeta, { merge: true });
+            return { ...defaultMeta };
         }
     } catch (error) {
-        console.error("Error getting Meta connection:", error);
-        return defaultMeta; // Retorna o padrão em caso de erro de leitura
+        console.error(`Error getting Meta connection for user ${userId}:`, error);
+        return { ...defaultMeta }; // Return default on read error
     }
 }
 
 /**
- * Função segura que atualiza ou cria o documento de conexão da Meta.
- * Envolve a chamada em um try-catch para NUNCA lançar um erro e quebrar o fluxo de callback.
+ * Safely updates or creates the Meta connection document for a specific user.
+ * This function will never throw an error to prevent breaking critical auth flows.
+ * @param userId The UID of the user.
+ * @param data The partial data to update.
  */
-export async function saveUserTokenSafely(data: Partial<MetaConnectionData>): Promise<void> {
+export async function saveUserTokenSafely(userId: string, data: Partial<MetaConnectionData>): Promise<void> {
+    if (!userId) {
+        console.error("CRITICAL: saveUserTokenSafely called without a userId.");
+        return;
+    }
     try {
-        const docSnap = await getDoc(metaDocRef);
-        if (docSnap.exists()) {
-            await updateDoc(metaDocRef, data);
-        } else {
-            // Garante que o documento seja criado se não existir.
-            await setDoc(metaDocRef, { ...defaultMeta, ...data });
-        }
-        console.log("Meta connection data updated safely.");
+        const metaDocRef = doc(db, "users", userId, "integrations", "meta");
+        // Use set with merge:true to create or update the document.
+        await setDoc(metaDocRef, data, { merge: true });
+        console.log(`Meta connection data updated safely for user ${userId}.`);
     } catch (error) {
-        // Apenas loga o erro, não o lança novamente.
-        console.error("CRITICAL: Failed to save Meta token safely:", error);
+        // Only log the error, don't re-throw.
+        console.error(`CRITICAL: Failed to save Meta token safely for user ${userId}:`, error);
     }
 }
 
+
 /**
- * Realiza uma chamada à Graph API de forma robusta.
+ * Fetches data from the Graph API robustly.
+ * @param url The full URL for the Graph API endpoint.
+ * @param step A descriptive name for the API call step for logging.
+ * @returns The JSON data from the API.
  */
-export async function fetchGraphAPI(url: string, accessToken: string, step: string) {
+export async function fetchGraphAPI(url: string, step: string) {
     try {
         const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${accessToken}` },
             cache: 'no-store',
         });
         const text = await response.text();
@@ -96,13 +107,19 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
 
 
 /**
- * Busca os detalhes da página e conta do Instagram e salva tudo no Firestore.
- * Esta função é chamada em segundo plano para não bloquear o callback.
+ * Fetches page and Instagram account details and saves them to Firestore for a specific user.
+ * This function is intended to be called in the background.
+ * @param userId The UID of the user.
+ * @param userAccessToken The short-lived or long-lived user access token.
  */
-export async function getAndSaveUserDetails(userAccessToken: string): Promise<void> {
+export async function getAndSaveUserDetails(userId: string, userAccessToken: string): Promise<void> {
+     if (!userId) {
+        console.error("[BACKGROUND_ERROR] getAndSaveUserDetails called without userId.");
+        return;
+    }
     try {
-        const pagesListUrl = `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&limit=10`;
-        const pagesData = await fetchGraphAPI(pagesListUrl, userAccessToken, "Fetch User Pages");
+        const pagesListUrl = `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username,followers_count,profile_picture_url}&limit=10&access_token=${userAccessToken}`;
+        const pagesData = await fetchGraphAPI(pagesListUrl, "Fetch User Pages");
 
         if (!pagesData.data || pagesData.data.length === 0) {
             throw new Error("Nenhuma Página do Facebook foi encontrada para esta conta.");
@@ -115,7 +132,7 @@ export async function getAndSaveUserDetails(userAccessToken: string): Promise<vo
 
         const { access_token: pageToken, id: facebookPageId, name: facebookPageName, instagram_business_account: igAccount } = pageWithIg;
         
-        await saveUserTokenSafely({
+        await saveUserTokenSafely(userId, {
             userAccessToken,
             pageToken,
             facebookPageId,
@@ -127,19 +144,14 @@ export async function getAndSaveUserDetails(userAccessToken: string): Promise<vo
             isConnected: true,
         });
 
-        console.log("[BACKGROUND_SUCCESS] User details fetched and saved successfully.");
+        console.log(`[BACKGROUND_SUCCESS] User details fetched and saved for user ${userId}.`);
 
     } catch (error: any) {
-        console.error("[BACKGROUND_ERROR] Failed to get and save user details:", error.message);
-        // Se falhar, salva o token com o status de desconectado e o erro.
-        await saveUserTokenSafely({
+        console.error(`[BACKGROUND_ERROR] Failed to get and save user details for user ${userId}:`, error.message);
+        // On failure, save the token with disconnected status and the error.
+        await saveUserTokenSafely(userId, {
             userAccessToken,
             isConnected: false,
         });
     }
-}
-
-// Manter a função updateMetaConnection por retrocompatibilidade, mas delegar para a versão segura.
-export async function updateMetaConnection(data: Partial<MetaConnectionData>): Promise<void> {
-    await saveUserTokenSafely(data);
 }

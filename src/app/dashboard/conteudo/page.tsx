@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { META_APP_ID, META_REDIRECT_URI } from "@/lib/config";
+import { useAuth } from "@/components/auth/auth-provider";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -41,41 +42,51 @@ interface DisplayPost extends PostDataOutput {
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    try {
-        const [postsResult, metaResult] = await Promise.all([
-          getScheduledPosts(),
-          getMetaConnection()
-        ]);
+  useEffect(() => {
+    if (!user) return;
 
-        const displayPosts = postsResult.map(post => {
-            const scheduledDate = post.scheduledAt; // Already a Date object
-            return {
-                ...post,
-                date: scheduledDate,
-                time: format(scheduledDate, 'HH:mm'),
-                type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
-            };
-        });
-        setScheduledPosts(displayPosts);
-        setMetaConnection(metaResult);
+    const fetchPosts = async () => {
+        setLoading(true);
+        try {
+            const [postsResult, metaResult] = await Promise.all([
+              getScheduledPosts(user.uid),
+              getMetaConnection(user.uid)
+            ]);
 
-    } catch (error) {
-        console.error("Failed to fetch page data:", error);
-        alert("Não foi possível carregar os dados da página. Tente recarregar.");
-    } finally {
-        setLoading(false);
-    }
-  };
+            const displayPosts = postsResult.map(post => {
+                const scheduledDate = post.scheduledAt; // Already a Date object
+                return {
+                    ...post,
+                    date: scheduledDate,
+                    time: format(scheduledDate, 'HH:mm'),
+                    type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
+                };
+            });
+            setScheduledPosts(displayPosts);
+            setMetaConnection(metaResult);
+
+        } catch (error) {
+            console.error("Failed to fetch page data:", error);
+            alert("Não foi possível carregar os dados da página. Tente recarregar.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchPosts();
+  }, [user]);
 
   const handleConnectMeta = () => {
-    // A URL de redirecionamento agora vem do arquivo de configuração central.
+    if (!user) {
+        alert("Você precisa estar logado para conectar sua conta.");
+        return;
+    }
     const redirectUri = META_REDIRECT_URI;
     
     const scopes = [
@@ -89,16 +100,13 @@ export default function Conteudo() {
       "business_management",
       "ads_management"
     ].join(",");
+    
+    // Inclui o userId no estado para recuperá-lo no callback
+    const authState = `flowup-auth-state:${user.uid}`;
 
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=flowup-auth-state&scope=${scopes}&auth_type=rerequest&display=popup`;
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=${authState}&scope=${scopes}&auth_type=rerequest&display=popup`;
     window.location.href = authUrl;
   };
-
-
-  useEffect(() => {
-    fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   
   const platformIcons: { [key: string]: React.ElementType } = {

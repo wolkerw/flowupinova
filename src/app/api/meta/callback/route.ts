@@ -1,3 +1,4 @@
+
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { saveUserTokenSafely, getAndSaveUserDetails } from "@/lib/services/meta-service";
@@ -11,29 +12,28 @@ export const dynamic = "force-dynamic";
 const seenCodes = new Set<string>();
 
 export async function GET(req: NextRequest) {
-  const u = new URL(req.url);
-  const code = u.searchParams.get("code");
-  const state = u.searchParams.get("state");
+  const { searchParams } = req.nextUrl;
+  const code = searchParams.get("code");
+  const state = searchParams.get("state");
+
+  const [authState, userId] = state?.split(":") || [];
 
   if (!code) {
-    console.error("[META_CB] Auth failed: Missing code parameter.");
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=missing_code`, u.origin));
+    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=missing_code`, req.url));
   }
-  if (state !== "flowup-auth-state") {
-    console.error("[META_CB] Auth failed: State mismatch.");
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=state_mismatch`, u.origin));
+  if (authState !== "flowup-auth-state" || !userId) {
+    console.error("[META_CB] Auth failed: State mismatch or missing userId.");
+    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=state_mismatch`, req.url));
   }
   
   if (seenCodes.has(code)) {
     console.warn("[META_CB] Attempted to redeem an already used authorization code.");
-    return NextResponse.redirect(new URL("/dashboard/conteudo?error=code_already_used", u.origin));
+    return NextResponse.redirect(new URL("/dashboard/conteudo?error=code_already_used", req.url));
   }
   seenCodes.add(code);
-  // Limpa o Set periodicamente para não consumir memória indefinidamente
-  setTimeout(() => seenCodes.delete(code), 5 * 60 * 1000); // 5 minutos
+  setTimeout(() => seenCodes.delete(code), 5 * 60 * 1000); // Limpa o código após 5 minutos
 
   try {
-    // Etapa 1: Troca do code por um token de acesso de curta duração.
     const tokenBody = new URLSearchParams({
       client_id: META_APP_ID,
       client_secret: META_APP_SECRET,
@@ -57,13 +57,11 @@ export async function GET(req: NextRequest) {
     if (!tokenRes.ok || !tokenJson?.access_token) {
       const errorMsg = tokenJson?.error?.message || "token_exchange_failed";
       console.error(`[META_CB] Failed to exchange short-lived token: ${errorMsg}`);
-      return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(errorMsg)}`, u.origin));
+      return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(errorMsg)}`, req.url));
     }
 
     const shortLivedToken = tokenJson.access_token;
     
-    // Etapa 2 (em segundo plano): Troca por token de longa duração e busca de detalhes.
-    // Usamos queueMicrotask para não bloquear a resposta ao usuário.
     queueMicrotask(async () => {
       try {
         const longLivedParams = new URLSearchParams({
@@ -85,24 +83,22 @@ export async function GET(req: NextRequest) {
         
         const finalToken = llJson?.access_token ?? shortLivedToken;
 
-        console.log(`[META_CB][background] Successfully obtained final token. Fetching user details...`);
-        // Agora, com o token final, buscamos os detalhes e salvamos tudo.
-        await getAndSaveUserDetails(finalToken);
+        console.log(`[META_CB][background] Successfully obtained final token for user ${userId}. Fetching user details...`);
+        
+        // Agora com o token final e o userId, buscamos os detalhes.
+        await getAndSaveUserDetails(userId, finalToken);
 
       } catch (e: any) {
-        console.error("[META_CB][background] Fatal error in background task:", e?.message);
-        // Se a tarefa em segundo plano falhar, pelo menos tentamos salvar o token de curta duração.
-        await saveUserTokenSafely({ userAccessToken: shortLivedToken, isConnected: false });
+        console.error(`[META_CB][background] Fatal error in background task for user ${userId}:`, e?.message);
+        await saveUserTokenSafely(userId, { userAccessToken: shortLivedToken, isConnected: false });
       }
     });
 
-    // Etapa 3: Redireciona o usuário imediatamente para o dashboard.
     console.log("[META_CB] Redirecting user to dashboard. Background task initiated.");
-    return NextResponse.redirect(new URL("/dashboard/conteudo?connected=true", u.origin));
+    return NextResponse.redirect(new URL("/dashboard/conteudo?connected=true", req.url));
 
   } catch (err: any) {
     console.error("[META_CB][fatal]", err?.message || err);
-    // Erro fatal de rede ou parsing, redireciona com erro genérico.
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=internal_callback_error`, u.origin));
+    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=internal_callback_error`, req.url));
   }
 }

@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 
 
 interface GeneratedContent {
@@ -51,6 +52,7 @@ export default function GerarConteudoPage() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
   
   const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
     instagram: { enabled: true, publishMode: 'now', dateTime: '' },
@@ -177,7 +179,7 @@ export default function GerarConteudoPage() {
   };
 
   const handleSchedule = async () => {
-    if (!selectedContent || !selectedImage || isPublishing) return;
+    if (!selectedContent || !selectedImage || isPublishing || !user) return;
 
     setIsPublishing(true);
     
@@ -192,7 +194,6 @@ export default function GerarConteudoPage() {
             return;
         }
 
-        // Para este fluxo simplificado, vamos assumir que o primeiro agendamento definido vale para todos.
         const mainScheduleOption = scheduleOptions[enabledPlatforms[0]];
 
         if (mainScheduleOption.publishMode === 'schedule' && !mainScheduleOption.dateTime) {
@@ -201,12 +202,11 @@ export default function GerarConteudoPage() {
             return;
         }
 
-        await schedulePost({
+        await schedulePost(user.uid, {
             title: selectedContent.titulo,
             text: fullCaption,
             imageUrl: selectedImage,
             platforms: enabledPlatforms,
-            // Se for 'now', agendamos para o momento atual.
             scheduledAt: mainScheduleOption.publishMode === 'schedule' ? new Date(mainScheduleOption.dateTime) : new Date(),
         });
 
