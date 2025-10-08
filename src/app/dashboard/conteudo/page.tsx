@@ -27,7 +27,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
-import { getMetaConnection, MetaConnectionData, getMetaRedirectURI } from "@/lib/services/meta-service";
+import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -73,9 +73,12 @@ export default function Conteudo() {
     }
   };
 
-  const handleConnectMeta = async () => {
+  const handleConnectMeta = () => {
     const appId = "826418333144156";
-    const redirectUri = await getMetaRedirectURI();
+    // A URL de redirecionamento deve ser construída dinamicamente no lado do cliente
+    // para garantir que seja sempre a correta para o ambiente atual.
+    const redirectUri = `${window.location.origin}/api/meta/callback`;
+    
     const scopes = [
       "pages_show_list",
       "pages_read_engagement",
@@ -311,3 +314,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    

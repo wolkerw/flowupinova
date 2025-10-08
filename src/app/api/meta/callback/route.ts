@@ -5,6 +5,7 @@ import { getMetaConnection, updateMetaConnection, fetchGraphAPI } from "@/lib/se
 const GRAPH_API_URL = "https://graph.facebook.com/v20.0";
 const APP_ID = process.env.META_APP_ID;
 const APP_SECRET = process.env.META_APP_SECRET;
+// A URI de redirecionamento é lida das variáveis de ambiente para garantir consistência.
 const REDIRECT_URI = process.env.META_REDIRECT_URI;
 
 export async function GET(request: NextRequest) {
@@ -99,3 +100,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${encodeURIComponent(error.message)}`, request.url));
   }
 }
+
+    
