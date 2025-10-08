@@ -30,13 +30,11 @@ export async function getMetaConnection(): Promise<MetaConnectionData> {
         if (docSnap.exists()) {
             return docSnap.data() as MetaConnectionData;
         } else {
-            // Se o documento não existe, crie-o com os valores padrão.
             await setDoc(metaDocRef, defaultMeta);
             return defaultMeta;
         }
     } catch (error) {
         console.error("Error getting Meta connection:", error);
-        // Em caso de erro, retorna o estado padrão para evitar que a aplicação quebre.
         return defaultMeta;
     }
 }
@@ -56,8 +54,17 @@ export async function updateMetaConnection(data: Partial<MetaConnectionData>): P
     }
 }
 
+/**
+ * Performs a robust fetch request to the Meta Graph API, handling network errors and non-JSON responses.
+ * @param url The URL to fetch.
+ * @param accessToken The access token for authorization.
+ * @param step A descriptive name for the current step for logging purposes.
+ * @param method The HTTP method to use.
+ * @param body The body of the request for POST methods.
+ * @returns The JSON response from the API.
+ * @throws An error if the fetch fails at any stage.
+ */
 export async function fetchGraphAPI(url: string, accessToken: string, step: string, method: 'GET' | 'POST' = 'GET', body: URLSearchParams | FormData | null = null) {
-    const requestUrl = new URL(url);
     const headers: HeadersInit = {
       'Authorization': `Bearer ${accessToken}`,
     };
@@ -72,20 +79,36 @@ export async function fetchGraphAPI(url: string, accessToken: string, step: stri
     }
 
     try {
-        const response = await fetch(requestUrl.toString(), config);
-        const data = await response.json();
+        const response = await fetch(url, config);
+        const text = await response.text();
+        
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            // The response was not valid JSON, likely an HTML error page.
+            console.error(`[GRAPH_API_PARSE_ERROR] Step: ${step} | Status: ${response.status} | Response (not JSON):`, text);
+            throw new Error(`A API da Meta retornou uma resposta inesperada (não-JSON) na etapa: ${step}.`);
+        }
+
+        console.log(`[GRAPH_API_RESPONSE] Step: ${step} | Status: ${response.status} | Data:`, JSON.stringify(data));
 
         if (!response.ok || data.error) {
-            console.error(`[GRAPH_API_ERROR] ${method} ${requestUrl} ::`, JSON.stringify(data.error));
-            const errorMessage = data.error?.error_user_title ? `${data.error.error_user_title}: ${data.error.error_user_msg}` : data.error?.message || 'Erro desconhecido';
-            throw new Error(`Graph API error (${step}): ${errorMessage} (Code: ${data.error?.code}, Type: ${data.error?.type})`);
+            const errorMessage = data.error?.error_user_title 
+                ? `${data.error.error_user_title}: ${data.error.error_user_msg}` 
+                : data.error?.message || 'Erro desconhecido na API da Meta.';
+            
+            throw new Error(`Erro na API (${step}): ${errorMessage}`);
         }
         
-        console.log(`[GRAPH_API_SUCCESS] Step: ${step}`);
         return data;
 
     } catch (error) {
-        console.error(`[FETCH_ERROR] Step: ${step} | URL: ${url}`, error);
-        throw error; // Re-throw the error to be handled by the caller
+        console.error(`[FETCH_ERROR] A chamada de rede para a Meta falhou na etapa '${step}'. URL: ${url}`, error);
+        // Re-throw a more user-friendly error to be caught by the API route.
+        if (error instanceof Error && error.message.includes('Erro na API')) {
+            throw error;
+        }
+        throw new Error(`Falha de comunicação com os servidores da Meta. Verifique sua conexão ou as permissões de rede do ambiente. Etapa: ${step}.`);
     }
 }
