@@ -222,7 +222,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-center text-gray-500 text-sm">
-            <p>&copy; {new Date().getFullYear()} FlowUp. Todos os direitos reservados.</p>
+            <p>&copy; {new Date().getFullYear()} Flowy. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

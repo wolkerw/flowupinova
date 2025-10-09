@@ -34,7 +34,7 @@ import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 const initialMessages: Message[] = [
   {
     sender: 'ai',
-    text: 'Olá! Sou o **FlowUp**, seu assistente de marketing. Como posso ajudar você a decolar hoje? ✨'
+    text: 'Olá! Sou o **Flowy**, seu assistente de marketing. Como posso ajudar você a decolar hoje? ✨'
   }
 ];
 
