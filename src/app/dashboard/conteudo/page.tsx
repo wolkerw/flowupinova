@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +21,17 @@ import {
   CheckCircle,
   Loader2,
   AlertTriangle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  RefreshCw,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { META_APP_ID, META_REDIRECT_URI } from "@/lib/config";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface DisplayPost extends PostDataOutput {
@@ -42,52 +44,80 @@ interface DisplayPost extends PostDataOutput {
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
-  useEffect(() => {
+  const fetchPageData = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
+    try {
+        const [postsResult, metaResult] = await Promise.all([
+          getScheduledPosts(user.uid),
+          getMetaConnection(user.uid)
+        ]);
 
-    const fetchPosts = async () => {
-        setLoading(true);
-        try {
-            const [postsResult, metaResult] = await Promise.all([
-              getScheduledPosts(user.uid),
-              getMetaConnection(user.uid)
-            ]);
+        const displayPosts = postsResult.map(post => {
+            const scheduledDate = post.scheduledAt; // Already a Date object
+            return {
+                ...post,
+                date: scheduledDate,
+                time: format(scheduledDate, 'HH:mm'),
+                type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
+            };
+        });
+        setScheduledPosts(displayPosts);
+        setMetaConnection(metaResult);
 
-            const displayPosts = postsResult.map(post => {
-                const scheduledDate = post.scheduledAt; // Already a Date object
-                return {
-                    ...post,
-                    date: scheduledDate,
-                    time: format(scheduledDate, 'HH:mm'),
-                    type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
-                };
-            });
-            setScheduledPosts(displayPosts);
-            setMetaConnection(metaResult);
+    } catch (error) {
+        console.error("Failed to fetch page data:", error);
+        toast({ variant: 'destructive', title: "Erro ao carregar dados", description: "Não foi possível carregar os dados da página. Tente recarregar." });
+    } finally {
+        setLoading(false);
+    }
+  }, [user, toast]);
 
-        } catch (error) {
-            console.error("Failed to fetch page data:", error);
-            alert("Não foi possível carregar os dados da página. Tente recarregar.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    fetchPosts();
-  }, [user]);
+  useEffect(() => {
+    fetchPageData();
+  }, [fetchPageData]);
+
+
+  // Effect to handle callbacks from Meta OAuth
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    if (error) {
+      toast({ variant: 'destructive', title: "Falha na conexão com a Meta", description: error });
+      // Clean URL
+      router.replace('/dashboard/conteudo');
+    }
+
+    if (connected === 'true') {
+      toast({ title: "Conexão com a Meta bem-sucedida!", description: "Atualizando dados da sua conta..." });
+      // Force refresh of data after connection
+      fetchPageData();
+      // Clean URL
+      router.replace('/dashboard/conteudo');
+    }
+  }, [searchParams, fetchPageData, toast, router]);
+
 
   const handleConnectMeta = () => {
     if (!user) {
-        alert("Você precisa estar logado para conectar sua conta.");
+        toast({ variant: 'destructive', title: "Erro de Autenticação", description: "Você precisa estar logado para conectar sua conta." });
         return;
     }
-    const redirectUri = META_REDIRECT_URI;
+    setIsConnecting(true); // Show loader on button
+    
+    // Dynamically create the redirect URI based on the current window location
+    const redirectUri = `${window.location.origin}/api/meta/callback`;
     
     const scopes = [
       "pages_show_list",
@@ -101,7 +131,7 @@ export default function Conteudo() {
       "ads_management"
     ].join(",");
     
-    // Inclui o userId no estado para recuperá-lo no callback
+    // Includes the userId in the state to retrieve it in the callback
     const authState = `flowup-auth-state:${user.uid}`;
 
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=${authState}&scope=${scopes}&auth_type=rerequest&display=popup`;
@@ -207,8 +237,8 @@ export default function Conteudo() {
                                 </div>
                             </div>
                             <div>
-                               <p className="font-semibold text-gray-800">{metaConnection.instagramAccountName}</p>
-                               <p className="text-xs text-gray-500">{metaConnection.facebookPageName}</p>
+                               <p className="font-semibold text-gray-800">{metaConnection.instagramAccountName || 'Instagram'}</p>
+                               <p className="text-xs text-gray-500">{metaConnection.facebookPageName || 'Página do Facebook'}</p>
                             </div>
                         </div>
                         <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-200">
@@ -230,8 +260,8 @@ export default function Conteudo() {
                             <p className="font-semibold text-gray-800">Conectar Contas Meta</p>
                             <p className="text-xs text-gray-500">Instagram & Facebook</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={handleConnectMeta}>
-                            <LinkIcon className="w-4 h-4 mr-2" />
+                        <Button variant="outline" size="sm" onClick={handleConnectMeta} disabled={isConnecting}>
+                            {isConnecting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LinkIcon className="w-4 h-4 mr-2" />}
                             Conectar
                         </Button>
                     </div>
