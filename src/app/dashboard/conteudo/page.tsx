@@ -29,7 +29,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
-import { META_APP_ID, META_REDIRECT_URI } from "@/lib/config";
+import { META_APP_ID } from "@/lib/config";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -131,10 +131,14 @@ export default function Conteudo() {
       "ads_management"
     ].join(",");
     
-    // Includes the userId in the state to retrieve it in the callback
-    const authState = `flowup-auth-state:${user.uid}`;
+    // Includes userId and the correct origin in the state to retrieve it in the callback
+    const stateObject = {
+      userId: user.uid,
+      origin: window.location.origin,
+    };
+    const authState = `flowup-auth-state:${JSON.stringify(stateObject)}`;
 
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=${authState}&scope=${scopes}&auth_type=rerequest&display=popup`;
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${redirectUri}&state=${encodeURIComponent(authState)}&scope=${scopes}&auth_type=rerequest&display=popup`;
     window.location.href = authUrl;
   };
 

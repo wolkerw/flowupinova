@@ -1,3 +1,4 @@
+
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAndSaveUserDetails } from "@/lib/services/meta-service";
@@ -6,33 +7,51 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = req.nextUrl;
+  const { searchParams } = req.nextUrl;
   const code = searchParams.get("code");
-  const state = searchParams.get("state");
+  const encodedState = searchParams.get("state");
+
+  // Default redirect in case of critical errors
+  const defaultErrorUrl = new URL("/dashboard/conteudo", req.nextUrl.origin);
+  defaultErrorUrl.searchParams.set("error", "invalid_state");
+
+  if (!code || !encodedState) {
+    const errorUrl = new URL("/dashboard/conteudo", req.nextUrl.origin);
+    errorUrl.searchParams.set("error", "missing_code");
+    return NextResponse.redirect(errorUrl);
+  }
+
+  // --- State Decoding ---
+  let userId: string, origin: string;
+  try {
+    const stateString = decodeURIComponent(encodedState);
+    if (!stateString.startsWith("flowup-auth-state:")) {
+      throw new Error("Invalid state format");
+    }
+    const jsonString = stateString.replace("flowup-auth-state:", "");
+    const stateObject = JSON.parse(jsonString);
+    userId = stateObject.userId;
+    origin = stateObject.origin;
+
+    if (!userId || !origin) {
+      throw new Error("Missing userId or origin in state");
+    }
+  } catch (error) {
+    console.error("[META_CB] Critical state decoding error:", error);
+    return NextResponse.redirect(defaultErrorUrl);
+  }
+  // --- End State Decoding ---
 
   const dashboardUrl = new URL("/dashboard/conteudo", origin);
 
-  const [authState, userId] = state?.split(":") || [];
-
-  if (!code) {
-    dashboardUrl.searchParams.set("error", "missing_code");
-    return NextResponse.redirect(dashboardUrl);
-  }
-  if (authState !== "flowup-auth-state" || !userId) {
-    console.error("[META_CB] Auth failed: State mismatch or missing userId.");
-    dashboardUrl.searchParams.set("error", "state_mismatch");
-    return NextResponse.redirect(dashboardUrl);
-  }
-
   try {
-    // A URL de redirecionamento para a troca do token deve ser a mesma usada para iniciar o fluxo.
-    // Construímos ela dinamicamente a partir do 'origin' da requisição.
-    const redirectUri = `${origin}/api/meta/callback`;
+    // The redirect URI for the token exchange must be EXACTLY the same as the one used to start the flow.
+    const redirectUri = `${req.nextUrl.origin}/api/meta/callback`;
     
-    // Passamos a URI de redirecionamento dinâmica para a função de serviço.
+    // Pass the dynamic redirect URI to the service function.
     await getAndSaveUserDetails(userId, code, redirectUri);
     
-    // Se chegou até aqui, tudo deu certo.
+    // If we get here, everything worked.
     console.log("[META_CB] Redirecting user to dashboard. Background task initiated.");
     dashboardUrl.searchParams.set("connected", "true");
     return NextResponse.redirect(dashboardUrl);
