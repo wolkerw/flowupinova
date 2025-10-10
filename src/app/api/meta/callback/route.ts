@@ -25,9 +25,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // A função getAndSaveUserDetails agora contém toda a lógica de troca de token e salvamento.
-    // Ela vai lançar um erro se qualquer etapa falhar.
-    await getAndSaveUserDetails(userId, code);
+    // A URL de redirecionamento para a troca do token deve ser a mesma usada para iniciar o fluxo.
+    // Construímos ela dinamicamente a partir do 'origin' da requisição.
+    const redirectUri = `${origin}/api/meta/callback`;
+    
+    // Passamos a URI de redirecionamento dinâmica para a função de serviço.
+    await getAndSaveUserDetails(userId, code, redirectUri);
     
     // Se chegou até aqui, tudo deu certo.
     console.log("[META_CB] Redirecting user to dashboard. Background task initiated.");

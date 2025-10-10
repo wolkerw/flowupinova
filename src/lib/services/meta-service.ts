@@ -101,15 +101,13 @@ export async function fetchGraphAPI(url: string, step: string): Promise<any> {
  * Exchanges a short-lived code for a long-lived token and fetches user details.
  * @param userId The UID of the user.
  * @param code The authorization code from Meta.
+ * @param redirectUri The exact redirect URI used to initiate the OAuth flow.
  * @throws Will throw an error if any step in the process fails.
  */
-export async function getAndSaveUserDetails(userId: string, code: string): Promise<void> {
+export async function getAndSaveUserDetails(userId: string, code: string, redirectUri: string): Promise<void> {
      if (!userId || !code) {
         throw new Error("UserId e código são obrigatórios.");
     }
-
-    // Dynamically get the redirect URI from environment variables (must be set on the server)
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
     if (!redirectUri) {
         throw new Error("A URL de redirecionamento da Meta não está configurada.");
     }
