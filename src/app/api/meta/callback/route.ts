@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { doc, setDoc, serverTimestamp, getFirestore } from "firebase/firestore";
-import { initializeApp, getApps, getApp } from "firebase/app";
+// Import FieldValue from the admin SDK
+import { FieldValue } from "firebase-admin/firestore";
 
 // Import admin SDK types
 import type admin from 'firebase-admin';
@@ -57,9 +57,10 @@ export async function POST(request: NextRequest) {
     const adminDb = getAdminDb();
     const metaConnectionRef = adminDb.doc(`users/${userId}/connections/meta`);
     
+    // CORRECTED: Use FieldValue.serverTimestamp() from the admin SDK
     await metaConnectionRef.set({ 
         isConnected: true,
-        connectedAt: serverTimestamp() 
+        connectedAt: FieldValue.serverTimestamp() 
     }, { merge: true });
 
     console.log(`Meta connection status updated for user ${userId}.`);
