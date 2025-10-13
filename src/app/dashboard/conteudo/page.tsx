@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -126,7 +125,9 @@ export default function Conteudo() {
         return;
     }
 
-    const redirectUri = `${window.location.origin}/api/meta/callback`;
+    // Use a URL absoluta e canônica para o redirecionamento.
+    const redirectUri = new URL('/api/meta/callback', window.location.origin).toString();
+    
     // Pass the user ID in the state parameter for the backend to use
     const state = user.uid;
     const scope = [
