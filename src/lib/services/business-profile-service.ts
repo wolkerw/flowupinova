@@ -1,5 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase-admin";
 
 export interface BusinessProfileData {
     name: string;
@@ -25,25 +24,24 @@ const defaultProfile: BusinessProfileData = {
     isVerified: false
 };
 
-
 function getProfileDocRef(userId: string) {
-    return doc(db, "users", userId, "business", "profile");
+    return adminDb.collection("users").doc(userId).collection("business").doc("profile");
 }
 
 export async function getBusinessProfile(userId: string): Promise<BusinessProfileData | null> {
-     if (!userId) {
+    if (!userId) {
         console.error("getBusinessProfile called without userId.");
         return null;
     }
     try {
         const profileDocRef = getProfileDocRef(userId);
-        const docSnap = await getDoc(profileDocRef);
+        const docSnap = await profileDocRef.get();
 
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
             return docSnap.data() as BusinessProfileData;
         } else {
             // Document doesn't exist, so create it with default data for this user
-            await setDoc(profileDocRef, defaultProfile);
+            await profileDocRef.set(defaultProfile);
             console.log(`Profile document created with default data for user ${userId}.`);
             return defaultProfile;
         }
@@ -61,7 +59,7 @@ export async function updateBusinessProfile(userId: string, data: Partial<Busine
     try {
         const profileDocRef = getProfileDocRef(userId);
         // Use set with merge to create or update
-        await setDoc(profileDocRef, data, { merge: true });
+        await profileDocRef.set(data, { merge: true });
         console.log(`Business profile updated successfully for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating business profile for user ${userId}:`, error);

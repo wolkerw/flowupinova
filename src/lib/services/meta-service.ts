@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { FieldValue } from 'firebase-admin/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 export interface MetaConnectionData {
     isConnected: boolean;
@@ -8,7 +8,7 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
-    return doc(db, "users", userId, "connections", "meta");
+    return adminDb.collection("users").doc(userId).collection("connections").doc("meta");
 }
 
 /**
@@ -23,14 +23,14 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        const docSnap = await getDoc(docRef);
+        const docSnap = await docRef.get();
 
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
             const data = docSnap.data();
-            const connectedAtTimestamp = data.connectedAt as Timestamp | undefined;
+            const connectedAtTimestamp = data?.connectedAt;
             return {
-                isConnected: data.isConnected,
-                connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined, 
+                isConnected: data?.isConnected,
+                connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined,
             };
         } else {
             return { isConnected: false };
@@ -53,16 +53,19 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        
+
         const dataToSave: { [key: string]: any } = { ...connectionData };
-        
+
         if (connectionData.isConnected === true) {
-             // Use a native Date object, which Firestore client SDK handles correctly.
-             dataToSave.connectedAt = new Date();
+            // Use Admin SDK's server timestamp
+            dataToSave.connectedAt = FieldValue.serverTimestamp();
+        } else {
+            // Optionally clear the connectedAt field when disconnecting
+            dataToSave.connectedAt = null;
         }
 
         // Use setDoc com merge para criar ou atualizar o documento de forma segura.
-        await setDoc(docRef, dataToSave, { merge: true });
+        await docRef.set(dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);
