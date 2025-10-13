@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Link as LinkIcon,
   LogOut,
+  Facebook,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -83,11 +84,11 @@ export default function Conteudo() {
     const error = searchParams.get('error_description');
 
     const exchangeCodeForToken = async (codeToExchange: string) => {
-        if (!user) return;
+        if (!user || isConnecting) return;
         setIsConnecting(true);
 
         try {
-            // Passo 1: A API de backend troca o código pelo token
+            // Passo 1: A API de backend troca o código pelo token e busca os perfis
             const response = await fetch('/api/meta/callback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -97,18 +98,24 @@ export default function Conteudo() {
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.error || "Ocorreu uma falha na API de callback.");
+                throw new Error(result.error || "Ocorreu uma falha na API de callback da Meta.");
             }
 
-            // Passo 2: O cliente, já autenticado, salva o status da conexão no Firestore
-            await updateMetaConnection(user.uid, { 
+            // Passo 2: O cliente, já autenticado, salva os dados da conexão no Firestore
+            const connectionData = {
                 isConnected: true,
-                accessToken: result.accessToken // Salva o token de acesso
-            });
+                accessToken: result.accessToken,
+                pageId: result.pageId,
+                pageName: result.pageName,
+                instagramId: result.instagramId,
+                instagramUsername: result.instagramUsername,
+            };
+            
+            await updateMetaConnection(user.uid, connectionData);
             
             toast({
                 title: "Sucesso!",
-                description: "Conectado com a Meta (Instagram/Facebook).",
+                description: `Conectado com a página ${result.pageName}.`,
             });
 
             await fetchPageData(); // Re-fetch data para atualizar a UI
@@ -167,7 +174,7 @@ export default function Conteudo() {
     if (!user) return;
     try {
         // Agora usa a função de serviço do cliente para atualizar o status
-        await updateMetaConnection(user.uid, { isConnected: false, accessToken: undefined });
+        await updateMetaConnection(user.uid, { isConnected: false });
         setMetaConnection({ isConnected: false });
         toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
     } catch(e: any) {
@@ -267,17 +274,22 @@ export default function Conteudo() {
                                     <span className="text-gray-600">Conectando com a Meta...</span>
                                 </div>
                             ) : metaConnection.isConnected ? (
-                                <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
-                                            <Instagram className="w-5 h-5 text-white" />
+                                <div className="flex items-start justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-start gap-4">
+                                         <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm shrink-0">
+                                            <Instagram className="w-6 h-6 text-pink-500" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-green-900">Conectado</h3>
-                                            <p className="text-sm text-green-700">Instagram & Facebook</p>
+                                            <h3 className="font-semibold text-green-900 leading-tight">Conectado</h3>
+                                            <p className="text-sm text-green-800 font-medium truncate" title={metaConnection.instagramUsername}>
+                                                @{metaConnection.instagramUsername}
+                                            </p>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1" title={metaConnection.pageName}>
+                                                <Facebook className="w-3 h-3"/> {metaConnection.pageName}
+                                            </p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={handleDisconnectMeta} className="text-red-600 hover:bg-red-100">
+                                    <Button variant="ghost" size="icon" onClick={handleDisconnectMeta} className="text-red-600 hover:bg-red-100 shrink-0">
                                         <LogOut className="w-4 h-4"/>
                                     </Button>
                                 </div>

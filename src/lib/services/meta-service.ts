@@ -8,7 +8,11 @@ export interface MetaConnectionData {
     isConnected: boolean;
     error?: string;
     connectedAt?: Date;
-    accessToken?: string; // Adicionado para armazenar o token
+    accessToken?: string;
+    pageId?: string;
+    pageName?: string;
+    instagramId?: string;
+    instagramUsername?: string;
 }
 
 function getMetaConnectionDocRef(userId: string) {
@@ -35,6 +39,11 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
             return {
                 isConnected: data?.isConnected,
                 connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined,
+                accessToken: data?.accessToken,
+                pageId: data?.pageId,
+                pageName: data?.pageName,
+                instagramId: data?.instagramId,
+                instagramUsername: data?.instagramUsername,
             };
         } else {
             return { isConnected: false };
@@ -59,10 +68,22 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
     try {
         const docRef = getMetaConnectionDocRef(userId);
         
+        let dataToSet: Partial<MetaConnectionData> = connectionData;
+
         // Se estiver conectando, adiciona o serverTimestamp
-        const dataToSet = connectionData.isConnected
-            ? { ...connectionData, connectedAt: serverTimestamp() }
-            : connectionData;
+        if (connectionData.isConnected) {
+            dataToSet = { ...dataToSet, connectedAt: serverTimestamp() as any };
+        } else {
+            // Se estiver desconectando, limpa os campos relacionados
+            dataToSet = {
+                isConnected: false,
+                accessToken: undefined,
+                pageId: undefined,
+                pageName: undefined,
+                instagramId: undefined,
+                instagramUsername: undefined,
+            };
+        }
 
         await setDoc(docRef, dataToSet, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
