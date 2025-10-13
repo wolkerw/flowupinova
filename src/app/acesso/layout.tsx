@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -34,7 +33,7 @@ export default function AcessoLayout({
                     <div className="p-6" style={{ background: 'var(--flowup-gradient)' }}>
                          <div className="flex justify-center mb-4">
                             <div className="w-24 h-8 flex items-center justify-center">
-                                <Image src="/logo-branca.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
+                                <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
                             </div>
                         </div>
                         <CardHeader className="text-center space-y-2 p-0">

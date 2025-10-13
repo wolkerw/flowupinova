@@ -39,7 +39,7 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo-branca.svg" alt="FlowUp Logo" width={120} height={25} />
+            <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
@@ -80,7 +80,7 @@ export default function HomePage() {
               </div>
               <div>
                  <Image 
-                    src="/mascote-flowy-novo.svg" 
+                    src="/mascote-flowy.svg" 
                     alt="Mascote Flowy da FlowUp" 
                     width={500} 
                     height={500} 
@@ -212,7 +212,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
-                <Image src="/logo-branca.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
+                <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="#" className="text-gray-400 hover:text-white">Termos</Link>
