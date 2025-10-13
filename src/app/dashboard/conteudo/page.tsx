@@ -25,7 +25,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { exchangeMetaCode } from "@/lib/services/meta-actions";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,7 +39,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -88,32 +87,55 @@ export default function Conteudo() {
             title: "Erro de Conexão com a Meta",
             description: error,
         });
-        // Clean up URL
         router.replace('/dashboard/conteudo');
     } else if (code && user) {
         setLoading(true);
-        exchangeMetaCode(code, user.uid).then(result => {
-            if (result.success) {
+        const exchangeCodeForToken = async () => {
+            const idToken = await getIdToken();
+            if (!idToken) {
+                toast({ variant: "destructive", title: "Falha na Autenticação", description: "Não foi possível autenticar o usuário. Tente fazer login novamente." });
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/meta/callback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ code }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || "Ocorreu uma falha desconhecida.");
+                }
+                
                 toast({
                     title: "Sucesso!",
                     description: "Conectado com a Meta (Instagram/Facebook).",
                 });
                 fetchPageData(); // Re-fetch data to update connection status
-            } else {
-                 toast({
+            
+            } catch (err: any) {
+                toast({
                     variant: "destructive",
                     title: "Falha na Conexão",
-                    description: result.error || "Não foi possível completar a conexão com a Meta.",
+                    description: err.message,
                 });
+            } finally {
+                setLoading(false);
+                router.replace('/dashboard/conteudo');
             }
-        }).finally(() => {
-            setLoading(false);
-            // Clean up URL
-            router.replace('/dashboard/conteudo');
-        });
+        };
+        
+        exchangeCodeForToken();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user, router, toast, fetchPageData]);
+  }, [searchParams, user]);
 
 
   useEffect(() => {
@@ -350,5 +372,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
