@@ -1,15 +1,17 @@
+
 "use server";
 
 import admin from "firebase-admin";
+import { App, getApp, getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import serviceAccount from "@/service-account.json";
 
-// Helper function to initialize Firebase Admin SDK safely.
-function initializeAdminApp() {
-  if (admin.apps.length > 0) {
-    return admin.app();
+function initializeAdminApp(): App {
+  if (getApps().length) {
+    return getApp();
   }
   try {
-    return admin.initializeApp({
+    return initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccountCredential),
     });
   } catch (error: any) {
@@ -33,11 +35,11 @@ export async function exchangeMetaCode(code: string, userId: string): Promise<{ 
   }
 
   // Ensure Firebase Admin is initialized
-  initializeAdminApp();
-  const adminDb = admin.firestore();
+  const adminApp = initializeAdminApp();
+  const adminDb = getFirestore(adminApp);
 
-  const clientId = process.env.META_APP_ID || "7303357949752621";
-  const clientSecret = process.env.META_APP_SECRET || "8745582f34c165518b53d537f07e59f4";
+  const clientId = process.env.META_APP_ID || "826418333144156";
+  const clientSecret = process.env.META_APP_SECRET || "944e053d34b162c13408cd00ad276aa2";
   
   const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
 
@@ -74,3 +76,5 @@ export async function exchangeMetaCode(code: string, userId: string): Promise<{ 
     return { success: false, error: error.message || "Ocorreu um erro desconhecido." };
   }
 }
+
+    
