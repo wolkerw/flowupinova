@@ -1,20 +1,20 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { updateMetaConnection } from "@/lib/services/meta-service";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-// This is a placeholder as we cannot easily get the admin SDK to work.
-// We will use the client SDK instead, passing the user's ID token for verification.
-async function verifyIdToken(token: string): Promise<string> {
-    // In a real app, you would use the Firebase Admin SDK to verify the token.
-    // For this environment, we'll assume the token is valid if it exists.
-    // This is NOT secure for production.
+// Função auxiliar para verificar o token do usuário (simulação)
+async function verifyIdToken(token: string): Promise<string | null> {
+    // Em um app de produção, use o Firebase Admin SDK para uma verificação segura.
+    // Como estamos em um ambiente onde o Admin SDK apresentou problemas de build,
+    // e o objetivo principal é validar o fluxo, vamos confiar no token se ele existir.
+    // Esta abordagem NÃO é segura para produção.
     if (token) {
-        // A real implementation would decode the token and return the UID.
-        // We can't do that without the admin SDK, so we'll have to rely on the client
-        // to send the UID, which is insecure but necessary for this workaround.
-        return "verified-but-uid-unknown"; 
+        // A implementação real decodificaria o token e retornaria o UID.
+        // Aqui, apenas confirmamos que um token foi passado.
+        return "verified"; 
     }
-    throw new Error("Invalid ID token.");
+    return null;
 }
 
 
@@ -36,10 +36,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // In a real app, you'd verify the token and get the UID from it.
-    // Here, we trust the userId sent from the client after a basic token check.
-    await verifyIdToken(idToken);
-
+    // Verificação básica do token
+    const verificationResult = await verifyIdToken(idToken);
+    if (!verificationResult) {
+        return NextResponse.json({ success: false, error: "Invalid ID token." }, { status: 401 });
+    }
 
     const clientId = "826418333144156";
     const clientSecret = "944e053d34b162c13408cd00ad276aa2";
@@ -55,7 +56,14 @@ export async function POST(request: NextRequest) {
       throw new Error(tokenData.error?.message || "Falha ao obter token de acesso da Meta.");
     }
     
-    await updateMetaConnection(userId, { isConnected: true });
+    // Lógica de atualização do Firestore movida para cá, com a estrutura correta.
+    const metaConnectionRef = doc(db, "users", userId, "connections", "meta");
+    await setDoc(metaConnectionRef, { 
+        isConnected: true,
+        connectedAt: serverTimestamp() 
+    }, { merge: true });
+
+    console.log(`Meta connection status updated for user ${userId}.`);
 
     return NextResponse.json({
       success: true,
@@ -70,4 +78,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
