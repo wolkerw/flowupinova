@@ -77,6 +77,33 @@ export default function Conteudo() {
     fetchPageData();
   }, [fetchPageData]);
 
+  const handleConnectMeta = () => {
+    const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
+    if (!clientId) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Configuração",
+            description: "O ID do aplicativo da Meta não foi configurado. Adicione NEXT_PUBLIC_META_APP_ID ao seu arquivo .env.local",
+        });
+        return;
+    }
+
+    const redirectUri = `${window.location.origin}/api/meta/callback`;
+    const state = 'flowup-auth-state';
+    const scope = [
+        'pages_show_list',
+        'pages_read_engagement',
+        'pages_manage_posts',
+        'instagram_basic',
+        'instagram_manage_insights',
+        'instagram_content_publish'
+    ].join(',');
+    
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&display=popup`;
+    
+    window.location.href = authUrl;
+  };
+
   
   const platformIcons: { [key: string]: React.ElementType } = {
     instagram: Instagram,
@@ -170,10 +197,10 @@ export default function Conteudo() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-800">Instagram & Facebook</h3>
-                                        <p className="text-sm text-gray-500">Funcionalidade desativada</p>
+                                        <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
                                     </div>
                                 </div>
-                                <Button variant="outline" disabled>
+                                <Button variant="outline" onClick={handleConnectMeta}>
                                     Conectar
                                 </Button>
                             </div>
@@ -266,3 +293,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
