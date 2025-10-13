@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Loader2,
   AlertTriangle,
+  Link as LinkIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -148,6 +149,38 @@ export default function Conteudo() {
                 </CardContent>
               </Card>
             </motion.div>
+             <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                <Card className="shadow-lg border-none">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <LinkIcon className="w-5 h-5 text-gray-700" />
+                            Conexões
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 border border-dashed rounded-lg">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
+                                        <Instagram className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800">Instagram & Facebook</h3>
+                                        <p className="text-sm text-gray-500">Funcionalidade desativada</p>
+                                    </div>
+                                </div>
+                                <Button variant="outline" disabled>
+                                    Conectar
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </motion.div>
         </div>
 
         <motion.div
@@ -175,7 +208,10 @@ export default function Conteudo() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-3">
                         {post.imageUrl ? 
-                            <Image className="w-5 h-5 text-gray-500" /> :
+                            <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                                <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                            </div>
+                             :
                             <FileText className="w-5 h-5 text-gray-500" />
                         }
                         <div className="flex">
