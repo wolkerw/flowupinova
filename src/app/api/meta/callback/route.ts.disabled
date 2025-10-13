@@ -1,7 +1,5 @@
-
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { serverTimestamp } from 'firebase-admin/firestore';
 import type { ServiceAccount } from 'firebase-admin/app';
 
 // Use require for compatibility with Next.js bundling
@@ -100,7 +98,7 @@ export async function GET(req: NextRequest) {
     const docRef = adminDb.collection("users").doc(userId).collection("connections").doc("meta");
     await docRef.set({
         isConnected: true,
-        connectedAt: serverTimestamp()
+        connectedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
     console.log(`[Meta Auth] Firestore updated with Admin SDK for user ${userId}. Redirecting to dashboard.`);

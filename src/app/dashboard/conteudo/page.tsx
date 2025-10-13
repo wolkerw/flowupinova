@@ -109,37 +109,11 @@ export default function Conteudo() {
   }, [user, fetchPageData]);
 
   const handleConnectMeta = () => {
-    if (!user) {
-        toast({ variant: "destructive", title: "Erro", description: "Você precisa estar logado para conectar." });
-        return;
-    }
-    const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
-    if (!clientId) {
-        toast({
-            variant: "destructive",
-            title: "Erro de Configuração",
-            description: "O ID do aplicativo da Meta não foi configurado. Adicione NEXT_PUBLIC_META_APP_ID ao seu arquivo .env",
-        });
-        return;
-    }
-
-    // Hardcoded redirect URI to ensure consistency
-    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
-    
-    // Pass the user ID in the state parameter for the backend to use
-    const state = user.uid;
-    const scope = [
-        'pages_show_list',
-        'pages_read_engagement',
-        'pages_manage_posts',
-        'instagram_basic',
-        'instagram_manage_insights',
-        'instagram_content_publish'
-    ].join(',');
-    
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&display=popup`;
-    
-    window.location.href = authUrl;
+    toast({
+        variant: "destructive",
+        title: "Funcionalidade Desativada",
+        description: "A conexão com a Meta foi temporariamente desativada para resolver um problema técnico.",
+    });
   };
   
   const handleDisconnectMeta = async () => {
@@ -265,8 +239,8 @@ export default function Conteudo() {
                                             <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" onClick={handleConnectMeta} disabled={loading}>
-                                        {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Conectar'}
+                                    <Button variant="outline" onClick={handleConnectMeta} disabled={true} title="Funcionalidade temporariamente desativada">
+                                        Conectar
                                     </Button>
                                 </div>
                             )}
