@@ -56,22 +56,12 @@ export default function GerarConteudoPage() {
   
   const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
     instagram: { enabled: true, publishMode: 'now', dateTime: '' },
-    facebook: { enabled: true, publishMode: 'now', dateTime: '' },
-    linkedin: { enabled: true, publishMode: 'now', dateTime: '' }
+    facebook: { enabled: false, publishMode: 'now', dateTime: '' },
+    linkedin: { enabled: false, publishMode: 'now', dateTime: '' }
   });
 
-  const [referenceFile, setReferenceFile] = useState<ReferenceFile | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-
   useEffect(() => {
-     // Cleanup object URL
-    return () => {
-        if (referenceFile) {
-            URL.revokeObjectURL(referenceFile.previewUrl);
-        }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // This effect can be used for any initial setup if needed in the future.
   }, []);
 
   const handleScheduleOptionChange = (platform: string, field: keyof ScheduleOptions[string], value: any) => {
@@ -80,33 +70,6 @@ export default function GerarConteudoPage() {
       [platform]: { ...prev[platform], [field]: value }
     }));
   };
-
-  const handleFileReferenceClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-        if (referenceFile) {
-            URL.revokeObjectURL(referenceFile.previewUrl);
-        }
-        const previewUrl = URL.createObjectURL(file);
-        const fileType = file.type.startsWith('video') ? 'video' : 'image';
-        setReferenceFile({ file, previewUrl, type: fileType });
-    }
-  };
-
-  const removeReferenceFile = () => {
-    if (referenceFile) {
-        URL.revokeObjectURL(referenceFile.previewUrl);
-    }
-    setReferenceFile(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = "";
-    }
-  };
-
 
   const handleGenerateText = async () => {
     if (!postSummary.trim() || isLoading) return;
@@ -454,10 +417,8 @@ export default function GerarConteudoPage() {
             </CardHeader>
             <CardContent>
                <Tabs defaultValue="instagram" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Instagram</TabsTrigger>
-                  <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2"/>Facebook</TabsTrigger>
-                  <TabsTrigger value="linkedin"><Linkedin className="w-4 h-4 mr-2"/>LinkedIn</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-1">
+                  <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
                 </TabsList>
                 <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
                     <TabsContent value="instagram">
@@ -479,51 +440,6 @@ export default function GerarConteudoPage() {
                                 <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                             </div>
                         </div>
-                    </TabsContent>
-                    <TabsContent value="facebook">
-                       <div className="w-[500px] bg-white rounded-lg shadow-lg border flex flex-col">
-                            <div className="p-4 flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                    <AvatarImage src={"https://picsum.photos/seed/avatar/40/40"} />
-                                    <AvatarFallback>Flow</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-bold">Sua Página</p>
-                                    <p className="text-xs text-gray-500">Agora mesmo</p>
-                                </div>
-                            </div>
-                            <div className="px-4 pb-2 text-sm">
-                                <p>{selectedContent.titulo}</p>
-                                <p className="mt-2">{selectedContent.subtitulo}</p>
-                            </div>
-                            <div className="relative w-full aspect-video bg-gray-200">
-                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
-                            </div>
-                            <div className="p-4 text-sm text-blue-500">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</div>
-                       </div>
-                    </TabsContent>
-                    <TabsContent value="linkedin">
-                       <div className="w-[550px] bg-white rounded-lg shadow-lg border flex flex-col">
-                            <div className="p-4 flex items-center gap-3 border-b">
-                                <Avatar className="h-12 w-12">
-                                    <AvatarImage src="https://picsum.photos/seed/avatar/50/50" />
-                                    <AvatarFallback>Flow</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-bold">FlowUp Marketing Digital</p>
-                                    <p className="text-xs text-gray-500">1.234 seguidores</p>
-                                    <p className="text-xs text-gray-500">Promovido</p>
-                                 </div>
-                            </div>
-                            <div className="p-4 text-sm space-y-3">
-                                <h3 className="font-bold text-lg">{selectedContent.titulo}</h3>
-                                <p>{selectedContent.subtitulo}</p>
-                            </div>
-                            <div className="relative w-full aspect-[1.91/1] bg-gray-200">
-                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
-                            </div>
-                             <div className="p-4 text-sm text-gray-600">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</div>
-                       </div>
                     </TabsContent>
                 </div>
                </Tabs>
@@ -568,58 +484,32 @@ export default function GerarConteudoPage() {
               </Button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
-              {[
-                { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', connected: false },
-                { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-700', connected: false },
-                { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-sky-800', connected: false }
-              ].map(platform => (
-                <Card key={platform.id} className={cn("p-4", (!scheduleOptions[platform.id].enabled || !platform.connected) && "bg-gray-100 opacity-70")}>
+              <Card className="p-4 bg-gray-100 opacity-70">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <platform.icon className={cn("w-6 h-6", platform.color)} />
-                      <Label htmlFor={`switch-${platform.id}`} className="text-lg font-semibold">{platform.name}</Label>
-                      {!platform.connected && <Badge variant="destructive" className="text-xs">Não conectado</Badge>}
+                      <Instagram className="w-6 h-6 text-pink-600" />
+                      <Label className="text-lg font-semibold">Instagram</Label>
+                      <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>
                     </div>
                     <Switch
-                      id={`switch-${platform.id}`}
-                      checked={scheduleOptions[platform.id].enabled}
-                      onCheckedChange={(checked) => handleScheduleOptionChange(platform.id, 'enabled', checked)}
-                      disabled={!platform.connected}
+                      checked={false}
+                      disabled={true}
                     />
                   </div>
-                  {scheduleOptions[platform.id].enabled && platform.connected && (
-                    <div className="mt-4 pl-8">
-                      <RadioGroup
-                        value={scheduleOptions[platform.id].publishMode}
-                        onValueChange={(value: "now" | "schedule") => handleScheduleOptionChange(platform.id, 'publishMode', value)}
-                        className="flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="now" id={`${platform.id}-now`} />
-                          <Label htmlFor={`${platform.id}-now`}>Publicar Agora</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="schedule" id={`${platform.id}-schedule`} />
-                          <Label htmlFor={`${platform.id}-schedule`}>Agendar</Label>
-                        </div>
-                      </RadioGroup>
-                      {scheduleOptions[platform.id].publishMode === 'schedule' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="mt-4"
-                        >
-                          <Input
-                            type="datetime-local"
-                            value={scheduleOptions[platform.id].dateTime}
-                            onChange={(e) => handleScheduleOptionChange(platform.id, 'dateTime', e.target.value)}
-                          />
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
                 </Card>
-              ))}
+                <Card className="p-4 bg-gray-100 opacity-70">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Facebook className="w-6 h-6 text-blue-700" />
+                      <Label className="text-lg font-semibold">Facebook</Label>
+                       <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>
+                    </div>
+                    <Switch
+                      checked={false}
+                      disabled={true}
+                    />
+                  </div>
+                </Card>
             </div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
               <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
@@ -627,11 +517,11 @@ export default function GerarConteudoPage() {
               </Button>
               <Button 
                 onClick={handleSchedule}
-                disabled={isPublishing || !Object.values(scheduleOptions).some(o => o.enabled)}
+                disabled={true}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
-                {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                Confirmar Agendamento
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Agendamento Indisponível
               </Button>
             </div>
           </motion.div>

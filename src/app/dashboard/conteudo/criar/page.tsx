@@ -528,9 +528,8 @@ export default function CriarConteudoPage() {
                                 </CardHeader>
                                 <CardContent className="flex justify-center">
                                     <Tabs defaultValue="instagram" className="w-full max-w-sm">
-                                        <TabsList className="grid w-full grid-cols-2">
-                                            <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Instagram</TabsTrigger>
-                                            <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2"/>Facebook</TabsTrigger>
+                                        <TabsList className="grid w-full grid-cols-1">
+                                            <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
                                         </TabsList>
                                         <TabsContent value="instagram">
                                             <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
@@ -560,36 +559,6 @@ export default function CriarConteudoPage() {
                                                 </div>
                                             </div>
                                         </TabsContent>
-                                        <TabsContent value="facebook">
-                                            <div className="w-full bg-white rounded-lg shadow-lg border flex flex-col mt-4">
-                                                <div className="p-4 flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10">
-                                                        <AvatarImage src={"https://picsum.photos/seed/avatar2/40/40"} />
-                                                        <AvatarFallback>FU</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-bold">Sua Página</p>
-                                                        <p className="text-xs text-gray-500">Agora mesmo</p>
-                                                    </div>
-                                                </div>
-                                                <div className="px-4 pb-2 text-sm">
-                                                    <p className="font-bold">{title}</p>
-                                                    <p className="mt-2">{text}</p>
-                                                </div>
-                                                <div className="relative w-full aspect-video bg-gray-200">
-                                                     {mediaItems[0] && (
-                                                      <div className="w-full h-full relative">
-                                                          {mediaItems[0].type === 'image' ? (
-                                                              <Image src={mediaItems[0].url} layout="fill" objectFit="cover" alt="Post preview" />
-                                                          ) : (
-                                                              <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                                                          )}
-                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", { 'top-4 left-4': logoPosition === 'top-left', 'top-4 right-4': logoPosition === 'top-right', 'bottom-4 left-4': logoPosition === 'bottom-left', 'bottom-4 right-4': logoPosition === 'bottom-right' }, { 'w-12 h-12': logoSize === 'small', 'w-16 h-16': logoSize === 'medium', 'w-20 h-20': logoSize === 'large' })} />}
-                                                      </div>
-                                                    )}
-                                                </div>
-                                           </div>
-                                        </TabsContent>
                                     </Tabs>
                                 </CardContent>
                             </Card>
@@ -600,35 +569,9 @@ export default function CriarConteudoPage() {
                     <Card className="shadow-lg border-none">
                         <CardHeader>
                             <CardTitle className="text-lg">Agendamento</CardTitle>
-                            <p className="text-sm text-gray-600">Escolha onde e quando publicar seu conteúdo.</p>
+                            <p className="text-sm text-gray-600">Escolha quando publicar seu conteúdo.</p>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div>
-                                <Label className="font-semibold">Plataformas</Label>
-                                <div className="space-y-3 mt-2">
-                                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <Instagram className="w-6 h-6 text-pink-600" />
-                                            <Label htmlFor="insta-switch" className="font-medium">Instagram</Label>
-                                        </div>
-                                        <Switch id="insta-switch" defaultChecked />
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <Facebook className="w-6 h-6 text-blue-700" />
-                                            <Label htmlFor="fb-switch" className="font-medium">Facebook</Label>
-                                        </div>
-                                        <Switch id="fb-switch" />
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 opacity-60">
-                                        <div className="flex items-center gap-3">
-                                            <Linkedin className="w-6 h-6 text-sky-800" />
-                                            <Label htmlFor="linkedin-switch" className="font-medium">LinkedIn</Label>
-                                        </div>
-                                        <Switch id="linkedin-switch" disabled />
-                                    </div>
-                                </div>
-                            </div>
                             <div>
                                 <Label className="font-semibold">Quando publicar?</Label>
                                 <RadioGroup value={scheduleType} onValueChange={(v) => setScheduleType(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
@@ -677,5 +620,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
