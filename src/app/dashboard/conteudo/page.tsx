@@ -69,6 +69,10 @@ export default function Conteudo() {
         if (!postsResponse.ok || !metaResponse.ok) {
             console.error("Posts response:", postsResponse.status, postsResponse.statusText);
             console.error("Meta response:", metaResponse.status, metaResponse.statusText);
+            const postError = await postsResponse.text();
+            const metaError = await metaResponse.text();
+            console.error("Posts error body:", postError);
+            console.error("Meta error body:", metaError);
             throw new Error('Failed to fetch data from API');
         }
 
@@ -376,5 +380,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
