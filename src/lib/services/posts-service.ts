@@ -9,11 +9,13 @@ export interface PostData {
     imageUrl: string | null;
     platforms: string[];
     status: 'scheduled' | 'published' | 'failed';
-    scheduledAt: Date; // Use Date object directly
+    scheduledAt: Date | Timestamp; // Allow both for broader compatibility during transition
 }
 
 // Interface for data coming from the client to the server action
-export type PostDataInput = Omit<PostData, 'id' | 'status'>;
+export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
+    scheduledAt: Date;
+};
 
 // Interface for data being sent from the server action to the client
 export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
@@ -39,17 +41,23 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     try {
         const postsCollectionRef = getPostsCollectionRef(userId);
+        // Data being saved to Firestore. Ensure scheduledAt is a Date object.
         const postToSave: Omit<PostData, 'id'> = {
             ...postData,
             status: 'scheduled' as const,
+            scheduledAt: postData.scheduledAt, // Already a Date from input
         };
         const docRef = await addDoc(postsCollectionRef, postToSave);
         console.log(`Post scheduled successfully with ID ${docRef.id} for user ${userId}.`);
         
         return {
-            ...postData,
             id: docRef.id,
+            title: postData.title,
+            text: postData.text,
+            imageUrl: postData.imageUrl,
+            platforms: postData.platforms,
             status: 'scheduled',
+            scheduledAt: postData.scheduledAt
         };
     } catch (error) {
         console.error(`Error scheduling post for user ${userId}:`, error);
@@ -77,7 +85,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         querySnapshot.forEach((doc) => {
             const data = doc.data() as PostData;
             // Firestore timestamps need to be converted to Date objects
-            const scheduledAt = (data.scheduledAt as any).toDate ? (data.scheduledAt as any).toDate() : data.scheduledAt;
+            const scheduledAt = (data.scheduledAt as Timestamp).toDate();
             posts.push({
                 ...data,
                 id: doc.id,
@@ -85,7 +93,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
             });
         });
 
-        console.log(`Fetched ${posts.length} posts from user ${userId}.`);
+        console.log(`Fetched ${posts.length} posts for user ${userId}.`);
         return posts;
     } catch (error) {
         console.error(`Error getting posts for user ${userId}:`, error);
@@ -117,7 +125,7 @@ export async function getDuePosts(userId?: string): Promise<PostDataOutput[]> {
         const posts: PostDataOutput[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data() as PostData;
-             const scheduledAt = (data.scheduledAt as any).toDate ? (data.scheduledAt as any).toDate() : data.scheduledAt;
+             const scheduledAt = (data.scheduledAt as Timestamp).toDate();
             posts.push({
                 ...data,
                 id: doc.id,

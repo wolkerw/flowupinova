@@ -46,16 +46,18 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
  * @param userId The UID of the user.
  * @param connectionData The data to update.
  */
-export async function updateMetaConnection(userId: string, connectionData: Partial<Omit<MetaConnectionData, 'connectedAt'> & { connectedAt?: Date }>): Promise<void> {
+export async function updateMetaConnection(userId: string, connectionData: Partial<Omit<MetaConnectionData, 'connectedAt'>>): Promise<void> {
     if (!userId) {
         console.error("updateMetaConnection called without userId.");
         throw new Error("User ID is required to update Meta connection.");
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
+        
         const dataToSave: { [key: string]: any } = { ...connectionData };
         
         if (connectionData.isConnected === true) {
+             // Use a native Date object, which Firestore client SDK handles correctly.
              dataToSave.connectedAt = new Date();
         }
 
