@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { publicacoes } = await request.json();
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
+    const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/gerador_de_imagem";
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
