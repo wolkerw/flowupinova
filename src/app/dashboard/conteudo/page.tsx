@@ -83,7 +83,7 @@ export default function Conteudo() {
         toast({
             variant: "destructive",
             title: "Erro de Configuração",
-            description: "O ID do aplicativo da Meta não foi configurado. Adicione NEXT_PUBLIC_META_APP_ID ao seu arquivo .env.local",
+            description: "O ID do aplicativo da Meta não foi configurado. Adicione NEXT_PUBLIC_META_APP_ID ao seu arquivo .env",
         });
         return;
     }

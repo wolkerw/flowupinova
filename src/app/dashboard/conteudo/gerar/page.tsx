@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { Badge } from "@/components/ui/badge";
 
 
 interface GeneratedContent {
