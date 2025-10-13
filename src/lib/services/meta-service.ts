@@ -1,6 +1,7 @@
+
 "use client";
 
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, getFirestore } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
@@ -10,6 +11,8 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
+    // CORREÇÃO: O caminho estava incorreto, criando coleções aninhadas.
+    // O caminho correto é 'users/{userId}/connections/meta'
     return doc(db, "users", userId, "connections", "meta");
 }
 
@@ -43,26 +46,24 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
     }
 }
 
-/**
- * Updates the Meta connection status for a specific user.
- * @param userId The UID of the user.
- * @param connectionData The data to update.
- */
+
 export async function updateMetaConnection(userId: string, connectionData: Partial<Omit<MetaConnectionData, 'connectedAt'>>): Promise<void> {
     if (!userId) {
-        console.error("updateMetaConnection called without userId.");
         throw new Error("User ID is required to update Meta connection.");
     }
+    
+    // Esta função agora será chamada apenas para desconectar.
+    // A lógica de conexão foi movida para a API Route para usar o Admin SDK
+    // e evitar problemas de permissão.
+    if (connectionData.isConnected === true) {
+        console.warn("Attempted to call updateMetaConnection() to connect from the client. This logic has been moved to the server.");
+        // Não faz nada para evitar chamadas inseguras.
+        return;
+    }
+
     try {
         const docRef = getMetaConnectionDocRef(userId);
-
-        const dataToSave: { [key: string]: any } = { ...connectionData };
-
-        if (connectionData.isConnected === true) {
-            dataToSave.connectedAt = serverTimestamp();
-        }
-
-        await setDoc(docRef, dataToSave, { merge: true });
+        await setDoc(docRef, connectionData, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);

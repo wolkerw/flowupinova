@@ -45,6 +45,7 @@ export default function Conteudo() {
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -88,13 +89,13 @@ export default function Conteudo() {
             description: error,
         });
         router.replace('/dashboard/conteudo');
-    } else if (code && user) {
-        setLoading(true);
+    } else if (code && user && !isConnecting) {
+        setIsConnecting(true);
         const exchangeCodeForToken = async () => {
             const idToken = await getIdToken();
             if (!idToken) {
                 toast({ variant: "destructive", title: "Falha na Autenticação", description: "Não foi possível autenticar o usuário. Tente fazer login novamente." });
-                setLoading(false);
+                setIsConnecting(false);
                 return;
             }
 
@@ -105,7 +106,7 @@ export default function Conteudo() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${idToken}`
                     },
-                    body: JSON.stringify({ code, userId: user.uid }),
+                    body: JSON.stringify({ code }),
                 });
 
                 const result = await response.json();
@@ -118,7 +119,7 @@ export default function Conteudo() {
                     title: "Sucesso!",
                     description: "Conectado com a Meta (Instagram/Facebook).",
                 });
-                fetchPageData(); // Re-fetch data to update connection status
+                await fetchPageData(); // Re-fetch data to update connection status
             
             } catch (err: any) {
                 toast({
@@ -127,7 +128,7 @@ export default function Conteudo() {
                     description: err.message,
                 });
             } finally {
-                setLoading(false);
+                setIsConnecting(false);
                 router.replace('/dashboard/conteudo');
             }
         };
@@ -135,7 +136,7 @@ export default function Conteudo() {
         exchangeCodeForToken();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user]);
+  }, [searchParams, user, getIdToken]);
 
 
   useEffect(() => {
@@ -372,4 +373,3 @@ export default function Conteudo() {
     </div>
   );
 }
-

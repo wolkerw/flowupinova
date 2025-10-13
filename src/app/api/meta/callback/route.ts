@@ -1,20 +1,43 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp, getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp } from "firebase/app";
 
-// Função auxiliar para verificar o token do usuário (simulação)
-async function verifyIdToken(token: string): Promise<string | null> {
-    // Em um app de produção, use o Firebase Admin SDK para uma verificação segura.
-    // Como estamos em um ambiente onde o Admin SDK apresentou problemas de build,
-    // e o objetivo principal é validar o fluxo, vamos confiar no token se ele existir.
-    // Esta abordagem NÃO é segura para produção.
-    if (token) {
-        // A implementação real decodificaria o token e retornaria o UID.
-        // Aqui, apenas confirmamos que um token foi passado.
-        return "verified"; 
+// Import admin SDK types
+import type admin from 'firebase-admin';
+import { credential } from 'firebase-admin';
+
+// Helper function to initialize the Firebase Admin SDK
+// This ensures it's only initialized once per server instance.
+function initializeAdminApp() {
+    // We need to use require here due to Next.js build quirks with firebase-admin
+    const admin = require('firebase-admin');
+    const serviceAccount = require('@/service-account.json');
+
+    if (admin.apps.length > 0) {
+        return admin.app();
     }
-    return null;
+    
+    return admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
+}
+
+// Helper to get the admin firestore instance
+function getAdminDb() {
+    const adminApp = initializeAdminApp();
+    return adminApp.firestore();
+}
+
+async function verifyIdToken(token: string): Promise<admin.auth.DecodedIdToken | null> {
+    const adminApp = initializeAdminApp();
+    try {
+        const decodedToken = await adminApp.auth().verifyIdToken(token);
+        return decodedToken;
+    } catch (error) {
+        console.error("Error verifying ID token:", error);
+        return null;
+    }
 }
 
 
@@ -25,23 +48,24 @@ export async function POST(request: NextRequest) {
   }
   const idToken = authorization.substring(7);
 
+  const decodedToken = await verifyIdToken(idToken);
+  if (!decodedToken) {
+      return NextResponse.json({ success: false, error: "Invalid ID token." }, { status: 401 });
+  }
+  const userId = decodedToken.uid;
+
+
   try {
     const body = await request.json();
-    const { code, userId } = body;
+    const { code } = body;
 
-    if (!code || !userId) {
+    if (!code) {
       return NextResponse.json(
-        { success: false, error: "Authorization code or user ID not provided." },
+        { success: false, error: "Authorization code not provided." },
         { status: 400 }
       );
     }
     
-    // Verificação básica do token
-    const verificationResult = await verifyIdToken(idToken);
-    if (!verificationResult) {
-        return NextResponse.json({ success: false, error: "Invalid ID token." }, { status: 401 });
-    }
-
     const clientId = "826418333144156";
     const clientSecret = "944e053d34b162c13408cd00ad276aa2";
     const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
@@ -56,9 +80,10 @@ export async function POST(request: NextRequest) {
       throw new Error(tokenData.error?.message || "Falha ao obter token de acesso da Meta.");
     }
     
-    // Lógica de atualização do Firestore movida para cá, com a estrutura correta.
-    const metaConnectionRef = doc(db, "users", userId, "connections", "meta");
-    await setDoc(metaConnectionRef, { 
+    const adminDb = getAdminDb();
+    const metaConnectionRef = adminDb.doc(`users/${userId}/connections/meta`);
+    
+    await metaConnectionRef.set({ 
         isConnected: true,
         connectedAt: serverTimestamp() 
     }, { merge: true });
@@ -72,6 +97,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[META_CALLBACK_ERROR]", error);
+    // Firestore permission errors often have a specific code.
+    if (error.code === 7 || (error.details && error.details.includes('PERMISSION_DENIED'))) {
+         return NextResponse.json(
+          { success: false, error: "7 PERMISSION_DENIED: Missing or insufficient permissions. Check your Firestore rules.", details: error.message },
+          { status: 403 }
+        );
+    }
     return NextResponse.json(
       { success: false, error: error.message || "An unknown error occurred." },
       { status: 500 }

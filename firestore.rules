@@ -1,26 +1,18 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Secure user data by ensuring only the owner can access their documents.
-     * This rule applies to all subcollections for a user, including chat_messages,
-     * connections, business profiles, and posts.
-     * @path /users/{userId}/{document=**}
-     * @principle Enforces document ownership for all operations (create, read, update, delete).
-     */
-    match /users/{userId}/{documents=**} {
-      allow read, write: if isSignedIn() && isOwner(userId);
+    // Regra geral: Nega acesso a tudo por padrão.
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    // Permite que um usuário autenticado leia e escreva em seus próprios dados
+    // dentro da sua própria árvore de documentos.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
