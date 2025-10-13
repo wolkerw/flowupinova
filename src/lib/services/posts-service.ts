@@ -119,3 +119,12 @@ export async function updatePostStatus(userId: string, postId: string, status: '
         throw new Error("Failed to update post status.");
     }
 }
+
+
+export async function getDuePosts(): Promise<PostData[]> {
+    // This is a server-side function and should use the admin SDK.
+    // Re-implementing with admin SDK if needed, or removing if fully client-side.
+    // For now, returning empty to avoid breaking the cron job route that calls it.
+    console.warn("getDuePosts is not implemented for server-side execution yet.");
+    return [];
+}

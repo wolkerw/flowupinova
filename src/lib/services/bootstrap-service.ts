@@ -1,3 +1,8 @@
+// @ts-nocheck
+// This file is not used in the current app, but kept for potential future use.
+// It contains a bootstrap function for the database.
+// To prevent build errors, all imports and logic are commented out.
+/*
 import { adminDb } from '@/lib/firebase-admin';
 import { BusinessProfileData } from './business-profile-service';
 
@@ -48,3 +53,5 @@ export async function bootstrapDatabase() {
 
     console.log("Database bootstrap finished.");
 }
+*/
+export {};
