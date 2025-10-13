@@ -39,7 +39,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, getIdToken } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -82,50 +82,60 @@ export default function Conteudo() {
     const code = searchParams.get('code');
     const error = searchParams.get('error_description');
 
+    const exchangeCodeForToken = async (codeToExchange: string) => {
+        if (!user) return;
+        setIsConnecting(true);
+
+        try {
+            // Passo 1: A API de backend troca o código pelo token
+            const response = await fetch('/api/meta/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: codeToExchange }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "Ocorreu uma falha na API de callback.");
+            }
+
+            // Passo 2: O cliente, já autenticado, salva o status da conexão no Firestore
+            await updateMetaConnection(user.uid, { 
+                isConnected: true,
+                accessToken: result.accessToken // Salva o token de acesso
+            });
+            
+            toast({
+                title: "Sucesso!",
+                description: "Conectado com a Meta (Instagram/Facebook).",
+            });
+
+            await fetchPageData(); // Re-fetch data para atualizar a UI
+        
+        } catch (err: any) {
+            console.error("Falha no processo de conexão com a Meta:", err);
+            toast({
+                variant: "destructive",
+                title: "Falha na Conexão",
+                description: err.message,
+            });
+        } finally {
+            setIsConnecting(false);
+            // Limpa a URL para evitar re-execução
+            router.replace('/dashboard/conteudo', undefined);
+        }
+    };
+
     if (error) {
         toast({
             variant: "destructive",
             title: "Erro de Conexão com a Meta",
             description: error,
         });
-        router.replace('/dashboard/conteudo');
+        router.replace('/dashboard/conteudo', undefined);
     } else if (code && user && !isConnecting) {
-        setIsConnecting(true);
-        const exchangeCodeForToken = async () => {
-           try {
-                const response = await fetch('/api/meta/callback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ code, userId: user.uid }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || "Ocorreu uma falha desconhecida.");
-                }
-                
-                toast({
-                    title: "Sucesso!",
-                    description: "Conectado com a Meta (Instagram/Facebook).",
-                });
-                await fetchPageData(); // Re-fetch data to update connection status
-            
-            } catch (err: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Falha na Conexão",
-                    description: err.message,
-                });
-            } finally {
-                setIsConnecting(false);
-                router.replace('/dashboard/conteudo');
-            }
-        };
-        
-        exchangeCodeForToken();
+        exchangeCodeForToken(code);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, user]);
@@ -156,11 +166,12 @@ export default function Conteudo() {
   const handleDisconnectMeta = async () => {
     if (!user) return;
     try {
-        await updateMetaConnection(user.uid, { isConnected: false });
+        // Agora usa a função de serviço do cliente para atualizar o status
+        await updateMetaConnection(user.uid, { isConnected: false, accessToken: undefined });
         setMetaConnection({ isConnected: false });
         toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
-    } catch(e) {
-        toast({ title: "Erro", description: "Não foi possível desconectar.", variant: "destructive"});
+    } catch(e: any) {
+        toast({ title: "Erro", description: e.message || "Não foi possível desconectar.", variant: "destructive"});
     }
   };
 
@@ -250,7 +261,12 @@ export default function Conteudo() {
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-4">
-                            {metaConnection.isConnected ? (
+                            {isConnecting ? (
+                                <div className="flex items-center justify-center p-4 bg-gray-50 border border-dashed rounded-lg">
+                                    <Loader2 className="w-5 h-5 mr-2 animate-spin text-gray-500"/>
+                                    <span className="text-gray-600">Conectando com a Meta...</span>
+                                </div>
+                            ) : metaConnection.isConnected ? (
                                 <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                                     <div className="flex items-center gap-3">
                                          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">

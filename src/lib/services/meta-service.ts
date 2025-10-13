@@ -1,18 +1,17 @@
 
 "use client";
 
-import { doc, getDoc, setDoc, serverTimestamp, getFirestore } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
     isConnected: boolean;
     error?: string;
     connectedAt?: Date;
+    accessToken?: string; // Adicionado para armazenar o token
 }
 
 function getMetaConnectionDocRef(userId: string) {
-    // CORREÇÃO: O caminho estava incorreto, criando coleções aninhadas.
-    // O caminho correto é 'users/{userId}/connections/meta'
     return doc(db, "users", userId, "connections", "meta");
 }
 
@@ -47,26 +46,29 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
 }
 
 
-export async function updateMetaConnection(userId: string, connectionData: Partial<Omit<MetaConnectionData, 'connectedAt'>>): Promise<void> {
+/**
+ * Updates the Meta connection status for a user. Can be called from the client.
+ * @param userId The UID of the user.
+ * @param connectionData The data to set for the connection.
+ */
+export async function updateMetaConnection(userId: string, connectionData: Partial<MetaConnectionData>): Promise<void> {
     if (!userId) {
         throw new Error("User ID is required to update Meta connection.");
-    }
-    
-    // Esta função agora será chamada apenas para desconectar.
-    // A lógica de conexão foi movida para a API Route para usar o Admin SDK
-    // e evitar problemas de permissão.
-    if (connectionData.isConnected === true) {
-        console.warn("Attempted to call updateMetaConnection() to connect from the client. This logic has been moved to the server.");
-        // Não faz nada para evitar chamadas inseguras.
-        return;
     }
 
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        await setDoc(docRef, connectionData, { merge: true });
+        
+        // Se estiver conectando, adiciona o serverTimestamp
+        const dataToSet = connectionData.isConnected
+            ? { ...connectionData, connectedAt: serverTimestamp() }
+            : connectionData;
+
+        await setDoc(docRef, dataToSet, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);
+        // O erro será lançado e pode ser pego pelo chamador (ex: na página com um toast)
         throw new Error("Failed to update Meta connection status in database.");
     }
 }
