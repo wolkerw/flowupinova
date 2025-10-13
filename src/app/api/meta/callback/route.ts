@@ -1,5 +1,6 @@
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { updateMetaConnection } from "@/lib/services/meta-service";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -34,7 +35,6 @@ export async function GET(req: NextRequest) {
   // --- Real Token Exchange Logic ---
   const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
   const clientSecret = process.env.META_APP_SECRET;
-  // Hardcode the redirect URI to ensure it's consistent and matches the Meta App configuration.
   const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
 
   if (!clientId || !clientSecret) {
@@ -58,23 +58,10 @@ export async function GET(req: NextRequest) {
     const accessToken = tokenData.access_token;
     console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
 
-    // Use n8n webhook to update Firestore
-    const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/update-firestore";
-    const webhookResponse = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: `users/${userId}/connections/meta`,
-        data: { isConnected: true, connectedAt: new Date().toISOString() }
-      }),
-    });
+    // Update Firestore directly using our service function
+    await updateMetaConnection(userId, { isConnected: true });
 
-    if (!webhookResponse.ok) {
-        const errorText = await webhookResponse.text();
-        throw new Error(`Webhook to update Firestore failed: ${errorText}`);
-    }
-
-    console.log(`[Meta Auth] Firestore update request sent via webhook for user ${userId}. Redirecting to dashboard.`);
+    console.log(`[Meta Auth] Firestore updated directly for user ${userId}. Redirecting to dashboard.`);
 
     // Redirect back to the dashboard with a success indicator
     dashboardUrl.searchParams.set("connected", "true");
