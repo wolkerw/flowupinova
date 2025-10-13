@@ -1,8 +1,8 @@
 
 'use server';
 
-import { doc, getDoc, setDoc, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { getAdminFirestore } from "@/lib/firebase-admin"; // Usaremos a instância de admin aqui
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
     isConnected: boolean;
@@ -11,7 +11,6 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
-    const db = getAdminFirestore();
     return doc(db, "users", userId, "connections", "meta");
 }
 
@@ -41,6 +40,7 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
         }
     } catch (error: any) {
         console.error(`Error getting Meta connection for user ${userId}:`, error);
+        // Retornar o erro aqui para que o frontend possa exibi-lo.
         return { isConnected: false, error: error.message };
     }
 }
@@ -59,12 +59,8 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         const docRef = getMetaConnectionDocRef(userId);
         const dataToSave: { [key: string]: any } = { ...connectionData };
         
-        // Use o serverTimestamp do Admin SDK se a conexão for bem-sucedida e a data não for fornecida
-        if (connectionData.isConnected === true && !connectionData.connectedAt) {
-             dataToSave.connectedAt = FieldValue.serverTimestamp();
-        } else if (connectionData.connectedAt) {
-            // Se uma data for fornecida, converta para Timestamp do Firestore
-            dataToSave.connectedAt = Timestamp.fromDate(connectionData.connectedAt);
+        if (connectionData.isConnected === true) {
+             dataToSave.connectedAt = serverTimestamp();
         }
 
         // Use setDoc com merge para criar o documento se ele não existir, ou atualizá-lo se existir.
