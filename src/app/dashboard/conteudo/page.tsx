@@ -88,7 +88,6 @@ export default function Conteudo() {
         setIsConnecting(true);
 
         try {
-            // Passo 1: A API de backend troca o código pelo token e busca os perfis
             const response = await fetch('/api/meta/callback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -100,8 +99,7 @@ export default function Conteudo() {
             if (!response.ok || !result.success) {
                 throw new Error(result.error || "Ocorreu uma falha na API de callback da Meta.");
             }
-
-            // Passo 2: O cliente, já autenticado, salva os dados da conexão no Firestore
+            
             const connectionData = {
                 isConnected: true,
                 accessToken: result.accessToken,
@@ -129,7 +127,6 @@ export default function Conteudo() {
             });
         } finally {
             setIsConnecting(false);
-            // Limpa a URL para evitar re-execução
             router.replace('/dashboard/conteudo', undefined);
         }
     };
@@ -144,8 +141,7 @@ export default function Conteudo() {
     } else if (code && user && !isConnecting) {
         exchangeCodeForToken(code);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user]);
+  }, [searchParams, user, isConnecting, router, toast, fetchPageData]);
 
 
   useEffect(() => {
@@ -157,7 +153,7 @@ export default function Conteudo() {
   const handleConnectMeta = () => {
     const clientId = "826418333144156";
     const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
-    const state = user?.uid; // Using user's UID for security
+    const state = user?.uid; 
     const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts,business_management";
 
     if (!state) {
@@ -173,7 +169,6 @@ export default function Conteudo() {
   const handleDisconnectMeta = async () => {
     if (!user) return;
     try {
-        // Agora usa a função de serviço do cliente para atualizar o status
         await updateMetaConnection(user.uid, { isConnected: false });
         setMetaConnection({ isConnected: false });
         toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
@@ -268,10 +263,10 @@ export default function Conteudo() {
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-4">
-                            {isConnecting ? (
+                            {isConnecting || (loading && !metaConnection.isConnected) ? (
                                 <div className="flex items-center justify-center p-4 bg-gray-50 border border-dashed rounded-lg">
                                     <Loader2 className="w-5 h-5 mr-2 animate-spin text-gray-500"/>
-                                    <span className="text-gray-600">Conectando com a Meta...</span>
+                                    <span className="text-gray-600">{isConnecting ? 'Conectando...' : 'Verificando...'}</span>
                                 </div>
                             ) : metaConnection.isConnected ? (
                                 <div className="flex items-start justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -282,10 +277,10 @@ export default function Conteudo() {
                                         <div>
                                             <h3 className="font-semibold text-green-900 leading-tight">Conectado</h3>
                                             <p className="text-sm text-green-800 font-medium truncate" title={metaConnection.instagramUsername}>
-                                                @{metaConnection.instagramUsername}
+                                                @{metaConnection.instagramUsername || 'Carregando...'}
                                             </p>
                                             <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1" title={metaConnection.pageName}>
-                                                <Facebook className="w-3 h-3"/> {metaConnection.pageName}
+                                                <Facebook className="w-3 h-3"/> {metaConnection.pageName || 'Carregando...'}
                                             </p>
                                         </div>
                                     </div>

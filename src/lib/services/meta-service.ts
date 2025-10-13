@@ -37,13 +37,13 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
             const data = docSnap.data();
             const connectedAtTimestamp = data?.connectedAt;
             return {
-                isConnected: data?.isConnected,
+                isConnected: data?.isConnected || false,
                 connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined,
                 accessToken: data?.accessToken,
                 pageId: data?.pageId,
-                pageName: data?.pageName,
+                pageName: data?.pageName, // Incluído
                 instagramId: data?.instagramId,
-                instagramUsername: data?.instagramUsername,
+                instagramUsername: data?.instagramUsername, // Incluído
             };
         } else {
             return { isConnected: false };
