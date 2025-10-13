@@ -74,11 +74,14 @@ export default function Conteudo() {
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    console.log("[DEBUG] Fetching page data for user:", user.uid);
     try {
         const [postsResult, metaResult] = await Promise.all([
             getScheduledPosts(user.uid),
             getMetaConnection(user.uid)
         ]);
+        
+        console.log("[DEBUG] Meta connection status from service:", metaResult);
 
         const displayPosts = postsResult.map(post => {
             const scheduledDate = post.scheduledAt;
@@ -101,8 +104,10 @@ export default function Conteudo() {
 
 
   useEffect(() => {
-    fetchPageData();
-  }, [fetchPageData]);
+    if(user) {
+        fetchPageData();
+    }
+  }, [user, fetchPageData]);
 
   const handleConnectMeta = () => {
     if (!user) {
