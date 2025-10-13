@@ -32,24 +32,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
+  // --- Real Token Exchange Logic ---
+  const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
+  const clientSecret = process.env.META_APP_SECRET;
+  const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
+
+  if (!clientId || !clientSecret) {
+    console.error("[Meta Auth FATAL] Missing META_APP_ID or META_APP_SECRET in .env file.");
+    dashboardUrl.searchParams.set("error", "Erro de configuração do servidor. Credenciais da Meta ausentes.");
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;
+
   try {
-    console.log(`[Meta Auth] Simulating token exchange for user ${userId}...`);
-    // In a real app, you'd make a POST request to Meta's token endpoint here
-    // to exchange the code for a long-lived access token.
-    // For now, we'll just log and assume success if a code is present.
+    console.log(`[Meta Auth] Exchanging code for access token for user ${userId}...`);
+    const tokenResponse = await fetch(tokenUrl);
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok || tokenData.error) {
+      console.error("[Meta Auth FATAL] Error exchanging code for token:", tokenData.error);
+      throw new Error(tokenData.error.message || "Falha ao obter o token de acesso da Meta.");
+    }
     
+    const accessToken = tokenData.access_token;
+    console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
+
+    // TODO: Exchange for a long-lived token and save it securely.
+    // For now, we just confirm the connection.
+
     // Save the connected state to Firestore for the correct user.
     await updateMetaConnection(userId, { isConnected: true, connectedAt: new Date() });
 
-    console.log(`[Meta Auth] Simulation successful. Connection status saved to Firestore for user ${userId}.`);
+    console.log(`[Meta Auth] Connection status saved to Firestore for user ${userId}. Redirecting to dashboard.`);
 
     // Redirect back to the dashboard with a success indicator
     dashboardUrl.searchParams.set("connected", "true");
     return NextResponse.redirect(dashboardUrl);
 
   } catch (exchangeError: any) {
-    console.error("[Meta Auth FATAL] Error during token exchange simulation or saving status:", exchangeError);
-    dashboardUrl.searchParams.set("error", "Falha ao processar a autenticação da Meta. Tente novamente.");
+    console.error("[Meta Auth FATAL] Error during token exchange or saving status:", exchangeError);
+    dashboardUrl.searchParams.set("error", `Falha ao processar a autenticação da Meta: ${exchangeError.message}`);
     return NextResponse.redirect(dashboardUrl);
   }
 }
