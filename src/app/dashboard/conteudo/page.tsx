@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { exchangeMetaCode } from "@/lib/services/meta-actions";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,30 +77,43 @@ export default function Conteudo() {
     }
   }, [user, toast]);
 
-  // Handle toast notifications on page load from URL params
+  // Effect to handle the OAuth callback from Meta
   useEffect(() => {
-    const connected = searchParams.get('connected');
-    const error = searchParams.get('error');
+    const code = searchParams.get('code');
+    const error = searchParams.get('error_description');
 
-    if (connected === 'true') {
-      toast({
-        title: "Sucesso!",
-        description: "Conectado com a Meta (Instagram/Facebook).",
-        variant: "default",
-      });
-      // Clean the URL and refetch data
-      router.replace('/dashboard/conteudo', { scroll: false });
-      fetchPageData();
-    } else if (error) {
-      toast({
-        title: "Erro na Conexão",
-        description: error,
-        variant: "destructive",
-      });
-      // Clean the URL
-      router.replace('/dashboard/conteudo', { scroll: false });
+    if (error) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Conexão com a Meta",
+            description: error,
+        });
+        // Clean up URL
+        router.replace('/dashboard/conteudo');
+    } else if (code && user) {
+        setLoading(true);
+        exchangeMetaCode(code, user.uid).then(result => {
+            if (result.success) {
+                toast({
+                    title: "Sucesso!",
+                    description: "Conectado com a Meta (Instagram/Facebook).",
+                });
+                fetchPageData(); // Re-fetch data to update connection status
+            } else {
+                 toast({
+                    variant: "destructive",
+                    title: "Falha na Conexão",
+                    description: result.error || "Não foi possível completar a conexão com a Meta.",
+                });
+            }
+        }).finally(() => {
+            setLoading(false);
+            // Clean up URL
+            router.replace('/dashboard/conteudo');
+        });
     }
-  }, [searchParams, router, toast, fetchPageData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user, router, toast, fetchPageData]);
 
 
   useEffect(() => {
@@ -109,11 +123,19 @@ export default function Conteudo() {
   }, [user, fetchPageData]);
 
   const handleConnectMeta = () => {
-    toast({
-        variant: "destructive",
-        title: "Funcionalidade Desativada",
-        description: "A conexão com a Meta foi temporariamente desativada para resolver um problema técnico.",
-    });
+    const clientId = "7303357949752621";
+    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
+    const state = user?.uid; // Using user's UID for security
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts,business_management";
+
+    if (!state) {
+        toast({ variant: "destructive", title: "Erro", description: "Usuário não autenticado."});
+        return;
+    }
+
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code`;
+    
+    window.location.href = authUrl;
   };
   
   const handleDisconnectMeta = async () => {
@@ -239,7 +261,7 @@ export default function Conteudo() {
                                             <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" onClick={handleConnectMeta} disabled={true} title="Funcionalidade temporariamente desativada">
+                                    <Button variant="outline" onClick={handleConnectMeta}>
                                         Conectar
                                     </Button>
                                 </div>
@@ -328,5 +350,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
