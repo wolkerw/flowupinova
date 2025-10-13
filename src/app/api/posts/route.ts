@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { getScheduledPosts } from "@/lib/services/posts-service";
 import { auth } from "firebase-admin";
+import { adminApp } from '@/lib/firebase-admin'; // Ensure admin app is initialized
 
 async function getUserIdFromRequest(request: Request): Promise<string | null> {
     const authorization = request.headers.get("Authorization");
