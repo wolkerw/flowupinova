@@ -105,7 +105,7 @@ export default function Conteudo() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${idToken}`
                     },
-                    body: JSON.stringify({ code }),
+                    body: JSON.stringify({ code, userId: user.uid }),
                 });
 
                 const result = await response.json();
@@ -372,3 +372,4 @@ export default function Conteudo() {
     </div>
   );
 }
+
