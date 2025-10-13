@@ -1,6 +1,6 @@
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdmin } from '@/lib/firebase-admin';
 import { serverTimestamp } from 'firebase-admin/firestore';
 
 export async function GET(req: NextRequest) {
@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
     console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
 
     // Use Firebase Admin SDK to update Firestore
+    const adminDb = getAdmin().db;
     const docRef = adminDb.collection("users").doc(userId).collection("connections").doc("meta");
     await docRef.set({
         isConnected: true,
