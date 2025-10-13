@@ -116,7 +116,7 @@ export default function Conteudo() {
                 description: `Conectado com a página ${result.pageName}.`,
             });
 
-            await fetchPageData(); // Re-fetch data para atualizar a UI
+            await fetchPageData(); // Re-fetch data to update the UI
         
         } catch (err: any) {
             console.error("Falha no processo de conexão com a Meta:", err);
@@ -127,7 +127,7 @@ export default function Conteudo() {
             });
         } finally {
             setIsConnecting(false);
-            router.replace('/dashboard/conteudo', undefined);
+            router.replace('/dashboard/conteudo', undefined); // Clean URL
         }
     };
 
@@ -137,7 +137,7 @@ export default function Conteudo() {
             title: "Erro de Conexão com a Meta",
             description: error,
         });
-        router.replace('/dashboard/conteudo', undefined);
+        router.replace('/dashboard/conteudo', undefined); // Clean URL
     } else if (code && user && !isConnecting) {
         exchangeCodeForToken(code);
     }

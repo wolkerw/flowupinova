@@ -1,7 +1,7 @@
 
 "use client";
 
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, deleteField } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
@@ -37,13 +37,13 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
             const data = docSnap.data();
             const connectedAtTimestamp = data?.connectedAt;
             return {
-                isConnected: data?.isConnected || false,
+                isConnected: data.isConnected || false,
                 connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined,
-                accessToken: data?.accessToken,
-                pageId: data?.pageId,
-                pageName: data?.pageName, // Incluído
-                instagramId: data?.instagramId,
-                instagramUsername: data?.instagramUsername, // Incluído
+                accessToken: data.accessToken,
+                pageId: data.pageId,
+                pageName: data.pageName,
+                instagramId: data.instagramId,
+                instagramUsername: data.instagramUsername,
             };
         } else {
             return { isConnected: false };
@@ -68,20 +68,22 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
     try {
         const docRef = getMetaConnectionDocRef(userId);
         
-        let dataToSet: Partial<MetaConnectionData> = connectionData;
+        let dataToSet: { [key: string]: any } = connectionData;
 
-        // Se estiver conectando, adiciona o serverTimestamp
+        // If connecting, add the serverTimestamp
         if (connectionData.isConnected) {
-            dataToSet = { ...dataToSet, connectedAt: serverTimestamp() as any };
+            dataToSet.connectedAt = serverTimestamp();
         } else {
-            // Se estiver desconectando, limpa os campos relacionados
+            // If disconnecting, explicitly set isConnected to false and remove other fields
             dataToSet = {
                 isConnected: false,
-                accessToken: undefined,
-                pageId: undefined,
-                pageName: undefined,
-                instagramId: undefined,
-                instagramUsername: undefined,
+                accessToken: deleteField(),
+                pageId: deleteField(),
+                pageName: deleteField(),
+                instagramId: deleteField(),
+                instagramUsername: deleteField(),
+                connectedAt: deleteField(),
+                error: deleteField()
             };
         }
 
@@ -89,7 +91,7 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);
-        // O erro será lançado e pode ser pego pelo chamador (ex: na página com um toast)
-        throw new Error("Failed to update Meta connection status in database.");
+        // This will be caught by the calling function (e.g., in the page with a toast)
+        throw new Error(`Failed to update Meta connection status in database. Reason: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
