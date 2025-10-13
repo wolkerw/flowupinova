@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
-import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // Interface for data stored in Firestore
 export interface PostData {
@@ -20,7 +20,7 @@ export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
 // Interface for data being sent from the server action to the client
 export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
     id: string; // Ensure ID is always present on output
-    scheduledAt: Date; // Server sends a native Date object
+    scheduledAt: string; // Server sends an ISO string for serialization
 };
 
 // Helper to get the collection reference for a specific user
@@ -57,7 +57,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             imageUrl: postData.imageUrl,
             platforms: postData.platforms,
             status: 'scheduled',
-            scheduledAt: postData.scheduledAt
+            scheduledAt: postData.scheduledAt.toISOString()
         };
     } catch (error) {
         console.error(`Error scheduling post for user ${userId}:`, error);
@@ -87,7 +87,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
             posts.push({
                 ...data,
                 id: doc.id,
-                scheduledAt: data.scheduledAt.toDate(), // Convert Timestamp to Date
+                scheduledAt: data.scheduledAt.toDate().toISOString(), // Convert Timestamp to ISO String
             });
         });
 
@@ -124,7 +124,7 @@ export async function getDuePosts(userId?: string): Promise<PostDataOutput[]> {
             posts.push({
                 ...data,
                 id: doc.id,
-                scheduledAt: data.scheduledAt.toDate(),
+                scheduledAt: data.scheduledAt.toDate().toISOString(),
             });
         });
 

@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  getIdToken: () => Promise<string | null>;
   signUpWithEmail: (name: string, email: string, pass: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -54,6 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   }, [user, loading, router, pathname]);
+
+  const getIdToken = async (): Promise<string | null> => {
+    if (!auth.currentUser) return null;
+    return auth.currentUser.getIdToken();
+  };
 
   const signUpWithEmail = async (name: string, email: string, pass: string) => {
     try {
@@ -125,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = { user, loading, signUpWithEmail, loginWithEmail, logout };
+  const value = { user, loading, getIdToken, signUpWithEmail, loginWithEmail, logout };
 
   // Mostra um loader em páginas protegidas enquanto o estado de auth está sendo verificado
   if (loading && !pathname.startsWith('/acesso') && pathname !== '/') {

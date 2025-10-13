@@ -23,8 +23,8 @@ import {
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
-import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
-import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import type { PostDataOutput } from "@/lib/services/posts-service";
+import type { MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,23 +76,31 @@ export default function Conteudo() {
     setLoading(true);
     console.log("[DEBUG] Fetching page data for user:", user.uid);
     try {
-        const [postsResult, metaResult] = await Promise.all([
-            getScheduledPosts(user.uid),
-            getMetaConnection(user.uid)
+        const [postsResponse, metaResponse] = await Promise.all([
+            fetch('/api/posts'),
+            fetch('/api/meta/connection')
         ]);
         
-        console.log("[DEBUG] Meta connection status from service:", metaResult);
+        if (!postsResponse.ok || !metaResponse.ok) {
+            throw new Error('Failed to fetch data from API');
+        }
 
-        const displayPosts = postsResult.map(post => {
-            const scheduledDate = post.scheduledAt;
+        const postsResult = await postsResponse.json();
+        const metaResult = await metaResponse.json();
+
+        console.log("[DEBUG] Meta connection status from API:", metaResult);
+
+        const displayPosts = postsResult.posts.map((post: PostDataOutput) => {
+            const scheduledDate = new Date(post.scheduledAt); // Ensure it's a Date object
             return {
                 ...post,
                 date: scheduledDate,
                 time: format(scheduledDate, 'HH:mm'),
             };
         });
+
         setScheduledPosts(displayPosts);
-        setMetaConnection(metaResult);
+        setMetaConnection(metaResult.connection);
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
@@ -143,9 +151,14 @@ export default function Conteudo() {
   
   const handleDisconnectMeta = async () => {
     if (!user) return;
-    await updateMetaConnection(user.uid, { isConnected: false, connectedAt: undefined });
-    setMetaConnection({ isConnected: false });
-    toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
+    try {
+        const response = await fetch('/api/meta/connection', { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to disconnect');
+        setMetaConnection({ isConnected: false });
+        toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
+    } catch(e) {
+        toast({ title: "Erro", description: "Não foi possível desconectar.", variant: "destructive"});
+    }
   };
 
   

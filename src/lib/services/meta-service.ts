@@ -59,12 +59,9 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         if (connectionData.isConnected === true) {
             // Use Admin SDK's server timestamp
             dataToSave.connectedAt = FieldValue.serverTimestamp();
-        } else {
-            // Optionally clear the connectedAt field when disconnecting
-            dataToSave.connectedAt = null;
         }
 
-        // Use setDoc com merge para criar ou atualizar o documento de forma segura.
+        // Use set com merge para criar ou atualizar o documento de forma segura.
         await docRef.set(dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
