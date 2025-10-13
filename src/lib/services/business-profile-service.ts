@@ -1,8 +1,8 @@
 
 'use server';
 
-import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase"; // Continua usando a mesma instância por simplicidade, mas o ideal seria separar.
 
 export interface BusinessProfileData {
     name: string;
@@ -30,6 +30,7 @@ const defaultProfile: BusinessProfileData = {
 
 
 function getProfileDocRef(userId: string) {
+    // Reutiliza a instância 'db' que já funciona para outros server actions.
     return doc(db, "users", userId, "business", "profile");
 }
 
