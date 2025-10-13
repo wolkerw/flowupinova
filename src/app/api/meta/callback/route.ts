@@ -2,6 +2,7 @@
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
+import { adminApp } from '@/lib/firebase-admin'; // Ensure admin app is initialized
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
-  const dashboardUrl = new URL("https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo");
+  const dashboardUrl = new URL(req.nextUrl.origin + "/dashboard/conteudo");
 
   if (error) {
     console.error(`[Meta Auth Error] ${error}: ${errorDescription}`);
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   // --- Real Token Exchange Logic ---
   const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
   const clientSecret = process.env.META_APP_SECRET;
-  const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
+  const redirectUri = `${req.nextUrl.origin}/api/meta/callback`;
 
   if (!clientId || !clientSecret) {
     console.error("[Meta Auth FATAL] Missing META_APP_ID or META_APP_SECRET in .env file.");

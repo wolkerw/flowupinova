@@ -100,19 +100,14 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 }
 
 /**
- * Retrieves all posts for a specific user that are due to be published.
- * @param userId The UID of the user.
+ * Retrieves all posts that are due to be published across all users.
  * @returns An array of due posts.
  */
-export async function getDuePosts(userId?: string): Promise<PostDataOutput[]> {
-     if (!userId) {
-        console.error("User ID is required to get due posts.");
-        return [];
-    }
+export async function getDuePosts(): Promise<PostDataOutput[]> {
     try {
-        const postsCollectionRef = getPostsCollectionRef(userId);
+        const postsCollectionGroup = adminDb.collectionGroup("posts");
         const now = Timestamp.now();
-        const q = postsCollectionRef
+        const q = postsCollectionGroup
             .where("status", "==", "scheduled")
             .where("scheduledAt", "<=", now);
 
@@ -130,14 +125,14 @@ export async function getDuePosts(userId?: string): Promise<PostDataOutput[]> {
 
         return posts;
     } catch (error) {
-        console.error(`Error getting due posts for user ${userId}:`, error);
+        console.error(`Error getting due posts:`, error);
         return [];
     }
 }
 
 /**
- * Updates the status of a specific post for a user.
- * @param userId The UID of the user.
+ * Updates the status of a specific post.
+ * @param userId The UID of the user who owns the post.
  * @param postId The ID of the post to update.
  * @param status The new status for the post.
  */

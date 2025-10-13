@@ -5,32 +5,22 @@ import { getScheduledPosts } from "@/lib/services/posts-service";
 import { auth } from "firebase-admin";
 import { adminApp } from '@/lib/firebase-admin'; // Ensure admin app is initialized
 
-async function getUserIdFromRequest(request: Request): Promise<string | null> {
+export async function GET(request: Request) {
     const authorization = request.headers.get("Authorization");
     if (authorization?.startsWith("Bearer ")) {
         const idToken = authorization.substring(7);
         try {
             const decodedToken = await auth().verifyIdToken(idToken);
-            return decodedToken.uid;
+            const userId = decodedToken.uid;
+            
+            const posts = await getScheduledPosts(userId);
+            return NextResponse.json({ posts });
+
         } catch (error) {
             console.error("Error verifying ID token:", error);
-            return null;
-        }
-    }
-    return null;
-}
-
-export async function GET(request: Request) {
-    try {
-        const userId = await getUserIdFromRequest(request);
-        if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const posts = await getScheduledPosts(userId);
-        return NextResponse.json({ posts });
-    } catch (error: any) {
-        console.error("API Error fetching posts:", error);
-        return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    } else {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 }
