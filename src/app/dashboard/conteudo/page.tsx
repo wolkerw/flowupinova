@@ -39,49 +39,36 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
 
-  // Handle toast notifications on page load from URL params
-  useEffect(() => {
-    const connected = searchParams.get('connected');
-    const error = searchParams.get('error');
-
-    if (connected === 'true') {
-      toast({
-        title: "Sucesso!",
-        description: "Conectado com a Meta (Instagram/Facebook).",
-        variant: "default",
-      });
-      // Clean the URL and refetch data
-      router.replace('/dashboard/conteudo', { scroll: false });
-      fetchPageData();
-    } else if (error) {
-      toast({
-        title: "Erro na Conexão",
-        description: error,
-        variant: "destructive",
-      });
-      // Clean the URL
-      router.replace('/dashboard/conteudo', { scroll: false });
-    }
-  }, [searchParams, router, toast]);
-
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    const token = await getIdToken();
+
+    if (!token) {
+        toast({ variant: 'destructive', title: "Erro de Autenticação", description: "Não foi possível obter o token de autenticação." });
+        setLoading(false);
+        return;
+    }
+    
+    const headers = { 'Authorization': `Bearer ${token}` };
+
     console.log("[DEBUG] Fetching page data for user:", user.uid);
     try {
         const [postsResponse, metaResponse] = await Promise.all([
-            fetch('/api/posts'),
-            fetch('/api/meta/connection')
+            fetch('/api/posts', { headers }),
+            fetch('/api/meta/connection', { headers })
         ]);
         
         if (!postsResponse.ok || !metaResponse.ok) {
+            console.error("Posts response:", postsResponse.status, postsResponse.statusText);
+            console.error("Meta response:", metaResponse.status, metaResponse.statusText);
             throw new Error('Failed to fetch data from API');
         }
 
@@ -108,7 +95,32 @@ export default function Conteudo() {
     } finally {
         setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, getIdToken]);
+
+  // Handle toast notifications on page load from URL params
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    if (connected === 'true') {
+      toast({
+        title: "Sucesso!",
+        description: "Conectado com a Meta (Instagram/Facebook).",
+        variant: "default",
+      });
+      // Clean the URL and refetch data
+      router.replace('/dashboard/conteudo', { scroll: false });
+      fetchPageData();
+    } else if (error) {
+      toast({
+        title: "Erro na Conexão",
+        description: error,
+        variant: "destructive",
+      });
+      // Clean the URL
+      router.replace('/dashboard/conteudo', { scroll: false });
+    }
+  }, [searchParams, router, toast, fetchPageData]);
 
 
   useEffect(() => {
@@ -152,7 +164,9 @@ export default function Conteudo() {
   const handleDisconnectMeta = async () => {
     if (!user) return;
     try {
-        const response = await fetch('/api/meta/connection', { method: 'DELETE' });
+        const token = await getIdToken();
+        if (!token) throw new Error("Authentication token not found.");
+        const response = await fetch('/api/meta/connection', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
         if (!response.ok) throw new Error('Failed to disconnect');
         setMetaConnection({ isConnected: false });
         toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
@@ -362,3 +376,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
