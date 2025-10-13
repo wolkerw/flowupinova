@@ -1,3 +1,4 @@
+
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
@@ -58,11 +59,8 @@ export async function GET(req: NextRequest) {
     const accessToken = tokenData.access_token;
     console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
 
-    // TODO: Exchange for a long-lived token and save it securely.
-    // For now, we just confirm the connection.
-
     // Save the connected state to Firestore for the correct user.
-    await updateMetaConnection(userId, { isConnected: true, connectedAt: new Date() });
+    await updateMetaConnection(userId, { isConnected: true });
 
     console.log(`[Meta Auth] Connection status saved to Firestore for user ${userId}. Redirecting to dashboard.`);
 

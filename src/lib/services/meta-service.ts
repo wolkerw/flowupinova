@@ -1,7 +1,7 @@
 
 'use server';
 
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
@@ -40,7 +40,6 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
         }
     } catch (error: any) {
         console.error(`Error getting Meta connection for user ${userId}:`, error);
-        // Retornar o erro aqui para que o frontend possa exibi-lo.
         return { isConnected: false, error: error.message };
     }
 }
@@ -50,7 +49,7 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
  * @param userId The UID of the user.
  * @param connectionData The data to update.
  */
-export async function updateMetaConnection(userId: string, connectionData: Partial<MetaConnectionData>): Promise<void> {
+export async function updateMetaConnection(userId: string, connectionData: Partial<Omit<MetaConnectionData, 'connectedAt'> & { connectedAt?: Date }>): Promise<void> {
     if (!userId) {
         console.error("updateMetaConnection called without userId.");
         throw new Error("User ID is required to update Meta connection.");
@@ -60,10 +59,9 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         const dataToSave: { [key: string]: any } = { ...connectionData };
         
         if (connectionData.isConnected === true) {
-             dataToSave.connectedAt = serverTimestamp();
+             dataToSave.connectedAt = new Date();
         }
 
-        // Use setDoc com merge para criar o documento se ele não existir, ou atualizá-lo se existir.
         await setDoc(docRef, dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
