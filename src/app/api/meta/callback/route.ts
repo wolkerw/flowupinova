@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
-  const dashboardUrl = new URL("/dashboard/conteudo", req.nextUrl.origin);
+  // Hardcode the final destination URL to ensure correctness
+  const dashboardUrl = new URL("https://6000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo");
 
   // 1. Handle errors from Meta
   if (error) {
