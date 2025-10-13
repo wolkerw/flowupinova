@@ -24,7 +24,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -41,11 +41,35 @@ interface DisplayPost extends PostDataOutput {
 export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
+
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    if (connected === 'true') {
+      toast({
+        title: "Sucesso!",
+        description: "Conectado com a Meta (Instagram/Facebook).",
+        variant: "default",
+      });
+      // Limpa os parâmetros da URL
+      router.replace('/dashboard/conteudo');
+    } else if (error) {
+      toast({
+        title: "Erro na Conexão",
+        description: error,
+        variant: "destructive",
+      });
+      // Limpa os parâmetros da URL
+      router.replace('/dashboard/conteudo');
+    }
+  }, [searchParams, router, toast]);
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -294,5 +318,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
