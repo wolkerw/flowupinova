@@ -39,7 +39,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, getIdToken } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -51,27 +51,11 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
-        const idToken = await getIdToken();
-        if (!idToken) {
-            throw new Error("Não foi possível obter o token de autenticação.");
-        }
-
-        const headers = { 'Authorization': `Bearer ${idToken}` };
-
-        const postsResponse = await fetch('/api/posts', { headers });
-        const metaResponse = await fetch('/api/meta/connection', { headers });
+        const [postsResult, metaResult] = await Promise.all([
+          getScheduledPosts(user.uid),
+          getMetaConnection(user.uid)
+        ]);
         
-        if (!postsResponse.ok || !metaResponse.ok) {
-            console.error("Posts response:", postsResponse.status, postsResponse.statusText);
-            console.error("Meta response:", metaResponse.status, metaResponse.statusText);
-            const postError = await postsResponse.text();
-            const metaError = await metaResponse.text();
-            throw new Error(`Falha ao buscar dados da API. Posts: ${postError}. Meta: ${metaError}`);
-        }
-
-        const postsResult = await postsResponse.json();
-        const metaResult = await metaResponse.json();
-
         const displayPosts = postsResult.map((post: PostDataOutput) => {
             const scheduledDate = new Date(post.scheduledAt);
             return {
@@ -90,7 +74,7 @@ export default function Conteudo() {
     } finally {
         setLoading(false);
     }
-  }, [user, toast, getIdToken]);
+  }, [user, toast]);
 
   // Handle toast notifications on page load from URL params
   useEffect(() => {
@@ -370,3 +354,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
