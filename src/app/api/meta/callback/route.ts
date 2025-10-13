@@ -1,7 +1,43 @@
+
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getAdmin } from '@/lib/firebase-admin';
 import { serverTimestamp } from 'firebase-admin/firestore';
+import type { ServiceAccount } from 'firebase-admin/app';
+
+// Use require for compatibility with Next.js bundling
+const admin = require('firebase-admin');
+import serviceAccount from '@/service-account.json';
+
+// --- Firebase Admin Initialization ---
+// This logic is now self-contained within this route to avoid build issues.
+let adminApp: admin.app.App | null = null;
+
+function initializeAdminApp() {
+  if (!admin.apps.length) {
+    try {
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as ServiceAccount),
+        databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
+      });
+      console.log("Firebase Admin SDK initialized successfully in meta/callback route.");
+    } catch (error: any) {
+      console.error("Firebase Admin SDK initialization error:", error.message);
+      // Throwing the error helps debug initialization issues
+      throw error;
+    }
+  } else {
+    adminApp = admin.apps[0];
+  }
+}
+
+function getAdminDb() {
+  if (!adminApp) {
+    initializeAdminApp();
+  }
+  return adminApp!.firestore();
+}
+// --- End of Firebase Admin Initialization ---
+
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -60,7 +96,7 @@ export async function GET(req: NextRequest) {
     console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
 
     // Use Firebase Admin SDK to update Firestore
-    const adminDb = getAdmin().db;
+    const adminDb = getAdminDb();
     const docRef = adminDb.collection("users").doc(userId).collection("connections").doc("meta");
     await docRef.set({
         isConnected: true,
