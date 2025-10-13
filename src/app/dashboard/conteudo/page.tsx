@@ -22,11 +22,13 @@ import {
   Loader2,
   AlertTriangle,
   Link as LinkIcon,
+  LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
 import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
+import { getMetaConnection, updateMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,7 +49,9 @@ export default function Conteudo() {
 
   const [loading, setLoading] = useState(true);
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
+  const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
 
+  // Handle toast notifications on page load
   useEffect(() => {
     const connected = searchParams.get('connected');
     const error = searchParams.get('error');
@@ -58,7 +62,7 @@ export default function Conteudo() {
         description: "Conectado com a Meta (Instagram/Facebook).",
         variant: "default",
       });
-      // Limpa os parâmetros da URL
+      // Clean the URL
       router.replace('/dashboard/conteudo');
     } else if (error) {
       toast({
@@ -66,7 +70,7 @@ export default function Conteudo() {
         description: error,
         variant: "destructive",
       });
-      // Limpa os parâmetros da URL
+      // Clean the URL
       router.replace('/dashboard/conteudo');
     }
   }, [searchParams, router, toast]);
@@ -75,10 +79,13 @@ export default function Conteudo() {
     if (!user) return;
     setLoading(true);
     try {
-        const postsResult = await getScheduledPosts(user.uid);
+        const [postsResult, metaResult] = await Promise.all([
+            getScheduledPosts(user.uid),
+            getMetaConnection(user.uid)
+        ]);
 
         const displayPosts = postsResult.map(post => {
-            const scheduledDate = post.scheduledAt; // Already a Date object
+            const scheduledDate = post.scheduledAt;
             return {
                 ...post,
                 date: scheduledDate,
@@ -87,10 +94,11 @@ export default function Conteudo() {
             };
         });
         setScheduledPosts(displayPosts);
+        setMetaConnection(metaResult);
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
-        toast({ variant: 'destructive', title: "Erro ao carregar dados", description: "Não foi possível carregar os posts agendados." });
+        toast({ variant: 'destructive', title: "Erro ao carregar dados", description: "Não foi possível carregar os posts e o status da conexão." });
     } finally {
         setLoading(false);
     }
@@ -112,7 +120,6 @@ export default function Conteudo() {
         return;
     }
 
-    // Hardcoded redirect URI to match the Meta App configuration exactly.
     const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
     const state = 'flowup-auth-state';
     const scope = [
@@ -127,6 +134,13 @@ export default function Conteudo() {
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&display=popup`;
     
     window.location.href = authUrl;
+  };
+  
+  const handleDisconnectMeta = async () => {
+    if (!user) return;
+    await updateMetaConnection(user.uid, { isConnected: false });
+    setMetaConnection({ isConnected: false });
+    toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
 
   
@@ -214,21 +228,38 @@ export default function Conteudo() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-gray-50 border border-dashed rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
-                                        <Instagram className="w-5 h-5 text-white" />
+                         <div className="space-y-4">
+                            {metaConnection.isConnected ? (
+                                <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
+                                            <Instagram className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-green-900">Conectado</h3>
+                                            <p className="text-sm text-green-700">Instagram & Facebook</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-800">Instagram & Facebook</h3>
-                                        <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
-                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={handleDisconnectMeta} className="text-red-600 hover:bg-red-100">
+                                        <LogOut className="w-4 h-4"/>
+                                    </Button>
                                 </div>
-                                <Button variant="outline" onClick={handleConnectMeta}>
-                                    Conectar
-                                </Button>
-                            </div>
+                            ) : (
+                                <div className="flex items-center justify-between p-4 bg-gray-50 border border-dashed rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
+                                            <Instagram className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800">Instagram & Facebook</h3>
+                                            <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
+                                        </div>
+                                    </div>
+                                    <Button variant="outline" onClick={handleConnectMeta}>
+                                        Conectar
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
