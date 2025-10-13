@@ -1,19 +1,23 @@
-import * as admin from 'firebase-admin';
+"use server";
+
+import type { ServiceAccount } from 'firebase-admin/app';
+// Use require for compatibility with Next.js bundling
+const admin = require('firebase-admin');
 import serviceAccount from '@/service-account.json';
 
-let adminApp: admin.app | null = null;
+let adminApp: admin.app.App | null = null;
 
 function initializeAdminApp() {
   if (!admin.apps.length) {
     try {
       adminApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccountCredential),
+        credential: admin.credential.cert(serviceAccount as ServiceAccount),
         databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
       });
       console.log("Firebase Admin SDK initialized successfully.");
     } catch (error: any) {
       console.error("Firebase Admin SDK initialization error:", error.message);
-      // Lançar o erro pode ajudar a depurar problemas de inicialização
+      // Throwing the error can help debug initialization issues
       throw error;
     }
   } else {
@@ -21,12 +25,12 @@ function initializeAdminApp() {
   }
 }
 
-// Chame a inicialização uma vez no carregamento do módulo
+// Call initialization once on module load
 initializeAdminApp();
 
 export function getAdmin() {
   if (!adminApp) {
-    // Isso não deve acontecer se a lógica acima estiver correta, mas é uma salvaguarda.
+    // This should not happen if the logic above is correct, but it's a safeguard.
     initializeAdminApp();
   }
   return {
