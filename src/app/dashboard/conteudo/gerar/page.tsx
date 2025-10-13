@@ -262,37 +262,7 @@ export default function GerarConteudoPage() {
                 onChange={(e) => setPostSummary(e.target.value)}
               />
             </CardContent>
-            <CardFooter className="flex justify-between items-center">
-               <div className="flex items-center gap-4">
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept="image/*,video/*"
-                />
-                <Button variant="outline" onClick={handleFileReferenceClick}>
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Adicionar arquivo de referência
-                </Button>
-                {referenceFile && (
-                    <div className="relative group w-16 h-16">
-                        {referenceFile.type === 'image' ? (
-                            <Image src={referenceFile.previewUrl} alt="Preview" layout="fill" objectFit="cover" className="rounded-md" />
-                        ) : (
-                            <video src={referenceFile.previewUrl} className="w-full h-full object-cover rounded-md" />
-                        )}
-                        <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={removeReferenceFile}
-                        >
-                            <X className="w-4 h-4" />
-                        </Button>
-                    </div>
-                )}
-               </div>
+            <CardFooter className="flex justify-end items-center">
               <Button
                 onClick={handleGenerateText}
                 disabled={!postSummary.trim() || isLoading}
