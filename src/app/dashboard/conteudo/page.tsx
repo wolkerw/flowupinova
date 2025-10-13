@@ -88,7 +88,8 @@ export default function Conteudo() {
         return;
     }
 
-    const redirectUri = `${window.location.origin}/api/meta/callback`;
+    // Hardcoded redirect URI to match the Meta App configuration exactly.
+    const redirectUri = "https://6000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
     const state = 'flowup-auth-state';
     const scope = [
         'pages_show_list',
