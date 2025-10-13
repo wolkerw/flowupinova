@@ -1,6 +1,7 @@
 // src/app/api/meta/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { updateMetaConnection } from "@/lib/services/meta-service";
+import { adminDb } from '@/lib/firebase-admin';
+import { serverTimestamp } from 'firebase-admin/firestore';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -58,10 +59,14 @@ export async function GET(req: NextRequest) {
     const accessToken = tokenData.access_token;
     console.log(`[Meta Auth] Access token received for user ${userId}. Token starts with: ${accessToken.substring(0, 10)}...`);
 
-    // Update Firestore directly using our service function
-    await updateMetaConnection(userId, { isConnected: true });
+    // Use Firebase Admin SDK to update Firestore
+    const docRef = adminDb.collection("users").doc(userId).collection("connections").doc("meta");
+    await docRef.set({
+        isConnected: true,
+        connectedAt: serverTimestamp()
+    }, { merge: true });
 
-    console.log(`[Meta Auth] Firestore updated directly for user ${userId}. Redirecting to dashboard.`);
+    console.log(`[Meta Auth] Firestore updated with Admin SDK for user ${userId}. Redirecting to dashboard.`);
 
     // Redirect back to the dashboard with a success indicator
     dashboardUrl.searchParams.set("connected", "true");
