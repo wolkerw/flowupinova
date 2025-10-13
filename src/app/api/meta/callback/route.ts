@@ -5,7 +5,6 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 
 // Import admin SDK types
 import type admin from 'firebase-admin';
-import { credential } from 'firebase-admin';
 
 // Helper function to initialize the Firebase Admin SDK
 // This ensures it's only initialized once per server instance.
@@ -29,39 +28,14 @@ function getAdminDb() {
     return adminApp.firestore();
 }
 
-async function verifyIdToken(token: string): Promise<admin.auth.DecodedIdToken | null> {
-    const adminApp = initializeAdminApp();
-    try {
-        const decodedToken = await adminApp.auth().verifyIdToken(token);
-        return decodedToken;
-    } catch (error) {
-        console.error("Error verifying ID token:", error);
-        return null;
-    }
-}
-
-
 export async function POST(request: NextRequest) {
-  const authorization = request.headers.get("Authorization");
-  if (!authorization?.startsWith("Bearer ")) {
-     return NextResponse.json({ success: false, error: "Unauthorized: No token provided." }, { status: 401 });
-  }
-  const idToken = authorization.substring(7);
-
-  const decodedToken = await verifyIdToken(idToken);
-  if (!decodedToken) {
-      return NextResponse.json({ success: false, error: "Invalid ID token." }, { status: 401 });
-  }
-  const userId = decodedToken.uid;
-
-
   try {
     const body = await request.json();
-    const { code } = body;
+    const { code, userId } = body;
 
-    if (!code) {
+    if (!code || !userId) {
       return NextResponse.json(
-        { success: false, error: "Authorization code not provided." },
+        { success: false, error: "Authorization code or user ID not provided." },
         { status: 400 }
       );
     }

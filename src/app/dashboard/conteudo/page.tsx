@@ -92,21 +92,13 @@ export default function Conteudo() {
     } else if (code && user && !isConnecting) {
         setIsConnecting(true);
         const exchangeCodeForToken = async () => {
-            const idToken = await getIdToken();
-            if (!idToken) {
-                toast({ variant: "destructive", title: "Falha na Autenticação", description: "Não foi possível autenticar o usuário. Tente fazer login novamente." });
-                setIsConnecting(false);
-                return;
-            }
-
-            try {
+           try {
                 const response = await fetch('/api/meta/callback', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${idToken}`
                     },
-                    body: JSON.stringify({ code }),
+                    body: JSON.stringify({ code, userId: user.uid }),
                 });
 
                 const result = await response.json();
@@ -136,7 +128,7 @@ export default function Conteudo() {
         exchangeCodeForToken();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user, getIdToken]);
+  }, [searchParams, user]);
 
 
   useEffect(() => {
