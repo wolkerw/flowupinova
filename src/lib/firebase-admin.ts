@@ -1,4 +1,4 @@
-"use server";
+
 
 import type { ServiceAccount } from 'firebase-admin/app';
 // Use require for compatibility with Next.js bundling
