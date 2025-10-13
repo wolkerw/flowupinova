@@ -10,12 +10,8 @@ import {
   Calendar as CalendarIcon,
   Plus,
   Edit,
-  Image,
-  Video,
   FileText,
   Instagram,
-  Facebook,
-  Linkedin,
   Sparkles,
   Clock,
   CheckCircle,
@@ -27,8 +23,8 @@ import {
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
-import { getScheduledPosts, PostDataOutput } from "@/lib/services/posts-service";
-import { getMetaConnection, updateMetaConnection, MetaConnectionData } from "@/lib/services/meta-service";
+import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
+import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,7 +32,6 @@ import { useToast } from "@/hooks/use-toast";
 interface DisplayPost extends PostDataOutput {
     date: Date;
     time: string;
-    type: 'image' | 'text';
 }
 
 
@@ -51,7 +46,7 @@ export default function Conteudo() {
   const [scheduledPosts, setScheduledPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
 
-  // Handle toast notifications on page load
+  // Handle toast notifications on page load from URL params
   useEffect(() => {
     const connected = searchParams.get('connected');
     const error = searchParams.get('error');
@@ -63,7 +58,7 @@ export default function Conteudo() {
         variant: "default",
       });
       // Clean the URL
-      router.replace('/dashboard/conteudo');
+      router.replace('/dashboard/conteudo', { scroll: false });
     } else if (error) {
       toast({
         title: "Erro na Conexão",
@@ -71,7 +66,7 @@ export default function Conteudo() {
         variant: "destructive",
       });
       // Clean the URL
-      router.replace('/dashboard/conteudo');
+      router.replace('/dashboard/conteudo', { scroll: false });
     }
   }, [searchParams, router, toast]);
 
@@ -90,7 +85,6 @@ export default function Conteudo() {
                 ...post,
                 date: scheduledDate,
                 time: format(scheduledDate, 'HH:mm'),
-                type: (post.imageUrl ? 'image' : 'text') as 'image' | 'text',
             };
         });
         setScheduledPosts(displayPosts);
@@ -146,9 +140,9 @@ export default function Conteudo() {
   
   const platformIcons: { [key: string]: React.ElementType } = {
     instagram: Instagram,
-    facebook: Facebook,
-    linkedin: Linkedin
   };
+
+  const filteredPosts = scheduledPosts.filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -255,7 +249,7 @@ export default function Conteudo() {
                                             <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" onClick={handleConnectMeta}>
+                                    <Button variant="outline" onClick={handleConnectMeta} disabled={loading}>
                                         Conectar
                                     </Button>
                                 </div>
@@ -278,9 +272,7 @@ export default function Conteudo() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {scheduledPosts
-                  .filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
-                  .map((post, index) => (
+                {filteredPosts.map((post, index) => (
                   <motion.div
                     key={post.id}
                     initial={{ opacity: 0, x: 20 }}
@@ -289,25 +281,22 @@ export default function Conteudo() {
                     className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        {post.imageUrl ? 
-                            <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
-                                <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
-                            </div>
-                             :
-                            <FileText className="w-5 h-5 text-gray-500" />
-                        }
-                        <div className="flex">
-                          {post.platforms.map((platform, pIdx) => {
-                            const PlatformIcon = platformIcons[platform as keyof typeof platformIcons];
-                            return (
-                              PlatformIcon && <PlatformIcon 
-                                key={platform}
-                                className={`w-5 h-5 text-blue-500 bg-white rounded-full p-0.5 border ${pIdx > 0 ? '-ml-2' : ''}`} 
-                              />
-                            );
-                          })}
-                        </div>
+                       <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                          {post.imageUrl ? 
+                              <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                               :
+                              <FileText className="w-5 h-5 text-gray-500" />
+                          }
+                      </div>
+                      <div className="flex -space-x-2">
+                        {post.platforms.map((platform) => {
+                          const PlatformIcon = platformIcons[platform as keyof typeof platformIcons];
+                          return (
+                            PlatformIcon && <div key={platform} className="w-6 h-6 bg-white border-2 border-white rounded-full flex items-center justify-center"><PlatformIcon 
+                              className="w-5 h-5 text-gray-700"
+                            /></div>
+                          );
+                        })}
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900">{post.title}</h4>
@@ -336,7 +325,7 @@ export default function Conteudo() {
                     </div>
                   </motion.div>
                 ))}
-                {scheduledPosts.filter(post => selectedDate && format(post.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')).length === 0 && (
+                {filteredPosts.length === 0 && (
                     <div className="text-center text-gray-500 py-8">
                        {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /> : "Nenhum post para a data selecionada."}
                     </div>
