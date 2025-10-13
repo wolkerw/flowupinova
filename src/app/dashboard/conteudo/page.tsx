@@ -23,8 +23,8 @@ import {
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from 'date-fns';
-import type { PostDataOutput } from "@/lib/services/posts-service";
-import type { MetaConnectionData } from "@/lib/services/meta-service";
+import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
+import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,7 +39,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, getIdToken } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -49,39 +49,17 @@ export default function Conteudo() {
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const token = await getIdToken();
-
-    if (!token) {
-        toast({ variant: 'destructive', title: "Erro de Autenticação", description: "Não foi possível obter o token de autenticação." });
-        setLoading(false);
-        return;
-    }
     
-    const headers = { 'Authorization': `Bearer ${token}` };
-
     console.log("[DEBUG] Fetching page data for user:", user.uid);
     try {
-        const [postsResponse, metaResponse] = await Promise.all([
-            fetch('/api/posts', { headers }),
-            fetch('/api/meta/connection', { headers })
+        const [postsResult, metaResult] = await Promise.all([
+            getScheduledPosts(user.uid),
+            getMetaConnection(user.uid)
         ]);
         
-        if (!postsResponse.ok || !metaResponse.ok) {
-            console.error("Posts response:", postsResponse.status, postsResponse.statusText);
-            console.error("Meta response:", metaResponse.status, metaResponse.statusText);
-            const postError = await postsResponse.text();
-            const metaError = await metaResponse.text();
-            console.error("Posts error body:", postError);
-            console.error("Meta error body:", metaError);
-            throw new Error('Failed to fetch data from API');
-        }
+        console.log("[DEBUG] Meta connection status from service:", metaResult);
 
-        const postsResult = await postsResponse.json();
-        const metaResult = await metaResponse.json();
-
-        console.log("[DEBUG] Meta connection status from API:", metaResult);
-
-        const displayPosts = postsResult.posts.map((post: PostDataOutput) => {
+        const displayPosts = postsResult.map((post: PostDataOutput) => {
             const scheduledDate = new Date(post.scheduledAt); // Ensure it's a Date object
             return {
                 ...post,
@@ -91,7 +69,7 @@ export default function Conteudo() {
         });
 
         setScheduledPosts(displayPosts);
-        setMetaConnection(metaResult.connection);
+        setMetaConnection(metaResult);
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
@@ -99,7 +77,7 @@ export default function Conteudo() {
     } finally {
         setLoading(false);
     }
-  }, [user, toast, getIdToken]);
+  }, [user, toast]);
 
   // Handle toast notifications on page load from URL params
   useEffect(() => {
@@ -148,7 +126,7 @@ export default function Conteudo() {
         return;
     }
 
-    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
+    const redirectUri = `${window.location.origin}/api/meta/callback`;
     // Pass the user ID in the state parameter for the backend to use
     const state = user.uid;
     const scope = [
@@ -168,10 +146,7 @@ export default function Conteudo() {
   const handleDisconnectMeta = async () => {
     if (!user) return;
     try {
-        const token = await getIdToken();
-        if (!token) throw new Error("Authentication token not found.");
-        const response = await fetch('/api/meta/connection', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        if (!response.ok) throw new Error('Failed to disconnect');
+        await updateMetaConnection(user.uid, { isConnected: false });
         setMetaConnection({ isConnected: false });
         toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
     } catch(e) {

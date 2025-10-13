@@ -1,5 +1,7 @@
-import { FieldValue } from 'firebase-admin/firestore';
-import { adminDb } from '@/lib/firebase-admin';
+"use client";
+
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export interface MetaConnectionData {
     isConnected: boolean;
@@ -8,7 +10,7 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
-    return adminDb.collection("users").doc(userId).collection("connections").doc("meta");
+    return doc(db, "users", userId, "connections", "meta");
 }
 
 /**
@@ -23,9 +25,9 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        const docSnap = await docRef.get();
+        const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists) {
+        if (docSnap.exists()) {
             const data = docSnap.data();
             const connectedAtTimestamp = data?.connectedAt;
             return {
@@ -57,12 +59,10 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         const dataToSave: { [key: string]: any } = { ...connectionData };
 
         if (connectionData.isConnected === true) {
-            // Use Admin SDK's server timestamp
-            dataToSave.connectedAt = FieldValue.serverTimestamp();
+            dataToSave.connectedAt = serverTimestamp();
         }
 
-        // Use set com merge para criar ou atualizar o documento de forma segura.
-        await docRef.set(dataToSave, { merge: true });
+        await setDoc(docRef, dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);

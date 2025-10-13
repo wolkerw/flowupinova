@@ -1,5 +1,7 @@
-import { adminDb } from "@/lib/firebase-admin";
-import { Timestamp } from 'firebase-admin/firestore';
+"use client";
+
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, getDocs, addDoc, doc, updateDoc, where, Timestamp } from "firebase/firestore";
 
 // Interface for data stored in Firestore
 export interface PostData {
@@ -9,23 +11,23 @@ export interface PostData {
     imageUrl: string | null;
     platforms: string[];
     status: 'scheduled' | 'published' | 'failed';
-    scheduledAt: Timestamp; // Using Admin SDK Timestamp
+    scheduledAt: Timestamp; // Using client SDK Timestamp
 }
 
-// Interface for data coming from the client to the server action
+// Interface for data coming from the client
 export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
     scheduledAt: Date;
 };
 
-// Interface for data being sent from the server action to the client
+// Interface for data being sent to the client
 export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
     id: string; // Ensure ID is always present on output
-    scheduledAt: string; // Server sends an ISO string for serialization
+    scheduledAt: string; // Client receives an ISO string for serialization
 };
 
 // Helper to get the collection reference for a specific user
 function getPostsCollectionRef(userId: string) {
-    return adminDb.collection("users").doc(userId).collection("posts");
+    return collection(db, "users", userId, "posts");
 }
 
 
@@ -47,7 +49,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             status: 'scheduled' as const,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         };
-        const docRef = await postsCollectionRef.add(postToSave);
+        const docRef = await addDoc(postsCollectionRef, postToSave);
         console.log(`Post scheduled successfully with ID ${docRef.id} for user ${userId}.`);
 
         return {
@@ -78,8 +80,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
     }
     try {
         const postsCollectionRef = getPostsCollectionRef(userId);
-        const q = postsCollectionRef.orderBy("scheduledAt", "desc");
-        const querySnapshot = await q.get();
+        const q = query(postsCollectionRef, orderBy("scheduledAt", "desc"));
+        const querySnapshot = await getDocs(q);
 
         const posts: PostDataOutput[] = [];
         querySnapshot.forEach((doc) => {
@@ -100,38 +102,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 }
 
 /**
- * Retrieves all posts that are due to be published across all users.
- * @returns An array of due posts.
- */
-export async function getDuePosts(): Promise<PostDataOutput[]> {
-    try {
-        const postsCollectionGroup = adminDb.collectionGroup("posts");
-        const now = Timestamp.now();
-        const q = postsCollectionGroup
-            .where("status", "==", "scheduled")
-            .where("scheduledAt", "<=", now);
-
-        const querySnapshot = await q.get();
-
-        const posts: PostDataOutput[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data() as PostData;
-            posts.push({
-                ...data,
-                id: doc.id,
-                scheduledAt: data.scheduledAt.toDate().toISOString(),
-            });
-        });
-
-        return posts;
-    } catch (error) {
-        console.error(`Error getting due posts:`, error);
-        return [];
-    }
-}
-
-/**
- * Updates the status of a specific post.
+ * Updates the status of a specific post. (Client-side)
  * @param userId The UID of the user who owns the post.
  * @param postId The ID of the post to update.
  * @param status The new status for the post.
@@ -141,8 +112,8 @@ export async function updatePostStatus(userId: string, postId: string, status: '
         throw new Error("User ID is required to update post status.");
     }
     try {
-        const postRef = getPostsCollectionRef(userId).doc(postId);
-        await postRef.update({ status });
+        const postRef = doc(db, "users", userId, "posts", postId);
+        await updateDoc(postRef, { status });
     } catch (error) {
         console.error(`Error updating post ${postId} for user ${userId} to ${status}:`, error);
         throw new Error("Failed to update post status.");
