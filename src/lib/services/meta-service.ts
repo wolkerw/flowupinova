@@ -1,6 +1,3 @@
-
-'use server';
-
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -62,6 +59,7 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
              dataToSave.connectedAt = new Date();
         }
 
+        // Use setDoc com merge para criar ou atualizar o documento de forma segura.
         await setDoc(docRef, dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
