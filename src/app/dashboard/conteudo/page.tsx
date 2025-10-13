@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -38,7 +39,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -49,17 +50,30 @@ export default function Conteudo() {
     if (!user) return;
     setLoading(true);
     
-    console.log("[DEBUG] Fetching page data for user:", user.uid);
     try {
-        const [postsResult, metaResult] = await Promise.all([
-            getScheduledPosts(user.uid),
-            getMetaConnection(user.uid)
-        ]);
+        const idToken = await getIdToken();
+        if (!idToken) {
+            throw new Error("Não foi possível obter o token de autenticação.");
+        }
+
+        const headers = { 'Authorization': `Bearer ${idToken}` };
+
+        const postsResponse = await fetch('/api/posts', { headers });
+        const metaResponse = await fetch('/api/meta/connection', { headers });
         
-        console.log("[DEBUG] Meta connection status from service:", metaResult);
+        if (!postsResponse.ok || !metaResponse.ok) {
+            console.error("Posts response:", postsResponse.status, postsResponse.statusText);
+            console.error("Meta response:", metaResponse.status, metaResponse.statusText);
+            const postError = await postsResponse.text();
+            const metaError = await metaResponse.text();
+            throw new Error(`Falha ao buscar dados da API. Posts: ${postError}. Meta: ${metaError}`);
+        }
+
+        const postsResult = await postsResponse.json();
+        const metaResult = await metaResponse.json();
 
         const displayPosts = postsResult.map((post: PostDataOutput) => {
-            const scheduledDate = new Date(post.scheduledAt); // Ensure it's a Date object
+            const scheduledDate = new Date(post.scheduledAt);
             return {
                 ...post,
                 date: scheduledDate,
@@ -76,7 +90,7 @@ export default function Conteudo() {
     } finally {
         setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, getIdToken]);
 
   // Handle toast notifications on page load from URL params
   useEffect(() => {
@@ -125,8 +139,8 @@ export default function Conteudo() {
         return;
     }
 
-    // Use a URL absoluta e canônica para o redirecionamento.
-    const redirectUri = new URL('/api/meta/callback', window.location.origin).toString();
+    // Hardcoded redirect URI to ensure consistency
+    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
     
     // Pass the user ID in the state parameter for the backend to use
     const state = user.uid;

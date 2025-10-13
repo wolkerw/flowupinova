@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
   // --- Real Token Exchange Logic ---
   const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
   const clientSecret = process.env.META_APP_SECRET;
-  // Construa a redirectUri de forma consistente com o frontend
-  const redirectUri = new URL('/api/meta/callback', req.nextUrl.origin).toString();
+  // Hardcode the redirect URI to ensure it's consistent and matches the Meta App configuration.
+  const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
 
   if (!clientId || !clientSecret) {
     console.error("[Meta Auth FATAL] Missing META_APP_ID or META_APP_SECRET in .env file.");
