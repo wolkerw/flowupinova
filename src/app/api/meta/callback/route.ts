@@ -2,25 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateMetaConnection } from "@/lib/services/meta-service";
 
-// NOTE: This is a simplified example. In a production app, you'd use a robust
-// session management system (e.g., using JWTs in cookies) to get the user ID.
-// The dependency on 'firebase-admin' is removed to avoid server-side SDK confusion.
-async function getUserIdFromState(state: string | null): Promise<string | null> {
-    if (!state) return null;
-    // This is still a placeholder. A real implementation would involve a secure
-    // way to pass or retrieve the user ID, maybe encoding it in the state
-    // or using a server session linked to the OAuth flow.
-    // For now, we'll assume a hardcoded user ID for demonstration until
-    // a full session management is implemented.
-    const hardcodedUserId = "zB8fP5bN4yX2jH6cV1gA9wE7tFk3"; // THIS MUST BE REPLACED in a real scenario
-    return hardcodedUserId;
-}
-
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
-  const state = searchParams.get('state');
+  const state = searchParams.get('state'); // The user ID is now in the state
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
@@ -32,10 +17,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // A simple state validation
-  if (state !== 'flowup-auth-state') {
-    dashboardUrl.searchParams.set("error", "O estado de autenticação é inválido. Por favor, tente novamente.");
-    return NextResponse.redirect(dashboardUrl);
+  // The state now contains the user ID. It's crucial for saving the connection status.
+  const userId = state;
+  if (!userId) {
+     dashboardUrl.searchParams.set("error", "Não foi possível identificar o usuário (estado de autenticação inválido). Faça login e tente novamente.");
+     return NextResponse.redirect(dashboardUrl);
   }
 
   if (!code) {
@@ -43,24 +29,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // Placeholder for getting user ID.
-  const userId = await getUserIdFromState(state);
-  if (!userId) {
-     dashboardUrl.searchParams.set("error", "Não foi possível identificar o usuário. Faça login e tente novamente.");
-     return NextResponse.redirect(dashboardUrl);
-  }
-
-
   try {
     console.log(`[Meta Auth] Código recebido: ${code}. Iniciando simulação de troca de token para o usuário ${userId}...`);
     
-    // In a real app, you'd make a POST request to Meta's token endpoint here.
+    // In a real app, you'd make a POST request to Meta's token endpoint here
+    // to exchange the code for an access token.
     // We are simulating this step and assuming it's successful.
 
     // Save the connected state to Firestore for the correct user.
     await updateMetaConnection(userId, { isConnected: true, connectedAt: new Date() });
 
-    console.log("[Meta Auth] Simulação bem-sucedida. Status de conexão salvo no Firestore.");
+    console.log(`[Meta Auth] Simulação bem-sucedida. Status de conexão salvo no Firestore para o usuário ${userId}.`);
 
     // Redirect back to the dashboard with a success indicator
     dashboardUrl.searchParams.set("connected", "true");

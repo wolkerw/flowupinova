@@ -57,8 +57,9 @@ export default function Conteudo() {
         description: "Conectado com a Meta (Instagram/Facebook).",
         variant: "default",
       });
-      // Clean the URL
+      // Clean the URL and refetch data
       router.replace('/dashboard/conteudo', { scroll: false });
+      fetchPageData();
     } else if (error) {
       toast({
         title: "Erro na Conexão",
@@ -104,6 +105,10 @@ export default function Conteudo() {
   }, [fetchPageData]);
 
   const handleConnectMeta = () => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Erro", description: "Você precisa estar logado para conectar." });
+        return;
+    }
     const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
     if (!clientId) {
         toast({
@@ -115,7 +120,8 @@ export default function Conteudo() {
     }
 
     const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/api/meta/callback";
-    const state = 'flowup-auth-state';
+    // Pass the user ID in the state parameter for the backend to use
+    const state = user.uid;
     const scope = [
         'pages_show_list',
         'pages_read_engagement',
@@ -132,7 +138,7 @@ export default function Conteudo() {
   
   const handleDisconnectMeta = async () => {
     if (!user) return;
-    await updateMetaConnection(user.uid, { isConnected: false });
+    await updateMetaConnection(user.uid, { isConnected: false, connectedAt: undefined });
     setMetaConnection({ isConnected: false });
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
@@ -250,7 +256,7 @@ export default function Conteudo() {
                                         </div>
                                     </div>
                                     <Button variant="outline" onClick={handleConnectMeta} disabled={loading}>
-                                        Conectar
+                                        {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Conectar'}
                                     </Button>
                                 </div>
                             )}
