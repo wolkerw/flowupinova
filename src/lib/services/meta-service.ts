@@ -1,8 +1,8 @@
 
 'use server';
 
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getAdminFirestore } from "@/lib/firebase-admin"; // Usaremos a instância de admin aqui
 
 export interface MetaConnectionData {
     isConnected: boolean;
@@ -11,6 +11,7 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
+    const db = getAdminFirestore();
     return doc(db, "users", userId, "connections", "meta");
 }
 
@@ -33,11 +34,9 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
             const connectedAtTimestamp = data.connectedAt as Timestamp | undefined;
             return {
                 isConnected: data.isConnected,
-                // Convert Firestore Timestamp to JS Date object if it exists
                 connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined, 
             };
         } else {
-            // If the document doesn't exist, they are not connected.
             return { isConnected: false };
         }
     } catch (error: any) {
@@ -54,19 +53,21 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
 export async function updateMetaConnection(userId: string, connectionData: Partial<MetaConnectionData>): Promise<void> {
     if (!userId) {
         console.error("updateMetaConnection called without userId.");
-        return;
+        throw new Error("User ID is required to update Meta connection.");
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
         const dataToSave: { [key: string]: any } = { ...connectionData };
         
-        // Use serverTimestamp for new connections or use the provided Date
-        if (connectionData.connectedAt) {
+        // Use o serverTimestamp do Admin SDK se a conexão for bem-sucedida e a data não for fornecida
+        if (connectionData.isConnected === true && !connectionData.connectedAt) {
+             dataToSave.connectedAt = FieldValue.serverTimestamp();
+        } else if (connectionData.connectedAt) {
+            // Se uma data for fornecida, converta para Timestamp do Firestore
             dataToSave.connectedAt = Timestamp.fromDate(connectionData.connectedAt);
-        } else if (connectionData.isConnected === true) {
-             dataToSave.connectedAt = serverTimestamp();
         }
 
+        // Use setDoc com merge para criar o documento se ele não existir, ou atualizá-lo se existir.
         await setDoc(docRef, dataToSave, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
