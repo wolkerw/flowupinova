@@ -1,3 +1,4 @@
+
 // As funções relacionadas a anúncios foram desativadas e esvaziadas.
 
 export async function createCampaign(adAccountId: string, accessToken: string, objective: string): Promise<string> {
