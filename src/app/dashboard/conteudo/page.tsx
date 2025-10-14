@@ -158,7 +158,7 @@ export default function Conteudo() {
                     formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
                     formattedTime: format(scheduledDate, 'HH:mm'),
                     platforms: post.platforms,
-                    instagramUsername: metaResult.instagramUsername,
+                    instagramUsername: post.instagramUsername, // Use username from post data
                 };
             })
             .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
@@ -280,13 +280,13 @@ export default function Conteudo() {
     <Card className="shadow-lg border-dashed border-2 relative">
         {(isConnecting || connectionResult) && (
              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg p-4 text-center">
-                {isConnecting && !connectionResult ? (
+                {!connectionResult ? (
                     <>
                         <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
                         <p className="text-xs text-gray-500">Aguarde, estamos finalizando a conexão.</p>
                     </>
-                ) : connectionResult ? (
+                ) : (
                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
                         {connectionResult.success ? (
                              <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
@@ -299,7 +299,7 @@ export default function Conteudo() {
                         <p className="text-sm text-gray-600 mt-2">{connectionResult.message}</p>
                         <Button variant="outline" size="sm" className="mt-6" onClick={() => setConnectionResult(null)}>Fechar</Button>
                     </motion.div>
-                ) : null}
+                )}
             </div>
         )}
         <CardHeader>
@@ -505,5 +505,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    

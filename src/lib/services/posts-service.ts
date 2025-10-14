@@ -15,7 +15,7 @@ export interface PostData {
     platforms: string[];
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
-    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId'>;
+    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername'>; // Storing username now
     publishedMediaId?: string;
     failureReason?: string;
 }
@@ -27,7 +27,7 @@ export type PostDataInput = {
     media: File | string; // Can be a File for upload or a string URL from AI gen
     platforms: string[];
     scheduledAt: Date;
-    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'isConnected'>;
+    metaConnection: MetaConnectionData; // Pass the full connection object
     logo?: File | null;
     logoOptions?: { position: string; size: string };
 };
@@ -39,6 +39,7 @@ export type PostDataOutput = {
     post?: Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
         id: string; // Ensure ID is always present on output
         scheduledAt: string; // Client receives an ISO string for serialization
+        instagramUsername?: string; // Send username to the client
     }
 };
 
@@ -126,6 +127,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             accessToken: postData.metaConnection.accessToken,
             pageId: postData.metaConnection.pageId,
             instagramId: postData.metaConnection.instagramId,
+            instagramUsername: postData.metaConnection.instagramUsername,
         }
     };
     
@@ -162,7 +164,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 post: {
                     id: docRef.id,
                     ...publishedPost,
-                    scheduledAt: postData.scheduledAt.toISOString()
+                    scheduledAt: postData.scheduledAt.toISOString(),
+                    instagramUsername: publishedPost.metaConnection.instagramUsername
                 }
             };
             
@@ -183,7 +186,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 post: {
                     id: docRef.id,
                     ...scheduledPost,
-                    scheduledAt: postData.scheduledAt.toISOString()
+                    scheduledAt: postData.scheduledAt.toISOString(),
+                    instagramUsername: scheduledPost.metaConnection.instagramUsername
                 }
             };
         } catch (error: any) {
@@ -219,6 +223,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     publishedMediaId: data.publishedMediaId,
                     failureReason: data.failureReason,
                     scheduledAt: data.scheduledAt.toDate().toISOString(),
+                    instagramUsername: data.metaConnection?.instagramUsername, // Read from the post document
                 }
             });
         });
