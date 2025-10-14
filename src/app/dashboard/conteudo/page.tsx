@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { format, isFuture, isPast, startOfWeek, startOfMonth, startOfYear, endOfDay } from 'date-fns';
+import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -39,7 +39,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
-interface DisplayPost extends PostDataOutput {
+interface DisplayPost {
+    id: string;
+    title: string;
+    imageUrl?: string;
+    status: 'scheduled' | 'publishing' | 'published' | 'failed';
     date: Date;
     formattedDate: string;
     formattedTime: string;
@@ -50,6 +54,7 @@ const PostItem = ({ post }: { post: DisplayPost }) => {
         published: { icon: CheckCircle, className: "bg-green-100 text-green-700" },
         scheduled: { icon: Clock, className: "bg-blue-100 text-blue-700" },
         failed: { icon: AlertTriangle, className: "bg-red-100 text-red-700" },
+        publishing: { icon: Loader2, className: "bg-yellow-100 text-yellow-700 animate-spin" },
     };
 
     const currentStatus = post.status as keyof typeof statusConfig;
@@ -123,20 +128,27 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
-        const [postsResult, metaResult] = await Promise.all([
+        const [postsResults, metaResult] = await Promise.all([
           getScheduledPosts(user.uid),
           getMetaConnection(user.uid)
         ]);
         
-        const displayPosts = postsResult.map((post: PostDataOutput) => {
-            const scheduledDate = new Date(post.scheduledAt);
-            return {
-                ...post,
-                date: scheduledDate,
-                formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
-                formattedTime: format(scheduledDate, 'HH:mm'),
-            };
-        }).sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
+        const displayPosts = postsResults
+            .filter(result => result.success && result.post)
+            .map((result) => {
+                const post = result.post!;
+                const scheduledDate = new Date(post.scheduledAt);
+                return {
+                    id: post.id,
+                    title: post.title,
+                    imageUrl: post.imageUrl,
+                    status: post.status,
+                    date: scheduledDate,
+                    formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
+                    formattedTime: format(scheduledDate, 'HH:mm'),
+                };
+            })
+            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
 
         setAllPosts(displayPosts);
         setMetaConnection(metaResult);
@@ -207,11 +219,11 @@ export default function Conteudo() {
   };
 
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
-        const now = new Date();
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
-
-        let history = allPosts.filter(p => p.status !== 'scheduled' || isPast(p.date));
+        const historyBase = allPosts.filter(p => p.status !== 'scheduled' || isPast(p.date));
         
+        let history = historyBase;
+
         const filterStartDate = (filter: string) => {
             const today = new Date();
             switch(filter) {
@@ -230,7 +242,7 @@ export default function Conteudo() {
 
         const startDate = filterStartDate(historyFilter);
         if (startDate) {
-            history = history.filter(p => p.date >= startDate);
+            history = historyBase.filter(p => p.date >= startDate);
         }
 
         const modifiers = {
@@ -450,4 +462,3 @@ export default function Conteudo() {
     </div>
   );
 }
-

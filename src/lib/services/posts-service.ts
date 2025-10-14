@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -140,7 +140,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    instagramId: basePostData.metaConnection.instagramId, // <-- CORREÇÃO: Usar instagramId
+                    instagramId: basePostData.metaConnection.instagramId,
                     accessToken: basePostData.metaConnection.accessToken,
                     imageUrl: basePostData.imageUrl,
                     caption: basePostData.text,
@@ -194,13 +194,39 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 }
 
 
-export async function getScheduledPosts(userId: string): Promise<(PostDataOutput['post'])[]> {
-     if (!userId) {
-        console.error("User ID is required to get posts.");
-        return [];
-    }
-    // Esta função busca todos os posts, idealmente deveria ser paginada ou filtrada.
-    // Por enquanto, ela será mantida, mas a lógica de CRON foi removida.
-    // O ideal seria que essa busca fosse feita em um componente separado, talvez com paginação.
-    return []; 
+export async function getScheduledPosts(userId: string): Promise<PostDataOutput[]> {
+    if (!userId) {
+       console.error("User ID is required to get posts.");
+       return [];
+   }
+   try {
+        const postsCollection = getPostsCollectionRef(userId);
+        const q = query(postsCollection, orderBy("scheduledAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        const posts: PostDataOutput[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data() as PostData;
+            posts.push({
+                success: true,
+                post: {
+                    id: doc.id,
+                    title: data.title,
+                    text: data.text,
+                    imageUrl: data.imageUrl,
+                    platforms: data.platforms,
+                    status: data.status,
+                    publishedMediaId: data.publishedMediaId,
+                    failureReason: data.failureReason,
+                    scheduledAt: data.scheduledAt.toDate().toISOString(),
+                }
+            });
+        });
+
+        return posts;
+
+   } catch (error: any) {
+       console.error(`Error fetching posts for user ${userId}:`, error);
+       return [];
+   }
 }
