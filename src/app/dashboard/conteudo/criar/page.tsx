@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine, Instagram, Facebook, Linkedin, Send, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine, Instagram, Facebook, Linkedin, Send, Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,12 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { schedulePost } from "@/lib/services/posts-service";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/hooks/use-toast";
+import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type MediaItem = {
     type: 'image' | 'video';
-    url: string;
+    file: File;
+    url: string; // Blob URL for preview
 };
 type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
 type LogoSize = 'small' | 'medium' | 'large';
@@ -193,34 +198,42 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
+    const [isPublishing, setIsPublishing] = useState(false);
     const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
     const [logoSize, setLogoSize] = useState<LogoSize>('medium');
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
-
+    const { user } = useAuth();
+    const { toast } = useToast();
     const router = useRouter();
     
+    const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // Cleanup function to revoke Object URLs on component unmount
+        if (!user) return;
+        getMetaConnection(user.uid).then(setMetaConnection);
+    }, [user]);
+
+    useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.url));
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [mediaItems, logoPreviewUrl]);
 
     const handleNextStep = () => {
         if(step === 1 && selectedType) {
             setStep(2);
-        } else if (step === 2) {
+        } else if (step === 2 && mediaItems.length > 0) {
             setStep(3);
         }
     }
@@ -233,54 +246,79 @@ export default function CriarConteudoPage() {
         const file = event.target.files?.[0];
         if (file) {
             const url = URL.createObjectURL(file);
-            const newMediaItem: MediaItem = { type: fileType === 'video' ? 'video' : 'image', url };
+            const newMediaItem: MediaItem = { type: fileType === 'video' ? 'video' : 'image', url, file };
 
             if (fileType === 'logo') {
                 if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+                setLogoFile(file);
                 setLogoPreviewUrl(url);
             } else {
                  if (selectedType === 'carousel' || (mediaItems.length === 0) ) {
                     setMediaItems(prev => [...prev, newMediaItem]);
                 } else {
-                    // For single media types, replace the existing item
                     mediaItems.forEach(item => URL.revokeObjectURL(item.url));
                     setMediaItems([newMediaItem]);
                 }
             }
         }
-        // Reset the input value to allow selecting the same file again
-        if(event.target) {
-            event.target.value = "";
-        }
+        if(event.target) event.target.value = "";
     };
     
     const clearPreview = (fileType: 'item' | 'logo', index?: number) => {
         if (fileType === 'logo') {
             if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+            setLogoFile(null);
             setLogoPreviewUrl(null);
-        } else if (fileType === 'item') {
-            if(typeof index === 'number') {
-                const urlToRemove = mediaItems[index]?.url;
-                if (urlToRemove) URL.revokeObjectURL(urlToRemove);
-                setMediaItems(prev => prev.filter((_, i) => i !== index));
-            } else {
-                // Clear all media items
-                mediaItems.forEach(item => URL.revokeObjectURL(item.url));
-                setMediaItems([]);
-            }
+        } else if (fileType === 'item' && typeof index === 'number') {
+            const urlToRemove = mediaItems[index]?.url;
+            if (urlToRemove) URL.revokeObjectURL(urlToRemove);
+            setMediaItems(prev => prev.filter((_, i) => i !== index));
         }
     }
 
     const handleGenerateText = () => {
-        // Mock function for now
         setIsGeneratingText(true);
         setTimeout(() => {
-            setText(prevText => prevText + "\\n\\nTexto melhorado pela IA: " + prevText);
+            setText(prevText => prevText + "\n\nTexto melhorado pela IA: " + prevText);
             setIsGeneratingText(false);
         }, 1500);
     };
+
+    const handleSubmit = async () => {
+        if (!user || !metaConnection?.isConnected || mediaItems.length === 0) {
+            toast({ variant: "destructive", title: "Erro", description: "Verifique se você conectou sua conta, está logado e adicionou uma mídia." });
+            return;
+        }
+        setIsPublishing(true);
+
+        try {
+            await schedulePost(user.uid, {
+                title: title || "Post sem título",
+                text: text,
+                media: mediaItems[0].file, // Por agora, apenas o primeiro item. Carrossel virá depois.
+                platforms: ['instagram'],
+                scheduledAt: scheduleType === 'schedule' ? new Date(scheduleDate) : new Date(),
+                metaConnection: metaConnection,
+            });
+
+            toast({ title: "Sucesso!", description: `Post ${scheduleType === 'now' ? 'enviado para publicação' : 'agendado'}!` });
+            router.push('/dashboard/conteudo');
+
+        } catch (error: any) {
+            console.error("Erro ao publicar:", error);
+            toast({ variant: "destructive", title: "Erro ao Publicar", description: error.message });
+        } finally {
+            setIsPublishing(false);
+        }
+    }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
+    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && mediaItems.length === 0);
+    const isSubmitDisabled = (
+        !metaConnection?.isConnected || 
+        isPublishing || 
+        (scheduleType === 'schedule' && !scheduleDate)
+    );
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -338,7 +376,7 @@ export default function CriarConteudoPage() {
                         <CardFooter className="flex justify-end">
                             <Button
                                 onClick={handleNextStep}
-                                disabled={!selectedType}
+                                disabled={isNextDisabled}
                                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
                             >
                                 Próxima Etapa
@@ -356,7 +394,6 @@ export default function CriarConteudoPage() {
                     transition={{ duration: 0.5 }}
                 >
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        {/* Coluna da esquerda: Inputs e Ações */}
                         <Card className="shadow-lg border-none">
                             <CardHeader>
                                 <CardTitle className="text-lg">Monte sua publicação</CardTitle>
@@ -488,7 +525,6 @@ export default function CriarConteudoPage() {
                             </CardContent>
                         </Card>
                         
-                        {/* Coluna da direita: Preview */}
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
                              <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={(index) => clearPreview('item', index)} logoPosition={logoPosition} logoSize={logoSize} />
@@ -503,12 +539,12 @@ export default function CriarConteudoPage() {
                         </Button>
                         <Button 
                           onClick={handleNextStep}
+                          disabled={isNextDisabled}
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
                            Próxima Etapa
                            <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                     </div>
-
                 </motion.div>
             )}
 
@@ -519,7 +555,6 @@ export default function CriarConteudoPage() {
                     transition={{ duration: 0.5 }}
                     className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
                 >
-                    {/* Coluna da esquerda: Preview Final */}
                     <div className="flex flex-col items-center justify-start h-full">
                         <div className="sticky top-24 w-full">
                              <Card className="shadow-lg border-none">
@@ -535,10 +570,10 @@ export default function CriarConteudoPage() {
                                             <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
                                                 <div className="p-3 flex items-center gap-2 border-b">
                                                     <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={"https://picsum.photos/seed/avatar1/40/40"} />
-                                                        <AvatarFallback>FU</AvatarFallback>
+                                                        <AvatarImage src={user?.photoURL || undefined} />
+                                                        <AvatarFallback>{metaConnection?.instagramUsername?.charAt(0).toUpperCase()}</AvatarFallback>
                                                     </Avatar>
-                                                    <span className="font-bold text-sm">seu_usuario</span>
+                                                    <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                                 </div>
                                                 <div className="relative w-full aspect-square bg-gray-200">
                                                     {mediaItems[0] && (
@@ -548,13 +583,13 @@ export default function CriarConteudoPage() {
                                                           ) : (
                                                               <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                                                           )}
-                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", { 'top-4 left-4': logoPosition === 'top-left', 'top-4 right-4': logoPosition === 'top-right', 'bottom-4 left-4': logoPosition === 'bottom-left', 'bottom-4 right-4': logoPosition === 'bottom-right' }, { 'w-12 h-12': logoSize === 'small', 'w-16 h-16': logoSize === 'medium', 'w-20 h-20': logoSize === 'large' })} />}
+                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />}
                                                       </div>
                                                     )}
                                                 </div>
                                                 <div className="p-3 text-sm">
                                                     <p>
-                                                        <span className="font-bold">seu_usuario</span> {text.substring(0, 100)}{text.length > 100 && '...'}
+                                                        <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {text.substring(0, 100)}{text.length > 100 && '...'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -565,7 +600,6 @@ export default function CriarConteudoPage() {
                         </div>
                     </div>
 
-                    {/* Coluna da direita: Agendamento */}
                     <Card className="shadow-lg border-none">
                         <CardHeader>
                             <CardTitle className="text-lg">Agendamento</CardTitle>
@@ -602,10 +636,13 @@ export default function CriarConteudoPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex-col items-stretch">
-                             <Button size="lg" className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
-                                <Send className="w-4 h-4 mr-2" />
-                                {scheduleType === 'now' ? 'Publicar Post' : 'Agendar Post'}
+                             <Button onClick={handleSubmit} size="lg" className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700" disabled={isSubmitDisabled}>
+                                {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                                {isPublishing ? 'Publicando...' : scheduleType === 'now' ? 'Publicar Post' : 'Agendar Post'}
                             </Button>
+                            {!metaConnection?.isConnected && (
+                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta da Meta na página de Conteúdo para publicar.</p>
+                            )}
                         </CardFooter>
                     </Card>
 

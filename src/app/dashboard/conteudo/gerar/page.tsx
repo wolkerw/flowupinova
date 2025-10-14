@@ -19,6 +19,8 @@ import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 
 
 interface GeneratedContent {
@@ -30,17 +32,8 @@ interface GeneratedContent {
 interface ScheduleOptions {
   [key: string]: {
     enabled: boolean;
-    publishMode: "now" | "schedule";
-    dateTime: string;
   };
 }
-
-type ReferenceFile = {
-    file: File;
-    previewUrl: string;
-    type: 'image' | 'video';
-}
-
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -54,21 +47,25 @@ export default function GerarConteudoPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
-    instagram: { enabled: true, publishMode: 'now', dateTime: '' },
-    facebook: { enabled: false, publishMode: 'now', dateTime: '' },
-    linkedin: { enabled: false, publishMode: 'now', dateTime: '' }
+    instagram: { enabled: true },
   });
 
-  useEffect(() => {
-    // This effect can be used for any initial setup if needed in the future.
-  }, []);
+  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
+  const [scheduleDateTime, setScheduleDateTime] = useState('');
+  const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
-  const handleScheduleOptionChange = (platform: string, field: keyof ScheduleOptions[string], value: any) => {
+  useEffect(() => {
+    if (!user) return;
+    getMetaConnection(user.uid).then(setMetaConnection);
+  }, [user]);
+
+  const handleScheduleOptionChange = (platform: string, enabled: boolean) => {
     setScheduleOptions(prev => ({
       ...prev,
-      [platform]: { ...prev[platform], [field]: value }
+      [platform]: { ...prev[platform], enabled: enabled }
     }));
   };
 
@@ -99,7 +96,7 @@ export default function GerarConteudoPage() {
 
     } catch (error: any) {
       console.error("Erro ao gerar texto:", error);
-      alert(`Ocorreu um erro: ${error.message}`);
+      toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -136,14 +133,14 @@ export default function GerarConteudoPage() {
 
     } catch (error: any) {
       console.error("Erro ao gerar imagens:", error);
-      alert(`Ocorreu um erro ao gerar as imagens: ${error.message}`);
+      toast({ variant: 'destructive', title: "Erro ao gerar imagens", description: error.message });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSchedule = async () => {
-    if (!selectedContent || !selectedImage || isPublishing || !user) return;
+    if (!selectedContent || !selectedImage || isPublishing || !user || !metaConnection?.isConnected) return;
 
     setIsPublishing(true);
     
@@ -153,34 +150,31 @@ export default function GerarConteudoPage() {
 
     try {
         if (enabledPlatforms.length === 0) {
-            alert("Selecione ao menos uma plataforma para agendar.");
-            setIsPublishing(false);
+            toast({ variant: "destructive", title: "Nenhuma plataforma selecionada", description: "Selecione ao menos uma plataforma para agendar." });
             return;
         }
 
-        const mainScheduleOption = scheduleOptions[enabledPlatforms[0]];
-
-        if (mainScheduleOption.publishMode === 'schedule' && !mainScheduleOption.dateTime) {
-            alert("Por favor, selecione data e hora para o agendamento.");
-            setIsPublishing(false);
+        if (publishMode === 'schedule' && !scheduleDateTime) {
+            toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
             return;
         }
 
         await schedulePost(user.uid, {
             title: selectedContent.titulo,
             text: fullCaption,
-            imageUrl: selectedImage,
+            media: selectedImage,
             platforms: enabledPlatforms,
-            scheduledAt: mainScheduleOption.publishMode === 'schedule' ? new Date(mainScheduleOption.dateTime) : new Date(),
+            scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
+            metaConnection: metaConnection,
         });
 
-        alert(`Post agendado com sucesso para ${enabledPlatforms.join(', ')}!`);
+        toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso para ${enabledPlatforms.join(', ')}!` });
         setShowSchedulerModal(false);
         router.push('/dashboard/conteudo');
 
     } catch (error: any) {
         console.error("Erro no processo de agendamento:", error);
-        alert(`Erro ao agendar: ${error.message}`);
+        toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
     } finally {
         setIsPublishing(false);
     }
@@ -188,6 +182,14 @@ export default function GerarConteudoPage() {
 
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
+
+  const isSchedulingDisabled = !metaConnection?.isConnected || isPublishing;
+  const schedulingButtonText = !metaConnection?.isConnected 
+    ? "Conexão com Meta desativada"
+    : isPublishing 
+    ? "Publicando..."
+    : publishMode === 'now' ? 'Publicar Agora' : 'Confirmar Agendamento';
+
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -426,17 +428,17 @@ export default function GerarConteudoPage() {
                         <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
                             <div className="p-3 flex items-center gap-2 border-b">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src={"https://picsum.photos/seed/avatar/40/40"} />
-                                    <AvatarFallback>Flow</AvatarFallback>
+                                    <AvatarImage src={user?.photoURL || undefined} />
+                                    <AvatarFallback>{metaConnection?.instagramUsername?.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                <span className="font-bold text-sm">seu_usuario</span>
+                                <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                             </div>
                             <div className="relative w-full aspect-square">
                                 <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
                             </div>
                             <div className="p-3 text-sm">
                                 <p>
-                                    <span className="font-bold">seu_usuario</span> {selectedContent.subtitulo}
+                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
                                 </p>
                                 <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                             </div>
@@ -449,6 +451,7 @@ export default function GerarConteudoPage() {
                   onClick={() => setShowSchedulerModal(true)}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                   size="lg"
+                  disabled={!metaConnection?.isConnected}
                 >
                   <Send className="w-5 h-5 mr-2" />
                   Agendar Post
@@ -484,45 +487,63 @@ export default function GerarConteudoPage() {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="p-6 space-y-4 overflow-y-auto">
-              <Card className="p-4 bg-gray-100 opacity-70">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Instagram className="w-6 h-6 text-pink-600" />
-                      <Label className="text-lg font-semibold">Instagram</Label>
-                      <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>
-                    </div>
-                    <Switch
-                      checked={false}
-                      disabled={true}
-                    />
+            <div className="p-6 space-y-6 overflow-y-auto">
+              <Card className={cn("p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-70")}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Instagram className="w-6 h-6 text-pink-600" />
+                    <Label className="text-lg font-semibold">Instagram</Label>
+                    {!metaConnection?.isConnected && <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>}
                   </div>
-                </Card>
-                <Card className="p-4 bg-gray-100 opacity-70">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Facebook className="w-6 h-6 text-blue-700" />
-                      <Label className="text-lg font-semibold">Facebook</Label>
-                       <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>
-                    </div>
-                    <Switch
-                      checked={false}
-                      disabled={true}
-                    />
+                  <Switch
+                    checked={scheduleOptions.instagram.enabled}
+                    onCheckedChange={(checked) => handleScheduleOptionChange('instagram', checked)}
+                    disabled={!metaConnection?.isConnected}
+                  />
+                </div>
+              </Card>
+
+              <div>
+                <Label className="font-semibold text-base">Quando publicar?</Label>
+                <RadioGroup value={publishMode} onValueChange={(v) => setPublishMode(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <RadioGroupItem value="now" id="now" className="peer sr-only" />
+                    <Label htmlFor="now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                      <Clock className="w-6 h-6 mb-2" />
+                      Publicar Agora
+                    </Label>
                   </div>
-                </Card>
+                  <div>
+                    <RadioGroupItem value="schedule" id="schedule" className="peer sr-only" />
+                    <Label htmlFor="schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                      <Calendar className="w-6 h-6 mb-2" />
+                      Agendar
+                    </Label>
+                  </div>
+                </RadioGroup>
+                {publishMode === 'schedule' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4"
+                  >
+                    <Input type="datetime-local" value={scheduleDateTime} onChange={(e) => setScheduleDateTime(e.target.value)} />
+                  </motion.div>
+                )}
+              </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
               <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={handleSchedule}
-                disabled={true}
+                disabled={isSchedulingDisabled}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Agendamento Indisponível
+                {isPublishing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isSchedulingDisabled && !isPublishing && <AlertTriangle className="w-4 h-4 mr-2" />}
+                {schedulingButtonText}
               </Button>
             </div>
           </motion.div>

@@ -1,26 +1,35 @@
+
 "use client";
 
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, addDoc, doc, updateDoc, where, Timestamp } from "firebase/firestore";
+import { ref, uploadString, getDownloadURL, uploadBytes } from "firebase/storage";
+import type { MetaConnectionData } from "./meta-service";
 
 // Interface for data stored in Firestore
 export interface PostData {
     id?: string;
     title: string;
     text: string;
-    imageUrl: string | null;
+    imageUrl: string; // URL must be public from Firebase Storage
     platforms: string[];
-    status: 'scheduled' | 'published' | 'failed';
-    scheduledAt: Timestamp; // Using client SDK Timestamp
+    status: 'scheduled' | 'publishing' | 'published' | 'failed';
+    scheduledAt: Timestamp;
+    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId'>;
+    publishedMediaId?: string;
+    failureReason?: string;
 }
 
 // Interface for data coming from the client
-export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt'> & {
+export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt' | 'metaConnection' | 'imageUrl'> & {
     scheduledAt: Date;
+    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId'>;
+    // Can be a public URL (from AI generation) or a File object (from manual creation)
+    media: string | File;
 };
 
 // Interface for data being sent to the client
-export type PostDataOutput = Omit<PostData, 'scheduledAt'> & {
+export type PostDataOutput = Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
     id: string; // Ensure ID is always present on output
     scheduledAt: string; // Client receives an ISO string for serialization
 };
@@ -30,49 +39,96 @@ function getPostsCollectionRef(userId: string) {
     return collection(db, "users", userId, "posts");
 }
 
+async function uploadMediaAndGetURL(userId: string, media: string | File): Promise<string> {
+    if (typeof media === 'string') {
+        // If it's already a URL, assume it's public and return it
+        // This is the case for AI-generated images
+        return media;
+    }
 
-/**
- * Schedules a new post for a specific user.
- * @param userId The UID of the user.
- * @param postData The data for the post to be scheduled.
- * @returns The full post data including the new ID and status.
- */
+    // It's a File object, so upload to Firebase Storage
+    const filePath = `users/${userId}/posts/${Date.now()}_${media.name}`;
+    const storageRef = ref(storage, filePath);
+    
+    await uploadBytes(storageRef, media);
+    const downloadURL = await getDownloadURL(storageRef);
+    
+    return downloadURL;
+}
+
 export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
     if (!userId) {
         throw new Error("User ID is required to schedule a post.");
     }
+     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken || !postData.metaConnection.pageId) {
+        throw new Error("Conexão com a Meta não está configurada ou é inválida.");
+    }
+    
     try {
+        // Upload media if it's a File object and get the public URL
+        const imageUrl = await uploadMediaAndGetURL(userId, postData.media);
+
         const postsCollectionRef = getPostsCollectionRef(userId);
-        // Data being saved to Firestore. Convert JS Date to Firestore Timestamp.
         const postToSave: Omit<PostData, 'id'> = {
-            ...postData,
-            status: 'scheduled' as const,
+            title: postData.title,
+            text: postData.text,
+            imageUrl: imageUrl, // Save the public URL
+            platforms: postData.platforms,
+            status: 'scheduled',
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
+            metaConnection: {
+                accessToken: postData.metaConnection.accessToken,
+                pageId: postData.metaConnection.pageId,
+                instagramId: postData.metaConnection.instagramId,
+            }
         };
+        
         const docRef = await addDoc(postsCollectionRef, postToSave);
         console.log(`Post scheduled successfully with ID ${docRef.id} for user ${userId}.`);
+
+        // If post is scheduled for now, publish it immediately
+        const now = new Date();
+        const scheduledDate = postData.scheduledAt;
+        if (scheduledDate.getTime() - now.getTime() < 60000) { // If scheduled within the next minute
+             console.log(`Post ${docRef.id} is due for immediate publication.`);
+             await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'publishing' });
+             
+             const response = await fetch('/api/instagram/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pageId: postToSave.metaConnection.pageId,
+                    accessToken: postToSave.metaConnection.accessToken,
+                    imageUrl: postToSave.imageUrl,
+                    caption: postToSave.text,
+                }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                 await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'failed', failureReason: result.error });
+                 throw new Error(result.error);
+            } else {
+                 await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'published', publishedMediaId: result.publishedMediaId });
+            }
+        }
 
         return {
             id: docRef.id,
             title: postData.title,
             text: postData.text,
-            imageUrl: postData.imageUrl,
+            imageUrl: imageUrl,
             platforms: postData.platforms,
             status: 'scheduled',
             scheduledAt: postData.scheduledAt.toISOString()
         };
     } catch (error) {
         console.error(`Error scheduling post for user ${userId}:`, error);
-        throw new Error("Failed to schedule post in database.");
+        throw error instanceof Error ? error : new Error("Failed to schedule post in database.");
     }
 }
 
 
-/**
- * Retrieves all posts for a specific user, ordered by schedule date.
- * @param userId The UID of the user.
- * @returns An array of posts.
- */
 export async function getScheduledPosts(userId: string): Promise<PostDataOutput[]> {
      if (!userId) {
         console.error("User ID is required to get posts.");
@@ -89,7 +145,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
             posts.push({
                 ...data,
                 id: doc.id,
-                scheduledAt: data.scheduledAt.toDate().toISOString(), // Convert Timestamp to ISO String
+                scheduledAt: data.scheduledAt.toDate().toISOString(),
             });
         });
 
@@ -101,30 +157,20 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
     }
 }
 
-/**
- * Updates the status of a specific post. (Client-side)
- * @param userId The UID of the user who owns the post.
- * @param postId The ID of the post to update.
- * @param status The new status for the post.
- */
-export async function updatePostStatus(userId: string, postId: string, status: 'published' | 'failed'): Promise<void> {
-     if (!userId) {
-        throw new Error("User ID is required to update post status.");
-    }
-    try {
-        const postRef = doc(db, "users", userId, "posts", postId);
-        await updateDoc(postRef, { status });
-    } catch (error) {
-        console.error(`Error updating post ${postId} for user ${userId} to ${status}:`, error);
-        throw new Error("Failed to update post status.");
-    }
-}
 
-
-export async function getDuePosts(): Promise<PostData[]> {
-    // This is a server-side function and should use the admin SDK.
-    // Re-implementing with admin SDK if needed, or removing if fully client-side.
-    // For now, returning empty to avoid breaking the cron job route that calls it.
-    console.warn("getDuePosts is not implemented for server-side execution yet.");
+export async function getDuePosts(adminDb: any): Promise<(PostData & { userId: string, id: string })[]> {
+    const now = Timestamp.now();
+    const duePostsQuery = query(
+        collection(adminDb, 'users'), 
+        where('status', '==', 'scheduled'), 
+        where('scheduledAt', '<=', now)
+    );
+    
+    // This is a simplified query. A real implementation would need a composite query across all users' subcollections.
+    // Firestore queries on subcollections across all documents in a root collection are complex.
+    // A better data model for this would be a single root-level 'posts' collection.
+    // For now, this will not work as intended and is a placeholder.
+    
+    console.warn("getDuePosts functionality is limited due to Firestore query constraints on subcollections.");
     return [];
 }
