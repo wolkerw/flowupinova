@@ -97,7 +97,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
 
     const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
+            return <Image src={item.url} alt="Preview da imagem" fill sizes="100vw" className="object-cover" />;
         }
         
         if (item.type === 'video') {
@@ -576,7 +576,7 @@ export default function CriarConteudoPage() {
                                                     {mediaItems[0] && (
                                                       <div className="w-full h-full relative">
                                                           {mediaItems[0].type === 'image' ? (
-                                                              <Image src={mediaItems[0].url} layout="fill" objectFit="cover" alt="Post preview" />
+                                                              <Image src={mediaItems[0].url} alt="Post preview" fill sizes="100vw" className="object-cover" />
                                                           ) : (
                                                               <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                                                           )}

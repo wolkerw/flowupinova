@@ -23,7 +23,7 @@ export interface PostData {
 // Interface for data coming from the client
 export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt' | 'metaConnection' | 'imageUrl'> & {
     scheduledAt: Date;
-    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId'>;
+    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'isConnected'>;
     // Can be a public URL (from AI generation) or a File object (from manual creation)
     media: string | File;
 };
