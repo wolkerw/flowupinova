@@ -101,12 +101,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         throw new Error("Conexão com a Meta não está configurada ou é inválida.");
     }
     
+    // Check if this is an immediate publish or a scheduled one
+    const now = new Date();
+    const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
+
+    let imageUrl: string;
     try {
-        let imageUrl: string;
-        // If media is a File, upload it. If it's a string, use it directly.
+        // Step 1: Handle media upload
         if (postData.media instanceof File) {
-            // Note: We are not applying the logo on the backend for this simplified flow.
-            // A more advanced implementation would require a backend function to merge the images.
             imageUrl = await uploadMediaAndGetURL(userId, postData.media, (progress) => {
                 console.log(`SchedulePost Upload Progress: ${progress.toFixed(2)}%`);
             });
@@ -114,12 +116,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             imageUrl = postData.media;
         }
 
-        const postToSave: Omit<PostData, 'id'> = {
+        const basePostData = {
             title: postData.title,
             text: postData.text,
-            imageUrl: imageUrl, // Use the (potentially newly uploaded) URL
+            imageUrl: imageUrl,
             platforms: postData.platforms,
-            status: 'scheduled',
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
             metaConnection: {
                 accessToken: postData.metaConnection.accessToken,
@@ -127,49 +128,70 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 instagramId: postData.metaConnection.instagramId,
             }
         };
-        
-        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-        console.log(`Post scheduled successfully with ID ${docRef.id} for user ${userId}.`);
 
-        const now = new Date();
-        const scheduledDate = postData.scheduledAt;
-        // Check if the post is scheduled for within the next minute to publish "now"
-        if (scheduledDate.getTime() - now.getTime() < 60000) { 
-             console.log(`Post ${docRef.id} is due for immediate publication.`);
-             await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'publishing' });
-             
-             const response = await fetch('/api/instagram/publish', {
+        // Step 2: Immediate Publish or Schedule
+        if (isImmediate) {
+            console.log("Iniciando publicação imediata...");
+
+            // Step 2a: Publish to Instagram
+            const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    pageId: postToSave.metaConnection.pageId,
-                    accessToken: postToSave.metaConnection.accessToken,
-                    imageUrl: postToSave.imageUrl,
-                    caption: postToSave.text,
+                    pageId: basePostData.metaConnection.pageId,
+                    accessToken: basePostData.metaConnection.accessToken,
+                    imageUrl: basePostData.imageUrl,
+                    caption: basePostData.text,
                 }),
             });
 
             const result = await response.json();
+            
+            // Step 2b: Save post to Firestore with the final status
             if (!response.ok) {
-                 await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'failed', failureReason: result.error });
-                 throw new Error(result.error);
+                console.error("Falha ao publicar no Instagram:", result.error);
+                const postToSave: Omit<PostData, 'id'> = {
+                    ...basePostData,
+                    status: 'failed',
+                    failureReason: result.error || "Unknown publishing error"
+                };
+                const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+                throw new Error(result.error || "Falha ao publicar no Instagram.");
             } else {
-                 await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'published', publishedMediaId: result.publishedMediaId });
+                 const postToSave: Omit<PostData, 'id'> = {
+                    ...basePostData,
+                    status: 'published',
+                    publishedMediaId: result.publishedMediaId
+                };
+                const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+                console.log(`Post publicado e salvo com ID ${docRef.id}.`);
+                return {
+                    id: docRef.id,
+                    ...postToSave,
+                    scheduledAt: postData.scheduledAt.toISOString()
+                };
             }
+            
+        } else {
+            // Just schedule the post for later
+            console.log("Agendando post para o futuro...");
+            const postToSave: Omit<PostData, 'id'> = {
+                ...basePostData,
+                status: 'scheduled',
+            };
+            
+            const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+            console.log(`Post agendado com ID ${docRef.id}.`);
+             return {
+                id: docRef.id,
+                ...postToSave,
+                scheduledAt: postData.scheduledAt.toISOString()
+            };
         }
 
-        return {
-            id: docRef.id,
-            title: postData.title,
-            text: postData.text,
-            imageUrl: imageUrl,
-            platforms: postData.platforms,
-            status: 'scheduled',
-            scheduledAt: postData.scheduledAt.toISOString()
-        };
     } catch (error) {
-        console.error(`Error scheduling post for user ${userId}:`, error);
-        throw error instanceof Error ? error : new Error("Failed to schedule post in database.");
+        console.error(`Error in schedulePost for user ${userId}:`, error);
+        throw error instanceof Error ? error : new Error("Failed to process post.");
     }
 }
 
@@ -187,10 +209,12 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         const posts: PostDataOutput[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data() as PostData;
+            // Safe conversion of timestamp
+            const scheduledAtDate = data.scheduledAt?.toDate ? data.scheduledAt.toDate() : new Date();
             posts.push({
                 ...data,
                 id: doc.id,
-                scheduledAt: data.scheduledAt.toDate().toISOString(),
+                scheduledAt: scheduledAtDate.toISOString(),
             });
         });
 
@@ -201,5 +225,3 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         return [];
     }
 }
-
-    
