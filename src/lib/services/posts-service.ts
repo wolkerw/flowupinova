@@ -89,7 +89,6 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     try {
-        const postsCollectionRef = getPostsCollectionRef(userId);
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -104,13 +103,12 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             }
         };
         
-        const docRef = await addDoc(postsCollectionRef, postToSave);
+        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
         console.log(`Post scheduled successfully with ID ${docRef.id} for user ${userId}.`);
 
-        // If post is scheduled for now, publish it immediately
         const now = new Date();
         const scheduledDate = postData.scheduledAt;
-        if (scheduledDate.getTime() - now.getTime() < 60000) { // If scheduled within the next minute
+        if (scheduledDate.getTime() - now.getTime() < 60000) { 
              console.log(`Post ${docRef.id} is due for immediate publication.`);
              await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'publishing' });
              
@@ -195,5 +193,3 @@ export async function getDuePosts(adminDb: any): Promise<(PostData & { userId: s
     console.warn("getDuePosts functionality is limited due to Firestore query constraints on subcollections.");
     return [];
 }
-
-    
