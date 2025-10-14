@@ -155,7 +155,7 @@ export default function Conteudo() {
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
-        toast({ variant: 'destructive', title: "Erro ao carregar dados", description: "Não foi possível carregar as publicações e o status da conexão." });
+        toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar as publicações e o status da conexão." });
     } finally {
         setLoading(false);
     }
@@ -163,44 +163,43 @@ export default function Conteudo() {
 
   useEffect(() => {
     const code = searchParams.get('code');
-
-    if (code && user && !isConnecting) {
-        // Prevent re-triggering while processing
+    
+    const exchangeCodeForToken = async (codeToExchange: string) => {
         setIsConnecting(true);
-
-        // Immediately clean the URL
-        router.replace('/dashboard/conteudo', undefined);
-
-        const exchangeCodeForToken = async (codeToExchange: string) => {
-            try {
-                const response = await fetch('/api/meta/callback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: codeToExchange }),
-                });
-                const result = await response.json();
-                if (!response.ok || !result.success) throw new Error(result.error);
-                
-                await updateMetaConnection(user.uid, {
-                    isConnected: true,
-                    accessToken: result.accessToken,
-                    pageId: result.pageId,
-                    pageName: result.pageName,
-                    instagramId: result.instagramId,
-                    instagramUsername: result.instagramUsername,
-                });
-                toast({ title: "Sucesso!", description: `Conectado com a página ${result.pageName}.` });
-                await fetchPageData();
-            } catch (err: any) {
-                toast({ variant: "destructive", title: "Falha na Conexão", description: err.message });
-            } finally {
-                // Allow new connections after this one is done.
-                setIsConnecting(false);
+        try {
+            const response = await fetch('/api/meta/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: codeToExchange }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.error);
+            
+            if (user) {
+              await updateMetaConnection(user.uid, {
+                  isConnected: true,
+                  accessToken: result.accessToken,
+                  pageId: result.pageId,
+                  pageName: result.pageName,
+                  instagramId: result.instagramId,
+                  instagramUsername: result.instagramUsername,
+              });
             }
-        };
+            toast({ title: "Conexão Estabelecida!", description: `Sua conta do Instagram @${result.instagramUsername} foi conectada com sucesso.` });
+            await fetchPageData();
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Falha na Conexão", description: err.message || "Não foi possível completar a conexão com a Meta." });
+        } finally {
+            setIsConnecting(false);
+        }
+    };
+
+    if (code) {
+        // Remove code from URL and then process it.
+        router.replace('/dashboard/conteudo', undefined);
         exchangeCodeForToken(code);
     }
-  }, [searchParams, user, isConnecting, router, toast, fetchPageData]);
+  }, [searchParams, user, router, toast, fetchPageData]);
 
   useEffect(() => {
     if(user) {
@@ -265,7 +264,14 @@ export default function Conteudo() {
   const isLoadingInitial = loading && allPosts.length === 0;
 
   const ConnectCard = () => (
-    <Card className="shadow-lg border-dashed border-2">
+    <Card className="shadow-lg border-dashed border-2 relative">
+        {isConnecting && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
+                <p className="text-xs text-gray-500">Aguarde, estamos finalizando a conexão.</p>
+            </div>
+        )}
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
                 <LinkIcon className="w-6 h-6 text-gray-700" />
@@ -285,7 +291,7 @@ export default function Conteudo() {
                     </div>
                 </div>
                 <Button variant="outline" onClick={handleConnectMeta} disabled={isConnecting}>
-                    {isConnecting ? <Loader2 className="w-4 h-4 animate-spin"/> : "Conectar"}
+                    Conectar
                 </Button>
             </div>
         </CardContent>
@@ -469,3 +475,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
