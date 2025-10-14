@@ -163,9 +163,15 @@ export default function Conteudo() {
 
   useEffect(() => {
     const code = searchParams.get('code');
+
     if (code && user && !isConnecting) {
+        // Prevent re-triggering while processing
+        setIsConnecting(true);
+
+        // Immediately clean the URL
+        router.replace('/dashboard/conteudo', undefined);
+
         const exchangeCodeForToken = async (codeToExchange: string) => {
-            setIsConnecting(true);
             try {
                 const response = await fetch('/api/meta/callback', {
                     method: 'POST',
@@ -174,6 +180,7 @@ export default function Conteudo() {
                 });
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.error);
+                
                 await updateMetaConnection(user.uid, {
                     isConnected: true,
                     accessToken: result.accessToken,
@@ -187,8 +194,8 @@ export default function Conteudo() {
             } catch (err: any) {
                 toast({ variant: "destructive", title: "Falha na Conexão", description: err.message });
             } finally {
+                // Allow new connections after this one is done.
                 setIsConnecting(false);
-                router.replace('/dashboard/conteudo', undefined);
             }
         };
         exchangeCodeForToken(code);
@@ -462,5 +469,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
