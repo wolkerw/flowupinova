@@ -97,7 +97,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
 
     const renderContent = (item: MediaItem) => {
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" width={100} height={100} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+            return <Image src={item.url} alt="Preview da imagem" layout="fill" objectFit="cover" />;
         }
         
         if (item.type === 'video') {
@@ -120,7 +120,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
     switch (type) {
         case 'single_post':
             return (
-                <div className="w-full max-w-sm aspect-[4/5] bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
                     {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
                     {logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
@@ -131,7 +131,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             return (
                  <div className="flex flex-col items-center gap-6">
                     <div className="w-full max-w-sm flex flex-col items-center gap-4">
-                        <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
+                        <div className="aspect-square w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
                                 
@@ -264,17 +264,17 @@ export default function CriarConteudoPage() {
         if(event.target) event.target.value = "";
     };
     
-    const clearPreview = (fileType: 'item' | 'logo', index?: number) => {
-        if (fileType === 'logo') {
-            if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-            setLogoFile(null);
-            setLogoPreviewUrl(null);
-        } else if (fileType === 'item' && typeof index === 'number') {
-            const urlToRemove = mediaItems[index]?.url;
-            if (urlToRemove) URL.revokeObjectURL(urlToRemove);
-            setMediaItems(prev => prev.filter((_, i) => i !== index));
-        }
-    }
+    const handleRemoveItem = (index: number) => {
+        const urlToRemove = mediaItems[index]?.url;
+        if (urlToRemove) URL.revokeObjectURL(urlToRemove);
+        setMediaItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const clearLogo = () => {
+        if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+        setLogoFile(null);
+        setLogoPreviewUrl(null);
+    };
 
     const handleGenerateText = () => {
         setIsGeneratingText(true);
@@ -297,7 +297,7 @@ export default function CriarConteudoPage() {
                 text: text,
                 media: mediaItems[0].file, // Por agora, apenas o primeiro item. Carrossel virá depois.
                 platforms: ['instagram'],
-                scheduledAt: scheduleType === 'schedule' ? new Date(scheduleDate) : new Date(),
+                scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
                 metaConnection: metaConnection,
             });
 
@@ -317,8 +317,15 @@ export default function CriarConteudoPage() {
     const isSubmitDisabled = (
         !metaConnection?.isConnected || 
         isPublishing || 
+        mediaItems.length === 0 ||
         (scheduleType === 'schedule' && !scheduleDate)
     );
+
+    const getAvatarFallback = () => {
+        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+        if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
+        return "U";
+    }
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -408,24 +415,14 @@ export default function CriarConteudoPage() {
                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     
                                     <div className="grid grid-cols-2 gap-4 pt-2">
-                                        <div className="relative">
-                                            <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
-                                                <FileImage className="w-4 h-4 text-blue-500" />
-                                                Anexar Imagem
-                                            </Button>
-                                            {mediaItems.some(i => i.type === 'image') && selectedType !== 'carousel' && (
-                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('item')}><X className="w-4 h-4"/></Button>
-                                            )}
-                                        </div>
-                                         <div className="relative">
-                                            <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
-                                                <Video className="w-4 h-4 text-green-500" />
-                                                Anexar Vídeo
-                                            </Button>
-                                            {mediaItems.some(i => i.type === 'video') && selectedType !== 'carousel' && (
-                                                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('item')}><X className="w-4 h-4"/></Button>
-                                            )}
-                                        </div>
+                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
+                                            <FileImage className="w-4 h-4 text-blue-500" />
+                                            Anexar Imagem
+                                        </Button>
+                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
+                                            <Video className="w-4 h-4 text-green-500" />
+                                            Anexar Vídeo
+                                        </Button>
                                     </div>
                                     <div className="pt-2 relative">
                                          <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)}>
@@ -433,7 +430,7 @@ export default function CriarConteudoPage() {
                                             Adicionar Logomarca
                                         </Button>
                                         {logoPreviewUrl && (
-                                            <Button variant="ghost" size="icon" className="absolute -top-1 right-0 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={() => clearPreview('logo')}><X className="w-4 h-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="absolute -top-1 right-0 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={clearLogo}><X className="w-4 h-4"/></Button>
                                         )}
                                     </div>
                                      {logoPreviewUrl && (
@@ -527,7 +524,7 @@ export default function CriarConteudoPage() {
                         
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={(index) => clearPreview('item', index)} logoPosition={logoPosition} logoSize={logoSize} />
+                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} />
                            </div>
                         </div>
                     </div>
@@ -571,7 +568,7 @@ export default function CriarConteudoPage() {
                                                 <div className="p-3 flex items-center gap-2 border-b">
                                                     <Avatar className="h-8 w-8">
                                                         <AvatarImage src={user?.photoURL || undefined} />
-                                                        <AvatarFallback>{metaConnection?.instagramUsername?.charAt(0).toUpperCase()}</AvatarFallback>
+                                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                                     </Avatar>
                                                     <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                                 </div>
@@ -657,3 +654,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    

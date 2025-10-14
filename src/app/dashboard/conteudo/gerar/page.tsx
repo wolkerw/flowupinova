@@ -140,7 +140,10 @@ export default function GerarConteudoPage() {
   };
 
   const handleSchedule = async () => {
-    if (!selectedContent || !selectedImage || isPublishing || !user || !metaConnection?.isConnected) return;
+    if (!selectedContent || !selectedImage || isPublishing || !user || !metaConnection?.isConnected) {
+        toast({ variant: "destructive", title: "Erro", description: "Verifique se selecionou conteúdo, imagem e se sua conta está conectada." });
+        return;
+    }
 
     setIsPublishing(true);
     
@@ -190,6 +193,11 @@ export default function GerarConteudoPage() {
     ? "Publicando..."
     : publishMode === 'now' ? 'Publicar Agora' : 'Confirmar Agendamento';
 
+  const getAvatarFallback = () => {
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
+    return "U";
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -310,7 +318,7 @@ export default function GerarConteudoPage() {
           
           {/* Coluna da Direita: Preview */}
            <div className="flex items-center justify-center">
-            <div className="w-[320px] aspect-[9/16] bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
+            <div className="w-[320px] aspect-square bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
                 <div className="relative w-full h-[60%] bg-gray-200">
                     <Image 
                         src="https://picsum.photos/seed/mascot/600/600"
@@ -429,7 +437,7 @@ export default function GerarConteudoPage() {
                             <div className="p-3 flex items-center gap-2 border-b">
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={user?.photoURL || undefined} />
-                                    <AvatarFallback>{metaConnection?.instagramUsername?.charAt(0).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                 </Avatar>
                                 <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                             </div>
@@ -457,6 +465,9 @@ export default function GerarConteudoPage() {
                   Agendar Post
                 </Button>
               </div>
+              {!metaConnection?.isConnected && (
+                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta da Meta na página de Conteúdo para publicar.</p>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(3)}>
@@ -553,3 +564,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
