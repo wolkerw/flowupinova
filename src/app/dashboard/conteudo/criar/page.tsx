@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { schedulePost } from "@/lib/services/posts-service";
+import { schedulePost, uploadMediaAndGetURL } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -25,8 +25,7 @@ import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type MediaItem = {
     type: 'image' | 'video';
-    file: File;
-    url: string; // Blob URL for preview
+    url: string; // Public URL from Firebase Storage
 };
 type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
 type LogoSize = 'small' | 'medium' | 'large';
@@ -96,8 +95,14 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
     }
 
     const renderContent = (item: MediaItem) => {
+        const imageSizeProps = { width: 400, height: 400 };
+        if (type === 'reels' || type === 'story') {
+            imageSizeProps.width = 250;
+            imageSizeProps.height = 444; // approx 9:16
+        }
+
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" fill sizes="100vw" className="object-cover" />;
+            return <Image src={item.url} alt="Preview da imagem" {...imageSizeProps} className="object-cover w-full h-full" />;
         }
         
         if (item.type === 'video') {
@@ -198,8 +203,8 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
@@ -223,12 +228,6 @@ export default function CriarConteudoPage() {
         getMetaConnection(user.uid).then(setMetaConnection);
     }, [user]);
 
-    useEffect(() => {
-        return () => {
-            mediaItems.forEach(item => URL.revokeObjectURL(item.url));
-            if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-        };
-    }, [mediaItems, logoPreviewUrl]);
 
     const handleNextStep = () => {
         if(step === 1 && selectedType) {
@@ -242,37 +241,52 @@ export default function CriarConteudoPage() {
         ref.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
+        if (!user) {
+            toast({ title: "Erro", description: "Você precisa estar logado para fazer upload.", variant: "destructive" });
+            return;
+        }
+
         const file = event.target.files?.[0];
         if (file) {
-            const url = URL.createObjectURL(file);
-            const newMediaItem: MediaItem = { type: fileType === 'video' ? 'video' : 'image', url, file };
+            setIsUploading(true);
+            toast({ title: "Upload iniciado", description: `Enviando ${file.name}...` });
 
-            if (fileType === 'logo') {
-                if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-                setLogoFile(file);
-                setLogoPreviewUrl(url);
-            } else {
-                 if (selectedType === 'carousel' || (mediaItems.length === 0) ) {
-                    setMediaItems(prev => [...prev, newMediaItem]);
+            try {
+                const uploadedUrl = await uploadMediaAndGetURL(user.uid, file, (progress) => {
+                    console.log(`Upload progress: ${progress}%`);
+                });
+
+                if (fileType === 'logo') {
+                    setLogoPreviewUrl(uploadedUrl);
                 } else {
-                    mediaItems.forEach(item => URL.revokeObjectURL(item.url));
-                    setMediaItems([newMediaItem]);
+                    const newMediaItem: MediaItem = {
+                        type: file.type.startsWith('video') ? 'video' : 'image',
+                        url: uploadedUrl
+                    };
+
+                    if (selectedType === 'carousel' || mediaItems.length === 0) {
+                        setMediaItems(prev => [...prev, newMediaItem]);
+                    } else {
+                        setMediaItems([newMediaItem]);
+                    }
                 }
+                toast({ title: "Sucesso!", description: "Upload concluído." });
+            } catch (error: any) {
+                console.error("Upload error:", error);
+                toast({ title: "Erro de Upload", description: error.message, variant: "destructive" });
+            } finally {
+                setIsUploading(false);
+                if(event.target) event.target.value = ""; // Reset input
             }
         }
-        if(event.target) event.target.value = "";
     };
     
     const handleRemoveItem = (index: number) => {
-        const urlToRemove = mediaItems[index]?.url;
-        if (urlToRemove) URL.revokeObjectURL(urlToRemove);
         setMediaItems(prev => prev.filter((_, i) => i !== index));
     };
 
     const clearLogo = () => {
-        if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-        setLogoFile(null);
         setLogoPreviewUrl(null);
     };
 
@@ -295,7 +309,7 @@ export default function CriarConteudoPage() {
             await schedulePost(user.uid, {
                 title: title || "Post sem título",
                 text: text,
-                media: mediaItems[0].file, // Por agora, apenas o primeiro item. Carrossel virá depois.
+                media: mediaItems[0].url,
                 platforms: ['instagram'],
                 scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
                 metaConnection: metaConnection,
@@ -313,7 +327,7 @@ export default function CriarConteudoPage() {
     }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
-    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && mediaItems.length === 0);
+    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading));
     const isSubmitDisabled = (
         !metaConnection?.isConnected || 
         isPublishing || 
@@ -415,18 +429,18 @@ export default function CriarConteudoPage() {
                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     
                                     <div className="grid grid-cols-2 gap-4 pt-2">
-                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)}>
-                                            <FileImage className="w-4 h-4 text-blue-500" />
+                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)} disabled={isUploading}>
+                                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <FileImage className="w-4 h-4 text-blue-500" />}
                                             Anexar Imagem
                                         </Button>
-                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)}>
-                                            <Video className="w-4 h-4 text-green-500" />
+                                        <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(videoInputRef)} disabled={isUploading}>
+                                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-green-500" /> : <Video className="w-4 h-4 text-green-500" />}
                                             Anexar Vídeo
                                         </Button>
                                     </div>
                                     <div className="pt-2 relative">
-                                         <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)}>
-                                            <UploadCloud className="w-4 h-4 text-purple-500" />
+                                         <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)} disabled={isUploading}>
+                                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-purple-500" /> : <UploadCloud className="w-4 h-4 text-purple-500" />}
                                             Adicionar Logomarca
                                         </Button>
                                         {logoPreviewUrl && (
@@ -576,7 +590,7 @@ export default function CriarConteudoPage() {
                                                     {mediaItems[0] && (
                                                       <div className="w-full h-full relative">
                                                           {mediaItems[0].type === 'image' ? (
-                                                              <Image src={mediaItems[0].url} alt="Post preview" fill sizes="100vw" className="object-cover" />
+                                                              <Image src={mediaItems[0].url} alt="Post preview" width={400} height={400} className="object-cover w-full h-full" />
                                                           ) : (
                                                               <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                                                           )}

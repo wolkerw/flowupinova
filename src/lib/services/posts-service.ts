@@ -3,7 +3,7 @@
 
 import { db, storage } from "@/lib/firebase";
 import { collection, query, orderBy, getDocs, addDoc, doc, updateDoc, where, Timestamp } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL, uploadBytes } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
 // Interface for data stored in Firestore
@@ -24,8 +24,7 @@ export interface PostData {
 export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt' | 'metaConnection' | 'imageUrl'> & {
     scheduledAt: Date;
     metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'isConnected'>;
-    // Can be a public URL (from AI generation) or a File object (from manual creation)
-    media: string | File;
+    media: string; // Should always be a public URL now
 };
 
 // Interface for data being sent to the client
@@ -39,22 +38,47 @@ function getPostsCollectionRef(userId: string) {
     return collection(db, "users", userId, "posts");
 }
 
-async function uploadMediaAndGetURL(userId: string, media: string | File): Promise<string> {
-    if (typeof media === 'string') {
-        // If it's already a URL, assume it's public and return it
-        // This is the case for AI-generated images
-        return media;
-    }
+export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (progress: number) => void): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const filePath = `users/${userId}/posts/${Date.now()}_${media.name}`;
+        const storageRef = ref(storage, filePath);
+        const uploadTask = uploadBytesResumable(storageRef, media);
 
-    // It's a File object, so upload to Firebase Storage
-    const filePath = `users/${userId}/posts/${Date.now()}_${media.name}`;
-    const storageRef = ref(storage, filePath);
-    
-    await uploadBytes(storageRef, media);
-    const downloadURL = await getDownloadURL(storageRef);
-    
-    return downloadURL;
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                onProgress?.(progress);
+            },
+            (error) => {
+                console.error("Firebase Storage Error:", error);
+                let errorMessage = "Falha no upload. ";
+                switch (error.code) {
+                    case 'storage/unauthorized':
+                        errorMessage += "Verifique as regras de segurança do seu Storage. Você não tem permissão para realizar esta ação.";
+                        break;
+                    case 'storage/canceled':
+                        errorMessage += "O upload foi cancelado.";
+                        break;
+                    case 'storage/unknown':
+                        errorMessage += "Ocorreu um erro desconhecido. Verifique sua conexão e as configurações de CORS do seu bucket no Google Cloud.";
+                        break;
+                    default:
+                         errorMessage += error.message;
+                }
+                reject(new Error(errorMessage));
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(downloadURL);
+                } catch (error) {
+                    reject(error);
+                }
+            }
+        );
+    });
 }
+
 
 export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
     if (!userId) {
@@ -65,14 +89,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     try {
-        // Upload media if it's a File object and get the public URL
-        const imageUrl = await uploadMediaAndGetURL(userId, postData.media);
-
         const postsCollectionRef = getPostsCollectionRef(userId);
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
-            imageUrl: imageUrl, // Save the public URL
+            imageUrl: postData.media,
             platforms: postData.platforms,
             status: 'scheduled',
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
@@ -117,7 +138,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             id: docRef.id,
             title: postData.title,
             text: postData.text,
-            imageUrl: imageUrl,
+            imageUrl: postData.media,
             platforms: postData.platforms,
             status: 'scheduled',
             scheduledAt: postData.scheduledAt.toISOString()
@@ -174,3 +195,5 @@ export async function getDuePosts(adminDb: any): Promise<(PostData & { userId: s
     console.warn("getDuePosts functionality is limited due to Firestore query constraints on subcollections.");
     return [];
 }
+
+    
