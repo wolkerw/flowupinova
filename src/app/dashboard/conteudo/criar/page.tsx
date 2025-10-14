@@ -57,7 +57,22 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
         title: "Reels",
         description: "Vídeos curtos e criativos para o feed."
     }
-]
+];
+
+const positionClasses: Record<LogoPosition, string> = {
+    'top-left': 'top-4 left-4',
+    'top-right': 'top-4 right-4',
+    'bottom-left': 'bottom-4 left-4',
+    'bottom-right': 'bottom-4 right-4',
+    'top-center': 'top-4 left-1/2 -translate-x-1/2',
+    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+};
+
+const sizeClasses: Record<LogoSize, string> = {
+    'small': 'w-12 h-12',
+    'medium': 'w-16 h-16',
+    'large': 'w-20 h-20',
+};
 
 const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSize }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void, logoPosition: LogoPosition, logoSize: LogoSize }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -67,21 +82,6 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             setCurrentSlide(mediaItems.length - 1);
         }
     }, [mediaItems, currentSlide]);
-
-    const positionClasses: Record<LogoPosition, string> = {
-        'top-left': 'top-4 left-4',
-        'top-right': 'top-4 right-4',
-        'bottom-left': 'bottom-4 left-4',
-        'bottom-right': 'bottom-4 right-4',
-        'top-center': 'top-4 left-1/2 -translate-x-1/2',
-        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
-    };
-
-    const sizeClasses: Record<LogoSize, string> = {
-        'small': 'w-12 h-12',
-        'medium': 'w-16 h-16',
-        'large': 'w-20 h-20',
-    }
 
     const handleNextSlide = () => {
         if (mediaItems.length > 1) {
@@ -674,4 +674,5 @@ export default function CriarConteudoPage() {
     );
 }
 
+    
     
