@@ -40,6 +40,9 @@ function getPostsCollectionRef(userId: string) {
 
 export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (progress: number) => void): Promise<string> {
     return new Promise((resolve, reject) => {
+        if (!userId) {
+            return reject(new Error("UserID é necessário para o upload."));
+        }
         const filePath = `users/${userId}/posts/${Date.now()}_${media.name}`;
         const storageRef = ref(storage, filePath);
         const uploadTask = uploadBytesResumable(storageRef, media);
@@ -47,6 +50,7 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
         uploadTask.on('state_changed',
             (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log(`Upload progress: ${progress}%`);
                 onProgress?.(progress);
             },
             (error) => {
@@ -59,11 +63,14 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
                     case 'storage/canceled':
                         errorMessage += "O upload foi cancelado.";
                         break;
+                    case 'storage/object-not-found':
+                         errorMessage += "O arquivo não foi encontrado. Isso pode ocorrer se as regras do Storage não permitirem a leitura.";
+                         break;
                     case 'storage/unknown':
                         errorMessage += "Ocorreu um erro desconhecido. Verifique sua conexão e as configurações de CORS do seu bucket no Google Cloud.";
                         break;
                     default:
-                         errorMessage += error.message;
+                         errorMessage += `(${error.code}) ${error.message}`;
                 }
                 reject(new Error(errorMessage));
             },
@@ -71,8 +78,9 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
                 try {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     resolve(downloadURL);
-                } catch (error) {
-                    reject(error);
+                } catch (error: any) {
+                     console.error("Error getting download URL:", error);
+                    reject(new Error("Falha ao obter a URL de download após o upload."));
                 }
             }
         );
@@ -108,6 +116,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
         const now = new Date();
         const scheduledDate = postData.scheduledAt;
+        // Check if the post is scheduled for within the next minute to publish "now"
         if (scheduledDate.getTime() - now.getTime() < 60000) { 
              console.log(`Post ${docRef.id} is due for immediate publication.`);
              await updateDoc(doc(db, "users", userId, "posts", docRef.id), { status: 'publishing' });
@@ -174,22 +183,4 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         console.error(`Error getting posts for user ${userId}:`, error);
         return [];
     }
-}
-
-
-export async function getDuePosts(adminDb: any): Promise<(PostData & { userId: string, id: string })[]> {
-    const now = Timestamp.now();
-    const duePostsQuery = query(
-        collection(adminDb, 'users'), 
-        where('status', '==', 'scheduled'), 
-        where('scheduledAt', '<=', now)
-    );
-    
-    // This is a simplified query. A real implementation would need a composite query across all users' subcollections.
-    // Firestore queries on subcollections across all documents in a root collection are complex.
-    // A better data model for this would be a single root-level 'posts' collection.
-    // For now, this will not work as intended and is a placeholder.
-    
-    console.warn("getDuePosts functionality is limited due to Firestore query constraints on subcollections.");
-    return [];
 }
