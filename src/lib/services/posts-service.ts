@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, query, orderBy, getDocs, addDoc, doc, updateDoc, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -55,7 +55,6 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
         uploadTask.on('state_changed',
             (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log(`Upload progress: ${progress}%`);
                 onProgress?.(progress);
             },
             (error) => {
@@ -101,17 +100,13 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         throw new Error("Conexão com a Meta não está configurada ou é inválida.");
     }
     
-    // Check if this is an immediate publish or a scheduled one
     const now = new Date();
     const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
 
     let imageUrl: string;
     try {
-        // Step 1: Handle media upload
         if (postData.media instanceof File) {
-            imageUrl = await uploadMediaAndGetURL(userId, postData.media, (progress) => {
-                console.log(`SchedulePost Upload Progress: ${progress.toFixed(2)}%`);
-            });
+            imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
             imageUrl = postData.media;
         }
@@ -129,11 +124,9 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             }
         };
 
-        // Step 2: Immediate Publish or Schedule
         if (isImmediate) {
             console.log("Iniciando publicação imediata...");
 
-            // Step 2a: Publish to Instagram
             const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -147,15 +140,13 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
             const result = await response.json();
             
-            // Step 2b: Save post to Firestore with the final status
             if (!response.ok) {
-                console.error("Falha ao publicar no Instagram:", result.error);
                 const postToSave: Omit<PostData, 'id'> = {
                     ...basePostData,
                     status: 'failed',
                     failureReason: result.error || "Unknown publishing error"
                 };
-                const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+                await addDoc(getPostsCollectionRef(userId), postToSave);
                 throw new Error(result.error || "Falha ao publicar no Instagram.");
             } else {
                  const postToSave: Omit<PostData, 'id'> = {
@@ -164,7 +155,6 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                     publishedMediaId: result.publishedMediaId
                 };
                 const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-                console.log(`Post publicado e salvo com ID ${docRef.id}.`);
                 return {
                     id: docRef.id,
                     ...postToSave,
@@ -173,15 +163,13 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             }
             
         } else {
-            // Just schedule the post for later
-            console.log("Agendando post para o futuro...");
+            console.log("Agendando post para publicação futura.");
             const postToSave: Omit<PostData, 'id'> = {
                 ...basePostData,
                 status: 'scheduled',
             };
             
             const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-            console.log(`Post agendado com ID ${docRef.id}.`);
              return {
                 id: docRef.id,
                 ...postToSave,
@@ -209,7 +197,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         const posts: PostDataOutput[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data() as PostData;
-            // Safe conversion of timestamp
             const scheduledAtDate = data.scheduledAt?.toDate ? data.scheduledAt.toDate() : new Date();
             posts.push({
                 ...data,
@@ -218,7 +205,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
             });
         });
 
-        console.log(`Fetched ${posts.length} posts for user ${userId}.`);
         return posts;
     } catch (error) {
         console.error(`Error getting posts for user ${userId}:`, error);
