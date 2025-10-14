@@ -100,8 +100,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     if (!userId) {
         return { success: false, error: "User ID is required to schedule a post." };
     }
-     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken || !postData.metaConnection.pageId) {
-        return { success: false, error: "Conexão com a Meta não está configurada ou é inválida." };
+     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken || !postData.metaConnection.instagramId) {
+        return { success: false, error: "Conexão com a Meta (Instagram) não está configurada ou é inválida." };
     }
     
     let imageUrl: string;
@@ -140,7 +140,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    pageId: basePostData.metaConnection.pageId,
+                    instagramId: basePostData.metaConnection.instagramId, // <-- CORREÇÃO: Usar instagramId
                     accessToken: basePostData.metaConnection.accessToken,
                     imageUrl: basePostData.imageUrl,
                     caption: basePostData.text,
@@ -151,7 +151,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             
             if (!response.ok || !result.success) {
                  const failedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'failed', failureReason: result.error || "Unknown publishing error" };
-                 const docRef = await addDoc(getPostsCollectionRef(userId), failedPost);
+                 await addDoc(getPostsCollectionRef(userId), failedPost);
                  return { success: false, error: failedPost.failureReason };
             }
             
@@ -204,5 +204,3 @@ export async function getScheduledPosts(userId: string): Promise<(PostDataOutput
     // O ideal seria que essa busca fosse feita em um componente separado, talvez com paginação.
     return []; 
 }
-
-    

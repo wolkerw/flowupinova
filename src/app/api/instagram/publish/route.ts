@@ -2,15 +2,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 interface PublishRequestBody {
-    pageId: string;
+    instagramId: string; // <-- CORREÇÃO: Esperar o instagramId
     accessToken: string;
     imageUrl: string;
     caption: string;
 }
 
 // Função para criar o container de mídia no Instagram
-async function createMediaContainer(pageId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
-    const url = `https://graph.facebook.com/v20.0/${pageId}/media`;
+async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
+    // <-- CORREÇÃO: Usar o instagramId
+    const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
     const params = new URLSearchParams({
         image_url: imageUrl,
         caption: caption,
@@ -32,8 +33,9 @@ async function createMediaContainer(pageId: string, accessToken: string, imageUr
 }
 
 // Função para publicar o container de mídia
-async function publishMediaContainer(pageId: string, accessToken: string, creationId: string): Promise<string> {
-    const url = `https://graph.facebook.com/v20.0/${pageId}/media_publish`;
+async function publishMediaContainer(instagramId: string, accessToken: string, creationId: string): Promise<string> {
+    // <-- CORREÇÃO: Usar o instagramId
+    const url = `https://graph.facebook.com/v20.0/${instagramId}/media_publish`;
     const params = new URLSearchParams({
         creation_id: creationId,
         access_token: accessToken,
@@ -56,17 +58,17 @@ async function publishMediaContainer(pageId: string, accessToken: string, creati
 
 export async function POST(request: NextRequest) {
   try {
-    const { pageId, accessToken, imageUrl, caption } = (await request.json()) as PublishRequestBody;
+    const { instagramId, accessToken, imageUrl, caption } = (await request.json()) as PublishRequestBody;
 
-    if (!pageId || !accessToken || !imageUrl || !caption) {
-      return NextResponse.json({ success: false, error: "Parâmetros faltando. É necessário pageId, accessToken, imageUrl e caption." }, { status: 400 });
+    if (!instagramId || !accessToken || !imageUrl || !caption) {
+      return NextResponse.json({ success: false, error: "Parâmetros faltando. É necessário instagramId, accessToken, imageUrl e caption." }, { status: 400 });
     }
 
     // Etapa 1: Criar o container de mídia
-    const creationId = await createMediaContainer(pageId, accessToken, imageUrl, caption);
+    const creationId = await createMediaContainer(instagramId, accessToken, imageUrl, caption);
 
     // Etapa 2: Publicar o container
-    const publishedMediaId = await publishMediaContainer(pageId, accessToken, creationId);
+    const publishedMediaId = await publishMediaContainer(instagramId, accessToken, creationId);
 
     return NextResponse.json({ success: true, publishedMediaId });
 
@@ -78,5 +80,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-    
