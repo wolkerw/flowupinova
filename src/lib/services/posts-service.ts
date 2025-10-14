@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -32,10 +32,14 @@ export type PostDataInput = {
     logoOptions?: { position: string; size: string };
 };
 
-// Interface for data being sent to the client
-export type PostDataOutput = Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
-    id: string; // Ensure ID is always present on output
-    scheduledAt: string; // Client receives an ISO string for serialization
+// Interface for data being sent to the client from the service
+export type PostDataOutput = {
+    success: boolean;
+    error?: string;
+    post?: Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
+        id: string; // Ensure ID is always present on output
+        scheduledAt: string; // Client receives an ISO string for serialization
+    }
 };
 
 // Helper to get the collection reference for a specific user
@@ -94,22 +98,23 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
 
 export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
     if (!userId) {
-        throw new Error("User ID is required to schedule a post.");
+        return { success: false, error: "User ID is required to schedule a post." };
     }
      if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken || !postData.metaConnection.pageId) {
-        throw new Error("Conexão com a Meta não está configurada ou é inválida.");
+        return { success: false, error: "Conexão com a Meta não está configurada ou é inválida." };
     }
     
-    const now = new Date();
-    // Publicação imediata se agendado para menos de 60 segundos no futuro.
-    const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
-
     let imageUrl: string;
-    if (postData.media instanceof File) {
-        imageUrl = await uploadMediaAndGetURL(userId, postData.media);
-    } else {
-        imageUrl = postData.media;
+    try {
+        if (postData.media instanceof File) {
+            imageUrl = await uploadMediaAndGetURL(userId, postData.media);
+        } else {
+            imageUrl = postData.media;
+        }
+    } catch(uploadError: any) {
+        return { success: false, error: uploadError.message };
     }
+
 
     const basePostData = {
         title: postData.title,
@@ -123,11 +128,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             instagramId: postData.metaConnection.instagramId,
         }
     };
+    
+    const now = new Date();
+    // Publicação imediata se agendado para menos de 60 segundos no futuro.
+    const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
 
-    try {
-        if (isImmediate) {
-            console.log("Iniciando publicação imediata...");
-
+    if (isImmediate) {
+        console.log("Iniciando publicação imediata...");
+        try {
             const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -141,57 +149,52 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
             const result = await response.json();
             
-            if (!response.ok) {
-                 const postToSave: Omit<PostData, 'id'> = {
-                    ...basePostData,
-                    status: 'failed',
-                    failureReason: result.error || "Unknown publishing error"
-                };
-                const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-                // Mesmo falhando, retornamos um objeto válido para o cliente
-                 return {
-                    id: docRef.id,
-                    ...postToSave,
-                    scheduledAt: postData.scheduledAt.toISOString()
-                };
+            if (!response.ok || !result.success) {
+                 const failedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'failed', failureReason: result.error || "Unknown publishing error" };
+                 const docRef = await addDoc(getPostsCollectionRef(userId), failedPost);
+                 return { success: false, error: failedPost.failureReason };
             }
             
-            const postToSave: Omit<PostData, 'id'> = {
-                ...basePostData,
-                status: 'published',
-                publishedMediaId: result.publishedMediaId
-            };
-            const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+            const publishedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'published', publishedMediaId: result.publishedMediaId };
+            const docRef = await addDoc(getPostsCollectionRef(userId), publishedPost);
             return {
-                id: docRef.id,
-                ...postToSave,
-                scheduledAt: postData.scheduledAt.toISOString()
+                success: true,
+                post: {
+                    id: docRef.id,
+                    ...publishedPost,
+                    scheduledAt: postData.scheduledAt.toISOString()
+                }
             };
             
-        } else {
-            console.log("Agendando post para publicação futura.");
-            const postToSave: Omit<PostData, 'id'> = {
-                ...basePostData,
-                status: 'scheduled',
-            };
-            
-            const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-             return {
-                id: docRef.id,
-                ...postToSave,
-                scheduledAt: postData.scheduledAt.toISOString()
-            };
+        } catch(error: any) {
+            console.error(`Error in immediate publish for user ${userId}:`, error);
+            const failedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'failed', failureReason: error.message || "Client-side error during publishing." };
+            await addDoc(getPostsCollectionRef(userId), failedPost);
+            return { success: false, error: failedPost.failureReason };
         }
 
-    } catch (error) {
-        console.error(`Error in schedulePost for user ${userId}:`, error);
-        // Garante que o erro seja propagado para o frontend para ser exibido no toast
-        throw error instanceof Error ? error : new Error("Failed to process post.");
+    } else {
+        console.log("Agendando post para publicação futura.");
+        try {
+            const scheduledPost: Omit<PostData, 'id'> = { ...basePostData, status: 'scheduled' };
+            const docRef = await addDoc(getPostsCollectionRef(userId), scheduledPost);
+            return {
+                success: true,
+                post: {
+                    id: docRef.id,
+                    ...scheduledPost,
+                    scheduledAt: postData.scheduledAt.toISOString()
+                }
+            };
+        } catch (error: any) {
+            console.error(`Error scheduling post for user ${userId}:`, error);
+            return { success: false, error: `Failed to save scheduled post. Reason: ${error.message}` };
+        }
     }
 }
 
 
-export async function getScheduledPosts(userId: string): Promise<PostDataOutput[]> {
+export async function getScheduledPosts(userId: string): Promise<(PostDataOutput['post'])[]> {
      if (!userId) {
         console.error("User ID is required to get posts.");
         return [];
@@ -201,3 +204,5 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
     // O ideal seria que essa busca fosse feita em um componente separado, talvez com paginação.
     return []; 
 }
+
+    

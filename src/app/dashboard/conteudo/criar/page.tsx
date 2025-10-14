@@ -298,26 +298,24 @@ export default function CriarConteudoPage() {
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
 
-        try {
-            await schedulePost(user.uid, {
-                title: title || "Post sem título",
-                text: text,
-                media: mediaItems[0].file, // Pass the file object
-                platforms: ['instagram'],
-                scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
-                metaConnection: metaConnection,
-                logo: logoFile, // Pass logo file if it exists
-                logoOptions: { position: logoPosition, size: logoSize },
-            });
+        const result = await schedulePost(user.uid, {
+            title: title || "Post sem título",
+            text: text,
+            media: mediaItems[0].file, // Pass the file object
+            platforms: ['instagram'],
+            scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
+            metaConnection: metaConnection,
+            logo: logoFile, // Pass logo file if it exists
+            logoOptions: { position: logoPosition, size: logoSize },
+        });
 
+        setIsPublishing(false);
+
+        if (result.success) {
             toast({ title: "Sucesso!", description: `Post ${scheduleType === 'now' ? 'enviado para publicação' : 'agendado'}!` });
             router.push('/dashboard/conteudo');
-
-        } catch (error: any) {
-            console.error("Erro ao publicar:", error);
-            toast({ variant: "destructive", title: "Erro ao Publicar", description: error.message });
-        } finally {
-            setIsPublishing(false);
+        } else {
+            toast({ variant: "destructive", title: "Erro ao Publicar", description: result.error || "Ocorreu um erro desconhecido." });
         }
     }
     
@@ -673,3 +671,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    

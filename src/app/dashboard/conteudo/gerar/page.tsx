@@ -128,7 +128,7 @@ export default function GerarConteudoPage() {
   };
 
   const handlePublish = async (publishMode: 'now' | 'schedule') => {
-    if (!selectedContent || !selectedImage || isPublishing || !user || !metaConnection?.isConnected) {
+    if (!selectedContent || !selectedImage || !user || !metaConnection?.isConnected) {
         toast({ variant: "destructive", title: "Erro", description: "Verifique se selecionou conteúdo, imagem e se sua conta está conectada." });
         return;
     }
@@ -141,25 +141,23 @@ export default function GerarConteudoPage() {
     
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
-    try {
-        await schedulePost(user.uid, {
-            title: selectedContent.titulo,
-            text: fullCaption,
-            media: selectedImage,
-            platforms: ['instagram'],
-            scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
-            metaConnection: metaConnection,
-        });
+    const result = await schedulePost(user.uid, {
+        title: selectedContent.titulo,
+        text: fullCaption,
+        media: selectedImage,
+        platforms: ['instagram'],
+        scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
+        metaConnection: metaConnection,
+    });
+    
+    setIsPublishing(false);
+    setShowSchedulerModal(false);
 
-        toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
-        setShowSchedulerModal(false);
-        router.push('/dashboard/conteudo');
-
-    } catch (error: any) {
-        console.error("Erro no processo de agendamento:", error);
-        toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
-    } finally {
-        setIsPublishing(false);
+    if (result.success) {
+      toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
+      router.push('/dashboard/conteudo');
+    } else {
+      toast({ variant: "destructive", title: "Erro ao Agendar", description: result.error || "Ocorreu um erro desconhecido." });
     }
 };
 
@@ -330,7 +328,7 @@ export default function GerarConteudoPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <ImageIcon className="w-6 h-6 text-purple-500" />
-                Etapa 3: Escolha a imagem para o seu post
+                Etapa 3: Escolha la imagem para o seu post
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -532,3 +530,4 @@ export default function GerarConteudoPage() {
   );
 }
 
+    
