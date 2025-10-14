@@ -103,7 +103,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
         }
 
         if (item.type === 'image') {
-            return <Image src={item.previewUrl} alt="Preview da imagem" {...imageSizeProps} className="object-cover w-full h-full" />;
+            return <Image src={item.previewUrl} alt="Preview da imagem" width={imageSizeProps.width} height={imageSizeProps.height} className="object-cover w-full h-full" />;
         }
         
         if (item.type === 'video') {
@@ -673,6 +673,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
-    

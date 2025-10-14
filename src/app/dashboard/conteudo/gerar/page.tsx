@@ -49,11 +49,6 @@ export default function GerarConteudoPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [scheduleOptions, setScheduleOptions] = useState<ScheduleOptions>({
-    instagram: { enabled: true },
-  });
-
-  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now');
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
@@ -61,13 +56,6 @@ export default function GerarConteudoPage() {
     if (!user) return;
     getMetaConnection(user.uid).then(setMetaConnection);
   }, [user]);
-
-  const handleScheduleOptionChange = (platform: string, enabled: boolean) => {
-    setScheduleOptions(prev => ({
-      ...prev,
-      [platform]: { ...prev[platform], enabled: enabled }
-    }));
-  };
 
   const handleGenerateText = async () => {
     if (!postSummary.trim() || isLoading) return;
@@ -129,7 +117,7 @@ export default function GerarConteudoPage() {
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
-      setStep(3);
+      setStep(4);
 
     } catch (error: any) {
       console.error("Erro ao gerar imagens:", error);
@@ -139,9 +127,13 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleSchedule = async () => {
+  const handlePublish = async (publishMode: 'now' | 'schedule') => {
     if (!selectedContent || !selectedImage || isPublishing || !user || !metaConnection?.isConnected) {
         toast({ variant: "destructive", title: "Erro", description: "Verifique se selecionou conteúdo, imagem e se sua conta está conectada." });
+        return;
+    }
+     if (publishMode === 'schedule' && !scheduleDateTime) {
+        toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
         return;
     }
 
@@ -149,29 +141,17 @@ export default function GerarConteudoPage() {
     
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
-    const enabledPlatforms = Object.keys(scheduleOptions).filter(p => scheduleOptions[p].enabled);
-
     try {
-        if (enabledPlatforms.length === 0) {
-            toast({ variant: "destructive", title: "Nenhuma plataforma selecionada", description: "Selecione ao menos uma plataforma para agendar." });
-            return;
-        }
-
-        if (publishMode === 'schedule' && !scheduleDateTime) {
-            toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
-            return;
-        }
-
         await schedulePost(user.uid, {
             title: selectedContent.titulo,
             text: fullCaption,
             media: selectedImage,
-            platforms: enabledPlatforms,
+            platforms: ['instagram'],
             scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
             metaConnection: metaConnection,
         });
 
-        toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso para ${enabledPlatforms.join(', ')}!` });
+        toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
         setShowSchedulerModal(false);
         router.push('/dashboard/conteudo');
 
@@ -185,13 +165,6 @@ export default function GerarConteudoPage() {
 
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
-
-  const isSchedulingDisabled = !metaConnection?.isConnected || isPublishing;
-  const schedulingButtonText = !metaConnection?.isConnected 
-    ? "Conexão com Meta desativada"
-    : isPublishing 
-    ? "Publicando..."
-    : publishMode === 'now' ? 'Publicar Agora' : 'Confirmar Agendamento';
 
   const getAvatarFallback = () => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -297,21 +270,12 @@ export default function GerarConteudoPage() {
                 Voltar
               </Button>
               <Button
-                onClick={handleGenerateImages}
+                onClick={() => setStep(3)}
                 disabled={!selectedContentId || isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Gerando Imagens...
-                  </>
-                ) : (
-                  <>
-                    Próxima Etapa
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
+                Próxima Etapa
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
           </Card>
@@ -373,27 +337,34 @@ export default function GerarConteudoPage() {
               <p className="text-gray-600 mb-6">
                 A IA gerou estas imagens com base no conteúdo que você escolheu. Selecione a sua preferida.
               </p>
-              <div className="grid grid-cols-3 gap-4">
-                {generatedImages.map((imgSrc, index) => (
-                  <div 
-                    key={index}
-                    onClick={() => setSelectedImage(imgSrc)}
-                    className={cn(
-                        "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
-                        "ring-4 ring-offset-2",
-                        selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
-                    )}
-                  >
-                    <Image
-                      src={imgSrc}
-                      alt={`Imagem gerada ${index + 1}`}
-                      layout="fill"
-                      objectFit="cover"
-                      className="hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ))}
-              </div>
+               {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                    <Loader2 className="w-8 h-8 mr-2 animate-spin text-purple-500" />
+                    <span className="text-lg text-gray-600">Gerando imagens...</span>
+                </div>
+               ) : (
+                <div className="grid grid-cols-3 gap-4">
+                    {generatedImages.map((imgSrc, index) => (
+                    <div 
+                        key={index}
+                        onClick={() => setSelectedImage(imgSrc)}
+                        className={cn(
+                            "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
+                            "ring-4 ring-offset-2",
+                            selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
+                        )}
+                    >
+                        <Image
+                        src={imgSrc}
+                        alt={`Imagem gerada ${index + 1}`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="hover:scale-105 transition-transform duration-300"
+                        />
+                    </div>
+                    ))}
+                </div>
+               )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(2)}>
@@ -401,11 +372,28 @@ export default function GerarConteudoPage() {
                 Voltar
               </Button>
               <Button
-                disabled={!selectedImage}
+                onClick={handleGenerateImages}
+                disabled={isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    Gerar Novas Imagens
+                    <Sparkles className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+              <Button
+                disabled={!selectedImage || isLoading}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                 onClick={() => setStep(4)}
               >
-                Próxima Etapa
+                Revisar e Publicar
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
@@ -423,7 +411,7 @@ export default function GerarConteudoPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="w-6 h-6 text-purple-500" />
-                Etapa 4: Revise e agende seu post
+                Etapa 4: Revise e publique seu post
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -454,20 +442,36 @@ export default function GerarConteudoPage() {
                     </TabsContent>
                 </div>
                </Tabs>
-               <div className="mt-6 flex justify-center">
-                <Button
-                  onClick={() => setShowSchedulerModal(true)}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                  size="lg"
-                  disabled={!metaConnection?.isConnected}
-                >
-                  <Send className="w-5 h-5 mr-2" />
-                  Agendar Post
-                </Button>
-              </div>
-              {!metaConnection?.isConnected && (
-                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta da Meta na página de Conteúdo para publicar.</p>
-              )}
+
+               <div className="mt-8 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button
+                            onClick={() => handlePublish('now')}
+                            disabled={!metaConnection?.isConnected || isPublishing}
+                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                            size="lg"
+                        >
+                            {isPublishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
+                            {isPublishing ? 'Publicando...' : 'Publicar Agora'}
+                        </Button>
+                        <Button
+                            onClick={() => setShowSchedulerModal(true)}
+                            disabled={!metaConnection?.isConnected || isPublishing}
+                            variant="outline"
+                            size="lg"
+                        >
+                            <Calendar className="w-5 h-5 mr-2" />
+                            Agendar
+                        </Button>
+                    </div>
+
+                    {!metaConnection?.isConnected && (
+                        <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1">
+                            <AlertTriangle className="w-4 h-4" /> 
+                            Conecte sua conta da Meta na página de Conteúdo para publicar.
+                        </p>
+                    )}
+               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(3)}>
@@ -479,7 +483,7 @@ export default function GerarConteudoPage() {
         </motion.div>
       )}
 
-      {showSchedulerModal && selectedContent && (
+      {showSchedulerModal && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -490,71 +494,34 @@ export default function GerarConteudoPage() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col"
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full"
           >
             <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold">Agendar Post</h3>
+              <h3 className="text-xl font-bold flex items-center gap-2"><Calendar className="w-5 h-5"/> Agendar Publicação</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <div className="p-6 space-y-6 overflow-y-auto">
-              <Card className={cn("p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-70")}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Instagram className="w-6 h-6 text-pink-600" />
-                    <Label className="text-lg font-semibold">Instagram</Label>
-                    {!metaConnection?.isConnected && <Badge variant="destructive" className="text-xs">Conexão desativada</Badge>}
-                  </div>
-                  <Switch
-                    checked={scheduleOptions.instagram.enabled}
-                    onCheckedChange={(checked) => handleScheduleOptionChange('instagram', checked)}
-                    disabled={!metaConnection?.isConnected}
-                  />
-                </div>
-              </Card>
-
-              <div>
-                <Label className="font-semibold text-base">Quando publicar?</Label>
-                <RadioGroup value={publishMode} onValueChange={(v) => setPublishMode(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
-                  <div>
-                    <RadioGroupItem value="now" id="now" className="peer sr-only" />
-                    <Label htmlFor="now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
-                      <Clock className="w-6 h-6 mb-2" />
-                      Publicar Agora
-                    </Label>
-                  </div>
-                  <div>
-                    <RadioGroupItem value="schedule" id="schedule" className="peer sr-only" />
-                    <Label htmlFor="schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
-                      <Calendar className="w-6 h-6 mb-2" />
-                      Agendar
-                    </Label>
-                  </div>
-                </RadioGroup>
-                {publishMode === 'schedule' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4"
-                  >
-                    <Input type="datetime-local" value={scheduleDateTime} onChange={(e) => setScheduleDateTime(e.target.value)} />
-                  </motion.div>
-                )}
-              </div>
+            <div className="p-6 space-y-4">
+                <Label htmlFor="schedule-datetime">Selecione a data e hora</Label>
+                <Input 
+                    id="schedule-datetime" 
+                    type="datetime-local" 
+                    value={scheduleDateTime} 
+                    onChange={(e) => setScheduleDateTime(e.target.value)} 
+                />
             </div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
               <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>
                 Cancelar
               </Button>
               <Button
-                onClick={handleSchedule}
-                disabled={isSchedulingDisabled}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                onClick={() => handlePublish('schedule')}
+                disabled={isPublishing || !scheduleDateTime}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
               >
-                {isPublishing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isSchedulingDisabled && !isPublishing && <AlertTriangle className="w-4 h-4 mr-2" />}
-                {schedulingButtonText}
+                {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2"/>}
+                Confirmar Agendamento
               </Button>
             </div>
           </motion.div>
@@ -565,4 +532,3 @@ export default function GerarConteudoPage() {
   );
 }
 
-    
