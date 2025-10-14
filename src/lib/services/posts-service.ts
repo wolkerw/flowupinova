@@ -21,10 +21,15 @@ export interface PostData {
 }
 
 // Interface for data coming from the client
-export type PostDataInput = Omit<PostData, 'id' | 'status' | 'scheduledAt' | 'metaConnection' | 'imageUrl'> & {
+export type PostDataInput = {
+    title: string;
+    text: string;
+    media: File | string; // Can be a File for upload or a string URL from AI gen
+    platforms: string[];
     scheduledAt: Date;
     metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'isConnected'>;
-    media: string; // Should always be a public URL now
+    logo?: File | null;
+    logoOptions?: { position: string; size: string };
 };
 
 // Interface for data being sent to the client
@@ -97,10 +102,22 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     try {
+        let imageUrl: string;
+        // If media is a File, upload it. If it's a string, use it directly.
+        if (postData.media instanceof File) {
+            // Note: We are not applying the logo on the backend for this simplified flow.
+            // A more advanced implementation would require a backend function to merge the images.
+            imageUrl = await uploadMediaAndGetURL(userId, postData.media, (progress) => {
+                console.log(`SchedulePost Upload Progress: ${progress.toFixed(2)}%`);
+            });
+        } else {
+            imageUrl = postData.media;
+        }
+
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
-            imageUrl: postData.media,
+            imageUrl: imageUrl, // Use the (potentially newly uploaded) URL
             platforms: postData.platforms,
             status: 'scheduled',
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
@@ -145,7 +162,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             id: docRef.id,
             title: postData.title,
             text: postData.text,
-            imageUrl: postData.media,
+            imageUrl: imageUrl,
             platforms: postData.platforms,
             status: 'scheduled',
             scheduledAt: postData.scheduledAt.toISOString()
@@ -184,3 +201,5 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         return [];
     }
 }
+
+    

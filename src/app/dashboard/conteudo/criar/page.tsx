@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { schedulePost, uploadMediaAndGetURL } from "@/lib/services/posts-service";
+import { schedulePost } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -25,7 +25,8 @@ import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type MediaItem = {
     type: 'image' | 'video';
-    url: string; // Public URL from Firebase Storage
+    file: File;
+    previewUrl: string; // Blob or data URL for local preview
 };
 type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
 type LogoSize = 'small' | 'medium' | 'large';
@@ -102,11 +103,11 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
         }
 
         if (item.type === 'image') {
-            return <Image src={item.url} alt="Preview da imagem" {...imageSizeProps} className="object-cover w-full h-full" />;
+            return <Image src={item.previewUrl} alt="Preview da imagem" {...imageSizeProps} className="object-cover w-full h-full" />;
         }
         
         if (item.type === 'video') {
-            return <video src={item.url} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+            return <video src={item.previewUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
         }
         
         return null;
@@ -203,6 +204,7 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [title, setTitle] = useState("");
@@ -242,51 +244,41 @@ export default function CriarConteudoPage() {
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
-        if (!user) {
-            toast({ title: "Erro", description: "Você precisa estar logado para fazer upload.", variant: "destructive" });
-            return;
-        }
-
         const file = event.target.files?.[0];
         if (file) {
-            setIsUploading(true);
-            toast({ title: "Upload iniciado", description: `Enviando ${file.name}...` });
-
-            try {
-                const uploadedUrl = await uploadMediaAndGetURL(user.uid, file, (progress) => {
-                    console.log(`Upload progress: ${progress}%`);
-                });
-
-                if (fileType === 'logo') {
-                    setLogoPreviewUrl(uploadedUrl);
+            const previewUrl = URL.createObjectURL(file);
+            if (fileType === 'logo') {
+                setLogoFile(file);
+                setLogoPreviewUrl(previewUrl);
+            } else {
+                 const newMediaItem: MediaItem = {
+                    file: file,
+                    previewUrl: previewUrl,
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                };
+                if (selectedType === 'carousel' || mediaItems.length === 0) {
+                    setMediaItems(prev => [...prev, newMediaItem]);
                 } else {
-                    const newMediaItem: MediaItem = {
-                        type: file.type.startsWith('video') ? 'video' : 'image',
-                        url: uploadedUrl
-                    };
-
-                    if (selectedType === 'carousel' || mediaItems.length === 0) {
-                        setMediaItems(prev => [...prev, newMediaItem]);
-                    } else {
-                        setMediaItems([newMediaItem]);
-                    }
+                    setMediaItems([newMediaItem]);
                 }
-                toast({ title: "Sucesso!", description: "Upload concluído." });
-            } catch (error: any) {
-                console.error("Upload error:", error);
-                toast({ title: "Erro de Upload", description: error.message, variant: "destructive" });
-            } finally {
-                setIsUploading(false);
-                if(event.target) event.target.value = ""; // Reset input
             }
         }
+        if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
     };
     
     const handleRemoveItem = (index: number) => {
+        const itemToRemove = mediaItems[index];
+        if(itemToRemove.previewUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(itemToRemove.previewUrl);
+        }
         setMediaItems(prev => prev.filter((_, i) => i !== index));
     };
 
     const clearLogo = () => {
+        if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(logoPreviewUrl);
+        }
+        setLogoFile(null);
         setLogoPreviewUrl(null);
     };
 
@@ -304,15 +296,18 @@ export default function CriarConteudoPage() {
             return;
         }
         setIsPublishing(true);
+        toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
 
         try {
             await schedulePost(user.uid, {
                 title: title || "Post sem título",
                 text: text,
-                media: mediaItems[0].url,
+                media: mediaItems[0].file, // Pass the file object
                 platforms: ['instagram'],
                 scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
                 metaConnection: metaConnection,
+                logo: logoFile, // Pass logo file if it exists
+                logoOptions: { position: logoPosition, size: logoSize },
             });
 
             toast({ title: "Sucesso!", description: `Post ${scheduleType === 'now' ? 'enviado para publicação' : 'agendado'}!` });
@@ -340,6 +335,16 @@ export default function CriarConteudoPage() {
         if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
         return "U";
     }
+
+    // Cleanup blob URLs on unmount
+    useEffect(() => {
+        return () => {
+            mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
+            if (logoPreviewUrl) {
+                URL.revokeObjectURL(logoPreviewUrl);
+            }
+        };
+    }, [mediaItems, logoPreviewUrl]);
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -590,9 +595,9 @@ export default function CriarConteudoPage() {
                                                     {mediaItems[0] && (
                                                       <div className="w-full h-full relative">
                                                           {mediaItems[0].type === 'image' ? (
-                                                              <Image src={mediaItems[0].url} alt="Post preview" width={400} height={400} className="object-cover w-full h-full" />
+                                                              <Image src={mediaItems[0].previewUrl} alt="Post preview" width={400} height={400} className="object-cover w-full h-full" />
                                                           ) : (
-                                                              <video src={mediaItems[0].url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                                              <video src={mediaItems[0].previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                                                           )}
                                                           {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />}
                                                       </div>
