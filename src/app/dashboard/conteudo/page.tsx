@@ -5,12 +5,10 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  CalendarIcon,
   Plus,
   Edit,
-  FileText,
   Instagram,
   Sparkles,
   Clock,
@@ -25,7 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { format, isFuture, isPast, subDays } from 'date-fns';
+import { format, isFuture, isPast, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -46,11 +44,6 @@ interface DisplayPost extends PostDataOutput {
 }
 
 const PostItem = ({ post }: { post: DisplayPost }) => {
-    const platformIcons: { [key: string]: React.ElementType } = {
-        instagram: Instagram,
-        facebook: Facebook,
-    };
-
     const statusConfig = {
         published: { icon: CheckCircle, className: "bg-green-100 text-green-700" },
         scheduled: { icon: Clock, className: "bg-blue-100 text-blue-700" },
@@ -119,7 +112,7 @@ export default function Conteudo() {
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
-  const [timeFilter, setTimeFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -209,18 +202,19 @@ export default function Conteudo() {
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
 
-  const { scheduledPosts, pastPosts } = useMemo(() => {
+  const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
     const now = new Date();
     const scheduled = allPosts.filter(p => isFuture(p.date) && p.status === 'scheduled');
-    let past = allPosts.filter(p => isPast(p.date) || p.status !== 'scheduled');
+    const past = allPosts.filter(p => isPast(p.date) || p.status !== 'scheduled');
 
-    if (timeFilter !== 'all') {
-        const filterDate = subDays(now, parseInt(timeFilter, 10));
-        past = past.filter(p => p.date >= filterDate);
-    }
+    const modifiers = {
+        published: allPosts.filter(p => p.status === 'published').map(p => p.date),
+        scheduled: allPosts.filter(p => p.status === 'scheduled').map(p => p.date),
+        failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
+    };
 
-    return { scheduledPosts: scheduled, pastPosts: past };
-  }, [allPosts, timeFilter]);
+    return { scheduledPosts: scheduled, pastPosts: past, calendarModifiers: modifiers };
+  }, [allPosts]);
 
   const isLoadingInitial = loading && allPosts.length === 0;
 
@@ -253,7 +247,7 @@ export default function Conteudo() {
   );
 
   const ConnectionStatusCard = () => (
-     <Card className="shadow-lg border-none">
+     <Card className="shadow-lg border-none mt-8">
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
                 <LinkIcon className="w-5 h-5 text-gray-700" />
@@ -284,8 +278,45 @@ export default function Conteudo() {
     </Card>
   )
 
+  const CalendarCard = () => (
+    <Card className="shadow-lg border-none">
+        <CardHeader>
+            <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center">
+             <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="p-0"
+                locale={ptBR}
+                modifiers={calendarModifiers}
+                modifiersClassNames={{
+                    published: 'day-published',
+                    scheduled: 'day-scheduled',
+                    failed: 'day-failed',
+                }}
+            />
+        </CardContent>
+         <CardFooter className="flex flex-col items-start gap-4 text-sm">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"/> Falhou</div>
+        </CardFooter>
+    </Card>
+  )
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
+        <style>{`
+            .day-published { position: relative; }
+            .day-published::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #22c55e; }
+            .day-scheduled { position: relative; }
+            .day-scheduled::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #3b82f6; }
+            .day-failed { position: relative; }
+            .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
+        `}</style>
+      
       {/* Cabeçalho */}
       <div className="space-y-4">
         <div>
@@ -314,69 +345,63 @@ export default function Conteudo() {
       </div>
 
       <AnimatePresence>
-        {!metaConnection.isConnected && (
+        {!metaConnection.isConnected && !loading && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                 <ConnectCard />
             </motion.div>
         )}
       </AnimatePresence>
       
-      {/* Seção de Publicações Agendadas */}
-      <Card className="shadow-lg border-none">
-        <CardHeader>
-            <CardTitle className="text-xl">Publicações Agendadas</CardTitle>
-        </CardHeader>
-        <CardContent>
-             <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
-                 <AnimatePresence>
-                    {isLoadingInitial ? (
-                        <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                    ) : scheduledPosts.length > 0 ? (
-                        scheduledPosts.map((post) => <PostItem key={post.id} post={post} />)
-                    ) : (
-                        <div className="text-center text-gray-500 py-10">
-                            <Clock className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                            <p>Nenhuma publicação agendada.</p>
-                        </div>
-                    )}
-                 </AnimatePresence>
-             </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1">
+            <CalendarCard />
+        </div>
+        <div className="lg:col-span-2 space-y-8">
+            <Card className="shadow-lg border-none">
+                <CardHeader>
+                    <CardTitle className="text-xl">Publicações Agendadas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
+                         <AnimatePresence>
+                            {isLoadingInitial ? (
+                                <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                            ) : scheduledPosts.length > 0 ? (
+                                scheduledPosts.map((post) => <PostItem key={post.id} post={post} />)
+                            ) : (
+                                <div className="text-center text-gray-500 py-6">
+                                    <Clock className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
+                                    <p>Nenhuma publicação agendada.</p>
+                                </div>
+                            )}
+                         </AnimatePresence>
+                     </div>
+                </CardContent>
+            </Card>
 
-      {/* Seção de Histórico */}
-      <Card className="shadow-lg border-none">
-        <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
-            <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filtrar por período" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todo o período</SelectItem>
-                    <SelectItem value="7">Últimos 7 dias</SelectItem>
-                    <SelectItem value="30">Últimos 30 dias</SelectItem>
-                    <SelectItem value="90">Últimos 90 dias</SelectItem>
-                </SelectContent>
-            </Select>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-4">
-                 <AnimatePresence>
-                    {isLoadingInitial ? (
-                         <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                    ) : pastPosts.length > 0 ? (
-                        pastPosts.map((post) => <PostItem key={post.id} post={post} />)
-                    ) : (
-                        <div className="text-center text-gray-500 py-10">
-                             <FileText className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                            <p>Nenhuma publicação encontrada no histórico.</p>
-                        </div>
-                    )}
-                 </AnimatePresence>
-            </div>
-        </CardContent>
-      </Card>
+            <Card className="shadow-lg border-none">
+                <CardHeader>
+                    <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
+                         <AnimatePresence>
+                            {isLoadingInitial ? (
+                                 <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                            ) : pastPosts.length > 0 ? (
+                                pastPosts.map((post) => <PostItem key={post.id} post={post} />)
+                            ) : (
+                                <div className="text-center text-gray-500 py-10">
+                                    <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                    <p>Nenhuma publicação encontrada no histórico.</p>
+                                </div>
+                            )}
+                         </AnimatePresence>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+      </div>
 
       {metaConnection.isConnected && (
          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
@@ -387,3 +412,4 @@ export default function Conteudo() {
     </div>
   );
 }
+
