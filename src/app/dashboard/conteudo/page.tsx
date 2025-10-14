@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { format, isFuture, isPast, isSameDay } from 'date-fns';
+import { format, isFuture, isPast, startOfWeek, startOfMonth, startOfYear, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -36,6 +36,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 interface DisplayPost extends PostDataOutput {
     date: Date;
@@ -113,6 +115,8 @@ export default function Conteudo() {
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [historyFilter, setHistoryFilter] = useState('this-month');
+
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -203,18 +207,41 @@ export default function Conteudo() {
   };
 
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
-    const now = new Date();
-    const scheduled = allPosts.filter(p => isFuture(p.date) && p.status === 'scheduled');
-    const past = allPosts.filter(p => isPast(p.date) || p.status !== 'scheduled');
+        const now = new Date();
+        const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
 
-    const modifiers = {
-        published: allPosts.filter(p => p.status === 'published').map(p => p.date),
-        scheduled: allPosts.filter(p => p.status === 'scheduled').map(p => p.date),
-        failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
-    };
+        let history = allPosts.filter(p => p.status !== 'scheduled' || isPast(p.date));
+        
+        const filterStartDate = (filter: string) => {
+            const today = new Date();
+            switch(filter) {
+                case 'last-7-days':
+                    const last7 = new Date(today);
+                    last7.setDate(today.getDate() - 7);
+                    return startOfDay(last7);
+                case 'this-month':
+                    return startOfMonth(today);
+                case 'this-year':
+                    return startOfYear(today);
+                default:
+                    return null; // All time
+            }
+        };
 
-    return { scheduledPosts: scheduled, pastPosts: past, calendarModifiers: modifiers };
-  }, [allPosts]);
+        const startDate = filterStartDate(historyFilter);
+        if (startDate) {
+            history = history.filter(p => p.date >= startDate);
+        }
+
+        const modifiers = {
+            published: allPosts.filter(p => p.status === 'published').map(p => p.date),
+            scheduled: allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date)).map(p => p.date),
+            failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
+        };
+
+        return { scheduledPosts: scheduled, pastPosts: history, calendarModifiers: modifiers };
+    }, [allPosts, historyFilter]);
+
 
   const isLoadingInitial = loading && allPosts.length === 0;
 
@@ -380,8 +407,19 @@ export default function Conteudo() {
             </Card>
 
             <Card className="shadow-lg border-none">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
+                     <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filtrar por período" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
+                            <SelectItem value="this-month">Este mês</SelectItem>
+                            <SelectItem value="this-year">Este ano</SelectItem>
+                            <SelectItem value="all-time">Todo o período</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </CardHeader>
                 <CardContent>
                     <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
