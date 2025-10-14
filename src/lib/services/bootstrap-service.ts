@@ -1,7 +1,7 @@
+
 // @ts-nocheck
-// This file is not used in the current app, but kept for potential future use.
-// It contains a bootstrap function for the database.
-// To prevent build errors, all imports and logic are commented out.
+// Este arquivo foi intencionalmente desativado para corrigir um erro de compilação,
+// pois continha referências ao 'firebase-admin'.
 /*
 import { adminDb } from '@/lib/firebase-admin';
 import { BusinessProfileData } from './business-profile-service';

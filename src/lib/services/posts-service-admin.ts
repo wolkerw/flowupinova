@@ -1,3 +1,3 @@
 
 // Este arquivo foi intencionalmente desativado para corrigir um erro de compilação.
-// A lógica do firebase-admin foi removida.
+// O pacote 'firebase-admin' não pode ser importado em código compartilhado.
