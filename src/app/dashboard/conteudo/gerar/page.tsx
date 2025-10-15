@@ -52,6 +52,8 @@ export default function GerarConteudoPage() {
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
+  const hasTriggeredStep3Effect = useRef(false);
+
   useEffect(() => {
     if (!user) return;
     getMetaConnection(user.uid).then(setMetaConnection);
@@ -94,6 +96,8 @@ export default function GerarConteudoPage() {
     if (!selectedContentId) return;
   
     setIsLoading(true);
+    setGeneratedImages([]); // Limpa imagens antigas
+    setSelectedImage(null);
     const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
     try {
@@ -126,6 +130,15 @@ export default function GerarConteudoPage() {
       setIsLoading(false);
     }
   };
+
+  // Efeito para chamar a geração de imagens ao entrar na etapa 3
+  useEffect(() => {
+    if (step === 3 && !hasTriggeredStep3Effect.current) {
+        handleGenerateImages();
+        hasTriggeredStep3Effect.current = true; // Marca que o efeito já rodou
+    }
+  }, [step]);
+
 
   const handlePublish = async (publishMode: 'now' | 'schedule') => {
     if (!selectedContent || !selectedImage || !user || !metaConnection?.isConnected) {
@@ -170,6 +183,11 @@ export default function GerarConteudoPage() {
     return "U";
   }
 
+  const handleNextToStep3 = () => {
+    hasTriggeredStep3Effect.current = false; // Reseta o gatilho ao ir para a etapa 3
+    setStep(3);
+  }
+
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Cabeçalho */}
@@ -178,7 +196,7 @@ export default function GerarConteudoPage() {
         <p className="text-gray-600 mt-1">
           {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
           {step === 2 && "Selecione uma opção de texto para o seu post."}
-          {step === 3 && "Escolha a imagem perfeita para o seu post."}
+          {step === 3 && "Aguarde enquanto a IA cria imagens incríveis para o seu post."}
           {step === 4 && "Revise e agende seu post para as redes sociais."}
         </p>
       </div>
@@ -268,11 +286,11 @@ export default function GerarConteudoPage() {
                 Voltar
               </Button>
               <Button
-                onClick={() => setStep(3)}
+                onClick={handleNextToStep3}
                 disabled={!selectedContentId || isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
-                Próxima Etapa
+                Gerar Imagens
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </CardFooter>
@@ -328,78 +346,29 @@ export default function GerarConteudoPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <ImageIcon className="w-6 h-6 text-purple-500" />
-                Etapa 3: Escolha la imagem para o seu post
+                Etapa 3: Gerando Imagens...
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-6">
-                A IA gerou estas imagens com base no conteúdo que você escolheu. Selecione a sua preferida.
+              <p className="text-gray-600 mb-6 text-center">
+                A IA está criando imagens com base no conteúdo que você escolheu. Isso pode levar um momento.
               </p>
-               {isLoading ? (
-                <div className="flex items-center justify-center h-48">
-                    <Loader2 className="w-8 h-8 mr-2 animate-spin text-purple-500" />
-                    <span className="text-lg text-gray-600">Gerando imagens...</span>
-                </div>
-               ) : (
-                <div className="grid grid-cols-3 gap-4">
-                    {generatedImages.map((imgSrc, index) => (
-                    <div 
-                        key={index}
-                        onClick={() => setSelectedImage(imgSrc)}
-                        className={cn(
-                            "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
-                            "ring-4 ring-offset-2",
-                            selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
-                        )}
-                    >
-                        <Image
-                        src={imgSrc}
-                        alt={`Imagem gerada ${index + 1}`}
-                        layout="fill"
-                        objectFit="cover"
-                        className="hover:scale-105 transition-transform duration-300"
-                        />
-                    </div>
-                    ))}
-                </div>
-               )}
+               <div className="flex items-center justify-center h-48">
+                  <Loader2 className="w-8 h-8 mr-2 animate-spin text-purple-500" />
+                  <span className="text-lg text-gray-600">Criando arte...</span>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
               </Button>
-              <Button
-                onClick={handleGenerateImages}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    Gerar Novas Imagens
-                    <Sparkles className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-              <Button
-                disabled={!selectedImage || isLoading}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                onClick={() => setStep(4)}
-              >
-                Revisar e Publicar
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
             </CardFooter>
           </Card>
         </motion.div>
       )}
       
-      {step === 4 && selectedContent && selectedImage && (
+      {step === 4 && selectedContent && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -411,70 +380,118 @@ export default function GerarConteudoPage() {
                 <Sparkles className="w-6 h-6 text-purple-500" />
                 Etapa 4: Revise e publique seu post
               </CardTitle>
+               <p className="text-sm text-gray-600 pt-1">Escolha a imagem, revise o texto e agende sua publicação.</p>
             </CardHeader>
             <CardContent>
-               <Tabs defaultValue="instagram" className="w-full">
-                <TabsList className="grid w-full grid-cols-1">
-                  <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
-                </TabsList>
-                <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
-                    <TabsContent value="instagram">
-                        <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
-                            <div className="p-3 flex items-center gap-2 border-b">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={user?.photoURL || undefined} />
-                                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
-                            </div>
-                            <div className="relative w-full aspect-square">
-                                <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
-                            </div>
-                            <div className="p-3 text-sm">
-                                <p>
-                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
-                                </p>
-                                <p className="text-blue-500 mt-2">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
-                            </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {/* Coluna da Esquerda: Preview */}
+                    <Tabs defaultValue="instagram" className="w-full">
+                        <TabsList className="grid w-full grid-cols-1">
+                          <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview do Post</TabsTrigger>
+                        </TabsList>
+                        <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
+                            <TabsContent value="instagram">
+                                <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
+                                    <div className="p-3 flex items-center gap-2 border-b">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={user?.photoURL || undefined} />
+                                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
+                                    </div>
+                                    <div className="relative w-full aspect-square bg-gray-200">
+                                       {selectedImage ? (
+                                         <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                                       ) : (
+                                         <div className="flex items-center justify-center h-full">
+                                            <ImageIcon className="w-16 h-16 text-gray-400"/>
+                                         </div>
+                                       )}
+                                    </div>
+                                    <div className="p-3 text-sm">
+                                        <p>
+                                            <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
+                                        </p>
+                                        <p className="text-blue-500 mt-2 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
+                                    </div>
+                                </div>
+                            </TabsContent>
                         </div>
-                    </TabsContent>
-                </div>
-               </Tabs>
+                    </Tabs>
 
-               <div className="mt-8 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button
-                            onClick={() => handlePublish('now')}
-                            disabled={!metaConnection?.isConnected || isPublishing}
-                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                            size="lg"
-                        >
-                            {isPublishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
-                            {isPublishing ? 'Publicando...' : 'Publicar Agora'}
-                        </Button>
-                        <Button
-                            onClick={() => setShowSchedulerModal(true)}
-                            disabled={!metaConnection?.isConnected || isPublishing}
-                            variant="outline"
-                            size="lg"
-                        >
-                            <Calendar className="w-5 h-5 mr-2" />
-                            Agendar
-                        </Button>
+                    {/* Coluna da Direita: Opções */}
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="font-bold text-lg mb-2">Imagens Geradas</h3>
+                             <div className="grid grid-cols-3 gap-2">
+                                {generatedImages.map((imgSrc, index) => (
+                                <div 
+                                    key={index}
+                                    onClick={() => setSelectedImage(imgSrc)}
+                                    className={cn(
+                                        "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
+                                        "ring-4 ring-offset-2",
+                                        selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
+                                    )}
+                                >
+                                    <Image
+                                    src={imgSrc}
+                                    alt={`Imagem gerada ${index + 1}`}
+                                    layout="fill"
+                                    objectFit="cover"
+                                    className="hover:scale-105 transition-transform duration-300"
+                                    />
+                                    {selectedImage === imgSrc && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <Check className="w-8 h-8 text-white"/>
+                                        </div>
+                                    )}
+                                </div>
+                                ))}
+                            </div>
+                            <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleGenerateImages} disabled={isLoading}>
+                                {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                Gerar Novas Imagens
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-lg">Publicar</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Button
+                                    onClick={() => handlePublish('now')}
+                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage}
+                                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                                    size="lg"
+                                >
+                                    {isPublishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
+                                    {isPublishing ? 'Publicando...' : 'Publicar Agora'}
+                                </Button>
+                                <Button
+                                    onClick={() => setShowSchedulerModal(true)}
+                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage}
+                                    variant="outline"
+                                    size="lg"
+                                >
+                                    <Calendar className="w-5 h-5 mr-2" />
+                                    Agendar
+                                </Button>
+                            </div>
+
+                            {!metaConnection?.isConnected && (
+                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1">
+                                    <AlertTriangle className="w-4 h-4" /> 
+                                    Conecte sua conta da Meta na página de Conteúdo para publicar.
+                                </p>
+                            )}
+                       </div>
                     </div>
-
-                    {!metaConnection?.isConnected && (
-                        <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1">
-                            <AlertTriangle className="w-4 h-4" /> 
-                            Conecte sua conta da Meta na página de Conteúdo para publicar.
-                        </p>
-                    )}
                </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(3)}>
+              <Button variant="outline" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                Voltar e Mudar Texto
               </Button>
             </CardFooter>
           </Card>
@@ -529,5 +546,7 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
 
     
