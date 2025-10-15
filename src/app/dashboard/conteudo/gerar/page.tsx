@@ -107,12 +107,12 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ publicacoes: [selectedPublication] }),
       });
       
-      const imagesData = await response.json();
-
       if (!response.ok) {
-        const errorDetails = imagesData.error || 'Falha ao gerar imagens.';
-        throw new Error(errorDetails);
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Falha ao gerar imagens.');
       }
+      
+      const imagesData = await response.json();
       
       const imageUrls = imagesData.map((item: any) => item.url_da_imagem).filter(Boolean);
 
@@ -138,7 +138,7 @@ export default function GerarConteudoPage() {
         handleGenerateImages();
         hasTriggeredStep3Effect.current = true; // Marca que o efeito já rodou
     }
-  }, [step]);
+  }, [step, hasTriggeredStep3Effect]);
 
 
   const handlePublish = async (publishMode: 'now' | 'schedule') => {
