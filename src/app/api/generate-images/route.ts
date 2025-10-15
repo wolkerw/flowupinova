@@ -6,12 +6,21 @@ export async function POST(request: Request) {
     const { publicacoes } = await request.json();
     const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/gerador_de_imagem";
 
+    if (!publicacoes || !Array.isArray(publicacoes) || publicacoes.length === 0) {
+      return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
+    }
+
+    // O webhook de imagem espera o texto do post, que está em `subtitulo`.
+    const webhookPayload = {
+      text: publicacoes[0].subtitulo || publicacoes[0].titulo
+    };
+
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ publicacoes }),
+      body: JSON.stringify(webhookPayload),
     });
 
     if (!webhookResponse.ok) {
@@ -22,13 +31,18 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
 
-    // Corrige as URLs que vêm com "https://https://" duplicado e extrai apenas a URL
+    // A resposta esperada é um array de objetos, cada um com uma propriedade "output" contendo a URL.
+    if (!Array.isArray(data) || !data[0] || !data[0].output) {
+      console.error("Formato de resposta do webhook de imagem inesperado:", data);
+      return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
+    }
+    
     const processedData = data.map((item: any) => {
-      let imageUrl = item.url_da_imagem || "";
-      if (imageUrl.startsWith("https://https://")) {
-        imageUrl = imageUrl.substring(8); // Remove o "https://" extra
-      }
-      return { url_da_imagem: imageUrl };
+        let imageUrl = item.output || "";
+         if (imageUrl.startsWith("https://https://")) {
+            imageUrl = imageUrl.substring(8); // Remove o "https://" extra
+        }
+        return { url_da_imagem: imageUrl };
     });
 
     return NextResponse.json(processedData);
