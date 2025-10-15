@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { publicacoes } = await request.json();
-    const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/gerador_de_imagem";
+    // Hardcoded a URL do webhook para garantir que o endpoint correto seja usado.
+    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
     if (!publicacoes || !Array.isArray(publicacoes) || publicacoes.length === 0) {
       return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
@@ -37,10 +38,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
+    // Processa a resposta para extrair corretamente as URLs
     const processedData = data.map((item: any) => {
         let imageUrl = item.output || "";
+        // Corrige URLs duplicadas (ex: https://https://...)
          if (imageUrl.startsWith("https://https://")) {
-            imageUrl = imageUrl.substring(8); // Remove o "https://" extra
+            imageUrl = imageUrl.substring(8); 
         }
         return { url_da_imagem: imageUrl };
     });
