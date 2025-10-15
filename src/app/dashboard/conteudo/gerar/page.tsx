@@ -110,7 +110,7 @@ export default function GerarConteudoPage() {
       const imagesData = await response.json();
 
       if (!response.ok) {
-        const errorDetails = imagesData.error || imagesData.details || 'Falha ao gerar imagens.';
+        const errorDetails = imagesData.error || 'Falha ao gerar imagens.';
         throw new Error(errorDetails);
       }
       
@@ -547,3 +547,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
