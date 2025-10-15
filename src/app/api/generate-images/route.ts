@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
     }
 
-    // Constrói o payload exatamente como esperado pelo webhook, conforme a imagem.
+    // Constrói o payload exatamente como esperado pelo webhook.
     const webhookPayload = {
       publicacoes: publicacoes.map((pub: any) => ({
         titulo: pub.titulo,
@@ -35,11 +35,13 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
     
-    if (!Array.isArray(data) || !data[0] || !data[0].output) {
+    // A resposta esperada é um array de objetos, cada um com uma propriedade "output" contendo a URL.
+    if (!Array.isArray(data) || data.some(item => !item.output)) {
       console.error("Formato de resposta do webhook de imagem inesperado:", data);
       return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
+    // Processa a resposta para extrair as URLs corretamente.
     const processedData = data.map((item: any) => {
         let imageUrl = item.output || "";
          if (imageUrl.startsWith("https://https://")) {
