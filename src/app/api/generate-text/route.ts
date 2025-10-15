@@ -39,22 +39,19 @@ export async function POST(request: Request) {
         let hashtags = item.hashtags;
         // Garante que as hashtags sejam sempre um array de strings.
         if (typeof hashtags === 'string') {
-            try {
-                // Tenta fazer o parse se for uma string JSON
-                const parsedHashtags = JSON.parse(hashtags);
-                hashtags = Array.isArray(parsedHashtags) ? parsedHashtags : [String(parsedHashtags)];
-            } catch (e) {
-                // Se não for JSON, trata como string separada por vírgula/espaço
-                hashtags = hashtags.split(/[ ,]+/).filter(h => h && h.startsWith('#'));
-            }
-        } else if (!Array.isArray(hashtags)) {
-            hashtags = [];
+          // Trata como string separada por vírgula/espaço e garante que comece com #
+          hashtags = hashtags.split(/[ ,]+/).filter(h => h).map(h => h.startsWith('#') ? h : `#${h}`);
+        } else if (Array.isArray(hashtags)) {
+          // Garante que todos os elementos sejam strings e comecem com #
+          hashtags = hashtags.map((h: any) => String(h)).filter(h => h).map(h => h.startsWith('#') ? h : `#${h}`);
+        } else {
+          hashtags = [];
         }
 
         return { 
             titulo: item.titulo || "Título não gerado", 
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
-            hashtags: hashtags.map((h: any) => String(h)) // Garante que todos os elementos sejam strings
+            hashtags: hashtags
         };
     });
 
@@ -65,8 +62,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
 }
-
-    
-
-    
-

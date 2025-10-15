@@ -4,16 +4,19 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { publicacoes } = await request.json();
-    // Hardcoded a URL do webhook para garantir que o endpoint correto seja usado.
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
     if (!publicacoes || !Array.isArray(publicacoes) || publicacoes.length === 0) {
       return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
     }
 
-    // O webhook de imagem espera o texto do post, que está em `subtitulo`.
+    // Constrói o payload exatamente como esperado pelo webhook, conforme a imagem.
     const webhookPayload = {
-      text: publicacoes[0].subtitulo || publicacoes[0].titulo
+      publicacoes: publicacoes.map((pub: any) => ({
+        titulo: pub.titulo,
+        subtitulo: pub.subtitulo,
+        hashtags: pub.hashtags
+      }))
     };
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -31,17 +34,14 @@ export async function POST(request: Request) {
     }
 
     const data = await webhookResponse.json();
-
-    // A resposta esperada é um array de objetos, cada um com uma propriedade "output" contendo a URL.
+    
     if (!Array.isArray(data) || !data[0] || !data[0].output) {
       console.error("Formato de resposta do webhook de imagem inesperado:", data);
       return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
-    // Processa a resposta para extrair corretamente as URLs
     const processedData = data.map((item: any) => {
         let imageUrl = item.output || "";
-        // Corrige URLs duplicadas (ex: https://https://...)
          if (imageUrl.startsWith("https://https://")) {
             imageUrl = imageUrl.substring(8); 
         }
