@@ -16,7 +16,7 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 2500]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, -1500]);
     const y2 = useTransform(scrollYProgress, [0, 1], [0, -2800]);
     const y3 = useTransform(scrollYProgress, [0, 1], [0, 2600]);
     const y4 = useTransform(scrollYProgress, [0, 1], [0, -3200]);
@@ -39,7 +39,7 @@ const ParallaxShapes = () => {
     );
     
     const Shape5 = ({ y, className }: { y: any, className: string }) => (
-        <motion.div style={{ y }} className={`absolute ${className} transform rotate-15`}>
+        <motion.div style={{ y }} className={`absolute ${className}`}>
              <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 69.1 133.3" fill="currentColor">
               <g>
                 <path d="M46.1,96.2h-23.6l-.5-.7c-5.6-7.6-14.7-23.6-13.8-45.2C8.9,32.1,17.4,14.6,32,.9l1-.9,1.2.8c2.5,1.8,24.6,18.9,26.6,49.5,1.5,22.6-9.4,39.2-14.2,45.2l-.5.6h0ZM24.2,92.9h20.3c4.7-6.2,14.3-21.6,13-42.3-1.7-26.4-19.1-42.2-24.1-46.2-13.4,12.9-21.1,29.3-21.8,46.2-.8,19.9,7.4,34.9,12.7,42.4h-.1Z"/>
@@ -80,7 +80,7 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y5} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%] transform rotate-15" />
             <Shape2 y={y2} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
             <Shape1 y={y1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape6 y={y5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
@@ -393,4 +393,3 @@ export default function HomePage() {
     </div>
   );
 }
-
