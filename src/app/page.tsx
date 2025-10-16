@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -12,47 +13,65 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 const ParallaxShapes = () => {
-    const { scrollY } = useScroll();
-    const y1 = useTransform(scrollY, [0, 300], [0, 100]);
-    const y2 = useTransform(scrollY, [0, 300], [0, -120]);
-    const y3 = useTransform(scrollY, [0, 300], [0, 50]);
-    const y4 = useTransform(scrollY, [0, 300], [0, -70]);
-    const y5 = useTransform(scrollY, [0, 300], [0, 80]);
+    const { scrollYProgress } = useScroll();
 
-    const Shape = ({ className, y, ...props }: { className?: string, y?: any, props?: any }) => (
-        <motion.div
-            style={{ y }}
-            className={`absolute ${className}`}
-            {...props}
-        >
-            <svg
-                width="100%"
-                height="100%"
-                viewBox="0 0 100 100"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                />
+    // Different transforms for variety
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 100]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -250]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 50]);
+
+    const x1 = useTransform(scrollYProgress, [0, 1], [0, -50]);
+    const x2 = useTransform(scrollYProgress, [0, 1], [0, 80]);
+
+    const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 90]);
+    const rotate2 = useTransform(scrollYProgress, [0, 1], [0, -90]);
+
+    const Shape1 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
+        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+        </motion.div>
+    );
+
+    const Shape2 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
+        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="10"/>
+            </svg>
+        </motion.div>
+    );
+    
+    const Shape3 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
+        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+             <svg width="100%" height="100%" viewBox="0 0 112 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M56 1L110.165 99.25H1.83501L56 1Z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+        </motion.div>
+    );
+
+    const Shape4 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
+        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="1" width="98" height="98" rx="15" stroke="currentColor" strokeWidth="2"/>
             </svg>
         </motion.div>
     );
 
     return (
-        <>
-            <Shape y={y1} className="w-24 h-24 text-gray-200/80 top-[10%] left-[5%]" />
-            <Shape y={y2} className="w-12 h-12 text-gray-200/50 top-[20%] left-[40%]" />
-            <Shape y={y3} className="w-32 h-32 text-gray-200/60 top-[50%] left-[85%]" />
-            <Shape y={y4} className="w-16 h-16 text-gray-200/70 top-[80%] left-[10%]" />
-            <Shape y={y5} className="w-8 h-8 text-gray-200/90 top-[5%] left-[90%]" />
-            <Shape y={y2} className="w-20 h-20 text-gray-200/40 top-[75%] left-[50%]" />
-            <Shape y={y4} className="w-28 h-28 text-gray-200/50 top-[5%] left-[60%]" />
-        </>
+        <div className="absolute inset-0 overflow-hidden z-0">
+            <Shape1 y={y1} x={x1} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
+            <Shape3 y={y3} x={x2} className="w-24 h-24 text-gray-200/60 top-[60%] left-[15%]" />
+            <Shape4 y={y4} rotate={rotate2} className="w-12 h-12 text-gray-200/30 top-[80%] right-[20%]" />
+            <Shape1 y={y5} x={x2} className="w-8 h-8 text-gray-200/70 top-[5%] left-[40%]" />
+            <Shape2 y={y1} className="w-20 h-20 text-gray-200/20 top-[40%] left-[50%]" />
+            <Shape3 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
+            <Shape4 y={y3} x={x1} className="w-40 h-40 text-gray-200/30 top-[-10%] right-[5%]" />
+            <Shape1 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
+        </div>
     );
 };
 
@@ -185,9 +204,7 @@ export default function HomePage() {
       <main className="pt-24">
         {/* Hero Section */}
         <section className="py-20 px-6 bg-gray-50 relative overflow-hidden">
-             <div className="absolute inset-0 z-0">
-                <ParallaxShapes />
-            </div>
+             <ParallaxShapes />
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
