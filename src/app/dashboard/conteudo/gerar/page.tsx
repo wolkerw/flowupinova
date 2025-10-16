@@ -129,8 +129,8 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleNextToStep4 = () => {
-    setStep(4);
+  const handleNextToStep3 = () => {
+    setStep(3);
     handleGenerateImages();
   };
 
@@ -185,6 +185,7 @@ export default function GerarConteudoPage() {
         <p className="text-gray-600 mt-1">
           {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
           {step === 2 && "Selecione uma opção de texto para o seu post."}
+          {step === 3 && "Selecione a melhor imagem para o seu post."}
           {step === 4 && "Revise e agende seu post para as redes sociais."}
         </p>
       </div>
@@ -274,7 +275,7 @@ export default function GerarConteudoPage() {
                 Voltar
               </Button>
               <Button
-                onClick={handleNextToStep4}
+                onClick={handleNextToStep3}
                 disabled={!selectedContentId}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
@@ -323,6 +324,79 @@ export default function GerarConteudoPage() {
 
         </motion.div>
       )}
+
+      {step === 3 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ImageIcon className="w-6 h-6 text-purple-500" />
+                Etapa 3: Escolha a melhor imagem
+              </CardTitle>
+              <p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p>
+            </CardHeader>
+            <CardContent>
+              {isGeneratingImages ? (
+                <div className="flex flex-col items-center justify-center h-64">
+                  <Loader2 className="w-12 h-12 mr-2 animate-spin text-purple-500" />
+                  <span className="text-lg text-gray-600 mt-4">Criando imagens incríveis...</span>
+                </div>
+              ) : generatedImages.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {generatedImages.map((imgSrc, index) => (
+                    <div
+                      key={index}
+                      onClick={() => setSelectedImage(imgSrc)}
+                      className={cn(
+                        "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
+                        "ring-4 ring-offset-2",
+                        selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
+                      )}
+                    >
+                      <Image
+                        src={imgSrc}
+                        alt={`Imagem gerada ${index + 1}`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="hover:scale-105 transition-transform duration-300"
+                      />
+                      {selectedImage === imgSrc && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Check className="w-12 h-12 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <AlertTriangle className="w-12 h-12 text-destructive mb-4" />
+                  <p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p>
+                  <p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente novamente.</p>
+                  <Button variant="outline" onClick={handleGenerateImages} disabled={isGeneratingImages}>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Gerar Novas Imagens
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar e Mudar Texto
+              </Button>
+              <Button
+                onClick={() => setStep(4)}
+                disabled={!selectedImage || isGeneratingImages}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                Revisar e Publicar
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      )}
       
       {step === 4 && selectedContent && (
         <motion.div
@@ -334,9 +408,9 @@ export default function GerarConteudoPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="w-6 h-6 text-purple-500" />
-                Etapa 3: Revise e publique seu post
+                Etapa 4: Revise e publique seu post
               </CardTitle>
-               <p className="text-sm text-gray-600 pt-1">Escolha a imagem, revise o texto e agende sua publicação.</p>
+               <p className="text-sm text-gray-600 pt-1">Revise o texto e a imagem e agende sua publicação.</p>
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -377,50 +451,7 @@ export default function GerarConteudoPage() {
 
                     {/* Coluna da Direita: Opções */}
                     <div className="space-y-6">
-                        <div>
-                            <h3 className="font-bold text-lg mb-2">Imagens Geradas</h3>
-                            {isGeneratingImages ? (
-                                <div className="flex items-center justify-center h-40">
-                                  <Loader2 className="w-8 h-8 mr-2 animate-spin text-purple-500" />
-                                  <span className="text-lg text-gray-600">Criando imagens...</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {generatedImages.map((imgSrc, index) => (
-                                        <div 
-                                            key={index}
-                                            onClick={() => setSelectedImage(imgSrc)}
-                                            className={cn(
-                                                "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300",
-                                                "ring-4 ring-offset-2",
-                                                selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
-                                            )}
-                                        >
-                                            <Image
-                                            src={imgSrc}
-                                            alt={`Imagem gerada ${index + 1}`}
-                                            layout="fill"
-                                            objectFit="cover"
-                                            className="hover:scale-105 transition-transform duration-300"
-                                            />
-                                            {selectedImage === imgSrc && (
-                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                    <Check className="w-8 h-8 text-white"/>
-                                                </div>
-                                            )}
-                                        </div>
-                                        ))}
-                                    </div>
-                                    <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleGenerateImages} disabled={isGeneratingImages}>
-                                        {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                        Gerar Novas Imagens
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                        
-                        <div className="space-y-4">
+                       <div className="space-y-4">
                             <h3 className="font-bold text-lg">Publicar</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Button
@@ -454,9 +485,9 @@ export default function GerarConteudoPage() {
                </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button variant="outline" onClick={() => setStep(3)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar e Mudar Texto
+                Voltar e Mudar Imagem
               </Button>
             </CardFooter>
           </Card>
@@ -511,5 +542,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
