@@ -34,6 +34,11 @@ export async function POST(request: Request) {
     }
 
     const data = await webhookResponse.json();
+
+    // Log para depuração da resposta crua do webhook
+    console.log("=============== RAW WEBHOOK RESPONSE (IMAGE GEN) ===============");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("================================================================");
     
     // A resposta esperada é um array de objetos, cada um com uma propriedade "output" contendo a URL.
     if (!Array.isArray(data) || data.some(item => !item.output)) {
