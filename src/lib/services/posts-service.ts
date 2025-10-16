@@ -12,6 +12,7 @@ export interface PostData {
     title: string;
     text: string;
     imageUrl: string; // URL must be public from Firebase Storage
+    logoUrl?: string; // URL of the logo, also from Storage
     platforms: string[];
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
@@ -29,7 +30,7 @@ export type PostDataInput = {
     scheduledAt: Date;
     metaConnection: MetaConnectionData; // Pass the full connection object
     logo?: File | null;
-    logoOptions?: { position: string; size: string };
+    logoOptions?: { position: string; size:string };
 };
 
 // Interface for data being sent to the client from the service
@@ -106,12 +107,19 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     let imageUrl: string;
+    let logoUrl: string | undefined;
+
     try {
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
             imageUrl = postData.media;
         }
+
+        if (postData.logo instanceof File) {
+            logoUrl = await uploadMediaAndGetURL(userId, postData.logo);
+        }
+
     } catch(uploadError: any) {
         return { success: false, error: uploadError.message };
     }
@@ -121,6 +129,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         title: postData.title,
         text: postData.text,
         imageUrl: imageUrl,
+        logoUrl: logoUrl,
         platforms: postData.platforms,
         scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         metaConnection: {
