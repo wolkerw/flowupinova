@@ -16,11 +16,11 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 800]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -1200]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1800]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 1400]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 2500]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -2800]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 2600]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -3200]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 3000]);
 
     const Shape1 = ({ y, className }: { y: any, className: string }) => (
         <motion.div style={{ y }} className={`absolute ${className}`}>
@@ -80,13 +80,13 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y1} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%]" />
             <Shape2 y={y2} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
             <Shape1 y={y1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape6 y={y5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
             <Shape7 y={y3} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
             <Shape2 y={y2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
-            <Shape5 y={y5} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%] transform rotate-15" />
             <Shape6 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
             <Shape7 y={y3} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
         </div>
@@ -286,8 +286,9 @@ export default function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 px-6 bg-gray-50">
-          <div className="container mx-auto">
+        <section id="features" className="py-20 px-6 bg-gray-50 relative overflow-hidden">
+          <ParallaxShapes />
+          <div className="container mx-auto relative z-10">
             <h2 className="text-3xl font-bold text-center mb-12">Tudo que você precisa para decolar seu marketing</h2>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
@@ -392,3 +393,4 @@ export default function HomePage() {
     </div>
   );
 }
+
