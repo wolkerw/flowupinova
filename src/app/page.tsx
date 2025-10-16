@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -216,7 +217,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="/termos" className="text-gray-400 hover:text-white">Termos</Link>
-              <Link href="#" className="text-gray-400 hover:text-white">Privacidade</Link>
+              <Link href="/privacidade" className="text-gray-400 hover:text-white">Privacidade</Link>
               <Link href="#" className="text-gray-400 hover:text-white">Contato</Link>
             </div>
           </div>

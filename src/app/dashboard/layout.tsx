@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -153,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span>•</span>
                 <Link href="/termos" className="hover:text-gray-600 transition-colors">Termos</Link>
                 <span>•</span>
-                <a href="#" className="hover:text-gray-600 transition-colors">Privacidade</a>
+                <Link href="/privacidade" className="hover:text-gray-600 transition-colors">Privacidade</Link>
               </div>
             </div>
           </SidebarFooter>
