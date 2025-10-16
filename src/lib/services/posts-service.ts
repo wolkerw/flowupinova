@@ -110,12 +110,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     let logoUrl: string | undefined;
 
     try {
+        // Handle main media upload (File) or pass through (string URL)
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
             imageUrl = postData.media;
         }
 
+        // Handle logo upload if a file is provided
         if (postData.logo instanceof File) {
             logoUrl = await uploadMediaAndGetURL(userId, postData.logo);
         }
