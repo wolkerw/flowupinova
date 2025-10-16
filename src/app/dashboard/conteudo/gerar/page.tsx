@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, Facebook, Linkedin, UserCircle, Calendar, Send, Clock, X, Check, Paperclip, AlertTriangle } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, UserCircle, Calendar, Send, Clock, X, Check, Paperclip, AlertTriangle, UploadCloud, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -13,12 +13,10 @@ import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 
@@ -29,11 +27,24 @@ interface GeneratedContent {
   hashtags: string[];
 }
 
-interface ScheduleOptions {
-  [key: string]: {
-    enabled: boolean;
-  };
-}
+type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+type LogoSize = 'small' | 'medium' | 'large';
+
+const positionClasses: Record<LogoPosition, string> = {
+    'top-left': 'top-4 left-4',
+    'top-right': 'top-4 right-4',
+    'bottom-left': 'bottom-4 left-4',
+    'bottom-right': 'bottom-4 right-4',
+    'top-center': 'top-4 left-1/2 -translate-x-1/2',
+    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+};
+
+const sizeClasses: Record<LogoSize, string> = {
+    'small': 'w-12 h-12',
+    'medium': 'w-16 h-16',
+    'large': 'w-20 h-20',
+};
+
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -52,6 +63,14 @@ export default function GerarConteudoPage() {
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+
+  // Logo States
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
+  const [logoSize, setLogoSize] = useState<LogoSize>('medium');
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (!user) return;
@@ -155,6 +174,8 @@ export default function GerarConteudoPage() {
         platforms: ['instagram'],
         scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
         metaConnection: metaConnection,
+        logo: logoFile,
+        logoOptions: { position: logoPosition, size: logoSize },
     });
     
     setIsPublishing(false);
@@ -168,6 +189,21 @@ export default function GerarConteudoPage() {
     }
 };
 
+ const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        const previewUrl = URL.createObjectURL(file);
+        setLogoFile(file);
+        setLogoPreviewUrl(previewUrl);
+    }
+    if(event.target) event.target.value = ""; // Reset input
+  };
+
+  const clearLogo = () => {
+    if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    setLogoFile(null);
+    setLogoPreviewUrl(null);
+  };
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
@@ -176,6 +212,15 @@ export default function GerarConteudoPage() {
     if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
     return "U";
   }
+
+  // Cleanup blob URLs
+  useEffect(() => {
+    return () => {
+        if (logoPreviewUrl) {
+            URL.revokeObjectURL(logoPreviewUrl);
+        }
+    };
+  }, [logoPreviewUrl]);
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -410,7 +455,7 @@ export default function GerarConteudoPage() {
                 <Sparkles className="w-6 h-6 text-purple-500" />
                 Etapa 4: Revise e publique seu post
               </CardTitle>
-               <p className="text-sm text-gray-600 pt-1">Revise o texto e a imagem e agende sua publicação.</p>
+               <p className="text-sm text-gray-600 pt-1">Revise o texto, a imagem, adicione sua marca e agende a publicação.</p>
             </CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -431,7 +476,12 @@ export default function GerarConteudoPage() {
                                     </div>
                                     <div className="relative w-full aspect-square bg-gray-200">
                                        {selectedImage ? (
-                                         <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                                         <div className="relative w-full h-full">
+                                            <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                                            {logoPreviewUrl && (
+                                                <Image src={logoPreviewUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
+                                            )}
+                                         </div>
                                        ) : (
                                          <div className="flex items-center justify-center h-full">
                                             <ImageIcon className="w-16 h-16 text-gray-400"/>
@@ -451,6 +501,70 @@ export default function GerarConteudoPage() {
 
                     {/* Coluna da Direita: Opções */}
                     <div className="space-y-6">
+                        {/* Logo Options */}
+                        <div className="space-y-4">
+                           <input type="file" ref={logoInputRef} onChange={handleLogoFileChange} accept="image/png, image/jpeg" className="hidden" />
+                            <div className="relative">
+                                <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => logoInputRef.current?.click()}>
+                                    <UploadCloud className="w-4 h-4 text-purple-500"/>
+                                    Adicionar Logomarca
+                                </Button>
+                                {logoPreviewUrl && (
+                                    <Button variant="ghost" size="icon" className="absolute top-1/2 -right-3 -translate-y-1/2 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={clearLogo}><X className="w-4 h-4"/></Button>
+                                )}
+                            </div>
+                             {logoPreviewUrl && (
+                                <div className="space-y-4 pt-2">
+                                    <div>
+                                        <Label className="font-medium text-sm">Posição da Logo</Label>
+                                        <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="flex flex-wrap gap-2 mt-2">
+                                            <Label htmlFor="pos-tl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="top-left" id="pos-tl" className="sr-only"/>
+                                                <CornerUpLeft />
+                                            </Label>
+                                            <Label htmlFor="pos-tc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="top-center" id="pos-tc" className="sr-only"/>
+                                                <ArrowUpToLine />
+                                            </Label>
+                                            <Label htmlFor="pos-tr" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="top-right" id="pos-tr" className="sr-only"/>
+                                                <CornerUpRight />
+                                            </Label>
+                                            <Label htmlFor="pos-bl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="bottom-left" id="pos-bl" className="sr-only"/>
+                                                <CornerDownLeft />
+                                            </Label>
+                                             <Label htmlFor="pos-bc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="bottom-center" id="pos-bc" className="sr-only"/>
+                                                <ArrowDownToLine />
+                                            </Label>
+                                             <Label htmlFor="pos-br" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="bottom-right" id="pos-br" className="sr-only"/>
+                                                <CornerDownRight />
+                                            </Label>
+                                        </RadioGroup>
+                                    </div>
+                                     <div>
+                                        <Label className="font-medium text-sm">Tamanho da Logo</Label>
+                                        <RadioGroup value={logoSize} onValueChange={(v) => setLogoSize(v as LogoSize)} className="grid grid-cols-3 gap-2 mt-2">
+                                            <Label htmlFor="size-s" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="small" id="size-s" className="sr-only"/>
+                                                Pequeno
+                                            </Label>
+                                            <Label htmlFor="size-m" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="medium" id="size-m" className="sr-only"/>
+                                                Médio
+                                            </Label>
+                                            <Label htmlFor="size-l" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
+                                                <RadioGroupItem value="large" id="size-l" className="sr-only"/>
+                                                Grande
+                                            </Label>
+                                        </RadioGroup>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* Publishing options */}
                        <div className="space-y-4">
                             <h3 className="font-bold text-lg">Publicar</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -542,3 +656,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
