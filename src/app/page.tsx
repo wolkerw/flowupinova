@@ -27,6 +27,10 @@ const ParallaxShapes = () => {
 
     const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 90]);
     const rotate2 = useTransform(scrollYProgress, [0, 1], [0, -90]);
+    const rotate3 = useTransform(scrollYProgress, [0, 1], [0, 60]);
+    const rotate4 = useTransform(scrollYProgress, [0, 1], [0, -120]);
+    const rotate5 = useTransform(scrollYProgress, [0, 1], [15, -80]);
+
 
     const Shape1 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
         <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
@@ -62,7 +66,7 @@ const ParallaxShapes = () => {
     
     const Shape5 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
         <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 69.1 133.3" fill="currentColor">
+             <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 69.1 133.3" fill="currentColor">
               <g>
                 <path d="M46.1,96.2h-23.6l-.5-.7c-5.6-7.6-14.7-23.6-13.8-45.2C8.9,32.1,17.4,14.6,32,.9l1-.9,1.2.8c2.5,1.8,24.6,18.9,26.6,49.5,1.5,22.6-9.4,39.2-14.2,45.2l-.5.6h0ZM24.2,92.9h20.3c4.7-6.2,14.3-21.6,13-42.3-1.7-26.4-19.1-42.2-24.1-46.2-13.4,12.9-21.1,29.3-21.8,46.2-.8,19.9,7.4,34.9,12.7,42.4h-.1Z"/>
                 <path d="M5,107.8c-.3,0-.5,0-.8,0-5.1-1.3-4.4-13.7-3.7-18,1.2-7.5,4.6-14.5,10.2-20.9l2.1-2.4.8,3.1c1,3.9,2.3,7.7,4,11.4,2,4.4,4.4,8.6,7.2,12.5l1.4,1.9-2.3.6c-3.3.9-6.4,2.3-9.1,4.2-2.5,1.7-4.2,3.4-5.5,4.8-1.4,1.5-2.7,2.8-4.3,2.8h0ZM11.1,73.6c-4,5.2-6.5,10.8-7.4,16.7-1.1,7.2,0,13.5,1.2,14.2.4-.2,1.2-1,1.9-1.7,1.3-1.4,3.2-3.3,6-5.2,2.4-1.6,5-3,7.9-3.9-2.4-3.6-4.5-7.3-6.3-11.2-1.3-2.9-2.4-5.8-3.3-8.8h0Z"/>
@@ -102,15 +106,14 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape1 y={y1} x={x1} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape1 y={y1} x={x1} rotate={rotate3} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
             <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
-            <Shape4 y={y4} rotate={rotate2} className="w-12 h-12 text-gray-200/30 top-[80%] right-[20%]" />
             <Shape5 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
-            <Shape6 y={y5} x={x2} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
-            <Shape7 y={y1} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
+            <Shape6 y={y5} x={x2} rotate={rotate5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
+            <Shape7 y={y1} rotate={rotate4} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
             <Shape1 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
             <Shape5 y={y5} rotate={rotate2} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
-            <Shape6 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
+            <Shape6 y={y4} rotate={rotate3} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
             <Shape7 y={y3} rotate={rotate1} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
         </div>
     );
