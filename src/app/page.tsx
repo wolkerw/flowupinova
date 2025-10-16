@@ -16,11 +16,11 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -800]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 700]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1200]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 500]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 2000]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -1600]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 1400]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -2400]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
 
 
     const Shape1 = ({ y, className }: { y: any, className: string }) => (
@@ -81,7 +81,7 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y1} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape5 y={y1} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%]" />
             <Shape2 y={y2} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
             <Shape1 y={y1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape6 y={y5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
