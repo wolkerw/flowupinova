@@ -59,6 +59,16 @@ const ParallaxShapes = () => {
             </svg>
         </motion.div>
     );
+    
+    const Shape5 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
+        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+            <svg width="100%" height="100%" viewBox="0 0 84 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M68.5298 33.0494C68.5298 21.0189 57.5109 11.2335 45.4804 11.2335C33.4499 11.2335 23.6645 21.0189 23.6645 33.0494C23.6645 42.1481 30.1749 49.5222 38.4878 51.7854V76.877C38.4878 78.5085 39.8055 79.8262 41.437 79.8262H49.5238C51.1553 79.8262 52.473 78.5085 52.473 76.877V51.7854C60.7859 49.5222 67.2963 42.1481 68.5298 33.0494ZM45.4804 4.54921e-05C29.6262 -0.000109968 16.7425 14.8219 16.7425 33.0494C16.7425 43.1497 21.7529 52.1287 28.5303 57.472L26.6117 81.3005C25.864 91.8078 34.0202 100.81 44.5275 100.279L46.2134 100.156C46.3311 100.148 46.449 100.141 46.5671 100.134L46.7027 100.125C57.4913 99.414 65.586 90.0463 64.3524 79.3512L62.4339 57.472C69.2113 52.1287 74.2217 43.1497 74.2217 33.0494C74.2183 14.8219 61.3346 -0.000109968 45.4804 4.54921e-05Z" fill="currentColor"/>
+                <path d="M4.6987 88.8996C-1.57949 83.1706 -1.57949 73.8029 4.6987 68.0739L13.8821 58.8905C15.0344 57.7382 16.8529 57.7382 18.0051 58.8905L26.318 67.2034C27.4703 68.3556 27.4703 70.1741 26.318 71.3264L18.0051 79.6393C16.8529 80.7916 15.0344 80.7916 13.8821 79.6393L4.6987 70.4559L4.6987 88.8996Z" fill="currentColor"/>
+                <path d="M85.7386 68.0739C91.9547 73.7408 91.9547 83.1706 85.7386 88.8996L76.5552 79.6393C75.4029 80.7916 73.5844 80.7916 72.4322 79.6393L64.1193 71.3264C62.967 70.1741 62.967 68.3556 64.1193 67.2034L72.4322 58.8905C73.5844 57.7382 75.4029 57.7382 76.5552 58.8905L85.7386 68.0739Z" fill="currentColor"/>
+            </svg>
+        </motion.div>
+    );
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
@@ -66,10 +76,12 @@ const ParallaxShapes = () => {
             <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
             <Shape3 y={y3} x={x2} className="w-24 h-24 text-gray-200/60 top-[60%] left-[15%]" />
             <Shape4 y={y4} rotate={rotate2} className="w-12 h-12 text-gray-200/30 top-[80%] right-[20%]" />
+            <Shape5 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape1 y={y5} x={x2} className="w-8 h-8 text-gray-200/70 top-[5%] left-[40%]" />
             <Shape2 y={y1} className="w-20 h-20 text-gray-200/20 top-[40%] left-[50%]" />
             <Shape3 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
             <Shape4 y={y3} x={x1} className="w-40 h-40 text-gray-200/30 top-[-10%] right-[5%]" />
+            <Shape5 y={y5} rotate={rotate2} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
             <Shape1 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
         </div>
     );
