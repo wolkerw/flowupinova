@@ -16,12 +16,11 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 2000]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -1600]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 1400]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -2400]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
-
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 800]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -1200]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1800]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 1400]);
 
     const Shape1 = ({ y, className }: { y: any, className: string }) => (
         <motion.div style={{ y }} className={`absolute ${className}`}>
@@ -40,7 +39,7 @@ const ParallaxShapes = () => {
     );
     
     const Shape5 = ({ y, className }: { y: any, className: string }) => (
-        <motion.div style={{ y }} className={`absolute ${className}`}>
+        <motion.div style={{ y }} className={`absolute ${className} transform rotate-15`}>
              <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 69.1 133.3" fill="currentColor">
               <g>
                 <path d="M46.1,96.2h-23.6l-.5-.7c-5.6-7.6-14.7-23.6-13.8-45.2C8.9,32.1,17.4,14.6,32,.9l1-.9,1.2.8c2.5,1.8,24.6,18.9,26.6,49.5,1.5,22.6-9.4,39.2-14.2,45.2l-.5.6h0ZM24.2,92.9h20.3c4.7-6.2,14.3-21.6,13-42.3-1.7-26.4-19.1-42.2-24.1-46.2-13.4,12.9-21.1,29.3-21.8,46.2-.8,19.9,7.4,34.9,12.7,42.4h-.1Z"/>
