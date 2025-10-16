@@ -16,11 +16,11 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, -1500]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -2800]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 2600]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -3200]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 3000]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, -150]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -280]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 260]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -320]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 300]);
 
     const Shape1 = ({ y, className }: { y: any, className: string }) => (
         <motion.div style={{ y }} className={`absolute ${className}`}>
