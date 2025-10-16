@@ -16,40 +16,31 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 800]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -600]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 500]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1000]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 300]);
-
-    const x1 = useTransform(scrollYProgress, [0, 1], [0, -300]);
-    const x2 = useTransform(scrollYProgress, [0, 1], [0, 360]);
-
-    const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 90]);
-    const rotate2 = useTransform(scrollYProgress, [0, 1], [0, -90]);
-    const rotate3 = useTransform(scrollYProgress, [0, 1], [0, 60]);
-    const rotate4 = useTransform(scrollYProgress, [0, 1], [0, -120]);
-    const rotate5 = useTransform(scrollYProgress, [0, 1], [15, -80]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 1000]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -800]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 700]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1200]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 500]);
 
 
-    const Shape1 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+    const Shape1 = ({ y, className }: { y: any, className: string }) => (
+        <motion.div style={{ y }} className={`absolute ${className}`}>
             <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2"/>
             </svg>
         </motion.div>
     );
 
-    const Shape2 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+    const Shape2 = ({ y, className }: { y: any, className: string }) => (
+        <motion.div style={{ y }} className={`absolute ${className}`}>
             <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="10"/>
             </svg>
         </motion.div>
     );
     
-    const Shape5 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+    const Shape5 = ({ y, className }: { y: any, className: string }) => (
+        <motion.div style={{ y }} className={`absolute ${className}`}>
              <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 69.1 133.3" fill="currentColor">
               <g>
                 <path d="M46.1,96.2h-23.6l-.5-.7c-5.6-7.6-14.7-23.6-13.8-45.2C8.9,32.1,17.4,14.6,32,.9l1-.9,1.2.8c2.5,1.8,24.6,18.9,26.6,49.5,1.5,22.6-9.4,39.2-14.2,45.2l-.5.6h0ZM24.2,92.9h20.3c4.7-6.2,14.3-21.6,13-42.3-1.7-26.4-19.1-42.2-24.1-46.2-13.4,12.9-21.1,29.3-21.8,46.2-.8,19.9,7.4,34.9,12.7,42.4h-.1Z"/>
@@ -62,8 +53,8 @@ const ParallaxShapes = () => {
         </motion.div>
     );
 
-    const Shape6 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+    const Shape6 = ({ y, className }: { y: any, className: string }) => (
+        <motion.div style={{ y }} className={`absolute ${className}`}>
             <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 75.3 94.1" fill="currentColor">
                 <g>
                   <path d="M37.7,23.7c23.2-1.6,35.3,25.3,20.1,42.3-3,3.4-5.5,5.5-6,10.4s1,8.5-3.7,10.4c0,3-1.9,5.9-4.8,6.8s-6.5.5-8.1,0c-3-1-4.9-3.9-4.8-7.1-4.7-2-3.1-6.6-3.4-10.5-.5-7.1-6.3-10-9.2-15.9-7.7-15.6,2.2-35.2,19.9-36.5h0ZM44.7,76.6h3.4l.2-.2c.3-2.5,1.1-4.9,2.3-7.1,2.1-3.7,5.6-6,7.7-9.8,9.5-17.2-6.5-37.6-25.3-31.1-13.6,4.6-18.4,21.4-10.3,33,1.3,1.9,3,3.3,4.3,5.1,2.1,2.8,3.3,6.2,3.6,9.7l.2.3h3.4l.2-12.3h-2.6c-1.6,0-3.7-2.2-4.2-3.6-1.6-5.2,4.6-9.2,8.6-5.6s1.7,2.2,1.7,2.9v2.6c.6.4,2.2.4,3,.3s.4,0,.6-.2v-2.6c0-.7,1.2-2.4,1.8-2.9,4.1-3.6,10.4.8,8.3,6.1-2.1,5.3-2.7,3.3-4.2,3.2h-2.6l-.2,12.3h0ZM34.4,60.6c0-1,.3-2.4-.5-3.2s-2.9-.3-2.9,1.2,2,2,3.5,2h0ZM44.9,60.8c1.5,0,3.5,0,3.5-1.8s-1.8-2.2-2.9-1.3-.5,2.1-.6,3.1ZM41.4,64.2h-3.6l-.2,12.3h3.6l.2-12.3ZM48.1,80.1l-17.5-.3v2.4c0,.3.9,1.2,1.3,1.1,4.7-.3,9.9.6,14.5.2s1.6-.5,1.6-1.1v-2.4h.1ZM44.5,87.2l-10.6-.2c.2,3.8,4,3.8,7,3.6s3.4-1.3,3.6-3.4Z"/>
@@ -79,8 +70,8 @@ const ParallaxShapes = () => {
         </motion.div>
     );
 
-    const Shape7 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
+    const Shape7 = ({ y, className }: { y: any, className: string }) => (
+        <motion.div style={{ y }} className={`absolute ${className}`}>
             <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 32.2 26.6" fill="currentColor">
                 <path d="M7.9,0c3.3-.3,6.2,1.4,8.2,4,.1,0,.5-.6.7-.7,6.2-6.7,16.1-2.3,15.5,6.7-.4,5.5-7.1,11.3-11.3,14.3s-1.8,1.3-2.7,1.8c-2.7,1.5-4.7-.3-6.8-1.8C7.3,21.3,1.7,16.5.3,11.5-1.1,6.1,2.3.5,7.9,0ZM8.1,1.9C3.9,2.2,1.5,6,1.9,10s6.9,10.1,10.6,12.7c3.7,2.6,2.6,2,3.6,2s3.1-1.5,4-2.2c3.6-2.6,10-8,10.3-12.7.6-7.5-7.9-10.8-12.5-4.9-.3.4-.9,1.5-1.3,1.7-1,.5-1.4-.7-1.9-1.3-1.6-2.1-3.8-3.5-6.6-3.3h0Z"/>
             </svg>
@@ -90,15 +81,15 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y1} x={x1} rotate={rotate3} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
-            <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
-            <Shape1 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
-            <Shape6 y={y5} x={x2} rotate={rotate5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
-            <Shape7 y={y1} rotate={rotate4} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
-            <Shape2 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
-            <Shape5 y={y5} rotate={rotate2} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
-            <Shape6 y={y4} rotate={rotate3} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
-            <Shape7 y={y3} rotate={rotate1} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
+            <Shape5 y={y1} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape2 y={y2} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
+            <Shape1 y={y1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
+            <Shape6 y={y5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
+            <Shape7 y={y3} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
+            <Shape2 y={y2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
+            <Shape6 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
+            <Shape7 y={y3} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
         </div>
     );
 };
