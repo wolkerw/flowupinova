@@ -1,15 +1,61 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+
+const ParallaxShapes = () => {
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 300], [0, 100]);
+    const y2 = useTransform(scrollY, [0, 300], [0, -120]);
+    const y3 = useTransform(scrollY, [0, 300], [0, 50]);
+    const y4 = useTransform(scrollY, [0, 300], [0, -70]);
+    const y5 = useTransform(scrollY, [0, 300], [0, 80]);
+
+    const Shape = ({ className, y, ...props }: { className?: string, y?: any, props?: any }) => (
+        <motion.div
+            style={{ y }}
+            className={`absolute ${className}`}
+            {...props}
+        >
+            <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 100 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    stroke="currentColor"
+                    strokeWidth="10"
+                />
+            </svg>
+        </motion.div>
+    );
+
+    return (
+        <>
+            <Shape y={y1} className="w-24 h-24 text-gray-200/80 top-[10%] left-[5%]" />
+            <Shape y={y2} className="w-12 h-12 text-gray-200/50 top-[20%] left-[40%]" />
+            <Shape y={y3} className="w-32 h-32 text-gray-200/60 top-[50%] left-[85%]" />
+            <Shape y={y4} className="w-16 h-16 text-gray-200/70 top-[80%] left-[10%]" />
+            <Shape y={y5} className="w-8 h-8 text-gray-200/90 top-[5%] left-[90%]" />
+            <Shape y={y2} className="w-20 h-20 text-gray-200/40 top-[75%] left-[50%]" />
+            <Shape y={y4} className="w-28 h-28 text-gray-200/50 top-[5%] left-[60%]" />
+        </>
+    );
+};
+
 
 const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const [name, setName] = useState('');
@@ -27,63 +73,61 @@ const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
         onClick={onClose}
-      >
+    >
         <motion.div
-          initial={{ scale: 0.9, y: -20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: -20 }}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl shadow-2xl max-w-lg w-full"
+            initial={{ scale: 0.9, y: -20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: -20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full"
         >
-          <CardHeader className="flex flex-row items-center justify-between border-b">
-            <CardTitle className="text-xl">Entre em Contato</CardTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-5 h-5" />
-            </Button>
-          </CardHeader>
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <div className="relative">
-                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="name" placeholder="Seu nome completo" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                 <div className="relative">
-                   <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="subject">Assunto</Label>
-                 <div className="relative">
-                   <Type className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="subject" placeholder="Sobre o que você gostaria de falar?" value={subject} onChange={(e) => setSubject(e.target.value)} required className="pl-10" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">Mensagem</Label>
-                <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
-              </div>
-              <Button type="submit" size="lg" className="w-full text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                <Send className="w-5 h-5 mr-2" />
-                Enviar Mensagem
-              </Button>
-            </form>
-          </CardContent>
+            <CardHeader className="flex flex-row items-center justify-between border-b">
+                <CardTitle className="text-xl">Entre em Contato</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                    <X className="w-5 h-5" />
+                </Button>
+            </CardHeader>
+            <CardContent className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome</Label>
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input id="name" placeholder="Seu nome completo" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">E-mail</Label>
+                            <div className="relative">
+                            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="subject">Assunto</Label>
+                            <div className="relative">
+                            <Type className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input id="subject" placeholder="Sobre o que você gostaria de falar?" value={subject} onChange={(e) => setSubject(e.target.value)} required className="pl-10" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="message">Mensagem</Label>
+                        <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
+                    </div>
+                    <Button type="submit" size="lg" className="w-full text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                        <Send className="w-5 h-5 mr-2" />
+                        Enviar Mensagem
+                    </Button>
+                </form>
+            </CardContent>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -140,12 +184,15 @@ export default function HomePage() {
 
       <main className="pt-24">
         {/* Hero Section */}
-        <section className="py-20 px-6 bg-gray-50">
+        <section className="py-20 px-6 bg-gray-50 relative overflow-hidden">
+             <div className="absolute inset-0 z-0">
+                <ParallaxShapes />
+            </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="container mx-auto"
+            className="container mx-auto relative z-10"
           >
             <div className="grid md:grid-cols-2 items-center gap-12">
               <div className="text-center md:text-left">
