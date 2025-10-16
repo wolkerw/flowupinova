@@ -1,15 +1,63 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
+const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: -20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: -20 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-xl shadow-2xl max-w-sm w-full"
+        >
+          <CardHeader className="flex flex-row items-center justify-between border-b">
+            <CardTitle className="text-xl">Entre em Contato</CardTitle>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+              <p className="text-gray-600 text-center">Escolha sua forma de contato preferida:</p>
+              <Button asChild size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
+                <a href="mailto:contato@flowup.com.br">
+                  <Mail className="w-5 h-5 mr-2" />
+                  Enviar E-mail
+                </a>
+              </Button>
+              <Button asChild size="lg" className="w-full bg-green-600 hover:bg-green-700">
+                <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Chamar no WhatsApp
+                </a>
+              </Button>
+          </CardContent>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+
 export default function HomePage() {
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const features = [
     {
       icon: Bot,
@@ -218,7 +266,7 @@ export default function HomePage() {
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="/termos" className="text-gray-400 hover:text-white">Termos</Link>
               <Link href="/privacidade" className="text-gray-400 hover:text-white">Privacidade</Link>
-              <Link href="#" className="text-gray-400 hover:text-white">Contato</Link>
+              <button onClick={() => setIsContactModalOpen(true)} className="text-gray-400 hover:text-white">Contato</button>
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-center text-gray-500 text-sm">
@@ -226,6 +274,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
     </div>
   );
 }
