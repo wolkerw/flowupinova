@@ -16,11 +16,11 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, -150]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -280]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 260]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -320]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 300]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, -450]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -580]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 560]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -620]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 600]);
 
     const Shape1 = ({ y, className }: { y: any, className: string }) => (
         <motion.div style={{ y }} className={`absolute ${className}`}>
@@ -385,7 +385,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-center text-gray-500 text-sm">
-            <p>&copy; {new Date().getFullYear()} Flowy. Todos os direitos reservados.</p>
+            <p>&copy; {new Date().getFullYear()} Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
