@@ -106,7 +106,7 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape1 y={y1} x={x1} rotate={rotate3} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
+            <Shape5 y={y1} x={x1} rotate={rotate3} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
             <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
             <Shape5 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape6 y={y5} x={x2} rotate={rotate5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
