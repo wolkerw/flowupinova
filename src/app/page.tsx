@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,14 +16,14 @@ const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
     // Different transforms for variety
-    const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-    const y2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
-    const y3 = useTransform(scrollYProgress, [0, 1], [0, 100]);
-    const y4 = useTransform(scrollYProgress, [0, 1], [0, -250]);
-    const y5 = useTransform(scrollYProgress, [0, 1], [0, 50]);
+    const y1 = useTransform(scrollYProgress, [0, 1], [0, 800]);
+    const y2 = useTransform(scrollYProgress, [0, 1], [0, -600]);
+    const y3 = useTransform(scrollYProgress, [0, 1], [0, 500]);
+    const y4 = useTransform(scrollYProgress, [0, 1], [0, -1000]);
+    const y5 = useTransform(scrollYProgress, [0, 1], [0, 300]);
 
-    const x1 = useTransform(scrollYProgress, [0, 1], [0, -50]);
-    const x2 = useTransform(scrollYProgress, [0, 1], [0, 80]);
+    const x1 = useTransform(scrollYProgress, [0, 1], [0, -300]);
+    const x2 = useTransform(scrollYProgress, [0, 1], [0, 360]);
 
     const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 90]);
     const rotate2 = useTransform(scrollYProgress, [0, 1], [0, -90]);
@@ -44,22 +44,6 @@ const ParallaxShapes = () => {
         <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
             <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="10"/>
-            </svg>
-        </motion.div>
-    );
-    
-    const Shape3 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
-             <svg width="100%" height="100%" viewBox="0 0 112 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M56 1L110.165 99.25H1.83501L56 1Z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-        </motion.div>
-    );
-
-    const Shape4 = ({ y, x, rotate, className }: { y: any, x?: any, rotate?: any, className: string }) => (
-        <motion.div style={{ y, x, rotate }} className={`absolute ${className}`}>
-            <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="1" width="98" height="98" rx="15" stroke="currentColor" strokeWidth="2"/>
             </svg>
         </motion.div>
     );
@@ -108,10 +92,10 @@ const ParallaxShapes = () => {
         <div className="absolute inset-0 overflow-hidden z-0">
             <Shape5 y={y1} x={x1} rotate={rotate3} className="w-32 h-32 text-gray-200/50 top-[10%] left-[5%]" />
             <Shape2 y={y2} rotate={rotate1} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
-            <Shape5 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
+            <Shape1 y={y1} x={x2} rotate={rotate1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
             <Shape6 y={y5} x={x2} rotate={rotate5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
             <Shape7 y={y1} rotate={rotate4} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
-            <Shape1 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
+            <Shape2 y={y2} rotate={rotate2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
             <Shape5 y={y5} rotate={rotate2} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%]" />
             <Shape6 y={y4} rotate={rotate3} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
             <Shape7 y={y3} rotate={rotate1} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
@@ -121,10 +105,10 @@ const ParallaxShapes = () => {
 
 
 const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [subject, setSubject] = React.useState('');
+    const [message, setMessage] = React.useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,7 +180,7 @@ const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
 
 
 export default function HomePage() {
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const features = [
     {
       icon: Bot,
