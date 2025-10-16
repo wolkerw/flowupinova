@@ -151,7 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex justify-center gap-4 text-xs text-gray-400">
                 <a href="#" className="hover:text-gray-600 transition-colors">Suporte</a>
                 <span>•</span>
-                <a href="#" className="hover:text-gray-600 transition-colors">Termos</a>
+                <Link href="/termos" className="hover:text-gray-600 transition-colors">Termos</Link>
                 <span>•</span>
                 <a href="#" className="hover:text-gray-600 transition-colors">Privacidade</a>
               </div>

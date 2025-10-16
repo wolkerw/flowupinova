@@ -215,7 +215,7 @@ export default function HomePage() {
                 <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <Link href="#" className="text-gray-400 hover:text-white">Termos</Link>
+              <Link href="/termos" className="text-gray-400 hover:text-white">Termos</Link>
               <Link href="#" className="text-gray-400 hover:text-white">Privacidade</Link>
               <Link href="#" className="text-gray-400 hover:text-white">Contato</Link>
             </div>
