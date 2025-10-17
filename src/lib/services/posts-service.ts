@@ -127,11 +127,10 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
 
 
-    const basePostData = {
+    const basePostData: Omit<PostData, 'id' | 'status'> = {
         title: postData.title,
         text: postData.text,
         imageUrl: imageUrl,
-        logoUrl: logoUrl,
         platforms: postData.platforms,
         scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         metaConnection: {
@@ -141,6 +140,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             instagramUsername: postData.metaConnection.instagramUsername,
         }
     };
+    
+    // Only add logoUrl to the object if it exists, to avoid 'undefined' error in Firestore
+    if (logoUrl) {
+        (basePostData as PostData).logoUrl = logoUrl;
+    }
     
     const now = new Date();
     // Publicação imediata se agendado para menos de 60 segundos no futuro.
