@@ -421,7 +421,7 @@ export default function Conteudo() {
             size="lg"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Criar do Zero
+            Criar Conteúdo
           </Button>
         </div>
       </div>
