@@ -324,7 +324,7 @@ export default function HomePage() {
                     <Card className="shadow-lg border-gray-200">
                         <CardHeader className="pb-4">
                             <CardTitle className="text-2xl font-bold">Plano Fundamental</CardTitle>
-                            <p className="text-4xl font-bold text-primary pt-2">R$299<span className="text-lg font-medium text-gray-500">/mês</span></p>
+                            <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
                         <CardContent className="space-y-4">
