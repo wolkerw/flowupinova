@@ -325,7 +325,7 @@ export default function HomePage() {
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Mais Popular</div>
                         </div>
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-2xl font-bold">Plano Fundamental</CardTitle>
+                            <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
@@ -384,7 +384,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-center text-gray-500 text-sm">
-            <p>&copy; {new Date().getFullYear()} Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
+            <p>&copy; 2025 Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
