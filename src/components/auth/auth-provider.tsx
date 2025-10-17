@@ -8,6 +8,22 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+// Function to set a cookie
+function setCookie(name: string, value: string, days: number) {
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function eraseCookie(name: string) {
+    document.cookie = name+'=; Max-Age=-99999999; path=/;';
+}
+
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -27,9 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       setLoading(false);
+       if (user) {
+          const token = await user.getIdToken();
+          setCookie('fb-id-token', token, 1); // Store token in cookie for Server Components
+      } else {
+          eraseCookie('fb-id-token');
+      }
     });
 
     return () => unsubscribe();
@@ -40,7 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (loading) return;
 
     const isAuthPage = pathname.startsWith('/acesso');
-    const isHomePage = pathname === '/';
+    const isPublicPage = isAuthPage || pathname === '/' || pathname === '/termos' || pathname === '/privacidade';
+
 
     if (user) {
       // Se o usuário está logado e em uma página de autenticação, redireciona para o dashboard
@@ -49,9 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } else {
       // Se o usuário não está logado, redireciona para a página de acesso,
-      // a menos que ele já esteja em uma página pública (home ou acesso).
-      if (!isAuthPage && !isHomePage) {
-        router.push('/acesso');
+      // a menos que ele já esteja em uma página pública.
+      if (!isPublicPage) {
+        router.push('/acesso/login');
       }
     }
   }, [user, loading, router, pathname]);
@@ -65,6 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
+       const token = await userCredential.user.getIdToken();
+       setCookie('fb-id-token', token, 1);
       setUser(auth.currentUser); 
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
@@ -91,7 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithEmail = async (email: string, pass: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const token = await userCredential.user.getIdToken();
+      setCookie('fb-id-token', token, 1);
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.code);
@@ -119,6 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
+      eraseCookie('fb-id-token');
       // O useEffect cuidará do redirecionamento
     } catch (error: any)
 {
@@ -132,9 +160,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = { user, loading, getIdToken, signUpWithEmail, loginWithEmail, logout };
+  
+  const isPublicPage = pathname === '/' || pathname.startsWith('/acesso') || pathname === '/termos' || pathname === '/privacidade';
+
 
   // Mostra um loader em páginas protegidas enquanto o estado de auth está sendo verificado
-  if (loading && !pathname.startsWith('/acesso') && pathname !== '/') {
+  if (loading && !isPublicPage) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
