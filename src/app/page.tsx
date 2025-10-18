@@ -337,15 +337,10 @@ export default function HomePage() {
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     <Card className="shadow-lg border-primary border-2 flex flex-col relative overflow-hidden">
                          <CardHeader className="pb-4 pt-8 text-center">
-                            <div className="absolute top-4 right-[-40px] bg-yellow-400 text-yellow-900 text-xs font-bold uppercase tracking-wider px-10 py-1.5 transform rotate-45">
-                                <div className="flex items-center gap-1">
-                                    <Star className="w-3 h-3" />
-                                </div>
-                            </div>
-                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-4 left-1/2 -translate-x-1/2">
                                 Mais Popular
                             </div>
-                            <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
+                            <CardTitle className="text-2xl font-bold pt-8">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
@@ -409,7 +404,7 @@ export default function HomePage() {
               <Link href="/termos" className="text-gray-600 hover:text-primary">Termos</Link>
               <Link href="/privacidade" className="text-gray-600 hover:text-primary">Privacidade</Link>
               <button onClick={() => openContactModal()} className="text-gray-600 hover:text-primary">Contato</button>
-              <a href="https://www.instagram.com/flowup.inova" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary">
+              <a href="https://www.instagram.com/flowup.inova" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
                 <Instagram className="w-5 h-5" />
               </a>
             </div>
@@ -428,4 +423,3 @@ export default function HomePage() {
   );
 }
 
-    
