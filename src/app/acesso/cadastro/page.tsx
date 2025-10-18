@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Building, Loader2 } from "lucide-react";
+import { Mail, Lock, Building, Loader2, Phone } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
 import { useAuth } from '@/components/auth/auth-provider';
 
@@ -13,6 +13,7 @@ export default function CadastroPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { signUpWithEmail } = useAuth();
 
@@ -20,7 +21,7 @@ export default function CadastroPage() {
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        await signUpWithEmail(name, email, password);
+        await signUpWithEmail(name, email, password, phone);
         setIsLoading(false);
     };
 
@@ -32,6 +33,13 @@ export default function CadastroPage() {
                     <div className="relative">
                         <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input id="signup-name" placeholder="Sua empresa" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Telefone</Label>
+                    <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="signup-phone" type="tel" placeholder="(00) 00000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} required className="pl-10" />
                     </div>
                 </div>
                 <div className="space-y-2">

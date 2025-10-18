@@ -28,7 +28,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   getIdToken: () => Promise<string | null>;
-  signUpWithEmail: (name: string, email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (name: string, email: string, pass: string, phone: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -84,9 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return auth.currentUser.getIdToken();
   };
 
-  const signUpWithEmail = async (name: string, email: string, pass: string) => {
+  const signUpWithEmail = async (name: string, email: string, pass: string, phone: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      // We are not using the phone number for auth purposes here, just for display/record.
       await updateProfile(userCredential.user, { displayName: name });
        const token = await userCredential.user.getIdToken();
        setCookie('fb-id-token', token, 1);
