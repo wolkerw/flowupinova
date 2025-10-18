@@ -337,9 +337,6 @@ export default function HomePage() {
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             <div className="text-center font-semibold text-primary p-2 rounded-md bg-primary/10">
-                                Comece com 7 dias de teste grátis!
-                            </div>
                             <ul className="space-y-3 text-gray-700">
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
