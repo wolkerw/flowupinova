@@ -335,13 +335,11 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 flex flex-col relative overflow-hidden">
-                         <CardHeader className="pb-4 pt-6 text-center">
-                            <div className="relative h-8">
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                                    <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
-                                        Mais Popular
-                                    </div>
+                    <Card className="shadow-lg border-primary border-2 flex flex-col relative">
+                         <CardHeader className="pb-4 pt-8 text-center">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
+                                    Mais Popular
                                 </div>
                             </div>
                             <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
@@ -374,6 +372,7 @@ export default function HomePage() {
                             <ul className="space-y-3 text-gray-700">
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Standard, e mais:</span></li>
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Consultoria digital de marketing</li>
+                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Desenvolvimento de soluções personalizadas adaptadas para o seu negócio</li>
                             </ul>
                         </CardContent>
                          <div className="p-6 pt-0">
