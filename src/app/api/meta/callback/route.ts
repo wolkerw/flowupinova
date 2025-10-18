@@ -1,10 +1,12 @@
 
 import { NextResponse, type NextRequest } from "next/server";
+import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { code } = body;
+    const origin = headers().get('origin');
 
     if (!code) {
       return NextResponse.json(
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
     
     const clientId = "826418333144156";
     const clientSecret = "944e053d34b162c13408cd00ad276aa2";
-    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
+    const redirectUri = `${origin}/dashboard/conteudo`;
     
     // 1. Troca o código por um token de acesso de curta duração
     const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;

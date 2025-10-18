@@ -223,7 +223,7 @@ export default function Conteudo() {
 
   const handleConnectMeta = () => {
     const clientId = "826418333144156";
-    const redirectUri = "https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev/dashboard/conteudo";
+    const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
     const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts,business_management";
     if (!state) return;
