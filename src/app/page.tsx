@@ -321,12 +321,14 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 relative overflow-hidden">
-                        <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
-                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Mais Popular</div>
-                        </div>
-                        <CardHeader className="pb-4 pt-12">
-                            <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
+                    <Card className="shadow-lg border-primary border-2 relative">
+                        <CardHeader className="pb-4 pt-6 text-center relative">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
+                                    Mais Popular
+                                </div>
+                            </div>
+                            <CardTitle className="text-2xl font-bold pt-4">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
