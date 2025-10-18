@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -336,6 +337,7 @@ export default function HomePage() {
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Integração com Google Meu Negócio</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Suporte Humano</li>
                             </ul>
                             <Button className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>Assinar Agora</Button>
                         </CardContent>
