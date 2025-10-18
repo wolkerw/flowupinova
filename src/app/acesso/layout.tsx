@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -30,15 +31,12 @@ export default function AcessoLayout({
                 transition={{ duration: 0.5 }}
             >
                 <Card className="w-full max-w-sm shadow-xl border-none overflow-hidden bg-card">
-                    <div className="p-6" style={{ background: 'var(--flowup-gradient)' }}>
-                         <div className="flex justify-center mb-4">
-                            <div className="w-24 h-8 flex items-center justify-center">
+                    <div className="p-8 pb-6" style={{ background: 'var(--flowup-gradient)' }}>
+                        <CardHeader className="text-center space-y-2 p-0">
+                            <div className="w-24 h-8 mx-auto flex items-center justify-center">
                                 <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} style={{ filter: 'brightness(0) invert(1)' }} />
                             </div>
-                        </div>
-                        <CardHeader className="text-center space-y-2 p-0">
-                            <CardTitle className="text-2xl font-bold text-white">Bem-vindo(a) ao FlowUp</CardTitle>
-                            <CardDescription className="text-white/80">Acesse sua conta ou cadastre-se para começar.</CardDescription>
+                            <CardDescription className="text-white/80 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
                         </CardHeader>
                     </div>
 
