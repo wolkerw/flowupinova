@@ -335,8 +335,8 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 flex flex-col relative">
-                         <CardHeader className="pb-4 pt-8 text-center">
+                    <Card className="shadow-lg border-primary border-2 flex flex-col">
+                        <CardHeader className="pb-4 pt-8 text-center">
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-4 left-1/2 -translate-x-1/2">
                                 Mais Popular
                             </div>
@@ -421,7 +421,7 @@ export default function HomePage() {
       />
        {/* WhatsApp Button */}
       <a
-        href="https://wa.me/555199922177"
+        href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20FlowUp."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50"
