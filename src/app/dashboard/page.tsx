@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -109,13 +110,6 @@ export default function Dashboard() {
     { name: "Campanha Black Friday", status: "success", progress: 85, budget: "R$ 2.500" },
     { name: "Lançamento Produto X", status: "warning", progress: 45, budget: "R$ 1.200" },
     { name: "Retargeting Site", status: "success", progress: 92, budget: "R$ 800" }
-  ];
-
-  const quickActions = [
-    { title: "Criar Post", icon: FileText, color: "from-blue-500 to-blue-600", description: "Conteúdo para redes sociais" },
-    { title: "Criar Anúncio", icon: Megaphone, color: "from-purple-500 to-purple-600", description: "Campanhas pagas" },
-    { title: "Enviar Email", icon: Mail, color: "from-green-500 to-green-600", description: "Marketing por email" },
-    { title: "Ver Relatórios", icon: BarChart3, color: "from-orange-500 to-orange-600", description: "Análise de resultados" }
   ];
 
   return (
@@ -325,46 +319,6 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </div>
-
-      {/* Ações rápidas */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-      >
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Ações Rápidas</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => (
-              <motion.div
-                key={action.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <Button 
-                  variant="outline" 
-                  className="h-32 flex flex-col items-center justify-center gap-2 w-full border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-white hover:scale-105 p-4"
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0`}
-                       style={{ background: index === 0 ? 'var(--flowup-gradient)' : 
-                                           index === 1 ? 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' :
-                                           index === 2 ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' :
-                                           'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' }}>
-                    <action.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-gray-900">{action.title}</div>
-                    <div className="text-xs text-gray-500">{action.description}</div>
-                  </div>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }
-
-    
