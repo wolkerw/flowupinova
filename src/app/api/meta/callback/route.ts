@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Substituído por origin para tornar a URL dinâmica
+    if (!origin) {
+        return NextResponse.json(
+            { success: false, error: "Could not determine request origin." },
+            { status: 400 }
+        );
+    }
+    
     const clientId = "826418333144156";
     const clientSecret = "944e053d34b162c13408cd00ad276aa2";
     const redirectUri = `${origin}/dashboard/conteudo`;
