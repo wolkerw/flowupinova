@@ -5,7 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type } from 'lucide-react';
+import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type, Sparkles as SparklesIcon } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -321,16 +321,25 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 relative">
-                         <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
+                    <Card className="shadow-lg border-primary border-2 relative overflow-hidden">
+                         <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 transform rotate-12 shadow-md">
+                            <div className="flex items-center gap-1">
+                                <SparklesIcon className="w-4 h-4" />
+                                7 DIAS GRÁTIS
+                            </div>
+                        </div>
+                        <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Mais Popular</div>
                         </div>
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-4 pt-12">
                             <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             <div className="text-center font-semibold text-primary p-2 rounded-md bg-primary/10">
+                                Comece com 7 dias de teste grátis!
+                            </div>
                             <ul className="space-y-3 text-gray-700">
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
