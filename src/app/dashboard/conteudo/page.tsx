@@ -225,7 +225,7 @@ export default function Conteudo() {
     const clientId = "826418333144156";
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts,business_management";
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code`;
     window.location.href = authUrl;
@@ -505,3 +505,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
