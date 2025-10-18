@@ -5,7 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type, Sparkles as SparklesIcon, Star } from 'lucide-react';
+import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type, Sparkles as SparklesIcon, Star, Instagram } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -335,12 +335,15 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 flex flex-col">
+                    <Card className="shadow-lg border-primary border-2 flex flex-col relative overflow-hidden">
                          <CardHeader className="pb-4 pt-8 text-center">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
-                                    Mais Popular
+                            <div className="absolute top-4 right-[-40px] bg-yellow-400 text-yellow-900 text-xs font-bold uppercase tracking-wider px-10 py-1.5 transform rotate-45">
+                                <div className="flex items-center gap-1">
+                                    <Star className="w-3 h-3" />
                                 </div>
+                            </div>
+                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                Mais Popular
                             </div>
                             <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
@@ -402,10 +405,13 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
                 <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
             </div>
-            <div className="flex gap-4 mt-4 md:mt-0">
+            <div className="flex items-center gap-4 mt-4 md:mt-0">
               <Link href="/termos" className="text-gray-600 hover:text-primary">Termos</Link>
               <Link href="/privacidade" className="text-gray-600 hover:text-primary">Privacidade</Link>
               <button onClick={() => openContactModal()} className="text-gray-600 hover:text-primary">Contato</button>
+              <a href="https://www.instagram.com/flowup.inova" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary">
+                <Instagram className="w-5 h-5" />
+              </a>
             </div>
           </div>
           <div className="mt-8 border-t border-gray-200 pt-8 text-center text-gray-500 text-sm">
@@ -421,3 +427,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
