@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const allNavigationItems = [
   {
-    title: "Dashboard",
+    title: "Início",
     url: "/dashboard",
     icon: LayoutDashboard,
   },
