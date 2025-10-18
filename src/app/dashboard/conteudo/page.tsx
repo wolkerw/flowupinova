@@ -225,9 +225,10 @@ export default function Conteudo() {
     const clientId = "826418333144156";
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
+    const configId = "657201687223122";
     const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts";
     if (!state) return;
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code`;
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
   };
   
