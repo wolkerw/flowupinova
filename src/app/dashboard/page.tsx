@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -124,7 +123,7 @@ export default function Dashboard() {
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Início</h1>
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
