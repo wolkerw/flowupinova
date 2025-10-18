@@ -94,11 +94,18 @@ const ParallaxShapes = () => {
 };
 
 
-const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolean, onClose: () => void, initialSubject?: string }) => {
     const [name, setName] = React.useState('');
     const [email, setEmail] = React.useState('');
-    const [subject, setSubject] = React.useState('');
+    const [subject, setSubject] = React.useState(initialSubject);
     const [message, setMessage] = React.useState('');
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setSubject(initialSubject);
+        }
+    }, [isOpen, initialSubject]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +178,13 @@ const ContactModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
 
 export default function HomePage() {
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
+  const [modalSubject, setModalSubject] = React.useState('');
+
+  const openContactModal = (subject = '') => {
+    setModalSubject(subject);
+    setIsContactModalOpen(true);
+  };
+
   const features = [
     {
       icon: Bot,
@@ -321,18 +335,20 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 relative">
-                        <CardHeader className="pb-4 pt-6 text-center relative">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
-                                    Mais Popular
+                    <Card className="shadow-lg border-primary border-2 flex flex-col">
+                         <CardHeader className="pb-4 pt-6 text-center">
+                            <div className="relative h-8">
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2">
+                                    <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">
+                                        Mais Popular
+                                    </div>
                                 </div>
                             </div>
-                            <CardTitle className="text-2xl font-bold pt-4">Plano Standard</CardTitle>
+                            <CardTitle className="text-2xl font-bold">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
                             <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 flex-grow">
                             <ul className="space-y-3 text-gray-700">
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
@@ -341,22 +357,28 @@ export default function HomePage() {
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Suporte Humano</li>
                             </ul>
-                            <Button className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>Assinar Agora</Button>
                         </CardContent>
+                        <div className="p-6 pt-0">
+                           <Button asChild className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>
+                                <Link href="/acesso/cadastro">Assinar Agora</Link>
+                           </Button>
+                        </div>
                     </Card>
-                    <Card className="shadow-lg border-gray-200">
+                    <Card className="shadow-lg border-gray-200 flex flex-col">
                         <CardHeader className="pb-4">
                             <CardTitle className="text-2xl font-bold">Plano Personal</CardTitle>
                              <p className="text-4xl font-bold text-gray-800 pt-2">Personalizado</p>
                             <p className="text-gray-600 text-sm">Tudo do Fundamental, e mais!</p>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 flex-grow">
                             <ul className="space-y-3 text-gray-700">
-                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Fundamental, e mais:</span></li>
+                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Standard, e mais:</span></li>
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Consultoria profissional de marketing 24h para auxiliar na maximização dos resultados.</li>
                             </ul>
-                            <Button variant="outline" className="w-full mt-4 border-primary text-primary hover:bg-primary/10 hover:text-primary">Quero saber mais</Button>
                         </CardContent>
+                         <div className="p-6 pt-0">
+                            <Button variant="outline" className="w-full mt-4 border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={() => openContactModal('Interesse no Plano Personalizado')}>Quero saber mais</Button>
+                        </div>
                     </Card>
                 </div>
             </div>
@@ -384,7 +406,7 @@ export default function HomePage() {
             <div className="flex gap-4 mt-4 md:mt-0">
               <Link href="/termos" className="text-gray-400 hover:text-white">Termos</Link>
               <Link href="/privacidade" className="text-gray-400 hover:text-white">Privacidade</Link>
-              <button onClick={() => setIsContactModalOpen(true)} className="text-gray-400 hover:text-white">Contato</button>
+              <button onClick={() => openContactModal()} className="text-gray-400 hover:text-white">Contato</button>
             </div>
           </div>
           <div className="mt-8 border-t border-gray-700 pt-8 text-center text-gray-500 text-sm">
@@ -392,7 +414,13 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-      <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
+      <ContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        initialSubject={modalSubject}
+      />
     </div>
   );
 }
+
+    
