@@ -215,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
        <a
-        href="https://wa.me/555199922177?text=Olá!%20Sou%20cliente%20FlowUp%20e%20gostaria%20de%20tirar%20uma%20dúvida."
+        href="https://wa.me/555199922177?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20FlowUp."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50"
