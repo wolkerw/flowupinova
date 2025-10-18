@@ -128,8 +128,8 @@ export default function AcessoLayout({
                     </Link>
                     <nav className="hidden md:flex items-center gap-6">
                         <Link href="/#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
-                        <Link href="/#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary">Como Funciona</Link>
-                        <Link href="/#pricing" className="text-sm font-medium text-gray-600 hover:text-primary">Preços</Link>
+                        <Link href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary">Como Funciona</Link>
+                        <Link href="#pricing" className="text-sm font-medium text-gray-600 hover:text-primary">Preços</Link>
                     </nav>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" asChild>
@@ -142,42 +142,41 @@ export default function AcessoLayout({
                 </div>
             </header>
 
-            <main className="flex-grow">
-                <div className="flex min-h-full items-center justify-center bg-gray-100 dark:bg-gray-900 p-4 pt-24">
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <Card className="w-full max-w-sm shadow-xl border-none overflow-hidden bg-card">
-                            <div className="p-8 pb-6" style={{ background: 'var(--flowup-gradient)' }}>
-                                <CardHeader className="text-center space-y-2 p-0">
-                                    <CardDescription className="text-white/80 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
-                                </CardHeader>
-                            </div>
+            <main className="flex-grow flex items-center justify-center bg-gray-100 py-24 px-4">
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="w-full"
+                >
+                    <Card className="w-full max-w-sm mx-auto shadow-xl border-none overflow-hidden bg-card">
+                        <div className="p-8 pb-6" style={{ background: 'var(--flowup-gradient)' }}>
+                            <CardHeader className="text-center space-y-2 p-0">
+                                <CardDescription className="text-white/80 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
+                            </CardHeader>
+                        </div>
 
-                            <CardContent className="p-0">
-                                <Tabs value={activeTab} className="w-full">
-                                    <TabsList className="w-full justify-center bg-transparent rounded-none border-b">
-                                        <TabsTrigger value="login" asChild>
-                                            <Link href="/acesso/login" className={cn(
-                                                "text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground",
-                                                "focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            )}>Login</Link>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="cadastrar" asChild>
-                                            <Link href="/acesso/cadastro" className={cn(
-                                                "text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground",
-                                                "focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            )}>Cadastrar</Link>
-                                        </TabsTrigger>
-                                    </TabsList>
-                                {children}
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                </div>
+                        <CardContent className="p-0">
+                            <Tabs value={activeTab} className="w-full">
+                                <TabsList className="w-full justify-center bg-transparent rounded-none border-b">
+                                    <TabsTrigger value="login" asChild>
+                                        <Link href="/acesso/login" className={cn(
+                                            "text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground",
+                                            "focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        )}>Login</Link>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="cadastrar" asChild>
+                                        <Link href="/acesso/cadastro" className={cn(
+                                            "text-sm font-semibold rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary bg-transparent text-muted-foreground",
+                                            "focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        )}>Cadastrar</Link>
+                                    </TabsTrigger>
+                                </TabsList>
+                            {children}
+                            </Tabs>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             </main>
 
              {/* Footer */}
