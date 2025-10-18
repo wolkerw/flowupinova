@@ -335,7 +335,7 @@ export default function HomePage() {
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 flex flex-col relative overflow-hidden">
+                    <Card className="shadow-lg border-primary border-2 flex flex-col relative">
                          <CardHeader className="pb-4 pt-8 text-center">
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-4 left-1/2 -translate-x-1/2">
                                 Mais Popular
@@ -419,7 +419,29 @@ export default function HomePage() {
         onClose={() => setIsContactModalOpen(false)} 
         initialSubject={modalSubject}
       />
+       {/* WhatsApp Button */}
+      <a
+        href="https://wa.me/555199922177"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50"
+        aria-label="Entre em contato pelo WhatsApp"
+      >
+        <Button size="icon" className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg transition-transform hover:scale-110">
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-8 h-8"
+            >
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z"/>
+            </svg>
+        </Button>
+      </a>
     </div>
   );
 }
 
+
+
+    
