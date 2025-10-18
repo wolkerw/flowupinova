@@ -322,12 +322,6 @@ export default function HomePage() {
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     <Card className="shadow-lg border-primary border-2 relative overflow-hidden">
-                         <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 transform rotate-12 shadow-md">
-                            <div className="flex items-center gap-1">
-                                <SparklesIcon className="w-4 h-4" />
-                                7 DIAS GRÁTIS
-                            </div>
-                        </div>
                         <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Mais Popular</div>
                         </div>
