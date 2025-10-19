@@ -344,7 +344,7 @@ export default function GerarConteudoPage() {
                     />
                     <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
                         {selectedContent ? (
-                            <h2 className="text-2xl font-bold leading-tight text-white text-center shadow-lg">{selectedContent.titulo}</h2>
+                            <h2 className="text-2xl font-bold leading-tight text-white text-center">{selectedContent.titulo}</h2>
                         ) : (
                             <div className="h-8 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
                         )}
@@ -658,4 +658,5 @@ export default function GerarConteudoPage() {
   );
 }
 
+    
     
