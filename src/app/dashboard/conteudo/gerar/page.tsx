@@ -340,7 +340,7 @@ export default function GerarConteudoPage() {
                         alt="Mascote robô da FlowUp"
                         layout="fill"
                         objectFit="contain"
-                        className="opacity-10 p-8"
+                        className="opacity-10"
                     />
                     <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
                         {selectedContent ? (
