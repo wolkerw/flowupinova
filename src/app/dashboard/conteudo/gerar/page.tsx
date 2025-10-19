@@ -333,14 +333,14 @@ export default function GerarConteudoPage() {
           
           {/* Coluna da Direita: Preview */}
            <div className="flex items-center justify-center">
-            <div className="w-[320px] aspect-square bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
+             <div className="w-[320px] aspect-square bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
                 <div className="relative w-full h-[60%] bg-gray-200">
                     <Image 
-                        src="https://picsum.photos/seed/mascot/600/600"
+                        src="/mascote-flowy.svg"
                         alt="Mascote robô da FlowUp"
-                        data-ai-hint="robot mascot"
                         layout="fill"
-                        objectFit="cover"
+                        objectFit="contain"
+                        className="opacity-10 p-8"
                     />
                     <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
                         {selectedContent ? (
@@ -657,3 +657,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
