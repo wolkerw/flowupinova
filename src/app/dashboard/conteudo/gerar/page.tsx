@@ -333,35 +333,31 @@ export default function GerarConteudoPage() {
           
           {/* Coluna da Direita: Preview */}
            <div className="flex items-center justify-center">
-             <div className="w-[320px] aspect-square bg-white rounded-3xl shadow-2xl border flex flex-col overflow-hidden">
-                <div className="relative w-full h-[60%] bg-gray-200">
-                    <Image 
-                        src="/mascote-flowy.svg"
-                        alt="Mascote robô da FlowUp"
-                        layout="fill"
-                        objectFit="contain"
-                        className="opacity-10"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
-                        {selectedContent ? (
-                            <h2 className="text-2xl font-bold leading-tight text-white text-center">{selectedContent.titulo}</h2>
-                        ) : (
-                            <div className="h-8 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
-                        )}
-                    </div>
+             <div className="w-[320px] aspect-square bg-gray-200 rounded-3xl shadow-2xl border flex flex-col overflow-hidden relative">
+                <Image 
+                    src="/mascote-flowy.svg"
+                    alt="Mascote robô da FlowUp"
+                    layout="fill"
+                    objectFit="contain"
+                    className="opacity-40"
+                />
+                <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
+                    {selectedContent ? (
+                        <h2 className="text-2xl font-bold leading-tight text-white text-center">{selectedContent.titulo}</h2>
+                    ) : (
+                        <div className="h-8 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
+                    )}
                 </div>
-                <div className="flex-1 p-4 text-left">
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
                    {selectedContent ? (
                      <>
-                       <p className="text-sm mb-3">{selectedContent.subtitulo}</p>
-                       <p className="text-xs text-blue-500 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
+                       <p className="text-sm text-white mb-2">{selectedContent.subtitulo}</p>
+                       <p className="text-xs text-blue-300 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
                      </>
                    ) : (
                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-4"></div>
+                        <div className="h-4 bg-gray-400/50 rounded w-full animate-pulse"></div>
+                        <div className="h-3 bg-gray-400/50 rounded w-1/2 animate-pulse mt-2"></div>
                      </div>
                    )}
                 </div>
@@ -657,6 +653,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
-    
