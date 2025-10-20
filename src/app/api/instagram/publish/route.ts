@@ -2,11 +2,55 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import type { PostData } from "@/lib/services/posts-service";
+import * as admin from 'firebase-admin';
 
 interface PublishRequestBody {
     userId: string;
     postId: string;
 }
+
+// Função para combinar imagem e logo usando um webhook externo
+async function getFinalImageUrl(baseImageUrl: string, logoUrl?: string): Promise<string> {
+    // Se não houver logo, retorna a URL da imagem base
+    if (!logoUrl) {
+        return baseImageUrl;
+    }
+    
+    // URL do webhook que combina as imagens
+    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/combinador_de_imagem";
+    
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                imagem_principal: baseImageUrl,
+                logomarca: logoUrl,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Falha no webhook de combinação de imagem: ${errorText}`);
+        }
+
+        const result = await response.json();
+        
+        // O webhook deve retornar um objeto com a URL da imagem finalizada
+        if (!result.url_imagem_final) {
+            throw new Error("Resposta do webhook de combinação não continha a URL final.");
+        }
+        
+        return result.url_imagem_final;
+
+    } catch (error: any) {
+        console.error("[WEBHOOK_COMBINER_ERROR]", error);
+        throw new Error(error.message || "Erro ao combinar imagem com a logomarca.");
+    }
+}
+
 
 // Função para criar o container de mídia no Instagram
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
@@ -70,15 +114,10 @@ export async function POST(request: NextRequest) {
     }
 
     const postData = docSnap.data() as PostData;
+    
+    // Obter a URL final da imagem (combinada com a logo, se houver)
+    const finalImageUrl = await getFinalImageUrl(postData.imageUrl, postData.logoUrl);
 
-    // TODO: Implement image composition logic here.
-    // 1. Download postData.imageUrl
-    // 2. Download postData.logoUrl (if it exists)
-    // 3. Composite logo onto the main image using a library like 'sharp'
-    // 4. Upload the new composite image to Firebase Storage
-    // 5. Use the new URL for publishing.
-    // For now, we will use the original imageUrl.
-    const finalImageUrl = postData.imageUrl; 
     const caption = `${postData.title}\n\n${postData.text}`;
     const { instagramId, accessToken } = postData.metaConnection;
 
@@ -117,5 +156,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-    
