@@ -490,7 +490,7 @@ export default function GerarConteudoPage() {
                      <div className="space-y-6">
                         <h3 className="font-bold text-lg">Preview do Post</h3>
                         <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
-                            <Preview
+                           <Preview
                                 imageUrl={selectedImage}
                                 logoUrl={logoPreviewUrl}
                                 logoPosition={logoPosition}
