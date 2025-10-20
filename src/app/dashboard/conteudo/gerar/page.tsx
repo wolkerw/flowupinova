@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -155,10 +156,14 @@ export default function GerarConteudoPage() {
         throw new Error(imagesData.error || 'Falha ao gerar imagens.');
       }
       
+      if (!Array.isArray(imagesData) || imagesData.length === 0) {
+        throw new Error("Nenhuma imagem foi retornada pelo webhook.");
+      }
+
       const imageUrls = imagesData.map((item: any) => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
-        throw new Error("Nenhuma URL de imagem foi retornada pelo webhook.");
+        throw new Error("Nenhuma URL de imagem válida foi encontrada na resposta do webhook.");
       }
 
       setGeneratedImages(imageUrls);
@@ -174,7 +179,6 @@ export default function GerarConteudoPage() {
 
   const handleNextToStep3 = () => {
     setStep(3);
-    handleGenerateImages();
   };
 
   const handlePublish = async (publishMode: 'now' | 'schedule') => {
@@ -399,7 +403,13 @@ export default function GerarConteudoPage() {
                 <ImageIcon className="w-6 h-6 text-purple-500" />
                 Etapa 3: Escolha a melhor imagem
               </CardTitle>
-              <p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p>
+              <div className="flex justify-between items-center">
+                 <p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p>
+                 <Button variant="outline" onClick={handleGenerateImages} disabled={isGeneratingImages || !selectedContentId}>
+                    {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                    Gerar Novas Imagens
+                  </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isGeneratingImages ? (
@@ -438,11 +448,7 @@ export default function GerarConteudoPage() {
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <AlertTriangle className="w-12 h-12 text-destructive mb-4" />
                   <p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p>
-                  <p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente novamente.</p>
-                  <Button variant="outline" onClick={handleGenerateImages} disabled={isGeneratingImages}>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Gerar Novas Imagens
-                  </Button>
+                  <p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente gerar novamente.</p>
                 </div>
               )}
             </CardContent>
@@ -481,38 +487,34 @@ export default function GerarConteudoPage() {
             <CardContent>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     {/* Coluna da Esquerda: Preview */}
-                    <Tabs defaultValue="instagram" className="w-full">
-                        <TabsList className="grid w-full grid-cols-1">
-                          <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview do Post</TabsTrigger>
-                        </TabsList>
+                     <div className="space-y-6">
+                        <h3 className="font-bold text-lg">Preview do Post</h3>
                         <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
-                            <TabsContent value="instagram">
-                                <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
-                                    <div className="p-3 flex items-center gap-2 border-b">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={user?.photoURL || undefined} />
-                                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
-                                    </div>
-                                    
-                                    <Preview 
-                                        imageUrl={selectedImage}
-                                        logoUrl={logoPreviewUrl}
-                                        logoPosition={logoPosition}
-                                        logoSize={logoSize}
-                                    />
-                                    
-                                    <div className="p-3 text-sm">
-                                        <p>
-                                            <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
-                                        </p>
-                                        <p className="text-blue-500 mt-2 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
-                                    </div>
+                            <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
+                                <div className="p-3 flex items-center gap-2 border-b">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user?.photoURL || undefined} />
+                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                 </div>
-                            </TabsContent>
+                                <div className="relative aspect-square">
+                                    <Preview
+                                      imageUrl={selectedImage}
+                                      logoUrl={logoPreviewUrl}
+                                      logoPosition={logoPosition}
+                                      logoSize={logoSize}
+                                    />
+                                </div>
+                                <div className="p-3 text-sm">
+                                    <p>
+                                        <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
+                                    </p>
+                                    <p className="text-blue-500 mt-2 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
+                                </div>
+                            </div>
                         </div>
-                    </Tabs>
+                    </div>
 
                     {/* Coluna da Direita: Opções */}
                     <div className="space-y-6">
