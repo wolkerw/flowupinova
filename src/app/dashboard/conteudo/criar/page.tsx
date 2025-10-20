@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -74,7 +75,7 @@ const sizeClasses: Record<LogoSize, string> = {
     'large': 'w-20 h-20',
 };
 
-const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSize }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void, logoPosition: LogoPosition, logoSize: LogoSize }) => {
+const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSize, combinedImageUrl }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void, logoPosition: LogoPosition, logoSize: LogoSize, combinedImageUrl?: string | null }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -96,6 +97,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
     }
 
     const renderContent = (item: MediaItem) => {
+        const imageUrlToDisplay = combinedImageUrl || item.previewUrl;
         const imageSizeProps = { width: 400, height: 400 };
         if (type === 'reels' || type === 'story') {
             imageSizeProps.width = 250;
@@ -103,7 +105,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
         }
 
         if (item.type === 'image') {
-            return <Image src={item.previewUrl} alt="Preview da imagem" width={imageSizeProps.width} height={imageSizeProps.height} className="object-cover w-full h-full" />;
+            return <Image src={imageUrlToDisplay} alt="Preview da imagem" width={imageSizeProps.width} height={imageSizeProps.height} className="object-cover w-full h-full" />;
         }
         
         if (item.type === 'video') {
@@ -128,7 +130,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             return (
                 <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
                     {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
-                    {logoUrl && (
+                    {!combinedImageUrl && logoUrl && (
                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                     )}
                 </div>
@@ -141,7 +143,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
                                 
-                                {logoUrl && (
+                                {!combinedImageUrl && logoUrl && (
                                     <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                                 )}
 
@@ -189,7 +191,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
                     {singleItem ? renderContent(singleItem) : placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
-                    {logoUrl && (
+                    {!combinedImageUrl && logoUrl && (
                          <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                     )}
                 </div>
@@ -221,6 +223,10 @@ export default function CriarConteudoPage() {
     
     const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
+    const [isCombiningImage, setIsCombiningImage] = useState(false);
+    const [combinedImageUrl, setCombinedImageUrl] = useState<string | null>(null);
+
+
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -231,10 +237,54 @@ export default function CriarConteudoPage() {
     }, [user]);
 
 
-    const handleNextStep = () => {
+    const handleCombineImage = async () => {
+        if (mediaItems.length === 0 || !logoFile || mediaItems[0].type !== 'image') {
+            return; // Only combine if there's an image and a logo
+        }
+        setIsCombiningImage(true);
+        try {
+            const formData = new FormData();
+            formData.append('imagem_principal', mediaItems[0].file);
+            formData.append('logomarca', logoFile);
+            // Append other options if the webhook supports them
+            // formData.append('position', logoPosition);
+            // formData.append('size', logoSize);
+
+            const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/editor_imagem', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Falha no webhook: ${errorText}`);
+            }
+
+            const result = await response.json();
+            if (!result.url_imagem_final) {
+                throw new Error("O webhook não retornou a URL da imagem final.");
+            }
+            setCombinedImageUrl(result.url_imagem_final);
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao combinar imagem",
+                description: error.message,
+            });
+        } finally {
+            setIsCombiningImage(false);
+        }
+    };
+
+
+    const handleNextStep = async () => {
         if(step === 1 && selectedType) {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
+            if (logoFile && mediaItems[0].type === 'image') {
+                await handleCombineImage();
+            }
             setStep(3);
         }
     }
@@ -298,15 +348,17 @@ export default function CriarConteudoPage() {
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
 
+        const mediaToUpload = combinedImageUrl || mediaItems[0].file;
+
+
         const result = await schedulePost(user.uid, {
             title: title || "Post sem título",
             text: text,
-            media: mediaItems[0].file, // Pass the file object
+            media: mediaToUpload,
             platforms: ['instagram'],
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
             metaConnection: metaConnection,
-            logo: logoFile, // Pass logo file if it exists
-            logoOptions: { position: logoPosition, size: logoSize },
+            // Logo is not sent here anymore as it's already combined if needed
         });
 
         setIsPublishing(false);
@@ -320,7 +372,7 @@ export default function CriarConteudoPage() {
     }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
-    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading));
+    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading || isCombiningImage));
     const isSubmitDisabled = (
         !metaConnection?.isConnected || 
         isPublishing || 
@@ -555,8 +607,9 @@ export default function CriarConteudoPage() {
                           onClick={handleNextStep}
                           disabled={isNextDisabled}
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                           Próxima Etapa
-                           <ArrowRight className="w-4 h-4 ml-2" />
+                           {isCombiningImage ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
+                           {isCombiningImage ? 'Combinando Imagem...' : 'Próxima Etapa'}
+                           {!isCombiningImage && <ArrowRight className="w-4 h-4 ml-2" />}
                         </Button>
                     </div>
                 </motion.div>
@@ -576,39 +629,23 @@ export default function CriarConteudoPage() {
                                     <CardTitle className="text-lg">Preview Final</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex justify-center">
-                                    <Tabs defaultValue="instagram" className="w-full max-w-sm">
-                                        <TabsList className="grid w-full grid-cols-1">
-                                            <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
-                                        </TabsList>
-                                        <TabsContent value="instagram">
-                                            <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
-                                                <div className="p-3 flex items-center gap-2 border-b">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={user?.photoURL || undefined} />
-                                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                                    </Avatar>
-                                                    <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
-                                                </div>
-                                                <div className="relative w-full aspect-square bg-gray-200">
-                                                    {mediaItems[0] && (
-                                                      <div className="w-full h-full relative">
-                                                          {mediaItems[0].type === 'image' ? (
-                                                              <Image src={mediaItems[0].previewUrl} alt="Post preview" width={400} height={400} className="object-cover w-full h-full" />
-                                                          ) : (
-                                                              <video src={mediaItems[0].previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                                                          )}
-                                                          {logoPreviewUrl && <Image src={logoPreviewUrl} alt="Logo" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />}
-                                                      </div>
-                                                    )}
-                                                </div>
-                                                <div className="p-3 text-sm">
-                                                    <p>
-                                                        <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {text.substring(0, 100)}{text.length > 100 && '...'}
-                                                    </p>
-                                                </div>
+                                    <div className="w-full max-w-sm">
+                                        <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
+                                            <div className="p-3 flex items-center gap-2 border-b">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={user?.photoURL || undefined} />
+                                                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                             </div>
-                                        </TabsContent>
-                                    </Tabs>
+                                            <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} combinedImageUrl={combinedImageUrl} />
+                                            <div className="p-3 text-sm">
+                                                <p>
+                                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {text.substring(0, 100)}{text.length > 100 && '...'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>
@@ -671,5 +708,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    

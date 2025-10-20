@@ -25,7 +25,7 @@ export interface PostData {
 export type PostDataInput = {
     title: string;
     text: string;
-    media: File | string; // Can be a File for upload or a string URL from AI gen
+    media: File | string; // Can be a File for upload or a string URL from AI gen/webhook
     platforms: string[];
     scheduledAt: Date;
     metaConnection: MetaConnectionData; // Pass the full connection object
@@ -113,14 +113,15 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     let logoUrl: string | undefined;
 
     try {
-        // Handle main media upload (if it's a File) or pass through (if it's a string URL)
+        // The `media` can now be a File (from upload), a string URL from AI generation, or a string URL from the image combining webhook.
+        // If it's a File, we upload it. If it's a string, we just use it.
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
-            imageUrl = postData.media;
+            imageUrl = postData.media; // Already a URL
         }
 
-        // Handle logo upload if a file is provided
+        // The logo is not used directly here anymore, but we'll keep the upload logic just in case
         if (postData.logo instanceof File) {
             logoUrl = await uploadMediaAndGetURL(userId, postData.logo);
         }
@@ -133,8 +134,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     const basePostData: Omit<PostData, 'id' | 'status' | 'publishedMediaId' | 'failureReason' > = {
         title: postData.title,
         text: postData.text,
-        imageUrl: imageUrl,
-        logoUrl: logoUrl,
+        imageUrl: imageUrl, // This will be the combined URL if the webhook was called
+        logoUrl: logoUrl, // Can be stored for reference, but imageUrl is what's published
         platforms: postData.platforms,
         scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         metaConnection: {
