@@ -128,8 +128,7 @@ export default function GerarConteudoPage() {
       const imagesData = await response.json();
 
       if (!response.ok) {
-        const errorDetails = imagesData.error || imagesData.details || 'Falha ao gerar imagens.';
-        throw new Error(errorDetails);
+        throw new Error(imagesData.error || 'Falha ao gerar imagens.');
       }
       
       const imageUrls = imagesData.map((item: any) => item.url_da_imagem).filter(Boolean);

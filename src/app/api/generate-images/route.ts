@@ -35,11 +35,6 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
 
-    // Log para depuração da resposta crua do webhook
-    console.log("=============== RAW WEBHOOK RESPONSE (IMAGE GEN) ===============");
-    console.log(JSON.stringify(data, null, 2));
-    console.log("================================================================");
-    
     // A resposta esperada é um array de objetos, cada um com uma propriedade "url_da_imagem" contendo a URL.
     if (!Array.isArray(data) || data.some(item => !item.url_da_imagem)) {
       console.error("Formato de resposta do webhook de imagem inesperado:", data);
@@ -47,13 +42,7 @@ export async function POST(request: Request) {
     }
     
     // Processa a resposta para extrair as URLs corretamente.
-    const processedData = data.map((item: any) => {
-        let imageUrl = item.url_da_imagem || "";
-         if (imageUrl.startsWith("https://https://")) {
-            imageUrl = imageUrl.substring(8); 
-        }
-        return { url_da_imagem: imageUrl };
-    });
+    const processedData = data.map((item: any) => ({ url_da_imagem: item.url_da_imagem }));
 
     return NextResponse.json(processedData);
 

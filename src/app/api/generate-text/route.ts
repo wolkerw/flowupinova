@@ -21,9 +21,6 @@ export async function POST(request: Request) {
     }
 
     const data = await webhookResponse.json();
-    console.log("=============== WEBHOOK RESPONSE ===============");
-    console.log(JSON.stringify(data, null, 2));
-    console.log("================================================");
     
     // O webhook retorna um array diretamente, então processamos cada item.
     const processedData = data.map((item: any) => {
