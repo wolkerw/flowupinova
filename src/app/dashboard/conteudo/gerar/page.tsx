@@ -91,7 +91,7 @@ export default function GerarConteudoPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Falha ao gerar o conteúdo de texto.');
+        throw new Error(data.details || data.error || 'Falha ao gerar o conteúdo de texto.');
       }
       
       if (Array.isArray(data) && data.length > 0) {
@@ -206,6 +206,7 @@ export default function GerarConteudoPage() {
   };
   
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
+  const unusedImages = generatedImages.filter(img => img !== selectedImage);
 
   const getAvatarFallback = () => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -472,8 +473,7 @@ export default function GerarConteudoPage() {
                                     </div>
                                     <div className="relative w-full aspect-square bg-gray-200">
                                        {selectedImage ? (
-                                         <div className="relative w-full h-full">
-                                            <Image src={selectedImage} layout="fill" objectFit="cover" alt="Post preview" />
+                                         <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${selectedImage})`}}>
                                             {logoPreviewUrl && (
                                                 <Image src={logoPreviewUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
                                             )}
@@ -591,6 +591,24 @@ export default function GerarConteudoPage() {
                                 </p>
                             )}
                        </div>
+                       {/* Galeria de imagens não usadas */}
+                       {unusedImages.length > 0 && (
+                            <div className="space-y-4 pt-4">
+                                <h3 className="font-bold text-lg">Artes não utilizadas</h3>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {unusedImages.map((img, index) => (
+                                        <Image
+                                            key={index}
+                                            src={img}
+                                            alt={`Arte não utilizada ${index + 1}`}
+                                            width={100}
+                                            height={100}
+                                            className="rounded-md object-cover aspect-square"
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                </div>
             </CardContent>
