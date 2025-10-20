@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -238,17 +237,23 @@ export default function CriarConteudoPage() {
 
 
     const handleCombineImage = async () => {
-        if (mediaItems.length === 0 || !logoFile || mediaItems[0].type !== 'image') {
+        if (mediaItems.length === 0 || !logoFile || mediaItems[0].type !== 'image' || !selectedType) {
             return; // Only combine if there's an image and a logo
         }
         setIsCombiningImage(true);
+        setCombinedImageUrl(null);
         try {
             const formData = new FormData();
             formData.append('imagem_principal', mediaItems[0].file);
             formData.append('logomarca', logoFile);
-            // Append other options if the webhook supports them
-            // formData.append('position', logoPosition);
-            // formData.append('size', logoSize);
+            
+            // Get final image dimensions based on content type
+            const dimensions = (selectedType === 'story' || selectedType === 'reels') ? '1080x1920' : '1080x1080';
+
+            // Append other options
+            formData.append('posicao_logo', logoPosition);
+            formData.append('tamanho_logo', logoSize);
+            formData.append('dimensoes_imagem_final', dimensions);
 
             const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/editor_imagem', {
                 method: 'POST',
@@ -265,6 +270,10 @@ export default function CriarConteudoPage() {
                 throw new Error("O webhook não retornou a URL da imagem final.");
             }
             setCombinedImageUrl(result.url_imagem_final);
+            toast({
+                title: "Sucesso!",
+                description: "Sua imagem foi combinada com a logomarca.",
+            });
 
         } catch (error: any) {
             toast({
@@ -282,6 +291,7 @@ export default function CriarConteudoPage() {
         if(step === 1 && selectedType) {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
+            // Se tiver uma imagem e uma logo, chama o webhook
             if (logoFile && mediaItems[0].type === 'image') {
                 await handleCombineImage();
             }
@@ -300,6 +310,8 @@ export default function CriarConteudoPage() {
             if (fileType === 'logo') {
                 setLogoFile(file);
                 setLogoPreviewUrl(previewUrl);
+                // Invalidate combined image if logo changes
+                setCombinedImageUrl(null);
             } else {
                  const newMediaItem: MediaItem = {
                     file: file,
@@ -311,6 +323,8 @@ export default function CriarConteudoPage() {
                 } else {
                     setMediaItems([newMediaItem]);
                 }
+                // Invalidate combined image if media changes
+                setCombinedImageUrl(null);
             }
         }
         if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
@@ -322,6 +336,8 @@ export default function CriarConteudoPage() {
             URL.revokeObjectURL(itemToRemove.previewUrl);
         }
         setMediaItems(prev => prev.filter((_, i) => i !== index));
+        // Invalidate combined image if media is removed
+        setCombinedImageUrl(null);
     };
 
     const clearLogo = () => {
@@ -330,6 +346,8 @@ export default function CriarConteudoPage() {
         }
         setLogoFile(null);
         setLogoPreviewUrl(null);
+        // Invalidate combined image if logo is removed
+        setCombinedImageUrl(null);
     };
 
     const handleGenerateText = () => {
@@ -708,3 +726,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
