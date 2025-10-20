@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, UserCircle, Calendar, Send, Clock, X, Check, Paperclip, AlertTriangle, UploadCloud, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Instagram, UserCircle, Calendar, Send, Clock, X, Check, Paperclip, AlertTriangle, UploadCloud, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine, Copy } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,30 @@ const sizeClasses: Record<LogoSize, string> = {
     'medium': 'w-16 h-16',
     'large': 'w-20 h-20',
 };
+
+const Preview = ({ imageUrl, logoUrl, logoPosition, logoSize }: { imageUrl: string | null, logoUrl: string | null, logoPosition: LogoPosition, logoSize: LogoSize }) => {
+    
+    const renderContent = () => {
+        if (!imageUrl) {
+             return (
+                <div className="flex flex-col items-center justify-center text-center p-4 h-full">
+                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                    <p className="text-gray-500">Pré-visualização do Post</p>
+                </div>
+            );
+        }
+        return <Image src={imageUrl} alt="Preview da imagem" layout="fill" className="object-cover w-full h-full" />;
+    };
+
+    return (
+        <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+            {renderContent()}
+            {imageUrl && logoUrl && (
+                <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
+            )}
+        </div>
+    );
+}
 
 
 export default function GerarConteudoPage() {
@@ -471,19 +495,14 @@ export default function GerarConteudoPage() {
                                         </Avatar>
                                         <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                     </div>
-                                    <div className="relative w-full aspect-square bg-gray-200">
-                                       {selectedImage ? (
-                                         <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${selectedImage})`}}>
-                                            {logoPreviewUrl && (
-                                                <Image src={logoPreviewUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
-                                            )}
-                                         </div>
-                                       ) : (
-                                         <div className="flex items-center justify-center h-full">
-                                            <ImageIcon className="w-16 h-16 text-gray-400"/>
-                                         </div>
-                                       )}
-                                    </div>
+                                    
+                                    <Preview 
+                                        imageUrl={selectedImage}
+                                        logoUrl={logoPreviewUrl}
+                                        logoPosition={logoPosition}
+                                        logoSize={logoSize}
+                                    />
+                                    
                                     <div className="p-3 text-sm">
                                         <p>
                                             <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
@@ -670,3 +689,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
