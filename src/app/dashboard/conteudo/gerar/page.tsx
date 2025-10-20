@@ -490,29 +490,12 @@ export default function GerarConteudoPage() {
                      <div className="space-y-6">
                         <h3 className="font-bold text-lg">Preview do Post</h3>
                         <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
-                            <div className="w-[320px] bg-white rounded-md shadow-lg border flex flex-col">
-                                <div className="p-3 flex items-center gap-2 border-b">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user?.photoURL || undefined} />
-                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
-                                </div>
-                                <div className="relative aspect-square">
-                                    <Preview
-                                      imageUrl={selectedImage}
-                                      logoUrl={logoPreviewUrl}
-                                      logoPosition={logoPosition}
-                                      logoSize={logoSize}
-                                    />
-                                </div>
-                                <div className="p-3 text-sm">
-                                    <p>
-                                        <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {selectedContent.subtitulo}
-                                    </p>
-                                    <p className="text-blue-500 mt-2 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
-                                </div>
-                            </div>
+                            <Preview
+                                imageUrl={selectedImage}
+                                logoUrl={logoPreviewUrl}
+                                logoPosition={logoPosition}
+                                logoSize={logoSize}
+                            />
                         </div>
                     </div>
 
