@@ -11,7 +11,7 @@ export interface PostData {
     id?: string;
     title: string;
     text: string;
-    imageUrl: string; // URL must be public from Firebase Storage
+    imageUrl: string; // URL must be public from Firebase Storage or AI source
     logoUrl?: string; // URL of the logo, also from Storage
     platforms: string[];
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
@@ -106,11 +106,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         return { success: false, error: "Conexão com a Meta (Instagram) não está configurada ou é inválida." };
     }
     
+    // This function will now handle both immediate and scheduled posts by saving them to Firestore.
+    // The immediate publication logic is moved to an API route to handle server-side image processing.
+
     let imageUrl: string;
     let logoUrl: string | undefined;
 
     try {
-        // Handle main media upload (File) or pass through (string URL)
+        // Handle main media upload (if it's a File) or pass through (if it's a string URL)
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
@@ -127,10 +130,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
 
 
-    const basePostData: Omit<PostData, 'id' | 'status'> = {
+    const basePostData: Omit<PostData, 'id' | 'status' | 'publishedMediaId' | 'failureReason' > = {
         title: postData.title,
         text: postData.text,
         imageUrl: imageUrl,
+        logoUrl: logoUrl,
         platforms: postData.platforms,
         scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         metaConnection: {
@@ -141,58 +145,50 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         }
     };
     
-    // Only add logoUrl to the object if it exists, to avoid 'undefined' error in Firestore
-    if (logoUrl) {
-        (basePostData as PostData).logoUrl = logoUrl;
-    }
-    
     const now = new Date();
-    // Publicação imediata se agendado para menos de 60 segundos no futuro.
+    // A post is "immediate" if it's scheduled for less than 60 seconds in the future
     const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
 
     if (isImmediate) {
-        console.log("Iniciando publicação imediata...");
+        console.log("Scheduling immediate publication via API...");
         try {
-            const response = await fetch('/api/instagram/publish', {
+            // The API will handle the actual publishing and then update the Firestore document.
+            // For now, we just save it as 'publishing'.
+            const publishingPost: Omit<PostData, 'id'> = { ...basePostData, status: 'publishing' };
+            const docRef = await addDoc(getPostsCollectionRef(userId), publishingPost);
+
+            // Fire-and-forget call to the API.
+            // The API is responsible for the rest of the process.
+            fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    instagramId: basePostData.metaConnection.instagramId,
-                    accessToken: basePostData.metaConnection.accessToken,
-                    imageUrl: basePostData.imageUrl,
-                    caption: basePostData.text,
+                    userId: userId,
+                    postId: docRef.id,
                 }),
+            }).catch(apiError => {
+                // This will only catch network errors, not API logic errors.
+                // The API itself should handle its own errors and update Firestore.
+                console.error("Error calling publish API:", apiError);
             });
 
-            const result = await response.json();
-            
-            if (!response.ok || !result.success) {
-                 const failedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'failed', failureReason: result.error || "Unknown publishing error" };
-                 await addDoc(getPostsCollectionRef(userId), failedPost);
-                 return { success: false, error: failedPost.failureReason };
-            }
-            
-            const publishedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'published', publishedMediaId: result.publishedMediaId };
-            const docRef = await addDoc(getPostsCollectionRef(userId), publishedPost);
             return {
                 success: true,
                 post: {
                     id: docRef.id,
-                    ...publishedPost,
+                    ...publishingPost,
                     scheduledAt: postData.scheduledAt.toISOString(),
-                    instagramUsername: publishedPost.metaConnection.instagramUsername
+                    instagramUsername: publishingPost.metaConnection.instagramUsername,
                 }
             };
             
         } catch(error: any) {
-            console.error(`Error in immediate publish for user ${userId}:`, error);
-            const failedPost: Omit<PostData, 'id'> = { ...basePostData, status: 'failed', failureReason: error.message || "Client-side error during publishing." };
-            await addDoc(getPostsCollectionRef(userId), failedPost);
-            return { success: false, error: failedPost.failureReason };
+            console.error(`Error saving 'publishing' post for user ${userId}:`, error);
+            return { success: false, error: `Failed to save post for immediate publishing. Reason: ${error.message}` };
         }
 
     } else {
-        console.log("Agendando post para publicação futura.");
+        console.log("Scheduling post for future publication.");
         try {
             const scheduledPost: Omit<PostData, 'id'> = { ...basePostData, status: 'scheduled' };
             const docRef = await addDoc(getPostsCollectionRef(userId), scheduledPost);
