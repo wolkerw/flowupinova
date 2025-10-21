@@ -266,10 +266,12 @@ export default function CriarConteudoPage() {
             }
 
             const result = await response.json();
-            if (!result.url_imagem_final) {
-                throw new Error("O webhook não retornou a URL da imagem final.");
+            const finalUrl = result?.[0]?.url_post;
+
+            if (!finalUrl) {
+                throw new Error("O webhook não retornou a URL da imagem final (`url_post`).");
             }
-            setCombinedImageUrl(result.url_imagem_final);
+            setCombinedImageUrl(finalUrl);
             toast({
                 title: "Sucesso!",
                 description: "Sua imagem foi combinada com a logomarca.",
