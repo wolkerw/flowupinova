@@ -658,10 +658,12 @@ export default function CriarConteudoPage() {
                                                 </Avatar>
                                                 <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                             </div>
-                                            <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} combinedImageUrl={combinedImageUrl} />
+                                            <div className="relative aspect-square bg-gray-200">
+                                                 <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} combinedImageUrl={combinedImageUrl} />
+                                            </div>
                                             <div className="p-3 text-sm">
                                                 <p>
-                                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {text.substring(0, 100)}{text.length > 100 && '...'}
+                                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {title && <span className="font-bold">{title}</span>} {text}
                                                 </p>
                                             </div>
                                         </div>
@@ -728,5 +730,7 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
 
     
