@@ -130,12 +130,10 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         return { success: false, error: uploadError.message };
     }
 
-
-    const basePostData: Omit<PostData, 'id' | 'status' | 'publishedMediaId' | 'failureReason' > = {
+    const postToSave: any = {
         title: postData.title,
         text: postData.text,
-        imageUrl: imageUrl, // This will be the combined URL if the webhook was called
-        logoUrl: logoUrl, // Can be stored for reference, but imageUrl is what's published
+        imageUrl: imageUrl,
         platforms: postData.platforms,
         scheduledAt: Timestamp.fromDate(postData.scheduledAt),
         metaConnection: {
@@ -145,6 +143,10 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             instagramUsername: postData.metaConnection.instagramUsername,
         }
     };
+
+    if (logoUrl) {
+        postToSave.logoUrl = logoUrl;
+    }
     
     const now = new Date();
     // A post is "immediate" if it's scheduled for less than 60 seconds in the future
@@ -155,7 +157,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         try {
             // The API will handle the actual publishing and then update the Firestore document.
             // For now, we just save it as 'publishing'.
-            const publishingPost: Omit<PostData, 'id'> = { ...basePostData, status: 'publishing' };
+            const publishingPost = { ...postToSave, status: 'publishing' };
             const docRef = await addDoc(getPostsCollectionRef(userId), publishingPost);
 
             // Fire-and-forget call to the API.
@@ -191,7 +193,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     } else {
         console.log("Scheduling post for future publication.");
         try {
-            const scheduledPost: Omit<PostData, 'id'> = { ...basePostData, status: 'scheduled' };
+            const scheduledPost = { ...postToSave, status: 'scheduled' };
             const docRef = await addDoc(getPostsCollectionRef(userId), scheduledPost);
             return {
                 success: true,
