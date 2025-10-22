@@ -5,7 +5,10 @@ import * as admin from 'firebase-admin';
 // Não é necessário carregar o arquivo service-account.json manualmente.
 if (!admin.apps.length) {
   try {
-    admin.initializeApp();
+    admin.initializeApp({
+        // Adicionar o databaseURL reforça a conexão com o banco de dados correto.
+        databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
+    });
     console.log("Firebase Admin SDK initialized using application default credentials.");
   } catch (error: any) {
     console.error("Firebase Admin initialization error:", error.message);
@@ -13,7 +16,8 @@ if (!admin.apps.length) {
     try {
         const serviceAccount = require('../../../service-account.json');
         admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
         });
         console.log("Firebase Admin SDK initialized using service-account.json as a fallback.");
     } catch (fallbackError: any) {
