@@ -425,25 +425,25 @@ export default function Conteudo() {
   )
   
     const TestPublishCard = () => (
-    <Card className="shadow-lg border-none mt-8">
+    <Card className="shadow-lg border-none mt-8 bg-gray-100/50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Beaker className="w-5 h-5 text-purple-600" />
-          Teste de Publicação
+        <CardTitle className="flex items-center gap-2 text-base text-gray-500">
+          <Beaker className="w-5 h-5 text-gray-500" />
+          Teste de Publicação (Desativado)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Cole o ID de um post existente no Firestore para forçar uma nova tentativa de publicação.
+          Esta função de teste foi temporariamente desativada para focar na estabilidade do fluxo principal de publicação.
         </p>
         <div className="space-y-2">
-          <Label htmlFor="test-post-id">ID do Post</Label>
+          <Label htmlFor="test-post-id" className="text-gray-400">ID do Post</Label>
           <Input 
             id="test-post-id" 
             placeholder="Ex: WqevPsh2TxPY8gkX2Wm7"
             value={testPostId}
             onChange={(e) => setTestPostId(e.target.value)}
-            disabled={isTestPublishing}
+            disabled={true}
           />
         </div>
       </CardContent>
@@ -451,10 +451,10 @@ export default function Conteudo() {
         <Button 
           className="w-full" 
           onClick={handleTestPublish} 
-          disabled={!testPostId || isTestPublishing}
+          disabled={true}
         >
-          {isTestPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-          {isTestPublishing ? 'Publicando Teste...' : 'Publicar Teste'}
+          <Send className="w-4 h-4 mr-2" />
+          Publicar Teste
         </Button>
       </CardFooter>
     </Card>
