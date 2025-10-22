@@ -36,15 +36,13 @@ export async function POST(request: Request) {
     const data = await webhookResponse.json();
 
     // A resposta esperada é um array de objetos, cada um com uma propriedade "url_da_imagem" contendo a URL.
-    if (!Array.isArray(data) || data.some(item => !item.url_da_imagem)) {
+    if (!Array.isArray(data) || data.some(item => typeof item.url_da_imagem !== 'string')) {
       console.error("Formato de resposta do webhook de imagem inesperado:", data);
       return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
-    // Processa a resposta para extrair as URLs corretamente.
-    const processedData = data.map((item: any) => ({ url_da_imagem: item.url_da_imagem }));
-
-    return NextResponse.json(processedData);
+    // A resposta do webhook já está no formato correto, então apenas a repassamos.
+    return NextResponse.json(data);
 
   } catch (error: any) {
     console.error("Internal server error:", error);

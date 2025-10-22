@@ -147,6 +147,7 @@ export default function GerarConteudoPage() {
   };
 
   const handleNextToStep3 = () => {
+    handleGenerateImages();
     setStep(3);
   };
 
