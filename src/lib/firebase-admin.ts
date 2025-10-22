@@ -1,23 +1,24 @@
 
 import * as admin from 'firebase-admin';
-import path from 'path';
 
-// As credenciais de serviço são carregadas dinamicamente a partir do caminho do arquivo.
-// Isso resolve o problema de build do Next.js com importações fora do diretório /src.
-const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
-const serviceAccount = require(serviceAccountPath);
-
-// Evita a reinicialização do app em ambientes de desenvolvimento.
+// Em ambientes Google Cloud (como App Hosting), o SDK encontra as credenciais automaticamente.
+// Não é necessário carregar o arquivo service-account.json manualmente.
 if (!admin.apps.length) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      // Adicione a URL do seu Realtime Database se estiver usando
-      // databaseURL: "https://<DATABASE_NAME>.firebaseio.com",
-    });
-    console.log("Firebase Admin SDK initialized.");
+    admin.initializeApp();
+    console.log("Firebase Admin SDK initialized using application default credentials.");
   } catch (error: any) {
     console.error("Firebase Admin initialization error:", error.message);
+    // Para depuração, podemos tentar inicializar com o arquivo se o padrão falhar (útil para dev local).
+    try {
+        const serviceAccount = require('../../../service-account.json');
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log("Firebase Admin SDK initialized using service-account.json as a fallback.");
+    } catch (fallbackError: any) {
+        console.error("Fallback Firebase Admin initialization failed:", fallbackError.message);
+    }
   }
 }
 
