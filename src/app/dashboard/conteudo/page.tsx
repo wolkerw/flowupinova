@@ -320,7 +320,6 @@ export default function Conteudo() {
     setIsSimplePublishing(true);
     toast({ title: "Iniciando Publicação de Teste...", description: "Enviando dados para a API." });
     
-    // Direct call to the API route, which now handles everything
     try {
         const payload = {
             userId: user.uid,
@@ -349,9 +348,7 @@ export default function Conteudo() {
             throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
         }
         
-        toast({ title: "Sucesso!", description: "Post de teste enviado para publicação." });
-        // Refresh posts list to show the new post
-        fetchPageData();
+        toast({ title: "Sucesso!", description: "Post de teste publicado! Ele aparecerá na lista em breve." });
 
     } catch (error: any) {
         toast({ variant: "destructive", title: "Erro na Publicação de Teste", description: error.message });
@@ -688,3 +685,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
