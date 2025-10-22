@@ -9,7 +9,7 @@ interface PublishRequestBody {
     postId: string;
 }
 
-// Função para criar o container de mídia no Instagram
+// Função para criar o contêiner de mídia no Instagram
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
     const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
     const params = new URLSearchParams({
