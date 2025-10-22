@@ -82,40 +82,34 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 
 export async function POST(request: NextRequest) {
     let userId: string | undefined;
-    let debugMessage = "";
+    let debugMessage = "[1] API endpoint hit. ";
 
     try {
         const body: PublishRequestBody = await request.json();
         userId = body.userId;
         const { postData } = body;
-        
-        debugMessage += `[1] API endpoint hit for user: ${userId}. `;
+        debugMessage += `User: ${userId}. `;
 
-        // --- Basic Validation ---
-        if (!userId || !postData) {
-            return NextResponse.json({ success: false, error: "userId e postData são obrigatórios." }, { status: 400 });
-        }
-        if (!postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken) {
-             return NextResponse.json({ success: false, error: "Dados de conexão da Meta ausentes ou incompletos." }, { status: 400 });
-        }
-         if (!postData.imageUrl) {
-            return NextResponse.json({ success: false, error: "A URL da imagem é obrigatória." }, { status: 400 });
+        if (!userId || !postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
+            return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando userId, postData ou detalhes da conexão Meta." }, { status: 400 });
         }
 
-        // --- Step 0: Ensure user document exists ---
+        // --- Step 1: Ensure user document exists ---
+        debugMessage += "[2] Checking user document... ";
         const userDocRef = adminDb.collection("users").doc(userId);
         const userDoc = await userDocRef.get();
         if (!userDoc.exists) {
-            debugMessage += `[2] User document NOT FOUND for ${userId}. Creating it now... `;
+            // Documento não existe, vamos criá-lo.
+            debugMessage += "NOT FOUND. Creating it now... ";
             await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
-            debugMessage += `[3] User document created. `;
+            debugMessage += "Created. ";
         } else {
-             debugMessage += `[2] User document found for ${userId}. `;
+            debugMessage += "Found. ";
         }
 
         
-        // --- Step 1: Publish to Instagram ---
-        debugMessage += `[4] Attempting to publish to Instagram... `;
+        // --- Step 2: Publish to Instagram ---
+        debugMessage += "[3] Publishing to Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -124,17 +118,17 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
-        debugMessage += `[5] Media container created (id: ${creationId}). `;
+        debugMessage += `Media container created (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
-        debugMessage += `[6] Media published (id: ${publishedMediaId}). `;
+        debugMessage += `Media published (id: ${publishedMediaId}). `;
 
-        // --- Step 2: If successful, save to Firestore ---
-        debugMessage += `[7] Attempting to save to Firestore... `;
+        // --- Step 3: If successful, save to Firestore ---
+        debugMessage += "[4] Saving to Firestore... ";
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -153,19 +147,18 @@ export async function POST(request: NextRequest) {
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
         
-        debugMessage += `[8] Successfully saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
+        debugMessage += `[5] Saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
         console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
 
     } catch (error: any) {
-        // If any step fails, we log it and return a detailed error.
-        const finalErrorMessage = `Error for user ${userId}. Flow: ${debugMessage}. Error Details: ${error.message}`;
+        const finalErrorMessage = `Error for user ${userId}. Flow: ${debugMessage}. Error Details: ${error.code} ${error.message}`;
         console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({
             success: false,
-            error: finalErrorMessage, // Return the detailed debug message to the client
+            error: finalErrorMessage,
         }, { status: 500 });
     }
 }
