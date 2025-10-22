@@ -149,6 +149,7 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [historyFilter, setHistoryFilter] = useState('this-month');
   const [isRepublishing, setIsRepublishing] = useState(false);
+  const [isTestPublishing, setIsTestPublishing] = useState(false);
   
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -254,6 +255,50 @@ export default function Conteudo() {
     fetchPageData();
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
+
+  const handleSimpleTestPublish = async () => {
+        if (!user) return;
+        if (!metaConnection.isConnected) {
+            toast({
+                variant: 'destructive',
+                title: 'Conexão Necessária',
+                description: 'Por favor, conecte sua conta da Meta primeiro.',
+            });
+            return;
+        }
+
+        setIsTestPublishing(true);
+        toast({ title: 'Enviando post de teste...', description: 'Aguarde um momento.' });
+
+        const testPost = {
+            title: `Post de Teste - ${new Date().toLocaleTimeString()}`,
+            text: "Este é um post de teste gerado automaticamente pela plataforma FlowUp. #Teste #FlowUp",
+            media: "https://images.unsplash.com/photo-1620288627223-16212394639a?q=80&w=2070&auto=format&fit=crop",
+            platforms: ['instagram'],
+            scheduledAt: new Date(),
+            metaConnection: metaConnection,
+        };
+
+        const result = await schedulePost(user.uid, testPost);
+
+        if (result.success) {
+            toast({
+                title: 'Sucesso!',
+                description: 'Post de teste enviado para publicação. Ele aparecerá no histórico em breve.',
+            });
+            // Re-fetch data to show the new post in the list
+            setTimeout(() => {
+                fetchPageData();
+            }, 5000); // Wait a bit for the backend to process
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Erro na Publicação de Teste',
+                description: result.error || 'Ocorreu um erro desconhecido.',
+            });
+        }
+        setIsTestPublishing(false);
+    };
   
   const handleRepublish = async (postId: string) => {
     if (!user) {
@@ -455,6 +500,32 @@ export default function Conteudo() {
         </CardFooter>
     </Card>
   )
+
+  const TestPublishCard = () => (
+    <Card className="shadow-lg border-none">
+        <CardHeader>
+            <CardTitle className="text-xl">Publicação Rápida de Teste</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+                Clique no botão abaixo para enviar um post de teste para sua conta do Instagram conectada. Isso ajuda a verificar se a integração está funcionando corretamente.
+            </p>
+            <Button 
+                className="w-full" 
+                onClick={handleSimpleTestPublish}
+                disabled={isTestPublishing || !metaConnection.isConnected}
+            >
+                {isTestPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Send className="w-4 h-4 mr-2"/>}
+                {isTestPublishing ? 'Enviando Teste...' : 'Publicar Post de Teste'}
+            </Button>
+            {!metaConnection.isConnected && (
+                <p className="text-xs text-red-600 mt-2 text-center">
+                    Você precisa conectar sua conta da Meta para usar esta função.
+                </p>
+            )}
+        </CardContent>
+    </Card>
+);
   
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
@@ -505,6 +576,7 @@ export default function Conteudo() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-8">
             <CalendarCard />
+            <TestPublishCard />
         </div>
         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
