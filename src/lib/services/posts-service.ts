@@ -12,7 +12,6 @@ export interface PostData {
     title: string;
     text: string;
     imageUrl: string; // URL must be public from Firebase Storage or AI source
-    logoUrl?: string; // URL of the logo, also from Storage
     platforms: string[];
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
@@ -29,8 +28,6 @@ export type PostDataInput = {
     platforms: string[];
     scheduledAt: Date;
     metaConnection: MetaConnectionData; // Pass the full connection object
-    logo?: File | null;
-    logoOptions?: { position: string; size:string };
 };
 
 // Interface for data being sent to the client from the service

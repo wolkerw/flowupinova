@@ -8,14 +8,12 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, UploadCloud, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, CornerUpRight, CornerUpLeft, CornerDownLeft, CornerDownRight, ArrowUpToLine, ArrowDownToLine, Instagram, Facebook, Linkedin, Send, Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { schedulePost } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -28,8 +26,6 @@ type MediaItem = {
     file: File;
     previewUrl: string; // Blob or data URL for local preview
 };
-type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
-type LogoSize = 'small' | 'medium' | 'large';
 
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
@@ -59,22 +55,7 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ];
 
-const positionClasses: Record<LogoPosition, string> = {
-    'top-left': 'top-4 left-4',
-    'top-right': 'top-4 right-4',
-    'bottom-left': 'bottom-4 left-4',
-    'bottom-right': 'bottom-4 right-4',
-    'top-center': 'top-4 left-1/2 -translate-x-1/2',
-    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
-};
-
-const sizeClasses: Record<LogoSize, string> = {
-    'small': 'w-12 h-12',
-    'medium': 'w-16 h-16',
-    'large': 'w-20 h-20',
-};
-
-const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSize, combinedImageUrl }: { type: ContentType, mediaItems: MediaItem[], logoUrl: string | null, onRemoveItem: (index: number) => void, logoPosition: LogoPosition, logoSize: LogoSize, combinedImageUrl?: string | null }) => {
+const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaItems: MediaItem[], onRemoveItem: (index: number) => void }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -96,7 +77,7 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
     }
 
     const renderContent = (item: MediaItem) => {
-        const imageUrlToDisplay = combinedImageUrl || item.previewUrl;
+        const imageUrlToDisplay = item.previewUrl;
         const imageSizeProps = { width: 400, height: 400 };
         if (type === 'reels' || type === 'story') {
             imageSizeProps.width = 250;
@@ -129,9 +110,6 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             return (
                 <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
                     {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
-                    {!combinedImageUrl && logoUrl && (
-                        <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
-                    )}
                 </div>
             );
         case 'carousel':
@@ -141,10 +119,6 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
                         <div className="aspect-square w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
                            <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
-                                
-                                {!combinedImageUrl && logoUrl && (
-                                    <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
-                                )}
 
                                 {mediaItems.length > 0 && (
                                      <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
@@ -190,9 +164,6 @@ const Preview = ({ type, mediaItems, logoUrl, onRemoveItem, logoPosition, logoSi
             return (
                 <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
                     {singleItem ? renderContent(singleItem) : placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
-                    {!combinedImageUrl && logoUrl && (
-                         <Image src={logoUrl} alt="Logo preview" width={64} height={64} className={cn("absolute object-contain", positionClasses[logoPosition], sizeClasses[logoSize])} />
-                    )}
                 </div>
             );
         default:
@@ -205,15 +176,11 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [logoFile, setLogoFile] = useState<File | null>(null);
-    const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
-    const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
-    const [logoSize, setLogoSize] = useState<LogoSize>('medium');
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
     const { user } = useAuth();
@@ -222,81 +189,18 @@ export default function CriarConteudoPage() {
     
     const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
-    const [isCombiningImage, setIsCombiningImage] = useState(false);
-    const [combinedImageUrl, setCombinedImageUrl] = useState<string | null>(null);
-
-
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
-    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
     }, [user]);
 
-
-    const handleCombineImage = async () => {
-        if (mediaItems.length === 0 || !logoFile || mediaItems[0].type !== 'image' || !selectedType) {
-            return; // Only combine if there's an image and a logo
-        }
-        setIsCombiningImage(true);
-        setCombinedImageUrl(null);
-        try {
-            const formData = new FormData();
-            formData.append('imagem_principal', mediaItems[0].file);
-            formData.append('logomarca', logoFile);
-            
-            // Get final image dimensions based on content type
-            const dimensions = (selectedType === 'story' || selectedType === 'reels') ? '1080x1920' : '1080x1080';
-
-            // Append other options
-            formData.append('posicao_logo', logoPosition);
-            formData.append('tamanho_logo', logoSize);
-            formData.append('dimensoes_imagem_final', dimensions);
-
-            const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/editor_imagem', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Falha no webhook: ${errorText}`);
-            }
-
-            const result = await response.json();
-            const finalUrl = result?.[0]?.url_post;
-
-            if (!finalUrl) {
-                throw new Error("O webhook não retornou a URL da imagem final (`url_post`).");
-            }
-            setCombinedImageUrl(finalUrl);
-            toast({
-                title: "Sucesso!",
-                description: "Sua imagem foi combinada com a logomarca.",
-            });
-
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Erro ao combinar imagem",
-                description: error.message,
-            });
-        } finally {
-            setIsCombiningImage(false);
-        }
-    };
-
-
     const handleNextStep = async () => {
         if(step === 1 && selectedType) {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
-            // Se tiver uma imagem e uma logo, chama o webhook
-            if (logoFile && mediaItems[0].type === 'image') {
-                await handleCombineImage();
-            }
             setStep(3);
         }
     }
@@ -305,28 +209,19 @@ export default function CriarConteudoPage() {
         ref.current?.click();
     };
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video' | 'logo') => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video') => {
         const file = event.target.files?.[0];
         if (file) {
             const previewUrl = URL.createObjectURL(file);
-            if (fileType === 'logo') {
-                setLogoFile(file);
-                setLogoPreviewUrl(previewUrl);
-                // Invalidate combined image if logo changes
-                setCombinedImageUrl(null);
+             const newMediaItem: MediaItem = {
+                file: file,
+                previewUrl: previewUrl,
+                type: file.type.startsWith('video') ? 'video' : 'image',
+            };
+            if (selectedType === 'carousel' || mediaItems.length === 0) {
+                setMediaItems(prev => [...prev, newMediaItem]);
             } else {
-                 const newMediaItem: MediaItem = {
-                    file: file,
-                    previewUrl: previewUrl,
-                    type: file.type.startsWith('video') ? 'video' : 'image',
-                };
-                if (selectedType === 'carousel' || mediaItems.length === 0) {
-                    setMediaItems(prev => [...prev, newMediaItem]);
-                } else {
-                    setMediaItems([newMediaItem]);
-                }
-                // Invalidate combined image if media changes
-                setCombinedImageUrl(null);
+                setMediaItems([newMediaItem]);
             }
         }
         if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
@@ -338,18 +233,6 @@ export default function CriarConteudoPage() {
             URL.revokeObjectURL(itemToRemove.previewUrl);
         }
         setMediaItems(prev => prev.filter((_, i) => i !== index));
-        // Invalidate combined image if media is removed
-        setCombinedImageUrl(null);
-    };
-
-    const clearLogo = () => {
-        if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(logoPreviewUrl);
-        }
-        setLogoFile(null);
-        setLogoPreviewUrl(null);
-        // Invalidate combined image if logo is removed
-        setCombinedImageUrl(null);
     };
 
     const handleGenerateText = () => {
@@ -373,7 +256,7 @@ export default function CriarConteudoPage() {
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
 
-        const mediaToUpload = combinedImageUrl || mediaItems[0].file;
+        const mediaToUpload = mediaItems[0].file;
 
 
         const result = await schedulePost(user.uid, {
@@ -383,7 +266,6 @@ export default function CriarConteudoPage() {
             platforms: ['instagram'],
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
             metaConnection: metaConnection,
-            // Logo is not sent here anymore as it's already combined if needed
         });
 
         setIsPublishing(false);
@@ -397,7 +279,7 @@ export default function CriarConteudoPage() {
     }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
-    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading || isCombiningImage));
+    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading));
     const isSubmitDisabled = (
         !metaConnection?.isConnected || 
         isPublishing || 
@@ -415,11 +297,8 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
-            if (logoPreviewUrl) {
-                URL.revokeObjectURL(logoPreviewUrl);
-            }
         };
-    }, [mediaItems, logoPreviewUrl]);
+    }, [mediaItems]);
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -503,10 +382,9 @@ export default function CriarConteudoPage() {
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
-                                    <p className="text-xs text-gray-500">Faça o upload de vídeos, imagens e sua logomarca.</p>
+                                    <p className="text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
                                     <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
                                     <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
-                                    <input type="file" ref={logoInputRef} onChange={(e) => handleFileChange(e, 'logo')} accept="image/png, image/jpeg" className="hidden" />
                                     
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)} disabled={isUploading}>
@@ -518,65 +396,6 @@ export default function CriarConteudoPage() {
                                             Anexar Vídeo
                                         </Button>
                                     </div>
-                                    <div className="pt-2 relative">
-                                         <Button variant="outline" className="flex items-center gap-2 w-full justify-center" onClick={() => handleFileSelect(logoInputRef)} disabled={isUploading}>
-                                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-purple-500" /> : <UploadCloud className="w-4 h-4 text-purple-500" />}
-                                            Adicionar Logomarca
-                                        </Button>
-                                        {logoPreviewUrl && (
-                                            <Button variant="ghost" size="icon" className="absolute -top-1 right-0 h-6 w-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200" onClick={clearLogo}><X className="w-4 h-4"/></Button>
-                                        )}
-                                    </div>
-                                     {logoPreviewUrl && (
-                                        <div className="space-y-4 pt-2">
-                                            <div>
-                                                <Label className="font-medium text-sm">Posição da Logo</Label>
-                                                <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="flex flex-wrap gap-2 mt-2">
-                                                    <Label htmlFor="pos-tl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="top-left" id="pos-tl" className="sr-only"/>
-                                                        <CornerUpLeft />
-                                                    </Label>
-                                                    <Label htmlFor="pos-tc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="top-center" id="pos-tc" className="sr-only"/>
-                                                        <ArrowUpToLine />
-                                                    </Label>
-                                                    <Label htmlFor="pos-tr" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="top-right" id="pos-tr" className="sr-only"/>
-                                                        <CornerUpRight />
-                                                    </Label>
-                                                    <Label htmlFor="pos-bl" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="bottom-left" id="pos-bl" className="sr-only"/>
-                                                        <CornerDownLeft />
-                                                    </Label>
-                                                     <Label htmlFor="pos-bc" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="bottom-center" id="pos-bc" className="sr-only"/>
-                                                        <ArrowDownToLine />
-                                                    </Label>
-                                                     <Label htmlFor="pos-br" className="p-2 border rounded-md cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="bottom-right" id="pos-br" className="sr-only"/>
-                                                        <CornerDownRight />
-                                                    </Label>
-                                                </RadioGroup>
-                                            </div>
-                                             <div>
-                                                <Label className="font-medium text-sm">Tamanho da Logo</Label>
-                                                <RadioGroup value={logoSize} onValueChange={(v) => setLogoSize(v as LogoSize)} className="grid grid-cols-3 gap-2 mt-2">
-                                                    <Label htmlFor="size-s" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="small" id="size-s" className="sr-only"/>
-                                                        Pequeno
-                                                    </Label>
-                                                    <Label htmlFor="size-m" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="medium" id="size-m" className="sr-only"/>
-                                                        Médio
-                                                    </Label>
-                                                    <Label htmlFor="size-l" className="p-2 border rounded-md cursor-pointer text-center has-[:checked]:bg-blue-100 has-[:checked]:border-blue-400">
-                                                        <RadioGroupItem value="large" id="size-l" className="sr-only"/>
-                                                        Grande
-                                                    </Label>
-                                                </RadioGroup>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="space-y-4">
                                     <div>
@@ -618,7 +437,7 @@ export default function CriarConteudoPage() {
                         
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} />
+                             <Preview type={selectedType} mediaItems={mediaItems} onRemoveItem={handleRemoveItem} />
                            </div>
                         </div>
                     </div>
@@ -632,9 +451,8 @@ export default function CriarConteudoPage() {
                           onClick={handleNextStep}
                           disabled={isNextDisabled}
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                           {isCombiningImage ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
-                           {isCombiningImage ? 'Combinando Imagem...' : 'Próxima Etapa'}
-                           {!isCombiningImage && <ArrowRight className="w-4 h-4 ml-2" />}
+                           Próxima Etapa
+                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                     </div>
                 </motion.div>
@@ -664,7 +482,7 @@ export default function CriarConteudoPage() {
                                                 <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                             </div>
                                             <div className="relative aspect-square bg-gray-200">
-                                                 <Preview type={selectedType} mediaItems={mediaItems} logoUrl={logoPreviewUrl} onRemoveItem={handleRemoveItem} logoPosition={logoPosition} logoSize={logoSize} combinedImageUrl={combinedImageUrl} />
+                                                 <Preview type={selectedType} mediaItems={mediaItems} onRemoveItem={handleRemoveItem} />
                                             </div>
                                             <div className="p-3 text-sm">
                                                 <p>
@@ -735,7 +553,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
-
-    
