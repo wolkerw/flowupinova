@@ -51,7 +51,7 @@ interface DisplayPost {
     instagramUsername?: string;
 }
 
-const PostItem = ({ post }: { post: DisplayPost }) => {
+const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, onRepublish: (postId: string) => void, isRepublishing: boolean }) => {
     const statusConfig = {
         published: { icon: CheckCircle, className: "bg-green-100 text-green-700" },
         scheduled: { icon: Clock, className: "bg-blue-100 text-blue-700" },
@@ -104,13 +104,21 @@ const PostItem = ({ post }: { post: DisplayPost }) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem disabled>
                             <Edit className="w-4 h-4 mr-2" />
                             Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-blue-600">
+                        <DropdownMenuItem
+                          className="text-blue-600 focus:text-blue-700"
+                          onClick={() => onRepublish(post.id)}
+                          disabled={isRepublishing}
+                        >
+                          {isRepublishing ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
                             <RefreshCw className="w-4 h-4 mr-2" />
-                            Republicar
+                          )}
+                          Republicar
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -132,6 +140,7 @@ export default function Conteudo() {
   const [connectionResult, setConnectionResult] = useState<{success: boolean, message: string} | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [historyFilter, setHistoryFilter] = useState('this-month');
+  const [isRepublishing, setIsRepublishing] = useState(false);
   
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -238,6 +247,32 @@ export default function Conteudo() {
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
   
+  const handleRepublish = async (postId: string) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: "Erro", description: "Usuário não encontrado."});
+      return;
+    }
+    setIsRepublishing(true);
+    toast({ title: "Republicando Post...", description: `Enviando post ${postId} para publicação.`});
+    try {
+      const response = await fetch('/api/instagram/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, postId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Falha ao republicar o post.');
+      }
+      toast({ title: "Sucesso!", description: 'Seu post foi enviado para publicação novamente.'});
+      fetchPageData();
+    } catch(error: any) {
+      toast({ variant: 'destructive', title: "Erro ao Republicar", description: error.message });
+    } finally {
+      setIsRepublishing(false);
+    }
+  }
+
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
         
@@ -449,7 +484,7 @@ export default function Conteudo() {
                             {isLoadingInitial ? (
                                 <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                             ) : scheduledPosts.length > 0 ? (
-                                scheduledPosts.map((post) => <PostItem key={post.id} post={post} />)
+                                scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} />)
                             ) : (
                                 <div className="text-center text-gray-500 py-6">
                                     <Clock className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
@@ -482,7 +517,7 @@ export default function Conteudo() {
                             {isLoadingInitial ? (
                                  <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                             ) : pastPosts.length > 0 ? (
-                                pastPosts.map((post) => <PostItem key={post.id} post={post} />)
+                                pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} />)
                             ) : (
                                 <div className="text-center text-gray-500 py-10">
                                     <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
@@ -505,3 +540,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
