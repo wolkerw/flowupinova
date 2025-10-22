@@ -1,14 +1,27 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth.uid == userId;
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Allow backend admin to create and read user posts
-    match /users/{userId}/posts/{postId} {
-      allow get, create: if request.auth != null;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Nega acesso a todos os documentos por padrão, a menos que uma regra mais específica permita.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description Protege os dados do usuário garantindo que apenas o proprietário possa acessá-los.
+     * Esta regra se aplica a todas as subcoleções de um usuário.
+     */
+    match /users/{userId}/{documents=**} {
+      allow read, write: if isSignedIn() && isOwner(userId);
     }
   }
 }
