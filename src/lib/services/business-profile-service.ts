@@ -1,3 +1,4 @@
+
 "use client";
 
 import { db } from "@/lib/firebase";
@@ -44,6 +45,8 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
             return docSnap.data() as BusinessProfileData;
         } else {
             // Document doesn't exist, so create it with default data for this user
+            // This also creates the parent user document if it's missing.
+            await setDoc(doc(db, "users", userId), { createdAt: new Date() });
             await setDoc(profileDocRef, defaultProfile);
             console.log(`Profile document created with default data for user ${userId}.`);
             return defaultProfile;
