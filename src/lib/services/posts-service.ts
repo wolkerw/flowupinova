@@ -156,13 +156,15 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         if (isImmediate) {
             // Fire-and-forget call to the API.
-            fetch('/api/instagram/publish', {
+            const response = await fetch('/api/instagram/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: userId, postId: docRef.id }),
-            }).catch(apiError => {
-                console.error("Error calling publish API:", apiError);
             });
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `A API de publicação falhou com status ${response.status}`);
+            }
         }
 
         return {
@@ -219,3 +221,5 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
 }
+
+    
