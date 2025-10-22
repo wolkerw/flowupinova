@@ -8,7 +8,7 @@ if (!admin.apps.length) {
   try {
     console.log("[ADMIN_SDK_INIT] Attempting to initialize with service-account.json...");
     // O `require` funciona aqui porque o Next.js agrupa os arquivos JSON.
-    const serviceAccount = require('../../../service-account.json');
+    const serviceAccount = require('../../service-account.json');
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         // Adicionar o databaseURL reforça a conexão com o banco de dados correto.
