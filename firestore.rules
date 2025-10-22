@@ -2,23 +2,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the user is the owner of a document
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    // Helper function to check if the request is coming from Firebase Admin SDK
-    function isAdmin() {
-      return request.auth.token.firebase.sign_in_provider == 'custom';
-    }
-
-    // Rules for the 'users' collection
     match /users/{userId}/{document=**} {
-      // Allow read/write access only to the authenticated user who owns the data
-      // OR allow admin (backend service) to read the data
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId);
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Allow backend admin to create and read user posts
+    match /users/{userId}/posts/{postId} {
+      allow get, create: if request.auth != null;
     }
   }
 }
