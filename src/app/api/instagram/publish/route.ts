@@ -82,14 +82,14 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 
 export async function POST(request: NextRequest) {
     let userId: string | undefined;
+    let debugMessage = "";
 
     try {
         const body: PublishRequestBody = await request.json();
         userId = body.userId;
         const { postData } = body;
         
-        console.log(`[INSTAGRAM_PUBLISH_API] Received request for user: ${userId}`);
-        console.log(`[INSTAGRAM_PUBLISH_API] Post Data Title: ${postData.title}`);
+        debugMessage += `[1] API endpoint hit for user: ${userId}. `;
 
         // --- Basic Validation ---
         if (!userId || !postData) {
@@ -107,16 +107,18 @@ export async function POST(request: NextRequest) {
             const userDocRef = adminDb.collection("users").doc(userId);
             const userDoc = await userDocRef.get();
             if (userDoc.exists) {
-                console.log(`[INSTAGRAM_PUBLISH_API] DEBUG: Successfully found user document for user: ${userId}`);
+                debugMessage += `[2] DEBUG: Successfully found user document for user: ${userId}. `;
             } else {
-                console.error(`[INSTAGRAM_PUBLISH_API] DEBUG: CRITICAL - User document NOT FOUND for user: ${userId}`);
-                // We still proceed to see the final error, but this log is key.
+                // This is a critical failure point. We throw an error to be caught below.
+                throw new Error(`CRITICAL: User document NOT FOUND in Firestore for user: ${userId}`);
             }
         } catch (e: any) {
-            console.error(`[INSTAGRAM_PUBLISH_API] DEBUG: CRITICAL - Error while trying to get user document for ${userId}:`, e.message);
+             // This will also catch permission errors on the get()
+            throw new Error(`CRITICAL: Firestore error while trying to get user document for ${userId}. Details: ${e.message}`);
         }
         
         // --- Step 1: Publish to Instagram ---
+        debugMessage += `[3] Attempting to publish to Instagram... `;
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -125,34 +127,48 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
+        debugMessage += `[4] Media container created (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
+        debugMessage += `[5] Media published (id: ${publishedMediaId}). `;
 
         // --- Step 2: If successful, save to Firestore ---
-        const postToSave = {
-            ...postData,
+        debugMessage += `[6] Attempting to save to Firestore... `;
+        const postToSave: Omit<PostData, 'id'> = {
+            title: postData.title,
+            text: postData.text,
+            imageUrl: postData.imageUrl,
+            platforms: postData.platforms,
+            status: 'published',
             scheduledAt: admin.firestore.Timestamp.fromDate(new Date(postData.scheduledAt)),
-            status: 'published' as const,
-            publishedMediaId: publishedMediaId, // Save the ID from Instagram
+            metaConnection: {
+                accessToken: postData.metaConnection.accessToken,
+                pageId: postData.metaConnection.pageId,
+                instagramId: postData.metaConnection.instagramId,
+                instagramUsername: postData.metaConnection.instagramUsername,
+            },
+            publishedMediaId: publishedMediaId,
         };
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
         
-        console.log(`[INSTAGRAM_PUBLISH_API] Successfully published to Instagram (mediaId: ${publishedMediaId}) and saved to Firestore (docId: ${postDocRef.id})`);
+        debugMessage += `[7] Successfully saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
+        console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
 
     } catch (error: any) {
-        // If any step fails, we log it and return an error without saving to DB.
-        console.error(`[INSTAGRAM_PUBLISH_ERROR] Full error for user ${userId}:`, error);
+        // If any step fails, we log it and return a detailed error.
+        const finalErrorMessage = `Error for user ${userId}. Flow: ${debugMessage}. Error Details: ${error.message}`;
+        console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({
             success: false,
-            error: error?.message || "Erro inesperado no servidor.",
+            error: finalErrorMessage, // Return the detailed debug message to the client
         }, { status: 500 });
     }
 }
