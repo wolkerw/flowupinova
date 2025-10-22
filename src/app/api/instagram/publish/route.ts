@@ -102,23 +102,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "A URL da imagem é obrigatória." }, { status: 400 });
         }
 
-        // --- DEBUG STEP: Check if user document exists ---
-        try {
-            const userDocRef = adminDb.collection("users").doc(userId);
-            const userDoc = await userDocRef.get();
-            if (userDoc.exists) {
-                debugMessage += `[2] DEBUG: Successfully found user document for user: ${userId}. `;
-            } else {
-                // This is a critical failure point. We throw an error to be caught below.
-                throw new Error(`CRITICAL: User document NOT FOUND in Firestore for user: ${userId}`);
-            }
-        } catch (e: any) {
-             // This will also catch permission errors on the get()
-            throw new Error(`CRITICAL: Firestore error while trying to get user document for ${userId}. Details: ${e.message}`);
+        // --- Step 0: Ensure user document exists ---
+        const userDocRef = adminDb.collection("users").doc(userId);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            debugMessage += `[2] User document NOT FOUND for ${userId}. Creating it now... `;
+            await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
+            debugMessage += `[3] User document created. `;
+        } else {
+             debugMessage += `[2] User document found for ${userId}. `;
         }
+
         
         // --- Step 1: Publish to Instagram ---
-        debugMessage += `[3] Attempting to publish to Instagram... `;
+        debugMessage += `[4] Attempting to publish to Instagram... `;
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -127,17 +124,17 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
-        debugMessage += `[4] Media container created (id: ${creationId}). `;
+        debugMessage += `[5] Media container created (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
-        debugMessage += `[5] Media published (id: ${publishedMediaId}). `;
+        debugMessage += `[6] Media published (id: ${publishedMediaId}). `;
 
         // --- Step 2: If successful, save to Firestore ---
-        debugMessage += `[6] Attempting to save to Firestore... `;
+        debugMessage += `[7] Attempting to save to Firestore... `;
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -156,7 +153,7 @@ export async function POST(request: NextRequest) {
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
         
-        debugMessage += `[7] Successfully saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
+        debugMessage += `[8] Successfully saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
         console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
