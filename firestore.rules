@@ -1,27 +1,27 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // 1. Regra Padrão: Nega acesso a todos os documentos por padrão.
+    // Esta é a prática de segurança mais importante.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Regra de Exceção: Permite que usuários acessem seus próprios dados.
+    // Esta regra se sobrepõe à anterior, mas apenas para o caminho especificado.
+    match /users/{userId}/{documents=**} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // Funções auxiliares para clareza
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
       return request.auth.uid == userId;
-    }
-
-    // Nega acesso a todos os documentos por padrão, a menos que uma regra mais específica permita.
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    /**
-     * @description Protege os dados do usuário garantindo que apenas o proprietário possa acessá-los.
-     * Esta regra se aplica a todas as subcoleções de um usuário.
-     */
-    match /users/{userId}/{documents=**} {
-      allow read, write: if isSignedIn() && isOwner(userId);
     }
   }
 }
