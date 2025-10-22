@@ -107,7 +107,6 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     let imageUrl: string;
-    let logoUrl: string | undefined;
 
     try {
         if (postData.media instanceof File) {
@@ -116,70 +115,64 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             imageUrl = postData.media; // Already a URL
         }
 
-        if (postData.logo instanceof File) {
-            logoUrl = await uploadMediaAndGetURL(userId, postData.logo);
+        // Logic for scheduled posts (not immediate)
+        const now = new Date();
+        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
+
+        if (!isImmediate) {
+             const postToSchedule: Omit<PostData, 'id'> = {
+                title: postData.title,
+                text: postData.text,
+                imageUrl: imageUrl,
+                platforms: postData.platforms,
+                scheduledAt: Timestamp.fromDate(postData.scheduledAt),
+                status: 'scheduled',
+                metaConnection: {
+                    accessToken: postData.metaConnection.accessToken,
+                    pageId: postData.metaConnection.pageId,
+                    instagramId: postData.metaConnection.instagramId,
+                    instagramUsername: postData.metaConnection.instagramUsername,
+                }
+            };
+            const docRef = await addDoc(getPostsCollectionRef(userId), postToSchedule);
+            return { success: true, post: { id: docRef.id, ...postToSchedule, scheduledAt: postData.scheduledAt.toISOString() }};
         }
 
-    } catch(uploadError: any) {
-        return { success: false, error: uploadError.message };
-    }
-
-    const postToSave: any = {
-        title: postData.title,
-        text: postData.text,
-        imageUrl: imageUrl,
-        platforms: postData.platforms,
-        scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-        metaConnection: {
-            accessToken: postData.metaConnection.accessToken,
-            pageId: postData.metaConnection.pageId,
-            instagramId: postData.metaConnection.instagramId,
-            instagramUsername: postData.metaConnection.instagramUsername,
-        }
-    };
-
-    if (logoUrl) {
-        postToSave.logoUrl = logoUrl;
-    }
-    
-    const now = new Date();
-    const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
-
-    if (isImmediate) {
-        postToSave.status = 'publishing';
-    } else {
-        postToSave.status = 'scheduled';
-    }
-
-    try {
-        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-        
-        if (isImmediate) {
-            // Fire-and-forget call to the API.
-            const response = await fetch('/api/instagram/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: userId, postId: docRef.id }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || `A API de publicação falhou com status ${response.status}`);
-            }
-        }
-
-        return {
-            success: true,
-            post: {
-                id: docRef.id,
-                ...postToSave,
+        // For immediate posts, call the publish API directly
+        const apiPayload = {
+            userId: userId,
+            postData: {
+                title: postData.title,
+                text: postData.text,
+                imageUrl: imageUrl,
+                platforms: postData.platforms,
                 scheduledAt: postData.scheduledAt.toISOString(),
-                instagramUsername: postToSave.metaConnection.instagramUsername,
+                metaConnection: {
+                    accessToken: postData.metaConnection.accessToken,
+                    pageId: postData.metaConnection.pageId,
+                    instagramId: postData.metaConnection.instagramId,
+                    instagramUsername: postData.metaConnection.instagramUsername,
+                }
             }
         };
+
+        const response = await fetch('/api/instagram/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(apiPayload),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
+        }
+
+        return { success: true, ...result };
         
     } catch(error: any) {
-        console.error(`Error saving post for user ${userId}:`, error);
-        return { success: false, error: `Failed to save post. Reason: ${error.message}` };
+        console.error(`Error in schedulePost for user ${userId}:`, error);
+        return { success: false, error: `Failed to process post. Reason: ${error.message}` };
     }
 }
 
@@ -221,5 +214,3 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
 }
-
-    

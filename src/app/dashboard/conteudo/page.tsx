@@ -115,7 +115,7 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
                         <DropdownMenuItem
                           className="text-blue-600 focus:text-blue-700"
                           onClick={() => onRepublish(post.id)}
-                          disabled={isRepublishing}
+                          disabled={isRepublishing || post.status === 'publishing'}
                         >
                           {isRepublishing ? (
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -147,9 +147,9 @@ export default function Conteudo() {
   const [isRepublishing, setIsRepublishing] = useState(false);
   const [isSimplePublishing, setIsSimplePublishing] = useState(false);
   const [simpleTestState, setSimpleTestState] = useState({
-    imageUrl: '',
+    imageUrl: 'https://images.unsplash.com/photo-1715931862128-7734bd457635?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     title: 'Post de Teste Rápido',
-    text: 'Esta é a legenda do post de teste.',
+    text: 'Esta é a legenda do post de teste. #teste #flowup',
   });
   
   const fetchPageData = useCallback(async () => {
@@ -262,24 +262,49 @@ export default function Conteudo() {
       toast({ variant: 'destructive', title: "Erro", description: "Usuário não encontrado."});
       return;
     }
+    const postToRepublish = allPosts.find(p => p.id === postId);
+    if (!postToRepublish || !postToRepublish.imageUrl || !metaConnection.isConnected) {
+         toast({ variant: 'destructive', title: "Erro", description: "Dados do post ou conexão com a Meta ausentes para republicar."});
+         return;
+    }
+
     setIsRepublishing(true);
     toast({ title: "Republicando Post...", description: `Enviando post ${postId} para publicação.`});
-    try {
-      const response = await fetch('/api/instagram/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, postId }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Falha ao republicar o post.');
-      }
-      toast({ title: "Sucesso!", description: 'Seu post foi enviado para publicação novamente.'});
-      fetchPageData();
+    
+     try {
+        const payload = {
+            userId: user.uid,
+            postData: {
+                title: postToRepublish.title,
+                text: '', // Legenda pode ser extraída ou deixada em branco
+                imageUrl: postToRepublish.imageUrl,
+                platforms: ['instagram'],
+                scheduledAt: new Date().toISOString(),
+                metaConnection: {
+                    accessToken: metaConnection.accessToken!,
+                    pageId: metaConnection.pageId!,
+                    instagramId: metaConnection.instagramId!,
+                    instagramUsername: metaConnection.instagramUsername,
+                }
+            }
+        };
+
+        const response = await fetch('/api/instagram/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Falha ao republicar o post.');
+        }
+        toast({ title: "Sucesso!", description: 'Seu post foi enviado para publicação novamente.'});
+        fetchPageData();
     } catch(error: any) {
-      toast({ variant: 'destructive', title: "Erro ao Republicar", description: error.message });
+        toast({ variant: 'destructive', title: "Erro ao Republicar", description: error.message });
     } finally {
-      setIsRepublishing(false);
+        setIsRepublishing(false);
     }
   }
 
@@ -295,23 +320,43 @@ export default function Conteudo() {
     setIsSimplePublishing(true);
     toast({ title: "Iniciando Publicação de Teste...", description: "Enviando dados para a API." });
     
-    const result = await schedulePost(user.uid, {
-        title: simpleTestState.title,
-        text: simpleTestState.text,
-        media: simpleTestState.imageUrl, // Passando a URL como string
-        platforms: ['instagram'],
-        scheduledAt: new Date(), // Publicar agora
-        metaConnection: metaConnection,
-    });
-    
-    setIsSimplePublishing(false);
+    // Direct call to the API route, which now handles everything
+    try {
+        const payload = {
+            userId: user.uid,
+            postData: {
+                title: simpleTestState.title,
+                text: simpleTestState.text,
+                imageUrl: simpleTestState.imageUrl,
+                platforms: ['instagram'],
+                scheduledAt: new Date().toISOString(),
+                metaConnection: {
+                    accessToken: metaConnection.accessToken!,
+                    pageId: metaConnection.pageId!,
+                    instagramId: metaConnection.instagramId!,
+                    instagramUsername: metaConnection.instagramUsername,
+                }
+            }
+        };
+        const response = await fetch('/api/instagram/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
 
-    if (result.success) {
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
+        }
+        
         toast({ title: "Sucesso!", description: "Post de teste enviado para publicação." });
-        // Atualiza a lista de posts para mostrar o novo post 'publishing'
-        await fetchPageData();
-    } else {
-        toast({ variant: "destructive", title: "Erro na Publicação de Teste", description: result.error || "Ocorreu um erro desconhecido." });
+        // Refresh posts list to show the new post
+        fetchPageData();
+
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Erro na Publicação de Teste", description: error.message });
+    } finally {
+        setIsSimplePublishing(false);
     }
   };
 
@@ -643,5 +688,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
