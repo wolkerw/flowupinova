@@ -5,23 +5,25 @@ import * as admin from 'firebase-admin';
 // Não é necessário carregar o arquivo service-account.json manualmente.
 if (!admin.apps.length) {
   try {
+    console.log("[ADMIN_SDK_INIT] Attempting to initialize with application default credentials...");
     admin.initializeApp({
         // Adicionar o databaseURL reforça a conexão com o banco de dados correto.
         databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
     });
-    console.log("Firebase Admin SDK initialized using application default credentials.");
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized using application default credentials.");
   } catch (error: any) {
-    console.error("Firebase Admin initialization error:", error.message);
+    console.error("[ADMIN_SDK_INIT] Firebase Admin initialization error:", error.message);
     // Para depuração, podemos tentar inicializar com o arquivo se o padrão falhar (útil para dev local).
     try {
+        console.log("[ADMIN_SDK_INIT] Default initialization failed. Attempting fallback with service-account.json...");
         const serviceAccount = require('../../../service-account.json');
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
         });
-        console.log("Firebase Admin SDK initialized using service-account.json as a fallback.");
+        console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized using service-account.json as a fallback.");
     } catch (fallbackError: any) {
-        console.error("Fallback Firebase Admin initialization failed:", fallbackError.message);
+        console.error("[ADMIN_SDK_INIT] Fallback Firebase Admin initialization failed:", fallbackError.message);
     }
   }
 }

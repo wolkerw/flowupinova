@@ -87,6 +87,9 @@ export async function POST(request: NextRequest) {
         const body: PublishRequestBody = await request.json();
         userId = body.userId;
         const { postData } = body;
+        
+        console.log(`[INSTAGRAM_PUBLISH_API] Received request for user: ${userId}`);
+        console.log(`[INSTAGRAM_PUBLISH_API] Post Data Title: ${postData.title}`);
 
         // --- Basic Validation ---
         if (!userId || !postData) {
@@ -97,6 +100,20 @@ export async function POST(request: NextRequest) {
         }
          if (!postData.imageUrl) {
             return NextResponse.json({ success: false, error: "A URL da imagem é obrigatória." }, { status: 400 });
+        }
+
+        // --- DEBUG STEP: Check if user document exists ---
+        try {
+            const userDocRef = adminDb.collection("users").doc(userId);
+            const userDoc = await userDocRef.get();
+            if (userDoc.exists) {
+                console.log(`[INSTAGRAM_PUBLISH_API] DEBUG: Successfully found user document for user: ${userId}`);
+            } else {
+                console.error(`[INSTAGRAM_PUBLISH_API] DEBUG: CRITICAL - User document NOT FOUND for user: ${userId}`);
+                // We still proceed to see the final error, but this log is key.
+            }
+        } catch (e: any) {
+            console.error(`[INSTAGRAM_PUBLISH_API] DEBUG: CRITICAL - Error while trying to get user document for ${userId}:`, e.message);
         }
         
         // --- Step 1: Publish to Instagram ---
@@ -125,13 +142,13 @@ export async function POST(request: NextRequest) {
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
         
-        console.log(`Successfully published to Instagram (mediaId: ${publishedMediaId}) and saved to Firestore (docId: ${postDocRef.id})`);
+        console.log(`[INSTAGRAM_PUBLISH_API] Successfully published to Instagram (mediaId: ${publishedMediaId}) and saved to Firestore (docId: ${postDocRef.id})`);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
 
     } catch (error: any) {
         // If any step fails, we log it and return an error without saving to DB.
-        console.error("[INSTAGRAM_PUBLISH_ERROR]", { userId, error: error.message });
+        console.error(`[INSTAGRAM_PUBLISH_ERROR] Full error for user ${userId}:`, error);
         
         return NextResponse.json({
             success: false,
