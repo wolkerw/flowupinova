@@ -25,6 +25,7 @@ type MediaItem = {
     type: 'image' | 'video';
     file: File;
     previewUrl: string; // Blob or data URL for local preview
+    publicUrl?: string; // URL from webhook
 };
 
 
@@ -77,7 +78,7 @@ const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaI
     }
 
     const renderContent = (item: MediaItem) => {
-        const imageUrlToDisplay = item.previewUrl;
+        const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         const imageSizeProps = { width: 400, height: 400 };
         if (type === 'reels' || type === 'story') {
             imageSizeProps.width = 250;
@@ -201,7 +202,48 @@ export default function CriarConteudoPage() {
         if(step === 1 && selectedType) {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
-            setStep(3);
+            setIsUploading(true);
+            toast({ title: "Processando imagem...", description: "Enviando imagem para obter URL pública." });
+
+            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/post_manual";
+            const file = mediaItems[0].file;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Falha no webhook: ${errorText}`);
+                }
+
+                const result = await response.json();
+                const publicUrl = result?.[0]?.url_da_imagem;
+
+                if (!publicUrl) {
+                    throw new Error("A resposta do webhook não continha uma URL de imagem válida.");
+                }
+
+                setMediaItems(prevItems => {
+                    const updatedItems = [...prevItems];
+                    updatedItems[0].publicUrl = publicUrl;
+                    return updatedItems;
+                });
+                
+                toast({ title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
+                setStep(3);
+
+            } catch (error: any) {
+                console.error("Erro ao enviar para webhook:", error);
+                toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
+            } finally {
+                setIsUploading(false);
+            }
         }
     }
 
@@ -252,17 +294,20 @@ export default function CriarConteudoPage() {
             toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
             return;
         }
+        const mediaToPublish = mediaItems[0].publicUrl || mediaItems[0].file;
+
+        if (!mediaToPublish) {
+            toast({ variant: "destructive", title: "Mídia Inválida", description: "Não foi possível encontrar a imagem para publicar." });
+            return;
+        }
 
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
-
-        const mediaToUpload = mediaItems[0].file;
-
-
+        
         const result = await schedulePost(user.uid, {
             title: title || "Post sem título",
             text: text,
-            media: mediaToUpload,
+            media: mediaToPublish,
             platforms: ['instagram'],
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
             metaConnection: metaConnection,
@@ -451,8 +496,9 @@ export default function CriarConteudoPage() {
                           onClick={handleNextStep}
                           disabled={isNextDisabled}
                           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                           Próxima Etapa
-                           <ArrowRight className="w-4 h-4 ml-2" />
+                           {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                           {isUploading ? 'Processando...' : 'Próxima Etapa'}
+                           {!isUploading && <ArrowRight className="w-4 h-4 ml-2" />}
                         </Button>
                     </div>
                 </motion.div>

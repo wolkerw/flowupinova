@@ -106,6 +106,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     let imageUrl: string;
 
     try {
+        // A mídia agora pode ser uma URL pública já processada, então não precisamos fazer upload se for uma string
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
