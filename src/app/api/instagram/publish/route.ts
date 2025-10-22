@@ -1,8 +1,9 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import type { PostData } from "@/lib/services/posts-service";
 import * as admin from 'firebase-admin';
+
+export const dynamic = 'force-dynamic';
 
 interface PublishRequestBody {
   userId: string;
