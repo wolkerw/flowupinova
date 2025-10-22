@@ -82,10 +82,14 @@ export async function POST(request: NextRequest) {
     const maxCaptionLength = 2200;
     const caption = captionText.length > maxCaptionLength ? captionText.substring(0, maxCaptionLength) : captionText;
 
+    if (!postData.metaConnection) {
+        throw new Error("Dados de conexão da Meta ausentes ou em formato inválido no documento do post.");
+    }
+    
     const { instagramId, accessToken } = postData.metaConnection;
 
     if (!instagramId || !accessToken) {
-        throw new Error("Dados de conexão da Meta ausentes no documento do post.");
+        throw new Error("Dados de conexão da Meta (instagramId ou accessToken) ausentes no documento do post.");
     }
     
     const creationId = await createMediaContainer(instagramId, accessToken, finalImageUrl, caption);
