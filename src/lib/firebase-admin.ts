@@ -1,30 +1,22 @@
 
 import * as admin from 'firebase-admin';
 
-// Em ambientes Google Cloud (como App Hosting), o SDK encontra as credenciais automaticamente.
-// Não é necessário carregar o arquivo service-account.json manualmente.
+// Em ambientes de nuvem, às vezes a detecção automática de credenciais pode falhar
+// ou apontar para o projeto errado. Para garantir a conexão correta no Firebase Studio,
+// vamos forçar o uso do arquivo de conta de serviço.
 if (!admin.apps.length) {
   try {
-    console.log("[ADMIN_SDK_INIT] Attempting to initialize with application default credentials...");
+    console.log("[ADMIN_SDK_INIT] Attempting to initialize with service-account.json...");
+    // O `require` funciona aqui porque o Next.js agrupa os arquivos JSON.
+    const serviceAccount = require('../../../service-account.json');
     admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
         // Adicionar o databaseURL reforça a conexão com o banco de dados correto.
         databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
     });
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized using application default credentials.");
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully using service-account.json.");
   } catch (error: any) {
-    console.error("[ADMIN_SDK_INIT] Firebase Admin initialization error:", error.message);
-    // Para depuração, podemos tentar inicializar com o arquivo se o padrão falhar (útil para dev local).
-    try {
-        console.log("[ADMIN_SDK_INIT] Default initialization failed. Attempting fallback with service-account.json...");
-        const serviceAccount = require('../../../service-account.json');
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-        });
-        console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized using service-account.json as a fallback.");
-    } catch (fallbackError: any) {
-        console.error("[ADMIN_SDK_INIT] Fallback Firebase Admin initialization failed:", fallbackError.message);
-    }
+    console.error("[ADMIN_SDK_INIT] Firebase Admin initialization failed:", error.message);
   }
 }
 
