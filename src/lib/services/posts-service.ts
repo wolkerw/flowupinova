@@ -160,9 +160,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             body: JSON.stringify(apiPayload),
         });
 
+        // The API now always returns JSON, even on error.
         const result = await response.json();
 
         if (!response.ok) {
+            // Throw an error with the detailed message from the API.
             throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
         }
 
