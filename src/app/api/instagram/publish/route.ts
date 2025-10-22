@@ -121,7 +121,6 @@ export async function POST(request: NextRequest) {
             scheduledAt: admin.firestore.Timestamp.fromDate(new Date(postData.scheduledAt)),
             status: 'published' as const,
             publishedMediaId: publishedMediaId, // Save the ID from Instagram
-            failureReason: admin.firestore.FieldValue.delete(), // Clear any previous failure reason
         };
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
