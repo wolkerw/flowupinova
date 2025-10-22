@@ -9,8 +9,6 @@ interface PublishRequestBody {
     postId: string;
 }
 
-// A função getFinalImageUrl foi removida, pois a imagem já vem combinada do client-side.
-
 // Função para criar o container de mídia no Instagram
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
     const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
@@ -74,38 +72,37 @@ export async function POST(request: NextRequest) {
 
     const postData = docSnap.data() as PostData;
     
-    // A imageUrl já deve ser a URL final da imagem (combinada com a logo, se houver).
     const finalImageUrl = postData.imageUrl;
 
     if (!finalImageUrl) {
         throw new Error("A URL da imagem final está ausente no documento do post.");
     }
+    
+    const captionText = postData.text || '';
+    const maxCaptionLength = 2200;
+    const caption = captionText.length > maxCaptionLength ? captionText.substring(0, maxCaptionLength) : captionText;
 
-    const caption = `${postData.title}\n\n${postData.text}`;
     const { instagramId, accessToken } = postData.metaConnection;
 
     if (!instagramId || !accessToken) {
         throw new Error("Dados de conexão da Meta ausentes no documento do post.");
     }
     
-    // Etapa 1: Criar o container de mídia
     const creationId = await createMediaContainer(instagramId, accessToken, finalImageUrl, caption);
 
-    // Etapa 2: Publicar o container
     const publishedMediaId = await publishMediaContainer(instagramId, accessToken, creationId);
     
-    // Etapa 3: Atualizar o documento no Firestore com o status 'published'
     await postDocRef.update({
         status: 'published',
         publishedMediaId: publishedMediaId,
-        failureReason: admin.firestore.FieldValue.delete(), // Remove previous error if any
+        failureReason: admin.firestore.FieldValue.delete(),
     });
 
     return NextResponse.json({ success: true, publishedMediaId });
 
   } catch (error: any) {
     console.error(`[INSTAGRAM_PUBLISH_ERROR] User: ${userId}, Post: ${postId}`, error);
-    // Atualiza o documento no Firestore com o status 'failed'
+    
     await postDocRef.update({
         status: 'failed',
         failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."

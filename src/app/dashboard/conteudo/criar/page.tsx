@@ -365,6 +365,11 @@ export default function CriarConteudoPage() {
             toast({ variant: "destructive", title: "Erro", description: "Verifique se você conectou sua conta, está logado e adicionou uma mídia." });
             return;
         }
+        if (scheduleType === 'schedule' && !scheduleDate) {
+            toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
+            return;
+        }
+
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
 
