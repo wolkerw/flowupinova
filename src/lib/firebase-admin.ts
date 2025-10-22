@@ -2,9 +2,10 @@
 import * as admin from 'firebase-admin';
 import path from 'path';
 
-// As credenciais de serviço são importadas diretamente do arquivo JSON.
-// Isso é seguro porque este código roda exclusivamente no servidor.
-import serviceAccount from '@/../service-account.json';
+// As credenciais de serviço são carregadas dinamicamente a partir do caminho do arquivo.
+// Isso resolve o problema de build do Next.js com importações fora do diretório /src.
+const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+const serviceAccount = require(serviceAccountPath);
 
 // Evita a reinicialização do app em ambientes de desenvolvimento.
 if (!admin.apps.length) {
