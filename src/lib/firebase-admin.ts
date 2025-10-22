@@ -6,15 +6,24 @@ import * as admin from 'firebase-admin';
 // vamos forçar o uso do arquivo de conta de serviço.
 if (!admin.apps.length) {
   try {
-    console.log("[ADMIN_SDK_INIT] Attempting to initialize with service-account.json...");
-    // O `require` funciona aqui porque o Next.js agrupa os arquivos JSON.
-    const serviceAccount = require('../../service-account.json');
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        // Adicionar o databaseURL reforça a conexão com o banco de dados correto.
-        databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-    });
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully using service-account.json.");
+    const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
+    if (serviceAccountString) {
+        const serviceAccount = JSON.parse(serviceAccountString);
+        console.log("[ADMIN_SDK_INIT] Initializing with SERVICE_ACCOUNT_JSON env var...");
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
+        });
+        console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully from env var.");
+    } else {
+        console.log("[ADMIN_SDK_INIT] Attempting to initialize with default credentials...");
+        // Se a variável de ambiente não estiver disponível, cai para o comportamento padrão,
+        // que funciona bem em muitos ambientes do Google Cloud.
+        admin.initializeApp({
+             databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
+        });
+         console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully with default credentials.");
+    }
   } catch (error: any) {
     console.error("[ADMIN_SDK_INIT] Firebase Admin initialization failed:", error.message);
   }
