@@ -20,8 +20,6 @@ import {
   Facebook,
   RefreshCw,
   MoreVertical,
-  Beaker,
-  Send
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -39,8 +37,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 
 interface DisplayPost {
@@ -137,10 +133,6 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [historyFilter, setHistoryFilter] = useState('this-month');
   
-  const [testPostId, setTestPostId] = useState('');
-  const [isTestPublishing, setIsTestPublishing] = useState(false);
-
-
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -246,34 +238,6 @@ export default function Conteudo() {
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
   
-  const handleTestPublish = async () => {
-    if (!user || !testPostId.trim()) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Por favor, insira um ID de post válido.' });
-        return;
-    }
-    setIsTestPublishing(true);
-    try {
-        const response = await fetch('/api/instagram/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.uid, postId: testPostId.trim() }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'A API de publicação de teste falhou.');
-        }
-
-        toast({ title: 'Sucesso!', description: `Post de teste [${testPostId}] enviado para publicação.` });
-        // Optionally refresh data to see status update
-        setTimeout(fetchPageData, 2000);
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Erro na Publicação de Teste', description: error.message });
-    } finally {
-        setIsTestPublishing(false);
-    }
-};
-
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
         
@@ -424,42 +388,6 @@ export default function Conteudo() {
     </Card>
   )
   
-    const TestPublishCard = () => (
-    <Card className="shadow-lg border-none mt-8 bg-gray-100/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base text-gray-500">
-          <Beaker className="w-5 h-5 text-gray-500" />
-          Teste de Publicação (Desativado)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Esta função de teste foi temporariamente desativada para focar na estabilidade do fluxo principal de publicação.
-        </p>
-        <div className="space-y-2">
-          <Label htmlFor="test-post-id" className="text-gray-400">ID do Post</Label>
-          <Input 
-            id="test-post-id" 
-            placeholder="Ex: WqevPsh2TxPY8gkX2Wm7"
-            value={testPostId}
-            onChange={(e) => setTestPostId(e.target.value)}
-            disabled={true}
-          />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          className="w-full" 
-          onClick={handleTestPublish} 
-          disabled={true}
-        >
-          <Send className="w-4 h-4 mr-2" />
-          Publicar Teste
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
         <style>{`
@@ -509,7 +437,6 @@ export default function Conteudo() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
             <CalendarCard />
-            {metaConnection.isConnected && <TestPublishCard />}
         </div>
         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
