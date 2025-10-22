@@ -223,15 +223,19 @@ export default function CriarConteudoPage() {
                 }
 
                 const result = await response.json();
-                const publicUrl = result?.[0]?.url_da_imagem;
+                
+                // Process the expected JSON structure: [{ "url_post": "..." }]
+                const publicUrl = result?.[0]?.url_post;
 
                 if (!publicUrl) {
-                    throw new Error("A resposta do webhook não continha uma URL de imagem válida.");
+                    throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
                 }
 
                 setMediaItems(prevItems => {
                     const updatedItems = [...prevItems];
-                    updatedItems[0].publicUrl = publicUrl;
+                    if (updatedItems[0]) {
+                        updatedItems[0].publicUrl = publicUrl;
+                    }
                     return updatedItems;
                 });
                 
@@ -599,3 +603,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
