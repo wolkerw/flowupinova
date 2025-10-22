@@ -1,138 +1,127 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import type { PostData } from "@/lib/services/posts-service";
 import * as admin from 'firebase-admin';
 
 interface PublishRequestBody {
-    userId: string;
-    postId: string;
+  userId: string;
+  postId: string;
 }
 
-// Função para criar o contêiner de mídia no Instagram
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
-    const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
-    const params = new URLSearchParams({
-        image_url: imageUrl,
-        caption: caption,
-        access_token: accessToken,
-    });
+  const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
+  const params = new URLSearchParams({
+    image_url: imageUrl,
+    caption,
+    access_token: accessToken,
+  });
 
-    const response = await fetch(`${url}?${params.toString()}`, {
-        method: 'POST',
-    });
+  const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });
+  const data = await response.json();
 
-    const data = await response.json();
+  if (!response.ok || !data.id) {
+    console.error("[META_API_ERROR] Failed to create media container:", data.error);
+    throw new Error(data.error?.message || "Falha ao criar o container de mídia no Instagram.");
+  }
 
-    if (!response.ok || !data.id) {
-        console.error("[META_API_ERROR] Failed to create media container:", data.error);
-        throw new Error(data.error?.message || "Falha ao criar o container de mídia no Instagram.");
-    }
-    
-    return data.id;
+  return data.id;
 }
 
-// Função para publicar o container de mídia
 async function publishMediaContainer(instagramId: string, accessToken: string, creationId: string): Promise<string> {
-    const url = `https://graph.facebook.com/v20.0/${instagramId}/media_publish`;
-    const params = new URLSearchParams({
-        creation_id: creationId,
-        access_token: accessToken,
-    });
-    
-    const response = await fetch(`${url}?${params.toString()}`, {
-        method: 'POST',
-    });
+  const url = `https://graph.facebook.com/v20.0/${instagramId}/media_publish`;
+  const params = new URLSearchParams({
+    creation_id: creationId,
+    access_token: accessToken,
+  });
 
-    const data = await response.json();
-    
-    if (!response.ok || !data.id) {
-        console.error("[META_API_ERROR] Failed to publish media container:", data.error);
-        throw new Error(data.error?.message || "Falha ao publicar a mídia no Instagram.");
-    }
-    
-    return data.id;
+  const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });
+  const data = await response.json();
+
+  if (!response.ok || !data.id) {
+    console.error("[META_API_ERROR] Failed to publish media container:", data.error);
+    throw new Error(data.error?.message || "Falha ao publicar a mídia no Instagram.");
+  }
+
+  return data.id;
 }
-
 
 export async function POST(request: NextRequest) {
+  console.log("[DEBUG] Chamada recebida em /api/instagram/publish");
+
   let userId: string | undefined;
   let postId: string | undefined;
 
   try {
-    const body = await request.json() as PublishRequestBody;
+    const body = await request.json();
     userId = body.userId;
     postId = body.postId;
 
     if (!userId || !postId) {
+      console.warn("[VALIDATION] userId ou postId ausente.");
       return NextResponse.json({ success: false, error: "userId e postId são obrigatórios." }, { status: 400 });
     }
 
-    const postDocRef = adminDb.collection('users').doc(userId).collection('posts').doc(postId);
+    const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
 
-    try {
-        const docSnap = await postDocRef.get();
-        if (!docSnap.exists) {
-            throw new Error(`Post com ID ${postId} não encontrado para o usuário ${userId}.`);
-        }
-
-        const postData = docSnap.data() as PostData;
-        
-        const finalImageUrl = postData.imageUrl;
-
-        if (!finalImageUrl) {
-            throw new Error("A URL da imagem final está ausente no documento do post.");
-        }
-        
-        const captionText = postData.text || '';
-        const maxCaptionLength = 2200;
-        const caption = captionText.length > maxCaptionLength ? captionText.substring(0, maxCaptionLength) : captionText;
-
-        if (!postData.metaConnection) {
-            throw new Error("Dados de conexão da Meta ausentes ou em formato inválido no documento do post.");
-        }
-        
-        const { instagramId, accessToken } = postData.metaConnection;
-
-        if (!instagramId || !accessToken) {
-            throw new Error("Dados de conexão da Meta (instagramId ou accessToken) ausentes no documento do post.");
-        }
-        
-        const creationId = await createMediaContainer(instagramId, accessToken, finalImageUrl, caption);
-        const publishedMediaId = await publishMediaContainer(instagramId, accessToken, creationId);
-        
-        await postDocRef.update({
-            status: 'published',
-            publishedMediaId: publishedMediaId,
-            failureReason: admin.firestore.FieldValue.delete(),
-        });
-
-        return NextResponse.json({ success: true, publishedMediaId });
-
-    } catch (error: any) {
-        console.error(`[INSTAGRAM_PUBLISH_ERROR] User: ${userId}, Post: ${postId}`, error);
-        
-        // Ensure post document exists before trying to update it
-        const docExists = (await postDocRef.get()).exists;
-        if(docExists) {
-            await postDocRef.update({
-                status: 'failed',
-                failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."
-            }).catch(updateError => {
-                // Log if we can't even update the status to failed
-                console.error(`[FIRESTORE_UPDATE_ERROR] Could not update post ${postId} to failed status:`, updateError);
-            });
-        }
-        
-        // Return a JSON error response
-        return NextResponse.json(
-          { success: false, error: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram." },
-          { status: 500 }
-        );
+    const docSnap = await postDocRef.get();
+    if (!docSnap.exists) {
+      throw new Error(`Post com ID ${postId} não encontrado para o usuário ${userId}.`);
     }
+
+    const postData = docSnap.data() as PostData;
+
+    if (!postData?.imageUrl) {
+      throw new Error("A URL da imagem final está ausente no documento do post.");
+    }
+
+    if (!postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken) {
+      throw new Error("Dados de conexão da Meta ausentes ou incompletos.");
+    }
+
+    const caption = (postData.text || '').slice(0, 2200);
+    const creationId = await createMediaContainer(
+      postData.metaConnection.instagramId,
+      postData.metaConnection.accessToken,
+      postData.imageUrl,
+      caption
+    );
+
+    const publishedMediaId = await publishMediaContainer(
+      postData.metaConnection.instagramId,
+      postData.metaConnection.accessToken,
+      creationId
+    );
+
+    await postDocRef.update({
+      status: "published",
+      publishedMediaId,
+      failureReason: admin.firestore.FieldValue.delete(),
+    });
+
+    return NextResponse.json({ success: true, publishedMediaId });
+
   } catch (error: any) {
-    // This outer catch handles errors from request.json() or other unexpected issues
-    console.error("[UNCAUGHT_API_ERROR] Falha inesperada no endpoint de publicação:", error);
-    return NextResponse.json({ success: false, error: error.message || "Erro inesperado no servidor." }, { status: 500 });
+    console.error("[INSTAGRAM_PUBLISH_ERROR]", { userId, postId, error });
+
+    // Atualiza o post como 'failed' se possível
+    if (userId && postId) {
+      try {
+        const postRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+        const snapshot = await postRef.get();
+        if (snapshot.exists) {
+          await postRef.update({
+            status: "failed",
+            failureReason: error.message || "Erro desconhecido na publicação.",
+          });
+        }
+      } catch (updateError) {
+        console.error("[FIRESTORE_UPDATE_ERROR] Falha ao atualizar status para 'failed':", updateError);
+      }
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: error?.message || "Erro inesperado no servidor.",
+    }, { status: 500 });
   }
 }
