@@ -1,9 +1,10 @@
 
 import * as admin from 'firebase-admin';
+import path from 'path';
 
 // As credenciais de serviço são importadas diretamente do arquivo JSON.
 // Isso é seguro porque este código roda exclusivamente no servidor.
-import serviceAccount from '@/service-account.json';
+import serviceAccount from '@/../service-account.json';
 
 // Evita a reinicialização do app em ambientes de desenvolvimento.
 if (!admin.apps.length) {
