@@ -10,7 +10,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
     }
 
-    // Constrói o payload exatamente como esperado pelo webhook.
     const webhookPayload = {
       publicacoes: publicacoes.map((pub: any) => ({
         titulo: pub.titulo,
@@ -35,17 +34,25 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
 
-    // A resposta esperada é um array de objetos, cada um com uma propriedade "url_da_imagem" contendo a URL.
-    if (!Array.isArray(data) || data.some(item => typeof item.url_da_imagem !== 'string')) {
-      console.error("Formato de resposta do webhook de imagem inesperado:", data);
+    if (!Array.isArray(data)) {
+      console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
       return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
-    // A resposta do webhook já está no formato correto, então apenas a repassamos.
-    return NextResponse.json(data);
+    // Extrai apenas as URLs das imagens do array de objetos
+    const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean);
+
+    if (imageUrls.length === 0) {
+        return NextResponse.json({ error: "Nenhuma URL de imagem válida foi encontrada na resposta." }, { status: 500 });
+    }
+    
+    // Retorna um array de strings (URLs)
+    return NextResponse.json(imageUrls);
 
   } catch (error: any) {
     console.error("Internal server error:", error);
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
 }
+
+    

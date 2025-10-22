@@ -119,20 +119,14 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ publicacoes: [selectedPublication] }),
       });
       
-      const imagesData = await response.json();
+      const imageUrls = await response.json();
 
       if (!response.ok) {
-        throw new Error(imagesData.error || 'Falha ao gerar imagens.');
+        throw new Error(imageUrls.error || 'Falha ao gerar imagens.');
       }
       
-      if (!Array.isArray(imagesData) || imagesData.length === 0) {
-        throw new Error("Nenhuma imagem foi retornada pelo webhook.");
-      }
-
-      const imageUrls = imagesData.map((item: any) => item.url_da_imagem).filter(Boolean);
-
-      if (imageUrls.length === 0) {
-        throw new Error("Nenhuma URL de imagem válida foi encontrada na resposta do webhook.");
+      if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+        throw new Error("Nenhuma imagem foi retornada pelo serviço.");
       }
 
       setGeneratedImages(imageUrls);
@@ -545,3 +539,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
