@@ -65,6 +65,10 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
 
     const currentStatus = post.status as keyof typeof statusConfig;
     const { icon: StatusIcon, className: statusClassName } = statusConfig[currentStatus] || {};
+    
+    // Safely determine the image source.
+    const imageSrc = typeof post.imageUrl === 'string' ? post.imageUrl : "https://placehold.co/400";
+
 
     return (
         <motion.div
@@ -77,7 +81,7 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
         >
             <div className="flex items-center gap-4 overflow-hidden">
                 <Image
-                    src={post.imageUrl || "https://placehold.co/400"}
+                    src={imageSrc}
                     alt={post.title}
                     width={56}
                     height={56}
@@ -145,12 +149,6 @@ export default function Conteudo() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [historyFilter, setHistoryFilter] = useState('this-month');
   const [isRepublishing, setIsRepublishing] = useState(false);
-  const [isSimplePublishing, setIsSimplePublishing] = useState(false);
-  const [simpleTestState, setSimpleTestState] = useState({
-    imageUrl: 'https://images.unsplash.com/photo-1715931862128-7734bd457635?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    title: 'Post de Teste Rápido',
-    text: 'Esta é a legenda do post de teste. #teste #flowup',
-  });
   
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -308,60 +306,6 @@ export default function Conteudo() {
     }
   }
 
-  const handleSimpleTestPublish = async () => {
-    if (!user || !metaConnection.isConnected) {
-        toast({ variant: "destructive", title: "Erro", description: "Usuário não logado ou conta da Meta não conectada." });
-        return;
-    }
-    if (!simpleTestState.imageUrl.trim()) {
-        toast({ variant: "destructive", title: "URL da Imagem Obrigatória", description: "Por favor, insira uma URL de imagem válida." });
-        return;
-    }
-    setIsSimplePublishing(true);
-    toast({ title: "Iniciando Publicação de Teste...", description: "Enviando dados para a API." });
-    
-    try {
-        const payload = {
-            userId: user.uid,
-            postData: {
-                title: simpleTestState.title,
-                text: simpleTestState.text,
-                imageUrl: simpleTestState.imageUrl,
-                platforms: ['instagram'],
-                scheduledAt: new Date().toISOString(),
-                metaConnection: {
-                    accessToken: metaConnection.accessToken!,
-                    pageId: metaConnection.pageId!,
-                    instagramId: metaConnection.instagramId!,
-                    instagramUsername: metaConnection.instagramUsername,
-                }
-            }
-        };
-        const response = await fetch('/api/instagram/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
-        }
-        
-        toast({ title: "Sucesso!", description: "Post de teste publicado! Ele aparecerá na lista em breve." });
-
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Erro na Publicação de Teste", description: error.message });
-    } finally {
-        setIsSimplePublishing(false);
-    }
-  };
-
-  const handleSimpleTestChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setSimpleTestState(prev => ({ ...prev, [name]: value }));
-  };
-
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
         
@@ -511,61 +455,6 @@ export default function Conteudo() {
         </CardFooter>
     </Card>
   )
-
-  const SimpleTestPublishCard = () => (
-    <Card className="shadow-lg border-none">
-      <CardHeader>
-        <CardTitle className="text-xl">Publicação Rápida de Teste</CardTitle>
-        <p className="text-sm text-gray-600">Use para depurar o fluxo de publicação rapidamente.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="simple-imageUrl">URL da Imagem</Label>
-          <Input 
-            id="simple-imageUrl" 
-            name="imageUrl" 
-            placeholder="https://sua-url-de-imagem.com/imagem.jpg"
-            value={simpleTestState.imageUrl}
-            onChange={handleSimpleTestChange}
-          />
-        </div>
-        <div>
-          <Label htmlFor="simple-title">Título</Label>
-          <Input 
-            id="simple-title" 
-            name="title" 
-            value={simpleTestState.title}
-            onChange={handleSimpleTestChange}
-          />
-        </div>
-        <div>
-          <Label htmlFor="simple-text">Legenda</Label>
-          <Textarea 
-            id="simple-text" 
-            name="text" 
-            value={simpleTestState.text}
-            onChange={handleSimpleTestChange}
-          />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={handleSimpleTestPublish} 
-          disabled={isSimplePublishing || !metaConnection.isConnected}
-          className="w-full"
-        >
-          {isSimplePublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-          {isSimplePublishing ? 'Publicando Teste...' : 'Publicar Agora'}
-        </Button>
-      </CardFooter>
-      {!metaConnection.isConnected && (
-          <p className="text-xs text-red-600 text-center p-4 pt-0 flex items-center justify-center gap-1">
-              <AlertTriangle className="w-4 h-4" /> 
-              Conecte sua conta da Meta para usar esta função.
-          </p>
-      )}
-    </Card>
-  );
   
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
@@ -616,7 +505,6 @@ export default function Conteudo() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-8">
             <CalendarCard />
-            <SimpleTestPublishCard />
         </div>
         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
