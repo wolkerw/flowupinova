@@ -49,6 +49,26 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
     access_token: accessToken,
   });
 
+  // Loop to check container status before publishing
+  let attempts = 0;
+  while (attempts < 10) { // Max wait time of ~50 seconds
+    const statusResponse = await fetch(`https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${accessToken}`);
+    const statusData = await statusResponse.json();
+    if (statusData.status_code === 'FINISHED') {
+      break;
+    }
+    if (statusData.status_code === 'ERROR') {
+      console.error("[META_API_ERROR] Media container processing failed:", statusData);
+      throw new Error("O container de mídia falhou ao ser processado pelo Instagram.");
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    attempts++;
+  }
+
+  if (attempts >= 10) {
+    throw new Error("Tempo de espera excedido para o processamento da mídia pelo Instagram.");
+  }
+
   const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });
   const data = await response.json();
 
@@ -62,13 +82,13 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 
 export async function POST(request: NextRequest) {
     let userId: string | undefined;
-    let postId: string | undefined;
 
     try {
         const body: PublishRequestBody = await request.json();
         userId = body.userId;
         const { postData } = body;
 
+        // --- Basic Validation ---
         if (!userId || !postData) {
             return NextResponse.json({ success: false, error: "userId e postData são obrigatórios." }, { status: 400 });
         }
@@ -79,16 +99,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "A URL da imagem é obrigatória." }, { status: 400 });
         }
         
-        // 1. Criar o documento do post no Firestore primeiro
-        const postToSave = {
-            ...postData,
-            scheduledAt: admin.firestore.Timestamp.fromDate(new Date(postData.scheduledAt)),
-            status: 'publishing' as const, // Start as publishing
-        };
-        const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
-        postId = postDocRef.id;
-
-        // 2. Tentar publicar no Instagram
+        // --- Step 1: Publish to Instagram ---
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -98,41 +109,31 @@ export async function POST(request: NextRequest) {
             caption
         );
 
-        // A API da Meta pode demorar um pouco para processar o container.
-        // Adicionamos um pequeno delay antes de tentar publicar.
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
 
-        // 3. Se a publicação for bem-sucedida, atualizar o documento
-        await postDocRef.update({
-            status: "published",
-            publishedMediaId,
-            failureReason: admin.firestore.FieldValue.delete(),
-        });
+        // --- Step 2: If successful, save to Firestore ---
+        const postToSave = {
+            ...postData,
+            scheduledAt: admin.firestore.Timestamp.fromDate(new Date(postData.scheduledAt)),
+            status: 'published' as const,
+            publishedMediaId: publishedMediaId, // Save the ID from Instagram
+            failureReason: admin.firestore.FieldValue.delete(), // Clear any previous failure reason
+        };
 
-        return NextResponse.json({ success: true, publishedMediaId, postId });
+        const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
+        
+        console.log(`Successfully published to Instagram (mediaId: ${publishedMediaId}) and saved to Firestore (docId: ${postDocRef.id})`);
+
+        return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
 
     } catch (error: any) {
-        console.error("[INSTAGRAM_PUBLISH_ERROR]", { userId, postId, error: error.message });
-
-        // Se um postId foi criado, atualiza o status para 'failed'
-        if (userId && postId) {
-            try {
-                const postRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
-                await postRef.update({
-                    status: "failed",
-                    failureReason: error.message || "Erro desconhecido na publicação.",
-                });
-            } catch (updateError) {
-                console.error("[FIRESTORE_UPDATE_ERROR] Falha ao atualizar status para 'failed':", updateError);
-            }
-        }
-
+        // If any step fails, we log it and return an error without saving to DB.
+        console.error("[INSTAGRAM_PUBLISH_ERROR]", { userId, error: error.message });
+        
         return NextResponse.json({
             success: false,
             error: error?.message || "Erro inesperado no servidor.",
