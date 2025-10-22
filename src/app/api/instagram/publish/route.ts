@@ -56,71 +56,83 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 
 
 export async function POST(request: NextRequest) {
-  const { userId, postId } = (await request.json()) as PublishRequestBody;
-
-  if (!userId || !postId) {
-    return NextResponse.json({ success: false, error: "userId e postId são obrigatórios." }, { status: 400 });
-  }
-
-  const postDocRef = adminDb.collection('users').doc(userId).collection('posts').doc(postId);
+  let userId: string | undefined;
+  let postId: string | undefined;
 
   try {
-    const docSnap = await postDocRef.get();
-    if (!docSnap.exists) {
-        throw new Error(`Post com ID ${postId} não encontrado para o usuário ${userId}.`);
+    const body = await request.json() as PublishRequestBody;
+    userId = body.userId;
+    postId = body.postId;
+
+    if (!userId || !postId) {
+      return NextResponse.json({ success: false, error: "userId e postId são obrigatórios." }, { status: 400 });
     }
 
-    const postData = docSnap.data() as PostData;
-    
-    const finalImageUrl = postData.imageUrl;
+    const postDocRef = adminDb.collection('users').doc(userId).collection('posts').doc(postId);
 
-    if (!finalImageUrl) {
-        throw new Error("A URL da imagem final está ausente no documento do post.");
-    }
-    
-    const captionText = postData.text || '';
-    const maxCaptionLength = 2200;
-    const caption = captionText.length > maxCaptionLength ? captionText.substring(0, maxCaptionLength) : captionText;
+    try {
+        const docSnap = await postDocRef.get();
+        if (!docSnap.exists) {
+            throw new Error(`Post com ID ${postId} não encontrado para o usuário ${userId}.`);
+        }
 
-    if (!postData.metaConnection) {
-        throw new Error("Dados de conexão da Meta ausentes ou em formato inválido no documento do post.");
-    }
-    
-    const { instagramId, accessToken } = postData.metaConnection;
+        const postData = docSnap.data() as PostData;
+        
+        const finalImageUrl = postData.imageUrl;
 
-    if (!instagramId || !accessToken) {
-        throw new Error("Dados de conexão da Meta (instagramId ou accessToken) ausentes no documento do post.");
-    }
-    
-    const creationId = await createMediaContainer(instagramId, accessToken, finalImageUrl, caption);
+        if (!finalImageUrl) {
+            throw new Error("A URL da imagem final está ausente no documento do post.");
+        }
+        
+        const captionText = postData.text || '';
+        const maxCaptionLength = 2200;
+        const caption = captionText.length > maxCaptionLength ? captionText.substring(0, maxCaptionLength) : captionText;
 
-    const publishedMediaId = await publishMediaContainer(instagramId, accessToken, creationId);
-    
-    await postDocRef.update({
-        status: 'published',
-        publishedMediaId: publishedMediaId,
-        failureReason: admin.firestore.FieldValue.delete(),
-    });
+        if (!postData.metaConnection) {
+            throw new Error("Dados de conexão da Meta ausentes ou em formato inválido no documento do post.");
+        }
+        
+        const { instagramId, accessToken } = postData.metaConnection;
 
-    return NextResponse.json({ success: true, publishedMediaId });
-
-  } catch (error: any) {
-    console.error(`[INSTAGRAM_PUBLISH_ERROR] User: ${userId}, Post: ${postId}`, error);
-    
-    await postDocRef.get().then(doc => {
-      if(doc.exists) {
-        postDocRef.update({
-            status: 'failed',
-            failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."
-        }).catch(updateError => {
-            console.error(`[FIRESTORE_UPDATE_ERROR] Could not update post ${postId} to failed status:`, updateError);
+        if (!instagramId || !accessToken) {
+            throw new Error("Dados de conexão da Meta (instagramId ou accessToken) ausentes no documento do post.");
+        }
+        
+        const creationId = await createMediaContainer(instagramId, accessToken, finalImageUrl, caption);
+        const publishedMediaId = await publishMediaContainer(instagramId, accessToken, creationId);
+        
+        await postDocRef.update({
+            status: 'published',
+            publishedMediaId: publishedMediaId,
+            failureReason: admin.firestore.FieldValue.delete(),
         });
-      }
-    });
-    
-    return NextResponse.json(
-      { success: false, error: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram." },
-      { status: 500 }
-    );
+
+        return NextResponse.json({ success: true, publishedMediaId });
+
+    } catch (error: any) {
+        console.error(`[INSTAGRAM_PUBLISH_ERROR] User: ${userId}, Post: ${postId}`, error);
+        
+        // Ensure post document exists before trying to update it
+        const docExists = (await postDocRef.get()).exists;
+        if(docExists) {
+            await postDocRef.update({
+                status: 'failed',
+                failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."
+            }).catch(updateError => {
+                // Log if we can't even update the status to failed
+                console.error(`[FIRESTORE_UPDATE_ERROR] Could not update post ${postId} to failed status:`, updateError);
+            });
+        }
+        
+        // Return a JSON error response
+        return NextResponse.json(
+          { success: false, error: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram." },
+          { status: 500 }
+        );
+    }
+  } catch (error: any) {
+    // This outer catch handles errors from request.json() or other unexpected issues
+    console.error("[UNCAUGHT_API_ERROR] Falha inesperada no endpoint de publicação:", error);
+    return NextResponse.json({ success: false, error: error.message || "Erro inesperado no servidor." }, { status: 500 });
   }
 }
