@@ -103,11 +103,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error(`[INSTAGRAM_PUBLISH_ERROR] User: ${userId}, Post: ${postId}`, error);
     
-    await postDocRef.update({
-        status: 'failed',
-        failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."
-    }).catch(updateError => {
-        console.error(`[FIRESTORE_UPDATE_ERROR] Could not update post ${postId} to failed status:`, updateError);
+    await postDocRef.get().then(doc => {
+      if(doc.exists) {
+        postDocRef.update({
+            status: 'failed',
+            failureReason: error.message || "Ocorreu um erro desconhecido ao publicar no Instagram."
+        }).catch(updateError => {
+            console.error(`[FIRESTORE_UPDATE_ERROR] Could not update post ${postId} to failed status:`, updateError);
+        });
+      }
     });
     
     return NextResponse.json(
