@@ -197,9 +197,6 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                     <BarChart className="w-5 h-5 text-blue-500" />
                     Análise de Posts (Facebook)
                 </CardTitle>
-                <p className="text-sm text-gray-600 pt-2">
-                     Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
-                </p>
             </CardHeader>
             <CardContent className="space-y-4">
                 {isLoading ? (
@@ -781,5 +778,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
