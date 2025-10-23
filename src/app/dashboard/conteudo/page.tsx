@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -94,11 +95,14 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
                         <span>{post.formattedDate} às {post.formattedTime}</span>
                     </div>
                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1.5">
-                        {post.platforms.includes('instagram') && (
-                            <>
+                        {post.platforms?.includes('instagram') && (
+                            <div className="flex items-center gap-1.5">
                                 <Instagram className="w-3.5 h-3.5" />
-                                <span className="font-medium">@{post.instagramUsername || '...'}</span>
-                            </>
+                                {post.instagramUsername && <span className="font-medium">@{post.instagramUsername}</span>}
+                            </div>
+                        )}
+                         {post.platforms?.includes('facebook') && (
+                            <Facebook className="w-3.5 h-3.5 text-blue-600" />
                         )}
                     </div>
                 </div>
@@ -165,6 +169,9 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                 const result = await response.json();
                 
                 if (!response.ok || !result.success) {
+                    if (response.status === 401) {
+                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+                    }
                     throw new Error(result.error || "Falha ao buscar os posts da página.");
                 }
 
@@ -366,7 +373,7 @@ export default function Conteudo() {
     const state = user?.uid;
     const configId = "657201687223122";
     // Adicionada a nova permissão ao escopo
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content,pages_manage_posts";
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
