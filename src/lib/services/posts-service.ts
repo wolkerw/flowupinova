@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { db, storage } from "@/lib/firebase";
@@ -15,7 +16,7 @@ export interface PostData {
     platforms: Array<'instagram' | 'facebook'>;
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
-    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername'>; // Storing username now
+    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername' | 'pageName'>;
     publishedMediaId?: string; // Can be for Instagram or Facebook
     failureReason?: string;
 }
@@ -38,6 +39,7 @@ export type PostDataOutput = {
         id: string; // Ensure ID is always present on output
         scheduledAt: string; // Client receives an ISO string for serialization
         instagramUsername?: string; // Send username to the client
+        pageName?: string;
     }
 };
 
@@ -131,6 +133,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
                 pageId: postData.metaConnection.pageId,
                 instagramId: postData.metaConnection.instagramId,
                 instagramUsername: postData.metaConnection.instagramUsername,
+                pageName: postData.metaConnection.pageName
             }
         };
 
@@ -252,6 +255,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     failureReason: data.failureReason,
                     scheduledAt: data.scheduledAt.toDate().toISOString(),
                     instagramUsername: data.metaConnection?.instagramUsername,
+                    pageName: data.metaConnection?.pageName,
                 }
             });
         });

@@ -54,6 +54,7 @@ interface DisplayPost {
     formattedTime: string;
     platforms: string[];
     instagramUsername?: string;
+    pageName?: string;
 }
 
 const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, onRepublish: (postId: string) => void, isRepublishing: boolean }) => {
@@ -94,7 +95,7 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
                         {StatusIcon && <StatusIcon className="w-4 h-4" />}
                         <span>{post.formattedDate} às {post.formattedTime}</span>
                     </div>
-                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1.5">
+                     <div className="flex items-center gap-4 text-xs text-gray-500 mt-1.5">
                         {post.platforms?.includes('instagram') && (
                             <div className="flex items-center gap-1.5">
                                 <Instagram className="w-3.5 h-3.5" />
@@ -102,7 +103,10 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
                             </div>
                         )}
                          {post.platforms?.includes('facebook') && (
-                            <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                            <div className="flex items-center gap-1.5">
+                                <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                                {post.pageName && <span className="font-medium">{post.pageName}</span>}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -304,7 +308,8 @@ export default function Conteudo() {
                     formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
                     formattedTime: format(scheduledDate, 'HH:mm'),
                     platforms: post.platforms,
-                    instagramUsername: post.instagramUsername, // Use username from post data
+                    instagramUsername: post.instagramUsername,
+                    pageName: post.pageName,
                 };
             })
             .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
@@ -372,8 +377,7 @@ export default function Conteudo() {
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
     const configId = "657201687223122";
-    // Adicionada a nova permissão ao escopo
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content";
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content,pages_manage_posts";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
