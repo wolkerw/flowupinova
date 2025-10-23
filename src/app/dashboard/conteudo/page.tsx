@@ -184,7 +184,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
                     <BarChart className="w-5 h-5" />
-                    Posts da Página do Facebook (Demonstração para Meta)
+                    Posts da Página do Facebook
                 </CardTitle>
                 <p className="text-sm text-blue-700 pt-2">
                     Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
@@ -223,14 +223,22 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                                 <div className="flex-1">
                                     <p className="text-sm text-gray-600 line-clamp-2 mb-2">{post.message || "Post sem texto."}</p>
                                     <p className="text-xs text-gray-400 mb-3">Publicado em: {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p>
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-1.5 text-gray-700" title="Alcance (Impressões Únicas)">
-                                            <Eye className="w-4 h-4 text-blue-500" />
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                        <div className="flex items-center gap-1.5 text-gray-700">
                                             <span className="font-semibold">{post.insights.reach || 0}</span>
+                                            <span className="text-xs text-gray-500">Alcance</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700" title="Engajamento">
-                                            <UsersIcon className="w-4 h-4 text-green-500" />
+                                        <div className="flex items-center gap-1.5 text-gray-700">
                                             <span className="font-semibold">{post.insights.engagement || 0}</span>
+                                            <span className="text-xs text-gray-500">Engajamento</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <span className="font-semibold">{post.insights.likes || 0}</span>
+                                            <span className="text-xs text-gray-500">Curtidas</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <span className="font-semibold">{post.insights.comments || 0}</span>
+                                            <span className="text-xs text-gray-500">Comentários</span>
                                         </div>
                                     </div>
                                 </div>
@@ -767,3 +775,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
