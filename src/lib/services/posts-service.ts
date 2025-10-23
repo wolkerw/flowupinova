@@ -107,18 +107,18 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     let docRef;
 
     try {
-        // Step 1: Upload media if it's a file
+        // Step 1: Handle Media URL
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
-            imageUrl = postData.media; // Already a URL
+            imageUrl = postData.media;
         }
 
         const now = new Date();
         const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
         const initialStatus = isImmediate ? 'publishing' : 'scheduled';
-
-        // Step 2: Save the initial post data to Firestore
+        
+        // Step 2: Save to Firestore FIRST
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -136,12 +136,19 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
         docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
 
-        // If it's not an immediate post, we are done.
+        // If it's a scheduled (not immediate) post, our job is done for now.
         if (!isImmediate) {
-            return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
+            return { 
+                success: true, 
+                post: { 
+                    id: docRef.id, 
+                    ...postToSave, 
+                    scheduledAt: postData.scheduledAt.toISOString() 
+                }
+            };
         }
-
-        // Step 3: For immediate posts, call the publish API
+        
+        // Step 3: For immediate posts, call the publish API AFTER saving to DB
         const apiPayload = {
             postData: {
                 title: postData.title,
@@ -157,27 +164,37 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         const response = await fetch('/api/instagram/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(apiPayload),
+            body: JSON.stringify(JSON.stringify(apiPayload)), // Double stringify was a bug
         });
 
         const result = await response.json();
 
         if (!response.ok || !result.success) {
+            // This error comes from the API route (e.g., Meta API failed)
             throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
         }
         
-        // Step 4: Update the post in Firestore with the 'published' status and media ID
+        // Step 4: Update the post in Firestore with the 'published' status
         await setDoc(docRef, {
             status: 'published',
             publishedMediaId: result.publishedMediaId
         }, { merge: true });
 
-        return { success: true, post: { id: docRef.id, ...postToSave, status: 'published', scheduledAt: postData.scheduledAt.toISOString() }};
+        return { 
+            success: true, 
+            post: { 
+                id: docRef.id, 
+                ...postToSave, 
+                status: 'published', 
+                scheduledAt: postData.scheduledAt.toISOString() 
+            }
+        };
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
 
-        // If we have a docRef, it means the post was saved but publishing failed. Update status to 'failed'.
+        // If docRef exists, it means the post was saved but a later step failed (e.g., publishing)
+        // So we update the status to 'failed'.
         if (docRef) {
             await setDoc(docRef, {
                 status: 'failed',
@@ -185,7 +202,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             }, { merge: true });
         }
 
-        return { success: false, error: `Failed to process post. Reason: ${error.message}` };
+        // Return a structured error to the client
+        return { 
+            success: false, 
+            error: `Failed to process post. Reason: ${error.message}` 
+        };
     }
 }
 
@@ -222,9 +243,11 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 
         return posts;
 
-   } catch (error: any) {
-       console.error(`Error fetching posts for user ${userId}:`, error);
+   } catch (error: any)       console.error(`Error fetching posts for user ${userId}:`, error);
        return [];
    }
 }
 
+
+
+    

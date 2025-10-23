@@ -73,18 +73,19 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 }
 
 export async function POST(request: NextRequest) {
-    let debugMessage = "[1] API endpoint hit. ";
+    let debugMessage = "[API] Endpoint hit. ";
 
     try {
-        const body: PublishRequestBody = await request.json();
+        const bodyAsString = await request.text();
+        const body: PublishRequestBody = JSON.parse(bodyAsString); // The body is now double-stringified
         const { postData } = body;
         
-        debugMessage += "[2] Validating request... ";
+        debugMessage += "[API] Validating request... ";
         if (!postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando postData ou detalhes da conexão Meta." }, { status: 400 });
         }
         
-        debugMessage += "[3] Publishing to Instagram... ";
+        debugMessage += "[API] Publishing to Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -102,13 +103,14 @@ export async function POST(request: NextRequest) {
         );
         debugMessage += `Media published (id: ${publishedMediaId}). `;
         
-        debugMessage += `[4] Instagram publication finished. Returning success to client.`;
+        debugMessage += `[API] Instagram publication finished. Returning success to client.`;
         console.log(debugMessage);
 
+        // A API agora só retorna o ID da mídia publicada. O salvamento no DB é responsabilidade do cliente.
         return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        const finalErrorMessage = `Error during Instagram publish. Flow: ${debugMessage}. Error Details: ${error.code || ''} ${error.message}`;
+        const finalErrorMessage = `Error during Instagram publish. Flow: ${debugMessage}. Error Details: ${error.message}`;
         console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({
@@ -117,3 +119,5 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
+    
