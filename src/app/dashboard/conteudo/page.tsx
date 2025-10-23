@@ -25,6 +25,8 @@ import {
   MessageCircle,
   Bookmark,
   Eye,
+  Users as UsersIcon,
+  BarChart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -42,9 +44,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 
 interface DisplayPost {
@@ -138,6 +137,135 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
         </motion.div>
     );
 }
+
+const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
+    const [insights, setInsights] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            if (!connection.isConnected || !connection.accessToken) {
+                setError("A conta da Meta não está conectada.");
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                // IMPORTANTE: Substitua este ID pelo ID de um post REAL da sua Página do Facebook.
+                // O formato do ID do post é {page-id}_{post-id}.
+                // Ex: "123456789012345_543210987654321"
+                const examplePostId = "828956949590294_899933802492608";
+                
+                const response = await fetch('/api/meta/post-insights', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accessToken: connection.accessToken,
+                        postId: examplePostId 
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || "Falha ao buscar as métricas do post.");
+                }
+
+                setInsights(result.insights);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInsights();
+    }, [connection]);
+
+    const metricsToShow = [
+        { key: 'post_impressions_unique', label: 'Alcance', icon: Eye },
+        { key: 'post_engaged_users', label: 'Engajamento', icon: UsersIcon },
+        { key: 'post_reactions_like_total', label: 'Curtidas', icon: Heart },
+        { key: 'post_video_views', label: 'Visualizações', icon: PlayIcon },
+    ];
+    
+    const renderMetric = (metricKey: string, label: string, Icon: React.ElementType) => {
+        const value = insights?.[metricKey];
+        return (
+            <div className="p-2 bg-gray-100 rounded-md">
+                <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-1">
+                    <Icon className="w-3 h-3" />
+                    <span>{label}</span>
+                </div>
+                {isLoading ? (
+                    <Loader2 className="w-4 h-4 mx-auto animate-spin text-gray-500"/>
+                ) : (
+                    <p className="font-bold text-lg text-gray-900">{value !== undefined ? value : 'N/A'}</p>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
+                    <BarChart className="w-5 h-5" />
+                    Demonstração para Análise da Meta
+                </CardTitle>
+                <p className="text-sm text-blue-700 pt-2">
+                    Esta seção demonstra como usamos a permissão `pages_read_engagement` para exibir métricas de desempenho de suas publicações, ajudando você a gerenciar sua página.
+                </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 {error && (
+                    <div className="border-l-4 border-red-400 bg-red-50 p-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-red-700">{error}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <div className="border rounded-lg p-4 bg-white shadow-sm">
+                    <div className="flex items-center gap-4 mb-4">
+                        <Image
+                            src="https://placehold.co/80x80/2D8EFF/FFFFFF/png?text=Post"
+                            alt="Post de exemplo"
+                            width={80}
+                            height={80}
+                            className="w-20 h-20 object-cover rounded-md"
+                        />
+                        <div>
+                            <h4 className="font-bold text-gray-800">Post Real da Sua Página</h4>
+                            <p className="text-sm text-gray-500">Métricas de Engajamento</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        {renderMetric('post_impressions_unique', 'Alcance', Eye)}
+                        {renderMetric('post_engaged_users', 'Engajamento', UsersIcon)}
+                        {renderMetric('post_reactions_like_total', 'Curtidas', Heart)}
+                        {renderMetric('post_video_views', 'Views', PlayIcon)}
+                    </div>
+                </div>
+                 <p className="text-xs text-center text-gray-500 italic">
+                    Estes são dados reais de um post da sua página, obtidos com a permissão solicitada.
+                </p>
+            </CardContent>
+        </Card>
+    );
+};
+// Adicione o ícone PlayIcon que não existe
+const PlayIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z" />
+    </svg>
+);
+
 
 export default function Conteudo() {
   const router = useRouter();
@@ -477,58 +605,6 @@ export default function Conteudo() {
     </Card>
   );
 
-  const MetaReviewCard = () => (
-    <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
-                <Eye className="w-5 h-5" />
-                Demonstração para Análise da Meta
-            </CardTitle>
-            <p className="text-sm text-blue-700 pt-2">
-                Esta seção demonstra como usamos a permissão `pages_read_engagement` para exibir métricas de desempenho de suas publicações, ajudando você a gerenciar sua página.
-            </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="border rounded-lg p-4 bg-white shadow-sm">
-                <div className="flex items-center gap-4 mb-4">
-                    <Image
-                        src="https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1760477011094.png"
-                        alt="Post de exemplo"
-                        width={80}
-                        height={80}
-                        className="w-20 h-20 object-cover rounded-md"
-                    />
-                    <div>
-                        <h4 className="font-bold text-gray-800">Post de Exemplo</h4>
-                        <p className="text-sm text-gray-500">Publicado em 24 de Julho de 2024</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="p-2 bg-gray-100 rounded-md">
-                        <p className="text-xs text-gray-600">Alcance</p>
-                        <p className="font-bold text-lg text-gray-900">1,254</p>
-                    </div>
-                    <div className="p-2 bg-gray-100 rounded-md">
-                        <p className="text-xs text-gray-600">Curtidas</p>
-                        <p className="font-bold text-lg text-gray-900">189</p>
-                    </div>
-                    <div className="p-2 bg-gray-100 rounded-md">
-                        <p className="text-xs text-gray-600">Comentários</p>
-                        <p className="font-bold text-lg text-gray-900">32</p>
-                    </div>
-                    <div className="p-2 bg-gray-100 rounded-md">
-                        <p className="text-xs text-gray-600">Salvamentos</p>
-                        <p className="font-bold text-lg text-gray-900">45</p>
-                    </div>
-                </div>
-            </div>
-            <p className="text-xs text-center text-gray-500 italic">
-                Os dados acima são simulados para fins de demonstração.
-            </p>
-        </CardContent>
-    </Card>
-  );
-
   const CalendarCard = () => (
     <Card className="shadow-lg border-none">
         <CardHeader>
@@ -635,7 +711,7 @@ export default function Conteudo() {
             <TestPublishCard />
             {metaConnection.isConnected && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <MetaReviewCard />
+                <MetaReviewCard connection={metaConnection} />
               </motion.div>
             )}
         </div>
@@ -706,5 +782,3 @@ export default function Conteudo() {
     </div>
   );
 }
-
-    
