@@ -1,8 +1,5 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
-import type { PostData } from "@/lib/services/posts-service";
-import * as admin from 'firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,13 +9,9 @@ interface PublishRequestBody {
       title: string;
       text: string;
       imageUrl: string;
-      platforms: string[];
-      scheduledAt: string; // ISO string
       metaConnection: {
           accessToken: string;
-          pageId: string;
           instagramId: string;
-          instagramUsername?: string;
       };
   };
 }
@@ -94,7 +87,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando userId, postData ou detalhes da conexão Meta." }, { status: 400 });
         }
         
-        // --- Step 1: Publish to Instagram ---
         debugMessage += "[2] Publicando no Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
@@ -112,38 +104,14 @@ export async function POST(request: NextRequest) {
             creationId
         );
         debugMessage += `Mídia publicada (id: ${publishedMediaId}). `;
-
-        // --- Step 2: If successful, save to Firestore ---
-        debugMessage += "[3] Salvando no Firestore... ";
-        const postToSave: Omit<PostData, 'id'> = {
-            title: postData.title,
-            text: postData.text,
-            imageUrl: postData.imageUrl,
-            platforms: postData.platforms,
-            status: 'published',
-            scheduledAt: admin.firestore.Timestamp.fromDate(new Date(postData.scheduledAt)),
-            metaConnection: {
-                accessToken: postData.metaConnection.accessToken,
-                pageId: postData.metaConnection.pageId,
-                instagramId: postData.metaConnection.instagramId,
-                instagramUsername: postData.metaConnection.instagramUsername,
-            },
-            publishedMediaId: publishedMediaId,
-        };
-
-        const userDocRef = adminDb.collection("users").doc(userId);
-        // Ensure user document exists before adding to subcollection
-        await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-
-        const postDocRef = await userDocRef.collection("posts").add(postToSave);
         
-        debugMessage += `[4] Salvo no Firestore (docId: ${postDocRef.id}). Processo completo.`;
+        debugMessage += `[3] Publicação no Instagram concluída. Retornando para o cliente salvar.`;
         console.log(debugMessage);
 
-        return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
+        return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        const finalErrorMessage = `Erro para o usuário ${userId}. Fluxo: ${debugMessage}. Detalhes do Erro: ${error.code} ${error.message}`;
+        const finalErrorMessage = `Erro para o usuário ${userId}. Fluxo: ${debugMessage}. Detalhes do Erro: ${error.code || ''} ${error.message}`;
         console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({

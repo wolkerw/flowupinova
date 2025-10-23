@@ -113,7 +113,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             imageUrl = postData.media; // Already a URL
         }
 
-        // Logic for scheduled posts (not immediate)
+        // For scheduled posts (not immediate)
         const now = new Date();
         const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
 
@@ -136,20 +136,16 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             return { success: true, post: { id: docRef.id, ...postToSchedule, scheduledAt: postData.scheduledAt.toISOString() }};
         }
 
-        // For immediate posts, call the publish API directly
+        // For immediate posts, call the publish API
         const apiPayload = {
             userId: userId,
             postData: {
                 title: postData.title,
                 text: postData.text,
                 imageUrl: imageUrl,
-                platforms: postData.platforms,
-                scheduledAt: postData.scheduledAt.toISOString(),
                 metaConnection: {
                     accessToken: postData.metaConnection.accessToken,
-                    pageId: postData.metaConnection.pageId,
                     instagramId: postData.metaConnection.instagramId,
-                    instagramUsername: postData.metaConnection.instagramUsername,
                 }
             }
         };
@@ -160,15 +156,32 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             body: JSON.stringify(apiPayload),
         });
 
-        // The API now always returns JSON, even on error.
         const result = await response.json();
 
-        if (!response.ok) {
-            // Throw an error with the detailed message from the API.
+        if (!response.ok || !result.success) {
             throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
         }
+        
+        // --- If API publish is successful, NOW save to Firestore ---
+        const postToSave: Omit<PostData, 'id'> = {
+            title: postData.title,
+            text: postData.text,
+            imageUrl: imageUrl,
+            platforms: postData.platforms,
+            status: 'published',
+            scheduledAt: Timestamp.fromDate(postData.scheduledAt),
+            metaConnection: {
+                accessToken: postData.metaConnection.accessToken,
+                pageId: postData.metaConnection.pageId,
+                instagramId: postData.metaConnection.instagramId,
+                instagramUsername: postData.metaConnection.instagramUsername,
+            },
+            publishedMediaId: result.publishedMediaId,
+        };
 
-        return { success: true, ...result };
+        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+
+        return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
