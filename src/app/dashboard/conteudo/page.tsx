@@ -21,6 +21,10 @@ import {
   RefreshCw,
   MoreVertical,
   Send,
+  Heart,
+  MessageCircle,
+  Bookmark,
+  Eye,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -471,7 +475,59 @@ export default function Conteudo() {
             </div>
         </CardContent>
     </Card>
-  )
+  );
+
+  const MetaReviewCard = () => (
+    <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
+                <Eye className="w-5 h-5" />
+                Demonstração para Análise da Meta
+            </CardTitle>
+            <p className="text-sm text-blue-700 pt-2">
+                Esta seção demonstra como usamos a permissão `pages_read_engagement` para exibir métricas de desempenho de suas publicações, ajudando você a gerenciar sua página.
+            </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="border rounded-lg p-4 bg-white shadow-sm">
+                <div className="flex items-center gap-4 mb-4">
+                    <Image
+                        src="https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1760477011094.png"
+                        alt="Post de exemplo"
+                        width={80}
+                        height={80}
+                        className="w-20 h-20 object-cover rounded-md"
+                    />
+                    <div>
+                        <h4 className="font-bold text-gray-800">Post de Exemplo</h4>
+                        <p className="text-sm text-gray-500">Publicado em 24 de Julho de 2024</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="p-2 bg-gray-100 rounded-md">
+                        <p className="text-xs text-gray-600">Alcance</p>
+                        <p className="font-bold text-lg text-gray-900">1,254</p>
+                    </div>
+                    <div className="p-2 bg-gray-100 rounded-md">
+                        <p className="text-xs text-gray-600">Curtidas</p>
+                        <p className="font-bold text-lg text-gray-900">189</p>
+                    </div>
+                    <div className="p-2 bg-gray-100 rounded-md">
+                        <p className="text-xs text-gray-600">Comentários</p>
+                        <p className="font-bold text-lg text-gray-900">32</p>
+                    </div>
+                    <div className="p-2 bg-gray-100 rounded-md">
+                        <p className="text-xs text-gray-600">Salvamentos</p>
+                        <p className="font-bold text-lg text-gray-900">45</p>
+                    </div>
+                </div>
+            </div>
+            <p className="text-xs text-center text-gray-500 italic">
+                Os dados acima são simulados para fins de demonstração.
+            </p>
+        </CardContent>
+    </Card>
+  );
 
   const CalendarCard = () => (
     <Card className="shadow-lg border-none">
@@ -577,6 +633,11 @@ export default function Conteudo() {
         <div className="lg:col-span-1 space-y-8">
             <CalendarCard />
             <TestPublishCard />
+            {metaConnection.isConnected && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <MetaReviewCard />
+              </motion.div>
+            )}
         </div>
         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
