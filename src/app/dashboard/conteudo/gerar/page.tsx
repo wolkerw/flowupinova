@@ -300,25 +300,33 @@ export default function GerarConteudoPage() {
                     objectFit="contain"
                     className="opacity-40"
                 />
-                <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/30">
-                    {selectedContent ? (
-                        <h2 className="text-2xl font-bold leading-tight text-white text-center">{selectedContent.titulo}</h2>
-                    ) : (
-                        <div className="h-8 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
-                    )}
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
-                   {selectedContent ? (
-                     <>
-                       <p className="text-sm text-white mb-2">{selectedContent.subtitulo}</p>
-                       <p className="text-xs text-blue-300 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
-                     </>
-                   ) : (
-                     <div className="space-y-2">
-                        <div className="h-4 bg-gray-400/50 rounded w-full animate-pulse"></div>
-                        <div className="h-3 bg-gray-400/50 rounded w-1/2 animate-pulse mt-2"></div>
-                     </div>
-                   )}
+                <div className="absolute inset-0 flex flex-col justify-between p-4 bg-black/30">
+                    {/* Título no topo */}
+                    <div className="text-center">
+                        {selectedContent ? (
+                            <h2 className="text-xl font-bold leading-tight text-white">{selectedContent.titulo}</h2>
+                        ) : (
+                            <div className="h-7 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>
+                        )}
+                    </div>
+                    
+                    {/* Subtítulo no centro */}
+                    <div className="text-center">
+                        {selectedContent ? (
+                            <p className="text-base text-white">{selectedContent.subtitulo}</p>
+                        ) : (
+                            <div className="h-4 bg-gray-400/50 rounded w-full animate-pulse"></div>
+                        )}
+                    </div>
+
+                    {/* Hashtags na base */}
+                    <div className="text-center">
+                        {selectedContent ? (
+                            <p className="text-xs text-blue-300 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p>
+                        ) : (
+                             <div className="h-3 bg-gray-400/50 rounded w-1/2 mx-auto animate-pulse"></div>
+                        )}
+                    </div>
                 </div>
             </div>
           </div>
@@ -539,5 +547,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
