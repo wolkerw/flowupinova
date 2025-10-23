@@ -1,32 +1,33 @@
 
 import * as admin from 'firebase-admin';
+import serviceAccount from '@/service-account.json';
 
-// Em ambientes de nuvem, às vezes a detecção automática de credenciais pode falhar
-// ou apontar para o projeto errado. Para garantir a conexão correta no Firebase Studio,
-// vamos forçar o uso do arquivo de conta de serviço quando disponível.
+// Converte a conta de serviço para o formato esperado pelo SDK
+const serviceAccountParams = {
+    type: serviceAccount.type,
+    projectId: serviceAccount.project_id,
+    privateKeyId: serviceAccount.private_key_id,
+    privateKey: serviceAccount.private_key,
+    clientEmail: serviceAccount.client_email,
+    clientId: serviceAccount.client_id,
+    authUri: serviceAccount.auth_uri,
+    tokenUri: serviceAccount.token_uri,
+    authProviderX509CertUrl: serviceAccount.auth_provider_x509_cert_url,
+    clientX509CertUrl: serviceAccount.client_x509_cert_url,
+};
+
+
+// Garante que a inicialização só ocorra uma vez.
+// Força o uso do service-account.json para garantir autenticação robusta no ambiente de nuvem.
 if (!admin.apps.length) {
   try {
-    // A variável de ambiente SERVICE_ACCOUNT_JSON é injetada pelo ambiente do Firebase Studio.
-    const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
-    if (serviceAccountString) {
-        const serviceAccount = JSON.parse(serviceAccountString);
-        console.log("[ADMIN_SDK_INIT] Initializing with SERVICE_ACCOUNT_JSON env var...");
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-        });
-        console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully from env var.");
-    } else {
-        console.log("[ADMIN_SDK_INIT] Attempting to initialize with default credentials (env var not found)...");
-        // Se a variável de ambiente não estiver disponível, cai para o comportamento padrão,
-        // que funciona bem em muitos ambientes do Google Cloud.
-        admin.initializeApp({
-             databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-        });
-         console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully with default credentials.");
-    }
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountParams),
+      databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
+    });
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully from imported service-account.json.");
   } catch (error: any) {
-    console.error("[ADMIN_SDK_INIT] Firebase Admin initialization failed:", error.message);
+    console.error("[ADMIN_SDK_INIT] Critical Error: Firebase Admin initialization failed from service-account.json:", error.message);
   }
 }
 
