@@ -273,7 +273,7 @@ export default function Conteudo() {
         const testPost = {
             title: `Post de Teste - ${new Date().toLocaleTimeString()}`,
             text: "Este é um post de teste gerado automaticamente pela plataforma FlowUp. #Teste #FlowUp",
-            media: "https://images.unsplash.com/photo-1620288627223-16212394639a?q=80&w=2070&auto=format&fit=crop",
+            media: "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1760477011094.png",
             platforms: ['instagram'],
             scheduledAt: new Date(),
             metaConnection: metaConnection,
