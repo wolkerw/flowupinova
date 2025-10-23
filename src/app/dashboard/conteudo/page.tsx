@@ -22,12 +22,23 @@ import {
   RefreshCw,
   MoreVertical,
   BarChart,
+  Trash2,
 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
+import { getScheduledPosts, deletePost, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +47,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -54,7 +66,7 @@ interface DisplayPost {
     pageName?: string;
 }
 
-const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, onRepublish: (postId: string) => void, isRepublishing: boolean }) => {
+const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: DisplayPost, onRepublish: (postId: string) => void, isRepublishing: boolean, onDelete: (postId: string) => void }) => {
     const statusConfig = {
         published: { icon: CheckCircle, className: "bg-green-100 text-green-700" },
         scheduled: { icon: Clock, className: "bg-blue-100 text-blue-700" },
@@ -132,6 +144,14 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
                             <RefreshCw className="w-4 h-4 mr-2" />
                           )}
                           Republicar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600 focus:text-red-700"
+                          onClick={() => onDelete(post.id)}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -277,6 +297,11 @@ export default function Conteudo() {
   const [historyFilter, setHistoryFilter] = useState('this-month');
   const [isRepublishing, setIsRepublishing] = useState(false);
   
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -382,6 +407,29 @@ export default function Conteudo() {
     fetchPageData();
     toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
   };
+
+  const handleDeleteRequest = (postId: string) => {
+    setPostToDelete(postId);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleConfirmDelete = async () => {
+    if (!user || !postToDelete) return;
+
+    setIsDeleting(true);
+    try {
+        await deletePost(user.uid, postToDelete);
+        toast({ title: "Sucesso!", description: "A publicação foi excluída." });
+        fetchPageData(); // Refresh the list
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: "Erro ao Excluir", description: error.message });
+    } finally {
+        setIsDeleting(false);
+        setIsDeleteDialogOpen(false);
+        setPostToDelete(null);
+    }
+  }
+
   
   const handleRepublish = async (postId: string) => {
     if (!user) {
@@ -580,126 +628,151 @@ export default function Conteudo() {
   )
   
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
-        <style>{`
-            .day-published { position: relative; }
-            .day-published::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #22c55e; }
-            .day-scheduled { position: relative; }
-            .day-scheduled::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #3b82f6; }
-            .day-failed { position: relative; }
-            .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
-        `}</style>
-      
-      {/* Cabeçalho */}
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
-          <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
-        </div>
+    <>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a
+                        publicação do seu histórico.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleConfirmDelete}
+                        disabled={isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+      <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
+          <style>{`
+              .day-published { position: relative; }
+              .day-published::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #22c55e; }
+              .day-scheduled { position: relative; }
+              .day-scheduled::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #3b82f6; }
+              .day-failed { position: relative; }
+              .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
+          `}</style>
         
-        <div className="flex gap-4 pt-2">
-          <Button 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow"
-            onClick={() => router.push('/dashboard/conteudo/gerar')}
-            size="lg"
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Gerar Conteúdo com IA
-          </Button>
-          <Button 
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
-            onClick={() => router.push('/dashboard/conteudo/criar')}
-            size="lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Criar Conteúdo
-          </Button>
+        {/* Cabeçalho */}
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
+            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
+          </div>
+          
+          <div className="flex gap-4 pt-2">
+            <Button 
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow"
+              onClick={() => router.push('/dashboard/conteudo/gerar')}
+              size="lg"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Gerar Conteúdo com IA
+            </Button>
+            <Button 
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
+              onClick={() => router.push('/dashboard/conteudo/criar')}
+              size="lg"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Criar Conteúdo
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <AnimatePresence>
-        {!metaConnection.isConnected && !loading && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                <ConnectCard />
-            </motion.div>
+        <AnimatePresence>
+          {!metaConnection.isConnected && !loading && (
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  <ConnectCard />
+              </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-8">
+              <CalendarCard />
+          </div>
+          <div className="lg:col-span-2 space-y-8">
+              <Card className="shadow-lg border-none">
+                  <CardHeader>
+                      <CardTitle className="text-xl">Publicações Agendadas</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                       <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
+                           <AnimatePresence>
+                              {isLoadingInitial ? (
+                                  <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                              ) : scheduledPosts.length > 0 ? (
+                                  scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                              ) : (
+                                  <div className="text-center text-gray-500 py-6">
+                                      <Clock className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
+                                      <p>Nenhuma publicação agendada.</p>
+                                  </div>
+                              )}
+                           </AnimatePresence>
+                       </div>
+                  </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-none">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
+                       <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                          <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Filtrar por período" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
+                              <SelectItem value="this-month">Este mês</SelectItem>
+                              <SelectItem value="this-year">Este ano</SelectItem>
+                              <SelectItem value="all-time">Todo o período</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
+                           <AnimatePresence>
+                              {isLoadingInitial ? (
+                                   <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                              ) : pastPosts.length > 0 ? (
+                                  pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                              ) : (
+                                  <div className="text-center text-gray-500 py-10">
+                                      <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                      <p>Nenhuma publicação encontrada no histórico.</p>
+                                  </div>
+                              )}
+                           </AnimatePresence>
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
+        </div>
+
+        {metaConnection.isConnected && (
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+              <ConnectionStatusCard />
+           </motion.div>
         )}
-      </AnimatePresence>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-8">
-            <CalendarCard />
-        </div>
-        <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg border-none">
-                <CardHeader>
-                    <CardTitle className="text-xl">Publicações Agendadas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
-                         <AnimatePresence>
-                            {isLoadingInitial ? (
-                                <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                            ) : scheduledPosts.length > 0 ? (
-                                scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} />)
-                            ) : (
-                                <div className="text-center text-gray-500 py-6">
-                                    <Clock className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
-                                    <p>Nenhuma publicação agendada.</p>
-                                </div>
-                            )}
-                         </AnimatePresence>
-                     </div>
-                </CardContent>
-            </Card>
 
-            <Card className="shadow-lg border-none">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
-                     <Select value={historyFilter} onValueChange={setHistoryFilter}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filtrar por período" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
-                            <SelectItem value="this-month">Este mês</SelectItem>
-                            <SelectItem value="this-year">Este ano</SelectItem>
-                            <SelectItem value="all-time">Todo o período</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </CardHeader>
-                <CardContent>
-                    <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
-                         <AnimatePresence>
-                            {isLoadingInitial ? (
-                                 <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                            ) : pastPosts.length > 0 ? (
-                                pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} />)
-                            ) : (
-                                <div className="text-center text-gray-500 py-10">
-                                    <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                                    <p>Nenhuma publicação encontrada no histórico.</p>
-                                </div>
-                            )}
-                         </AnimatePresence>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+        {/* Seção de Demonstração para Meta */}
+        {metaConnection.isConnected && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <MetaPagePostsViewer connection={metaConnection} />
+          </motion.div>
+        )}
+
       </div>
-
-      {metaConnection.isConnected && (
-         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-            <ConnectionStatusCard />
-         </motion.div>
-      )}
-
-      {/* Seção de Demonstração para Meta */}
-      {metaConnection.isConnected && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <MetaPagePostsViewer connection={metaConnection} />
-        </motion.div>
-      )}
-
-    </div>
+    </>
   );
 }

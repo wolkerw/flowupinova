@@ -3,7 +3,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -268,4 +268,18 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
    }
 }
 
+export async function deletePost(userId: string, postId: string): Promise<void> {
+    if (!userId || !postId) {
+        throw new Error("UserID e PostID são necessários para excluir a publicação.");
+    }
+    try {
+        const postDocRef = doc(db, "users", userId, "posts", postId);
+        await deleteDoc(postDocRef);
+        console.log(`Post ${postId} deleted successfully for user ${userId}.`);
+    } catch (error: any) {
+        console.error(`Error deleting post ${postId} for user ${userId}:`, error);
+        throw new Error("Não foi possível excluir a publicação do banco de dados.");
+    }
+}
     
+
