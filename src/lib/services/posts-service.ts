@@ -16,7 +16,7 @@ export interface PostData {
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
     metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername'>; // Storing username now
-    publishedMediaId?: string;
+    publishedMediaId?: string; // Can be for Instagram or Facebook
     failureReason?: string;
 }
 
@@ -99,12 +99,12 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     if (!userId) {
         return { success: false, error: "User ID is required to schedule a post." };
     }
-     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken || !postData.metaConnection.instagramId) {
-        return { success: false, error: "Conexão com a Meta (Instagram) não está configurada ou é inválida." };
+     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken) {
+        return { success: false, error: "Conexão com a Meta não está configurada ou é inválida." };
     }
     
     let imageUrl: string;
-    let docRef; // Define docRef here to be accessible in the final catch block
+    let docRef; 
 
     try {
         // Step 1: Handle Media URL
@@ -115,10 +115,10 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         }
 
         const now = new Date();
-        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000; // 1 minute threshold
+        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
         const initialStatus = isImmediate ? 'publishing' : 'scheduled';
         
-        // Step 2: Save to Firestore FIRST
+        // Step 2: Save to Firestore
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -135,64 +135,68 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         };
 
         docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+        console.log(`Post ${docRef.id} saved to DB with status '${initialStatus}'.`);
 
-        // If it's a scheduled (not immediate) post, our job is done for now.
-        // The backend cron job will handle the publishing later.
         if (!isImmediate) {
-            console.log(`Post ${docRef.id} scheduled for ${postData.scheduledAt}.`);
-            return { 
-                success: true, 
-                post: { 
-                    id: docRef.id, 
-                    ...postToSave, 
-                    scheduledAt: postData.scheduledAt.toISOString() 
-                }
-            };
+            console.log(`Post ${docRef.id} is scheduled for a future date.`);
+            return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
         }
         
-        // Step 3: For immediate posts, call the publish API AFTER saving to DB
-        console.log(`[1] Post ${docRef.id} saved to DB. Now attempting to publish immediately...`);
-        
-        // For now, we only handle Instagram publishing via this flow.
-        // The logic for Facebook publishing would need a separate API call or a modified one.
-        if (postData.platforms.includes('instagram')) {
-            const apiPayload = {
-                postData: {
-                    title: postData.title,
-                    text: postData.text,
-                    imageUrl: imageUrl,
-                    metaConnection: {
-                        accessToken: postData.metaConnection.accessToken,
-                        instagramId: postData.metaConnection.instagramId,
-                    }
-                }
-            };
+        // Step 3: Handle immediate publishing
+        console.log(`Attempting immediate publish for post ${docRef.id} to platforms: ${postData.platforms.join(', ')}`);
 
-            const response = await fetch('/api/instagram/publish', {
+        const publishPromises = postData.platforms.map(async (platform) => {
+            let apiPath: string;
+            let payload: any;
+            
+            if (platform === 'instagram') {
+                if (!postData.metaConnection.instagramId) throw new Error("Instagram ID de negócio não encontrado para publicação.");
+                apiPath = '/api/instagram/publish';
+                payload = {
+                    postData: {
+                        title: postData.title,
+                        text: postData.text,
+                        imageUrl: imageUrl,
+                        metaConnection: {
+                            accessToken: postData.metaConnection.accessToken!,
+                            instagramId: postData.metaConnection.instagramId!,
+                        }
+                    }
+                };
+            } else if (platform === 'facebook') {
+                if (!postData.metaConnection.pageId) throw new Error("ID da Página do Facebook não encontrado para publicação.");
+                 apiPath = '/api/facebook/publish';
+                 payload = {
+                     postData: {
+                         text: `${postData.title}\n\n${postData.text}`,
+                         imageUrl: imageUrl,
+                         metaConnection: {
+                             accessToken: postData.metaConnection.accessToken!,
+                             pageId: postData.metaConnection.pageId!,
+                         }
+                     }
+                 };
+            } else {
+                console.warn(`Plataforma desconhecida: ${platform}. Ignorando.`);
+                return null;
+            }
+
+            const response = await fetch(apiPath, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(apiPayload),
+                body: JSON.stringify(payload),
             });
-
             const result = await response.json();
-            console.log('[2] API Response:', result);
-
             if (!response.ok || !result.success) {
-                throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
+                throw new Error(`Falha ao publicar no ${platform}: ${result.error || `status ${response.status}`}`);
             }
-            
-            console.log(`[3] API call successful. Updating post ${docRef.id} to 'published'.`);
-            await setDoc(docRef, {
-                status: 'published',
-                publishedMediaId: result.publishedMediaId
-            }, { merge: true });
-        } else {
-             // If only Facebook is selected for an immediate post, we mark it as scheduled
-             // since the FB publish logic is not yet implemented on this client-side flow.
-             await setDoc(docRef, { status: 'scheduled' }, { merge: true });
-             console.log(`Post ${docRef.id} for Facebook has been scheduled. A backend process should handle it.`);
-        }
+            return { platform, result };
+        });
 
+        const results = await Promise.all(publishPromises);
+        
+        console.log(`[3] API calls successful. Updating post ${docRef.id} to 'published'.`);
+        await setDoc(docRef, { status: 'published' }, { merge: true });
 
         return { 
             success: true, 
@@ -216,7 +220,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         return { 
             success: false, 
-            error: `Failed to process post. Reason: ${error.message}` 
+            error: `Falha ao processar post. Motivo: ${error.message}` 
         };
     }
 }
@@ -259,3 +263,5 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
 }
+
+    

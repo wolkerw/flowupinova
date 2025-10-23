@@ -582,10 +582,10 @@ export default function CriarConteudoPage() {
                                         </Label>
                                     </div>
                                      <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('facebook') ? 'checked' : 'unchecked'}>
-                                        <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} disabled={true} />
-                                        <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer text-gray-400">
-                                            <Facebook className="w-5 h-5" />
-                                            Facebook (Breve)
+                                        <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} />
+                                        <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer">
+                                            <Facebook className="w-5 h-5 text-blue-600" />
+                                            Facebook
                                         </Label>
                                     </div>
                                 </div>
@@ -641,3 +641,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
