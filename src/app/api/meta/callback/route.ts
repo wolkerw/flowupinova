@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Substituído por origin para tornar a URL dinâmica
     if (!origin) {
         return NextResponse.json(
             { success: false, error: "Could not determine request origin." },
@@ -27,25 +26,33 @@ export async function POST(request: NextRequest) {
     const clientSecret = "944e053d34b162c13408cd00ad276aa2";
     const redirectUri = `${origin}/dashboard/conteudo`;
     
-    // 1. Troca o código por um token de acesso de curta duração
+    // Etapa 1: Trocar o código por um token de acesso de curta duração
     const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;
     const tokenResponse = await fetch(tokenUrl);
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error("Meta Token Exchange Error:", tokenData);
-      throw new Error(tokenData.error?.message || "Falha ao obter token de acesso da Meta.");
+      console.error("Meta Token Exchange Error (Short-lived):", tokenData.error);
+      throw new Error(tokenData.error?.message || "Falha ao obter token de acesso de curta duração da Meta.");
     }
     const shortLivedToken = tokenData.access_token;
     
-    // 2. Troca o token de curta duração por um de longa duração
+    // Etapa 2: Trocar o token de curta duração por um de longa duração (ESSENCIAL)
     const longLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortLivedToken}`;
     const longLivedTokenResponse = await fetch(longLivedTokenUrl);
     const longLivedTokenData = await longLivedTokenResponse.json();
+    
+    if (!longLivedTokenResponse.ok || !longLivedTokenData.access_token) {
+        console.error("Meta Token Exchange Error (Long-lived):", longLivedTokenData.error);
+        // Se a troca falhar, continuamos com o de curta duração, mas avisamos no console.
+        console.warn("Could not exchange for a long-lived token. Proceeding with short-lived token.");
+    }
+
+    // Usar o token de longa duração se disponível, caso contrário, usar o de curta duração como fallback.
     const accessToken = longLivedTokenData.access_token || shortLivedToken;
 
-    // 3. Buscar as páginas do usuário
-    const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?access_token=${accessToken}&fields=id,name,instagram_business_account{username}`;
+    // 3. Buscar as páginas do usuário usando o token (preferencialmente o de longa duração)
+    const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?access_token=${accessToken}&fields=id,name,instagram_business_account{id,username,name}`;
     const pagesResponse = await fetch(pagesUrl);
     const pagesData = await pagesResponse.json();
 
@@ -79,5 +86,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
     
+
