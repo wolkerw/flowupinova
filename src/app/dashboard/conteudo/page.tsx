@@ -138,43 +138,40 @@ const PostItem = ({ post, onRepublish, isRepublishing }: { post: DisplayPost, on
     );
 }
 
-const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
-    const [insights, setInsights] = useState<any>(null);
+// Novo componente para a demonstração da Meta
+const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
+    const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchInsights = async () => {
-            if (!connection.isConnected || !connection.accessToken) {
-                setError("A conta da Meta não está conectada.");
+        const fetchPosts = async () => {
+            if (!connection.isConnected || !connection.accessToken || !connection.pageId) {
+                setError("A conta da Meta não está conectada ou o ID da página não está disponível.");
                 setIsLoading(false);
                 return;
             }
 
+            setIsLoading(true);
+            setError(null);
+            
             try {
-                // =========================================================================================
-                // IMPORTANTE PARA APROVAÇÃO DA META: Substitua este ID pelo ID de um post REAL da sua Página do Facebook.
-                // O formato do ID do post é {page-id}_{post-id}.
-                // Exemplo: "123456789012345_543210987654321"
-                const examplePostId = "828956949590294_899933802492608";
-                // =========================================================================================
-
-                const response = await fetch('/api/meta/post-insights', {
+                const response = await fetch('/api/meta/page-posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         accessToken: connection.accessToken,
-                        postId: examplePostId 
+                        pageId: connection.pageId 
                     }),
                 });
 
                 const result = await response.json();
                 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.error || "Falha ao buscar as métricas do post.");
+                    throw new Error(result.error || "Falha ao buscar os posts da página.");
                 }
 
-                setInsights(result.insights);
+                setPosts(result.posts);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -182,94 +179,77 @@ const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
             }
         };
 
-        fetchInsights();
+        fetchPosts();
     }, [connection]);
 
-    const metricsToShow = [
-        { key: 'post_impressions_unique', label: 'Alcance', icon: Eye },
-        { key: 'post_engaged_users', label: 'Engajamento', icon: UsersIcon },
-        { key: 'post_reactions_like_total', label: 'Curtidas', icon: Heart },
-        { key: 'post_video_views', label: 'Visualizações', icon: PlayIcon },
-    ];
-    
-    const renderMetric = (metricKey: string, label: string, Icon: React.ElementType) => {
-        const value = insights?.[metricKey];
-        return (
-            <div className="p-2 bg-gray-100 rounded-md">
-                <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-1">
-                    <Icon className="w-3 h-3" />
-                    <span>{label}</span>
-                </div>
-                {isLoading ? (
-                    <Loader2 className="w-4 h-4 mx-auto animate-spin text-gray-500"/>
-                ) : (
-                    <p className="font-bold text-lg text-gray-900">{value !== undefined ? value : 'N/A'}</p>
-                )}
-            </div>
-        );
-    }
-
     return (
-        <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50">
+        <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50 mt-8">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
                     <BarChart className="w-5 h-5" />
-                    Demonstração para Análise da Meta
+                    Posts da Página do Facebook (Demonstração para Meta)
                 </CardTitle>
                 <p className="text-sm text-blue-700 pt-2">
-                    Esta seção demonstra como usamos a permissão `pages_read_engagement` para exibir métricas de desempenho de suas publicações, ajudando você a gerenciar sua página.
+                    Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
-                 {error && !isLoading && (
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-40">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <p className="ml-4 text-blue-800">Buscando posts e métricas da sua página...</p>
+                    </div>
+                ) : error ? (
                     <div className="border-l-4 border-red-400 bg-red-50 p-4">
                         <div className="flex">
                             <div className="flex-shrink-0">
-                                <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                                <AlertTriangle className="h-5 w-5 text-red-400" />
                             </div>
                             <div className="ml-3">
-                                <h3 className="text-sm font-medium text-red-800">Erro ao buscar métricas</h3>
-                                <div className="mt-2 text-sm text-red-700">
-                                  <p>{error}</p>
-                                </div>
+                                <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
+                                <p className="mt-2 text-sm text-red-700">{error}</p>
                             </div>
                         </div>
                     </div>
+                ) : posts.length === 0 ? (
+                    <p className="text-center text-gray-600 p-8">Nenhum post encontrado na página do Facebook.</p>
+                ) : (
+                    <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
+                        {posts.map(post => (
+                            <div key={post.id} className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm border">
+                                <Image 
+                                    src={post.full_picture || 'https://placehold.co/100'} 
+                                    alt="Imagem do post" 
+                                    width={100} height={100} 
+                                    className="object-cover rounded-md w-24 h-24"
+                                />
+                                <div className="flex-1">
+                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">{post.message || "Post sem texto."}</p>
+                                    <p className="text-xs text-gray-400 mb-3">Publicado em: {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-1.5 text-gray-700" title="Alcance (Impressões Únicas)">
+                                            <Eye className="w-4 h-4 text-blue-500" />
+                                            <span className="font-semibold">{post.insights.reach || 0}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700" title="Engajamento">
+                                            <UsersIcon className="w-4 h-4 text-green-500" />
+                                            <span className="font-semibold">{post.insights.engagement || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
-                <div className="border rounded-lg p-4 bg-white shadow-sm">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Image
-                            src="https://placehold.co/80x80/2D8EFF/FFFFFF/png?text=Post"
-                            alt="Post de exemplo"
-                            width={80}
-                            height={80}
-                            className="w-20 h-20 object-cover rounded-md"
-                        />
-                        <div>
-                            <h4 className="font-bold text-gray-800">Post Real da Sua Página</h4>
-                            <p className="text-sm text-gray-500">Métricas de Engajamento</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        {renderMetric('post_impressions_unique', 'Alcance', Eye)}
-                        {renderMetric('post_engaged_users', 'Engajamento', UsersIcon)}
-                        {renderMetric('post_reactions_like_total', 'Curtidas', Heart)}
-                        {renderMetric('post_video_views', 'Views', PlayIcon)}
-                    </div>
-                </div>
-                 <p className="text-xs text-center text-gray-500 italic">
-                    Estes são dados reais de um post da sua página, obtidos com a permissão solicitada. Certifique-se de que o ID do post está correto no código.
-                </p>
             </CardContent>
+             <CardFooter>
+                <p className="text-xs text-center text-gray-500 italic w-full">
+                    Estes são dados reais dos posts da sua página do Facebook, obtidos com as permissões solicitadas.
+                </p>
+            </CardFooter>
         </Card>
     );
 };
-// Adicione o ícone PlayIcon que não existe
-const PlayIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M8 5v14l11-7z" />
-    </svg>
-);
 
 
 export default function Conteudo() {
@@ -380,7 +360,7 @@ export default function Conteudo() {
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
     const configId = "657201687223122";
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_manage_posts";
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
@@ -714,11 +694,6 @@ export default function Conteudo() {
         <div className="lg:col-span-1 space-y-8">
             <CalendarCard />
             <TestPublishCard />
-            {metaConnection.isConnected && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <MetaReviewCard connection={metaConnection} />
-              </motion.div>
-            )}
         </div>
         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
@@ -784,8 +759,13 @@ export default function Conteudo() {
          </motion.div>
       )}
 
+      {/* Seção de Demonstração para Meta */}
+      {metaConnection.isConnected && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <MetaPagePostsViewer connection={metaConnection} />
+        </motion.div>
+      )}
+
     </div>
   );
 }
-
-    
