@@ -2,32 +2,17 @@
 import * as admin from 'firebase-admin';
 import serviceAccount from '@/service-account.json';
 
-// Converte a conta de serviço para o formato esperado pelo SDK
-const serviceAccountParams = {
-    type: serviceAccount.type,
-    projectId: serviceAccount.project_id,
-    privateKeyId: serviceAccount.private_key_id,
-    privateKey: serviceAccount.private_key,
-    clientEmail: serviceAccount.client_email,
-    clientId: serviceAccount.client_id,
-    authUri: serviceAccount.auth_uri,
-    tokenUri: serviceAccount.token_uri,
-    authProviderX509CertUrl: serviceAccount.auth_provider_x509_cert_url,
-    clientX509CertUrl: serviceAccount.client_x509_cert_url,
-};
-
-
-// Garante que a inicialização só ocorra uma vez.
-// Força o uso do service-account.json para garantir autenticação robusta no ambiente de nuvem.
+// Garante que a inicialização só ocorra uma vez, forçando o uso do service-account.json.
+// Este é o método mais robusto para ambientes de nuvem onde a detecção automática pode falhar.
 if (!admin.apps.length) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountParams),
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
       databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
     });
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully from imported service-account.json.");
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com sucesso a partir do service-account.json importado.");
   } catch (error: any) {
-    console.error("[ADMIN_SDK_INIT] Critical Error: Firebase Admin initialization failed from service-account.json:", error.message);
+    console.error("[ADMIN_SDK_INIT] Erro Crítico: A inicialização do Firebase Admin a partir do service-account.json falhou:", error.message);
   }
 }
 
@@ -47,7 +32,7 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken;
   } catch (error) {
-    console.error("Error verifying ID token:", error);
+    console.error("Erro ao verificar o ID token:", error);
     throw new Error("Token inválido ou expirado.");
   }
 }

@@ -35,7 +35,7 @@ async function createMediaContainer(instagramId: string, accessToken: string, im
   const data = await response.json();
 
   if (!response.ok || !data.id) {
-    console.error("[META_API_ERROR] Failed to create media container:", data.error);
+    console.error("[META_API_ERROR] Falha ao criar o container de mídia:", data.error);
     throw new Error(data.error?.message || "Falha ao criar o container de mídia no Instagram.");
   }
 
@@ -58,7 +58,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
       break;
     }
     if (statusData.status_code === 'ERROR') {
-      console.error("[META_API_ERROR] Media container processing failed:", statusData);
+      console.error("[META_API_ERROR] Falha no processamento do container de mídia:", statusData);
       throw new Error("O container de mídia falhou ao ser processado pelo Instagram.");
     }
     await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
@@ -73,7 +73,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
   const data = await response.json();
 
   if (!response.ok || !data.id) {
-    console.error("[META_API_ERROR] Failed to publish media container:", data.error);
+    console.error("[META_API_ERROR] Falha ao publicar o container de mídia:", data.error);
     throw new Error(data.error?.message || "Falha ao publicar a mídia no Instagram.");
   }
 
@@ -95,21 +95,21 @@ export async function POST(request: NextRequest) {
         }
 
         // --- Step 1: Ensure user document exists ---
-        debugMessage += "[2] Checking user document... ";
+        debugMessage += "[2] Verificando/Criando documento do usuário... ";
         const userDocRef = adminDb.collection("users").doc(userId);
         const userDoc = await userDocRef.get();
         if (!userDoc.exists) {
             // Documento não existe, vamos criá-lo.
-            debugMessage += "NOT FOUND. Creating it now... ";
-            await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
-            debugMessage += "Created. ";
+            debugMessage += "NÃO ENCONTRADO. Criando agora... ";
+            await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            debugMessage += "Criado. ";
         } else {
-            debugMessage += "Found. ";
+            debugMessage += "Encontrado. ";
         }
 
         
         // --- Step 2: Publish to Instagram ---
-        debugMessage += "[3] Publishing to Instagram... ";
+        debugMessage += "[3] Publicando no Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -118,17 +118,17 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
-        debugMessage += `Media container created (id: ${creationId}). `;
+        debugMessage += `Container de mídia criado (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
-        debugMessage += `Media published (id: ${publishedMediaId}). `;
+        debugMessage += `Mídia publicada (id: ${publishedMediaId}). `;
 
         // --- Step 3: If successful, save to Firestore ---
-        debugMessage += "[4] Saving to Firestore... ";
+        debugMessage += "[4] Salvando no Firestore... ";
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -147,13 +147,13 @@ export async function POST(request: NextRequest) {
 
         const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
         
-        debugMessage += `[5] Saved to Firestore (docId: ${postDocRef.id}). Process complete.`;
+        debugMessage += `[5] Salvo no Firestore (docId: ${postDocRef.id}). Processo completo.`;
         console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
 
     } catch (error: any) {
-        const finalErrorMessage = `Error for user ${userId}. Flow: ${debugMessage}. Error Details: ${error.code} ${error.message}`;
+        const finalErrorMessage = `Erro para o usuário ${userId}. Fluxo: ${debugMessage}. Detalhes do Erro: ${error.code} ${error.message}`;
         console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({
