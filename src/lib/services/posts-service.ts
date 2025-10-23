@@ -104,7 +104,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     let imageUrl: string;
-    let docRef;
+    let docRef; // Define docRef here to be accessible in the final catch block
 
     try {
         // Step 1: Handle Media URL
@@ -115,7 +115,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         }
 
         const now = new Date();
-        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
+        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000; // 1 minute threshold
         const initialStatus = isImmediate ? 'publishing' : 'scheduled';
         
         // Step 2: Save to Firestore FIRST
@@ -137,7 +137,9 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
 
         // If it's a scheduled (not immediate) post, our job is done for now.
+        // The backend cron job will handle the publishing later.
         if (!isImmediate) {
+            console.log(`Post ${docRef.id} scheduled for ${postData.scheduledAt}.`);
             return { 
                 success: true, 
                 post: { 
@@ -149,6 +151,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         }
         
         // Step 3: For immediate posts, call the publish API AFTER saving to DB
+        console.log(`[1] Post ${docRef.id} saved to DB. Now attempting to publish immediately...`);
+        
         const apiPayload = {
             postData: {
                 title: postData.title,
@@ -164,10 +168,12 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         const response = await fetch('/api/instagram/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(JSON.stringify(apiPayload)), // Double stringify was a bug
+            // The body should be the JSON string of the payload, not double-stringified.
+            body: JSON.stringify(apiPayload),
         });
 
         const result = await response.json();
+        console.log('[2] API Response:', result);
 
         if (!response.ok || !result.success) {
             // This error comes from the API route (e.g., Meta API failed)
@@ -175,6 +181,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         }
         
         // Step 4: Update the post in Firestore with the 'published' status
+        console.log(`[3] API call successful. Updating post ${docRef.id} to 'published'.`);
         await setDoc(docRef, {
             status: 'published',
             publishedMediaId: result.publishedMediaId
@@ -243,11 +250,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 
         return posts;
 
-   } catch (error: any)       console.error(`Error fetching posts for user ${userId}:`, error);
+   } catch (error: any) {
+       console.error(`Error fetching posts for user ${userId}:`, error);
        return [];
    }
 }
-
-
-
-    
