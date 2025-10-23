@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,9 +18,12 @@ import { schedulePost } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
+type Platform = 'instagram' | 'facebook';
+
 type MediaItem = {
     type: 'image' | 'video';
     file: File;
@@ -184,6 +187,8 @@ export default function CriarConteudoPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
+    const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
+
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
@@ -288,9 +293,21 @@ export default function CriarConteudoPage() {
         }, 1500);
     };
 
+    const handlePlatformChange = (platform: Platform) => {
+        setPlatforms(prev => 
+            prev.includes(platform) 
+            ? prev.filter(p => p !== platform)
+            : [...prev, platform]
+        );
+    }
+
     const handleSubmit = async () => {
         if (!user || !metaConnection?.isConnected || mediaItems.length === 0) {
             toast({ variant: "destructive", title: "Erro", description: "Verifique se você conectou sua conta, está logado e adicionou uma mídia." });
+            return;
+        }
+         if (platforms.length === 0) {
+            toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
             return;
         }
         if (scheduleType === 'schedule' && !scheduleDate) {
@@ -313,7 +330,7 @@ export default function CriarConteudoPage() {
             title: title || "Post sem título",
             text: text,
             media: mediaToPublish,
-            platforms: ['instagram'],
+            platforms: platforms,
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
             metaConnection: metaConnection,
         });
@@ -334,6 +351,7 @@ export default function CriarConteudoPage() {
         !metaConnection?.isConnected || 
         isPublishing || 
         mediaItems.length === 0 ||
+        platforms.length === 0 ||
         (scheduleType === 'schedule' && !scheduleDate)
     );
 
@@ -549,10 +567,29 @@ export default function CriarConteudoPage() {
 
                     <Card className="shadow-lg border-none">
                         <CardHeader>
-                            <CardTitle className="text-lg">Agendamento</CardTitle>
-                            <p className="text-sm text-gray-600">Escolha quando publicar seu conteúdo.</p>
+                            <CardTitle className="text-lg">Agendamento e Plataformas</CardTitle>
+                            <p className="text-sm text-gray-600">Escolha onde e quando publicar seu conteúdo.</p>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <div>
+                                <Label className="font-semibold">Onde Publicar?</Label>
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('instagram') ? 'checked' : 'unchecked'}>
+                                        <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} />
+                                        <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer">
+                                            <Instagram className="w-5 h-5 text-pink-500" />
+                                            Instagram
+                                        </Label>
+                                    </div>
+                                     <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('facebook') ? 'checked' : 'unchecked'}>
+                                        <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} disabled={true} />
+                                        <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer text-gray-400">
+                                            <Facebook className="w-5 h-5" />
+                                            Facebook (Breve)
+                                        </Label>
+                                    </div>
+                                </div>
+                            </div>
                             <div>
                                 <Label className="font-semibold">Quando publicar?</Label>
                                 <RadioGroup value={scheduleType} onValueChange={(v) => setScheduleType(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
@@ -604,5 +641,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    

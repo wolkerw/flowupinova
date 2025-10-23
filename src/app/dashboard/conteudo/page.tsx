@@ -187,7 +187,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                     Posts da Página do Facebook
                 </CardTitle>
                 <p className="text-sm text-blue-700 pt-2">
-                    Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
+                     Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -366,7 +366,7 @@ export default function Conteudo() {
     const state = user?.uid;
     const configId = "657201687223122";
     // Adicionada a nova permissão ao escopo
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content";
+    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content,pages_manage_posts";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
@@ -439,18 +439,13 @@ export default function Conteudo() {
     
      try {
         const payload = {
-            userId: user.uid,
             postData: {
                 title: postToRepublish.title,
                 text: '', // Legenda pode ser extraída ou deixada em branco
                 imageUrl: postToRepublish.imageUrl,
-                platforms: ['instagram'],
-                scheduledAt: new Date().toISOString(),
                 metaConnection: {
                     accessToken: metaConnection.accessToken!,
-                    pageId: metaConnection.pageId!,
                     instagramId: metaConnection.instagramId!,
-                    instagramUsername: metaConnection.instagramUsername,
                 }
             }
         };

@@ -12,7 +12,7 @@ export interface PostData {
     title: string;
     text: string;
     imageUrl: string; // URL must be public from Firebase Storage or AI source
-    platforms: string[];
+    platforms: Array<'instagram' | 'facebook'>;
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
     metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername'>; // Storing username now
@@ -25,7 +25,7 @@ export type PostDataInput = {
     title: string;
     text: string;
     media: File | string; // Can be a File for upload or a string URL from AI gen/webhook
-    platforms: string[];
+    platforms: Array<'instagram' | 'facebook'>;
     scheduledAt: Date;
     metaConnection: MetaConnectionData; // Pass the full connection object
 };
@@ -153,39 +153,46 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         // Step 3: For immediate posts, call the publish API AFTER saving to DB
         console.log(`[1] Post ${docRef.id} saved to DB. Now attempting to publish immediately...`);
         
-        const apiPayload = {
-            postData: {
-                title: postData.title,
-                text: postData.text,
-                imageUrl: imageUrl,
-                metaConnection: {
-                    accessToken: postData.metaConnection.accessToken,
-                    instagramId: postData.metaConnection.instagramId,
+        // For now, we only handle Instagram publishing via this flow.
+        // The logic for Facebook publishing would need a separate API call or a modified one.
+        if (postData.platforms.includes('instagram')) {
+            const apiPayload = {
+                postData: {
+                    title: postData.title,
+                    text: postData.text,
+                    imageUrl: imageUrl,
+                    metaConnection: {
+                        accessToken: postData.metaConnection.accessToken,
+                        instagramId: postData.metaConnection.instagramId,
+                    }
                 }
+            };
+
+            const response = await fetch('/api/instagram/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(apiPayload),
+            });
+
+            const result = await response.json();
+            console.log('[2] API Response:', result);
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
             }
-        };
-
-        const response = await fetch('/api/instagram/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // The body should be the JSON string of the payload, not double-stringified.
-            body: JSON.stringify(apiPayload),
-        });
-
-        const result = await response.json();
-        console.log('[2] API Response:', result);
-
-        if (!response.ok || !result.success) {
-            // This error comes from the API route (e.g., Meta API failed)
-            throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
+            
+            console.log(`[3] API call successful. Updating post ${docRef.id} to 'published'.`);
+            await setDoc(docRef, {
+                status: 'published',
+                publishedMediaId: result.publishedMediaId
+            }, { merge: true });
+        } else {
+             // If only Facebook is selected for an immediate post, we mark it as scheduled
+             // since the FB publish logic is not yet implemented on this client-side flow.
+             await setDoc(docRef, { status: 'scheduled' }, { merge: true });
+             console.log(`Post ${docRef.id} for Facebook has been scheduled. A backend process should handle it.`);
         }
-        
-        // Step 4: Update the post in Firestore with the 'published' status
-        console.log(`[3] API call successful. Updating post ${docRef.id} to 'published'.`);
-        await setDoc(docRef, {
-            status: 'published',
-            publishedMediaId: result.publishedMediaId
-        }, { merge: true });
+
 
         return { 
             success: true, 
@@ -200,16 +207,13 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
 
-        // If docRef exists, it means the post was saved but a later step failed (e.g., publishing)
-        // So we update the status to 'failed'.
         if (docRef) {
             await setDoc(docRef, {
                 status: 'failed',
                 failureReason: error.message
             }, { merge: true });
         }
-
-        // Return a structured error to the client
+        
         return { 
             success: false, 
             error: `Failed to process post. Reason: ${error.message}` 
@@ -238,7 +242,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     title: data.title,
                     text: data.text,
                     imageUrl: data.imageUrl,
-                    platforms: data.platforms,
+                    platforms: data.platforms as Array<'instagram' | 'facebook'>,
                     status: data.status,
                     publishedMediaId: data.publishedMediaId,
                     failureReason: data.failureReason,
