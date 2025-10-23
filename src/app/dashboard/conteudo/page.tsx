@@ -152,11 +152,13 @@ const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
             }
 
             try {
-                // IMPORTANTE: Substitua este ID pelo ID de um post REAL da sua Página do Facebook.
+                // =========================================================================================
+                // IMPORTANTE PARA APROVAÇÃO DA META: Substitua este ID pelo ID de um post REAL da sua Página do Facebook.
                 // O formato do ID do post é {page-id}_{post-id}.
-                // Ex: "123456789012345_543210987654321"
+                // Exemplo: "123456789012345_543210987654321"
                 const examplePostId = "828956949590294_899933802492608";
-                
+                // =========================================================================================
+
                 const response = await fetch('/api/meta/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -219,14 +221,17 @@ const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
-                 {error && (
+                 {error && !isLoading && (
                     <div className="border-l-4 border-red-400 bg-red-50 p-4">
                         <div className="flex">
                             <div className="flex-shrink-0">
                                 <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
                             </div>
                             <div className="ml-3">
-                                <p className="text-sm text-red-700">{error}</p>
+                                <h3 className="text-sm font-medium text-red-800">Erro ao buscar métricas</h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                  <p>{error}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -253,7 +258,7 @@ const MetaReviewCard = ({ connection }: { connection: MetaConnectionData }) => {
                     </div>
                 </div>
                  <p className="text-xs text-center text-gray-500 italic">
-                    Estes são dados reais de um post da sua página, obtidos com a permissão solicitada.
+                    Estes são dados reais de um post da sua página, obtidos com a permissão solicitada. Certifique-se de que o ID do post está correto no código.
                 </p>
             </CardContent>
         </Card>
@@ -782,3 +787,5 @@ export default function Conteudo() {
     </div>
   );
 }
+
+    
