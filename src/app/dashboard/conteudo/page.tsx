@@ -191,21 +191,21 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     }, [connection]);
 
     return (
-        <Card className="shadow-lg border-blue-200 border-2 bg-blue-50/50 mt-8">
+        <Card className="shadow-lg border-none mt-8">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
-                    <BarChart className="w-5 h-5" />
-                    Posts da Página do Facebook
+                <CardTitle className="flex items-center gap-2 text-xl">
+                    <BarChart className="w-5 h-5 text-blue-500" />
+                    Análise de Posts (Facebook)
                 </CardTitle>
-                <p className="text-sm text-blue-700 pt-2">
+                <p className="text-sm text-gray-600 pt-2">
                      Esta seção demonstra o uso das permissões `pages_read_user_content` (para listar os posts) e `pages_read_engagement` (para buscar as métricas).
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-40">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                        <p className="ml-4 text-blue-800">Buscando posts e métricas da sua página...</p>
+                        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                        <p className="ml-4 text-gray-600">Buscando posts e métricas da sua página...</p>
                     </div>
                 ) : error ? (
                     <div className="border-l-4 border-red-400 bg-red-50 p-4">
