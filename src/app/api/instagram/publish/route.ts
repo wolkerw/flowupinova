@@ -93,23 +93,9 @@ export async function POST(request: NextRequest) {
         if (!userId || !postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando userId, postData ou detalhes da conexão Meta." }, { status: 400 });
         }
-
-        // --- Step 1: Ensure user document exists ---
-        debugMessage += "[2] Verificando/Criando documento do usuário... ";
-        const userDocRef = adminDb.collection("users").doc(userId);
-        const userDoc = await userDocRef.get();
-        if (!userDoc.exists) {
-            // Documento não existe, vamos criá-lo.
-            debugMessage += "NÃO ENCONTRADO. Criando agora... ";
-            await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-            debugMessage += "Criado. ";
-        } else {
-            debugMessage += "Encontrado. ";
-        }
-
         
-        // --- Step 2: Publish to Instagram ---
-        debugMessage += "[3] Publicando no Instagram... ";
+        // --- Step 1: Publish to Instagram ---
+        debugMessage += "[2] Publicando no Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -127,8 +113,8 @@ export async function POST(request: NextRequest) {
         );
         debugMessage += `Mídia publicada (id: ${publishedMediaId}). `;
 
-        // --- Step 3: If successful, save to Firestore ---
-        debugMessage += "[4] Salvando no Firestore... ";
+        // --- Step 2: If successful, save to Firestore ---
+        debugMessage += "[3] Salvando no Firestore... ";
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
@@ -145,9 +131,13 @@ export async function POST(request: NextRequest) {
             publishedMediaId: publishedMediaId,
         };
 
-        const postDocRef = await adminDb.collection("users").doc(userId).collection("posts").add(postToSave);
+        const userDocRef = adminDb.collection("users").doc(userId);
+        // Ensure user document exists before adding to subcollection
+        await userDocRef.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+        const postDocRef = await userDocRef.collection("posts").add(postToSave);
         
-        debugMessage += `[5] Salvo no Firestore (docId: ${postDocRef.id}). Processo completo.`;
+        debugMessage += `[4] Salvo no Firestore (docId: ${postDocRef.id}). Processo completo.`;
         console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId, postId: postDocRef.id });
