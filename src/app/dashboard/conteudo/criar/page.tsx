@@ -205,30 +205,29 @@ export default function CriarConteudoPage() {
             setIsUploading(true);
             toast({ title: "Processando imagem...", description: "Enviando imagem para obter URL pública." });
 
-            const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/post_manual";
             const file = mediaItems[0].file;
 
             const formData = new FormData();
             formData.append('file', file);
 
             try {
-                const response = await fetch(webhookUrl, {
+                // Call the internal API proxy instead of the external webhook
+                const response = await fetch('/api/proxy-webhook', {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Falha no webhook: ${errorText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || `Falha na API proxy: ${response.statusText}`);
                 }
 
                 const result = await response.json();
                 
-                // Process the expected JSON structure: [{ "url_post": "..." }]
                 const publicUrl = result?.[0]?.url_post;
 
                 if (!publicUrl) {
-                    throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+                    throw new Error("A resposta do webhook (via proxy) não continha uma 'url_post' válida.");
                 }
 
                 setMediaItems(prevItems => {
@@ -243,7 +242,7 @@ export default function CriarConteudoPage() {
                 setStep(3);
 
             } catch (error: any) {
-                console.error("Erro ao enviar para webhook:", error);
+                console.error("Erro ao enviar para a API proxy:", error);
                 toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
             } finally {
                 setIsUploading(false);
@@ -298,6 +297,8 @@ export default function CriarConteudoPage() {
             toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
             return;
         }
+        
+        // Use the publicUrl if available, otherwise pass the File object
         const mediaToPublish = mediaItems[0].publicUrl || mediaItems[0].file;
 
         if (!mediaToPublish) {
