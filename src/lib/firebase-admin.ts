@@ -3,9 +3,10 @@ import * as admin from 'firebase-admin';
 
 // Em ambientes de nuvem, às vezes a detecção automática de credenciais pode falhar
 // ou apontar para o projeto errado. Para garantir a conexão correta no Firebase Studio,
-// vamos forçar o uso do arquivo de conta de serviço.
+// vamos forçar o uso do arquivo de conta de serviço quando disponível.
 if (!admin.apps.length) {
   try {
+    // A variável de ambiente SERVICE_ACCOUNT_JSON é injetada pelo ambiente do Firebase Studio.
     const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
     if (serviceAccountString) {
         const serviceAccount = JSON.parse(serviceAccountString);
@@ -16,7 +17,7 @@ if (!admin.apps.length) {
         });
         console.log("[ADMIN_SDK_INIT] Firebase Admin SDK initialized successfully from env var.");
     } else {
-        console.log("[ADMIN_SDK_INIT] Attempting to initialize with default credentials...");
+        console.log("[ADMIN_SDK_INIT] Attempting to initialize with default credentials (env var not found)...");
         // Se a variável de ambiente não estiver disponível, cai para o comportamento padrão,
         // que funciona bem em muitos ambientes do Google Cloud.
         admin.initializeApp({
