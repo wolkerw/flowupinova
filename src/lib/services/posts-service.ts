@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -104,41 +104,45 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     let imageUrl: string;
+    let docRef;
 
     try {
-        // A mídia agora pode ser uma URL pública já processada, então não precisamos fazer upload se for uma string
+        // Step 1: Upload media if it's a file
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
             imageUrl = postData.media; // Already a URL
         }
 
-        // For scheduled posts (not immediate)
         const now = new Date();
         const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
+        const initialStatus = isImmediate ? 'publishing' : 'scheduled';
 
+        // Step 2: Save the initial post data to Firestore
+        const postToSave: Omit<PostData, 'id'> = {
+            title: postData.title,
+            text: postData.text,
+            imageUrl: imageUrl,
+            platforms: postData.platforms,
+            scheduledAt: Timestamp.fromDate(postData.scheduledAt),
+            status: initialStatus,
+            metaConnection: {
+                accessToken: postData.metaConnection.accessToken,
+                pageId: postData.metaConnection.pageId,
+                instagramId: postData.metaConnection.instagramId,
+                instagramUsername: postData.metaConnection.instagramUsername,
+            }
+        };
+
+        docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+
+        // If it's not an immediate post, we are done.
         if (!isImmediate) {
-             const postToSchedule: Omit<PostData, 'id'> = {
-                title: postData.title,
-                text: postData.text,
-                imageUrl: imageUrl,
-                platforms: postData.platforms,
-                scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-                status: 'scheduled',
-                metaConnection: {
-                    accessToken: postData.metaConnection.accessToken,
-                    pageId: postData.metaConnection.pageId,
-                    instagramId: postData.metaConnection.instagramId,
-                    instagramUsername: postData.metaConnection.instagramUsername,
-                }
-            };
-            const docRef = await addDoc(getPostsCollectionRef(userId), postToSchedule);
-            return { success: true, post: { id: docRef.id, ...postToSchedule, scheduledAt: postData.scheduledAt.toISOString() }};
+            return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
         }
 
-        // For immediate posts, call the publish API
+        // Step 3: For immediate posts, call the publish API
         const apiPayload = {
-            userId: userId,
             postData: {
                 title: postData.title,
                 text: postData.text,
@@ -162,29 +166,25 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             throw new Error(result.error || `A API de publicação falhou com status ${response.status}`);
         }
         
-        // --- If API publish is successful, NOW save to Firestore ---
-        const postToSave: Omit<PostData, 'id'> = {
-            title: postData.title,
-            text: postData.text,
-            imageUrl: imageUrl,
-            platforms: postData.platforms,
+        // Step 4: Update the post in Firestore with the 'published' status and media ID
+        await setDoc(docRef, {
             status: 'published',
-            scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-            metaConnection: {
-                accessToken: postData.metaConnection.accessToken,
-                pageId: postData.metaConnection.pageId,
-                instagramId: postData.metaConnection.instagramId,
-                instagramUsername: postData.metaConnection.instagramUsername,
-            },
-            publishedMediaId: result.publishedMediaId,
-        };
+            publishedMediaId: result.publishedMediaId
+        }, { merge: true });
 
-        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-
-        return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
+        return { success: true, post: { id: docRef.id, ...postToSave, status: 'published', scheduledAt: postData.scheduledAt.toISOString() }};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
+
+        // If we have a docRef, it means the post was saved but publishing failed. Update status to 'failed'.
+        if (docRef) {
+            await setDoc(docRef, {
+                status: 'failed',
+                failureReason: error.message
+            }, { merge: true });
+        }
+
         return { success: false, error: `Failed to process post. Reason: ${error.message}` };
     }
 }
@@ -227,3 +227,4 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
 }
+

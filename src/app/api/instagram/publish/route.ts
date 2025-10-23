@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from "next/server";
 export const dynamic = 'force-dynamic';
 
 interface PublishRequestBody {
-  userId: string;
   postData: {
       title: string;
       text: string;
@@ -74,20 +73,18 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 }
 
 export async function POST(request: NextRequest) {
-    let userId: string | undefined;
     let debugMessage = "[1] API endpoint hit. ";
 
     try {
         const body: PublishRequestBody = await request.json();
-        userId = body.userId;
         const { postData } = body;
-        debugMessage += `User: ${userId}. `;
-
-        if (!userId || !postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
-            return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando userId, postData ou detalhes da conexão Meta." }, { status: 400 });
+        
+        debugMessage += "[2] Validating request... ";
+        if (!postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
+            return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando postData ou detalhes da conexão Meta." }, { status: 400 });
         }
         
-        debugMessage += "[2] Publicando no Instagram... ";
+        debugMessage += "[3] Publishing to Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -96,22 +93,22 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
-        debugMessage += `Container de mídia criado (id: ${creationId}). `;
+        debugMessage += `Container created (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
-        debugMessage += `Mídia publicada (id: ${publishedMediaId}). `;
+        debugMessage += `Media published (id: ${publishedMediaId}). `;
         
-        debugMessage += `[3] Publicação no Instagram concluída. Retornando para o cliente salvar.`;
+        debugMessage += `[4] Instagram publication finished. Returning success to client.`;
         console.log(debugMessage);
 
         return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        const finalErrorMessage = `Erro para o usuário ${userId}. Fluxo: ${debugMessage}. Detalhes do Erro: ${error.code || ''} ${error.message}`;
+        const finalErrorMessage = `Error during Instagram publish. Flow: ${debugMessage}. Error Details: ${error.code || ''} ${error.message}`;
         console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
         
         return NextResponse.json({
