@@ -21,9 +21,6 @@ import {
   RefreshCw,
   MoreVertical,
   Send,
-  Heart,
-  MessageCircle,
-  Bookmark,
   Eye,
   Users as UsersIcon,
   BarChart,
@@ -360,6 +357,7 @@ export default function Conteudo() {
     const redirectUri = `${window.location.origin}/dashboard/conteudo`;
     const state = user?.uid;
     const configId = "657201687223122";
+    // Adicionada a nova permissão ao escopo
     const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content";
     if (!state) return;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;

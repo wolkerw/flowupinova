@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Page ID são obrigatórios." }, { status: 400 });
         }
 
-        // Busca os posts da página e, para cada post, busca suas métricas
+        // Busca os posts da página e, para cada post, busca suas métricas em uma única chamada
         const fields = [
             'id',
             'message',
