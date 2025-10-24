@@ -41,15 +41,15 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
 /**
  * Retrieves the user's UID from the ID token stored in cookies on the server-side.
  * This is a server-side utility.
- * @returns The user's UID string, or null if not authenticated.
+ * @returns The user's UID string.
+ * @throws An error if the user is not authenticated.
  */
-export async function getUidFromCookie(): Promise<string | null> {
+export async function getUidFromCookie(): Promise<string> {
     const cookieStore = cookies();
     const idTokenCookie = cookieStore.get('fb-id-token');
 
     if (!idTokenCookie?.value) {
-        console.log("No ID token cookie found in server action.");
-        return null;
+        throw new Error("Falha na verificação do usuário Firebase. O cookie de autenticação não foi encontrado.");
     }
 
     try {
@@ -57,6 +57,6 @@ export async function getUidFromCookie(): Promise<string | null> {
         return decodedToken.uid;
     } catch (error) {
         console.error("Error verifying ID token from cookie:", error);
-        return null;
+        throw new Error("Falha na verificação do usuário Firebase. O token do cliente é inválido.");
     }
 }

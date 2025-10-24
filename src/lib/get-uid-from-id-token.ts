@@ -12,7 +12,7 @@ export async function getUidFromIdToken(): Promise<string | null> {
     const idTokenCookie = cookieStore.get('fb-id-token');
 
     if (!idTokenCookie?.value) {
-        console.log("No ID token cookie found.");
+        console.warn("getUidFromIdToken: No ID token cookie found.");
         return null;
     }
 
