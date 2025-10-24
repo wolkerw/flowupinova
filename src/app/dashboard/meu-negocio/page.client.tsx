@@ -67,13 +67,12 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
   }, [user, fetchProfileData]);
 
   const handleTokenExchange = useCallback(async (code: string) => {
-    if (!user) return;
     setAuthLoading(true);
     
     try {
+      // Simplesmente chamamos a Server Action. O servidor cuidará da autenticação.
       await exchangeCodeAction(code);
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e sendo atualizado." });
-      // Reload the data from client-side after successful connection
       await fetchProfileData();
 
     } catch (err: any) {
@@ -82,7 +81,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
       router.replace('/dashboard/meu-negocio', undefined); // Clear URL params
       setAuthLoading(false);
     }
-  }, [user, exchangeCodeAction, toast, router, fetchProfileData]);
+  }, [exchangeCodeAction, toast, router, fetchProfileData]);
 
   useEffect(() => {
     const code = searchParams.get('code');
