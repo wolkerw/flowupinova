@@ -44,6 +44,12 @@ const ContactFormModal = ({ onContactAdded }: { onContactAdded: () => void }) =>
     const { user } = useAuth();
     const { toast } = useToast();
 
+    const clearForm = () => {
+        setName('');
+        setEmail('');
+        setPhone('');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) {
@@ -60,6 +66,7 @@ const ContactFormModal = ({ onContactAdded }: { onContactAdded: () => void }) =>
             await addContact(user.uid, { name, email, phone });
             toast({ title: "Sucesso!", description: "Contato adicionado." });
             onContactAdded(); // Callback to refresh the list
+            clearForm(); // Limpa o formulário
             // Close the modal by triggering the close button
             document.getElementById('close-dialog-button')?.click();
         } catch (error: any) {
