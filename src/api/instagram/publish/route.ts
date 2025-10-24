@@ -76,8 +76,7 @@ export async function POST(request: NextRequest) {
     let debugMessage = "[API] Endpoint hit. ";
 
     try {
-        // The body is coming directly as JSON from schedulePost, no more double-stringification
-        const body: PublishRequestBody = await request.json();
+        const body: PublishRequestBody = await request.json(); 
         const { postData } = body;
         
         debugMessage += "[API] Validating request... ";
@@ -119,3 +118,4 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
     }
 }
+    
