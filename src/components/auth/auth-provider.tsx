@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       setLoading(false);
        if (user) {
-          const token = await user.getIdToken();
+          const token = await user.getIdToken(true); // Force refresh
           setCookie('fb-id-token', token, 1); // Store token in cookie for Server Components
       } else {
           eraseCookie('fb-id-token');
