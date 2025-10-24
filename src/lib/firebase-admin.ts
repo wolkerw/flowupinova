@@ -35,7 +35,7 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
   } catch (error: any) {
     console.error(`Erro detalhado ao verificar o ID token: (${error.code}) ${error.message}`);
     // Lança um erro mais detalhado para o chamador
-    throw new Error(`O token do Firebase é inválido. Motivo: ${error.code} - ${error.message}`);
+    throw new Error(`O token do Firebase é inválido. Motivo: ${error.message}`);
   }
 }
 
