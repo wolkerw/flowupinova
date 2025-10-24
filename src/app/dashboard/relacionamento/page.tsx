@@ -1,11 +1,10 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Users,
   Mail,
@@ -16,8 +15,8 @@ import {
   Send,
   User,
   Phone,
-  X,
   AtSign,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -32,86 +31,124 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/hooks/use-toast";
+import { addContact, getContacts, type Contact } from "@/lib/services/contacts-service";
 
 
-const ContactFormModal = () => {
-  // State for the form fields could be added here
-  // For now, it's a simple presentational component
-  return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <User className="w-5 h-5"/>
-            Adicionar Novo Contato
-        </DialogTitle>
-        <DialogDescription>
-            Insira os detalhes do novo contato para adicioná-lo à sua lista.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="py-4 space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="contact-name">Nome</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="contact-name" placeholder="Nome completo do contato" className="pl-10" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-email">E-mail</Label>
-           <div className="relative">
-            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="contact-email" type="email" placeholder="email@exemplo.com" className="pl-10" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-phone">Telefone (WhatsApp)</Label>
-           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="contact-phone" type="tel" placeholder="(00) 00000-0000" className="pl-10" />
-          </div>
-        </div>
-      </div>
-      <DialogFooter>
-        <DialogClose asChild>
-            <Button type="button" variant="outline">Cancelar</Button>
-        </DialogClose>
-        <Button type="submit">Salvar Contato</Button>
-      </DialogFooter>
-    </DialogContent>
-  );
+const ContactFormModal = ({ onContactAdded }: { onContactAdded: () => void }) => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const { user } = useAuth();
+    const { toast } = useToast();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) {
+            toast({ variant: "destructive", title: "Erro", description: "Você precisa estar logado para adicionar contatos." });
+            return;
+        }
+        if (!name.trim() || !email.trim()) {
+            toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome e e-mail são obrigatórios." });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await addContact(user.uid, { name, email, phone });
+            toast({ title: "Sucesso!", description: "Contato adicionado." });
+            onContactAdded(); // Callback to refresh the list
+            // Close the modal by triggering the close button
+            document.getElementById('close-dialog-button')?.click();
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+  
+    return (
+      <DialogContent>
+        <form onSubmit={handleSubmit}>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5"/>
+                    Adicionar Novo Contato
+                </DialogTitle>
+                <DialogDescription>
+                    Insira os detalhes do novo contato para adicioná-lo à sua lista.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="contact-name">Nome</Label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="contact-name" placeholder="Nome completo do contato" value={name} onChange={e => setName(e.target.value)} required className="pl-10" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="contact-email">E-mail</Label>
+                    <div className="relative">
+                        <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="contact-email" type="email" placeholder="email@exemplo.com" value={email} onChange={e => setEmail(e.target.value)} required className="pl-10" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="contact-phone">Telefone (WhatsApp)</Label>
+                    <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="contact-phone" type="tel" placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} className="pl-10" />
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button type="button" variant="outline" id="close-dialog-button">Cancelar</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isSaving}>
+                    {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Salvar Contato
+                </Button>
+            </DialogFooter>
+        </form>
+      </DialogContent>
+    );
 };
 
 
 export default function Relacionamento() {
-  const contacts = [
-    {
-      id: 1,
-      name: "Maria Silva",
-      email: "maria@exemplo.com",
-      status: "lead",
-      score: 85,
-      lastContact: "2 dias atrás",
-      source: "Facebook Ads"
-    },
-    {
-      id: 2,
-      name: "João Santos",
-      email: "joao@exemplo.com",
-      status: "cliente",
-      score: 95,
-      lastContact: "1 semana atrás",
-      source: "Indicação"
-    },
-    {
-      id: 3,
-      name: "Ana Costa",
-      email: "ana@exemplo.com",
-      status: "prospect",
-      score: 65,
-      lastContact: "3 dias atrás",
-      source: "Site"
+    const [contacts, setContacts] = useState<Contact[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const { user } = useAuth();
+    const { toast } = useToast();
+
+    const fetchContacts = async () => {
+        if (!user) return;
+        setIsLoading(true);
+        try {
+            const fetchedContacts = await getContacts(user.uid);
+            setContacts(fetchedContacts);
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Erro ao buscar contatos", description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if(user) {
+            fetchContacts();
+        }
+    }, [user]);
+
+    const handleContactAdded = () => {
+        setIsFormOpen(false); // Close the dialog
+        fetchContacts(); // Refresh the contact list
     }
-  ];
 
   const emailCampaigns = [
     {
@@ -132,12 +169,6 @@ export default function Relacionamento() {
     }
   ];
 
-  const statusColors: { [key: string]: string } = {
-    lead: "bg-yellow-100 text-yellow-700",
-    cliente: "bg-green-100 text-green-700",
-    prospect: "bg-blue-100 text-blue-700"
-  };
-
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Cabeçalho */}
@@ -148,14 +179,14 @@ export default function Relacionamento() {
         </div>
         
         <div className="flex gap-3">
-            <Dialog>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogTrigger asChild>
                     <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
                         <Plus className="w-4 h-4 mr-2" />
                         Novo Contato
                     </Button>
                 </DialogTrigger>
-                <ContactFormModal />
+                <ContactFormModal onContactAdded={handleContactAdded} />
             </Dialog>
           <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
             <Mail className="w-4 h-4 mr-2" />
@@ -176,7 +207,7 @@ export default function Relacionamento() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total de Contatos</p>
-                  <p className="text-2xl font-bold text-gray-900">2,847</p>
+                  <p className="text-2xl font-bold text-gray-900">{contacts.length}</p>
                 </div>
                 <Users className="w-8 h-8 text-blue-500" />
               </div>
@@ -250,40 +281,43 @@ export default function Relacionamento() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-500" />
-                Contatos Recentes
+                Contatos
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {contacts.map((contact, index) => (
-                  <motion.div
-                    key={contact.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-500" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{contact.name}</h4>
-                        <p className="text-sm text-gray-500">{contact.email}</p>
-                        <p className="text-xs text-gray-400">{contact.source} • {contact.lastContact}</p>
-                      </div>
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                     </div>
-                    <div className="text-right">
-                      <Badge className={statusColors[contact.status]}>
-                        {contact.status}
-                      </Badge>
-                      <div className="flex items-center gap-1 mt-2">
-                        <Star className="w-3 h-3 text-yellow-400" />
-                        <span className="text-sm text-gray-600">{contact.score}</span>
-                      </div>
+                ) : contacts.length > 0 ? (
+                    contacts.map((contact, index) => (
+                        <motion.div
+                            key={contact.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <User className="w-5 h-5 text-gray-500" />
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">{contact.name}</h4>
+                                    <p className="text-sm text-gray-500">{contact.email}</p>
+                                    <p className="text-xs text-gray-400">{contact.phone}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))
+                ) : (
+                    <div className="text-center text-gray-500 py-10">
+                        <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                        <h3 className="font-semibold">Nenhum contato encontrado</h3>
+                        <p className="text-sm">Clique em "Novo Contato" para começar a adicionar.</p>
                     </div>
-                  </motion.div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -334,14 +368,6 @@ export default function Relacionamento() {
                             <p className="text-sm text-gray-600">Cliques</p>
                             <p className="font-semibold">{campaign.clicked}</p>
                           </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Taxa de Abertura</span>
-                            <span>{Math.round((campaign.opened / campaign.sent) * 100)}%</span>
-                          </div>
-                          <Progress value={(campaign.opened / campaign.sent) * 100} className="h-2" />
                         </div>
                       </>
                     )}
