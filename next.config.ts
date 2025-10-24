@@ -51,5 +51,5 @@ if (process.env.APP_HOST) {
   console.log("==================================================");
 }
 
-
+// Forcing a server restart to clear cache.
 export default nextConfig;
