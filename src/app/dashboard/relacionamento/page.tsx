@@ -1,6 +1,7 @@
+
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +14,73 @@ import {
   Plus,
   Eye,
   Send,
-  User
+  User,
+  Phone,
+  X,
+  AtSign,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+
+
+const ContactFormModal = () => {
+  // State for the form fields could be added here
+  // For now, it's a simple presentational component
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5"/>
+            Adicionar Novo Contato
+        </DialogTitle>
+        <DialogDescription>
+            Insira os detalhes do novo contato para adicioná-lo à sua lista.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="py-4 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="contact-name">Nome</Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input id="contact-name" placeholder="Nome completo do contato" className="pl-10" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contact-email">E-mail</Label>
+           <div className="relative">
+            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input id="contact-email" type="email" placeholder="email@exemplo.com" className="pl-10" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contact-phone">Telefone (WhatsApp)</Label>
+           <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input id="contact-phone" type="tel" placeholder="(00) 00000-0000" className="pl-10" />
+          </div>
+        </div>
+      </div>
+      <DialogFooter>
+        <DialogClose asChild>
+            <Button type="button" variant="outline">Cancelar</Button>
+        </DialogClose>
+        <Button type="submit">Salvar Contato</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+};
+
 
 export default function Relacionamento() {
   const contacts = [
@@ -83,10 +148,15 @@ export default function Relacionamento() {
         </div>
         
         <div className="flex gap-3">
-          <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Contato
-          </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Novo Contato
+                    </Button>
+                </DialogTrigger>
+                <ContactFormModal />
+            </Dialog>
           <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
             <Mail className="w-4 h-4 mr-2" />
             Enviar Email
@@ -298,3 +368,5 @@ export default function Relacionamento() {
     </div>
   );
 }
+
+    
