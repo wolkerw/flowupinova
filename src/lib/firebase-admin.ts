@@ -1,6 +1,7 @@
 
 import * as admin from 'firebase-admin';
 import serviceAccount from '@/service-account.json';
+import { cookies } from 'next/headers';
 
 // Garante que a inicialização só ocorra uma vez, forçando o uso do service-account.json.
 // Este é o método mais robusto para ambientes de nuvem onde a detecção automática pode falhar.
@@ -35,4 +36,27 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
     console.error("Erro ao verificar o ID token:", error);
     throw new Error("Token inválido ou expirado.");
   }
+}
+
+/**
+ * Retrieves the user's UID from the ID token stored in cookies on the server-side.
+ * This is a server-side utility.
+ * @returns The user's UID string, or null if not authenticated.
+ */
+export async function getUidFromCookie(): Promise<string | null> {
+    const cookieStore = cookies();
+    const idTokenCookie = cookieStore.get('fb-id-token');
+
+    if (!idTokenCookie?.value) {
+        console.log("No ID token cookie found in server action.");
+        return null;
+    }
+
+    try {
+        const decodedToken = await verifyIdToken(idTokenCookie.value);
+        return decodedToken.uid;
+    } catch (error) {
+        console.error("Error verifying ID token from cookie:", error);
+        return null;
+    }
 }

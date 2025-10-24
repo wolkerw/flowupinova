@@ -31,7 +31,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
-    exchangeCodeAction: (code: string, idToken: string) => Promise<void>;
+    exchangeCodeAction: (code: string) => Promise<void>;
 }
 
 export default function MeuNegocioPageClient({ initialProfile, exchangeCodeAction }: MeuNegocioClientProps) {
@@ -40,7 +40,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
   const [dataLoading, setDataLoading] = useState(false);
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
   const [formState, setFormState] = useState<BusinessProfileData>(initialProfile);
-  const { user, getIdToken } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,10 +50,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
     setAuthLoading(true);
     
     try {
-      const idToken = await getIdToken();
-      if (!idToken) throw new Error("Usuário não autenticado");
-      
-      await exchangeCodeAction(code, idToken);
+      await exchangeCodeAction(code);
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e sendo atualizado." });
       // Reload the page to get new server-side props
       router.push('/dashboard/meu-negocio');
@@ -64,7 +61,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
       router.replace('/dashboard/meu-negocio', undefined);
       setAuthLoading(false);
     }
-  }, [user, getIdToken, exchangeCodeAction, toast, router]);
+  }, [user, exchangeCodeAction, toast, router]);
 
   useEffect(() => {
     const code = searchParams.get('code');
