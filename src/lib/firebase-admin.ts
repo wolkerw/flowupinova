@@ -6,15 +6,11 @@ import { cookies } from 'next/headers';
 // Garante que a inicialização só ocorra uma vez, forçando o uso do service-account.json.
 // Este é o método mais robusto para ambientes de nuvem onde a detecção automática pode falhar.
 if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-    });
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com sucesso a partir do service-account.json importado.");
-  } catch (error: any) {
-    console.error("[ADMIN_SDK_INIT] Erro Crítico: A inicialização do Firebase Admin a partir do service-account.json falhou:", error.message);
-  }
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
+  });
+  console.log("[ADMIN_SDK_INIT] Tentativa de inicialização do Firebase Admin SDK.");
 }
 
 const adminAuth = admin.auth();

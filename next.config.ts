@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -51,5 +52,5 @@ if (process.env.APP_HOST) {
   console.log("==================================================");
 }
 
-// Forcing a server restart to clear cache. This comment forces a restart.
+// Forcing a server restart to clear cache. This comment forces another restart.
 export default nextConfig;
