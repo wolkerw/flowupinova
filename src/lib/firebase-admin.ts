@@ -32,9 +32,10 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken;
-  } catch (error) {
-    console.error("Erro ao verificar o ID token:", error);
-    throw new Error("Token inválido ou expirado.");
+  } catch (error: any) {
+    console.error(`Erro detalhado ao verificar o ID token: (${error.code}) ${error.message}`);
+    // Lança um erro mais detalhado para o chamador
+    throw new Error(`O token do Firebase é inválido. Motivo: ${error.code} - ${error.message}`);
   }
 }
 
@@ -55,8 +56,9 @@ export async function getUidFromCookie(): Promise<string> {
     try {
         const decodedToken = await verifyIdToken(idTokenCookie.value);
         return decodedToken.uid;
-    } catch (error) {
-        console.error("Error verifying ID token from cookie:", error);
-        throw new Error("Falha na verificação do usuário Firebase. O token do cliente é inválido.");
+    } catch (error: any) {
+        console.error("Error verifying ID token from cookie:", error.message);
+        // Propaga o erro detalhado da função verifyIdToken
+        throw new Error(`Falha na verificação do usuário Firebase. ${error.message}`);
     }
 }
