@@ -24,7 +24,7 @@ import {
   Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -40,10 +40,31 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
   const [dataLoading, setDataLoading] = useState(false);
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
   const [formState, setFormState] = useState<BusinessProfileData>(initialProfile);
-  const { user } = useAuth();
+  const { user, loading: userLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const fetchProfileData = useCallback(async () => {
+    if (!user) return;
+    setDataLoading(true);
+    const fetchedProfile = await getBusinessProfile(user.uid);
+    if (fetchedProfile) {
+        setProfile(fetchedProfile);
+        setFormState(fetchedProfile);
+    } else {
+        // Handle case where profile fetch fails
+        toast({ title: "Erro ao carregar perfil", description: "Não foi possível buscar os dados do seu negócio.", variant: "destructive" });
+    }
+    setDataLoading(false);
+  }, [user, toast]);
+
+  // Fetch data on component mount if user is available
+  useEffect(() => {
+    if (user) {
+        fetchProfileData();
+    }
+  }, [user, fetchProfileData]);
 
   const handleTokenExchange = useCallback(async (code: string) => {
     if (!user) return;
@@ -52,16 +73,16 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
     try {
       await exchangeCodeAction(code);
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e sendo atualizado." });
-      // Reload the page to get new server-side props
-      router.push('/dashboard/meu-negocio');
+      // Reload the data from client-side after successful connection
+      await fetchProfileData();
 
     } catch (err: any) {
       toast({ title: "Erro na Conexão", description: err.message, variant: "destructive" });
     } finally {
-      router.replace('/dashboard/meu-negocio', undefined);
+      router.replace('/dashboard/meu-negocio', undefined); // Clear URL params
       setAuthLoading(false);
     }
-  }, [user, exchangeCodeAction, toast, router]);
+  }, [user, exchangeCodeAction, toast, router, fetchProfileData]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -76,12 +97,6 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
       handleTokenExchange(code);
     }
   }, [searchParams, user, handleTokenExchange, router, toast]);
-
-  useEffect(() => {
-    setProfile(initialProfile);
-    setFormState(initialProfile);
-  }, [initialProfile]);
-
 
   const handleConnect = () => {
     setAuthLoading(true);
@@ -103,11 +118,8 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
     setAuthLoading(true);
     try {
         await updateBusinessProfile(user.uid, { isVerified: false });
-        // Instead of fetching, we just update the state locally and reload
-        setProfile(prev => ({...prev, isVerified: false}));
-        setFormState(prev => ({...prev, isVerified: false}));
         toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
-        router.refresh();
+        await fetchProfileData(); // Refetch data to update state
     } catch (err: any) {
         toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });
     } finally {
@@ -163,6 +175,14 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
     { title: "Cliques no Site", value: "342", change: "+25%", icon: Globe },
     { title: "Solicitações de Rota", value: "89", change: "+8%", icon: MapPin }
   ];
+
+  if (userLoading || (dataLoading && profile.name === 'Carregando...')) {
+    return (
+        <div className="flex h-full w-full items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
