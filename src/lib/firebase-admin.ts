@@ -46,7 +46,7 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
  */
 export async function getUidFromCookie(): Promise<string> {
     const cookieStore = cookies();
-    const idTokenCookie = cookieStore.get('fb-id-token');
+    const idTokenCookie = cookieStore.get('firebase-id-token');
 
     if (!idTokenCookie?.value) {
         throw new Error("Falha na verificação do usuário Firebase. O cookie de autenticação não foi encontrado.");

@@ -48,9 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
        if (user) {
           const token = await user.getIdToken(true); // Force refresh
-          setCookie('fb-id-token', token, 1); // Store token in cookie for Server Components
+          setCookie('firebase-id-token', token, 1); // Store token in cookie for Server Components
       } else {
-          eraseCookie('fb-id-token');
+          eraseCookie('firebase-id-token');
       }
     });
 
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // We are not using the phone number for auth purposes here, just for display/record.
       await updateProfile(userCredential.user, { displayName: name });
        const token = await userCredential.user.getIdToken();
-       setCookie('fb-id-token', token, 1);
+       setCookie('firebase-id-token', token, 1);
       setUser(auth.currentUser); 
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       const token = await userCredential.user.getIdToken();
-      setCookie('fb-id-token', token, 1);
+      setCookie('firebase-id-token', token, 1);
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.code);
@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      eraseCookie('fb-id-token');
+      eraseCookie('firebase-id-token');
       // O useEffect cuidará do redirecionamento
     } catch (error: any)
 {
