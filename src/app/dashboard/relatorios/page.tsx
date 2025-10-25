@@ -204,9 +204,9 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                                     <span className="text-xs text-gray-500">Comentários</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Bookmark className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights.saved || 0}</span>
-                                    <span className="text-xs text-gray-500">Salvos</span>
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.insights.shares || 0}</span>
+                                    <span className="text-xs text-gray-500">Compart.</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -322,7 +322,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                             <div className="flex items-center gap-1.5 text-gray-700">
                                 <Eye className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.reach || 0}</span>
-                                <span className="text-xs text-gray-500">Visualizações</span>
+                                <span className="text-xs text-gray-500">Alcance</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-700">
                                 <Heart className="w-3.5 h-3.5" />
