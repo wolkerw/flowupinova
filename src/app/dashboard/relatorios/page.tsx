@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -172,12 +173,13 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     const ctr = (insights?.impressions ?? 0) > 0 ? (((insights?.clicks ?? 0) / insights.impressions) * 100).toFixed(2) + '%' : '0.00%';
     const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.engaged_users ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
     const reactions = insights?.reactions_detail || {};
+    const totalReactions = Object.values(reactions).reduce((acc: any, value: any) => acc + value, 0);
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
                  <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Facebook)</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
@@ -204,7 +206,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                                {/* Coluna Esquerda: Alcance e Engajamento */}
+                                {/* Coluna Esquerda */}
                                 <div className="space-y-6">
                                      {/* Bloco 1: Alcance e Impressões */}
                                     <div>
@@ -243,7 +245,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 <div className="space-y-6">
                                      {/* Bloco 3: Interações e Reações */}
                                     <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</h3>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações ({totalReactions + (insights.comments || 0) + (insights.shares || 0)})</h3>
                                         <Card className="bg-white">
                                             <CardContent className="p-4">
                                                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -326,59 +328,68 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     
     const profileActions = insights?.profile_activity_details || {};
     const totalProfileActivity = Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number;
-    const totalInteractions = insights?.total_interactions || 0;
+    const totalInteractions = insights?.total_interactions || (insights?.like_count || 0) + (insights?.comments_count || 0) + (insights?.shares || 0) + (insights?.saved || 0);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md bg-gray-50">
-                <DialogHeader>
-                    <DialogTitle>Insights da Publicação</DialogTitle>
-                     <DialogDescription>
-                        Performance detalhada do seu post no Instagram.
-                    </DialogDescription>
+                 <DialogHeader className="border-b pb-4">
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Instagram)</DialogTitle>
                 </DialogHeader>
+
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
-                    {insights && (
+                    {insights && post && (
                         <div className="space-y-6">
                             
-                            {/* Visão Geral */}
+                            <Card className="bg-white overflow-hidden">
+                                <CardContent className="p-4 flex gap-4 items-start">
+                                    <Image src={post.media_type === 'VIDEO' ? post.thumbnail_url || 'https://placehold.co/100' : post.media_url || 'https://placehold.co/100'} alt="Post" width={100} height={100} className="rounded-md object-cover aspect-square"/>
+                                    <div className="flex-grow">
+                                        <p className="text-sm font-medium text-gray-800 line-clamp-3 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
+                                        <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
+                                        <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
+                                            <ExternalLink className="w-3 h-3"/>
+                                            Ver no Instagram
+                                        </a>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Bloco 1: Visão Geral */}
                             <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <BarChart3 className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Visão Geral</h3>
-                                </div>
+                                <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Visão Geral</h3>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={Eye} label="Contas alcançadas" value={insights.reach} />
-                                        <InsightStat icon={Users} label="Visitas ao perfil" value={insights.profile_visits} />
+                                        <InsightStat icon={Users} label="Contas alcançadas" value={insights.reach || 0} />
+                                        <InsightStat icon={Users} label="Visitas ao perfil" value={insights.profile_visits || 0} />
                                     </CardContent>
                                 </Card>
                             </div>
 
-                            {/* Interações */}
+                            {/* Bloco 2: Interações na Publicação */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
-                                     <Heart className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Interações ({totalInteractions})</h3>
+                                     <Heart className="w-5 h-5 text-red-500"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Interações na Publicação ({totalInteractions})</h3>
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} />
-                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} />
-                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
-                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved} />
+                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
+                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
+                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
+                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved || 0} />
                                     </CardContent>
                                 </Card>
                             </div>
                             
-                             {/* Atividade no Perfil */}
+                             {/* Bloco 3: Atividade no Perfil */}
                              {totalProfileActivity > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <BarChart className="w-5 h-5 text-gray-600"/>
-                                        <h3 className="font-bold text-lg text-gray-800">Atividade no Perfil</h3>
+                                        <BarChart className="w-5 h-5 text-purple-500"/>
+                                        <h3 className="font-bold text-lg text-gray-800">Atividade Gerada no Perfil</h3>
                                     </div>
                                     <Card className="bg-white">
                                         <CardContent className="p-4 divide-y">
@@ -1015,5 +1026,7 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    
 
     
