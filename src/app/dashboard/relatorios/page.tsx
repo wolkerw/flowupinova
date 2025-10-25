@@ -21,7 +21,10 @@ import {
   Loader2,
   Instagram,
   Facebook,
-  AlertTriangle
+  AlertTriangle,
+  Heart,
+  MessageCircle,
+  Bookmark
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -82,6 +85,136 @@ const kpis = [
     }
 ];
 
+const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }) => {
+    const [media, setMedia] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchMedia = async () => {
+            if (!connection.isConnected || !connection.accessToken || !connection.instagramId) {
+                setError("A conta da Meta não está conectada ou o ID do Instagram não está disponível.");
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            
+            try {
+                const response = await fetch('/api/instagram/media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accessToken: connection.accessToken,
+                        instagramId: connection.instagramId 
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                     if (response.status === 401) {
+                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+                    }
+                    throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
+                }
+
+                setMedia(result.media);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMedia();
+    }, [connection]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                <p className="ml-4 text-gray-600">Buscando posts do Instagram...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+         return (
+            <div className="border-l-4 border-red-400 bg-red-50 p-4">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
+                        <p className="mt-2 text-sm text-red-700">{error}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (media.length === 0) {
+        return (
+            <div className="text-center text-gray-500 py-10">
+                <Instagram className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
+                <p className="text-sm">Não há posts no seu perfil do Instagram para analisar.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {media.map((item) => (
+                <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
+                    <CardHeader className="p-4">
+                        <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
+                             <Image 
+                                src={item.media_url || 'https://placehold.co/400'} 
+                                alt="Imagem do post" 
+                                layout="fill" 
+                                objectFit="cover"
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p>
+                        <p className="text-xs text-gray-500 mb-3">
+                            Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
+                        </p>
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <Eye className="w-3.5 h-3.5" />
+                                <span className="font-semibold">{item.insights.reach || 0}</span>
+                                <span className="text-xs text-gray-500">Alcance</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <Heart className="w-3.5 h-3.5" />
+                                <span className="font-semibold">{item.insights.engagement || 0}</span>
+                                <span className="text-xs text-gray-500">Engajamento</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span className="font-semibold">{item.insights.comments_count || 0}</span>
+                                <span className="text-xs text-gray-500">Comentários</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <Bookmark className="w-3.5 h-3.5" />
+                                <span className="font-semibold">{item.insights.saved || 0}</span>
+                                <span className="text-xs text-gray-500">Salvos</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+};
+
+
 const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -132,7 +265,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
         return (
             <div className="flex items-center justify-center h-40">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-                <p className="ml-4 text-gray-600">Buscando posts e métricas...</p>
+                <p className="ml-4 text-gray-600">Buscando posts e métricas do Facebook...</p>
             </div>
         );
     }
@@ -156,7 +289,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     if (posts.length === 0) {
         return (
             <div className="text-center text-gray-500 py-10">
-                <Newspaper className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <Facebook className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                 <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
                 <p className="text-sm">Não há posts na sua página do Facebook para analisar.</p>
             </div>
@@ -184,18 +317,22 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                         </p>
                         <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
                             <div className="flex items-center gap-1.5 text-gray-700">
+                                <Eye className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.reach || 0}</span>
                                 <span className="text-xs text-gray-500">Alcance</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-700">
+                                <Users className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.engagement || 0}</span>
                                 <span className="text-xs text-gray-500">Engajamento</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-700">
+                                <Heart className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.likes || 0}</span>
                                 <span className="text-xs text-gray-500">Curtidas</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-700">
+                                <MessageCircle className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.comments || 0}</span>
                                 <span className="text-xs text-gray-500">Comentários</span>
                             </div>
@@ -275,10 +412,9 @@ export default function Relatorios() {
              <Card className="shadow-lg border-none">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Facebook className="w-5 h-5 text-blue-600" />
-                        Performance dos Posts do Facebook
+                        Performance de Posts Orgânicos
                     </CardTitle>
-                    <p className="text-sm text-gray-600">Veja o desempenho real dos seus últimos posts publicados na página.</p>
+                    <p className="text-sm text-gray-600">Veja o desempenho real dos seus últimos posts publicados.</p>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
@@ -286,7 +422,24 @@ export default function Relatorios() {
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : metaConnection?.isConnected ? (
-                        <MetaPagePostsViewer connection={metaConnection} />
+                        <Tabs defaultValue="facebook" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+                                <TabsTrigger value="facebook">
+                                    <Facebook className="w-4 h-4 mr-2" />
+                                    Facebook
+                                </TabsTrigger>
+                                <TabsTrigger value="instagram">
+                                    <Instagram className="w-4 h-4 mr-2" />
+                                    Instagram
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="facebook" className="mt-6">
+                                <MetaPagePostsViewer connection={metaConnection} />
+                            </TabsContent>
+                            <TabsContent value="instagram" className="mt-6">
+                                <InstagramMediaViewer connection={metaConnection} />
+                            </TabsContent>
+                        </Tabs>
                     ) : (
                          <div className="text-center text-gray-500 py-10">
                             <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -505,3 +658,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    
