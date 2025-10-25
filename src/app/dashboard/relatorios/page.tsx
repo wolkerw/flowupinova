@@ -6,7 +6,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   BarChart3,
@@ -183,7 +182,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
                  <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
+                     <DialogTitle className="text-base font-bold text-gray-900">Insights da Publicação</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
@@ -196,7 +195,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 <CardContent className="p-4 flex gap-4 items-start">
                                     <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-base font-bold text-gray-900 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
+                                        <p className="text-sm text-gray-600 line-clamp-3 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         {insights.permalink_url && (
                                             <a href={insights.permalink_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
@@ -211,11 +210,11 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <Card className="bg-white shadow-sm md:col-span-1">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat label="Alcance total" value={insights.reach || 0} />
-                                        <InsightStat label="Impressões totais" value={insights.impressions || 0} />
+                                        <InsightStat label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
+                                        <InsightStat label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
                                         <div className="pt-3 space-y-2">
                                             <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
                                             <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
@@ -239,15 +238,12 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </Card>
                                <Card className="bg-white shadow-sm md:col-span-1">
                                     <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações</CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-2 mb-4">
-                                            <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
-                                            <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
-                                        </div>
-                                        <Separator />
-                                        <div className="grid grid-cols-3 gap-y-2 gap-x-2 mt-4">
+                                    <CardContent className="divide-y divide-gray-100">
+                                        <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
+                                        <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
+                                        <div className="grid grid-cols-3 gap-y-2 gap-x-4 pt-3">
                                             {Object.entries(reactionIcons).map(([key, icon]) => (
                                                 <div key={key} className="flex items-center gap-1.5">
                                                     {icon}
@@ -281,7 +277,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             setInsights(null);
 
             try {
-                 const response = await fetch('/api/meta/post-insights', {
+                const response = await fetch('/api/meta/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -304,19 +300,15 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
         fetchInsights();
     }, [open, post, connection]);
-    
-    // Calculated metrics
-    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
-    const videoDuration = post?.video_duration ? parseFloat(post.video_duration) : 0; // Assuming duration is in seconds
-    const avgWatchTime = insights?.ig_reels_avg_watch_time || 0; // Already in seconds from API
-    const retentionRate = videoDuration > 0 && avgWatchTime > 0 ? ((avgWatchTime / videoDuration) * 100).toFixed(2) + '%' : '0.00%';
 
+    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
+    const isReel = post?.media_product_type === 'REELS';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
                 <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
+                     <DialogTitle className="text-base font-bold text-gray-900">Insights da Publicação</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
@@ -329,7 +321,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 <CardContent className="p-4 flex gap-4 items-start">
                                     <Image src={post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-base font-bold text-gray-900 line-clamp-2 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
+                                        <p className="text-sm text-gray-600 line-clamp-3 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
                                             <ExternalLink className="w-3 h-3"/>
@@ -347,7 +339,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
                                         <InsightStat label="Visualizações (Views)" value={insights.views || 0} />
-                                         <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
+                                        <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-white shadow-sm">
@@ -363,16 +355,13 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                          <InsightStat label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
-
-                                {post.media_product_type === 'REELS' && insights.ig_reels_avg_watch_time != null && (
+                                {isReel && (
                                      <Card className="bg-white shadow-sm md:col-span-2">
                                         <CardHeader>
                                             <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</CardTitle>
                                         </CardHeader>
                                         <CardContent className="divide-y divide-gray-100">
                                             <InsightStat label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
-                                            { post.video_duration && <InsightStat label="Duração do vídeo" value={`${post.video_duration.toFixed(2)}s`} /> }
-                                            { post.video_duration && <InsightStat label="Taxa de Retenção" value={retentionRate} /> }
                                         </CardContent>
                                     </Card>
                                 )}
@@ -794,9 +783,7 @@ export default function Relatorios() {
                     )}
                 </CardContent>
                  <CardFooter>
-                    <p className="text-xs text-center text-gray-500 italic w-full">
-                        Métricas de alcance, engajamento, curtidas e comentários obtidas diretamente da API da Meta.
-                    </p>
+                    
                 </CardFooter>
              </Card>
         </TabsContent>
@@ -1007,4 +994,3 @@ export default function Relatorios() {
     
 
     
-
