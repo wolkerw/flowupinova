@@ -41,7 +41,9 @@ export async function POST(request: NextRequest) {
         }
 
         const insightsBaseUrl = `https://graph.facebook.com/v20.0/${postId}/insights`;
-        const insights: { [key: string]: any } = {};
+        const insights: { [key: string]: any } = {
+            reactions_detail: {}
+        };
 
         // Chamada 1: Métricas de insights (alcance, cliques)
         const mainMetricsList = 'post_impressions_unique,post_clicks';
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
 
         mainMetricsData.data?.forEach((metric: any) => {
              if (metric.values && metric.values.length > 0) {
-                // Renomeia para um formato mais amigável
+                // Renomeia para um formato mais amigável que o frontend espera
                 if(metric.name === 'post_impressions_unique') insights['reach'] = metric.values[0].value;
                 if(metric.name === 'post_clicks') insights['clicks'] = metric.values[0].value;
             }
@@ -57,7 +59,6 @@ export async function POST(request: NextRequest) {
         
         // Chamada 2: Detalhamento das reações
         const reactionsData = await fetchMetrics(insightsBaseUrl, accessToken, 'post_reactions_by_type_total');
-        insights.reactions_detail = {};
         if(reactionsData.data?.[0]?.values?.[0]?.value) {
             insights.reactions_detail = reactionsData.data[0].values[0].value;
         }
@@ -75,3 +76,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
