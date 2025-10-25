@@ -54,6 +54,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import Image from "next/image";
 import { format } from 'date-fns';
+import { Label } from "@/components/ui/label";
 
 const performanceData = [
     { month: 'Jan', impressions: 15000, clicks: 890, conversions: 45 },
@@ -175,8 +176,8 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
-                <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Facebook)</DialogTitle>
+                 <DialogHeader className="border-b pb-4">
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
@@ -184,6 +185,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                     {insights && post && (
                         <div className="space-y-6">
                            
+                            {/* Bloco de Contexto do Post */}
                             <Card className="bg-white overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
                                     <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
@@ -200,73 +202,81 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
                             
-                            <div className="space-y-4">
-                                {/* Bloco 1: Alcance e Impressões */}
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Alcance e Impressões</h3>
-                                    <Card className="bg-white">
-                                        <CardContent className="p-4 divide-y divide-gray-100">
-                                            <InsightStat icon={Eye} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
-                                            <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
-                                            <div className="pt-3 space-y-2">
-                                                <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
-                                                <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
-                                            </div>
-                                             <div className="pt-3 space-y-2">
-                                                <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
-                                                <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                                {/* Bloco 2: Cliques e Engajamento */}
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Cliques e Engajamento</h3>
-                                    <Card className="bg-white">
-                                        <CardContent className="p-4 divide-y divide-gray-100">
-                                            <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
-                                            <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
-                                            <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
-                                            <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
-                                        </CardContent>
-                                    </Card>
+                                {/* Coluna Esquerda: Alcance e Engajamento */}
+                                <div className="space-y-6">
+                                     {/* Bloco 1: Alcance e Impressões */}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                <InsightStat icon={Users} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
+                                                <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
+                                                <div className="pt-3 space-y-2">
+                                                    <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
+                                                    <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
+                                                </div>
+                                                 <div className="pt-3 space-y-2">
+                                                    <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
+                                                    <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                    
+                                    {/* Bloco 2: Cliques e Engajamento */}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><MousePointer className="w-5 h-5 text-green-500" /> Cliques e Engajamento</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
+                                                <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
+                                                <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
+                                                <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
+                                            </CardContent>
+                                        </Card>
+                                    </div>
                                 </div>
                                 
-                                {/* Bloco 3: Interações e Reações */}
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Interações e Reações</h3>
-                                    <Card className="bg-white">
-                                        <CardContent className="p-4">
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                                <div className="flex items-center gap-2">
-                                                    <MessageCircle className="w-5 h-5 text-gray-500"/>
-                                                    <div>
-                                                        <div className="font-bold text-lg">{insights.comments || 0}</div>
-                                                        <div className="text-xs text-gray-500">Comentários</div>
+                                {/* Coluna Direita: Interações */}
+                                <div className="space-y-6">
+                                     {/* Bloco 3: Interações e Reações */}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4">
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <MessageCircle className="w-5 h-5 text-gray-500"/>
+                                                        <div>
+                                                            <div className="font-bold text-lg">{insights.comments || 0}</div>
+                                                            <div className="text-xs text-gray-500">Comentários</div>
+                                                        </div>
+                                                    </div>
+                                                     <div className="flex items-center gap-2">
+                                                        <Share2 className="w-5 h-5 text-gray-500"/>
+                                                         <div>
+                                                            <div className="font-bold text-lg">{insights.shares || 0}</div>
+                                                            <div className="text-xs text-gray-500">Compart.</div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                 <div className="flex items-center gap-2">
-                                                    <Share2 className="w-5 h-5 text-gray-500"/>
-                                                     <div>
-                                                        <div className="font-bold text-lg">{insights.shares || 0}</div>
-                                                        <div className="text-xs text-gray-500">Compart.</div>
-                                                    </div>
+                                                <Separator />
+                                                <div className="grid grid-cols-3 gap-y-3 gap-x-4 mt-4">
+                                                    {Object.entries(reactionIcons).map(([key, icon]) => (
+                                                        <div key={key} className="flex items-center gap-2">
+                                                            {icon}
+                                                            <span className="font-semibold text-gray-800">{reactions[key] || 0}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                            <Separator />
-                                            <div className="grid grid-cols-3 gap-y-3 gap-x-4 mt-4">
-                                                {Object.entries(reactionIcons).map(([key, icon]) => (
-                                                    <div key={key} className="flex items-center gap-2">
-                                                        {icon}
-                                                        <span className="font-semibold text-gray-800">{reactions[key] || 0}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
                     )}
                 </div>
@@ -1005,3 +1015,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    
