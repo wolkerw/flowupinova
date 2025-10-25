@@ -9,15 +9,11 @@ interface InsightsRequestBody {
 }
 
 // Helper to fetch metrics from the Graph API's /insights edge
-async function fetchMetrics(baseUrl: string, accessToken: string, metrics: string) {
-    const params = new URLSearchParams({ 
-        metric: metrics,
-        access_token: accessToken,
-    });
-    const fullUrl = `${baseUrl}?${params.toString()}`;
-    const response = await fetch(fullUrl);
+async function fetchPostInsights(postId: string, accessToken: string, metrics: string) {
+    const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
+    const response = await fetch(url);
     const data = await response.json();
-    if (data.error) throw new Error(`Erro na API (${metrics}): ${data.error.message}`);
+    if (data.error) throw new Error(`Erro na API de Insights (${metrics}): ${data.error.message}`);
     return data;
 }
 
@@ -26,7 +22,7 @@ async function fetchPostFields(postId: string, accessToken: string, fields: stri
     const url = `https://graph.facebook.com/v20.0/${postId}?fields=${fields}&access_token=${accessToken}`;
     const response = await fetch(url);
     const data = await response.json();
-    if (data.error) throw new Error(`Erro na API (${fields}): ${data.error.message}`);
+    if (data.error) throw new Error(`Erro na API de Campos (${fields}): ${data.error.message}`);
     return data;
 }
 
@@ -40,34 +36,35 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
 
-        const insightsBaseUrl = `https://graph.facebook.com/v20.0/${postId}/insights`;
         const insights: { [key: string]: any } = {
             reactions_detail: {}
         };
 
-        // Chamada 1: Métricas de insights (alcance, cliques)
-        const mainMetricsList = 'post_impressions_unique,post_clicks';
-        const mainMetricsData = await fetchMetrics(insightsBaseUrl, accessToken, mainMetricsList);
-
-        mainMetricsData.data?.forEach((metric: any) => {
-             if (metric.values && metric.values.length > 0) {
-                // Renomeia para um formato mais amigável que o frontend espera
-                if(metric.name === 'post_impressions_unique') insights['reach'] = metric.values[0].value;
-                if(metric.name === 'post_clicks') insights['clicks'] = metric.values[0].value;
-            }
+        // Chamada 1: Métricas de insights agrupadas
+        const metricsList = 'post_impressions_unique,post_impressions,post_engaged_users,post_clicks_by_type,post_reactions_by_type_total,post_negative_feedback';
+        const insightsData = await fetchPostInsights(postId, accessToken, metricsList);
+        
+        insightsData.data?.forEach((metric: any) => {
+             if (metric.name === 'post_impressions_unique') insights['reach'] = metric.values[0].value || 0;
+             if (metric.name === 'post_impressions') insights['impressions'] = metric.values[0].value || 0;
+             if (metric.name === 'post_engaged_users') insights['engaged_users'] = metric.values[0].value || 0;
+             if (metric.name === 'post_negative_feedback') insights['negative_feedback'] = metric.values[0].value || 0;
+             
+             if (metric.name === 'post_clicks_by_type' && metric.values[0]?.value) {
+                 insights['clicks_by_type'] = metric.values[0].value;
+                 insights['clicks'] = Object.values(metric.values[0].value).reduce((a: any, b: any) => a + b, 0);
+             }
+             if (metric.name === 'post_reactions_by_type_total' && metric.values[0]?.value) {
+                insights['reactions_detail'] = metric.values[0].value;
+             }
         });
         
-        // Chamada 2: Detalhamento das reações
-        const reactionsData = await fetchMetrics(insightsBaseUrl, accessToken, 'post_reactions_by_type_total');
-        if(reactionsData.data?.[0]?.values?.[0]?.value) {
-            insights.reactions_detail = reactionsData.data[0].values[0].value;
-        }
-
-        // Chamada 3: Buscar campos diretos do post (comentários, compartilhamentos)
-        const postFieldsData = await fetchPostFields(postId, accessToken, 'comments.summary(total_count),shares');
+        // Chamada 2: Buscar campos diretos do post (comentários, compartilhamentos)
+        const postFieldsData = await fetchPostFields(postId, accessToken, 'comments.summary(total_count),shares,permalink_url,type');
         insights.comments = postFieldsData.comments?.summary?.total_count || 0;
         insights.shares = postFieldsData.shares?.count || 0;
-
+        insights.permalink_url = postFieldsData.permalink_url;
+        insights.type = postFieldsData.type;
 
         return NextResponse.json({ success: true, insights });
 
@@ -76,4 +73,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-

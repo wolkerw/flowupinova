@@ -35,7 +35,10 @@ import {
   X,
   Save,
   Info,
-  ThumbsUp
+  ThumbsUp,
+  Image as ImageIcon,
+  ExternalLink,
+  ShieldOff,
 } from "lucide-react";
 import {
     Dialog,
@@ -103,6 +106,17 @@ const kpis = [
     }
 ];
 
+const InsightStat = ({ icon, label, value, subStat = false }: { icon?: React.ElementType, label: string, value: string | number, subStat?: boolean }) => (
+    <div className={`flex items-center justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
+        <div className="flex items-center gap-3">
+            {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
+            <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>{label}</div>
+        </div>
+        <div className="font-semibold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</div>
+    </div>
+);
+
+
 const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
     const [insights, setInsights] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -149,31 +163,42 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
 
         fetchInsights();
     }, [open, post, connection]);
-
-    const InsightStat = ({ icon, label, value }: { icon?: React.ElementType, label: string, value: number }) => (
-        <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-                {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
-                <div className="text-sm text-gray-700">{label}</div>
-            </div>
-            <div className="font-semibold text-gray-900">{value?.toLocaleString() || 0}</div>
-        </div>
-    );
     
     const reactions = insights?.reactions_detail || {};
     const totalReactions = Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number;
+    
+    const ctr = insights?.impressions > 0 ? ((insights.clicks || 0) / insights.impressions * 100).toFixed(2) + '%' : '0%';
+    const engagementRate = insights?.reach > 0 ? (((insights.engaged_users || 0) / insights.reach) * 100).toFixed(2) + '%' : '0%';
+    const linkClicks = insights?.clicks_by_type?.['link clicks'] || 0;
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md bg-gray-50">
+            <DialogContent className="max-w-2xl bg-gray-50">
                 <DialogHeader>
                     <DialogTitle>Insights da Publicação (Facebook)</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
-                    {insights && (
+                    {insights && post && (
                         <div className="space-y-6">
+                            {/* Cabeçalho */}
+                            <Card className="bg-white">
+                                <CardContent className="p-4 flex gap-4 items-start">
+                                    <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={100} height={100} className="rounded-md object-cover aspect-square"/>
+                                    <div className="flex-grow">
+                                        <p className="text-sm text-gray-600 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
+                                        <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p>
+                                        {insights.permalink_url && (
+                                            <a href={insights.permalink_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
+                                                <ExternalLink className="w-3 h-3"/>
+                                                Ver no Facebook
+                                            </a>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
                             {/* Performance Geral */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
@@ -182,8 +207,11 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={Eye} label="Contas alcançadas" value={insights.reach} />
-                                        <InsightStat icon={MousePointer} label="Cliques no Post" value={insights.clicks} />
+                                        <InsightStat icon={Eye} label="Alcance (Pessoas Únicas)" value={insights.reach} />
+                                        <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions} />
+                                        <InsightStat icon={MousePointer} label="Total de Cliques no Post" value={insights.clicks} />
+                                        <InsightStat icon={ExternalLink} label="Cliques em Links Externos" value={linkClicks} subStat />
+                                        <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -196,28 +224,29 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={Heart} label="Reações Totais" value={totalReactions} />
+                                         <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users} />
+                                         <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
                                          <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments} />
                                          <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
                                     </CardContent>
                                 </Card>
                             </div>
-
+                            
                              {/* Detalhes das Reações */}
                              {totalReactions > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <Heart className="w-5 h-5 text-gray-600"/>
-                                        <h3 className="font-bold text-lg text-gray-800">Detalhes das Reações</h3>
+                                        <h3 className="font-bold text-lg text-gray-800">Detalhes das Reações ({totalReactions})</h3>
                                     </div>
                                     <Card className="bg-white">
-                                        <CardContent className="p-4 grid grid-cols-2 gap-4">
+                                        <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
                                             {Object.entries(reactions).map(([key, value]) => {
                                                 if ((value as number) > 0) {
                                                     return (
                                                         <div key={key} className="flex items-center gap-2">
                                                             {reactionIcons[key] || <ThumbsUp className="w-5 h-5 text-gray-400" />}
-                                                            <span className="font-semibold">{value as number}</span>
+                                                            <span className="font-semibold text-gray-800">{value as number}</span>
                                                             <span className="text-sm capitalize text-gray-600">{key === 'like' ? 'Curtidas' : key}</span>
                                                         </div>
                                                     )
@@ -229,6 +258,18 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                             )}
 
+                             {/* Feedback Negativo */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <ShieldOff className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Feedback Negativo</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                        <InsightStat icon={X} label="Total de Ações Negativas" value={insights.negative_feedback || 0} />
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -276,16 +317,6 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
         fetchInsights();
     }, [open, post, connection]);
     
-    const InsightStat = ({ icon, label, value, subStat = false }: { icon?: React.ElementType, label: string, value: number, subStat?: boolean }) => (
-        <div className={`flex items-center justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
-            <div className="flex items-center gap-3">
-                {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
-                <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>{label}</div>
-            </div>
-            <div className="font-semibold text-gray-900">{value?.toLocaleString() || 0}</div>
-        </div>
-    );
-
     const profileActions = insights?.profile_activity_details || {};
     const totalProfileActivity = Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number;
     const totalInteractions = insights?.total_interactions || 0;
@@ -323,15 +354,14 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                      <Heart className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Interações</h3>
+                                    <h3 className="font-bold text-lg text-gray-800">Interações ({totalInteractions})</h3>
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat label="Total de Interações" value={totalInteractions} />
-                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} subStat />
-                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} subStat />
-                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} subStat />
-                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved} subStat />
+                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} />
+                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} />
+                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
+                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved} />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -345,10 +375,9 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                     </div>
                                     <Card className="bg-white">
                                         <CardContent className="p-4 divide-y">
-                                            <InsightStat label="Total de ações" value={totalProfileActivity} />
-                                            {profileActions.bio_link_clicked > 0 && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} subStat />}
-                                            {profileActions.call > 0 && <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} subStat />}
-                                            {profileActions.email > 0 && <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} subStat />}
+                                            {profileActions.bio_link_clicked > 0 && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} />}
+                                            {profileActions.call > 0 && <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} />}
+                                            {profileActions.email > 0 && <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} />}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -459,7 +488,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                         <CardHeader className="p-4">
                             <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
                                  <Image 
-                                    src={item.media_url || 'https://placehold.co/400'} 
+                                    src={item.media_type === 'VIDEO' ? item.thumbnail_url || 'https://placehold.co/400' : item.media_url || 'https://placehold.co/400'} 
                                     alt="Imagem do post" 
                                     fill
                                     objectFit="cover"
@@ -979,10 +1008,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-
-
-
-
-
-
