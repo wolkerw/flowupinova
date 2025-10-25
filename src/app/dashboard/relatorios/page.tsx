@@ -34,7 +34,8 @@ import {
   Link as LinkIcon,
   X,
   Save,
-  Info
+  Info,
+  ThumbsUp
 } from "lucide-react";
 import {
     Dialog,
@@ -102,6 +103,135 @@ const kpis = [
     }
 ];
 
+const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
+    const [insights, setInsights] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
+    const reactionIcons = {
+        like: <ThumbsUp className="w-5 h-5 text-blue-500" />,
+        love: <Heart className="w-5 h-5 text-red-500" />,
+        wow: <div className="text-lg">😮</div>,
+        haha: <div className="text-lg">😂</div>,
+        sorry: <div className="text-lg">😢</div>,
+        anger: <div className="text-lg">😡</div>,
+    };
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            if (!open || !post || !connection.accessToken) return;
+
+            setIsLoading(true);
+            setError(null);
+            setInsights(null);
+
+            try {
+                 const response = await fetch('/api/meta/fb-post-insights', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accessToken: connection.accessToken,
+                        postId: post.id 
+                    }),
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || "Falha ao buscar insights detalhados.");
+                }
+                setInsights(result.insights);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInsights();
+    }, [open, post, connection]);
+
+    const InsightStat = ({ icon, label, value }: { icon?: React.ElementType, label: string, value: number }) => (
+        <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3">
+                {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
+                <div className="text-sm text-gray-700">{label}</div>
+            </div>
+            <div className="font-semibold text-gray-900">{value?.toLocaleString() || 0}</div>
+        </div>
+    );
+    
+    const reactions = insights?.reactions_detail || {};
+
+    return (
+         <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md bg-gray-50">
+                <DialogHeader>
+                    <DialogTitle>Insights da Publicação (Facebook)</DialogTitle>
+                </DialogHeader>
+                <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
+                    {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
+                    {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
+                    {insights && (
+                        <div className="space-y-6">
+                            {/* Performance Geral */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <BarChart3 className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Performance Geral</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                        <InsightStat icon={Eye} label="Contas alcançadas" value={insights.reach} />
+                                        <InsightStat icon={MousePointer} label="Cliques no Post" value={insights.clicks} />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            
+                            {/* Engajamento */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Users className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Engajamento</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                         <InsightStat icon={ThumbsUp} label="Reações Totais" value={Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number} />
+                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments} />
+                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                             {/* Detalhes das Reações */}
+                             {Object.keys(reactions).length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Heart className="w-5 h-5 text-gray-600"/>
+                                        <h3 className="font-bold text-lg text-gray-800">Detalhes das Reações</h3>
+                                    </div>
+                                    <Card className="bg-white">
+                                        <CardContent className="p-4 grid grid-cols-2 gap-4">
+                                            {Object.entries(reactions).map(([key, value]) => (
+                                                <div key={key} className="flex items-center gap-2">
+                                                    {(reactionIcons as any)[key]}
+                                                    <span className="font-semibold">{value as number}</span>
+                                                    <span className="text-sm capitalize text-gray-600">{key}</span>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
     const [insights, setInsights] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -151,6 +281,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     );
 
     const profileActions = insights?.profile_activity_details || {};
+    const totalInteractions = insights?.total_interactions || (insights?.like_count + insights?.comments_count + insights?.shares + insights?.saved);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,7 +317,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat label="Interações no post" value={insights.total_interactions} />
+                                         <InsightStat label="Interações no post" value={totalInteractions} />
                                          <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} subStat />
                                          <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} subStat />
                                          <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} subStat />
@@ -196,21 +327,22 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             </div>
                             
                              {/* Atividade no Perfil */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <BarChart className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Atividade no Perfil</h3>
+                             {Object.keys(profileActions).length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <BarChart className="w-5 h-5 text-gray-600"/>
+                                        <h3 className="font-bold text-lg text-gray-800">Atividade no Perfil</h3>
+                                    </div>
+                                    <Card className="bg-white">
+                                        <CardContent className="p-4 divide-y">
+                                            <InsightStat label="Total de ações" value={Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number} />
+                                            {profileActions.bio_link_clicked > 0 && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} subStat />}
+                                            {profileActions.call > 0 && <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} subStat />}
+                                            {profileActions.email > 0 && <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} subStat />}
+                                        </CardContent>
+                                    </Card>
                                 </div>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                        <InsightStat label="Total de ações" value={Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number} />
-                                        <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} subStat />
-                                        <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} subStat />
-                                        <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} subStat />
-                                    </CardContent>
-                                </Card>
-                            </div>
-
+                             )}
                         </div>
                     )}
                 </div>
@@ -377,6 +509,13 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPost, setSelectedPost] = useState<any | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+     const handleOpenModal = (post: any) => {
+        setSelectedPost(post);
+        setIsModalOpen(true);
+    };
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -455,50 +594,64 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post) => (
-                <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
-                    <CardHeader className="p-4">
-                        <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
-                             <Image 
-                                src={post.full_picture || 'https://placehold.co/400'} 
-                                alt="Imagem do post" 
-                                fill
-                                objectFit="cover"
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={post.message}>{post.message || "Post sem texto."}</p>
-                        <p className="text-xs text-gray-500 mb-3">
-                            Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
-                        </p>
-                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Eye className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{post.insights.reach || 0}</span>
-                                <span className="text-xs text-gray-500">Alcance</span>
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {posts.map((post) => (
+                    <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
+                        <CardHeader className="p-4">
+                            <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
+                                <Image 
+                                    src={post.full_picture || 'https://placehold.co/400'} 
+                                    alt="Imagem do post" 
+                                    fill
+                                    objectFit="cover"
+                                />
                             </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Heart className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{post.insights.likes || 0}</span>
-                                <span className="text-xs text-gray-500">Curtidas</span>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 flex-grow">
+                            <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={post.message}>{post.message || "Post sem texto."}</p>
+                            <p className="text-xs text-gray-500 mb-3">
+                                Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
+                            </p>
+                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{post.insights.reach || 0}</span>
+                                    <span className="text-xs text-gray-500">Alcance</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Heart className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{post.insights.likes || 0}</span>
+                                    <span className="text-xs text-gray-500">Reações</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{post.insights.comments || 0}</span>
+                                    <span className="text-xs text-gray-500">Comentários</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{post.insights.shares || 0}</span>
+                                    <span className="text-xs text-gray-500">Compart.</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <MessageCircle className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{post.insights.comments || 0}</span>
-                                <span className="text-xs text-gray-500">Comentários</span>
-                            </div>
-                             <div className="flex items-center gap-1.5 text-gray-700">
-                                <Share2 className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{post.insights.shares || 0}</span>
-                                <span className="text-xs text-gray-500">Compart.</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+                        </CardContent>
+                         <CardFooter className="p-4 pt-0">
+                            <Button variant="outline" className="w-full" onClick={() => handleOpenModal(post)}>
+                                <BarChart className="w-4 h-4 mr-2" />
+                                Ver mais Insights
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+            <FacebookPostInsightsModal
+                post={selectedPost}
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                connection={connection}
+            />
+        </>
     );
 };
 
@@ -816,5 +969,7 @@ export default function Relatorios() {
     </div>
   );
 }
+
+
 
 
