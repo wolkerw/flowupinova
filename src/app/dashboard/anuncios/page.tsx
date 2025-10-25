@@ -3,7 +3,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export default function Anuncios() {
   return (
@@ -17,14 +17,15 @@ export default function Anuncios() {
       <Card className="shadow-lg border-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-500" />
-            Funcionalidade Desativada
+            <Sparkles className="w-5 h-5 text-blue-500" />
+            Em Breve
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-gray-600 p-8">
-            A funcionalidade de anúncios foi temporariamente desativada.
-          </p>
+          <div className="text-center text-gray-600 p-8">
+            <p className="text-lg mb-2">Estamos preparando algo incrível para você!</p>
+            <p>A funcionalidade de criação e gestão de anúncios está em desenvolvimento e será lançada em breve.</p>
+          </div>
         </CardContent>
       </Card>
     </div>
