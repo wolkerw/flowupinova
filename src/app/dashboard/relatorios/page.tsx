@@ -190,8 +190,8 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                             <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
                                 <div className="flex items-center gap-1.5 text-gray-700">
                                     <Eye className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights.impressions || 0}</span>
-                                    <span className="text-xs text-gray-500">Visualizações</span>
+                                    <span className="font-semibold">{item.insights.reach || 0}</span>
+                                    <span className="text-xs text-gray-500">Alcance</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-700">
                                     <Heart className="w-3.5 h-3.5" />
