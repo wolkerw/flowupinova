@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   Heart,
   MessageCircle,
-  Bookmark
+  Bookmark,
+  Share2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -169,9 +170,6 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
-                // Calcula o engajamento somando curtidas e comentários
-                const engagement = (item.like_count || 0) + (item.comments_count || 0);
-
                 return (
                     <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
                         <CardHeader className="p-4">
@@ -192,13 +190,13 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                             <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
                                 <div className="flex items-center gap-1.5 text-gray-700">
                                     <Eye className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights.reach || 0}</span>
-                                    <span className="text-xs text-gray-500">Alcance</span>
+                                    <span className="font-semibold">{item.insights.impressions || 0}</span>
+                                    <span className="text-xs text-gray-500">Visualizações</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-700">
                                     <Heart className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{engagement}</span>
-                                    <span className="text-xs text-gray-500">Engajamento</span>
+                                    <span className="font-semibold">{item.like_count || 0}</span>
+                                    <span className="text-xs text-gray-500">Curtidas</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-gray-700">
                                     <MessageCircle className="w-3.5 h-3.5" />
@@ -324,12 +322,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                             <div className="flex items-center gap-1.5 text-gray-700">
                                 <Eye className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.reach || 0}</span>
-                                <span className="text-xs text-gray-500">Alcance</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Users className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{post.insights.engagement || 0}</span>
-                                <span className="text-xs text-gray-500">Engajamento</span>
+                                <span className="text-xs text-gray-500">Visualizações</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-700">
                                 <Heart className="w-3.5 h-3.5" />
@@ -340,6 +333,11 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                                 <MessageCircle className="w-3.5 h-3.5" />
                                 <span className="font-semibold">{post.insights.comments || 0}</span>
                                 <span className="text-xs text-gray-500">Comentários</span>
+                            </div>
+                             <div className="flex items-center gap-1.5 text-gray-700">
+                                <Share2 className="w-3.5 h-3.5" />
+                                <span className="font-semibold">{post.insights.shares || 0}</span>
+                                <span className="text-xs text-gray-500">Compart.</span>
                             </div>
                         </div>
                     </CardContent>

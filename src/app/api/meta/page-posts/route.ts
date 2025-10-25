@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Busca os posts da página e, para cada post, busca suas métricas em uma única chamada usando a sintaxe de field expansion.
-        const fields = 'id,message,created_time,full_picture,insights{values,name},reactions.summary(total_count),comments.summary(total_count)';
+        const fields = 'id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(day),reactions.summary(total_count),comments.summary(total_count)';
 
         const url = `https://graph.facebook.com/v20.0/${pageId}/posts?fields=${fields}&access_token=${accessToken}&limit=10`;
 
@@ -37,10 +37,11 @@ export async function POST(request: NextRequest) {
         // Processa os dados para um formato mais amigável
         const posts = data.data.map((post: any) => {
             const insightsData = post.insights?.data || [];
+            // O insight de alcance agora é pego diretamente pelo nome.
             const reach = insightsData.find((m: any) => m.name === 'post_impressions_unique')?.values?.[0]?.value || 0;
-            const engagement = insightsData.find((m: any) => m.name === 'post_engaged_users')?.values?.[0]?.value || 0;
             const likes = post.reactions?.summary?.total_count || 0;
             const comments = post.comments?.summary?.total_count || 0;
+            const shares = post.shares?.count || 0;
             
             return {
                 id: post.id,
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
                 full_picture: post.full_picture,
                 insights: {
                     reach,
-                    engagement,
                     likes,
-                    comments
+                    comments,
+                    shares
                 }
             };
         });
@@ -63,5 +64,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
     
