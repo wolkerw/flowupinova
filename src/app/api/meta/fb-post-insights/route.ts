@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
         const activity = getMetricValue(rawInsights, 'post_activity_by_action_type');
         const comments = activity.comment || 0;
         const shares = activity.share || 0;
+        // Pessoas engajadas - A API do FB não tem um equivalente direto de post_engaged_users no nível do post como o IG
+        // A métrica mais próxima é o total de interações, que podemos calcular somando as interações conhecidas.
+        const reactionsDetail = getMetricValue(rawInsights, 'post_reactions_by_type_total');
+        const totalReactions = Object.values(reactionsDetail).reduce((a: any, b: any) => a + b, 0);
+        const engaged_users = (totalReactions || 0) + comments + shares + (getMetricValue(rawInsights, 'post_clicks') || 0);
+
 
         const insights = {
             impressions: getMetricValue(rawInsights, 'post_impressions'),
@@ -63,9 +69,10 @@ export async function POST(request: NextRequest) {
             impressions_organic: getMetricValue(rawInsights, 'post_impressions_organic'),
             reach_organic: getMetricValue(rawInsights, 'post_impressions_organic_unique'),
             clicks: getMetricValue(rawInsights, 'post_clicks'),
-            reactions_detail: getMetricValue(rawInsights, 'post_reactions_by_type_total'),
+            reactions_detail: reactionsDetail,
             comments,
             shares,
+            engaged_users: engaged_users, // Usando o valor calculado
         };
         
         // Adiciona a busca pelo permalink_url para o link direto

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   BarChart3,
   TrendingUp,
@@ -105,11 +106,14 @@ const kpis = [
     }
 ];
 
-const InsightStat = ({ icon, label, value, subStat = false }: { icon?: React.ElementType, label: string, value: string | number, subStat?: boolean }) => (
+const InsightStat = ({ icon, label, value, subStat = false, description }: { icon?: React.ElementType, label: string, value: string | number, subStat?: boolean, description?: string }) => (
     <div className={`flex items-center justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
         <div className="flex items-center gap-3">
-            {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
-            <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>{label}</div>
+            {icon && React.createElement(icon, { className: `w-5 h-5 text-gray-500` })}
+            <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>
+                {label}
+                {description && <p className="text-xs text-gray-400">{description}</p>}
+            </div>
         </div>
         <div className="font-semibold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</div>
     </div>
@@ -163,30 +167,29 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
         fetchInsights();
     }, [open, post, connection]);
     
+    // Calculated metrics
+    const ctr = (insights?.impressions ?? 0) > 0 ? (((insights?.clicks ?? 0) / insights.impressions) * 100).toFixed(2) + '%' : '0.00%';
+    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.engaged_users ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
     const reactions = insights?.reactions_detail || {};
-    const totalReactions = Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number;
-    
-    const ctr = (insights?.impressions ?? 0) > 0 ? (((insights?.clicks ?? 0) / insights.impressions) * 100).toFixed(2) + '%' : '0%';
-    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.engaged_users ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0%';
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
-                <DialogHeader>
-                    <DialogTitle>Insights da Publicação (Facebook)</DialogTitle>
+                <DialogHeader className="border-b pb-4">
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Facebook)</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
                     {insights && post && (
                         <div className="space-y-6">
-                            {/* Cabeçalho */}
-                            <Card className="bg-white">
+                           
+                            <Card className="bg-white overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={100} height={100} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-sm text-gray-600 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
-                                        <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p>
+                                        <p className="text-base font-semibold text-gray-800 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
+                                        <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         {insights.permalink_url && (
                                             <a href={insights.permalink_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
                                                 <ExternalLink className="w-3 h-3"/>
@@ -196,67 +199,74 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                     </div>
                                 </CardContent>
                             </Card>
-
-                             {/* Performance Geral */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <BarChart3 className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Performance Geral</h3>
-                                </div>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={Eye} label="Alcance Total" value={insights.reach || 0} />
-                                        <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} />
-                                        <InsightStat icon={Eye} label="Alcance Orgânico" value={insights.reach_organic || 0} />
-                                        <InsightStat icon={TrendingUp} label="Impressões Orgânicas" value={insights.impressions_organic || 0} />
-                                        <InsightStat icon={MousePointer} label="Total de Cliques no Post" value={insights.clicks || 0} />
-                                        <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
-                                    </CardContent>
-                                </Card>
-                            </div>
                             
-                            {/* Engajamento */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Users className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Engajamento</h3>
-                                </div>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users || 0} />
-                                         <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
-                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
-                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            
-                             {/* Detalhes das Reações */}
-                             {totalReactions > 0 && (
+                            <div className="space-y-4">
+                                {/* Bloco 1: Alcance e Impressões */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Heart className="w-5 h-5 text-gray-600"/>
-                                        <h3 className="font-bold text-lg text-gray-800">Detalhes das Reações ({totalReactions})</h3>
-                                    </div>
+                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Alcance e Impressões</h3>
                                     <Card className="bg-white">
-                                        <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                            {Object.entries(reactions).map(([key, value]) => {
-                                                if ((value as number) > 0) {
-                                                    return (
-                                                        <div key={key} className="flex items-center gap-2">
-                                                            {reactionIcons[key] || <ThumbsUp className="w-5 h-5 text-gray-400" />}
-                                                            <span className="font-semibold text-gray-800">{value as number}</span>
-                                                            <span className="text-sm capitalize text-gray-600">{key === 'like' ? 'Curtidas' : key}</span>
-                                                        </div>
-                                                    )
-                                                }
-                                                return null;
-                                            })}
+                                        <CardContent className="p-4 divide-y divide-gray-100">
+                                            <InsightStat icon={Eye} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
+                                            <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
+                                            <div className="pt-3 space-y-2">
+                                                <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
+                                                <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
+                                            </div>
+                                             <div className="pt-3 space-y-2">
+                                                <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
+                                                <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
-                            )}
 
+                                {/* Bloco 2: Cliques e Engajamento */}
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Cliques e Engajamento</h3>
+                                    <Card className="bg-white">
+                                        <CardContent className="p-4 divide-y divide-gray-100">
+                                            <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
+                                            <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
+                                            <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
+                                            <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                                
+                                {/* Bloco 3: Interações e Reações */}
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-800 mb-2">Interações e Reações</h3>
+                                    <Card className="bg-white">
+                                        <CardContent className="p-4">
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <MessageCircle className="w-5 h-5 text-gray-500"/>
+                                                    <div>
+                                                        <div className="font-bold text-lg">{insights.comments || 0}</div>
+                                                        <div className="text-xs text-gray-500">Comentários</div>
+                                                    </div>
+                                                </div>
+                                                 <div className="flex items-center gap-2">
+                                                    <Share2 className="w-5 h-5 text-gray-500"/>
+                                                     <div>
+                                                        <div className="font-bold text-lg">{insights.shares || 0}</div>
+                                                        <div className="text-xs text-gray-500">Compart.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Separator />
+                                            <div className="grid grid-cols-3 gap-y-3 gap-x-4 mt-4">
+                                                {Object.entries(reactionIcons).map(([key, icon]) => (
+                                                    <div key={key} className="flex items-center gap-2">
+                                                        {icon}
+                                                        <span className="font-semibold text-gray-800">{reactions[key] || 0}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
