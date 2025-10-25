@@ -31,10 +31,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
-    exchangeCodeAction: (code: string) => Promise<void>;
 }
 
-export default function MeuNegocioPageClient({ initialProfile, exchangeCodeAction }: MeuNegocioClientProps) {
+export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
   const [editingProfile, setEditingProfile] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
@@ -53,13 +52,11 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
         setProfile(fetchedProfile);
         setFormState(fetchedProfile);
     } else {
-        // Handle case where profile fetch fails
         toast({ title: "Erro ao carregar perfil", description: "Não foi possível buscar os dados do seu negócio.", variant: "destructive" });
     }
     setDataLoading(false);
   }, [user, toast]);
 
-  // Fetch data on component mount if user is available
   useEffect(() => {
     if (user) {
         fetchProfileData();
@@ -68,20 +65,29 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
 
   const handleTokenExchange = useCallback(async (code: string) => {
     setAuthLoading(true);
-    
     try {
-      // Simplesmente chamamos a Server Action. O servidor cuidará da autenticação.
-      await exchangeCodeAction(code);
-      toast({ title: "Sucesso!", description: "Perfil do Google conectado e sendo atualizado." });
+      const response = await fetch('/api/google/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+          throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
+      }
+      
+      toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
       await fetchProfileData();
 
     } catch (err: any) {
       toast({ title: "Erro na Conexão", description: err.message, variant: "destructive" });
     } finally {
-      router.replace('/dashboard/meu-negocio', undefined); // Clear URL params
+      router.replace('/dashboard/meu-negocio');
       setAuthLoading(false);
     }
-  }, [exchangeCodeAction, toast, router, fetchProfileData]);
+  }, [toast, router, fetchProfileData]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -89,7 +95,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
 
     if (error) {
       toast({ title: "Erro na Conexão", description: decodeURIComponent(error), variant: "destructive" });
-      router.replace('/dashboard/meu-negocio', undefined);
+      router.replace('/dashboard/meu-negocio');
     }
     
     if (code && user) {
@@ -99,7 +105,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
 
   const handleConnect = () => {
     setAuthLoading(true);
-    const googleClientId = "337806715740-s21i7lka6j3mtlmcs7on5gjs5hvss35v.apps.googleusercontent.com";
+    const googleClientId = "569130702994-a9gjs7gopkquehcui77s58umbdrupql5.apps.googleusercontent.com";
     const redirectUri = `${window.location.origin}/dashboard/meu-negocio`;
 
     if (!googleClientId) {
@@ -118,7 +124,7 @@ export default function MeuNegocioPageClient({ initialProfile, exchangeCodeActio
     try {
         await updateBusinessProfile(user.uid, { isVerified: false });
         toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
-        await fetchProfileData(); // Refetch data to update state
+        await fetchProfileData();
     } catch (err: any) {
         toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });
     } finally {
