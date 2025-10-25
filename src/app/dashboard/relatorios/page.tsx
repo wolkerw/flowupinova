@@ -1,10 +1,12 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   BarChart3,
   TrendingUp,
@@ -32,6 +34,7 @@ import {
   Link as LinkIcon,
   X,
   Save,
+  Info
 } from "lucide-react";
 import {
     Dialog,
@@ -136,52 +139,78 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
         fetchInsights();
     }, [open, post, connection]);
-
-    const InsightStat = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: number }) => (
-        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-            <Icon className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-                <div className="text-sm text-gray-600">{label}</div>
-                <div className="font-bold text-lg text-gray-900">{value?.toLocaleString() || 0}</div>
+    
+    const InsightStat = ({ icon, label, value, subStat = false }: { icon?: React.ElementType, label: string, value: number, subStat?: boolean }) => (
+        <div className={`flex items-center justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
+            <div className="flex items-center gap-3">
+                {icon && React.createElement(icon, { className: "w-5 h-5 text-gray-500" })}
+                <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>{label}</div>
             </div>
+            <div className="font-semibold text-gray-900">{value?.toLocaleString() || 0}</div>
         </div>
     );
-    
+
     const profileActions = insights?.profile_activity_details || {};
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-md bg-gray-50">
                 <DialogHeader>
-                    <DialogTitle>Insights Detalhados do Post</DialogTitle>
-                    <DialogDescription>
-                        Análise completa da performance da sua publicação no Instagram.
-                    </DialogDescription>
+                    <DialogTitle>Insights da Publicação</DialogTitle>
                 </DialogHeader>
-                <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
-                    {isLoading && <div className="flex justify-center items-center h-48"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
+                <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
+                    {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
                     {insights && (
                         <div className="space-y-6">
-                            <Card>
-                                <CardHeader><CardTitle className="text-base">Engajamento Principal</CardTitle></CardHeader>
-                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <InsightStat icon={Eye} label="Alcance" value={insights.reach} />
-                                    <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} />
-                                    <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} />
-                                    <InsightStat icon={Share2} label="Compart." value={insights.shares} />
-                                    <InsightStat icon={Save} label="Salvos" value={insights.saved} />
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader><CardTitle className="text-base">Ações no Perfil</CardTitle></CardHeader>
-                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                     <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits} />
-                                     <InsightStat icon={LinkIcon} label="Cliques na Bio" value={profileActions.bio_link_clicked} />
-                                     <InsightStat icon={Phone} label="Cliques para Ligar" value={profileActions.call} />
-                                     <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} />
-                                </CardContent>
-                            </Card>
+                            
+                            {/* Visão Geral */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Eye className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Visão Geral</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                        <InsightStat label="Contas alcançadas" value={insights.reach} />
+                                        <InsightStat label="Visitas ao perfil" value={insights.profile_visits} />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Interações */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Users className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Interações</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                         <InsightStat label="Interações no post" value={insights.total_interactions} />
+                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} subStat />
+                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} subStat />
+                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} subStat />
+                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved} subStat />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            
+                             {/* Atividade no Perfil */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <BarChart className="w-5 h-5 text-gray-600"/>
+                                    <h3 className="font-bold text-lg text-gray-800">Atividade no Perfil</h3>
+                                </div>
+                                <Card className="bg-white">
+                                    <CardContent className="p-4 divide-y">
+                                        <InsightStat label="Total de ações" value={Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number} />
+                                        <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} subStat />
+                                        <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} subStat />
+                                        <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} subStat />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
                         </div>
                     )}
                 </div>
@@ -290,7 +319,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                                  <Image 
                                     src={item.media_url || 'https://placehold.co/400'} 
                                     alt="Imagem do post" 
-                                    layout="fill" 
+                                    fill
                                     objectFit="cover"
                                 />
                             </div>
@@ -434,7 +463,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                              <Image 
                                 src={post.full_picture || 'https://placehold.co/400'} 
                                 alt="Imagem do post" 
-                                layout="fill" 
+                                fill
                                 objectFit="cover"
                             />
                         </div>
@@ -787,3 +816,4 @@ export default function Relatorios() {
     </div>
   );
 }
+

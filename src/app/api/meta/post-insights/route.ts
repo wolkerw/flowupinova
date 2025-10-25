@@ -9,14 +9,12 @@ interface InsightsRequestBody {
 }
 
 // Helper para buscar um conjunto de métricas
-async function fetchMetrics(url: string, metrics: string, breakdown?: string) {
-    const params = new URLSearchParams({
-        metric: metrics,
-    });
+async function fetchMetrics(baseUrl: string, metrics: string, breakdown?: string) {
+    const params = new URLSearchParams({ metric: metrics });
     if (breakdown) {
         params.append('breakdown', breakdown);
     }
-    const fullUrl = `${url}&${params.toString()}`;
+    const fullUrl = `${baseUrl}&${params.toString()}`;
     const response = await fetch(fullUrl);
     return response.json();
 }
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
         const insights: { [key: string]: any } = {};
 
         // Chamada 1: Métricas principais sem breakdown
-        const mainMetricsList = 'reach,saved,shares,profile_visits';
+        const mainMetricsList = 'reach,saved,shares,profile_visits,total_interactions';
         const mainMetricsData = await fetchMetrics(baseUrl, mainMetricsList);
         
         if (mainMetricsData.error) throw new Error(`Erro na API (métricas principais): ${mainMetricsData.error.message}`);
@@ -59,8 +57,8 @@ export async function POST(request: NextRequest) {
         
         // Chamada 3: profile_activity com breakdown
         const profileActivityData = await fetchMetrics(baseUrl, 'profile_activity', 'action_type');
+        insights.profile_activity_details = {};
         if (!profileActivityData.error && profileActivityData.data?.[0]?.total_value?.breakdowns?.[0]?.results) {
-            insights.profile_activity_details = {};
             profileActivityData.data[0].total_value.breakdowns[0].results.forEach((result: any) => {
                 const action = result.dimension_values?.[0];
                 if(action) {
@@ -73,7 +71,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, insights });
 
     } catch (error: any) {
-        console.error("[POST_INSIGHTS_ERROR]", error);
+        console.error("[POST_INSIGHTS_ERROR]", error.message);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
