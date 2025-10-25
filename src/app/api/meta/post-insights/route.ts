@@ -17,17 +17,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
 
+        // Métricas que não requerem 'breakdown'
         const metrics = [
             'reach',
             'likes',
             'comments',
             'shares',
             'saved',
-            'profile_visits',
-            'profile_activity'
+            'profile_visits'
         ].join(',');
 
-        const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&breakdown=action_type&access_token=${accessToken}`;
+        const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -41,22 +41,23 @@ export async function POST(request: NextRequest) {
         const insights: { [key: string]: any } = {};
         if (data.data && Array.isArray(data.data)) {
             data.data.forEach((metric: any) => {
-                 // Para métricas simples como 'reach', 'likes', etc.
-                if (metric.name !== 'profile_activity' && metric.values && metric.values.length > 0) {
-                    insights[metric.name] = metric.values[0].value || 0;
-                }
-                // Para a métrica com 'breakdown' como 'profile_activity'
-                else if (metric.name === 'profile_activity' && metric.total_value?.breakdowns?.[0]?.results) {
-                    metric.total_value.breakdowns[0].results.forEach((breakdown: any) => {
-                        const actionType = breakdown.dimension_values?.[0];
-                        const snakeCaseAction = actionType.toLowerCase() + '_clicks';
-                         // Remapeia para nomes mais amigáveis e consistentes
-                        if (actionType === 'bio_link_clicked') insights['bio_link_clicked'] = breakdown.value;
-                        if (actionType === 'call') insights['call_clicks'] = breakdown.value;
-                        if (actionType === 'email') insights['email_contacts'] = breakdown.value;
-                    });
+                if (metric.values && metric.values.length > 0) {
+                    // Mapeia nomes da API para nomes mais amigáveis, se necessário
+                    const metricName = metric.name;
+                    insights[metricName] = metric.values[0].value || 0;
                 }
             });
+        }
+        
+        // A API de 'likes' e 'comments' no objeto de mídia principal é mais confiável.
+        // Vamos buscar esses separadamente para garantir a precisão.
+        const mediaFieldsUrl = `https://graph.facebook.com/v20.0/${postId}?fields=like_count,comments_count&access_token=${accessToken}`;
+        const mediaResponse = await fetch(mediaFieldsUrl);
+        const mediaData = await mediaResponse.json();
+        
+        if (mediaResponse.ok) {
+            insights['like_count'] = mediaData.like_count || insights.likes || 0;
+            insights['comments_count'] = mediaData.comments_count || insights.comments || 0;
         }
 
         return NextResponse.json({ success: true, insights });
@@ -66,5 +67,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
-    

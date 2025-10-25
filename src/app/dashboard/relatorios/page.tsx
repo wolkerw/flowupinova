@@ -30,7 +30,8 @@ import {
   AtSign,
   Phone,
   Link as LinkIcon,
-  X
+  X,
+  Save,
 } from "lucide-react";
 import {
     Dialog,
@@ -141,7 +142,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             <Icon className="w-5 h-5 text-gray-500" />
             <div className="flex-1">
                 <div className="text-sm text-gray-600">{label}</div>
-                <div className="font-bold text-lg text-gray-900">{value}</div>
+                <div className="font-bold text-lg text-gray-900">{value?.toLocaleString() || 0}</div>
             </div>
         </div>
     );
@@ -161,21 +162,19 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                     {insights && (
                         <div className="space-y-6">
                             <Card>
-                                <CardHeader><CardTitle className="text-base">Métricas Principais</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-base">Engajamento Principal</CardTitle></CardHeader>
                                 <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <InsightStat icon={Eye} label="Alcance" value={insights.reach || 0} />
-                                    <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
-                                    <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
-                                    <InsightStat icon={Share2} label="Compart." value={insights.shares || 0} />
+                                    <InsightStat icon={Eye} label="Alcance" value={insights.reach} />
+                                    <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} />
+                                    <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} />
+                                    <InsightStat icon={Share2} label="Compart." value={insights.shares} />
+                                    <InsightStat icon={Save} label="Salvos" value={insights.saved} />
                                 </CardContent>
                             </Card>
                              <Card>
                                 <CardHeader><CardTitle className="text-base">Ações no Perfil</CardTitle></CardHeader>
                                 <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                     <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
-                                     <InsightStat icon={LinkIcon} label="Cliques no Link da Bio" value={insights.bio_link_clicked || 0} />
-                                     <InsightStat icon={Phone} label="Cliques para Ligar" value={insights.call_clicks || 0} />
-                                     <InsightStat icon={AtSign} label="Cliques para Email" value={insights.email_contacts || 0} />
+                                     <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits} />
                                 </CardContent>
                             </Card>
                         </div>
@@ -783,5 +782,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-    
