@@ -9,8 +9,11 @@ interface InsightsRequestBody {
 }
 
 // Helper to fetch metrics from the Graph API
-async function fetchMetrics(baseUrl: string, metrics: string) {
-    const params = new URLSearchParams({ metric: metrics });
+async function fetchMetrics(baseUrl: string, accessToken: string, metrics: string) {
+    const params = new URLSearchParams({ 
+        metric: metrics,
+        access_token: accessToken,
+    });
     const fullUrl = `${baseUrl}?${params.toString()}`;
     const response = await fetch(fullUrl);
     const data = await response.json();
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         // Chamada 1: Métricas de insights (alcance, cliques)
         const mainMetricsList = 'post_impressions_unique,post_clicks';
-        const mainMetricsData = await fetchMetrics(`${insightsBaseUrl}&access_token=${accessToken}`, mainMetricsList);
+        const mainMetricsData = await fetchMetrics(insightsBaseUrl, accessToken, mainMetricsList);
 
         mainMetricsData.data?.forEach((metric: any) => {
              if (metric.values && metric.values.length > 0) {
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
         });
         
         // Chamada 2: Detalhamento das reações
-        const reactionsData = await fetchMetrics(`${insightsBaseUrl}&access_token=${accessToken}`, 'post_reactions_by_type_total');
+        const reactionsData = await fetchMetrics(insightsBaseUrl, accessToken, 'post_reactions_by_type_total');
         insights.reactions_detail = {};
         if(reactionsData.data?.[0]?.values?.[0]?.value) {
             insights.reactions_detail = reactionsData.data[0].values[0].value;
