@@ -355,7 +355,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                          <CardFooter className="p-4 pt-0">
                              <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
                                 <BarChart className="w-4 h-4 mr-2" />
-                                Ver Insights
+                                Ver mais Insights
                             </Button>
                         </CardFooter>
                     </Card>
@@ -816,4 +816,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
 
