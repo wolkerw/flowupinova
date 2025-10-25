@@ -146,6 +146,8 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             </div>
         </div>
     );
+    
+    const profileActions = insights?.profile_activity_details || {};
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,7 +155,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                 <DialogHeader>
                     <DialogTitle>Insights Detalhados do Post</DialogTitle>
                     <DialogDescription>
-                        Análise completa da performance da sua publicação.
+                        Análise completa da performance da sua publicação no Instagram.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -175,6 +177,9 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 <CardHeader><CardTitle className="text-base">Ações no Perfil</CardTitle></CardHeader>
                                 <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                      <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits} />
+                                     <InsightStat icon={LinkIcon} label="Cliques na Bio" value={profileActions.bio_link_clicked} />
+                                     <InsightStat icon={Phone} label="Cliques para Ligar" value={profileActions.call} />
+                                     <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} />
                                 </CardContent>
                             </Card>
                         </div>
