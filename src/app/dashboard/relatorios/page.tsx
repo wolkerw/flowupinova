@@ -24,11 +24,23 @@ import {
   AlertTriangle,
   Heart,
   MessageCircle,
-  Bookmark,
-  Share2
+  Share2,
+  BarChart,
+  Globe,
+  AtSign,
+  Phone,
+  Link as LinkIcon,
+  X
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -86,10 +98,106 @@ const kpis = [
     }
 ];
 
+const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
+    const [insights, setInsights] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            if (!open || !post || !connection.accessToken) return;
+
+            setIsLoading(true);
+            setError(null);
+            setInsights(null);
+
+            try {
+                 const response = await fetch('/api/meta/post-insights', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accessToken: connection.accessToken,
+                        postId: post.id 
+                    }),
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || "Falha ao buscar insights detalhados.");
+                }
+                setInsights(result.insights);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInsights();
+    }, [open, post, connection]);
+
+    const InsightStat = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: number }) => (
+        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+            <Icon className="w-5 h-5 text-gray-500" />
+            <div className="flex-1">
+                <div className="text-sm text-gray-600">{label}</div>
+                <div className="font-bold text-lg text-gray-900">{value}</div>
+            </div>
+        </div>
+    );
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Insights Detalhados do Post</DialogTitle>
+                    <DialogDescription>
+                        Análise completa da performance da sua publicação.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
+                    {isLoading && <div className="flex justify-center items-center h-48"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
+                    {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
+                    {insights && (
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader><CardTitle className="text-base">Métricas Principais</CardTitle></CardHeader>
+                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <InsightStat icon={Eye} label="Alcance" value={insights.reach || 0} />
+                                    <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
+                                    <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
+                                    <InsightStat icon={Share2} label="Compart." value={insights.shares || 0} />
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle className="text-base">Ações no Perfil</CardTitle></CardHeader>
+                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                     <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
+                                     <InsightStat icon={LinkIcon} label="Cliques no Link da Bio" value={insights.bio_link_clicked || 0} />
+                                     <InsightStat icon={Phone} label="Cliques para Ligar" value={insights.call_clicks || 0} />
+                                     <InsightStat icon={AtSign} label="Cliques para Email" value={insights.email_contacts || 0} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }) => {
     const [media, setMedia] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPost, setSelectedPost] = useState<any | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleOpenModal = (post: any) => {
+        setSelectedPost(post);
+        setIsModalOpen(true);
+    };
 
     useEffect(() => {
         const fetchMedia = async () => {
@@ -168,10 +276,11 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
     }
 
     return (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
                 return (
-                    <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
+                    <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
                         <CardHeader className="p-4">
                             <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
                                  <Image 
@@ -182,7 +291,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                                 />
                             </div>
                         </CardHeader>
-                        <CardContent className="p-4 pt-0">
+                        <CardContent className="p-4 pt-0 flex-grow">
                             <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p>
                             <p className="text-xs text-gray-500 mb-3">
                                 Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
@@ -210,10 +319,23 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                                 </div>
                             </div>
                         </CardContent>
+                         <CardFooter className="p-4 pt-0">
+                             <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
+                                <BarChart className="w-4 h-4 mr-2" />
+                                Ver Insights
+                            </Button>
+                        </CardFooter>
                     </Card>
                 );
             })}
         </div>
+         <InstagramPostInsightsModal 
+            post={selectedPost}
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            connection={connection}
+        />
+        </>
     );
 };
 
@@ -508,14 +630,14 @@ export default function Relatorios() {
                     </CardHeader>
                     <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={performanceData}>
+                        <RechartsBarChart data={performanceData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip />
                         <Bar dataKey="impressions" fill="#3B82F6" name="Impressões" />
                         <Bar dataKey="clicks" fill="#8B5CF6" name="Cliques" />
-                        </BarChart>
+                        </RechartsBarChart>
                     </ResponsiveContainer>
                     </CardContent>
                 </Card>
@@ -661,3 +783,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    

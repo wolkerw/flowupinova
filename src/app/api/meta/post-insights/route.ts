@@ -18,13 +18,16 @@ export async function POST(request: NextRequest) {
         }
 
         const metrics = [
-            'post_impressions_unique', // Alcance
-            'post_engaged_users',      // Engajamento
-            'post_reactions_like_total', // Curtidas (para fotos)
-            'post_video_views', // Visualizações (para vídeos)
+            'reach',
+            'likes',
+            'comments',
+            'shares',
+            'saved',
+            'profile_visits',
+            'profile_activity'
         ].join(',');
 
-        const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
+        const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&breakdown=action_type&access_token=${accessToken}`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -35,16 +38,23 @@ export async function POST(request: NextRequest) {
         }
         
         // Processa os dados para um formato mais amigável
-        const insights: { [key: string]: number } = {};
+        const insights: { [key: string]: any } = {};
         if (data.data && Array.isArray(data.data)) {
             data.data.forEach((metric: any) => {
-                if (metric.values && metric.values.length > 0) {
-                     // Algumas métricas, como 'post_reactions_like_total', retornam um objeto com valores.
-                     // Outras, como 'post_impressions_unique', retornam o valor diretamente.
-                    const value = typeof metric.values[0].value === 'object' 
-                        ? (metric.values[0].value.like || 0) // Soma as reações de 'like'
-                        : metric.values[0].value;
-                    insights[metric.name] = value;
+                 // Para métricas simples como 'reach', 'likes', etc.
+                if (metric.name !== 'profile_activity' && metric.values && metric.values.length > 0) {
+                    insights[metric.name] = metric.values[0].value || 0;
+                }
+                // Para a métrica com 'breakdown' como 'profile_activity'
+                else if (metric.name === 'profile_activity' && metric.total_value?.breakdowns?.[0]?.results) {
+                    metric.total_value.breakdowns[0].results.forEach((breakdown: any) => {
+                        const actionType = breakdown.dimension_values?.[0];
+                        const snakeCaseAction = actionType.toLowerCase() + '_clicks';
+                         // Remapeia para nomes mais amigáveis e consistentes
+                        if (actionType === 'bio_link_clicked') insights['bio_link_clicked'] = breakdown.value;
+                        if (actionType === 'call') insights['call_clicks'] = breakdown.value;
+                        if (actionType === 'email') insights['email_contacts'] = breakdown.value;
+                    });
                 }
             });
         }
@@ -56,3 +66,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
+    
