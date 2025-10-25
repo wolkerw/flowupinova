@@ -108,9 +108,9 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    const reactionIcons = {
+    const reactionIcons: { [key: string]: React.ReactElement } = {
         like: <ThumbsUp className="w-5 h-5 text-blue-500" />,
-        love: <Heart className="w-5 h-5 text-red-500" />,
+        love: <Heart className="w-5 h-5 text-red-500 fill-current" />,
         wow: <div className="text-lg">😮</div>,
         haha: <div className="text-lg">😂</div>,
         sorry: <div className="text-lg">😢</div>,
@@ -161,6 +161,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     );
     
     const reactions = insights?.reactions_detail || {};
+    const totalReactions = Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number;
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
@@ -195,7 +196,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={ThumbsUp} label="Reações Totais" value={Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number} />
+                                         <InsightStat icon={Heart} label="Reações Totais" value={totalReactions} />
                                          <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments} />
                                          <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
                                     </CardContent>
@@ -203,7 +204,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                             </div>
 
                              {/* Detalhes das Reações */}
-                             {Object.keys(reactions).length > 0 && (
+                             {totalReactions > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <Heart className="w-5 h-5 text-gray-600"/>
@@ -211,13 +212,18 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                     </div>
                                     <Card className="bg-white">
                                         <CardContent className="p-4 grid grid-cols-2 gap-4">
-                                            {Object.entries(reactions).map(([key, value]) => (
-                                                <div key={key} className="flex items-center gap-2">
-                                                    {(reactionIcons as any)[key]}
-                                                    <span className="font-semibold">{value as number}</span>
-                                                    <span className="text-sm capitalize text-gray-600">{key}</span>
-                                                </div>
-                                            ))}
+                                            {Object.entries(reactions).map(([key, value]) => {
+                                                if ((value as number) > 0) {
+                                                    return (
+                                                        <div key={key} className="flex items-center gap-2">
+                                                            {reactionIcons[key] || <ThumbsUp className="w-5 h-5 text-gray-400" />}
+                                                            <span className="font-semibold">{value as number}</span>
+                                                            <span className="text-sm capitalize text-gray-600">{key === 'like' ? 'Curtidas' : key}</span>
+                                                        </div>
+                                                    )
+                                                }
+                                                return null;
+                                            })}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -281,13 +287,17 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     );
 
     const profileActions = insights?.profile_activity_details || {};
-    const totalInteractions = insights?.total_interactions || (insights?.like_count + insights?.comments_count + insights?.shares + insights?.saved);
+    const totalProfileActivity = Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number;
+    const totalInteractions = insights?.total_interactions || 0;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md bg-gray-50">
                 <DialogHeader>
                     <DialogTitle>Insights da Publicação</DialogTitle>
+                     <DialogDescription>
+                        Performance detalhada do seu post no Instagram.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
@@ -298,13 +308,13 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             {/* Visão Geral */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Eye className="w-5 h-5 text-gray-600"/>
+                                    <BarChart3 className="w-5 h-5 text-gray-600"/>
                                     <h3 className="font-bold text-lg text-gray-800">Visão Geral</h3>
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                        <InsightStat label="Contas alcançadas" value={insights.reach} />
-                                        <InsightStat label="Visitas ao perfil" value={insights.profile_visits} />
+                                        <InsightStat icon={Eye} label="Contas alcançadas" value={insights.reach} />
+                                        <InsightStat icon={Users} label="Visitas ao perfil" value={insights.profile_visits} />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -312,12 +322,12 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             {/* Interações */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Users className="w-5 h-5 text-gray-600"/>
+                                     <Heart className="w-5 h-5 text-gray-600"/>
                                     <h3 className="font-bold text-lg text-gray-800">Interações</h3>
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat label="Interações no post" value={totalInteractions} />
+                                         <InsightStat label="Total de Interações" value={totalInteractions} />
                                          <InsightStat icon={Heart} label="Curtidas" value={insights.like_count} subStat />
                                          <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count} subStat />
                                          <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} subStat />
@@ -327,7 +337,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             </div>
                             
                              {/* Atividade no Perfil */}
-                             {Object.keys(profileActions).length > 0 && (
+                             {totalProfileActivity > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <BarChart className="w-5 h-5 text-gray-600"/>
@@ -335,7 +345,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                     </div>
                                     <Card className="bg-white">
                                         <CardContent className="p-4 divide-y">
-                                            <InsightStat label="Total de ações" value={Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number} />
+                                            <InsightStat label="Total de ações" value={totalProfileActivity} />
                                             {profileActions.bio_link_clicked > 0 && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} subStat />}
                                             {profileActions.call > 0 && <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} subStat />}
                                             {profileActions.email > 0 && <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} subStat />}
@@ -969,6 +979,7 @@ export default function Relatorios() {
     </div>
   );
 }
+
 
 
 
