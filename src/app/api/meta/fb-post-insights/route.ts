@@ -8,7 +8,7 @@ interface InsightsRequestBody {
   postId: string;
 }
 
-// Helper to fetch metrics from the Graph API
+// Helper to fetch metrics from the Graph API's /insights edge
 async function fetchMetrics(baseUrl: string, accessToken: string, metrics: string) {
     const params = new URLSearchParams({ 
         metric: metrics,
