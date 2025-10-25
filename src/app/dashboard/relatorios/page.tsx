@@ -183,7 +183,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
                  <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Facebook)</DialogTitle>
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
@@ -192,11 +192,11 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                         <div className="space-y-6">
                            
                             {/* Bloco de Contexto do Post */}
-                            <Card className="bg-white overflow-hidden">
+                            <Card className="bg-white overflow-hidden shadow-sm">
                                 <CardContent className="p-4 flex gap-4 items-start">
                                     <Image src={post.full_picture || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-base font-semibold text-gray-800 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
+                                        <p className="text-base font-bold text-gray-900 line-clamp-2 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         {insights.permalink_url && (
                                             <a href={insights.permalink_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
@@ -208,81 +208,56 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                                {/* Coluna Esquerda */}
-                                <div className="space-y-6">
-                                     {/* Bloco 1: Alcance e Impressões */}
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Users} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
-                                                <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
-                                                <div className="pt-3 space-y-2">
-                                                    <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
-                                                    <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <Card className="bg-white shadow-sm md:col-span-1">
+                                     <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="divide-y divide-gray-100">
+                                        <InsightStat label="Alcance total" value={insights.reach || 0} />
+                                        <InsightStat label="Impressões totais" value={insights.impressions || 0} />
+                                        <div className="pt-3 space-y-2">
+                                            <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
+                                            <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
+                                        </div>
+                                         <div className="pt-3 space-y-2">
+                                            <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
+                                            <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-white shadow-sm md:col-span-1">
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><MousePointer className="w-5 h-5 text-green-500" /> Cliques e Engajamento</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="divide-y divide-gray-100">
+                                         <InsightStat label="Cliques no post" value={insights.clicks || 0} />
+                                         <InsightStat label="Taxa de Cliques (CTR)" value={ctr} />
+                                         <InsightStat label="Pessoas engajadas" value={insights.engaged_users || 0} />
+                                         <InsightStat label="Taxa de Engajamento" value={engagementRate} />
+                                    </CardContent>
+                                </Card>
+                               <Card className="bg-white shadow-sm md:col-span-1">
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-2 mb-4">
+                                            <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
+                                            <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
+                                        </div>
+                                        <Separator />
+                                        <div className="grid grid-cols-3 gap-y-2 gap-x-2 mt-4">
+                                            {Object.entries(reactionIcons).map(([key, icon]) => (
+                                                <div key={key} className="flex items-center gap-1.5">
+                                                    {icon}
+                                                    <span className="font-semibold text-sm text-gray-800">{reactions[key] || 0}</span>
                                                 </div>
-                                                 <div className="pt-3 space-y-2">
-                                                    <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
-                                                    <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                    
-                                    {/* Bloco 2: Cliques e Engajamento */}
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><MousePointer className="w-5 h-5 text-green-500" /> Cliques e Engajamento</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
-                                                <InsightStat icon={BarChart2} label="Taxa de Cliques (CTR)" value={ctr} />
-                                                <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
-                                                <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} description="Engajamento / Alcance"/>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-                                
-                                {/* Coluna Direita: Interações */}
-                                <div className="space-y-6">
-                                     {/* Bloco 3: Interações e Reações */}
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações ({totalReactions + (insights.comments || 0) + (insights.shares || 0)})</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4">
-                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <MessageCircle className="w-5 h-5 text-gray-500"/>
-                                                        <div>
-                                                            <div className="font-bold text-lg">{insights.comments || 0}</div>
-                                                            <div className="text-xs text-gray-500">Comentários</div>
-                                                        </div>
-                                                    </div>
-                                                     <div className="flex items-center gap-2">
-                                                        <Share2 className="w-5 h-5 text-gray-500"/>
-                                                         <div>
-                                                            <div className="font-bold text-lg">{insights.shares || 0}</div>
-                                                            <div className="text-xs text-gray-500">Compart.</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <Separator />
-                                                <div className="grid grid-cols-3 gap-y-3 gap-x-4 mt-4">
-                                                    {Object.entries(reactionIcons).map(([key, icon]) => (
-                                                        <div key={key} className="flex items-center gap-2">
-                                                            {icon}
-                                                            <span className="font-semibold text-gray-800">{reactions[key] || 0}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </div>
-
                         </div>
                     )}
                 </div>
@@ -333,7 +308,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     // Calculated metrics
     const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
     const videoDuration = post?.video_duration ? parseFloat(post.video_duration) : 0; // Assuming duration is in seconds
-    const avgWatchTime = insights?.ig_reels_avg_watch_time ? (insights.ig_reels_avg_watch_time / 1000) : 0; // Convert ms to s
+    const avgWatchTime = insights?.ig_reels_avg_watch_time || 0; // Already in seconds from API
     const retentionRate = videoDuration > 0 && avgWatchTime > 0 ? ((avgWatchTime / videoDuration) * 100).toFixed(2) + '%' : '0.00%';
 
 
@@ -341,20 +316,20 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
                 <DialogHeader className="border-b pb-4">
-                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Instagram)</DialogTitle>
+                     <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
                     {insights && post && (
-                        <div className="space-y-6">
+                         <div className="space-y-6">
                             
-                            <Card className="bg-white overflow-hidden">
+                            <Card className="bg-white overflow-hidden shadow-sm">
                                 <CardContent className="p-4 flex gap-4 items-start">
                                     <Image src={post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-base font-semibold text-gray-800 line-clamp-2 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
+                                        <p className="text-base font-bold text-gray-900 line-clamp-2 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
                                             <ExternalLink className="w-3 h-3"/>
@@ -365,51 +340,42 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             </Card>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Coluna Esquerda */}
-                                <div className="space-y-6">
-                                    {/* Bloco 1: Alcance e Visualizações */}
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Users} label="Contas alcançadas" value={insights.reach || 0} />
-                                                <InsightStat icon={TrendingUp} label="Visualizações (Views)" value={insights.views || 0} />
-                                                <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                                <Card className="bg-white shadow-sm">
+                                     <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="divide-y divide-gray-100">
+                                        <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
+                                        <InsightStat label="Visualizações (Views)" value={insights.views || 0} />
+                                         <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-white shadow-sm">
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="divide-y divide-gray-100">
+                                         <InsightStat label="Curtidas" value={insights.likes || 0} />
+                                         <InsightStat label="Comentários" value={insights.comments || 0} />
+                                         <InsightStat label="Compartilhamentos" value={insights.shares || 0} />
+                                         <InsightStat label="Salvamentos" value={insights.saved || 0} />
+                                         <InsightStat label="Total de Interações" value={insights.total_interactions || 0} />
+                                         <InsightStat label="Taxa de Engajamento" value={engagementRate} />
+                                    </CardContent>
+                                </Card>
 
-                                    {/* Bloco 2: Engajamento */}
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Heart} label="Curtidas" value={insights.likes || 0} />
-                                                <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
-                                                <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
-                                                <InsightStat icon={Save} label="Salvamentos" value={insights.saved || 0} />
-                                                <InsightStat icon={BarChart} label="Total de Interações" value={insights.total_interactions || 0} />
-                                                <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} description="(Interações / Alcance)" />
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-                                
-                                {/* Coluna Direita */}
-                                <div className="space-y-6">
-                                    {/* Bloco 3: Desempenho de Vídeo (se aplicável) */}
-                                    {post.media_product_type === 'REELS' && (
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</h3>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Clock} label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
-                                                <InsightStat icon={BarChart2} label="Taxa de Retenção" value={retentionRate} description="Média / Duração" />
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                    )}
-                                </div>
+                                {post.media_product_type === 'REELS' && insights.ig_reels_avg_watch_time != null && (
+                                     <Card className="bg-white shadow-sm md:col-span-2">
+                                        <CardHeader>
+                                            <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="divide-y divide-gray-100">
+                                            <InsightStat label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
+                                            { post.video_duration && <InsightStat label="Duração do vídeo" value={`${post.video_duration.toFixed(2)}s`} /> }
+                                            { post.video_duration && <InsightStat label="Taxa de Retenção" value={retentionRate} /> }
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1041,3 +1007,4 @@ export default function Relatorios() {
     
 
     
+

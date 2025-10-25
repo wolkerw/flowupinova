@@ -8,14 +8,16 @@ interface InsightsRequestBody {
   postId: string;
 }
 
-// Helper to fetch a set of metrics
-async function fetchMetrics(baseUrl: string, metrics: string) {
-    const params = new URLSearchParams({ metric: metrics });
-    const fullUrl = `${baseUrl}&${params.toString()}`;
-    const response = await fetch(fullUrl);
-    return response.json();
+// Helper to fetch data from Meta API
+async function fetchFromMeta(url: string) {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.error) {
+        console.error("[POST_INSIGHTS_ERROR] API Error:", data.error);
+        throw new Error(`Erro na API (${data.error.code}): ${data.error.message}`);
+    }
+    return data;
 }
-
 
 export async function POST(request: NextRequest) {
     try {
@@ -26,27 +28,35 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
 
-        const baseUrl = `https://graph.facebook.com/v24.0/${postId}/insights?access_token=${accessToken}`;
-        
-        const insights: { [key: string]: any } = {};
+        // Step 1: Get the media product type
+        const mediaInfoUrl = `https://graph.facebook.com/v24.0/${postId}?fields=media_product_type&access_token=${accessToken}`;
+        const mediaInfo = await fetchFromMeta(mediaInfoUrl);
+        const mediaProductType = mediaInfo.media_product_type;
 
-        // Chamada 1: Métricas principais (substituindo 'impressions' por 'views')
-        const mainMetricsList = 'reach,views,likes,comments,shares,saved,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time,profile_visits';
-        const mainMetricsData = await fetchMetrics(baseUrl, mainMetricsList);
+        // Step 2: Build the metrics list based on the media type
+        let metricsList = 'reach,views,likes,comments,shares,saved,total_interactions,profile_visits';
         
-        if (mainMetricsData.error) {
-            console.error("[POST_INSIGHTS_ERROR] API Error (main metrics):", mainMetricsData.error);
-            throw new Error(`Erro na API (métricas principais): ${mainMetricsData.error.message}`);
+        if (mediaProductType === 'REELS') {
+            metricsList += ',ig_reels_avg_watch_time,ig_reels_video_view_total_time';
         }
-        
-        mainMetricsData.data?.forEach((metric: any) => {
+
+        // Step 3: Fetch the insights with the correct metrics
+        const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
+        const insightsData = await fetchFromMeta(insightsUrl);
+
+        const insights: { [key: string]: any } = {};
+        insightsData.data?.forEach((metric: any) => {
              if (metric.values && metric.values.length > 0) {
-                insights[metric.name] = metric.values[0].value || 0;
+                // Convert ms to seconds for watch time metrics
+                if (metric.name === 'ig_reels_avg_watch_time' || metric.name === 'ig_reels_video_view_total_time') {
+                     insights[metric.name] = (metric.values[0].value || 0) / 1000;
+                } else {
+                    insights[metric.name] = metric.values[0].value || 0;
+                }
             }
         });
 
-        // A API de insights já nos dá 'likes' e 'comments', então a chamada separada não é mais necessária,
-        // a menos que a de insights falhe para esses campos. Vamos manter a simplicidade por agora.
+        // The API already gives 'likes' and 'comments', so we just ensure they exist.
         insights['like_count'] = insights.likes ?? 0;
         insights['comments_count'] = insights.comments ?? 0;
         
