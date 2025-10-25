@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Instagram ID são obrigatórios." }, { status: 400 });
         }
 
-        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,comments_count,like_count,insights.metric(engagement,impressions,reach,saved).period(lifetime)';
+        // A métrica 'engagement' não é válida para este endpoint. 
+        // Ela deve ser calculada a partir de outras métricas.
+        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,comments_count,like_count,insights.metric(impressions,reach,saved).period(lifetime)';
         const url = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=${fields}&access_token=${accessToken}&limit=12`;
 
         const response = await fetch(url);
@@ -44,10 +46,10 @@ export async function POST(request: NextRequest) {
                 permalink: item.permalink,
                 timestamp: item.timestamp,
                 username: item.username,
-                comments_count: item.comments_count,
-                like_count: item.like_count,
+                comments_count: item.comments_count || 0,
+                like_count: item.like_count || 0,
                 insights: {
-                    engagement: getInsightValue('engagement'),
+                    // engagement: getInsightValue('engagement'), // Métrica inválida removida
                     impressions: getInsightValue('impressions'),
                     reach: getInsightValue('reach'),
                     saved: getInsightValue('saved')
@@ -62,5 +64,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
-    

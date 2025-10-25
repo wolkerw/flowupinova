@@ -168,48 +168,53 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {media.map((item) => (
-                <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
-                    <CardHeader className="p-4">
-                        <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
-                             <Image 
-                                src={item.media_url || 'https://placehold.co/400'} 
-                                alt="Imagem do post" 
-                                layout="fill" 
-                                objectFit="cover"
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p>
-                        <p className="text-xs text-gray-500 mb-3">
-                            Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
-                        </p>
-                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Eye className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{item.insights.reach || 0}</span>
-                                <span className="text-xs text-gray-500">Alcance</span>
+            {media.map((item) => {
+                // Calcula o engajamento somando curtidas e comentários
+                const engagement = (item.like_count || 0) + (item.comments_count || 0);
+
+                return (
+                    <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
+                        <CardHeader className="p-4">
+                            <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
+                                 <Image 
+                                    src={item.media_url || 'https://placehold.co/400'} 
+                                    alt="Imagem do post" 
+                                    layout="fill" 
+                                    objectFit="cover"
+                                />
                             </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Heart className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{item.insights.engagement || 0}</span>
-                                <span className="text-xs text-gray-500">Engajamento</span>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                            <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p>
+                            <p className="text-xs text-gray-500 mb-3">
+                                Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
+                            </p>
+                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.insights.reach || 0}</span>
+                                    <span className="text-xs text-gray-500">Alcance</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Heart className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{engagement}</span>
+                                    <span className="text-xs text-gray-500">Engajamento</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.comments_count || 0}</span>
+                                    <span className="text-xs text-gray-500">Comentários</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Bookmark className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.insights.saved || 0}</span>
+                                    <span className="text-xs text-gray-500">Salvos</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <MessageCircle className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{item.insights.comments_count || 0}</span>
-                                <span className="text-xs text-gray-500">Comentários</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                                <Bookmark className="w-3.5 h-3.5" />
-                                <span className="font-semibold">{item.insights.saved || 0}</span>
-                                <span className="text-xs text-gray-500">Salvos</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
+                        </CardContent>
+                    </Card>
+                );
+            })}
         </div>
     );
 };
@@ -658,5 +663,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-    
