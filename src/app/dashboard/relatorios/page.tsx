@@ -40,6 +40,9 @@ import {
   ImageIcon,
   ExternalLink,
   ShieldOff,
+  Clock,
+  PlayCircle,
+  BarChart2,
 } from "lucide-react";
 import {
     Dialog,
@@ -54,7 +57,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import Image from "next/image";
-import { format } from 'date-fns';
+import { format, formatDistanceToNowStrict } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Label } from "@/components/ui/label";
 
 const performanceData = [
@@ -109,15 +113,15 @@ const kpis = [
 ];
 
 const InsightStat = ({ icon, label, value, subStat = false, description }: { icon?: React.ElementType, label: string, value: string | number, subStat?: boolean, description?: string }) => (
-    <div className={`flex items-center justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
+    <div className={`flex items-start justify-between ${subStat ? 'py-1.5' : 'py-3'}`}>
         <div className="flex items-center gap-3">
-            {icon && React.createElement(icon, { className: `w-5 h-5 text-gray-500` })}
+            {icon && React.createElement(icon, { className: `w-5 h-5 text-gray-500 mt-0.5` })}
             <div className={`text-sm ${subStat ? 'pl-8' : ''} text-gray-700`}>
                 {label}
                 {description && <p className="text-xs text-gray-400">{description}</p>}
             </div>
         </div>
-        <div className="font-semibold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</div>
+        <div className="font-semibold text-gray-900 text-base">{typeof value === 'number' ? value.toLocaleString() : value}</div>
     </div>
 );
 
@@ -233,9 +237,9 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <Card className="bg-white">
                                             <CardContent className="p-4 divide-y divide-gray-100">
                                                 <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
-                                                <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
+                                                <InsightStat icon={BarChart2} label="Taxa de Cliques (CTR)" value={ctr} />
                                                 <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
-                                                <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
+                                                <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} description="Engajamento / Alcance"/>
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -326,14 +330,17 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
         fetchInsights();
     }, [open, post, connection]);
     
-    const profileActions = insights?.profile_activity_details || {};
-    const totalProfileActivity = Object.values(profileActions).reduce((a: any, b: any) => a + b, 0) as number;
-    const totalInteractions = insights?.total_interactions || (insights?.like_count || 0) + (insights?.comments_count || 0) + (insights?.shares || 0) + (insights?.saved || 0);
+    // Calculated metrics
+    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
+    const videoDuration = post?.video_duration ? parseFloat(post.video_duration) : 0; // Assuming duration is in seconds
+    const avgWatchTime = insights?.ig_reels_avg_watch_time ? (insights.ig_reels_avg_watch_time / 1000) : 0; // Convert ms to s
+    const retentionRate = videoDuration > 0 ? ((avgWatchTime / videoDuration) * 100).toFixed(2) + '%' : '0.00%';
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md bg-gray-50">
-                 <DialogHeader className="border-b pb-4">
+            <DialogContent className="max-w-2xl bg-gray-50">
+                <DialogHeader className="border-b pb-4">
                      <DialogTitle className="text-lg font-medium text-gray-500">Insights da Publicação (Instagram)</DialogTitle>
                 </DialogHeader>
 
@@ -345,9 +352,9 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             
                             <Card className="bg-white overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <Image src={post.media_type === 'VIDEO' ? post.thumbnail_url || 'https://placehold.co/100' : post.media_url || 'https://placehold.co/100'} alt="Post" width={100} height={100} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={post.media_type === 'VIDEO' ? post.thumbnail_url || 'https://placehold.co/100' : post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
-                                        <p className="text-sm font-medium text-gray-800 line-clamp-3 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
+                                        <p className="text-base font-semibold text-gray-800 line-clamp-2 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
                                         <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
                                             <ExternalLink className="w-3 h-3"/>
@@ -357,49 +364,70 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 </CardContent>
                             </Card>
 
-                            {/* Bloco 1: Visão Geral */}
-                            <div>
-                                <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Visão Geral</h3>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={Users} label="Contas alcançadas" value={insights.reach || 0} />
-                                        <InsightStat icon={Users} label="Visitas ao perfil" value={insights.profile_visits || 0} />
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            {/* Bloco 2: Interações na Publicação */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                     <Heart className="w-5 h-5 text-red-500"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Interações na Publicação ({totalInteractions})</h3>
-                                </div>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
-                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
-                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
-                                         <InsightStat icon={Save} label="Salvamentos" value={insights.saved || 0} />
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            
-                             {/* Bloco 3: Atividade no Perfil */}
-                             {totalProfileActivity > 0 && (
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <BarChart className="w-5 h-5 text-purple-500"/>
-                                        <h3 className="font-bold text-lg text-gray-800">Atividade Gerada no Perfil</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Coluna Esquerda */}
+                                <div className="space-y-6">
+                                    {/* Bloco 1: Alcance e Visualizações */}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                <InsightStat icon={Users} label="Alcance" value={insights.reach || 0} description="Contas únicas que visualizaram" />
+                                                <InsightStat icon={TrendingUp} label="Visualizações (Impressões)" value={insights.impressions || 0} description="Total de vezes exibido na tela" />
+                                            </CardContent>
+                                        </Card>
                                     </div>
-                                    <Card className="bg-white">
-                                        <CardContent className="p-4 divide-y">
-                                            {profileActions.bio_link_clicked > 0 && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={profileActions.bio_link_clicked} />}
-                                            {profileActions.call > 0 && <InsightStat icon={Phone} label="Cliques para ligar" value={profileActions.call} />}
-                                            {profileActions.email > 0 && <InsightStat icon={AtSign} label="Cliques para E-mail" value={profileActions.email} />}
-                                        </CardContent>
-                                    </Card>
+
+                                    {/* Bloco 2: Engajamento */}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
+                                                <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
+                                                <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
+                                                <InsightStat icon={Save} label="Salvamentos" value={insights.saved || 0} />
+                                                <InsightStat icon={BarChart} label="Total de Interações" value={insights.total_interactions || 0} />
+                                                <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} description="(Interações / Alcance)" />
+                                            </CardContent>
+                                        </Card>
+                                    </div>
                                 </div>
-                             )}
+                                
+                                {/* Coluna Direita */}
+                                <div className="space-y-6">
+                                    {/* Bloco 3: Desempenho de Vídeo (se aplicável) */}
+                                    {post.media_product_type === 'REELS' && (
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</h3>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                <InsightStat icon={Clock} label="Tempo médio de visualização" value={`${avgWatchTime.toFixed(2)}s`} />
+                                                <InsightStat icon={BarChart2} label="Taxa de Retenção" value={retentionRate} description="Média / Duração" />
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                    )}
+
+                                    {/* Bloco 4: Atividade no Perfil */}
+                                    {Object.keys(insights.profile_activity_details || {}).length > 0 && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <BarChart className="w-5 h-5 text-green-500"/>
+                                            <h3 className="font-bold text-lg text-gray-800">Atividade Gerada no Perfil</h3>
+                                        </div>
+                                        <Card className="bg-white">
+                                            <CardContent className="p-4 divide-y divide-gray-100">
+                                                {(insights.profile_activity_details?.bio_link_clicked > 0) && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={insights.profile_activity_details.bio_link_clicked} />}
+                                                {(insights.profile_activity_details?.call > 0) && <InsightStat icon={Phone} label="Cliques para ligar" value={insights.profile_activity_details.call} />}
+                                                {(insights.profile_activity_details?.email > 0) && <InsightStat icon={AtSign} label="Cliques para E-mail" value={insights.profile_activity_details.email} />}
+                                                <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

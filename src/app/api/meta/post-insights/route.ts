@@ -8,7 +8,7 @@ interface InsightsRequestBody {
   postId: string;
 }
 
-// Helper para buscar um conjunto de métricas
+// Helper to fetch a set of metrics
 async function fetchMetrics(baseUrl: string, metrics: string, breakdown?: string) {
     const params = new URLSearchParams({ metric: metrics });
     if (breakdown) {
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
         
         const insights: { [key: string]: any } = {};
 
-        // Chamada 1: Métricas principais sem breakdown
-        const mainMetricsList = 'reach,saved,shares,profile_visits,total_interactions';
+        // Chamada 1: Métricas principais (Alcance, Engajamento, Interações, etc.)
+        const mainMetricsList = 'reach,impressions,saved,shares,profile_visits,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time';
         const mainMetricsData = await fetchMetrics(baseUrl, mainMetricsList);
         
         if (mainMetricsData.error) throw new Error(`Erro na API (métricas principais): ${mainMetricsData.error.message}`);
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Chamada 2: Métricas de like e comment (mais confiáveis no objeto de mídia principal)
-        const mediaFieldsUrl = `https://graph.facebook.com/v20.0/${postId}?fields=like_count,comments_count&access_token=${accessToken}`;
+        const mediaFieldsUrl = `https://graph.facebook.com/v20.0/${postId}?fields=like_count,comments_count,video_title,media_product_type&access_token=${accessToken}`;
         const mediaResponse = await fetch(mediaFieldsUrl);
         const mediaData = await mediaResponse.json();
 
@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
         
         insights['like_count'] = mediaData.like_count ?? insights.likes ?? 0;
         insights['comments_count'] = mediaData.comments_count ?? insights.comments ?? 0;
+        insights['video_title'] = mediaData.video_title;
+        insights['media_product_type'] = mediaData.media_product_type;
         
         // Chamada 3: profile_activity com breakdown
         const profileActivityData = await fetchMetrics(baseUrl, 'profile_activity', 'action_type');
