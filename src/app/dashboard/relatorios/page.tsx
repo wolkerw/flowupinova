@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -14,19 +15,18 @@ import {
   MousePointer,
   ShoppingCart,
   DollarSign,
-  Share2,
   PieChart as PieChartIcon,
   LineChart as LineChartIcon,
   Newspaper,
   Loader2,
   Instagram,
-  Facebook
+  Facebook,
+  AlertTriangle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
-import { getScheduledPosts, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import Image from "next/image";
 import { format } from 'date-fns';
@@ -82,23 +82,73 @@ const kpis = [
     }
 ];
 
-// Componente para posts orgânicos
-const OrganicPosts = ({ posts, isLoading, metaConnection }: { posts: any[], isLoading: boolean, metaConnection: MetaConnectionData | null }) => {
-    
-    // Simulação de métricas para posts orgânicos
-    const getOrganicMetrics = (postId: string) => {
-        const hash = postId.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
-        return {
-            reach: Math.floor(Math.abs(Math.sin(hash) * 10000)),
-            engagement: Math.floor(Math.abs(Math.sin(hash * 2) * 500)),
-            likes: Math.floor(Math.abs(Math.sin(hash * 3) * 300)),
+const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
+    const [posts, setPosts] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            if (!connection.isConnected || !connection.accessToken || !connection.pageId) {
+                setError("A conta da Meta não está conectada ou o ID da página não está disponível.");
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            
+            try {
+                const response = await fetch('/api/meta/page-posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        accessToken: connection.accessToken,
+                        pageId: connection.pageId 
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    if (response.status === 401) {
+                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+                    }
+                    throw new Error(result.error || "Falha ao buscar os posts da página.");
+                }
+
+                setPosts(result.posts);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
         };
-    };
+
+        fetchPosts();
+    }, [connection]);
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-48">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                <p className="ml-4 text-gray-600">Buscando posts e métricas...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+         return (
+            <div className="border-l-4 border-red-400 bg-red-50 p-4">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
+                        <p className="mt-2 text-sm text-red-700">{error}</p>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -107,60 +157,52 @@ const OrganicPosts = ({ posts, isLoading, metaConnection }: { posts: any[], isLo
         return (
             <div className="text-center text-gray-500 py-10">
                 <Newspaper className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="font-semibold text-lg">Nenhuma publicação encontrada</h3>
-                <p className="text-sm">Ainda não há posts publicados para analisar.</p>
+                <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
+                <p className="text-sm">Não há posts na sua página do Facebook para analisar.</p>
             </div>
         );
     }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post) => {
-                const metrics = getOrganicMetrics(post.id);
-                return (
-                    <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
-                        <CardHeader className="p-4">
-                            <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
-                                <Image src={post.imageUrl || 'https://placehold.co/400'} alt={post.title} layout="fill" objectFit="cover" />
+            {posts.map((post) => (
+                <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow">
+                    <CardHeader className="p-4">
+                        <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
+                             <Image 
+                                src={post.full_picture || 'https://placehold.co/400'} 
+                                alt="Imagem do post" 
+                                layout="fill" 
+                                objectFit="cover"
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={post.message}>{post.message || "Post sem texto."}</p>
+                        <p className="text-xs text-gray-500 mb-3">
+                            Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
+                        </p>
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <span className="font-semibold">{post.insights.reach || 0}</span>
+                                <span className="text-xs text-gray-500">Alcance</span>
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <h4 className="font-bold truncate" title={post.title}>{post.title}</h4>
-                            <p className="text-xs text-gray-500 mb-3">
-                                Publicado em {format(new Date(post.scheduledAt), "dd/MM/yyyy")}
-                            </p>
-                             <div className="flex items-center gap-2 mb-4">
-                                {post.platforms.includes('instagram') && metaConnection?.instagramUsername && (
-                                  <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-                                    <Instagram className="w-3.5 h-3.5" />
-                                    <span>@{metaConnection.instagramUsername}</span>
-                                  </div>
-                                )}
-                                {post.platforms.includes('facebook') && metaConnection?.pageName && (
-                                  <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-                                    <Facebook className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>{metaConnection.pageName}</span>
-                                  </div>
-                                )}
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <span className="font-semibold">{post.insights.engagement || 0}</span>
+                                <span className="text-xs text-gray-500">Engajamento</span>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-center">
-                                <div>
-                                    <p className="text-sm font-semibold">{metrics.reach.toLocaleString()}</p>
-                                    <p className="text-xs text-gray-500">Alcance</p>
-                                </div>
-                                 <div>
-                                    <p className="text-sm font-semibold">{metrics.engagement.toLocaleString()}</p>
-                                    <p className="text-xs text-gray-500">Engajamento</p>
-                                </div>
-                                 <div>
-                                    <p className="text-sm font-semibold">{metrics.likes.toLocaleString()}</p>
-                                    <p className="text-xs text-gray-500">Curtidas</p>
-                                </div>
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <span className="font-semibold">{post.insights.likes || 0}</span>
+                                <span className="text-xs text-gray-500">Curtidas</span>
                             </div>
-                        </CardContent>
-                    </Card>
-                );
-            })}
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                                <span className="font-semibold">{post.insights.comments || 0}</span>
+                                <span className="text-xs text-gray-500">Comentários</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     );
 };
@@ -168,34 +210,21 @@ const OrganicPosts = ({ posts, isLoading, metaConnection }: { posts: any[], isLo
 
 export default function Relatorios() {
   const { user } = useAuth();
-  const [publishedPosts, setPublishedPosts] = useState<any[]>([]);
-  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     async function fetchData() {
-        setLoadingPosts(true);
+        setLoading(true);
         try {
-            const [postsResults, metaResult] = await Promise.all([
-                getScheduledPosts(user.uid),
-                getMetaConnection(user.uid)
-            ]);
-
-            const successfulPosts = postsResults
-                .filter(p => p.success && p.post)
-                .map(p => p.post!);
-
-            const published = successfulPosts.filter(p => p.status === 'published');
-            
-            setPublishedPosts(published);
+            const metaResult = await getMetaConnection(user.uid);
             setMetaConnection(metaResult);
-
         } catch (error) {
-            console.error("Erro ao buscar dados para relatórios:", error);
+            console.error("Erro ao buscar conexão da Meta:", error);
         } finally {
-            setLoadingPosts(false);
+            setLoading(false);
         }
     }
     fetchData();
@@ -246,14 +275,31 @@ export default function Relatorios() {
              <Card className="shadow-lg border-none">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Instagram className="w-5 h-5 text-pink-500" />
-                        Performance das Publicações Orgânicas
+                        <Facebook className="w-5 h-5 text-blue-600" />
+                        Performance dos Posts do Facebook
                     </CardTitle>
-                    <p className="text-sm text-gray-600">Veja o desempenho dos seus últimos posts publicados.</p>
+                    <p className="text-sm text-gray-600">Veja o desempenho real dos seus últimos posts publicados na página.</p>
                 </CardHeader>
                 <CardContent>
-                    <OrganicPosts posts={publishedPosts} isLoading={loadingPosts} metaConnection={metaConnection} />
+                    {loading ? (
+                         <div className="flex justify-center items-center h-48">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    ) : metaConnection?.isConnected ? (
+                        <MetaPagePostsViewer connection={metaConnection} />
+                    ) : (
+                         <div className="text-center text-gray-500 py-10">
+                            <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="font-semibold text-lg">Conta da Meta não conectada</h3>
+                            <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+                        </div>
+                    )}
                 </CardContent>
+                 <CardFooter>
+                    <p className="text-xs text-center text-gray-500 italic w-full">
+                        Métricas de alcance, engajamento, curtidas e comentários obtidas diretamente da API da Meta.
+                    </p>
+                </CardFooter>
              </Card>
         </TabsContent>
 
@@ -459,5 +505,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-    

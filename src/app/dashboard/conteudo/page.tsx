@@ -160,128 +160,6 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
     );
 }
 
-// Novo componente para a demonstração da Meta
-const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
-    const [posts, setPosts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchPosts = async () => {
-            if (!connection.isConnected || !connection.accessToken || !connection.pageId) {
-                setError("A conta da Meta não está conectada ou o ID da página não está disponível.");
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const response = await fetch('/api/meta/page-posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        accessToken: connection.accessToken,
-                        pageId: connection.pageId 
-                    }),
-                });
-
-                const result = await response.json();
-                
-                if (!response.ok || !result.success) {
-                    if (response.status === 401) {
-                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
-                    }
-                    throw new Error(result.error || "Falha ao buscar os posts da página.");
-                }
-
-                setPosts(result.posts);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchPosts();
-    }, [connection]);
-
-    return (
-        <Card className="shadow-lg border-none mt-8">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                    <BarChart className="w-5 h-5 text-blue-500" />
-                    Análise de Posts (Facebook)
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-40">
-                        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-                        <p className="ml-4 text-gray-600">Buscando posts e métricas da sua página...</p>
-                    </div>
-                ) : error ? (
-                    <div className="border-l-4 border-red-400 bg-red-50 p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <AlertTriangle className="h-5 w-5 text-red-400" />
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
-                                <p className="mt-2 text-sm text-red-700">{error}</p>
-                            </div>
-                        </div>
-                    </div>
-                ) : posts.length === 0 ? (
-                    <p className="text-center text-gray-600 p-8">Nenhum post encontrado na página do Facebook.</p>
-                ) : (
-                    <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
-                        {posts.map(post => (
-                            <div key={post.id} className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm border">
-                                <Image 
-                                    src={post.full_picture || 'https://placehold.co/100'} 
-                                    alt="Imagem do post" 
-                                    width={100} height={100} 
-                                    className="object-cover rounded-md w-24 h-24"
-                                />
-                                <div className="flex-1">
-                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">{post.message || "Post sem texto."}</p>
-                                    <p className="text-xs text-gray-400 mb-3">Publicado em: {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p>
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <span className="font-semibold">{post.insights.reach || 0}</span>
-                                            <span className="text-xs text-gray-500">Alcance</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <span className="font-semibold">{post.insights.engagement || 0}</span>
-                                            <span className="text-xs text-gray-500">Engajamento</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <span className="font-semibold">{post.insights.likes || 0}</span>
-                                            <span className="text-xs text-gray-500">Curtidas</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <span className="font-semibold">{post.insights.comments || 0}</span>
-                                            <span className="text-xs text-gray-500">Comentários</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-             <CardFooter>
-                <p className="text-xs text-center text-gray-500 italic w-full">
-                    Estes são dados reais dos posts da sua página do Facebook, obtidos com as permissões solicitadas.
-                </p>
-            </CardFooter>
-        </Card>
-    );
-};
-
-
 export default function Conteudo() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -700,6 +578,11 @@ export default function Conteudo() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-8">
               <CalendarCard />
+              {metaConnection.isConnected && (
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                    <ConnectionStatusCard />
+                 </motion.div>
+              )}
           </div>
           <div className="lg:col-span-2 space-y-8">
               <Card className="shadow-lg border-none">
@@ -758,20 +641,6 @@ export default function Conteudo() {
               </Card>
           </div>
         </div>
-
-        {metaConnection.isConnected && (
-           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-              <ConnectionStatusCard />
-           </motion.div>
-        )}
-
-        {/* Seção de Demonstração para Meta */}
-        {metaConnection.isConnected && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-              <MetaPagePostsViewer connection={metaConnection} />
-          </motion.div>
-        )}
-
       </div>
     </>
   );
