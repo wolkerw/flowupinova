@@ -334,7 +334,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
     const videoDuration = post?.video_duration ? parseFloat(post.video_duration) : 0; // Assuming duration is in seconds
     const avgWatchTime = insights?.ig_reels_avg_watch_time ? (insights.ig_reels_avg_watch_time / 1000) : 0; // Convert ms to s
-    const retentionRate = videoDuration > 0 ? ((avgWatchTime / videoDuration) * 100).toFixed(2) + '%' : '0.00%';
+    const retentionRate = videoDuration > 0 && avgWatchTime > 0 ? ((avgWatchTime / videoDuration) * 100).toFixed(2) + '%' : '0.00%';
 
 
     return (
@@ -352,7 +352,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             
                             <Card className="bg-white overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <Image src={post.media_type === 'VIDEO' ? post.thumbnail_url || 'https://placehold.co/100' : post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
                                         <p className="text-base font-semibold text-gray-800 line-clamp-2 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
@@ -372,8 +372,9 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</h3>
                                         <Card className="bg-white">
                                             <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Users} label="Alcance" value={insights.reach || 0} description="Contas únicas que visualizaram" />
-                                                <InsightStat icon={TrendingUp} label="Visualizações (Impressões)" value={insights.impressions || 0} description="Total de vezes exibido na tela" />
+                                                <InsightStat icon={Users} label="Contas alcançadas" value={insights.reach || 0} />
+                                                <InsightStat icon={TrendingUp} label="Visualizações (Views)" value={insights.views || 0} />
+                                                <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -383,8 +384,8 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</h3>
                                         <Card className="bg-white">
                                             <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Heart} label="Curtidas" value={insights.like_count || 0} />
-                                                <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments_count || 0} />
+                                                <InsightStat icon={Heart} label="Curtidas" value={insights.likes || 0} />
+                                                <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
                                                 <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
                                                 <InsightStat icon={Save} label="Salvamentos" value={insights.saved || 0} />
                                                 <InsightStat icon={BarChart} label="Total de Interações" value={insights.total_interactions || 0} />
@@ -402,26 +403,8 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         <h3 className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</h3>
                                         <Card className="bg-white">
                                             <CardContent className="p-4 divide-y divide-gray-100">
-                                                <InsightStat icon={Clock} label="Tempo médio de visualização" value={`${avgWatchTime.toFixed(2)}s`} />
+                                                <InsightStat icon={Clock} label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
                                                 <InsightStat icon={BarChart2} label="Taxa de Retenção" value={retentionRate} description="Média / Duração" />
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                    )}
-
-                                    {/* Bloco 4: Atividade no Perfil */}
-                                    {Object.keys(insights.profile_activity_details || {}).length > 0 && (
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <BarChart className="w-5 h-5 text-green-500"/>
-                                            <h3 className="font-bold text-lg text-gray-800">Atividade Gerada no Perfil</h3>
-                                        </div>
-                                        <Card className="bg-white">
-                                            <CardContent className="p-4 divide-y divide-gray-100">
-                                                {(insights.profile_activity_details?.bio_link_clicked > 0) && <InsightStat icon={LinkIcon} label="Cliques no link da bio" value={insights.profile_activity_details.bio_link_clicked} />}
-                                                {(insights.profile_activity_details?.call > 0) && <InsightStat icon={Phone} label="Cliques para ligar" value={insights.profile_activity_details.call} />}
-                                                {(insights.profile_activity_details?.email > 0) && <InsightStat icon={AtSign} label="Cliques para E-mail" value={insights.profile_activity_details.email} />}
-                                                <InsightStat icon={Users} label="Visitas ao Perfil" value={insights.profile_visits || 0} />
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -534,7 +517,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                         <CardHeader className="p-4">
                             <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
                                  <Image 
-                                    src={item.media_type === 'VIDEO' ? item.thumbnail_url || 'https://placehold.co/400' : item.media_url || 'https://placehold.co/400'} 
+                                    src={item.media_type === 'VIDEO' ? 'https://placehold.co/400' : item.media_url || 'https://placehold.co/400'} 
                                     alt="Imagem do post" 
                                     fill
                                     objectFit="cover"
