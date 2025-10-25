@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 interface GeneratedContent {
@@ -25,6 +26,9 @@ interface GeneratedContent {
   subtitulo: string;
   hashtags: string[];
 }
+
+type Platform = 'instagram' | 'facebook';
+
 
 const Preview = ({ imageUrl }: { imageUrl: string | null }) => {
     
@@ -65,6 +69,7 @@ export default function GerarConteudoPage() {
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
 
   useEffect(() => {
     if (!user) return;
@@ -145,9 +150,21 @@ export default function GerarConteudoPage() {
     setStep(3);
   };
 
+  const handlePlatformChange = (platform: Platform) => {
+    setPlatforms(prev => 
+        prev.includes(platform) 
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  }
+
   const handlePublish = async (publishMode: 'now' | 'schedule') => {
     if (!selectedContent || !selectedImage || !user || !metaConnection?.isConnected) {
         toast({ variant: "destructive", title: "Erro", description: "Verifique se selecionou conteúdo, imagem e se sua conta está conectada." });
+        return;
+    }
+    if (platforms.length === 0) {
+        toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
         return;
     }
      if (publishMode === 'schedule' && !scheduleDateTime) {
@@ -163,7 +180,7 @@ export default function GerarConteudoPage() {
         title: selectedContent.titulo,
         text: fullCaption,
         media: selectedImage,
-        platforms: ['instagram'],
+        platforms: platforms,
         scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
         metaConnection: metaConnection,
     });
@@ -437,13 +454,34 @@ export default function GerarConteudoPage() {
 
                     {/* Coluna da Direita: Opções */}
                     <div className="space-y-6">
+                        {/* Platform selection */}
+                        <div>
+                            <Label className="font-semibold">Onde Publicar?</Label>
+                            <div className="grid grid-cols-2 gap-4 mt-2">
+                                <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('instagram') ? 'checked' : 'unchecked'}>
+                                    <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} />
+                                    <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer">
+                                        <Instagram className="w-5 h-5 text-pink-500" />
+                                        Instagram
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('facebook') ? 'checked' : 'unchecked'}>
+                                    <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} />
+                                    <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer">
+                                        <Facebook className="w-5 h-5 text-blue-600" />
+                                        Facebook
+                                    </Label>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Publishing options */}
                        <div className="space-y-4">
                             <h3 className="font-bold text-lg">Publicar</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Button
                                     onClick={() => handlePublish('now')}
-                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage || isGeneratingImages}
+                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage || isGeneratingImages || platforms.length === 0}
                                     className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                                     size="lg"
                                 >
@@ -452,7 +490,7 @@ export default function GerarConteudoPage() {
                                 </Button>
                                 <Button
                                     onClick={() => setShowSchedulerModal(true)}
-                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage || isGeneratingImages}
+                                    disabled={!metaConnection?.isConnected || isPublishing || !selectedImage || isGeneratingImages || platforms.length === 0}
                                     variant="outline"
                                     size="lg"
                                 >
