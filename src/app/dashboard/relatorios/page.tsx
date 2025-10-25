@@ -36,7 +36,7 @@ import {
   Save,
   Info,
   ThumbsUp,
-  Image as ImageIcon,
+  ImageIcon,
   ExternalLink,
   ShieldOff,
 } from "lucide-react";
@@ -1008,3 +1008,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    
