@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -167,8 +166,8 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     const reactions = insights?.reactions_detail || {};
     const totalReactions = Object.values(reactions).reduce((a: any, b: any) => a + b, 0) as number;
     
-    const ctr = insights?.impressions > 0 ? ((insights.clicks || 0) / insights.impressions * 100).toFixed(2) + '%' : '0%';
-    const engagementRate = insights?.reach > 0 ? (((insights.engaged_users || 0) / insights.reach) * 100).toFixed(2) + '%' : '0%';
+    const ctr = (insights?.impressions ?? 0) > 0 ? (((insights?.clicks ?? 0) / insights.impressions) * 100).toFixed(2) + '%' : '0%';
+    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.engaged_users ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0%';
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,7 +197,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
 
-                            {/* Performance Geral */}
+                             {/* Performance Geral */}
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                     <BarChart3 className="w-5 h-5 text-gray-600"/>
@@ -206,9 +205,11 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={Eye} label="Alcance (Pessoas Únicas)" value={insights.reach} />
-                                        <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions} />
-                                        <InsightStat icon={MousePointer} label="Total de Cliques no Post" value={insights.clicks} />
+                                        <InsightStat icon={Eye} label="Alcance Total" value={insights.reach || 0} />
+                                        <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} />
+                                        <InsightStat icon={Eye} label="Alcance Orgânico" value={insights.reach_organic || 0} />
+                                        <InsightStat icon={TrendingUp} label="Impressões Orgânicas" value={insights.impressions_organic || 0} />
+                                        <InsightStat icon={MousePointer} label="Total de Cliques no Post" value={insights.clicks || 0} />
                                         <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
                                     </CardContent>
                                 </Card>
@@ -222,10 +223,10 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                                 <Card className="bg-white">
                                     <CardContent className="p-4 divide-y">
-                                         <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users} />
+                                         <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users || 0} />
                                          <InsightStat icon={BarChart} label="Taxa de Engajamento/Alcance" value={engagementRate} />
-                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments} />
-                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares} />
+                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
+                                         <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -994,5 +995,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-    

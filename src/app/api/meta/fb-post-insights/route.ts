@@ -8,22 +8,15 @@ interface InsightsRequestBody {
   postId: string;
 }
 
-// Helper to fetch metrics from the Graph API's /insights edge
-async function fetchPostInsights(postId: string, accessToken: string, metrics: string) {
-    const url = `https://graph.facebook.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.error) throw new Error(`Erro na API de Insights (${metrics}): ${data.error.message}`);
-    return data;
-}
-
-// Helper to fetch fields from the post object itself
-async function fetchPostFields(postId: string, accessToken: string, fields: string) {
-    const url = `https://graph.facebook.com/v20.0/${postId}?fields=${fields}&access_token=${accessToken}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.error) throw new Error(`Erro na API de Campos (${fields}): ${data.error.message}`);
-    return data;
+// Helper para extrair um valor de uma métrica específica do array de resultados da API
+function getMetricValue(data: any[], metricName: string): any {
+    const metric = data.find((m: any) => m.name === metricName);
+    // Para métricas com detalhamento (by_type), o valor está em um objeto
+    if (metric?.values?.[0]?.value && typeof metric.values[0].value === 'object') {
+        return metric.values[0].value;
+    }
+    // Para métricas simples, o valor é um número
+    return metric?.values?.[0]?.value || 0;
 }
 
 
@@ -35,38 +28,58 @@ export async function POST(request: NextRequest) {
         if (!accessToken || !postId) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
+        
+        // Lista de métricas validadas para a nova experiência de páginas
+        const metricsList = [
+            'post_impressions',
+            'post_impressions_unique',
+            'post_impressions_organic',
+            'post_impressions_organic_unique',
+            'post_reactions_by_type_total',
+            'post_clicks',
+            'post_activity_by_action_type'
+        ].join(',');
 
-        const insights: { [key: string]: any } = {
-            reactions_detail: {}
+        // Única chamada para o endpoint de insights com todas as métricas necessárias
+        const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&period=lifetime&access_token=${accessToken}`;
+        const insightsResponse = await fetch(insightsUrl);
+        const insightsData = await insightsResponse.json();
+
+        if (!insightsResponse.ok || insightsData.error) {
+            console.error("[FB_POST_INSIGHTS_ERROR] API Error:", insightsData.error);
+            throw new Error(`Erro na API de Insights: ${insightsData.error.message}`);
+        }
+
+        const rawInsights = insightsData.data || [];
+
+        // Processa as atividades (comentários, compartilhamentos)
+        const activity = getMetricValue(rawInsights, 'post_activity_by_action_type');
+        const comments = activity.comment || 0;
+        const shares = activity.share || 0;
+
+        const insights = {
+            impressions: getMetricValue(rawInsights, 'post_impressions'),
+            reach: getMetricValue(rawInsights, 'post_impressions_unique'),
+            impressions_organic: getMetricValue(rawInsights, 'post_impressions_organic'),
+            reach_organic: getMetricValue(rawInsights, 'post_impressions_organic_unique'),
+            clicks: getMetricValue(rawInsights, 'post_clicks'),
+            reactions_detail: getMetricValue(rawInsights, 'post_reactions_by_type_total'),
+            comments,
+            shares,
         };
-
-        // Chamada 1: Métricas de insights agrupadas
-        const metricsList = 'post_impressions_unique,post_impressions,post_engaged_users,post_clicks,post_reactions_by_type_total';
-        const insightsData = await fetchPostInsights(postId, accessToken, metricsList);
         
-        insightsData.data?.forEach((metric: any) => {
-             if (metric.name === 'post_impressions_unique') insights['reach'] = metric.values[0].value || 0;
-             if (metric.name === 'post_impressions') insights['impressions'] = metric.values[0].value || 0;
-             if (metric.name === 'post_engaged_users') insights['engaged_users'] = metric.values[0].value || 0;
-             if (metric.name === 'post_clicks') insights['clicks'] = metric.values[0].value || 0;
-             if (metric.name === 'post_reactions_by_type_total' && metric.values[0]?.value) {
-                insights['reactions_detail'] = metric.values[0].value;
-             }
-        });
-        
-        // Chamada 2: Buscar campos diretos do post (comentários, compartilhamentos)
-        const postFieldsData = await fetchPostFields(postId, accessToken, 'comments.summary(total_count),shares,permalink_url,type');
-        insights.comments = postFieldsData.comments?.summary?.total_count || 0;
-        insights.shares = postFieldsData.shares?.count || 0;
-        insights.permalink_url = postFieldsData.permalink_url;
-        insights.type = postFieldsData.type;
+        // Adiciona a busca pelo permalink_url para o link direto
+        const fieldsUrl = `https://graph.facebook.com/v24.0/${postId}?fields=permalink_url&access_token=${accessToken}`;
+        const fieldsResponse = await fetch(fieldsUrl);
+        const fieldsData = await fieldsResponse.json();
+        if(fieldsData.permalink_url) {
+            (insights as any).permalink_url = fieldsData.permalink_url;
+        }
 
         return NextResponse.json({ success: true, insights });
 
     } catch (error: any) {
-        console.error("[FB_POST_INSIGHTS_ERROR]", error.message);
+        console.error("[FB_POST_INSIGHTS_ERROR] Internal Server Error:", error.message);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
-    
