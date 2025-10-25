@@ -41,19 +41,14 @@ export async function POST(request: NextRequest) {
         };
 
         // Chamada 1: Métricas de insights agrupadas
-        const metricsList = 'post_impressions_unique,post_impressions,post_engaged_users,post_clicks_by_type,post_reactions_by_type_total,post_negative_feedback';
+        const metricsList = 'post_impressions_unique,post_impressions,post_engaged_users,post_clicks,post_reactions_by_type_total';
         const insightsData = await fetchPostInsights(postId, accessToken, metricsList);
         
         insightsData.data?.forEach((metric: any) => {
              if (metric.name === 'post_impressions_unique') insights['reach'] = metric.values[0].value || 0;
              if (metric.name === 'post_impressions') insights['impressions'] = metric.values[0].value || 0;
              if (metric.name === 'post_engaged_users') insights['engaged_users'] = metric.values[0].value || 0;
-             if (metric.name === 'post_negative_feedback') insights['negative_feedback'] = metric.values[0].value || 0;
-             
-             if (metric.name === 'post_clicks_by_type' && metric.values[0]?.value) {
-                 insights['clicks_by_type'] = metric.values[0].value;
-                 insights['clicks'] = Object.values(metric.values[0].value).reduce((a: any, b: any) => a + b, 0);
-             }
+             if (metric.name === 'post_clicks') insights['clicks'] = metric.values[0].value || 0;
              if (metric.name === 'post_reactions_by_type_total' && metric.values[0]?.value) {
                 insights['reactions_detail'] = metric.values[0].value;
              }

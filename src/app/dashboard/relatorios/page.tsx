@@ -169,7 +169,6 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     
     const ctr = insights?.impressions > 0 ? ((insights.clicks || 0) / insights.impressions * 100).toFixed(2) + '%' : '0%';
     const engagementRate = insights?.reach > 0 ? (((insights.engaged_users || 0) / insights.reach) * 100).toFixed(2) + '%' : '0%';
-    const linkClicks = insights?.clicks_by_type?.['link clicks'] || 0;
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,7 +209,6 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <InsightStat icon={Eye} label="Alcance (Pessoas Únicas)" value={insights.reach} />
                                         <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions} />
                                         <InsightStat icon={MousePointer} label="Total de Cliques no Post" value={insights.clicks} />
-                                        <InsightStat icon={ExternalLink} label="Cliques em Links Externos" value={linkClicks} subStat />
                                         <InsightStat icon={BarChart} label="Taxa de Cliques (CTR)" value={ctr} />
                                     </CardContent>
                                 </Card>
@@ -258,18 +256,6 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </div>
                             )}
 
-                             {/* Feedback Negativo */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <ShieldOff className="w-5 h-5 text-gray-600"/>
-                                    <h3 className="font-bold text-lg text-gray-800">Feedback Negativo</h3>
-                                </div>
-                                <Card className="bg-white">
-                                    <CardContent className="p-4 divide-y">
-                                        <InsightStat icon={X} label="Total de Ações Negativas" value={insights.negative_feedback || 0} />
-                                    </CardContent>
-                                </Card>
-                            </div>
                         </div>
                     )}
                 </div>
