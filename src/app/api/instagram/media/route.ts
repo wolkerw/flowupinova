@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Instagram ID são obrigatórios." }, { status: 400 });
         }
 
-        // Usamos 'reach' para alcance e 'shares' para compartilhamentos.
-        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,comments_count,like_count,insights.metric(reach,shares).period(lifetime)';
+        // Adicionado 'thumbnail_url' para obter a capa de vídeos.
+        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,comments_count,like_count,thumbnail_url,insights.metric(reach,shares).period(lifetime)';
         const url = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=${fields}&access_token=${accessToken}&limit=12`;
 
         const response = await fetch(url);
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
                 caption: item.caption,
                 media_type: item.media_type,
                 media_url: item.media_url,
+                thumbnail_url: item.thumbnail_url, // Inclui o thumbnail na resposta
                 permalink: item.permalink,
                 timestamp: item.timestamp,
                 username: item.username,

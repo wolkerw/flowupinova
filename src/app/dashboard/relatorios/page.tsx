@@ -181,7 +181,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-gray-50">
-                 <DialogHeader className="border-b pb-4">
+                <DialogHeader className="border-b pb-4">
                      <DialogTitle className="text-base font-bold text-gray-900">Insights da Publicação</DialogTitle>
                 </DialogHeader>
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
@@ -207,22 +207,22 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <Card className="bg-white shadow-sm md:col-span-1">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
-                                        <InsightStat label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
-                                        <div className="pt-3 space-y-2">
-                                            <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
-                                            <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
-                                        </div>
-                                         <div className="pt-3 space-y-2">
-                                            <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
-                                            <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
-                                        </div>
+                                            <InsightStat icon={Users} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
+                                            <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
+                                            <div className="pt-3 space-y-2">
+                                                <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
+                                                <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
+                                            </div>
+                                             <div className="pt-3 space-y-2">
+                                                <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
+                                                <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
+                                            </div>
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-white shadow-sm md:col-span-1">
@@ -230,15 +230,15 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><MousePointer className="w-5 h-5 text-green-500" /> Cliques e Engajamento</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                         <InsightStat label="Cliques no post" value={insights.clicks || 0} />
-                                         <InsightStat label="Taxa de Cliques (CTR)" value={ctr} />
-                                         <InsightStat label="Pessoas engajadas" value={insights.engaged_users || 0} />
-                                         <InsightStat label="Taxa de Engajamento" value={engagementRate} />
+                                         <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
+                                         <InsightStat icon={BarChart2} label="Taxa de Cliques (CTR)" value={ctr} />
+                                         <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
+                                         <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
                                <Card className="bg-white shadow-sm md:col-span-1">
                                     <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
@@ -331,7 +331,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 </CardContent>
                             </Card>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</CardTitle>
@@ -467,12 +467,17 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
         <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
+                // Determine the image source: media_url for images, thumbnail_url for videos, or a placeholder
+                const imageSrc = item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM'
+                    ? item.media_url
+                    : item.thumbnail_url || 'https://placehold.co/400x400';
+
                 return (
                     <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
                         <CardHeader className="p-4">
                             <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
                                  <Image 
-                                    src={item.media_type === 'VIDEO' ? 'https://placehold.co/400' : item.media_url || 'https://placehold.co/400'} 
+                                    src={imageSrc} 
                                     alt="Imagem do post" 
                                     fill
                                     objectFit="cover"
@@ -782,9 +787,6 @@ export default function Relatorios() {
                         </div>
                     )}
                 </CardContent>
-                 <CardFooter>
-                    
-                </CardFooter>
              </Card>
         </TabsContent>
 
