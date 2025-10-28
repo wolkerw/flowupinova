@@ -51,8 +51,6 @@ const Preview = ({
         return "U";
     }
 
-    const captionText = content ? `${content.titulo}\n\n${content.subtitulo}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(' ') : ''}` : "";
-
     return (
         <div className="w-full max-w-sm">
             <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
@@ -76,9 +74,13 @@ const Preview = ({
                 <div className="p-3 text-sm">
                     <p className="whitespace-pre-wrap">
                         <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span>{' '}
-                        <span className="font-bold">{content?.titulo}</span>
-                        {`\n\n${content?.subtitulo}`}
-                        {content?.hashtags && `\n\n${content.hashtags.join(' ')}`}
+                        {content && (
+                            <>
+                                <span className="font-bold">{content.titulo}</span>
+                                {`\n\n${content.subtitulo}`}
+                                {content.hashtags && `\n\n${content.hashtags.join(' ')}`}
+                            </>
+                        )}
                     </p>
                 </div>
             </div>
@@ -109,7 +111,7 @@ export default function GerarConteudoPage() {
   // State for history and unused images
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
-  const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent[]>([]);
+  const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent | null>(null);
 
 
   useEffect(() => {
@@ -212,8 +214,8 @@ export default function GerarConteudoPage() {
 };
 
 
-  const handleGenerateImages = async (publications?: GeneratedContent[]) => {
-    const contentToUse = publications || (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
+  const handleGenerateImages = async (publication?: GeneratedContent | null) => {
+    const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
     if (contentToUse.length === 0) return;
   
     setIsGeneratingImages(true);
@@ -247,8 +249,8 @@ export default function GerarConteudoPage() {
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
-      if(publications) { // If we're generating from history, jump to step 3
-        setGeneratedContent(publications);
+      if(publication) { // If we're generating from history, jump to step 3
+        setGeneratedContent(contentToUse);
         setSelectedContentId("0");
         setStep(3);
       }
@@ -324,12 +326,13 @@ export default function GerarConteudoPage() {
     }
 };
 
-  const handleHistoryContentSelection = (content: GeneratedContent, isSelected: boolean) => {
-    setSelectedHistoryContent(prev => 
-      isSelected 
-      ? [...prev, content]
-      : prev.filter(item => item.titulo !== content.titulo) // Assuming title is unique for this purpose
-    );
+  const handleHistoryContentSelection = (indexStr: string) => {
+    const index = parseInt(indexStr, 10);
+    if (index >= 0 && index < contentHistory.length) {
+      setSelectedHistoryContent(contentHistory[index]);
+    } else {
+      setSelectedHistoryContent(null);
+    }
   };
 
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
@@ -414,23 +417,25 @@ export default function GerarConteudoPage() {
                           </TabsTrigger>
                       </TabsList>
                       <TabsContent value="history" className="mt-4">
-                          <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
-                              {contentHistory.length > 0 ? contentHistory.map((content, index) => (
-                                  <div key={index} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50/50">
-                                      <Checkbox 
-                                          id={`history-item-${index}`}
-                                          onCheckedChange={(checked) => handleHistoryContentSelection(content, checked as boolean)}
-                                      />
-                                      <Label htmlFor={`history-item-${index}`} className="flex-1 cursor-pointer">
-                                        <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
-                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
-                                      </Label>
-                                  </div>
-                              )) : (
-                                  <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
-                              )}
-                          </div>
-                          {selectedHistoryContent.length > 0 && (
+                          <RadioGroup onValueChange={handleHistoryContentSelection}>
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
+                                {contentHistory.length > 0 ? contentHistory.map((content, index) => (
+                                    <div key={index} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50/50">
+                                        <RadioGroupItem 
+                                            value={index.toString()}
+                                            id={`history-item-${index}`}
+                                        />
+                                        <Label htmlFor={`history-item-${index}`} className="flex-1 cursor-pointer">
+                                          <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
+                                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
+                                        </Label>
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
+                                )}
+                            </div>
+                          </RadioGroup>
+                          {selectedHistoryContent && (
                             <div className="mt-4 flex justify-end">
                                 <Button 
                                   variant="outline" 
@@ -439,7 +444,7 @@ export default function GerarConteudoPage() {
                                   disabled={isGeneratingImages}
                                 >
                                   {isGeneratingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
-                                  Gerar Imagens para {selectedHistoryContent.length} selecionado(s)
+                                  Gerar Imagens para o item selecionado
                                 </Button>
                             </div>
                           )}
