@@ -19,6 +19,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 interface GeneratedContent {
@@ -30,23 +31,55 @@ interface GeneratedContent {
 type Platform = 'instagram' | 'facebook';
 
 
-const Preview = ({ imageUrl }: { imageUrl: string | null }) => {
+const Preview = ({ 
+    imageUrl, 
+    content, 
+    user, 
+    metaConnection 
+}: { 
+    imageUrl: string | null, 
+    content: GeneratedContent | null, 
+    user: any,
+    metaConnection: MetaConnectionData | null,
+}) => {
     
-    const renderContent = () => {
-        if (!imageUrl) {
-             return (
-                <div className="flex flex-col items-center justify-center text-center p-4 h-full">
-                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-gray-500">Pré-visualização do Post</p>
-                </div>
-            );
-        }
-        return <Image src={imageUrl} alt="Preview da imagem" layout="fill" className="object-cover w-full h-full" />;
-    };
+    const getAvatarFallback = () => {
+        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+        if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
+        return "U";
+    }
+
+    const captionText = content ? `${content.titulo}\n\n${content.subtitulo}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(' ') : ''}` : "";
 
     return (
-        <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-            {renderContent()}
+        <div className="w-full max-w-sm">
+            <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+                <div className="p-3 flex items-center gap-2 border-b">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user?.photoURL || undefined} />
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
+                </div>
+                <div className="relative aspect-square bg-gray-200">
+                    {imageUrl ? (
+                        <Image src={imageUrl} alt="Preview da imagem" layout="fill" className="object-cover w-full h-full" />
+                    ) : (
+                         <div className="flex flex-col items-center justify-center text-center p-4 h-full">
+                            <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                            <p className="text-gray-500">Sua imagem aparecerá aqui</p>
+                        </div>
+                    )}
+                </div>
+                <div className="p-3 text-sm">
+                    <p className="whitespace-pre-wrap">
+                        <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span>{' '}
+                        <span className="font-bold">{content?.titulo}</span>
+                        {`\n\n${content?.subtitulo}`}
+                        {content?.hashtags && `\n\n${content.hashtags.join(' ')}`}
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }
@@ -445,9 +478,12 @@ export default function GerarConteudoPage() {
                     {/* Coluna da Esquerda: Preview */}
                      <div className="space-y-6">
                         <h3 className="font-bold text-lg">Preview do Post</h3>
-                        <div className="mt-6 flex items-center justify-center bg-gray-100 p-8 rounded-lg">
+                        <div className="mt-6 flex items-center justify-center">
                            <Preview
                                 imageUrl={selectedImage}
+                                content={selectedContent}
+                                user={user}
+                                metaConnection={metaConnection}
                             />
                         </div>
                     </div>
