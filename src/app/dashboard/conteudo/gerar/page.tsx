@@ -109,6 +109,8 @@ export default function GerarConteudoPage() {
   // State for history and unused images
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
+  const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent[]>([]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -210,19 +212,19 @@ export default function GerarConteudoPage() {
 };
 
 
-  const handleGenerateImages = async () => {
-    if (!selectedContentId) return;
+  const handleGenerateImages = async (publications?: GeneratedContent[]) => {
+    const contentToUse = publications || (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
+    if (contentToUse.length === 0) return;
   
     setIsGeneratingImages(true);
     setGeneratedImages([]); // Limpa imagens antigas
     setSelectedImage(null);
-    const selectedPublication = generatedContent[parseInt(selectedContentId, 10)];
     
     try {
       const response = await fetch('/api/generate-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publicacoes: [selectedPublication] }),
+        body: JSON.stringify({ publicacoes: contentToUse }),
       });
       
       const resultData = await response.json();
@@ -231,11 +233,12 @@ export default function GerarConteudoPage() {
         throw new Error(resultData.error || 'Falha ao gerar imagens.');
       }
       
-      if (!Array.isArray(resultData) || resultData.length === 0) {
-        throw new Error("Nenhuma imagem foi retornada pelo serviço.");
+       if (!Array.isArray(resultData)) {
+          console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", resultData);
+          throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
-
-      // Extract url_da_imagem from each object
+    
+      // Extrai apenas as URLs das imagens do array de objetos
       const imageUrls = resultData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
@@ -244,6 +247,11 @@ export default function GerarConteudoPage() {
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
+      if(publications) { // If we're generating from history, jump to step 3
+        setGeneratedContent(publications);
+        setSelectedContentId("0");
+        setStep(3);
+      }
 
     } catch (error: any) {
       console.error("Erro ao gerar imagens:", error);
@@ -252,6 +260,7 @@ export default function GerarConteudoPage() {
       setIsGeneratingImages(false);
     }
   };
+
 
   const handleNextToStep3 = () => {
     // If images were not generated with text, generate them now.
@@ -314,6 +323,14 @@ export default function GerarConteudoPage() {
       toast({ variant: "destructive", title: "Erro ao Agendar", description: result.error || "Ocorreu um erro desconhecido." });
     }
 };
+
+  const handleHistoryContentSelection = (content: GeneratedContent, isSelected: boolean) => {
+    setSelectedHistoryContent(prev => 
+      isSelected 
+      ? [...prev, content]
+      : prev.filter(item => item.titulo !== content.titulo) // Assuming title is unique for this purpose
+    );
+  };
 
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
   const unusedImages = generatedImages.filter(img => img !== selectedImage);
@@ -399,14 +416,33 @@ export default function GerarConteudoPage() {
                       <TabsContent value="history" className="mt-4">
                           <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
                               {contentHistory.length > 0 ? contentHistory.map((content, index) => (
-                                  <div key={index} className="p-3 border rounded-lg bg-gray-50/50">
-                                      <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
-                                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
+                                  <div key={index} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50/50">
+                                      <Checkbox 
+                                          id={`history-item-${index}`}
+                                          onCheckedChange={(checked) => handleHistoryContentSelection(content, checked as boolean)}
+                                      />
+                                      <Label htmlFor={`history-item-${index}`} className="flex-1 cursor-pointer">
+                                        <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
+                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
+                                      </Label>
                                   </div>
                               )) : (
                                   <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
                               )}
                           </div>
+                          {selectedHistoryContent.length > 0 && (
+                            <div className="mt-4 flex justify-end">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleGenerateImages(selectedHistoryContent)}
+                                  disabled={isGeneratingImages}
+                                >
+                                  {isGeneratingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
+                                  Gerar Imagens para {selectedHistoryContent.length} selecionado(s)
+                                </Button>
+                            </div>
+                          )}
                       </TabsContent>
                       <TabsContent value="unused-images" className="mt-4">
                           <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
@@ -527,7 +563,7 @@ export default function GerarConteudoPage() {
               </CardTitle>
               <div className="flex justify-between items-center">
                  <p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p>
-                 <Button variant="outline" onClick={handleGenerateImages} disabled={isGeneratingImages || !selectedContentId}>
+                 <Button variant="outline" onClick={() => handleGenerateImages()} disabled={isGeneratingImages || !selectedContentId}>
                     {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
                     Gerar Novas Imagens
                   </Button>
