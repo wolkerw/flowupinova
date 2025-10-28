@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 interface GeneratedContent {
@@ -103,11 +104,62 @@ export default function GerarConteudoPage() {
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
+  
+  // State for history and unused images
+  const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
+  const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
     getMetaConnection(user.uid).then(setMetaConnection);
+
+    // Load history from localStorage
+    try {
+        const savedContent = localStorage.getItem('flowup-contentHistory');
+        const savedImages = localStorage.getItem('flowup-unusedImages');
+        if (savedContent) {
+            setContentHistory(JSON.parse(savedContent));
+        }
+        if (savedImages) {
+            setUnusedImagesHistory(JSON.parse(savedImages));
+        }
+    } catch (error) {
+        console.error("Failed to load history from localStorage", error);
+    }
   }, [user]);
+
+  const saveContentHistory = (newContent: GeneratedContent[]) => {
+    try {
+        const updatedHistory = [...newContent, ...contentHistory].slice(0, 20); // Keep last 20
+        setContentHistory(updatedHistory);
+        localStorage.setItem('flowup-contentHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+        console.error("Failed to save content history to localStorage", error);
+    }
+  };
+
+  const saveUnusedImagesHistory = (images: string[]) => {
+     try {
+        // Avoid duplicates and limit to 50 images
+        const currentImages = new Set(unusedImagesHistory);
+        images.forEach(img => currentImages.add(img));
+        const updatedImages = Array.from(currentImages).slice(0, 50);
+        setUnusedImagesHistory(updatedImages);
+        localStorage.setItem('flowup-unusedImages', JSON.stringify(updatedImages));
+    } catch (error) {
+         console.error("Failed to save unused images to localStorage", error);
+    }
+  };
+
+  const removeImageFromHistory = (imageUrl: string) => {
+    try {
+        const updatedImages = unusedImagesHistory.filter(img => img !== imageUrl);
+        setUnusedImagesHistory(updatedImages);
+        localStorage.setItem('flowup-unusedImages', JSON.stringify(updatedImages));
+    } catch (error) {
+        console.error("Failed to remove image from localStorage", error);
+    }
+  };
 
   const handleGenerateText = async () => {
     if (!postSummary.trim() || isLoading) return;
@@ -129,6 +181,7 @@ export default function GerarConteudoPage() {
       if (Array.isArray(data) && data.length > 0) {
         setGeneratedContent(data);
         setSelectedContentId("0");
+        saveContentHistory(data); // Save new content to history
         setStep(2);
       } else {
         throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
@@ -207,6 +260,14 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
+    // Save unused images to history before publishing
+    const unused = generatedImages.filter(img => img !== selectedImage);
+    if (unused.length > 0) {
+        saveUnusedImagesHistory(unused);
+    }
+    // Remove the used image from history if it exists
+    removeImageFromHistory(selectedImage);
+
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
     const result = await schedulePost(user.uid, {
@@ -250,6 +311,7 @@ export default function GerarConteudoPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="space-y-8"
         >
           <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
             <CardHeader>
@@ -288,6 +350,52 @@ export default function GerarConteudoPage() {
                 )}
               </Button>
             </CardFooter>
+          </Card>
+
+          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+             <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                      <History className="w-6 h-6 text-gray-600" />
+                      Histórico e Recursos
+                  </CardTitle>
+              </CardHeader>
+              <CardContent>
+                 <Tabs defaultValue="history">
+                      <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="history">
+                            <History className="w-4 h-4 mr-2" />
+                            Conteúdos Anteriores
+                          </TabsTrigger>
+                          <TabsTrigger value="unused-images">
+                              <Archive className="w-4 h-4 mr-2" />
+                              Artes não Utilizadas
+                          </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="history" className="mt-4">
+                          <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
+                              {contentHistory.length > 0 ? contentHistory.map((content, index) => (
+                                  <div key={index} className="p-3 border rounded-lg bg-gray-50/50">
+                                      <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
+                                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
+                                  </div>
+                              )) : (
+                                  <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
+                              )}
+                          </div>
+                      </TabsContent>
+                      <TabsContent value="unused-images" className="mt-4">
+                          <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
+                               {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
+                                  <div key={index} className="relative aspect-square rounded-md overflow-hidden">
+                                      <Image src={img} alt={`Arte não utilizada ${index + 1}`} layout="fill" objectFit="cover" />
+                                  </div>
+                              )) : (
+                                   <p className="text-sm text-center text-gray-500 py-8 col-span-full">Nenhuma arte não utilizada.</p>
+                              )}
+                          </div>
+                      </TabsContent>
+                  </Tabs>
+              </CardContent>
           </Card>
         </motion.div>
       )}
