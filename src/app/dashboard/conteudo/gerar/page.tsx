@@ -214,12 +214,12 @@ export default function GerarConteudoPage() {
 };
 
 
-  const handleGenerateImages = async (publication?: GeneratedContent | null) => {
+ const handleGenerateImages = async (publication?: GeneratedContent | null) => {
     const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
     if (contentToUse.length === 0) return;
   
     setIsGeneratingImages(true);
-    setGeneratedImages([]); // Limpa imagens antigas
+    setGeneratedImages([]);
     setSelectedImage(null);
     
     try {
@@ -229,19 +229,16 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ publicacoes: contentToUse }),
       });
       
-      const resultData = await response.json();
+      const imageUrls = await response.json();
 
       if (!response.ok) {
-        throw new Error(resultData.error || 'Falha ao gerar imagens.');
+        throw new Error(imageUrls.error || 'Falha ao gerar imagens.');
       }
       
-       if (!Array.isArray(resultData)) {
-          console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", resultData);
+       if (!Array.isArray(imageUrls)) {
+          console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", imageUrls);
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
-    
-      // Extrai apenas as URLs das imagens do array de objetos
-      const imageUrls = resultData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
@@ -249,7 +246,7 @@ export default function GerarConteudoPage() {
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
-      if(publication) { // If we're generating from history, jump to step 3
+      if(publication) {
         setGeneratedContent(contentToUse);
         setSelectedContentId("0");
         setStep(3);
