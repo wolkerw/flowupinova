@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { summary } = await request.json();
-    const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/gerador_de_ideias";
+    const webhookUrl = process.env.N8N_WEBHOOK_URL + "/webhook/gerador_de_ideias_e_imagens";
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
@@ -29,7 +29,8 @@ export async function POST(request: Request) {
           return {
             titulo: "Erro de formato",
             subtitulo: "A resposta do webhook para este item não continha um título válido.",
-            hashtags: []
+            hashtags: [],
+            url_da_imagem: null
           };
         }
 
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
         return { 
             titulo: item.titulo || "Título não gerado", 
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
-            hashtags: hashtags
+            hashtags: hashtags,
+            url_da_imagem: item.url_da_imagem || null
         };
     });
 

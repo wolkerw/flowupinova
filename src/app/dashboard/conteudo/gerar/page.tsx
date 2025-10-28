@@ -27,6 +27,7 @@ interface GeneratedContent {
   titulo: string;
   subtitulo: string;
   hashtags: string[];
+  url_da_imagem?: string;
 }
 
 type Platform = 'instagram' | 'facebook';
@@ -161,39 +162,53 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleGenerateText = async () => {
+ const handleGenerateText = async () => {
     if (!postSummary.trim() || isLoading) return;
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: postSummary }),
-      });
-      
-      const data = await response.json();
+        const response = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ summary: postSummary }),
+        });
+        
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.details || data.error || 'Falha ao gerar o conteúdo de texto.');
-      }
-      
-      if (Array.isArray(data) && data.length > 0) {
-        setGeneratedContent(data);
-        setSelectedContentId("0");
-        saveContentHistory(data); // Save new content to history
-        setStep(2);
-      } else {
-        throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
-      }
+        if (!response.ok) {
+            throw new Error(data.details || data.error || 'Falha ao gerar o conteúdo de texto.');
+        }
+        
+        if (Array.isArray(data) && data.length > 0) {
+            const content = data as GeneratedContent[];
+            setGeneratedContent(content);
+            setSelectedContentId("0");
+            saveContentHistory(content); // Save new content to history
+
+            // Now handle images that might come with the text
+            const imageUrls = content.map(item => item.url_da_imagem).filter(Boolean) as string[];
+             if (imageUrls.length > 0) {
+                setGeneratedImages(imageUrls);
+                setSelectedImage(imageUrls[0]);
+            } else {
+                // If no images from text-gen, we might still need to generate them later
+                setGeneratedImages([]);
+                setSelectedImage(null);
+            }
+
+            setStep(2);
+        } else {
+            throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
+        }
 
     } catch (error: any) {
-      console.error("Erro ao gerar texto:", error);
-      toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
+        console.error("Erro ao gerar texto:", error);
+        toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
 
   const handleGenerateImages = async () => {
     if (!selectedContentId) return;
@@ -210,14 +225,21 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ publicacoes: [selectedPublication] }),
       });
       
-      const imageUrls = await response.json();
+      const resultData = await response.json();
 
       if (!response.ok) {
-        throw new Error(imageUrls.error || 'Falha ao gerar imagens.');
+        throw new Error(resultData.error || 'Falha ao gerar imagens.');
       }
       
-      if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+      if (!Array.isArray(resultData) || resultData.length === 0) {
         throw new Error("Nenhuma imagem foi retornada pelo serviço.");
+      }
+
+      // Extract url_da_imagem from each object
+      const imageUrls = resultData.map(item => item.url_da_imagem).filter(Boolean);
+
+      if (imageUrls.length === 0) {
+        throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
       }
 
       setGeneratedImages(imageUrls);
@@ -232,7 +254,10 @@ export default function GerarConteudoPage() {
   };
 
   const handleNextToStep3 = () => {
-    handleGenerateImages();
+    // If images were not generated with text, generate them now.
+    if(generatedImages.length === 0){
+        handleGenerateImages();
+    }
     setStep(3);
   };
 
