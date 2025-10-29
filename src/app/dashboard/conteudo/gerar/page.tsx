@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -135,20 +134,15 @@ export default function GerarConteudoPage() {
   }, [user]);
 
   // Effect to save unused images when navigating away from step 3
-    useEffect(() => {
-        // This function will be returned by the effect, and it will run when the component unmounts or when `step` changes.
-        return () => {
-            if (step === 3 && generatedImages.length > 0) {
-                 const imagesToSave = selectedImage 
-                    ? generatedImages.filter(img => img !== selectedImage) 
-                    : generatedImages;
-                
-                if (imagesToSave.length > 0) {
-                    saveUnusedImagesHistory(imagesToSave);
-                }
-            }
-        };
-    }, [step, generatedImages, selectedImage]);
+  useEffect(() => {
+    return () => {
+        // This function runs when the component unmounts or when the dependencies change.
+        // We use a check on the `step` variable to only trigger this when leaving step 3.
+        if (step === 3 && generatedImages.length > 0) {
+            saveUnusedImagesHistory(generatedImages);
+        }
+    };
+  }, [step]); // Dependency on `step` is crucial.
 
   const saveContentHistory = (newContent: GeneratedContent[]) => {
     try {
@@ -306,7 +300,7 @@ export default function GerarConteudoPage() {
     if (newContent) {
         setGeneratedImages([selectedUnusedImage]);
         setSelectedImage(selectedUnusedImage);
-        removeImageFromHistory(selectedUnusedImage);
+        removeImageFromHistory(selectedUnusedImage); // It's now "in use"
         setStep(3);
     }
   };
@@ -343,10 +337,7 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
-    const unused = generatedImages.filter(img => img !== selectedImage);
-    if (unused.length > 0) {
-        saveUnusedImagesHistory(unused);
-    }
+    // The image being published should be removed from the history of unused images.
     removeImageFromHistory(selectedImage);
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
