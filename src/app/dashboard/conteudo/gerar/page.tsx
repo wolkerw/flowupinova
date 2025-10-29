@@ -258,7 +258,7 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Falha ao ler a resposta de erro da API.');
+        const errorText = await response.text();
         throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
