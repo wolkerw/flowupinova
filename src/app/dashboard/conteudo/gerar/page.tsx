@@ -112,6 +112,7 @@ export default function GerarConteudoPage() {
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
   const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent | null>(null);
+  const [selectedUnusedImage, setSelectedUnusedImage] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -183,15 +184,16 @@ export default function GerarConteudoPage() {
     }
   };
 
- const handleGenerateText = async () => {
-    if (!postSummary.trim() || isLoading) return;
+ const handleGenerateText = async (summary?: string) => {
+    const textToGenerate = summary || postSummary;
+    if (!textToGenerate.trim() || isLoading) return;
     setIsLoading(true);
 
     try {
         const response = await fetch('/api/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ summary: postSummary }),
+            body: JSON.stringify({ summary: textToGenerate }),
         });
         
         if (!response.ok) {
@@ -205,7 +207,9 @@ export default function GerarConteudoPage() {
             const content = data as GeneratedContent[];
             setGeneratedContent(content);
             setSelectedContentId("0");
-            saveContentHistory(content);
+            if(!summary) { // Only save to history if it's a new generation from summary
+                saveContentHistory(content);
+            }
 
             const imageUrls = content.map(item => item.url_da_imagem).filter(Boolean) as string[];
              if (imageUrls.length > 0) {
@@ -216,7 +220,7 @@ export default function GerarConteudoPage() {
                 setSelectedImage(null);
             }
 
-            setStep(2);
+            return content; // Return content for chained operations
         } else {
             throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
         }
@@ -224,6 +228,7 @@ export default function GerarConteudoPage() {
     } catch (error: any) {
         console.error("Erro ao gerar texto:", error);
         toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
+        return null;
     } finally {
         setIsLoading(false);
     }
@@ -257,11 +262,13 @@ export default function GerarConteudoPage() {
         throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
-      const imageUrls = await response.json();
+      const responseData = await response.json();
 
-      if (!Array.isArray(imageUrls)) {
+      if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
+      
+      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
@@ -281,6 +288,30 @@ export default function GerarConteudoPage() {
       toast({ variant: 'destructive', title: "Erro ao gerar imagens", description: error.message });
     } finally {
       setIsGeneratingImages(false);
+    }
+  };
+
+  const handleUseUnusedImage = async () => {
+    if (!selectedUnusedImage) {
+        toast({ variant: 'destructive', title: "Nenhuma imagem selecionada", description: "Por favor, selecione uma arte não utilizada." });
+        return;
+    }
+    if (!postSummary.trim()) {
+        toast({ variant: 'destructive', title: "Resumo necessário", description: "Por favor, escreva um resumo sobre o que é o post na Etapa 1." });
+        return;
+    }
+
+    // Set selected image and remove it from history
+    setSelectedImage(selectedUnusedImage);
+    removeImageFromHistory(selectedUnusedImage);
+    
+    // Generate new text based on the summary
+    const newContent = await handleGenerateText(postSummary);
+
+    // If text generation is successful, move to step 4
+    if (newContent) {
+        setGeneratedImages([selectedUnusedImage]); // Set generatedImages to only the selected one
+        setStep(4);
     }
   };
 
@@ -396,7 +427,7 @@ export default function GerarConteudoPage() {
             </CardContent>
             <CardFooter className="flex justify-end items-center">
               <Button
-                onClick={handleGenerateText}
+                onClick={() => handleGenerateText()}
                 disabled={!postSummary.trim() || isLoading}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
@@ -468,15 +499,36 @@ export default function GerarConteudoPage() {
                           )}
                       </TabsContent>
                       <TabsContent value="unused-images" className="mt-4">
-                          <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
-                               {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
-                                  <div key={index} className="relative aspect-square rounded-md overflow-hidden">
-                                      <Image src={img} alt={`Arte não utilizada ${index + 1}`} layout="fill" objectFit="cover" />
-                                  </div>
-                              )) : (
-                                   <p className="text-sm text-center text-gray-500 py-8 col-span-full">Nenhuma arte não utilizada.</p>
-                              )}
-                          </div>
+                            <RadioGroup onValueChange={setSelectedUnusedImage}>
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
+                                    {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
+                                        <div key={index} className="relative">
+                                            <RadioGroupItem value={img} id={`unused-img-${index}`} className="peer sr-only" />
+                                            <Label htmlFor={`unused-img-${index}`} className="block aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-background peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary">
+                                                <Image src={img} alt={`Arte não utilizada ${index + 1}`} layout="fill" objectFit="cover" />
+                                            </Label>
+                                        </div>
+                                    )) : (
+                                        <p className="text-sm text-center text-gray-500 py-8 col-span-full">Nenhuma arte não utilizada.</p>
+                                    )}
+                                </div>
+                            </RadioGroup>
+                             {selectedUnusedImage && (
+                                <div className="mt-4 flex justify-end">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={handleUseUnusedImage}
+                                      disabled={isLoading || !postSummary.trim()}
+                                    >
+                                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                                      Usar esta arte para publicar
+                                    </Button>
+                                </div>
+                            )}
+                             {!selectedUnusedImage && unusedImagesHistory.length > 0 &&(
+                                <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
+                             )}
                       </TabsContent>
                   </Tabs>
               </CardContent>
@@ -813,3 +865,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
