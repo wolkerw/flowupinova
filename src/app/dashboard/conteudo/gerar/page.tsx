@@ -232,17 +232,15 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || `Erro HTTP: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
-      const responseData = await response.json();
+      const imageUrls = await response.json();
 
-       if (!Array.isArray(responseData)) {
+      if (!Array.isArray(imageUrls)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
-      
-      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
@@ -251,6 +249,7 @@ export default function GerarConteudoPage() {
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
       
+      // If called from history, update main content and move to step 3
       if(publication) {
         setGeneratedContent(contentToUse);
         setSelectedContentId("0");
