@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getUnusedImages, saveUnusedImages, removeUnusedImage } from "@/lib/services/user-data-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,33 +117,50 @@ export default function GerarConteudoPage() {
 
   useEffect(() => {
     if (!user) return;
-    getMetaConnection(user.uid).then(setMetaConnection);
+    
+    async function loadInitialData() {
+        try {
+            const [metaConn, unusedImages] = await Promise.all([
+                getMetaConnection(user.uid),
+                getUnusedImages(user.uid)
+            ]);
+            setMetaConnection(metaConn);
+            setUnusedImagesHistory(unusedImages.reverse()); // Show newest first
+        } catch (error: any) {
+            console.error("Failed to load initial data:", error);
+            toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: error.message });
+        }
 
-    // Load history from localStorage
-    try {
-        const savedContent = localStorage.getItem('flowup-contentHistory');
-        const savedImages = localStorage.getItem('flowup-unusedImages');
-        if (savedContent) {
-            setContentHistory(JSON.parse(savedContent));
+        // Load content history from localStorage (as it's less critical)
+        try {
+            const savedContent = localStorage.getItem('flowup-contentHistory');
+            if (savedContent) {
+                setContentHistory(JSON.parse(savedContent));
+            }
+        } catch (error) {
+            console.error("Failed to load content history from localStorage", error);
         }
-        if (savedImages) {
-            setUnusedImagesHistory(JSON.parse(savedImages));
-        }
-    } catch (error) {
-        console.error("Failed to load history from localStorage", error);
     }
-  }, [user]);
+
+    loadInitialData();
+
+  }, [user, toast]);
 
   // Effect to save unused images when navigating away from step 3
-  useEffect(() => {
-    return () => {
-        // This function runs when the component unmounts or when the dependencies change.
-        // We use a check on the `step` variable to only trigger this when leaving step 3.
-        if (step === 3 && generatedImages.length > 0) {
-            saveUnusedImagesHistory(generatedImages);
-        }
-    };
-  }, [step]); // Dependency on `step` is crucial.
+    useEffect(() => {
+        // This function runs when the component unmounts or when dependencies change.
+        // It's a cleanup function.
+        return () => {
+            // We check if the user exists and if there are images in the temporary `generatedImages` state
+            if (user && generatedImages.length > 0) {
+                // We don't await this, it can run in the background
+                saveUnusedImages(user.uid, generatedImages).catch(error => {
+                    console.error("Failed to save unused images on cleanup:", error);
+                    // Optionally, show a non-intrusive toast
+                });
+            }
+        };
+    }, [generatedImages, user]); // This effect depends on `generatedImages` and `user`
 
   const saveContentHistory = (newContent: GeneratedContent[]) => {
     try {
@@ -154,29 +172,6 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const saveUnusedImagesHistory = (images: string[]) => {
-     try {
-        if (images.length === 0) return;
-        // Avoid duplicates and limit to 50 images
-        const currentImages = new Set(unusedImagesHistory);
-        images.forEach(img => currentImages.add(img));
-        const updatedImages = Array.from(currentImages).slice(-50); // Keep last 50
-        setUnusedImagesHistory(updatedImages);
-        localStorage.setItem('flowup-unusedImages', JSON.stringify(updatedImages));
-    } catch (error) {
-         console.error("Failed to save unused images to localStorage", error);
-    }
-  };
-
-  const removeImageFromHistory = (imageUrl: string) => {
-    try {
-        const updatedImages = unusedImagesHistory.filter(img => img !== imageUrl);
-        setUnusedImagesHistory(updatedImages);
-        localStorage.setItem('flowup-unusedImages', JSON.stringify(updatedImages));
-    } catch (error) {
-        console.error("Failed to remove image from localStorage", error);
-    }
-  };
 
  const handleGenerateText = async (summary?: string) => {
     const textToGenerate = summary || postSummary;
@@ -191,7 +186,7 @@ export default function GerarConteudoPage() {
         });
         
         if (!response.ok) {
-            const errorText = await response.text();
+            const errorText = await response.text().catch(() => "Falha ao ler a resposta de erro da API.");
             throw new Error(errorText || `Erro na API: ${response.status}`);
         }
         
@@ -230,6 +225,7 @@ export default function GerarConteudoPage() {
 
 
   const handleGenerateImages = async (publication?: GeneratedContent | null) => {
+    if (!user) return;
     const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
     if (contentToUse.length === 0) {
         toast({ variant: 'destructive', title: "Nenhum conteúdo", description: "Selecione um texto para gerar imagens." });
@@ -237,7 +233,7 @@ export default function GerarConteudoPage() {
     }
     
     if(generatedImages.length > 0) {
-        saveUnusedImagesHistory(generatedImages);
+        await saveUnusedImages(user.uid, generatedImages);
     }
   
     setIsGeneratingImages(true);
@@ -252,7 +248,7 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => "Falha ao processar a resposta de erro da API de imagem.");
         throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
@@ -292,6 +288,7 @@ export default function GerarConteudoPage() {
         toast({ variant: 'destructive', title: "Resumo necessário", description: "Por favor, escreva um resumo sobre o que é o post na Etapa 1." });
         return;
     }
+    if (!user) return;
 
     // Generate new text based on the summary
     const newContent = await handleGenerateText(postSummary);
@@ -300,8 +297,12 @@ export default function GerarConteudoPage() {
     if (newContent) {
         setGeneratedImages([selectedUnusedImage]);
         setSelectedImage(selectedUnusedImage);
-        removeImageFromHistory(selectedUnusedImage); // It's now "in use"
-        setStep(3);
+        // It is now "in use" for this flow, so we remove it from the persistent history
+        await removeUnusedImage(user.uid, selectedUnusedImage); 
+        // Also remove from local state to update UI instantly
+        setUnusedImagesHistory(prev => prev.filter(img => img !== selectedUnusedImage));
+
+        setStep(3); // Go to step 3 for review
     }
   };
 
@@ -337,8 +338,15 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
-    // The image being published should be removed from the history of unused images.
-    removeImageFromHistory(selectedImage);
+    // The image being published is no longer "unused". Remove it from the temporary state.
+    const remainingUnusedImages = generatedImages.filter(img => img !== selectedImage);
+    // Save the rest of the unused images from this batch to Firestore.
+    if(remainingUnusedImages.length > 0) {
+        await saveUnusedImages(user.uid, remainingUnusedImages);
+    }
+    // And remove the published one from the persistent history if it was there.
+    await removeUnusedImage(user.uid, selectedImage);
+
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
@@ -356,9 +364,13 @@ export default function GerarConteudoPage() {
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
+      // Clear generated images for this session as they've been handled
+      setGeneratedImages([]);
       router.push('/dashboard/conteudo');
     } else {
       toast({ variant: "destructive", title: "Erro ao Agendar", description: result.error || "Ocorreu um erro desconhecido." });
+       // If publishing failed, we should consider the images as "unused" and save them.
+      await saveUnusedImages(user.uid, generatedImages);
     }
 };
 
@@ -372,7 +384,7 @@ export default function GerarConteudoPage() {
   };
 
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
-  const unusedImages = generatedImages.filter(img => img !== selectedImage);
+  const unusedImagesOnPage = generatedImages.filter(img => img !== selectedImage);
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -774,11 +786,11 @@ export default function GerarConteudoPage() {
                             )}
                        </div>
                        {/* Galeria de imagens não usadas */}
-                       {unusedImages.length > 0 && (
+                       {unusedImagesOnPage.length > 0 && (
                             <div className="space-y-4 pt-4">
                                 <h3 className="font-bold text-lg">Artes não utilizadas</h3>
                                 <div className="grid grid-cols-3 gap-2">
-                                    {unusedImages.map((img, index) => (
+                                    {unusedImagesOnPage.map((img, index) => (
                                         <Image
                                             key={index}
                                             src={img}
@@ -852,5 +864,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
