@@ -145,10 +145,11 @@ export default function GerarConteudoPage() {
 
   const saveUnusedImagesHistory = (images: string[]) => {
      try {
+        if (images.length === 0) return;
         // Avoid duplicates and limit to 50 images
         const currentImages = new Set(unusedImagesHistory);
         images.forEach(img => currentImages.add(img));
-        const updatedImages = Array.from(currentImages).slice(0, 50);
+        const updatedImages = Array.from(currentImages).slice(-50); // Keep last 50
         setUnusedImagesHistory(updatedImages);
         localStorage.setItem('flowup-unusedImages', JSON.stringify(updatedImages));
     } catch (error) {
@@ -219,9 +220,14 @@ export default function GerarConteudoPage() {
         toast({ variant: 'destructive', title: "Nenhum conteúdo", description: "Selecione um texto para gerar imagens." });
         return;
     }
+    
+    // Save previously generated images before fetching new ones
+    if(generatedImages.length > 0) {
+        saveUnusedImagesHistory(generatedImages);
+    }
   
     setIsGeneratingImages(true);
-    setGeneratedImages([]);
+    setGeneratedImages([]); // Clear previous images
     setSelectedImage(null);
     
     try {
@@ -232,7 +238,7 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => 'Falha ao ler a resposta de erro da API.');
         throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
