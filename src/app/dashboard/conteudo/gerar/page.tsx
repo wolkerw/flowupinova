@@ -177,25 +177,24 @@ export default function GerarConteudoPage() {
             body: JSON.stringify({ summary: postSummary }),
         });
         
-        const data = await response.json();
-
         if (!response.ok) {
-            throw new Error(data.details || data.error || 'Falha ao gerar o conteúdo de texto.');
+            const errorData = await response.json().catch(() => ({ error: 'Falha ao processar a resposta de erro da API.'}));
+            throw new Error(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
         }
+        
+        const data = await response.json();
         
         if (Array.isArray(data) && data.length > 0) {
             const content = data as GeneratedContent[];
             setGeneratedContent(content);
             setSelectedContentId("0");
-            saveContentHistory(content); // Save new content to history
+            saveContentHistory(content);
 
-            // Now handle images that might come with the text
             const imageUrls = content.map(item => item.url_da_imagem).filter(Boolean) as string[];
              if (imageUrls.length > 0) {
                 setGeneratedImages(imageUrls);
                 setSelectedImage(imageUrls[0]);
             } else {
-                // If no images from text-gen, we might still need to generate them later
                 setGeneratedImages([]);
                 setSelectedImage(null);
             }
@@ -228,17 +227,19 @@ export default function GerarConteudoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ publicacoes: contentToUse }),
       });
-      
-      const imageUrls = await response.json();
 
       if (!response.ok) {
-        throw new Error(imageUrls.error || 'Falha ao gerar imagens.');
+        const errorData = await response.json().catch(() => ({ error: 'Falha ao processar a resposta de erro da API de imagem.'}));
+        throw new Error(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
       }
       
-       if (!Array.isArray(imageUrls)) {
-          console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", imageUrls);
+      const responseData = await response.json();
+
+       if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
+      
+      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
@@ -262,7 +263,6 @@ export default function GerarConteudoPage() {
 
 
   const handleNextToStep3 = () => {
-    // If images were not generated with text, generate them now.
     if(generatedImages.length === 0){
         handleGenerateImages();
     }
