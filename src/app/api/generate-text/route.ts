@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     });
 
     if (!webhookResponse.ok) {
-        const errorText = await webhookResponse.text().catch(() => "Não foi possível ler o corpo do erro.");
+        const errorText = await webhookResponse.text();
         console.error("Webhook error:", errorText);
         // Garante que a resposta de erro seja um JSON válido
         return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de texto.", details: errorText }, { status: webhookResponse.status });

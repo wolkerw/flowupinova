@@ -178,8 +178,8 @@ export default function GerarConteudoPage() {
         });
         
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Falha ao processar a resposta de erro da API.'}));
-            throw new Error(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Erro ao gerar texto: ${errorText}`);
         }
         
         const data = await response.json();
@@ -229,24 +229,23 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Falha ao processar a resposta de erro da API de imagem.'}));
-        throw new Error(errorData.details || errorData.error || `Erro HTTP: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Erro ao gerar imagens: ${errorText}`);
       }
       
-      const responseData = await response.json();
+      const imageUrls = await response.json();
 
-       if (!Array.isArray(responseData)) {
+       if (!Array.isArray(imageUrls)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
       
-      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
-
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
       }
 
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
+      
       if(publication) {
         setGeneratedContent(contentToUse);
         setSelectedContentId("0");
