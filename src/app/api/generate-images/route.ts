@@ -29,14 +29,17 @@ export async function POST(request: Request) {
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
       console.error("Webhook error:", errorText);
+      // Retorna uma resposta JSON estruturada mesmo em caso de erro do webhook
       return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de imagem.", details: errorText }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
 
     if (!Array.isArray(data)) {
-      console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
-      return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
+        // Log do formato inesperado para depuração
+        console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
+        // Retorna um erro JSON claro para o frontend
+        return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
     // Extrai apenas as URLs das imagens do array de objetos
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
     return NextResponse.json(imageUrls);
 
   } catch (error: any) {
+    // Captura qualquer outro erro, como falha ao parsear o JSON da requisição inicial
     console.error("Internal server error:", error);
     return NextResponse.json({ error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
