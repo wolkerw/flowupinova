@@ -114,18 +114,29 @@ export default function GerarConteudoPage() {
   const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent | null>(null);
   const [selectedUnusedImage, setSelectedUnusedImage] = useState<string | null>(null);
 
+  const fetchUnusedImages = async () => {
+    if (!user) return;
+    try {
+      const unusedImages = await getUnusedImages(user.uid);
+      setUnusedImagesHistory(unusedImages.reverse()); // Show newest first
+    } catch (error: any) {
+      console.error("Failed to fetch unused images:", error);
+      toast({ variant: 'destructive', title: "Erro ao Carregar Artes", description: error.message });
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
     
     async function loadInitialData() {
         try {
-            const [metaConn, unusedImages] = await Promise.all([
-                getMetaConnection(user.uid),
-                getUnusedImages(user.uid)
-            ]);
+            // Fetch Meta connection status
+            const metaConn = await getMetaConnection(user.uid);
             setMetaConnection(metaConn);
-            setUnusedImagesHistory(unusedImages.reverse()); // Show newest first
+
+            // Fetch unused images
+            await fetchUnusedImages();
+
         } catch (error: any) {
             console.error("Failed to load initial data:", error);
             toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: error.message });
@@ -146,21 +157,21 @@ export default function GerarConteudoPage() {
 
   }, [user, toast]);
 
-  // Effect to save unused images when navigating away from step 3
     useEffect(() => {
-        // This function runs when the component unmounts or when dependencies change.
-        // It's a cleanup function.
         return () => {
-            // We check if the user exists and if there are images in the temporary `generatedImages` state
             if (user && generatedImages.length > 0) {
-                // We don't await this, it can run in the background
-                saveUnusedImages(user.uid, generatedImages).catch(error => {
-                    console.error("Failed to save unused images on cleanup:", error);
-                    // Optionally, show a non-intrusive toast
-                });
+                saveUnusedImages(user.uid, generatedImages)
+                    .then(() => {
+                        console.log("Unused images saved on cleanup.");
+                         // After saving, refresh the list to ensure it's up-to-date
+                        fetchUnusedImages();
+                    })
+                    .catch(error => {
+                        console.error("Failed to save unused images on cleanup:", error);
+                    });
             }
         };
-    }, [generatedImages, user]); // This effect depends on `generatedImages` and `user`
+    }, [generatedImages, user]);
 
   const saveContentHistory = (newContent: GeneratedContent[]) => {
     try {
@@ -186,8 +197,8 @@ export default function GerarConteudoPage() {
         });
         
         if (!response.ok) {
-            const errorText = await response.text().catch(() => "Falha ao ler a resposta de erro da API.");
-            throw new Error(errorText || `Erro na API: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ details: "Falha ao ler a resposta de erro da API." }));
+            throw new Error(errorData.details || `Erro na API: ${response.status}`);
         }
         
         const data = await response.json();
@@ -200,7 +211,7 @@ export default function GerarConteudoPage() {
                 saveContentHistory(content);
             }
 
-            const imageUrls = content.map(item => item.url_da_imagem).filter(Boolean) as string[];
+             const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean) as string[];
              if (imageUrls.length > 0) {
                 setGeneratedImages(imageUrls);
                 setSelectedImage(imageUrls[0]);
@@ -234,6 +245,7 @@ export default function GerarConteudoPage() {
     
     if(generatedImages.length > 0) {
         await saveUnusedImages(user.uid, generatedImages);
+        await fetchUnusedImages(); // Refresh the gallery
     }
   
     setIsGeneratingImages(true);
@@ -248,8 +260,8 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => "Falha ao processar a resposta de erro da API de imagem.");
-        throw new Error(errorText || `Erro HTTP: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ details: "Falha ao processar a resposta de erro da API de imagem." }));
+        throw new Error(errorData.details || `Erro HTTP: ${response.status}`);
       }
       
       const imageUrls = await response.json();
@@ -299,17 +311,15 @@ export default function GerarConteudoPage() {
         setSelectedImage(selectedUnusedImage);
         // It is now "in use" for this flow, so we remove it from the persistent history
         await removeUnusedImage(user.uid, selectedUnusedImage); 
-        // Also remove from local state to update UI instantly
-        setUnusedImagesHistory(prev => prev.filter(img => img !== selectedUnusedImage));
-
+        await fetchUnusedImages(); // Refresh the list
         setStep(3); // Go to step 3 for review
     }
   };
 
 
-  const handleNextToStep3 = () => {
+  const handleNextToStep3 = async () => {
     if(generatedImages.length === 0){
-        handleGenerateImages();
+        await handleGenerateImages();
     }
     setStep(3);
   };
@@ -338,15 +348,8 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
-    // The image being published is no longer "unused". Remove it from the temporary state.
-    const remainingUnusedImages = generatedImages.filter(img => img !== selectedImage);
-    // Save the rest of the unused images from this batch to Firestore.
-    if(remainingUnusedImages.length > 0) {
-        await saveUnusedImages(user.uid, remainingUnusedImages);
-    }
-    // And remove the published one from the persistent history if it was there.
+    // This is the only place where we remove an image from history
     await removeUnusedImage(user.uid, selectedImage);
-
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
@@ -371,6 +374,7 @@ export default function GerarConteudoPage() {
       toast({ variant: "destructive", title: "Erro ao Agendar", description: result.error || "Ocorreu um erro desconhecido." });
        // If publishing failed, we should consider the images as "unused" and save them.
       await saveUnusedImages(user.uid, generatedImages);
+      await fetchUnusedImages();
     }
 };
 
@@ -384,8 +388,7 @@ export default function GerarConteudoPage() {
   };
 
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
-  const unusedImagesOnPage = generatedImages.filter(img => img !== selectedImage);
-
+  
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Cabeçalho */}
@@ -525,7 +528,7 @@ export default function GerarConteudoPage() {
                                     </Button>
                                 </div>
                             )}
-                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && (
+                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && !postSummary.trim() && (
                                 <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
                              )}
                       </TabsContent>
@@ -574,11 +577,11 @@ export default function GerarConteudoPage() {
               </Button>
               <Button
                 onClick={handleNextToStep3}
-                disabled={!selectedContentId}
+                disabled={!selectedContentId || isGeneratingImages}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
-                Gerar Imagens e Avançar
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Gerar Imagens e Avançar'}
+                {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
               </Button>
             </CardFooter>
           </Card>
@@ -785,24 +788,6 @@ export default function GerarConteudoPage() {
                                 </p>
                             )}
                        </div>
-                       {/* Galeria de imagens não usadas */}
-                       {unusedImagesOnPage.length > 0 && (
-                            <div className="space-y-4 pt-4">
-                                <h3 className="font-bold text-lg">Artes não utilizadas</h3>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {unusedImagesOnPage.map((img, index) => (
-                                        <Image
-                                            key={index}
-                                            src={img}
-                                            alt={`Arte não utilizada ${index + 1}`}
-                                            width={100}
-                                            height={100}
-                                            className="rounded-md object-cover aspect-square"
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
                </div>
             </CardContent>
@@ -864,3 +849,5 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
