@@ -133,6 +133,22 @@ export default function GerarConteudoPage() {
     }
   }, [user]);
 
+  // Effect to save unused images when navigating away from step 3
+    useEffect(() => {
+        // This function will be returned by the effect, and it will run when the component unmounts or when `step` changes.
+        return () => {
+            if (step === 3 && generatedImages.length > 0) {
+                 const imagesToSave = selectedImage 
+                    ? generatedImages.filter(img => img !== selectedImage) 
+                    : generatedImages;
+                
+                if (imagesToSave.length > 0) {
+                    saveUnusedImagesHistory(imagesToSave);
+                }
+            }
+        };
+    }, [step, generatedImages, selectedImage]);
+
   const saveContentHistory = (newContent: GeneratedContent[]) => {
     try {
         const updatedHistory = [...newContent, ...contentHistory].slice(0, 20); // Keep last 20
@@ -180,7 +196,7 @@ export default function GerarConteudoPage() {
         
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Erro ao gerar texto: ${errorText}`);
+            throw new Error(errorText || `Erro na API: ${response.status}`);
         }
         
         const data = await response.json();
@@ -221,13 +237,12 @@ export default function GerarConteudoPage() {
         return;
     }
     
-    // Save previously generated images before fetching new ones
     if(generatedImages.length > 0) {
         saveUnusedImagesHistory(generatedImages);
     }
   
     setIsGeneratingImages(true);
-    setGeneratedImages([]); // Clear previous images
+    setGeneratedImages([]);
     setSelectedImage(null);
     
     try {
@@ -255,7 +270,6 @@ export default function GerarConteudoPage() {
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
       
-      // If called from history, update main content and move to step 3
       if(publication) {
         setGeneratedContent(contentToUse);
         setSelectedContentId("0");
@@ -302,12 +316,10 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
-    // Save unused images to history before publishing
     const unused = generatedImages.filter(img => img !== selectedImage);
     if (unused.length > 0) {
         saveUnusedImagesHistory(unused);
     }
-    // Remove the used image from history if it exists
     removeImageFromHistory(selectedImage);
 
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
