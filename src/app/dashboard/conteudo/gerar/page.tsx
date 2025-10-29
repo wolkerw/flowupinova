@@ -213,9 +213,12 @@ export default function GerarConteudoPage() {
 };
 
 
- const handleGenerateImages = async (publication?: GeneratedContent | null) => {
+  const handleGenerateImages = async (publication?: GeneratedContent | null) => {
     const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
-    if (contentToUse.length === 0) return;
+    if (contentToUse.length === 0) {
+        toast({ variant: 'destructive', title: "Nenhum conteúdo", description: "Selecione um texto para gerar imagens." });
+        return;
+    }
   
     setIsGeneratingImages(true);
     setGeneratedImages([]);
@@ -229,16 +232,18 @@ export default function GerarConteudoPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro ao gerar imagens: ${errorText}`);
+          const errorText = await response.text();
+          throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
-      const imageUrls = await response.json();
+      const responseData = await response.json();
 
-       if (!Array.isArray(imageUrls)) {
+       if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
       
+      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
+
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
       }
