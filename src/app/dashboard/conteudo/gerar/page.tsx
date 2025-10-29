@@ -219,7 +219,7 @@ export default function GerarConteudoPage() {
                 setGeneratedImages([]);
                 setSelectedImage(null);
             }
-
+            setStep(2);
             return content; // Return content for chained operations
         } else {
             throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
@@ -262,13 +262,11 @@ export default function GerarConteudoPage() {
         throw new Error(errorText || `Erro HTTP: ${response.status}`);
       }
       
-      const responseData = await response.json();
+      const imageUrls = await response.json();
 
-      if (!Array.isArray(responseData)) {
+      if (!Array.isArray(imageUrls)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
-      
-      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
@@ -526,7 +524,7 @@ export default function GerarConteudoPage() {
                                     </Button>
                                 </div>
                             )}
-                             {!selectedUnusedImage && unusedImagesHistory.length > 0 &&(
+                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && (
                                 <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
                              )}
                       </TabsContent>
