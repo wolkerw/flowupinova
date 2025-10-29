@@ -4,9 +4,17 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
+interface GeneratedContent {
+  titulo: string;
+  subtitulo: string;
+  hashtags: string[];
+  url_da_imagem?: string;
+}
+
 // Interface for the user-specific application data
 interface UserAppData {
     unusedImageUrls?: string[];
+    contentHistory?: GeneratedContent[];
 }
 
 // Helper to get the document reference for a user's app data
@@ -65,7 +73,7 @@ export async function saveUnusedImages(userId: string, images: string[]): Promis
             });
         } else {
             // Create the document with the initial array
-            await setDoc(docRef, { unusedImageUrls: images });
+            await setDoc(docRef, { unusedImageUrls: images }, { merge: true });
         }
         console.log(`${images.length} imagens não utilizadas salvas para o usuário ${userId}.`);
     } catch (error: any) {
@@ -102,5 +110,65 @@ export async function removeUnusedImage(userId: string, imageUrl: string): Promi
         }
         console.error(`Erro ao remover imagem não utilizada para o usuário ${userId}:`, error);
         throw new Error("Não foi possível remover a imagem do histórico no banco de dados.");
+    }
+}
+
+/**
+ * Retrieves the content history for a specific user from Firestore.
+ * @param userId The UID of the user.
+ * @returns A promise that resolves to an array of GeneratedContent.
+ */
+export async function getContentHistory(userId: string): Promise<GeneratedContent[]> {
+    if (!userId) {
+        console.error("UserID é necessário para buscar o histórico de conteúdo.");
+        return [];
+    }
+
+    try {
+        const docRef = getUserAppDataDocRef(userId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data() as UserAppData;
+            return data.contentHistory || [];
+        }
+        return [];
+    } catch (error: any) {
+        console.error(`Erro ao buscar histórico de conteúdo para o usuário ${userId}:`, error);
+        throw new Error("Não foi possível buscar o histórico de conteúdo do banco de dados.");
+    }
+}
+
+/**
+ * Saves new content to the user's content history in Firestore.
+ * Prepends new content and keeps a fixed number of recent items.
+ * @param userId The UID of the user.
+ * @param newContent The new generated content array to add.
+ */
+export async function saveContentHistory(userId: string, newContent: GeneratedContent[]): Promise<void> {
+    if (!userId) {
+        throw new Error("UserID é necessário para salvar o histórico de conteúdo.");
+    }
+    if (!newContent || newContent.length === 0) {
+        return;
+    }
+
+    try {
+        const docRef = getUserAppDataDocRef(userId);
+        const docSnap = await getDoc(docRef);
+        
+        let currentHistory: GeneratedContent[] = [];
+        if (docSnap.exists()) {
+            currentHistory = (docSnap.data() as UserAppData).contentHistory || [];
+        }
+
+        const updatedHistory = [...newContent, ...currentHistory].slice(0, 20); // Keep last 20
+
+        await setDoc(docRef, { contentHistory: updatedHistory }, { merge: true });
+
+        console.log(`Histórico de conteúdo salvo para o usuário ${userId}.`);
+    } catch (error: any) {
+        console.error(`Erro ao salvar histórico de conteúdo para o usuário ${userId}:`, error);
+        throw new Error("Não foi possível salvar o histórico de conteúdo no banco de dados.");
     }
 }

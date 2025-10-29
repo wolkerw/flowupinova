@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getUnusedImages, saveUnusedImages, removeUnusedImage } from "@/lib/services/user-data-service";
+import { getUnusedImages, saveUnusedImages, removeUnusedImage, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -125,6 +125,18 @@ export default function GerarConteudoPage() {
     }
   };
 
+  const fetchContentHistory = async () => {
+    if (!user) return;
+    try {
+      const history = await getContentHistory(user.uid);
+      setContentHistory(history);
+    } catch (error: any) {
+      console.error("Failed to fetch content history:", error);
+      toast({ variant: 'destructive', title: "Erro ao Carregar Histórico", description: error.message });
+    }
+  };
+
+
   useEffect(() => {
     if (!user) return;
     
@@ -136,20 +148,12 @@ export default function GerarConteudoPage() {
 
             // Fetch unused images
             await fetchUnusedImages();
+            // Fetch content history
+            await fetchContentHistory();
 
         } catch (error: any) {
             console.error("Failed to load initial data:", error);
             toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: error.message });
-        }
-
-        // Load content history from localStorage (as it's less critical)
-        try {
-            const savedContent = localStorage.getItem('flowup-contentHistory');
-            if (savedContent) {
-                setContentHistory(JSON.parse(savedContent));
-            }
-        } catch (error) {
-            console.error("Failed to load content history from localStorage", error);
         }
     }
 
@@ -158,13 +162,13 @@ export default function GerarConteudoPage() {
   }, [user, toast]);
 
     useEffect(() => {
+        // This is a cleanup function that runs when the component is unmounted
+        // or before the component re-renders (if dependencies change).
         return () => {
             if (user && generatedImages.length > 0) {
-                saveUnusedImages(user.uid, generatedImages)
+                saveUnusedImages(user, generatedImages)
                     .then(() => {
                         console.log("Unused images saved on cleanup.");
-                         // After saving, refresh the list to ensure it's up-to-date
-                        fetchUnusedImages();
                     })
                     .catch(error => {
                         console.error("Failed to save unused images on cleanup:", error);
@@ -173,20 +177,10 @@ export default function GerarConteudoPage() {
         };
     }, [generatedImages, user]);
 
-  const saveContentHistory = (newContent: GeneratedContent[]) => {
-    try {
-        const updatedHistory = [...newContent, ...contentHistory].slice(0, 20); // Keep last 20
-        setContentHistory(updatedHistory);
-        localStorage.setItem('flowup-contentHistory', JSON.stringify(updatedHistory));
-    } catch (error) {
-        console.error("Failed to save content history to localStorage", error);
-    }
-  };
-
 
  const handleGenerateText = async (summary?: string) => {
     const textToGenerate = summary || postSummary;
-    if (!textToGenerate.trim() || isLoading) return;
+    if (!textToGenerate.trim() || isLoading || !user) return;
     setIsLoading(true);
 
     try {
@@ -208,7 +202,8 @@ export default function GerarConteudoPage() {
             setGeneratedContent(content);
             setSelectedContentId("0");
             if(!summary) { // Only save to history if it's a new generation from summary
-                saveContentHistory(content);
+                await saveContentHistory(user.uid, content);
+                await fetchContentHistory(); // Refresh history
             }
 
              const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean) as string[];
@@ -309,7 +304,8 @@ export default function GerarConteudoPage() {
     if (newContent) {
         setGeneratedImages([selectedUnusedImage]);
         setSelectedImage(selectedUnusedImage);
-        // It is now "in use" for this flow, so we remove it from the persistent history
+        
+        // Remove from the persistent history, as it's now in an active flow
         await removeUnusedImage(user.uid, selectedUnusedImage); 
         await fetchUnusedImages(); // Refresh the list
         setStep(3); // Go to step 3 for review
@@ -348,9 +344,6 @@ export default function GerarConteudoPage() {
 
     setIsPublishing(true);
     
-    // This is the only place where we remove an image from history
-    await removeUnusedImage(user.uid, selectedImage);
-
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
     const result = await schedulePost(user.uid, {
@@ -367,12 +360,22 @@ export default function GerarConteudoPage() {
 
     if (result.success) {
       toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
+      
+      // Remove the successfully published image from the unused list
+      await removeUnusedImage(user.uid, selectedImage);
+
+      // The rest of the generated images for this session are now "unused", so save them.
+      const otherImages = generatedImages.filter(img => img !== selectedImage);
+      if (otherImages.length > 0) {
+          await saveUnusedImages(user.uid, otherImages);
+      }
+      
       // Clear generated images for this session as they've been handled
       setGeneratedImages([]);
       router.push('/dashboard/conteudo');
     } else {
       toast({ variant: "destructive", title: "Erro ao Agendar", description: result.error || "Ocorreu um erro desconhecido." });
-       // If publishing failed, we should consider the images as "unused" and save them.
+       // If publishing failed, all generated images are still unused.
       await saveUnusedImages(user.uid, generatedImages);
       await fetchUnusedImages();
     }
@@ -849,5 +852,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-    
