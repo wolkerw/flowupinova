@@ -299,17 +299,15 @@ export default function GerarConteudoPage() {
         return;
     }
 
-    // Set selected image and remove it from history
-    setSelectedImage(selectedUnusedImage);
-    removeImageFromHistory(selectedUnusedImage);
-    
     // Generate new text based on the summary
     const newContent = await handleGenerateText(postSummary);
 
-    // If text generation is successful, move to step 4
+    // If text generation is successful, set the image and move to step 3
     if (newContent) {
-        setGeneratedImages([selectedUnusedImage]); // Set generatedImages to only the selected one
-        setStep(4);
+        setGeneratedImages([selectedUnusedImage]);
+        setSelectedImage(selectedUnusedImage);
+        removeImageFromHistory(selectedUnusedImage);
+        setStep(3);
     }
   };
 
