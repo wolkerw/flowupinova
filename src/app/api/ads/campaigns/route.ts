@@ -5,36 +5,6 @@ import { getMetaConnection } from "@/lib/services/meta-service";
 
 const AD_ACCOUNT_ID = "1537973740074338"; // Hardcoded for now
 
-export async function GET(request: NextRequest) {
-    try {
-        const uid = await getUidFromCookie();
-        const metaConnection = await getMetaConnection(uid);
-
-        if (!metaConnection.isConnected || !metaConnection.accessToken) {
-            return NextResponse.json({ success: false, error: "Meta account not connected." }, { status: 403 });
-        }
-
-        const url = `https://graph.facebook.com/v24.0/act_${AD_ACCOUNT_ID}/campaigns`;
-        const params = new URLSearchParams({
-            fields: 'id,name,objective,status,effective_status',
-            access_token: metaConnection.accessToken,
-        });
-
-        const response = await fetch(`${url}?${params.toString()}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error?.message || "Failed to fetch campaigns from Meta API.");
-        }
-
-        return NextResponse.json({ success: true, campaigns: data.data });
-
-    } catch (error: any) {
-        console.error("[API_ADS_CAMPAIGNS_GET] Error:", error.message);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-}
-
 export async function POST(request: NextRequest) {
     try {
         const uid = await getUidFromCookie();
@@ -79,3 +49,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
+    

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush, Globe, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Library, Paintbrush, Globe, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -54,8 +54,8 @@ export default function Anuncios() {
     // Campaign & Ad Set State
     const [campaignName, setCampaignName] = useState('');
     const [campaignObjective, setCampaignObjective] = useState('');
-    const [dailyBudget, setDailyBudget] = useState('50'); // R$50 as a default
-    const [targetLocation, setTargetLocation] = useState('Brasil');
+    const [dailyBudget, setDailyBudget] = useState('5000'); // R$50 em centavos
+    const [targetLocation, setTargetLocation] = useState('BR');
     const [targetAgeMin, setTargetAgeMin] = useState('18');
     const [targetAgeMax, setTargetAgeMax] = useState('65');
     const [targetInterests, setTargetInterests] = useState('');
@@ -69,6 +69,66 @@ export default function Anuncios() {
 
     const handlePrevStep = () => {
         setStep(prev => prev - 1);
+    };
+
+    const handleSubmit = async () => {
+        if (!user) {
+            toast({ variant: "destructive", title: "Erro", description: "Usuário não autenticado."});
+            return;
+        }
+         if (!campaignName || !campaignObjective || !dailyBudget) {
+            toast({ variant: "destructive", title: "Campos obrigatórios", description: "Preencha o nome, objetivo e orçamento da campanha." });
+            return;
+        }
+        
+        setIsLoading(true);
+
+        try {
+            // Etapa 1: Criar a Campanha
+            const campaignResponse = await fetch('/api/ads/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: campaignName, objective: campaignObjective }),
+            });
+            const campaignResult = await campaignResponse.json();
+            if (!campaignResult.success) throw new Error(`Falha ao criar campanha: ${campaignResult.error}`);
+            const campaignId = campaignResult.id;
+            toast({ title: "Etapa 1/3: Campanha criada!", description: `ID da Campanha: ${campaignId}` });
+            
+
+            // Etapa 2: Criar o Conjunto de Anúncios (Ad Set)
+            const adSetTargeting = {
+                geo_locations: { countries: [targetLocation] },
+                age_min: parseInt(targetAgeMin),
+                age_max: parseInt(targetAgeMax),
+                flexible_spec: targetInterests ? targetInterests.split(',').map(interest => ({
+                    interests: [{ name: interest.trim() }]
+                })) : []
+            };
+
+            const adSetResponse = await fetch('/api/ads/adsets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `${campaignName} - Conjunto 01`,
+                    campaign_id: campaignId,
+                    daily_budget: parseInt(dailyBudget),
+                    targeting: adSetTargeting
+                }),
+            });
+            const adSetResult = await adSetResponse.json();
+            if (!adSetResult.success) throw new Error(`Falha ao criar conjunto de anúncios: ${adSetResult.error}`);
+            toast({ title: "Etapa 2/3: Conjunto de anúncios criado!", description: `ID do Conjunto: ${adSetResult.id}` });
+
+
+            // Etapa 3 e 4 (Criativo e Anúncio) viriam aqui
+            toast({ title: "Sucesso parcial!", description: "Campanha e Conjunto de Anúncios criados. Próximo passo é o criativo."});
+
+        } catch (error: any) {
+             toast({ variant: "destructive", title: "Erro na criação", description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const renderStep = () => {
@@ -95,13 +155,14 @@ export default function Anuncios() {
                                         <SelectItem value="POST_ENGAGEMENT">Engajamento com a Publicação (POST_ENGAGEMENT)</SelectItem>
                                         <SelectItem value="REACH">Alcance (REACH)</SelectItem>
                                         <SelectItem value="BRAND_AWARENESS">Reconhecimento da Marca (BRAND_AWARENESS)</SelectItem>
+                                        <SelectItem value="CONVERSIONS">Conversões (CONVERSIONS)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="adset-budget">Orçamento diário (R$)</Label>
-                                <Input id="adset-budget" type="number" placeholder="Ex: 50" value={dailyBudget} onChange={e => setDailyBudget(e.target.value)} />
-                            </div>
+                                <Label htmlFor="adset-budget">Orçamento diário (em centavos)</Label>
+                                <Input id="adset-budget" type="number" placeholder="Ex: 5000 para R$50,00" value={dailyBudget} onChange={e => setDailyBudget(e.target.value)} />
+                             </div>
                         </div>
 
                         {/* Seção do Público */}
@@ -109,10 +170,10 @@ export default function Anuncios() {
                             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Público-Alvo</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="target-location">Localização</Label>
+                                    <Label htmlFor="target-location">País (código de 2 letras)</Label>
                                      <div className="relative">
                                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input id="target-location" placeholder="Ex: Brasil, São Paulo" value={targetLocation} onChange={e => setTargetLocation(e.target.value)} className="pl-10"/>
+                                        <Input id="target-location" placeholder="Ex: BR para Brasil" value={targetLocation} onChange={e => setTargetLocation(e.target.value)} className="pl-10"/>
                                     </div>
                                 </div>
                                  <div className="flex items-center gap-4">
@@ -201,10 +262,10 @@ export default function Anuncios() {
                         </Button>
                     )}
                     
-                     <Button onClick={handleNextStep} disabled={isLoading}>
+                     <Button onClick={step === 2 ? handleSubmit : handleNextStep} disabled={isLoading}>
                         {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         
-                        {step === 2 ? "Finalizar" : "Próximo"}
+                        {step === 2 ? "Finalizar e Criar" : "Próximo"}
 
                         {step < 2 && !isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
                     </Button>
@@ -213,5 +274,6 @@ export default function Anuncios() {
         </div>
     );
 }
+
 
     
