@@ -334,10 +334,32 @@ export default function HomePage() {
             <div className="container mx-auto">
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
                 <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
-                <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <Card className="shadow-lg border-primary border-2 flex flex-col">
+                <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <Card className="shadow-lg border-gray-200 flex flex-col">
+                         <CardHeader className="pb-4">
+                            <CardTitle className="text-2xl font-bold">7 Dias Grátis</CardTitle>
+                             <p className="text-4xl font-bold text-gray-800 pt-2">R$0<span className="text-lg font-medium text-gray-500">/7 dias</span></p>
+                            <p className="text-gray-600 text-sm">Teste todas as funcionalidades do plano Standard.</p>
+                        </CardHeader>
+                        <CardContent className="space-y-4 flex-grow">
+                             <ul className="space-y-3 text-gray-700">
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Integração com Google Meu Negócio</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
+                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Suporte Humano</li>
+                            </ul>
+                        </CardContent>
+                        <div className="p-6 pt-0">
+                           <Button asChild className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>
+                                <Link href="/acesso/cadastro">Iniciar Teste Grátis</Link>
+                           </Button>
+                        </div>
+                    </Card>
+                    <Card className="shadow-lg border-primary border-2 flex flex-col relative">
                         <CardHeader className="pb-4 pt-8 text-center">
-                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute top-4 left-1/2 -translate-x-1/2">
+                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute -top-4 left-1/2 -translate-x-1/2">
                                 Mais Popular
                             </div>
                             <CardTitle className="text-2xl font-bold pt-8">Plano Standard</CardTitle>
@@ -441,7 +463,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
-
-    
