@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, ArrowLeft, ArrowRight, Loader2, Library, Building, Target, Paintbrush } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -62,57 +63,9 @@ export default function Anuncios() {
     const [dailyBudget, setDailyBudget] = useState('');
     const [targeting, setTargeting] = useState('{"geo_locations":{"countries":["BR"]}}');
 
-    const handleNextStep = async () => {
-        if (step === 1) {
-            if (!campaignName || !campaignObjective) {
-                toast({ variant: 'destructive', title: "Campos obrigatórios", description: "Por favor, preencha o nome e o objetivo da campanha." });
-                return;
-            }
-            setIsLoading(true);
-            try {
-                const response = await fetch('/api/ads/campaigns', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: campaignName, objective: campaignObjective }),
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
-                
-                setCreatedCampaignId(result.id);
-                toast({ title: "Sucesso!", description: `Campanha "${campaignName}" criada com ID: ${result.id}` });
-                setStep(2);
-            } catch (error: any) {
-                toast({ variant: 'destructive', title: "Erro ao criar campanha", description: error.message });
-            } finally {
-                setIsLoading(false);
-            }
-        } else if (step === 2) {
-             if (!adSetName || !dailyBudget || !createdCampaignId) {
-                toast({ variant: 'destructive', title: "Campos obrigatórios", description: "Preencha todos os campos do conjunto de anúncios." });
-                return;
-            }
-            setIsLoading(true);
-            try {
-                 const response = await fetch('/api/ads/adsets', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: adSetName, 
-                        campaign_id: createdCampaignId,
-                        daily_budget: parseInt(dailyBudget, 10) * 100, // Budget in cents
-                        targeting: JSON.parse(targeting)
-                    }),
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
-
-                toast({ title: "Sucesso!", description: "Conjunto de anúncios criado." });
-                setStep(3);
-            } catch (error: any) {
-                toast({ variant: 'destructive', title: "Erro ao criar conjunto de anúncios", description: error.message });
-            } finally {
-                setIsLoading(false);
-            }
+    const handleNextStep = () => {
+        if (step < 3) {
+            setStep(prev => prev + 1);
         }
     };
 
@@ -229,7 +182,7 @@ export default function Anuncios() {
                     {step < 3 && (
                         <Button onClick={handleNextStep} disabled={isLoading}>
                             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {isLoading ? 'Criando...' : 'Próximo'}
+                            {isLoading ? 'Avançando...' : 'Próximo'}
                             {!isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
                         </Button>
                     )}
