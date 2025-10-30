@@ -3,22 +3,6 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    // --- MODO DE TESTE ---
-    // A chamada real ao webhook está desativada.
-    // Em vez disso, retornamos um JSON de exemplo para testar a interface.
-    // Isso evita o consumo de créditos da API de imagem durante a depuração.
-
-    const mockImageUrls = [
-        "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845149527.png",
-        "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845167509.png",
-        "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845186321.png"
-    ];
-    
-    // Retorna um array de strings (URLs)
-    return NextResponse.json({ success: true, imageUrls: mockImageUrls });
-
-    /*
-    // --- CÓDIGO ORIGINAL (DESATIVADO) ---
     const { publicacoes } = await request.json();
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
@@ -67,7 +51,6 @@ export async function POST(request: Request) {
     
     // Retorna um array de strings (URLs)
     return NextResponse.json({ success: true, imageUrls: imageUrls });
-    */
 
   } catch (error: any) {
     // Captura qualquer outro erro, como falha ao parsear o JSON da requisição inicial
