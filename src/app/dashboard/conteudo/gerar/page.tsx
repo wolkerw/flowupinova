@@ -257,7 +257,7 @@ export default function GerarConteudoPage() {
       const result = await response.json();
       
       if (!response.ok || !result.success) {
-        throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
+        throw new Error(result.error || `Erro HTTP: ${response.status}`);
       }
       
       const imageUrls = result.imageUrls;
@@ -298,18 +298,22 @@ export default function GerarConteudoPage() {
     }
     if (!user) return;
 
-    // Generate new text based on the summary
-    const newContent = await handleGenerateText(postSummary);
+    // Generate new text based on the summary, but don't advance the step yet.
+    // The handleGenerateText function will set the generated content and select the first one.
+    const newContentArray = await handleGenerateText(postSummary);
 
-    // If text generation is successful, set the image and move to step 3
-    if (newContent) {
+    // If text generation is successful, set the image and move directly to step 4 for review.
+    if (newContentArray && newContentArray.length > 0) {
         setGeneratedImages([selectedUnusedImage]);
         setSelectedImage(selectedUnusedImage);
         
         // Remove from the persistent history, as it's now in an active flow
         await removeUnusedImage(user.uid, selectedUnusedImage); 
         await fetchUnusedImages(); // Refresh the list
-        setStep(3); // Go to step 3 for review
+        
+        // Since handleGenerateText already sets generatedContent and selectedContentId,
+        // we can now directly go to step 4.
+        setStep(4);
     }
   };
 
