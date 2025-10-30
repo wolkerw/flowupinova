@@ -529,14 +529,14 @@ export default function GerarConteudoPage() {
                                       variant="outline" 
                                       size="sm"
                                       onClick={handleUseUnusedImage}
-                                      disabled={isLoading || !postSummary.trim()}
+                                      disabled={isLoading}
                                     >
                                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                                       Usar esta arte para publicar
                                     </Button>
                                 </div>
                             )}
-                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && !postSummary.trim() && (
+                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && (
                                 <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
                              )}
                       </TabsContent>
