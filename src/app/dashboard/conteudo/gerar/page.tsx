@@ -257,7 +257,7 @@ export default function GerarConteudoPage() {
       const result = await response.json();
       
       if (!response.ok || !result.success) {
-        throw new Error(result.error || `Erro HTTP: ${response.status}`);
+        throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
       }
       
       const imageUrls = result.imageUrls;
@@ -281,7 +281,7 @@ export default function GerarConteudoPage() {
 
     } catch (error: any) {
       console.error("Erro ao gerar imagens:", error);
-      toast({ variant: 'destructive', title: "Erro ao gerar imagens", description: error.message });
+      toast({ variant: 'destructive', title: "Erro ao Gerar Imagens", description: error.message });
     } finally {
       setIsGeneratingImages(false);
     }
@@ -289,13 +289,10 @@ export default function GerarConteudoPage() {
 
   const handleUseUnusedImage = async () => {
     if (!selectedUnusedImage) return;
-    if (!postSummary.trim()) {
-        toast({ variant: 'destructive', title: "Resumo necessário", description: "Por favor, escreva um resumo sobre o que é o post na Etapa 1." });
-        return;
-    }
     if (!user) return;
 
-    const newContentArray = await handleGenerateText(postSummary);
+    // Directly use the selected image and combine it with the first available text option.
+    const newContentArray = await handleGenerateText(postSummary || "Gerar texto para imagem existente");
 
     if (newContentArray && newContentArray.length > 0) {
         setGeneratedImages([selectedUnusedImage]);
@@ -537,7 +534,7 @@ export default function GerarConteudoPage() {
                                       variant="outline" 
                                       size="sm"
                                       onClick={handleUseUnusedImage}
-                                      disabled={!postSummary.trim() || isLoading}
+                                      disabled={!selectedUnusedImage}
                                     >
                                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                                       Usar esta arte para publicar
