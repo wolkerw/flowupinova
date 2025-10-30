@@ -17,6 +17,15 @@ interface UserAppData {
     contentHistory?: GeneratedContent[];
 }
 
+// --- MODO DE TESTE ---
+// Retornamos um JSON de exemplo para testar a interface de "Artes não Utilizadas".
+const mockImageUrls = [
+    "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845149527.png",
+    "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845167509.png",
+    "https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/Assets/image.png_1761845186321.png"
+];
+// --- FIM DO MODO DE TESTE ---
+
 // Helper to get the document reference for a user's app data
 function getUserAppDataDocRef(userId: string) {
     return doc(db, `users/${userId}/appData/main`);
@@ -28,6 +37,13 @@ function getUserAppDataDocRef(userId: string) {
  * @returns A promise that resolves to an array of image URLs.
  */
 export async function getUnusedImages(userId: string): Promise<string[]> {
+    // --- MODO DE TESTE ATIVADO ---
+    // Retorna as imagens mockadas para fins de depuração.
+    console.log("[MODO DE TESTE] Retornando imagens não utilizadas mockadas.");
+    return Promise.resolve(mockImageUrls);
+    
+    /* 
+    // --- CÓDIGO ORIGINAL (DESATIVADO) ---
     if (!userId) {
         console.error("UserID é necessário para buscar as imagens não utilizadas.");
         return [];
@@ -46,6 +62,7 @@ export async function getUnusedImages(userId: string): Promise<string[]> {
         console.error(`Erro ao buscar imagens não utilizadas para o usuário ${userId}:`, error);
         throw new Error("Não foi possível buscar o histórico de imagens do banco de dados.");
     }
+    */
 }
 
 /**
