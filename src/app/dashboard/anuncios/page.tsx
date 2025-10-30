@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Loader2, Library, Paintbrush, Globe, Tag } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, ArrowRight, Loader2, Library, Paintbrush, Globe, Tag, Link as LinkIcon, Type, Image as ImageIcon, MousePointerClick } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -59,6 +60,13 @@ export default function Anuncios() {
     const [targetAgeMin, setTargetAgeMin] = useState('18');
     const [targetAgeMax, setTargetAgeMax] = useState('65');
     const [targetInterests, setTargetInterests] = useState('');
+
+    // Ad Creative State
+    const [adText, setAdText] = useState("");
+    const [adTitle, setAdTitle] = useState("");
+    const [adImageUrl, setAdImageUrl] = useState("");
+    const [adLink, setAdLink] = useState("");
+    const [adCta, setAdCta] = useState("LEARN_MORE");
 
 
     const handleNextStep = () => {
@@ -200,14 +208,60 @@ export default function Anuncios() {
                 );
             case 2: // Ad Creative
                  return (
-                    <CardContent className="text-center text-gray-600 p-8">
-                        <div className="flex justify-center mb-4">
-                            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Paintbrush className="w-8 h-8 text-primary"/>
+                    <CardContent className="space-y-8">
+                         <div className="space-y-4 p-6 border rounded-lg bg-gray-50/50">
+                            <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Criativo do Anúncio</h3>
+                            
+                             <div className="space-y-2">
+                                <Label htmlFor="ad-text">Texto Principal do Anúncio</Label>
+                                <Textarea id="ad-text" placeholder="Escreva a mensagem que aparecerá no seu anúncio..." value={adText} onChange={e => setAdText(e.target.value)} />
+                            </div>
+
+                             <div className="space-y-2">
+                                <Label htmlFor="ad-title">Título do Link</Label>
+                                <div className="relative">
+                                    <Type className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input id="ad-title" placeholder="Um título chamativo para o seu link" value={adTitle} onChange={e => setAdTitle(e.target.value)} className="pl-10" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                    <Label htmlFor="ad-image-url">URL da Imagem</Label>
+                                    <div className="relative">
+                                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id="ad-image-url" placeholder="https://exemplo.com/imagem.png" value={adImageUrl} onChange={e => setAdImageUrl(e.target.value)} className="pl-10" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ad-link">Link de Destino</Label>
+                                    <div className="relative">
+                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id="ad-link" placeholder="https://seusite.com/produto" value={adLink} onChange={e => setAdLink(e.target.value)} className="pl-10" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="ad-cta">Chamada para Ação (Botão)</Label>
+                                <Select onValueChange={setAdCta} value={adCta}>
+                                    <SelectTrigger id="ad-cta" className="w-full">
+                                         <div className="flex items-center gap-2">
+                                            <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                                            <SelectValue placeholder="Escolha um botão..." />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="LEARN_MORE">Saiba Mais</SelectItem>
+                                        <SelectItem value="SHOP_NOW">Comprar Agora</SelectItem>
+                                        <SelectItem value="SIGN_UP">Cadastre-se</SelectItem>
+                                        <SelectItem value="CONTACT_US">Fale Conosco</SelectItem>
+                                        <SelectItem value="GET_QUOTE">Obter Cotação</SelectItem>
+                                        <SelectItem value="SUBSCRIBE">Inscrever-se</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                        <p className="text-lg mb-2 font-semibold">Criação do Anúncio</p>
-                        <p className="text-sm">A interface para montar o criativo do seu anúncio (imagem, vídeo e texto) será adicionada aqui em breve.</p>
                     </CardContent>
                 );
             default:
@@ -274,6 +328,5 @@ export default function Anuncios() {
         </div>
     );
 }
-
 
     
