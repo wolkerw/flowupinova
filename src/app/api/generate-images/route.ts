@@ -39,10 +39,10 @@ export async function POST(request: Request) {
         // Log do formato inesperado para depuração
         console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
         // Retorna um erro JSON claro para o frontend
-        return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
+        return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado.", details: JSON.stringify(data, null, 2) }, { status: 500 });
     }
     
-    // Extrai apenas as URLs das imagens do array de objetos
+    // A chave correta retornada pelo webhook é 'url_da_imagem'
     const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean);
 
     if (imageUrls.length === 0) {
