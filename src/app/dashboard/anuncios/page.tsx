@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush, Globe, User, Tag, MapPin, Hash, Users, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 const Stepper = ({ currentStep }: { currentStep: number }) => {
     const steps = [
         { title: 'Campanha', icon: Library },
-        { title: 'Conjunto de Anúncios', icon: Target },
+        { title: 'Público', icon: Target },
         { title: 'Anúncio', icon: Paintbrush }
     ];
 
@@ -60,8 +60,12 @@ export default function Anuncios() {
 
     // Ad Set State
     const [adSetName, setAdSetName] = useState('');
-    const [dailyBudget, setDailyBudget] = useState('');
-    const [targeting, setTargeting] = useState('{"geo_locations":{"countries":["BR"]}}');
+    const [dailyBudget, setDailyBudget] = useState('50');
+    const [targetLocation, setTargetLocation] = useState('Brasil');
+    const [targetAgeMin, setTargetAgeMin] = useState('18');
+    const [targetAgeMax, setTargetAgeMax] = useState('65');
+    const [targetInterests, setTargetInterests] = useState('');
+
 
     const handleNextStep = () => {
         if (step < 3) {
@@ -80,51 +84,79 @@ export default function Anuncios() {
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="campaign-name">Nome da Campanha</Label>
-                            <Input id="campaign-name" placeholder="Ex: Campanha de Verão" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
+                            <Input id="campaign-name" placeholder="Ex: Divulgação de Verão" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="campaign-objective">Objetivo da Campanha</Label>
+                            <Label htmlFor="campaign-objective">Qual o principal objetivo desta campanha?</Label>
                             <Select onValueChange={setCampaignObjective} value={campaignObjective}>
                                 <SelectTrigger id="campaign-objective">
                                     <SelectValue placeholder="Selecione um objetivo..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="LINK_CLICKS">Cliques no Link</SelectItem>
-                                    <SelectItem value="CONVERSIONS">Conversões</SelectItem>
-                                    <SelectItem value="POST_ENGAGEMENT">Engajamento com a Publicação</SelectItem>
-                                    <SelectItem value="LEAD_GENERATION">Geração de Leads</SelectItem>
-                                    <SelectItem value="BRAND_AWARENESS">Reconhecimento da Marca</SelectItem>
-                                    <SelectItem value="REACH">Alcance</SelectItem>
+                                    <SelectItem value="LINK_CLICKS">Levar pessoas para o seu site ou landing page</SelectItem>
+                                    <SelectItem value="LEAD_GENERATION">Receber contatos de potenciais clientes (Leads)</SelectItem>
+                                    <SelectItem value="POST_ENGAGEMENT">Aumentar o engajamento com uma publicação</SelectItem>
+                                    <SelectItem value="REACH">Mostrar meu anúncio para o máximo de pessoas</SelectItem>
+                                    <SelectItem value="BRAND_AWARENESS">Fazer mais pessoas conhecerem minha marca</SelectItem>
+                                    <SelectItem value="CONVERSIONS" disabled>Otimizar para conversões (em breve)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </CardContent>
                 );
-            case 2: // Ad Set Creation
+            case 2: // Ad Set Creation (Audience and Budget)
                 return (
-                     <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="adset-name">Nome do Conjunto de Anúncios</Label>
-                            <Input id="adset-name" placeholder="Ex: Público Jovem - SP" value={adSetName} onChange={e => setAdSetName(e.target.value)} />
+                     <CardContent className="space-y-8">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-800">Orçamento</h3>
+                             <div className="space-y-2">
+                                <Label htmlFor="adset-budget">Quanto você quer gastar por dia? (R$)</Label>
+                                <Input id="adset-budget" type="number" placeholder="Ex: 50" value={dailyBudget} onChange={e => setDailyBudget(e.target.value)} />
+                            </div>
                         </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="adset-budget">Orçamento Diário (R$)</Label>
-                            <Input id="adset-budget" type="number" placeholder="Ex: 50" value={dailyBudget} onChange={e => setDailyBudget(e.target.value)} />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="adset-targeting">Público-Alvo (JSON)</Label>
-                            <Textarea id="adset-targeting" placeholder='Ex: {"geo_locations":{"countries":["BR"]}}' value={targeting} onChange={e => setTargeting(e.target.value)} className="font-mono h-32" />
-                            <p className="text-xs text-muted-foreground">
-                                O direcionamento avançado estará disponível em breve. Por enquanto, use o formato JSON.
-                            </p>
+
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-800">Público-Alvo</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="target-location">Localização</Label>
+                                     <div className="relative">
+                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id="target-location" placeholder="Ex: Brasil, São Paulo" value={targetLocation} onChange={e => setTargetLocation(e.target.value)} className="pl-10"/>
+                                    </div>
+                                </div>
+                                 <div className="flex items-center gap-4">
+                                    <div className="space-y-2 w-1/2">
+                                        <Label htmlFor="target-age-min">Idade Mín.</Label>
+                                        <Input id="target-age-min" type="number" placeholder="18" value={targetAgeMin} onChange={e => setTargetAgeMin(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2 w-1/2">
+                                        <Label htmlFor="target-age-max">Idade Máx.</Label>
+                                        <Input id="target-age-max" type="number" placeholder="65" value={targetAgeMax} onChange={e => setTargetAgeMax(e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="target-interests">Interesses</Label>
+                                <p className="text-xs text-muted-foreground">Separe os interesses por vírgula.</p>
+                                <div className="relative">
+                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input id="target-interests" placeholder="Ex: Marketing digital, Viagens, Culinária" value={targetInterests} onChange={e => setTargetInterests(e.target.value)} className="pl-10"/>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 );
             case 3: // Ad Creative
                  return (
                     <CardContent className="text-center text-gray-600 p-8">
-                        <p className="text-lg mb-2">Próxima Etapa: Criação do Anúncio</p>
-                        <p>A interface para montar o criativo do seu anúncio (imagem, vídeo e texto) será adicionada aqui.</p>
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Paintbrush className="w-8 h-8 text-primary"/>
+                            </div>
+                        </div>
+                        <p className="text-lg mb-2 font-semibold">Criação do Anúncio</p>
+                        <p className="text-sm">A interface para montar o criativo do seu anúncio (imagem, vídeo e texto) será adicionada aqui em breve.</p>
                     </CardContent>
                 );
             default:
@@ -152,8 +184,8 @@ export default function Anuncios() {
                                 exit={{ opacity: 0, x: 10 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                {step === 1 && "Etapa 1: Detalhes da Campanha"}
-                                {step === 2 && "Etapa 2: Orçamento e Público"}
+                                {step === 1 && "Etapa 1: Objetivo da Campanha"}
+                                {step === 2 && "Etapa 2: Público e Orçamento"}
                                 {step === 3 && "Etapa 3: Criativo do Anúncio"}
                             </motion.div>
                         </AnimatePresence>
@@ -179,15 +211,18 @@ export default function Anuncios() {
                             Voltar
                         </Button>
                     )}
-                    {step < 3 && (
-                        <Button onClick={handleNextStep} disabled={isLoading}>
-                            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {isLoading ? 'Avançando...' : 'Próximo'}
-                            {!isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
-                        </Button>
-                    )}
+                    
+                     <Button onClick={handleNextStep} disabled={isLoading}>
+                        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        
+                        {step === 3 ? "Finalizar" : "Próximo"}
+
+                        {step < 3 && !isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
+                    </Button>
                 </CardFooter>
             </Card>
         </div>
     );
 }
+
+    
