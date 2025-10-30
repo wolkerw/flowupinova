@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive, Combine } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -181,7 +181,7 @@ export default function GerarConteudoPage() {
 
  const handleGenerateText = async (summary?: string) => {
     const textToGenerate = summary || postSummary;
-    if (!textToGenerate.trim() || isLoading || !user) return;
+    if (!textToGenerate.trim() || isLoading || !user) return null;
     setIsLoading(true);
 
     try {
@@ -288,35 +288,44 @@ export default function GerarConteudoPage() {
   };
 
   const handleUseUnusedImage = async () => {
-    if (!selectedUnusedImage) {
-        toast({ variant: 'destructive', title: "Nenhuma imagem selecionada", description: "Por favor, selecione uma arte não utilizada." });
-        return;
-    }
+    if (!selectedUnusedImage) return;
     if (!postSummary.trim()) {
         toast({ variant: 'destructive', title: "Resumo necessário", description: "Por favor, escreva um resumo sobre o que é o post na Etapa 1." });
         return;
     }
     if (!user) return;
 
-    // Generate new text based on the summary, but don't advance the step yet.
-    // The handleGenerateText function will set the generated content and select the first one.
     const newContentArray = await handleGenerateText(postSummary);
 
-    // If text generation is successful, set the image and move directly to step 4 for review.
     if (newContentArray && newContentArray.length > 0) {
         setGeneratedImages([selectedUnusedImage]);
         setSelectedImage(selectedUnusedImage);
         
-        // Remove from the persistent history, as it's now in an active flow
         await removeUnusedImage(user.uid, selectedUnusedImage); 
-        await fetchUnusedImages(); // Refresh the list
+        await fetchUnusedImages();
         
-        // Since handleGenerateText already sets generatedContent and selectedContentId,
-        // we can now directly go to step 4.
         setStep(4);
     }
   };
 
+  const handleReuseContentAndArt = async () => {
+    if (!selectedHistoryContent || !selectedUnusedImage || !user) return;
+    
+    // Set the selected content as the only option in generatedContent
+    setGeneratedContent([selectedHistoryContent]);
+    setSelectedContentId("0");
+
+    // Set the selected image as the only option in generatedImages
+    setGeneratedImages([selectedUnusedImage]);
+    setSelectedImage(selectedUnusedImage);
+    
+    // Remove the image from the unused list as it's now being actively used
+    await removeUnusedImage(user.uid, selectedUnusedImage);
+    await fetchUnusedImages(); // Refresh the list in the UI
+
+    // Go directly to the review step
+    setStep(4);
+  };
 
   const handleNextToStep3 = async () => {
     if(generatedImages.length === 0){
@@ -366,9 +375,7 @@ export default function GerarConteudoPage() {
     if (result.success) {
       toast({ title: "Sucesso!", description: `Post ${publishMode === 'now' ? 'enviado para publicação' : 'agendado'} com sucesso!` });
       
-      // Remove the successfully published image from the unused list
-      await removeUnusedImage(user.uid, selectedImage);
-
+      // The image is now officially used, so it's already been removed from the unused list
       // The rest of the generated images for this session are now "unused", so save them.
       const otherImages = generatedImages.filter(img => img !== selectedImage);
       if (otherImages.length > 0) {
@@ -388,11 +395,12 @@ export default function GerarConteudoPage() {
 
   const handleHistoryContentSelection = (indexStr: string) => {
     const index = parseInt(indexStr, 10);
-    if (index >= 0 && index < contentHistory.length) {
-      setSelectedHistoryContent(contentHistory[index]);
-    } else {
-      setSelectedHistoryContent(null);
-    }
+    const content = contentHistory.find((_, i) => i === index);
+    setSelectedHistoryContent(content || null);
+  };
+  
+  const handleUnusedImageSelection = (imageUrl: string) => {
+    setSelectedUnusedImage(imageUrl);
   };
 
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
@@ -494,7 +502,7 @@ export default function GerarConteudoPage() {
                                 )}
                             </div>
                           </RadioGroup>
-                          {selectedHistoryContent && (
+                          {selectedHistoryContent && !selectedUnusedImage && (
                             <div className="mt-4 flex justify-end">
                                 <Button 
                                   variant="outline" 
@@ -509,7 +517,7 @@ export default function GerarConteudoPage() {
                           )}
                       </TabsContent>
                       <TabsContent value="unused-images" className="mt-4">
-                            <RadioGroup onValueChange={setSelectedUnusedImage}>
+                            <RadioGroup onValueChange={handleUnusedImageSelection}>
                                 <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
                                     {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
                                         <div key={index} className="relative">
@@ -523,24 +531,36 @@ export default function GerarConteudoPage() {
                                     )}
                                 </div>
                             </RadioGroup>
-                             {selectedUnusedImage && (
+                             {selectedUnusedImage && !selectedHistoryContent && (
                                 <div className="mt-4 flex justify-end">
                                     <Button 
                                       variant="outline" 
                                       size="sm"
                                       onClick={handleUseUnusedImage}
-                                      disabled={isLoading}
+                                      disabled={!postSummary.trim() || isLoading}
                                     >
                                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                                       Usar esta arte para publicar
                                     </Button>
                                 </div>
                             )}
-                             {!selectedUnusedImage && unusedImagesHistory.length > 0 && (
+                             {!selectedUnusedImage && !selectedHistoryContent && unusedImagesHistory.length > 0 && (
                                 <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
                              )}
                       </TabsContent>
                   </Tabs>
+                   {selectedHistoryContent && selectedUnusedImage && (
+                        <div className="mt-6 flex justify-center border-t pt-4">
+                            <Button
+                                size="sm"
+                                onClick={handleReuseContentAndArt}
+                                className="bg-gradient-to-r from-green-500 to-teal-500 text-white"
+                            >
+                                <Combine className="w-4 h-4 mr-2"/>
+                                Reutilizar Conteúdo e Arte
+                            </Button>
+                        </div>
+                   )}
               </CardContent>
           </Card>
         </motion.div>
