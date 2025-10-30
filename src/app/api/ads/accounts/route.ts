@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Meta account not connected." }, { status: 403 });
         }
 
-        const url = `https://graph.facebook.com/v20.0/me/adaccounts?fields=name&access_token=${metaConnection.accessToken}`;
+        const url = `https://graph.facebook.com/v24.0/me/adaccounts?fields=name&access_token=${metaConnection.accessToken}`;
         
         const response = await fetch(url);
         const data = await response.json();
