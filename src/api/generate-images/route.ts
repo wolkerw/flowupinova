@@ -42,8 +42,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado." }, { status: 500 });
     }
     
-    // CORREÇÃO: A chave correta retornada pelo webhook é 'url_post'
-    const imageUrls = data.map(item => item.url_post).filter(Boolean);
+    // CORREÇÃO: A chave correta retornada pelo webhook é 'url_da_imagem'
+    const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean);
 
     if (imageUrls.length === 0) {
         return NextResponse.json({ error: "Nenhuma URL de imagem válida foi encontrada na resposta." }, { status: 500 });
