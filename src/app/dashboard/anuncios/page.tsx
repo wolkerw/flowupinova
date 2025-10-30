@@ -7,16 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush, Globe, User, Tag, MapPin, Hash, Users, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Library, Target, Paintbrush, Globe, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Textarea } from "@/components/ui/textarea";
 
 const Stepper = ({ currentStep }: { currentStep: number }) => {
     const steps = [
-        { title: 'Campanha', icon: Library },
-        { title: 'Público', icon: Target },
+        { title: 'Campanha & Público', icon: Library },
         { title: 'Anúncio', icon: Paintbrush }
     ];
 
@@ -53,14 +51,10 @@ export default function Anuncios() {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
-    // Campaign State
+    // Campaign & Ad Set State
     const [campaignName, setCampaignName] = useState('');
     const [campaignObjective, setCampaignObjective] = useState('');
-    const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
-
-    // Ad Set State
-    const [adSetName, setAdSetName] = useState('');
-    const [dailyBudget, setDailyBudget] = useState('50');
+    const [dailyBudget, setDailyBudget] = useState('50'); // R$50 as a default
     const [targetLocation, setTargetLocation] = useState('Brasil');
     const [targetAgeMin, setTargetAgeMin] = useState('18');
     const [targetAgeMax, setTargetAgeMax] = useState('65');
@@ -68,7 +62,7 @@ export default function Anuncios() {
 
 
     const handleNextStep = () => {
-        if (step < 3) {
+        if (step < 2) {
             setStep(prev => prev + 1);
         }
     };
@@ -79,44 +73,40 @@ export default function Anuncios() {
 
     const renderStep = () => {
         switch (step) {
-            case 1: // Campaign Creation
+            case 1: // Campaign, Audience, Budget
                 return (
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="campaign-name">Nome da Campanha</Label>
-                            <Input id="campaign-name" placeholder="Ex: Divulgação de Verão" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="campaign-objective">Qual o principal objetivo desta campanha?</Label>
-                            <Select onValueChange={setCampaignObjective} value={campaignObjective}>
-                                <SelectTrigger id="campaign-objective">
-                                    <SelectValue placeholder="Selecione um objetivo..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="LINK_CLICKS">Levar pessoas para o seu site ou landing page</SelectItem>
-                                    <SelectItem value="LEAD_GENERATION">Receber contatos de potenciais clientes (Leads)</SelectItem>
-                                    <SelectItem value="POST_ENGAGEMENT">Aumentar o engajamento com uma publicação</SelectItem>
-                                    <SelectItem value="REACH">Mostrar meu anúncio para o máximo de pessoas</SelectItem>
-                                    <SelectItem value="BRAND_AWARENESS">Fazer mais pessoas conhecerem minha marca</SelectItem>
-                                    <SelectItem value="CONVERSIONS" disabled>Otimizar para conversões (em breve)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </CardContent>
-                );
-            case 2: // Ad Set Creation (Audience and Budget)
-                return (
-                     <CardContent className="space-y-8">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-gray-800">Orçamento</h3>
+                    <CardContent className="space-y-8">
+                        {/* Seção da Campanha */}
+                        <div className="space-y-4 p-6 border rounded-lg bg-gray-50/50">
+                            <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Detalhes da Campanha</h3>
                              <div className="space-y-2">
-                                <Label htmlFor="adset-budget">Quanto você quer gastar por dia? (R$)</Label>
+                                <Label htmlFor="campaign-name">Nome da Campanha</Label>
+                                <Input id="campaign-name" placeholder="Ex: Divulgação de Verão" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="campaign-objective">Qual o principal objetivo desta campanha?</Label>
+                                <Select onValueChange={setCampaignObjective} value={campaignObjective}>
+                                    <SelectTrigger id="campaign-objective">
+                                        <SelectValue placeholder="Selecione um objetivo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="LINK_CLICKS">Tráfego (LINK_CLICKS)</SelectItem>
+                                        <SelectItem value="LEAD_GENERATION">Geração de Cadastros (LEAD_GENERATION)</SelectItem>
+                                        <SelectItem value="POST_ENGAGEMENT">Engajamento com a Publicação (POST_ENGAGEMENT)</SelectItem>
+                                        <SelectItem value="REACH">Alcance (REACH)</SelectItem>
+                                        <SelectItem value="BRAND_AWARENESS">Reconhecimento da Marca (BRAND_AWARENESS)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="adset-budget">Orçamento diário (R$)</Label>
                                 <Input id="adset-budget" type="number" placeholder="Ex: 50" value={dailyBudget} onChange={e => setDailyBudget(e.target.value)} />
                             </div>
                         </div>
 
-                         <div className="space-y-4">
-                            <h3 className="font-semibold text-gray-800">Público-Alvo</h3>
+                        {/* Seção do Público */}
+                        <div className="space-y-4 p-6 border rounded-lg bg-gray-50/50">
+                            <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Público-Alvo</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="target-location">Localização</Label>
@@ -147,7 +137,7 @@ export default function Anuncios() {
                         </div>
                     </CardContent>
                 );
-            case 3: // Ad Creative
+            case 2: // Ad Creative
                  return (
                     <CardContent className="text-center text-gray-600 p-8">
                         <div className="flex justify-center mb-4">
@@ -184,9 +174,8 @@ export default function Anuncios() {
                                 exit={{ opacity: 0, x: 10 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                {step === 1 && "Etapa 1: Objetivo da Campanha"}
-                                {step === 2 && "Etapa 2: Público e Orçamento"}
-                                {step === 3 && "Etapa 3: Criativo do Anúncio"}
+                                {step === 1 && "Etapa 1: Campanha e Público"}
+                                {step === 2 && "Etapa 2: Criativo do Anúncio"}
                             </motion.div>
                         </AnimatePresence>
                     </CardTitle>
@@ -215,9 +204,9 @@ export default function Anuncios() {
                      <Button onClick={handleNextStep} disabled={isLoading}>
                         {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         
-                        {step === 3 ? "Finalizar" : "Próximo"}
+                        {step === 2 ? "Finalizar" : "Próximo"}
 
-                        {step < 3 && !isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
+                        {step < 2 && !isLoading && <ArrowRight className="w-4 h-4 ml-2" />}
                     </Button>
                 </CardFooter>
             </Card>
