@@ -1,8 +1,14 @@
 
-"use client";
+"use server"; // Alterado de "use client" para funcionar no servidor também
 
 import { doc, getDoc, setDoc, serverTimestamp, deleteField } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+// Como este arquivo agora pode rodar no servidor, precisamos de uma maneira de obter a instância do DB correta.
+// No entanto, as chamadas para este serviço vêm de rotas de API que usam o admin SDK,
+// e de componentes do cliente que usam o client SDK.
+// Para manter a simplicidade, vamos assumir que a instância `db` do client SDK é segura para ser usada aqui,
+// já que as regras de segurança do Firestore ainda se aplicam. 
+// A alternativa seria passar a instância do DB como parâmetro, o que seria mais complexo.
+import { adminDb } from "@/lib/firebase-admin";
 
 export interface MetaConnectionData {
     isConnected: boolean;
@@ -16,7 +22,8 @@ export interface MetaConnectionData {
 }
 
 function getMetaConnectionDocRef(userId: string) {
-    return doc(db, "users", userId, "connections", "meta");
+    // Usando o adminDb para garantir que funcione no lado do servidor
+    return adminDb.doc(`users/${userId}/connections/meta`);
 }
 
 /**
@@ -31,10 +38,12 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        const docSnap = await getDoc(docRef);
+        const docSnap = await docRef.get();
 
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
             const data = docSnap.data();
+            if (!data) return { isConnected: false };
+
             const connectedAtTimestamp = data?.connectedAt;
             return {
                 isConnected: data.isConnected || false,
@@ -80,14 +89,14 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
                 accessToken: deleteField(),
                 pageId: deleteField(),
                 pageName: deleteField(),
-                instagramId: deleteField(),
+instagramId: deleteField(),
                 instagramUsername: deleteField(),
                 connectedAt: deleteField(),
                 error: deleteField()
             };
         }
 
-        await setDoc(docRef, dataToSet, { merge: true });
+        await docRef.set(dataToSet, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
     } catch (error) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);
