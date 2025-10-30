@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     }
     
     // Retorna um array de strings (URLs)
-    return NextResponse.json(imageUrls);
+    return NextResponse.json({ success: true, imageUrls: imageUrls });
 
   } catch (error: any) {
     // Captura qualquer outro erro, como falha ao parsear o JSON da requisição inicial

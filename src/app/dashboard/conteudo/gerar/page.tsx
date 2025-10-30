@@ -190,12 +190,11 @@ export default function GerarConteudoPage() {
             body: JSON.stringify({ summary: textToGenerate }),
         });
         
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ details: "Falha ao ler a resposta de erro da API." }));
-            throw new Error(errorData.details || `Erro na API: ${response.status}`);
-        }
-        
         const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.details || data.error || `Erro na API: ${response.status}`);
+        }
         
         if (Array.isArray(data) && data.length > 0) {
             const content = data as GeneratedContent[];
@@ -254,12 +253,13 @@ export default function GerarConteudoPage() {
         body: JSON.stringify({ publicacoes: contentToUse }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ details: "Falha ao processar a resposta de erro da API de imagem." }));
-        throw new Error(errorData.details || `Erro HTTP: ${response.status}`);
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
       }
       
-      const imageUrls = await response.json();
+      const imageUrls = result.imageUrls;
 
       if (!Array.isArray(imageUrls)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
