@@ -167,7 +167,7 @@ export default function GerarConteudoPage() {
         // or before the component re-renders (if dependencies change).
         return () => {
             if (user && generatedImages.length > 0) {
-                saveUnusedImages(user, generatedImages)
+                saveUnusedImages(user.uid, generatedImages)
                     .then(() => {
                         console.log("Unused images saved on cleanup.");
                     })
@@ -853,4 +853,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-

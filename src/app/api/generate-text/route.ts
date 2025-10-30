@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { summary } = await request.json();
-    // Corrigido: Removido o "_e_imagens" do final da URL
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -24,8 +23,12 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
     
+    // Process data to match the expected structure, handling potential inconsistencies.
     const processedData = data.map((item: any) => {
-        if (!item || !item.titulo) {
+        // The webhook might return 'título' or 'titulo'. We normalize to 'titulo' with accent.
+        const title = item.título || item.titulo;
+
+        if (!item || !title) {
           return {
             titulo: "Erro de formato",
             subtitulo: "A resposta do webhook para este item não continha um título válido.",
@@ -36,15 +39,17 @@ export async function POST(request: Request) {
 
         let hashtags = item.hashtags;
         if (typeof hashtags === 'string') {
-          hashtags = hashtags.split(/[ ,]+/).filter(h => h).map(h => h.startsWith('#') ? h : `#${h}`);
+          // If hashtags are a single string, split them.
+          hashtags = hashtags.split(/[ ,]+/).filter(Boolean).map((h: string) => h.startsWith('#') ? h : `#${h}`);
         } else if (Array.isArray(hashtags)) {
-          hashtags = hashtags.map((h: any) => String(h)).filter(h => h).map(h => h.startsWith('#') ? h : `#${h}`);
+          // If it's already an array, just ensure formatting.
+          hashtags = hashtags.map((h: any) => String(h)).filter(Boolean).map((h: string) => h.startsWith('#') ? h : `#${h}`);
         } else {
           hashtags = [];
         }
 
         return { 
-            titulo: item.titulo || "Título não gerado", 
+            titulo: title, // Use the normalized title
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
             hashtags: hashtags,
             url_da_imagem: item.url_da_imagem || null
