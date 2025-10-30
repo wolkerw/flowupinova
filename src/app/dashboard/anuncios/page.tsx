@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Loader2, Library, Paintbrush, Globe, Tag, Link as LinkIcon, Type, Image as ImageIcon, MousePointerClick } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Library, Paintbrush, Globe, Tag, Link as LinkIcon, Type, Image as ImageIcon, MousePointerClick, Briefcase } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -52,6 +52,11 @@ export default function Anuncios() {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
+    // Ad Account State
+    const [adAccounts, setAdAccounts] = useState<{ id: string; name: string }[]>([]);
+    const [selectedAdAccount, setSelectedAdAccount] = useState('');
+    const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+
     // Campaign & Ad Set State
     const [campaignName, setCampaignName] = useState('');
     const [campaignObjective, setCampaignObjective] = useState('');
@@ -67,6 +72,31 @@ export default function Anuncios() {
     const [adImageUrl, setAdImageUrl] = useState("");
     const [adLink, setAdLink] = useState("");
     const [adCta, setAdCta] = useState("LEARN_MORE");
+
+     useEffect(() => {
+        const fetchAdAccounts = async () => {
+            if (!user) return;
+            setIsLoadingAccounts(true);
+            try {
+                const response = await fetch('/api/ads/accounts');
+                const result = await response.json();
+                if (result.success && result.accounts) {
+                    setAdAccounts(result.accounts);
+                    if (result.accounts.length > 0) {
+                        setSelectedAdAccount(result.accounts[0].id);
+                    }
+                } else {
+                    toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar as contas de anúncio." });
+                }
+            } catch (error) {
+                toast({ variant: "destructive", title: "Erro de Rede", description: "Falha ao buscar contas de anúncio." });
+            } finally {
+                setIsLoadingAccounts(false);
+            }
+        };
+
+        fetchAdAccounts();
+    }, [user, toast]);
 
 
     const handleNextStep = () => {
@@ -147,6 +177,30 @@ export default function Anuncios() {
                         {/* Seção da Campanha */}
                         <div className="space-y-4 p-6 border rounded-lg bg-gray-50/50">
                             <h3 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Detalhes da Campanha</h3>
+                            
+                             <div className="space-y-2">
+                                <Label htmlFor="ad-account">Conta de Anúncios</Label>
+                                <Select onValueChange={setSelectedAdAccount} value={selectedAdAccount} disabled={isLoadingAccounts || adAccounts.length === 0}>
+                                    <SelectTrigger id="ad-account" className="w-full">
+                                        <div className="flex items-center gap-2">
+                                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                            <SelectValue placeholder={isLoadingAccounts ? "Carregando contas..." : "Selecione uma conta"} />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {isLoadingAccounts ? (
+                                            <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                                        ) : adAccounts.length > 0 ? (
+                                            adAccounts.map(account => (
+                                                <SelectItem key={account.id} value={account.id}>{account.name} ({account.id})</SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="no-accounts" disabled>Nenhuma conta encontrada</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                              <div className="space-y-2">
                                 <Label htmlFor="campaign-name">Nome da Campanha</Label>
                                 <Input id="campaign-name" placeholder="Ex: Divulgação de Verão" value={campaignName} onChange={e => setCampaignName(e.target.value)} />
