@@ -257,7 +257,7 @@ export default function HomePage() {
               </div>
               <div>
                  <Image
-                    src="/mascote-flowup.gif"
+                    src="/mascote-flowy.gif"
                     alt="Mascote Flowy"
                     width={500}
                     height={500}
