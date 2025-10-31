@@ -257,11 +257,10 @@ export default function HomePage() {
               </div>
               <div>
                  <Image
-                    src="/mascote-flowy.gif"
-                    alt="Mascote Flowy Animado"
+                    src="/mascote-flowy.svg"
+                    alt="Mascote Flowy"
                     width={500}
                     height={500}
-                    unoptimized
                     className="rounded-lg mx-auto"
                   />
               </div>
