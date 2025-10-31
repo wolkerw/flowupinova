@@ -1,11 +1,14 @@
 
+
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import Image from "next/image";
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import {
   LayoutDashboard,
@@ -19,6 +22,9 @@ import {
   Building2,
   LogOut,
   Loader2,
+  CheckCircle,
+  XCircle,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,7 +38,6 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -40,12 +45,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel
+  DropdownMenuLabel,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { processPendingNotifications, getNotifications, markAllNotificationsAsRead, type Notification } from "@/lib/services/notifications-service";
+import { cn } from "@/lib/utils";
 
 const allNavigationItems = [
   {
@@ -80,12 +86,71 @@ const allNavigationItems = [
   },
 ];
 
+const NotificationItem = ({ notification }: { notification: Notification }) => {
+    const statusIcons = {
+        unread: <Sparkles className="w-4 h-4 text-blue-500" />,
+        published: <CheckCircle className="w-4 h-4 text-green-500" />, // Visual alternative
+        failed: <XCircle className="w-4 h-4 text-red-500" />,
+    };
+
+    const isUnread = notification.status === 'unread';
+
+    return (
+        <DropdownMenuItem className={cn("flex items-start gap-3 p-3 cursor-default focus:bg-gray-50", isUnread && "bg-blue-50")}>
+            <div className="mt-1">
+                 {statusIcons[notification.status as keyof typeof statusIcons] || <Bell className="w-4 h-4 text-gray-500" />}
+            </div>
+            <div className="flex-1">
+                <p className="text-sm text-gray-800 leading-snug">{notification.message}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                    {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: ptBR })}
+                </p>
+            </div>
+        </DropdownMenuItem>
+    );
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+
+  const fetchAndProcessNotifications = useCallback(async () => {
+    if (!user) return;
+    setLoadingNotifications(true);
+    try {
+        // First, process any pending notifications that are due
+        await processPendingNotifications(user.uid);
+        // Then, fetch all recent notifications
+        const fetchedNotifications = await getNotifications(user.uid);
+        setNotifications(fetchedNotifications);
+    } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+    } finally {
+        setLoadingNotifications(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+        fetchAndProcessNotifications();
+    }
+  }, [user, fetchAndProcessNotifications]);
+
+  const handleOpenNotifications = async (isOpen: boolean) => {
+    // When the dropdown opens and there are unread notifications, mark them as read.
+    if (isOpen && unreadCount > 0) {
+        if (!user) return;
+        // Optimistically update the UI
+        setNotifications(prev => prev.map(n => n.status === 'unread' ? { ...n, status: 'read' } : n));
+        // Then, update in the backend
+        await markAllNotificationsAsRead(user.uid);
+    }
+  };
   
-  // A lógica de redirecionamento agora está centralizada no AuthProvider.
-  // Apenas renderizamos o loader se o estado ainda estiver carregando.
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -93,7 +158,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
-
 
   return (
     <SidebarProvider>
@@ -168,10 +232,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-full">
-                  <Bell className="w-5 h-5" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--flowup-cyan)' }}></div>
-                </Button>
+                 <DropdownMenu onOpenChange={handleOpenNotifications}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-full">
+                        <Bell className="w-5 h-5" />
+                        {unreadCount > 0 && (
+                            <div className="absolute -top-0 -right-0 w-4 h-4 text-xs flex items-center justify-center rounded-full bg-red-500 text-white">
+                                {unreadCount}
+                            </div>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                        <DropdownMenuLabel className="flex justify-between items-center">
+                            Notificações
+                            <Button variant="ghost" size="sm" onClick={fetchAndProcessNotifications} disabled={loadingNotifications}>
+                                {loadingNotifications ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atualizar"}
+                            </Button>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                            {loadingNotifications ? (
+                                <div className="flex items-center justify-center p-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                                </div>
+                            ) : notifications.length === 0 ? (
+                                <p className="text-sm text-center text-gray-500 p-4">Nenhuma notificação nova.</p>
+                            ) : (
+                                notifications.map(n => <NotificationItem key={n.id} notification={n} />)
+                            )}
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                 </DropdownMenu>
+
                 <Button variant="ghost" size="icon" className="hover:bg-gray-100 rounded-full">
                   <HelpCircle className="w-5 h-5" />
                 </Button>

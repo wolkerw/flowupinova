@@ -140,6 +140,17 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
         console.log(`Post ${docRef.id} saved to DB with status '${initialStatus}'.`);
 
+        // Step 2.5: Create a pending notification
+        const notificationsCollection = collection(db, `users/${userId}/notifications`);
+        await addDoc(notificationsCollection, {
+            postId: docRef.id,
+            postTitle: postToSave.title,
+            status: 'pending',
+            scheduledAt: postToSave.scheduledAt,
+            createdAt: Timestamp.now(),
+        });
+        console.log(`Pending notification created for post ${docRef.id}`);
+
         if (!isImmediate) {
             console.log(`Post ${docRef.id} is scheduled for a future date.`);
             return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
