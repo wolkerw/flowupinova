@@ -265,9 +265,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </DropdownMenuContent>
                  </DropdownMenu>
 
-                <Button variant="ghost" size="icon" className="hover:bg-gray-100 rounded-full">
-                  <HelpCircle className="w-5 h-5" />
-                </Button>
+                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="flex items-center gap-2">
