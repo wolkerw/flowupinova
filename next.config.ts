@@ -58,5 +58,5 @@ if (process.env.APP_HOST) {
   console.log("==================================================");
 }
 
-// Forcing a server restart to clear cache. This comment forces another restart. This is a final attempt to clear the cache.
+// Forçando uma reinicialização do servidor para limpar o cache. Este comentário força outra reinicialização.
 export default nextConfig;
