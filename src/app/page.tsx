@@ -256,12 +256,15 @@ export default function HomePage() {
                 </Button>
               </div>
               <div>
-                 <Image 
-                    src="/mascote-flowy.svg" 
-                    alt="Mascote Flowy da FlowUp" 
-                    width={500} 
-                    height={500} 
+                 <video 
+                    src="/mascote-flowy.mp4" 
+                    width="500" 
+                    height="500" 
                     className="rounded-lg mx-auto"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                   />
               </div>
             </div>
