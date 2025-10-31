@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar className="border-r border-gray-200/60 bg-white">
           <SidebarHeader className="border-b border-gray-100 p-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
+              <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
             </Link>
           </SidebarHeader>
 

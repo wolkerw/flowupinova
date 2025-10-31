@@ -46,7 +46,7 @@ const ParallaxShapes = () => {
                 <path d="M5,107.8c-.3,0-.5,0-.8,0-5.1-1.3-4.4-13.7-3.7-18,1.2-7.5,4.6-14.5,10.2-20.9l2.1-2.4.8,3.1c1,3.9,2.3,7.7,4,11.4,2,4.4,4.4,8.6,7.2,12.5l1.4,1.9-2.3.6c-3.3.9-6.4,2.3-9.1,4.2-2.5,1.7-4.2,3.4-5.5,4.8-1.4,1.5-2.7,2.8-4.3,2.8h0ZM11.1,73.6c-4,5.2-6.5,10.8-7.4,16.7-1.1,7.2,0,13.5,1.2,14.2.4-.2,1.2-1,1.9-1.7,1.3-1.4,3.2-3.3,6-5.2,2.4-1.6,5-3,7.9-3.9-2.4-3.6-4.5-7.3-6.3-11.2-1.3-2.9-2.4-5.8-3.3-8.8h0Z"/>
                 <path d="M64.1,107.8c-1.6,0-2.8-1.3-4.3-2.8-1.3-1.4-2.9-3-5.5-4.8-2.7-1.9-5.8-3.3-9.1-4.2l-2.3-.6,1.4-1.9c2.8-3.9,5.3-8.1,7.2-12.5,1.6-3.7,3-7.5,4-11.4l.8-3.1,2.1,2.4c5.6,6.3,9,13.4,10.2,20.9.7,4.2,1.4,16.6-3.7,18-.3,0-.5,0-.8,0h0ZM48.4,93.6c2.8,1,5.5,2.3,7.9,3.9,2.8,1.9,4.7,3.8,6,5.2.7.7,1.5,1.5,1.9,1.7,1.1-.7,2.3-6.9,1.2-14.2-.9-5.9-3.4-11.5-7.4-16.7-.9,3-2,6-3.3,8.8-1.8,3.9-3.9,7.7-6.3,11.2h0Z"/>
                 <path d="M34.5,133.3l-1-.7c-.5-.3-11.5-8.1-10.6-20.9.5-6.8,4.1-11.6,6.2-13.9l.5-.5h10l.5.6c2,2.3,5.4,7.1,5.8,13.9.7,12.4-9.4,20-10.6,20.8l-1,.7h.2ZM31.1,100.7c-1.8,2.1-4.5,6-4.8,11.3-.6,8.9,5.7,15.1,8.2,17.1,2.5-2.1,8.7-8.3,8.2-17.2-.3-5.2-2.8-9.1-4.5-11.3h-7.1Z"/>
-                <path d="M34.9,54.4c-6.7,0-12.1-5.4-12.1-12.1s5.4-12.1,12.1-12.1,12.1,5.4,12.1,12.1-5.4,12.1-12.1,12.1ZM34.9,33.6c-4.8,0-8.7,3.9-8.7,8.7s3.9,8.7,8.7,8.7,8.7-3.9,8.7-8.7-3.9-8.7-8.7-8.7Z"/>
+                <path d="M34.9,54.4c-6.7,0-12.1-5.4-12.1-12.1s5.4-12.1,12.1-12.1,12.1,5.4,12.1,12.1-5.4,12.1-12.1,12.1ZM34.9,33.6c-4.8,0-8.7,3.9-8.7,8.7s3.9,8.7,8.7,8.7,8.7-3.9,8.7,8.7-3.9-8.7-8.7-8.7Z"/>
               </g>
             </svg>
         </motion.div>
@@ -215,7 +215,7 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
+            <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
@@ -421,7 +421,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
-                <Image src="/logo.svg" alt="FlowUp Logo" width={120} height={25} />
+                <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
             </div>
             <div className="flex items-center gap-4 mt-4 md:mt-0">
               <Link href="/termos" className="text-gray-600 hover:text-primary">Termos</Link>
