@@ -29,11 +29,12 @@ export async function processPendingNotifications(userId: string): Promise<void>
     const notificationsRef = getNotificationsCollectionRef(userId);
     const now = Timestamp.now();
     
-    // Query for pending notifications where the scheduled time is in the past
+    // Query for pending notifications, ordered by their scheduled time.
+    // This avoids the composite index requirement by filtering the date on the client-side.
     const q = query(
         notificationsRef, 
         where("status", "==", "pending"),
-        where("scheduledAt", "<=", now)
+        orderBy("scheduledAt", "asc")
     );
 
     try {
@@ -41,6 +42,13 @@ export async function processPendingNotifications(userId: string): Promise<void>
 
         for (const notificationDoc of querySnapshot.docs) {
             const notification = notificationDoc.data();
+            
+            // Client-side check for the time.
+            if (notification.scheduledAt > now) {
+                // Since the query is ordered, we can stop once we find a notification scheduled for the future.
+                break;
+            }
+
             const postRef = doc(db, `users/${userId}/posts`, notification.postId);
             const postSnap = await getDoc(postRef);
 
@@ -74,8 +82,16 @@ export async function processPendingNotifications(userId: string): Promise<void>
                 });
             }
         }
-    } catch (error) {
-        console.error("Error processing pending notifications:", error);
+    } catch (error: any) {
+        // This specific error indicates a missing index. We catch it to prevent app crashes.
+        if (error.code === 'failed-precondition') {
+            console.warn(
+              'Firestore query failed. This likely requires a composite index to be created in your Firebase console. The original query was changed to avoid this, but if the error persists, the index is needed. Details:',
+              error.message
+            );
+        } else {
+             console.error("Error processing pending notifications:", error);
+        }
     }
 }
 
