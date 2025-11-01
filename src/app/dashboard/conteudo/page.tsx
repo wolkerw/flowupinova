@@ -603,8 +603,8 @@ export default function Conteudo() {
               .day-scheduled::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #3b82f6; }
               .day-failed { position: relative; }
               .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
-              .rdp-day_today:not(.rdp-day_selected) { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
-              .rdp-button:hover:not([disabled]):not(.rdp-day_selected):not(.rdp-day_today) { background-color: hsl(var(--accent)); }
+              .rdp-day_today:not(.rdp-day_selected) { background-color: #f3f4f6; }
+              .rdp-button:hover:not([disabled]):not(.rdp-day_selected):not(.rdp-day_today) { background-color: #f3f4f6; }
           `}</style>
         
         {/* Cabeçalho */}
