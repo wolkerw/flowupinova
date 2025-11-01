@@ -23,6 +23,7 @@ import {
   MoreVertical,
   BarChart,
   Trash2,
+  X,
 } from "lucide-react";
 import {
     AlertDialog,
@@ -34,6 +35,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSameDay } from 'date-fns';
@@ -171,7 +179,8 @@ export default function Conteudo() {
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
   
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [displayedMonth, setDisplayedMonth] = useState<Date>(new Date());
 
   const [historyFilter, setHistoryFilter] = useState('this-month');
@@ -301,6 +310,60 @@ export default function Conteudo() {
         fetchPageData();
     }
   }, [user, fetchPageData, searchParams]);
+  
+  const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
+        const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
+        
+        let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed');
+
+        const filterStartDate = (filter: string) => {
+            const today = new Date();
+            switch(filter) {
+                case 'last-7-days':
+                    const last7 = new Date(today);
+                    last7.setDate(today.getDate() - 7);
+                    return startOfDay(last7);
+                case 'this-month':
+                    return startOfMonth(today);
+                case 'this-year':
+                    return startOfYear(today);
+                default:
+                    return null; // All time
+            }
+        };
+
+        const startDate = filterStartDate(historyFilter);
+        if (startDate) {
+            historyBase = historyBase.filter(p => p.date >= startDate);
+        }
+
+        const modifiers = {
+            published: allPosts.filter(p => p.status === 'published').map(p => p.date),
+            scheduled: allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date)).map(p => p.date),
+            failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
+        };
+        
+        const postsOnDay = selectedDate ? allPosts.filter(p => isSameDay(p.date, selectedDate)) : [];
+
+        return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
+    }, [allPosts, historyFilter, selectedDate]);
+    
+    // Abre o modal se houver posts no dia selecionado
+    useEffect(() => {
+        if (selectedDate && postsForSelectedDay.length > 0) {
+            setIsDateModalOpen(true);
+        }
+    }, [selectedDate, postsForSelectedDay]);
+
+    const handleDateSelect = (date: Date | undefined) => {
+        if (!date) return;
+        setSelectedDate(date);
+        const postsOnDay = allPosts.filter(p => isSameDay(p.date, date));
+        if (postsOnDay.length === 0) {
+            // Se não houver posts, apenas seleciona o dia, não abre o modal.
+            // Opcional: pode-se exibir um toast informando que não há posts.
+        }
+    }
 
   const handleConnectMeta = () => {
     const clientId = "826418333144156";
@@ -389,44 +452,6 @@ export default function Conteudo() {
     }
   }
 
-  const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
-        const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
-        
-        let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed');
-
-        const filterStartDate = (filter: string) => {
-            const today = new Date();
-            switch(filter) {
-                case 'last-7-days':
-                    const last7 = new Date(today);
-                    last7.setDate(today.getDate() - 7);
-                    return startOfDay(last7);
-                case 'this-month':
-                    return startOfMonth(today);
-                case 'this-year':
-                    return startOfYear(today);
-                default:
-                    return null; // All time
-            }
-        };
-
-        const startDate = filterStartDate(historyFilter);
-        if (startDate) {
-            historyBase = historyBase.filter(p => p.date >= startDate);
-        }
-
-        const modifiers = {
-            published: allPosts.filter(p => p.status === 'published').map(p => p.date),
-            scheduled: allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date)).map(p => p.date),
-            failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
-        };
-        
-        const postsOnDay = selectedDate ? allPosts.filter(p => isSameDay(p.date, selectedDate)) : [];
-
-
-        return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
-    }, [allPosts, historyFilter, selectedDate]);
-
 
   const isLoadingInitial = loading && allPosts.length === 0;
 
@@ -506,7 +531,7 @@ export default function Conteudo() {
              <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={handleDateSelect}
                 month={displayedMonth}
                 onMonthChange={setDisplayedMonth}
                 className="p-0"
@@ -520,18 +545,6 @@ export default function Conteudo() {
             />
         </CardContent>
         <CardFooter className="flex flex-col items-start gap-4 text-sm border-t pt-4">
-            <div className="w-full">
-                {postsForSelectedDay.length > 0 ? (
-                    <div className="space-y-3">
-                        <h4 className="font-semibold">Posts em {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : ''}</h4>
-                        {postsForSelectedDay.map(post => (
-                           <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-500 text-center">Nenhum post para este dia.</p>
-                )}
-            </div>
             <div className="flex flex-wrap items-start gap-x-4 gap-y-2 text-sm pt-4 border-t w-full">
                 <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
                 <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
@@ -564,7 +577,23 @@ export default function Conteudo() {
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
-        </AlertDialog>
+      </AlertDialog>
+        <Dialog open={isDateModalOpen} onOpenChange={setIsDateModalOpen}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Posts de {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ''}</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 max-h-[60vh] overflow-y-auto space-y-3 pr-2">
+                    {postsForSelectedDay.length > 0 ? (
+                        postsForSelectedDay.map(post => (
+                           <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />
+                        ))
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center py-8">Nenhum post para este dia.</p>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
           <style>{`
@@ -575,7 +604,7 @@ export default function Conteudo() {
               .day-failed { position: relative; }
               .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
               .rdp-day_today:not(.rdp-day_selected) { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
-              .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: hsl(var(--muted)); }
+              .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: transparent; }
           `}</style>
         
         {/* Cabeçalho */}
