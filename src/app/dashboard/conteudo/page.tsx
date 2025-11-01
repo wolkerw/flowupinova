@@ -184,12 +184,10 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
-        // Step 1: Fetch connection status first.
-        const metaResult = await getMetaConnection(user.uid);
-        setMetaConnection(metaResult);
-
-        // Step 2: Fetch posts.
-        const postsResults = await getScheduledPosts(user.uid);
+        const [postsResults, metaResult] = await Promise.all([
+          getScheduledPosts(user.uid),
+          getMetaConnection(user.uid)
+        ]);
         
         const displayPosts = postsResults
             .filter(result => result.success && result.post)
@@ -209,13 +207,14 @@ export default function Conteudo() {
                     pageName: post.pageName,
                 };
             })
-            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
 
         setAllPosts(displayPosts);
+        setMetaConnection(metaResult);
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
-        toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar as publicações e o status da conexão." });
+        toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
     } finally {
         setLoading(false);
     }
@@ -247,21 +246,23 @@ export default function Conteudo() {
               });
             }
             setConnectionResult({ success: true, message: `Conta @${result.instagramUsername} conectada!` });
-            await fetchPageData();
+            // After connecting, refetch all data to update the UI
+            fetchPageData();
         } catch (err: any) {
              setConnectionResult({ success: false, message: err.message || "Não foi possível completar a conexão." });
         } finally {
             setIsConnecting(false);
+            // Always remove the code from the URL
+            router.replace('/dashboard/conteudo', undefined);
         }
     };
 
     if (code) {
-        // Remove code from URL and then process it.
-        router.replace('/dashboard/conteudo', undefined);
         exchangeCodeForToken(code);
     }
   }, [searchParams, user, router, fetchPageData]);
 
+  // Main data fetch effect
   useEffect(() => {
     if(user) {
         fetchPageData();
@@ -391,7 +392,7 @@ export default function Conteudo() {
     }, [allPosts, historyFilter]);
 
 
-  const isLoadingInitial = loading && allPosts.length === 0 && !metaConnection.isConnected;
+  const isLoadingInitial = loading && allPosts.length === 0;
 
   const ConnectCard = () => (
     <Card className="shadow-lg border-dashed border-2 relative">
