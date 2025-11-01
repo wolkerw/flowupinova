@@ -122,7 +122,7 @@ export default function Dashboard() {
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
         <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-            <Link href="/dashboard/conteudo/criar">
+            <Link href="/dashboard/conteudo">
                 <Plus className="w-4 h-4 mr-2" />
                 Criar conteúdo
             </Link>
