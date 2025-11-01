@@ -328,9 +328,9 @@ export default function Conteudo() {
   }, [user, fetchPageData, searchParams]);
   
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
-        const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
+        const scheduled = allPosts.filter(p => p.status === 'scheduled');
         
-        let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed');
+        let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed' || p.status === 'publishing');
 
         const filterStartDate = (filter: string) => {
             const today = new Date();
@@ -557,7 +557,7 @@ export default function Conteudo() {
           <CardHeader>
               <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center gap-6">
+          <CardContent className="flex flex-col items-center justify-center">
               <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -573,7 +573,7 @@ export default function Conteudo() {
                       failed: 'day-failed',
                   }}
               />
-              <div className="w-full border-t pt-4">
+               <div className="w-full border-t pt-4 mt-6">
                   <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
                       <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
                       <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
@@ -697,8 +697,8 @@ export default function Conteudo() {
                   height: 6px;
                   border-radius: 50%;
               }
-              .rdp-day_selected:not([disabled])::after {
-                  display: none;
+              .rdp-day_selected::after {
+                display: none;
               }
               .day-published::after { background-color: #22c55e; }
               .day-scheduled::after { background-color: #3b82f6; }
