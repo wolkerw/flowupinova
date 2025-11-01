@@ -38,15 +38,23 @@ const initialMessages: Message[] = [
 
 const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title: string; description: string; href: string; isCompleted: boolean; isCurrent: boolean }) => {
   return (
-    <div className={cn("flex items-start gap-4 transition-opacity", isCompleted && "opacity-60")}>
-      <div className="flex flex-col items-center h-full">
-        {isCompleted ? (
-          <CheckCircle className="w-6 h-6 text-green-500" />
-        ) : (
-          <Circle className={cn("w-6 h-6", isCurrent ? "text-primary" : "text-gray-300")} />
-        )}
-        <div className={cn("w-px flex-grow mt-2", isCompleted ? "bg-green-500" : "bg-gray-300")}></div>
-      </div>
+    <div className="flex items-start gap-4 relative pb-8">
+       <div className="absolute left-3 top-3 -bottom-5 w-px bg-gray-200"></div>
+       <div className="flex-shrink-0">
+          {isCompleted ? (
+              <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
+                <CheckCircle className="w-4 h-4" />
+              </div>
+            ) : isCurrent ? (
+              <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center ring-4 ring-primary/20">
+                 <Circle className="w-2.5 h-2.5 fill-current" />
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                 <Circle className="w-2.5 h-2.5 text-gray-400 fill-current" />
+              </div>
+            )}
+       </div>
       <div className="pt-0.5">
         <h4 className={cn("font-semibold", isCurrent ? "text-primary" : "text-gray-800")}>{title}</h4>
         <p className="text-sm text-gray-500 mb-3 mt-1">{description}</p>
