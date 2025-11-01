@@ -1,19 +1,14 @@
 
-"use server"; // Alterado de "use client" para funcionar no servidor também
+"use client";
 
-import { doc, getDoc, setDoc, serverTimestamp, deleteField } from "firebase/firestore";
-// Como este arquivo agora pode rodar no servidor, precisamos de uma maneira de obter a instância do DB correta.
-// No entanto, as chamadas para este serviço vêm de rotas de API que usam o admin SDK,
-// e de componentes do cliente que usam o client SDK.
-// Para manter a simplicidade, vamos assumir que a instância `db` do client SDK é segura para ser usada aqui,
-// já que as regras de segurança do Firestore ainda se aplicam. 
-// A alternativa seria passar a instância do DB como parâmetro, o que seria mais complexo.
-import { adminDb } from "@/lib/firebase-admin";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, deleteField } from "firebase/firestore";
+import type { MetaConnectionData } from "./meta-service";
 
 export interface MetaConnectionData {
     isConnected: boolean;
     error?: string;
-    connectedAt?: Date;
+    connectedAt?: any; // Allow for server-side and client-side timestamps
     accessToken?: string;
     pageId?: string;
     pageName?: string;
@@ -21,13 +16,17 @@ export interface MetaConnectionData {
     instagramUsername?: string;
 }
 
+const defaultConnection: MetaConnectionData = {
+    isConnected: false,
+};
+
 function getMetaConnectionDocRef(userId: string) {
-    // Usando o adminDb para garantir que funcione no lado do servidor
-    return adminDb.doc(`users/${userId}/connections/meta`);
+    return doc(db, `users/${userId}/connections/meta`);
 }
 
 /**
  * Retrieves the Meta connection status for a specific user.
+ * If the document doesn't exist, it creates it with a default state.
  * @param userId The UID of the user.
  * @returns The connection data.
  */
@@ -38,24 +37,18 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
     }
     try {
         const docRef = getMetaConnectionDocRef(userId);
-        const docSnap = await docRef.get();
+        const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists) {
-            const data = docSnap.data();
-            if (!data) return { isConnected: false };
-
-            const connectedAtTimestamp = data?.connectedAt;
-            return {
-                isConnected: data.isConnected || false,
-                connectedAt: connectedAtTimestamp ? connectedAtTimestamp.toDate() : undefined,
-                accessToken: data.accessToken,
-                pageId: data.pageId,
-                pageName: data.pageName,
-                instagramId: data.instagramId,
-                instagramUsername: data.instagramUsername,
-            };
+        if (docSnap.exists()) {
+            const data = docSnap.data() as MetaConnectionData;
+            // Ensure isConnected is always a boolean
+            return { ...data, isConnected: !!data.isConnected };
         } else {
-            return { isConnected: false };
+            console.log(`No meta connection doc for ${userId}, creating one.`);
+            // Ensure the parent user document exists before creating a subcollection
+            await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
+            await setDoc(docRef, defaultConnection);
+            return defaultConnection;
         }
     } catch (error: any) {
         console.error(`Error getting Meta connection for user ${userId}:`, error);
@@ -66,6 +59,7 @@ export async function getMetaConnection(userId: string): Promise<MetaConnectionD
 
 /**
  * Updates the Meta connection status for a user. Can be called from the client.
+ * This version must be compatible with client-side operations.
  * @param userId The UID of the user.
  * @param connectionData The data to set for the connection.
  */
@@ -79,9 +73,9 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         
         let dataToSet: { [key: string]: any } = connectionData;
 
-        // If connecting, add the serverTimestamp
         if (connectionData.isConnected) {
-            dataToSet.connectedAt = serverTimestamp();
+            // No serverTimestamp on client, just use the current date
+            dataToSet.connectedAt = new Date();
         } else {
             // If disconnecting, explicitly set isConnected to false and remove other fields
             dataToSet = {
@@ -89,18 +83,19 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
                 accessToken: deleteField(),
                 pageId: deleteField(),
                 pageName: deleteField(),
-instagramId: deleteField(),
+                instagramId: deleteField(),
                 instagramUsername: deleteField(),
                 connectedAt: deleteField(),
                 error: deleteField()
             };
         }
-
-        await docRef.set(dataToSet, { merge: true });
+        
+        // Use set with merge to create or update
+        await setDoc(docRef, dataToSet, { merge: true });
         console.log(`Meta connection status updated for user ${userId}.`);
-    } catch (error) {
+        
+    } catch (error: any) {
         console.error(`Error updating Meta connection for user ${userId}:`, error);
-        // This will be caught by the calling function (e.g., in the page with a toast)
-        throw new Error(`Failed to update Meta connection status in database. Reason: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(`Failed to update Meta connection status. Reason: ${error.message}`);
     }
 }

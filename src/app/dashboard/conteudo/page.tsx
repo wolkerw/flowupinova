@@ -184,10 +184,10 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
-        const [postsResults, metaResult] = await Promise.all([
-          getScheduledPosts(user.uid),
-          getMetaConnection(user.uid)
-        ]);
+        const metaResult = await getMetaConnection(user.uid);
+        setMetaConnection(metaResult);
+        
+        const postsResults = await getScheduledPosts(user.uid);
         
         const displayPosts = postsResults
             .filter(result => result.success && result.post)
@@ -210,7 +210,6 @@ export default function Conteudo() {
             .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
 
         setAllPosts(displayPosts);
-        setMetaConnection(metaResult);
 
     } catch (error) {
         console.error("Failed to fetch page data:", error);
@@ -390,7 +389,7 @@ export default function Conteudo() {
     }, [allPosts, historyFilter]);
 
 
-  const isLoadingInitial = loading && allPosts.length === 0;
+  const isLoadingInitial = loading && allPosts.length === 0 && !metaConnection.isConnected;
 
   const ConnectCard = () => (
     <Card className="shadow-lg border-dashed border-2 relative">
@@ -644,5 +643,3 @@ export default function Conteudo() {
     </>
   );
 }
-
-    

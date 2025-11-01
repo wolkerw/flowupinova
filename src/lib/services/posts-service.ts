@@ -3,7 +3,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -246,6 +246,15 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
    try {
+        // Ensure user document exists before querying subcollection
+        const userDocRef = doc(db, "users", userId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+            console.log(`User document for ${userId} does not exist. Creating it.`);
+            await setDoc(userDocRef, { createdAt: new Date() });
+            return []; // No posts will exist yet
+        }
+
         const postsCollection = getPostsCollectionRef(userId);
         const q = query(postsCollection, orderBy("scheduledAt", "desc"));
         const querySnapshot = await getDocs(q);
@@ -293,4 +302,3 @@ export async function deletePost(userId: string, postId: string): Promise<void> 
     }
 }
     
-
