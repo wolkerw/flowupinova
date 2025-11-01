@@ -184,10 +184,10 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
-        const [postsResults, metaResult] = await Promise.all([
-          getScheduledPosts(user.uid),
-          getMetaConnection(user.uid)
-        ]);
+        const metaResult = await getMetaConnection(user.uid);
+        setMetaConnection(metaResult);
+
+        const postsResults = await getScheduledPosts(user.uid);
         
         const displayPosts = postsResults
             .filter(result => result.success && result.post)
@@ -210,8 +210,6 @@ export default function Conteudo() {
             .sort((a, b) => b.date.getTime() - a.date.getTime());
 
         setAllPosts(displayPosts);
-        setMetaConnection(metaResult);
-
     } catch (error) {
         console.error("Failed to fetch page data:", error);
         toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
@@ -359,7 +357,7 @@ export default function Conteudo() {
   const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
         
-        let historyBase = allPosts.filter(p => isPast(p.date) || p.status !== 'scheduled');
+        let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed');
 
         const filterStartDate = (filter: string) => {
             const today = new Date();
