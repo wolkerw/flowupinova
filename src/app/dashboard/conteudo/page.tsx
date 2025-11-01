@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -259,8 +260,9 @@ export default function Conteudo() {
               });
             }
             toast({
+                variant: "success",
                 title: "Conexão Estabelecida!",
-                description: `Sua conta @${result.instagramUsername} foi conectada com sucesso.`,
+                description: `Contas conectadas: @${result.instagramUsername} e ${result.pageName}.`,
             });
             await fetchPageData();
         } catch (err: any) {
@@ -647,3 +649,4 @@ export default function Conteudo() {
     </>
   );
 }
+
