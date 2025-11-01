@@ -121,10 +121,10 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
-        <Button asChild variant="outline">
-            <Link href="/dashboard/conteudo">
-                <FileText className="w-4 h-4 mr-2" />
-                Ir para Conteúdo
+        <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+            <Link href="/dashboard/conteudo/criar">
+                <Plus className="w-4 h-4 mr-2" />
+                Criar conteúdo
             </Link>
         </Button>
       </div>
