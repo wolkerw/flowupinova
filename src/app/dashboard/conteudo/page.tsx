@@ -169,7 +169,6 @@ export default function Conteudo() {
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionResult, setConnectionResult] = useState<{success: boolean, message: string} | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [historyFilter, setHistoryFilter] = useState('this-month');
   const [isRepublishing, setIsRepublishing] = useState(false);
@@ -184,16 +183,12 @@ export default function Conteudo() {
     setLoading(true);
 
     try {
-        // Fetch posts and connection status separately to prevent one failure from blocking the other.
         const postsResults = await getScheduledPosts(user.uid);
-        
-        // Only process if postsResults is an array and doesn't contain an error object
         if (Array.isArray(postsResults) && !postsResults[0]?.error) {
             const displayPosts = postsResults
                 .filter(result => result.success && result.post)
                 .map((result) => {
                     const post = result.post!;
-                    // The service now sends an ISO string, which is safe for new Date()
                     const scheduledDate = new Date(post.scheduledAt);
                     return {
                         id: post.id,
@@ -208,7 +203,7 @@ export default function Conteudo() {
                         pageName: post.pageName,
                     };
                 })
-                .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
+                .sort((a, b) => b.date.getTime() - a.date.getTime());
             
             setAllPosts(displayPosts);
         } else if (postsResults[0]?.error) {
@@ -244,7 +239,6 @@ export default function Conteudo() {
     
     const exchangeCodeForToken = async (codeToExchange: string) => {
         setIsConnecting(true);
-        setConnectionResult(null);
         try {
             const response = await fetch('/api/meta/callback', {
                 method: 'POST',
@@ -264,27 +258,34 @@ export default function Conteudo() {
                   instagramUsername: result.instagramUsername,
               });
             }
-            setConnectionResult({ success: true, message: `Conta @${result.instagramUsername} conectada!` });
+            toast({
+                title: "Conexão Estabelecida!",
+                description: `Sua conta @${result.instagramUsername} foi conectada com sucesso.`,
+            });
             await fetchPageData();
         } catch (err: any) {
-             setConnectionResult({ success: false, message: err.message || "Não foi possível completar a conexão." });
+             toast({
+                variant: "destructive",
+                title: "Falha na Conexão",
+                description: err.message || "Não foi possível completar a conexão.",
+             });
         } finally {
             setIsConnecting(false);
+            // Remove code from URL after processing.
+            router.replace('/dashboard/conteudo', undefined);
         }
     };
 
     if (code) {
-        // Remove code from URL and then process it.
-        router.replace('/dashboard/conteudo', undefined);
         exchangeCodeForToken(code);
     }
-  }, [searchParams, user, router, fetchPageData]);
+  }, [searchParams, user, router, fetchPageData, toast]);
 
   useEffect(() => {
-    if(user) {
+    if(user && !searchParams.get('code')) {
         fetchPageData();
     }
-  }, [user, fetchPageData]);
+  }, [user, fetchPageData, searchParams]);
 
   const handleConnectMeta = () => {
     const clientId = "826418333144156";
@@ -413,28 +414,11 @@ export default function Conteudo() {
 
   const ConnectCard = () => (
     <Card className="shadow-lg border-dashed border-2 relative">
-        {(isConnecting || connectionResult) && (
+        {isConnecting && (
              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg p-4 text-center">
-                {!connectionResult ? (
-                    <>
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
-                        <p className="text-xs text-gray-500">Aguarde, estamos finalizando a conexão.</p>
-                    </>
-                ) : (
-                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                        {connectionResult.success ? (
-                             <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
-                        ) : (
-                             <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
-                        )}
-                        <h3 className={`text-lg font-bold mt-4 ${connectionResult.success ? 'text-gray-900' : 'text-destructive'}`}>
-                            {connectionResult.success ? 'Conexão Estabelecida!' : 'Falha na Conexão'}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-2">{connectionResult.message}</p>
-                        <Button variant="outline" size="sm" className="mt-6" onClick={() => setConnectionResult(null)}>Fechar</Button>
-                    </motion.div>
-                )}
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
+                <p className="text-xs text-gray-500">Aguarde, estamos finalizando a conexão.</p>
             </div>
         )}
         <CardHeader>
