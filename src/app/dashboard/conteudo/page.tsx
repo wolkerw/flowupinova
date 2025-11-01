@@ -184,9 +184,11 @@ export default function Conteudo() {
     setLoading(true);
     
     try {
+        // Step 1: Fetch connection status first.
         const metaResult = await getMetaConnection(user.uid);
         setMetaConnection(metaResult);
-        
+
+        // Step 2: Fetch posts.
         const postsResults = await getScheduledPosts(user.uid);
         
         const displayPosts = postsResults
