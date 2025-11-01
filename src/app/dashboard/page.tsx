@@ -194,49 +194,6 @@ export default function Dashboard() {
           </motion.div>
        )}
 
-       {/* First Steps Section */}
-       {!allStepsCompleted && (metaConnection !== null && businessProfile !== null) && (
-         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-         >
-          <Card className="shadow-lg border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Rocket className="w-6 h-6 text-primary" />
-                Primeiros Passos Para Decolar
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                <StepItem 
-                  title="1. Conecte suas Redes Sociais"
-                  description="Integre seu Instagram e Facebook para começar a publicar e agendar."
-                  href="/dashboard/conteudo"
-                  isCompleted={metaConnection?.isConnected || false}
-                  isCurrent={!metaConnection?.isConnected}
-                />
-                 <StepItem 
-                  title="2. Conecte seu Perfil de Empresa"
-                  description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
-                  href="/dashboard/meu-negocio"
-                  isCompleted={businessProfile?.isVerified || false}
-                  isCurrent={metaConnection?.isConnected && !businessProfile?.isVerified}
-                />
-                 <StepItem 
-                  title="3. Crie sua Primeira Publicação"
-                  description="Use nossa IA para gerar e agendar seu primeiro post incrível."
-                  href="/dashboard/conteudo/gerar"
-                  isCompleted={false}
-                  isCurrent={metaConnection?.isConnected && (businessProfile?.isVerified || false)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-       )}
-
        {/* Chat Section */}
        <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -304,6 +261,49 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* First Steps Section */}
+      {!allStepsCompleted && (metaConnection !== null && businessProfile !== null) && (
+         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+         >
+          <Card className="shadow-lg border-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Rocket className="w-6 h-6 text-primary" />
+                Primeiros Passos Para Decolar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <StepItem 
+                  title="1. Conecte suas Redes Sociais"
+                  description="Integre seu Instagram e Facebook para começar a publicar e agendar."
+                  href="/dashboard/conteudo"
+                  isCompleted={metaConnection?.isConnected || false}
+                  isCurrent={!metaConnection?.isConnected}
+                />
+                 <StepItem 
+                  title="2. Conecte seu Perfil de Empresa"
+                  description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
+                  href="/dashboard/meu-negocio"
+                  isCompleted={businessProfile?.isVerified || false}
+                  isCurrent={metaConnection?.isConnected && !businessProfile?.isVerified}
+                />
+                 <StepItem 
+                  title="3. Crie sua Primeira Publicação"
+                  description="Use nossa IA para gerar e agendar seu primeiro post incrível."
+                  href="/dashboard/conteudo/gerar"
+                  isCompleted={false}
+                  isCurrent={metaConnection?.isConnected && (businessProfile?.isVerified || false)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+       )}
 
     </div>
   );
