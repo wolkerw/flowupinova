@@ -259,10 +259,23 @@ export default function Conteudo() {
                   instagramUsername: result.instagramUsername,
               });
             }
+
+            const connectedParts = [];
+            if (result.instagramUsername) {
+                connectedParts.push(`Instagram (@${result.instagramUsername})`);
+            }
+            if (result.pageName) {
+                connectedParts.push(`Facebook (${result.pageName})`);
+            }
+            
+            const description = connectedParts.length > 0
+                ? `Contas conectadas: ${connectedParts.join(' e ')}.`
+                : "Nenhuma conta nova foi conectada.";
+
             toast({
                 variant: "success",
                 title: "Conexão Estabelecida!",
-                description: `Contas conectadas: @${result.instagramUsername} e ${result.pageName}.`,
+                description: description,
             });
             await fetchPageData();
         } catch (err: any) {
@@ -650,3 +663,6 @@ export default function Conteudo() {
   );
 }
 
+
+
+    
