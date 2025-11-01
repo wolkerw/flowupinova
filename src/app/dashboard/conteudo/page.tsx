@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear } from 'date-fns';
+import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, deletePost, type PostDataOutput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -170,7 +170,10 @@ export default function Conteudo() {
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
+  
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [displayedMonth, setDisplayedMonth] = useState<Date>(new Date());
+
   const [historyFilter, setHistoryFilter] = useState('this-month');
   const [isRepublishing, setIsRepublishing] = useState(false);
   
@@ -220,11 +223,7 @@ export default function Conteudo() {
 
     try {
         const metaResult = await getMetaConnection(user.uid);
-        if (metaResult) {
-            setMetaConnection(metaResult);
-        } else {
-             setMetaConnection({ isConnected: false, error: "Não foi possível obter o status da conexão." });
-        }
+        setMetaConnection(metaResult);
     } catch (error: any) {
         console.error("Failed to fetch meta connection:", error);
         setMetaConnection({ isConnected: false, error: "Falha ao buscar dados de conexão com a Meta." });
@@ -259,7 +258,7 @@ export default function Conteudo() {
                   instagramUsername: result.instagramUsername,
               });
             }
-
+            
             const connectedParts = [];
             if (result.instagramUsername) {
                 connectedParts.push(`Instagram (@${result.instagramUsername})`);
@@ -271,6 +270,7 @@ export default function Conteudo() {
             const description = connectedParts.length > 0
                 ? `Contas conectadas: ${connectedParts.join(' e ')}.`
                 : "Nenhuma conta nova foi conectada.";
+
 
             toast({
                 variant: "success",
@@ -389,7 +389,7 @@ export default function Conteudo() {
     }
   }
 
-  const { scheduledPosts, pastPosts, calendarModifiers } = useMemo(() => {
+  const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date));
         
         let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed');
@@ -420,9 +420,12 @@ export default function Conteudo() {
             scheduled: allPosts.filter(p => p.status === 'scheduled' && isFuture(p.date)).map(p => p.date),
             failed: allPosts.filter(p => p.status === 'failed').map(p => p.date),
         };
+        
+        const postsOnDay = selectedDate ? allPosts.filter(p => isSameDay(p.date, selectedDate)) : [];
 
-        return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers };
-    }, [allPosts, historyFilter]);
+
+        return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
+    }, [allPosts, historyFilter, selectedDate]);
 
 
   const isLoadingInitial = loading && allPosts.length === 0;
@@ -504,6 +507,8 @@ export default function Conteudo() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
+                month={displayedMonth}
+                onMonthChange={setDisplayedMonth}
                 className="p-0"
                 locale={ptBR}
                 modifiers={calendarModifiers}
@@ -514,10 +519,24 @@ export default function Conteudo() {
                 }}
             />
         </CardContent>
-         <CardFooter className="flex flex-col items-start gap-4 text-sm">
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"/> Falhou</div>
+        <CardFooter className="flex flex-col items-start gap-4 text-sm border-t pt-4">
+            <div className="w-full">
+                {postsForSelectedDay.length > 0 ? (
+                    <div className="space-y-3">
+                        <h4 className="font-semibold">Posts em {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : ''}</h4>
+                        {postsForSelectedDay.map(post => (
+                           <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-500 text-center">Nenhum post para este dia.</p>
+                )}
+            </div>
+            <div className="flex flex-wrap items-start gap-x-4 gap-y-2 text-sm pt-4 border-t w-full">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"/> Falhou</div>
+            </div>
         </CardFooter>
     </Card>
   )
@@ -555,6 +574,8 @@ export default function Conteudo() {
               .day-scheduled::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #3b82f6; }
               .day-failed { position: relative; }
               .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
+              .rdp-day_today:not(.rdp-day_selected) { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+              .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: hsl(var(--muted)); }
           `}</style>
         
         {/* Cabeçalho */}
