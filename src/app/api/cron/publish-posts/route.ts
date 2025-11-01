@@ -1,8 +1,101 @@
-import { NextResponse } from "next/server";
 
-// Esta rota foi desativada pois a publicação agendada não está implementada
-// e estava gerando logs de erro desnecessários.
-export async function POST(request: Request) {
-  console.warn("A funcionalidade de CRON foi desativada.");
-  return NextResponse.json({ success: false, error: "Funcionalidade de CRON desativada." }, { status: 503 });
+import { NextResponse, type NextRequest } from "next/server";
+import { getDueScheduledPosts, updatePostStatus } from "@/lib/services/posts-service-admin";
+import type { PostData } from "@/lib/services/posts-service";
+
+export const dynamic = 'force-dynamic'; // Garante que a rota não seja cacheada
+
+/**
+ * Esta rota é o coração do agendador (CRON job).
+ * Ela busca por posts agendados e os publica nas plataformas corretas.
+ */
+export async function POST(request: NextRequest) {
+  // Para segurança, em produção, você deve verificar um token secreto ou usar autenticação OIDC.
+  // Ex: const secret = request.headers.get('Authorization');
+  // if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
+  //   return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  // }
+  
+  console.log("[CRON_JOB] Iniciando verificação de posts agendados...");
+
+  let processedCount = 0;
+  let failedCount = 0;
+
+  try {
+    const duePosts = await getDueScheduledPosts();
+
+    if (duePosts.length === 0) {
+      return NextResponse.json({ success: true, message: "Nenhum post para publicar." });
+    }
+
+    // Processa cada post em paralelo
+    const publishPromises = duePosts.map(async (post: PostData & { _parentPath?: string }) => {
+      const { id: postId, _parentPath: userPath } = post;
+
+      if (!postId || !userPath) {
+        console.error("[CRON_ERROR] Post encontrado sem ID ou caminho do usuário.", post);
+        failedCount++;
+        return;
+      }
+      
+      try {
+        // Marca o post como "publishing" para evitar que seja processado novamente em caso de falha
+        await updatePostStatus(userPath, postId, { status: "publishing" });
+
+        const platformPromises = post.platforms.map(async (platform) => {
+            const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
+            const requestUrl = new URL(apiPath, request.nextUrl.origin); // Constrói a URL completa para a API interna
+
+            const payload = {
+                postData: {
+                    title: post.title,
+                    text: post.text,
+                    imageUrl: post.imageUrl,
+                    metaConnection: post.metaConnection,
+                }
+            };
+             
+            const response = await fetch(requestUrl.toString(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // O corpo da requisição para a API de publicação precisa de um objeto `postData`
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(`Falha ao publicar no ${platform}: ${result.error || `Status ${response.status}`}`);
+            }
+            return result.publishedMediaId;
+        });
+
+        const results = await Promise.all(platformPromises);
+        
+        await updatePostStatus(userPath, postId, { 
+            status: "published",
+            publishedMediaId: results.filter(Boolean).join(', ') // Salva os IDs das mídias publicadas
+        });
+        processedCount++;
+
+      } catch (publishError: any) {
+        console.error(`[CRON_ERROR] Falha ao publicar o post ${postId}:`, publishError.message);
+        failedCount++;
+        await updatePostStatus(userPath, postId, {
+          status: "failed",
+          failureReason: publishError.message,
+        });
+      }
+    });
+
+    await Promise.all(publishPromises);
+
+    const summary = `Processamento finalizado. Publicados: ${processedCount}, Falhas: ${failedCount}.`;
+    console.log(`[CRON_JOB] ${summary}`);
+    return NextResponse.json({ success: true, message: summary });
+
+  } catch (error: any) {
+    console.error("[CRON_JOB_FATAL] Erro fatal durante a execução do CRON:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
