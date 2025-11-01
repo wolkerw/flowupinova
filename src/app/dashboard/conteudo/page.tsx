@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -182,13 +181,10 @@ export default function Conteudo() {
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    
-    try {
-        const metaResult = await getMetaConnection(user.uid);
-        setMetaConnection(metaResult);
 
+    try {
+        // Fetch posts and connection status separately to prevent one failure from blocking the other.
         const postsResults = await getScheduledPosts(user.uid);
-        
         const displayPosts = postsResults
             .filter(result => result.success && result.post)
             .map((result) => {
@@ -207,16 +203,31 @@ export default function Conteudo() {
                     pageName: post.pageName,
                 };
             })
-            .sort((a, b) => b.date.getTime() - a.date.getTime());
-
+            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
+        
         setAllPosts(displayPosts);
+
     } catch (error) {
-        console.error("Failed to fetch page data:", error);
-        toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
-    } finally {
-        setLoading(false);
+        console.error("Failed to fetch posts:", error);
+        toast({ variant: 'destructive', title: "Erro ao Carregar Posts", description: "Não foi possível carregar as publicações." });
     }
+
+    try {
+        const metaResult = await getMetaConnection(user.uid);
+        if (metaResult) {
+            setMetaConnection(metaResult);
+        } else {
+             setMetaConnection({ isConnected: false, error: "Não foi possível obter o status da conexão." });
+        }
+    } catch (error) {
+        console.error("Failed to fetch meta connection:", error);
+        setMetaConnection({ isConnected: false, error: "Falha ao buscar dados de conexão com a Meta." });
+    }
+
+
+    setLoading(false);
   }, [user, toast]);
+
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -244,23 +255,21 @@ export default function Conteudo() {
               });
             }
             setConnectionResult({ success: true, message: `Conta @${result.instagramUsername} conectada!` });
-            // After connecting, refetch all data to update the UI
-            fetchPageData();
+            await fetchPageData();
         } catch (err: any) {
              setConnectionResult({ success: false, message: err.message || "Não foi possível completar a conexão." });
         } finally {
             setIsConnecting(false);
-            // Always remove the code from the URL
-            router.replace('/dashboard/conteudo', undefined);
         }
     };
 
     if (code) {
+        // Remove code from URL and then process it.
+        router.replace('/dashboard/conteudo', undefined);
         exchangeCodeForToken(code);
     }
   }, [searchParams, user, router, fetchPageData]);
 
-  // Main data fetch effect
   useEffect(() => {
     if(user) {
         fetchPageData();
