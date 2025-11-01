@@ -246,13 +246,11 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
        return [];
    }
    try {
-        // Ensure user document exists before querying subcollection
         const userDocRef = doc(db, "users", userId);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
             console.log(`User document for ${userId} does not exist. Creating it.`);
             await setDoc(userDocRef, { createdAt: new Date() });
-            return []; // No posts will exist yet
         }
 
         const postsCollection = getPostsCollectionRef(userId);
