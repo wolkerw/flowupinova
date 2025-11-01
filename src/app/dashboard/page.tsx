@@ -5,25 +5,12 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   TrendingUp, 
   Heart, 
   Users, 
   ShoppingCart,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
   Plus,
-  FileText,
-  Megaphone,
-  Mail,
-  BarChart3,
-  Calendar,
-  Target,
-  Sparkles,
   Send,
   Bot,
   Loader2
@@ -31,6 +18,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
+import { useAuth } from "@/components/auth/auth-provider";
+import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 
 const initialMessages: Message[] = [
   {
@@ -43,13 +32,20 @@ export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [loading, setLoading] = useState(false);
+  const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (!user) return;
+    getMetaConnection(user.uid).then(setMetaConnection);
+  }, [user]);
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -99,20 +95,6 @@ export default function Dashboard() {
     { title: "Leads/Vendas", value: "89", change: "+24%", icon: ShoppingCart, color: "text-green-600" }
   ];
 
-  const aiTasks = [
-    { id: 1, task: "Criar post sobre benefícios do produto", completed: false, priority: "alta" },
-    { id: 2, task: "Otimizar anúncio Facebook - público 25-40 anos", completed: false, priority: "média" },
-    { id: 3, task: "Responder comentários no Instagram", completed: true, priority: "baixa" },
-    { id: 4, task: "Agendar email semanal para leads", completed: false, priority: "alta" },
-    { id: 5, task: "Analisar métricas da semana passada", completed: false, priority: "média" }
-  ];
-
-  const campaigns = [
-    { name: "Campanha Black Friday", status: "success", progress: 85, budget: "R$ 2.500" },
-    { name: "Lançamento Produto X", status: "warning", progress: 45, budget: "R$ 1.200" },
-    { name: "Retargeting Site", status: "success", progress: 92, budget: "R$ 800" }
-  ];
-
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Cabeçalho */}
@@ -121,49 +103,55 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
-        <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+        <Button 
+          asChild 
+          className="text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
+          size="lg"
+        >
             <Link href="/dashboard/conteudo">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-5 h-5 mr-2" />
                 Criar conteúdo
             </Link>
         </Button>
       </div>
 
        {/* Resumo da semana */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold flex items-center gap-2">
-              <TrendingUp className="w-6 h-6" style={{ color: 'var(--flowup-blue)' }} />
-              Resumo da Semana
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {metrics.map((metric, index) => (
-                <motion.div
-                  key={metric.title}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3`}>
-                    <metric.icon className={`w-6 h-6 ${metric.color}`} />
-                  </div>
-                  <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
-                  <div className="text-sm text-gray-600">{metric.title}</div>
-                  <div className="text-green-600 text-sm font-medium mt-1">{metric.change}</div>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+       {metaConnection?.isConnected && (
+         <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
+              <CardHeader>
+                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                  <TrendingUp className="w-6 h-6" style={{ color: 'var(--flowup-blue)' }} />
+                  Resumo da Semana
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {metrics.map((metric, index) => (
+                    <motion.div
+                      key={metric.title}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="text-center"
+                    >
+                      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3`}>
+                        <metric.icon className={`w-6 h-6 ${metric.color}`} />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
+                      <div className="text-sm text-gray-600">{metric.title}</div>
+                      <div className="text-green-600 text-sm font-medium mt-1">{metric.change}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+       )}
 
        {/* Chat Section */}
        <motion.div
@@ -233,95 +221,6 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Tarefas sugeridas pela IA */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card className="shadow-lg border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" style={{ color: 'var(--flowup-cyan)' }} />
-                Tarefas Sugeridas por IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {aiTasks.map((task, index) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Checkbox 
-                    checked={task.completed} 
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <p className={`text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                      {task.task}
-                    </p>
-                    <Badge 
-                      variant="outline" 
-                      className={`mt-1 text-xs ${
-                        task.priority === 'alta' ? 'border-red-200 text-red-700' :
-                        task.priority === 'média' ? 'border-yellow-200 text-yellow-700' :
-                        'border-green-200 text-green-700'
-                      }`}
-                    >
-                      {task.priority}
-                    </Badge>
-                  </div>
-                </motion.div>
-              ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Campanhas em andamento */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Card className="shadow-lg border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" style={{ color: 'var(--flowup-blue)' }} />
-                Campanhas em Andamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {campaigns.map((campaign, index) => (
-                <motion.div
-                  key={campaign.name}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="p-4 border rounded-lg hover:shadow-sm transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">{campaign.name}</h4>
-                    <div className="flex items-center gap-2">
-                      {campaign.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                      {campaign.status === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                      <span className="text-sm text-gray-500">{campaign.budget}</span>
-                    </div>
-                  </div>
-                  <Progress value={campaign.progress} className="mb-2" />
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>{campaign.progress}% concluído</span>
-                    <span>{campaign.status === 'success' ? 'Performance boa' : 'Atenção necessária'}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
     </div>
   );
 }
