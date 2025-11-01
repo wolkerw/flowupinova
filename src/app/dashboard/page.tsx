@@ -38,20 +38,20 @@ const initialMessages: Message[] = [
 
 const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title: string; description: string; href: string; isCompleted: boolean; isCurrent: boolean }) => {
   return (
-    <div className={cn("flex items-start gap-4 transition-opacity", isCompleted && "opacity-50")}>
-      <div className="flex flex-col items-center">
+    <div className={cn("flex items-start gap-4 transition-opacity", isCompleted && "opacity-60")}>
+      <div className="flex flex-col items-center h-full">
         {isCompleted ? (
           <CheckCircle className="w-6 h-6 text-green-500" />
         ) : (
           <Circle className={cn("w-6 h-6", isCurrent ? "text-primary" : "text-gray-300")} />
         )}
-        <div className={cn("w-px h-full mt-2", isCompleted ? "bg-green-500" : "bg-gray-300")}></div>
+        <div className={cn("w-px flex-grow mt-2", isCompleted ? "bg-green-500" : "bg-gray-300")}></div>
       </div>
-      <div>
-        <h4 className={cn("font-semibold", isCurrent && "text-primary")}>{title}</h4>
-        <p className="text-sm text-gray-500 mb-3">{description}</p>
+      <div className="pt-0.5">
+        <h4 className={cn("font-semibold", isCurrent ? "text-primary" : "text-gray-800")}>{title}</h4>
+        <p className="text-sm text-gray-500 mb-3 mt-1">{description}</p>
         {!isCompleted && isCurrent && (
-          <Button asChild size="sm">
+          <Button asChild size="sm" variant={isCurrent ? 'default' : 'outline'}>
             <Link href={href}>Começar Agora</Link>
           </Button>
         )}
@@ -277,7 +277,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col">
                 <StepItem 
                   title="1. Conecte suas Redes Sociais"
                   description="Integre seu Instagram e Facebook para começar a publicar e agendar."
@@ -296,7 +296,7 @@ export default function Dashboard() {
                   title="3. Crie sua Primeira Publicação"
                   description="Use nossa IA para gerar e agendar seu primeiro post incrível."
                   href="/dashboard/conteudo/gerar"
-                  isCompleted={false}
+                  isCompleted={false} // This step is never 'completed' in this list
                   isCurrent={metaConnection?.isConnected && (businessProfile?.isVerified || false)}
                 />
               </div>
@@ -308,3 +308,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
