@@ -9,7 +9,6 @@ import {
   TrendingUp, 
   Heart, 
   Users, 
-  ShoppingCart,
   Plus,
   Send,
   Bot,
@@ -17,9 +16,10 @@ import {
   Rocket,
   CheckCircle,
   Circle,
-  Building2,
   Instagram,
-  FileText
+  Facebook,
+  MessageCircle,
+  Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const initialMessages: Message[] = [
   {
@@ -68,6 +69,23 @@ const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title:
   );
 };
 
+interface PlatformMetrics {
+    reach: number;
+    likes: number;
+    comments: number;
+    shares: number;
+}
+
+const MetricDisplay = ({ icon, value, label }: { icon: React.ElementType, value: number, label: string }) => (
+    <div className="text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3">
+            {React.createElement(icon, { className: "w-6 h-6 text-primary" })}
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</div>
+        <div className="text-sm text-gray-600">{label}</div>
+    </div>
+);
+
 
 export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
@@ -78,6 +96,11 @@ export default function Dashboard() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [instagramMetrics, setInstagramMetrics] = useState<PlatformMetrics | null>(null);
+  const [facebookMetrics, setFacebookMetrics] = useState<PlatformMetrics | null>(null);
+
+
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -86,9 +109,66 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    getMetaConnection(user.uid).then(setMetaConnection);
-    getBusinessProfile(user.uid).then(setBusinessProfile);
+    
+    const fetchInitialData = async () => {
+        const connection = await getMetaConnection(user.uid);
+        setMetaConnection(connection);
+        getBusinessProfile(user.uid).then(setBusinessProfile);
+
+        if (connection.isConnected) {
+            fetchPlatformMetrics(connection);
+        } else {
+            setMetricsLoading(false);
+        }
+    };
+
+    fetchInitialData();
   }, [user]);
+  
+  const fetchPlatformMetrics = async (connection: MetaConnectionData) => {
+        setMetricsLoading(true);
+
+        try {
+            // Fetch Instagram Data
+            if (connection.instagramId && connection.accessToken) {
+                const igResponse = await fetch('/api/instagram/media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: connection.accessToken, instagramId: connection.instagramId }),
+                });
+                const igResult = await igResponse.json();
+                if (igResult.success) {
+                    const totalReach = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
+                    const totalLikes = igResult.media.reduce((acc: number, item: any) => acc + (item.like_count || 0), 0);
+                    const totalComments = igResult.media.reduce((acc: number, item: any) => acc + (item.comments_count || 0), 0);
+                    const totalShares = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
+                    setInstagramMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+                }
+            }
+
+             // Fetch Facebook Data
+            if (connection.pageId && connection.accessToken) {
+                const fbResponse = await fetch('/api/meta/page-posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: connection.accessToken, pageId: connection.pageId }),
+                });
+                const fbResult = await fbResponse.json();
+                if (fbResult.success) {
+                    const totalReach = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
+                    const totalLikes = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.likes || 0), 0);
+                    const totalComments = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.comments || 0), 0);
+                    const totalShares = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
+                    setFacebookMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch platform metrics:", error);
+        } finally {
+            setMetricsLoading(false);
+        }
+    };
+
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -132,11 +212,6 @@ export default function Dashboard() {
     }
   };
 
-  const metrics = [
-    { title: "Alcance", value: "124.5K", change: "+12%", icon: Users, color: "text-blue-600" },
-    { title: "Engajamento", value: "8.7%", change: "+3.2%", icon: Heart, color: "text-pink-600" },
-    { title: "Leads/Vendas", value: "89", change: "+24%", icon: ShoppingCart, color: "text-green-600" }
-  ];
 
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
@@ -152,11 +227,11 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
-        <Button 
-          asChild 
-          className="text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
-          size="lg"
-        >
+         <Button 
+            asChild
+            className="text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
+            size="lg"
+            >
             <Link href="/dashboard/conteudo">
                 <Plus className="w-5 h-5 mr-2" />
                 Criar conteúdo
@@ -176,29 +251,64 @@ export default function Dashboard() {
                 <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
                   <CardHeader>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <TrendingUp className="w-6 h-6" style={{ color: 'var(--flowup-blue)' }} />
+                      <TrendingUp className="w-6 h-6 text-primary" />
                       Resumo da Semana
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {metrics.map((metric, index) => (
-                        <motion.div
-                          key={metric.title}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, delay: index * 0.1 }}
-                          className="text-center"
-                        >
-                          <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3`}>
-                            <metric.icon className={`w-6 h-6 ${metric.color}`} />
-                          </div>
-                          <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
-                          <div className="text-sm text-gray-600">{metric.title}</div>
-                          <div className="text-green-600 text-sm font-medium mt-1">{metric.change}</div>
-                        </motion.div>
-                      ))}
-                    </div>
+                    <Tabs defaultValue="instagram" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2"/>Instagram</TabsTrigger>
+                            <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2"/>Facebook</TabsTrigger>
+                            <TabsTrigger value="tiktok" disabled>TikTok</TabsTrigger>
+                            <TabsTrigger value="youtube" disabled>YouTube</TabsTrigger>
+                        </TabsList>
+                        <AnimatePresence mode="wait">
+                         <motion.div
+                            key={metricsLoading ? 'loading' : 'content'}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="pt-6"
+                         >
+                            {metricsLoading ? (
+                                <div className="flex justify-center items-center h-32">
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary"/>
+                                </div>
+                            ) : (
+                                <>
+                                    <TabsContent value="instagram">
+                                        {instagramMetrics ? (
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                <MetricDisplay icon={Users} value={instagramMetrics.reach} label="Alcance"/>
+                                                <MetricDisplay icon={Heart} value={instagramMetrics.likes} label="Curtidas"/>
+                                                <MetricDisplay icon={MessageCircle} value={instagramMetrics.comments} label="Comentários"/>
+                                                <MetricDisplay icon={Share2} value={instagramMetrics.shares} label="Compart."/>
+                                            </div>
+                                        ) : <p className="text-center text-gray-500">Não foi possível carregar as métricas.</p>}
+                                    </TabsContent>
+                                     <TabsContent value="facebook">
+                                        {facebookMetrics ? (
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                <MetricDisplay icon={Users} value={facebookMetrics.reach} label="Alcance"/>
+                                                <MetricDisplay icon={Heart} value={facebookMetrics.likes} label="Reações"/>
+                                                <MetricDisplay icon={MessageCircle} value={facebookMetrics.comments} label="Comentários"/>
+                                                <MetricDisplay icon={Share2} value={facebookMetrics.shares} label="Compart."/>
+                                            </div>
+                                        ) : <p className="text-center text-gray-500">Não foi possível carregar as métricas.</p>}
+                                    </TabsContent>
+                                    <TabsContent value="tiktok">
+                                         <p className="text-center text-gray-500 py-8">Integração com TikTok em breve.</p>
+                                    </TabsContent>
+                                     <TabsContent value="youtube">
+                                         <p className="text-center text-gray-500 py-8">Integração com YouTube em breve.</p>
+                                    </TabsContent>
+                                </>
+                            )}
+                         </motion.div>
+                        </AnimatePresence>
+                    </Tabs>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -321,3 +431,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
