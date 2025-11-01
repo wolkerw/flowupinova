@@ -597,16 +597,21 @@ export default function Conteudo() {
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
           <style>{`
-              .day-published:not([aria-selected="true"])::after,
-              .day-scheduled:not([aria-selected="true"])::after,
-              .day-failed:not([aria-selected="true"])::after { 
+              .day-published::after,
+              .day-scheduled::after,
+              .day-failed::after { 
                 content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; 
+              }
+              .day-published[aria-selected="true"]::after,
+              .day-scheduled[aria-selected="true"]::after,
+              .day-failed[aria-selected="true"]::after {
+                  display: none;
               }
               .day-published::after { background-color: #22c55e; }
               .day-scheduled::after { background-color: #3b82f6; }
               .day-failed::after { background-color: #ef4444; }
-              .rdp-day_today:not(.rdp-day_selected) { background-color: #f3f4f6; border-radius: 0.375rem; }
-              .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #f3f4f6; }
+              .rdp-day_today:not([aria-selected="true"]) { background-color: #f3f4f6; border-radius: 0.375rem; }
+              .rdp-button:hover:not([disabled]):not([aria-selected="true"]):not(.rdp-day_today) { background-color: #f3f4f6; }
           `}</style>
         
         {/* Cabeçalho */}
