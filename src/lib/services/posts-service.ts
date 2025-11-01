@@ -272,7 +272,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     status: data.status,
                     publishedMediaId: data.publishedMediaId,
                     failureReason: data.failureReason,
-                    // CORREÇÃO: Garante que o Timestamp seja convertido para string ISO
                     scheduledAt: data.scheduledAt.toDate().toISOString(),
                     instagramUsername: data.metaConnection?.instagramUsername,
                     pageName: data.metaConnection?.pageName,
