@@ -43,6 +43,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -689,9 +690,7 @@ export default function Conteudo() {
               .day-published::after { background-color: #22c55e; }
               .day-scheduled::after { background-color: #3b82f6; }
               .day-failed::after { background-color: #ef4444; }
-              .day-published[aria-selected="true"]::after,
-              .day-scheduled[aria-selected="true"]::after,
-              .day-failed[aria-selected="true"]::after {
+              .rdp-day_selected[aria-selected="true"]::after {
                   display: none;
               }
               .rdp-day_today:not([aria-selected="true"]) { background-color: #f3f4f6; border-radius: 0.375rem; }
