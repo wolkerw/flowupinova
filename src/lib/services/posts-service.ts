@@ -241,7 +241,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
 
 export async function getScheduledPosts(userId: string): Promise<PostDataOutput[]> {
-    if (!userId) {
+   if (!userId) {
        console.error("User ID is required to get posts.");
        return [];
    }
@@ -271,6 +271,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     status: data.status,
                     publishedMediaId: data.publishedMediaId,
                     failureReason: data.failureReason,
+                    // CORREÇÃO: Garante que o Timestamp seja convertido para string ISO
                     scheduledAt: data.scheduledAt.toDate().toISOString(),
                     instagramUsername: data.metaConnection?.instagramUsername,
                     pageName: data.metaConnection?.pageName,
@@ -282,7 +283,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 
    } catch (error: any) {
        console.error(`Error fetching posts for user ${userId}:`, error);
-       return [];
+       // Retorna um array que indica o erro, para que o frontend possa lidar com isso
+       return [{ success: false, error: error.message }];
    }
 }
 

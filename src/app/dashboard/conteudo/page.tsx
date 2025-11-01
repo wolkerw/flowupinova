@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -185,29 +186,38 @@ export default function Conteudo() {
     try {
         // Fetch posts and connection status separately to prevent one failure from blocking the other.
         const postsResults = await getScheduledPosts(user.uid);
-        const displayPosts = postsResults
-            .filter(result => result.success && result.post)
-            .map((result) => {
-                const post = result.post!;
-                const scheduledDate = new Date(post.scheduledAt);
-                return {
-                    id: post.id,
-                    title: post.title,
-                    imageUrl: post.imageUrl,
-                    status: post.status,
-                    date: scheduledDate,
-                    formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
-                    formattedTime: format(scheduledDate, 'HH:mm'),
-                    platforms: post.platforms,
-                    instagramUsername: post.instagramUsername,
-                    pageName: post.pageName,
-                };
-            })
-            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
         
-        setAllPosts(displayPosts);
+        // Only process if postsResults is an array and doesn't contain an error object
+        if (Array.isArray(postsResults) && !postsResults[0]?.error) {
+            const displayPosts = postsResults
+                .filter(result => result.success && result.post)
+                .map((result) => {
+                    const post = result.post!;
+                    // The service now sends an ISO string, which is safe for new Date()
+                    const scheduledDate = new Date(post.scheduledAt);
+                    return {
+                        id: post.id,
+                        title: post.title,
+                        imageUrl: post.imageUrl,
+                        status: post.status,
+                        date: scheduledDate,
+                        formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
+                        formattedTime: format(scheduledDate, 'HH:mm'),
+                        platforms: post.platforms,
+                        instagramUsername: post.instagramUsername,
+                        pageName: post.pageName,
+                    };
+                })
+                .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending
+            
+            setAllPosts(displayPosts);
+        } else if (postsResults[0]?.error) {
+             toast({ variant: 'destructive', title: "Erro ao Carregar Posts", description: postsResults[0].error });
+        } else {
+            setAllPosts([]);
+        }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to fetch posts:", error);
         toast({ variant: 'destructive', title: "Erro ao Carregar Posts", description: "Não foi possível carregar as publicações." });
     }
@@ -219,7 +229,7 @@ export default function Conteudo() {
         } else {
              setMetaConnection({ isConnected: false, error: "Não foi possível obter o status da conexão." });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to fetch meta connection:", error);
         setMetaConnection({ isConnected: false, error: "Falha ao buscar dados de conexão com a Meta." });
     }
