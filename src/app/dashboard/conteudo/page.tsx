@@ -24,6 +24,8 @@ import {
   BarChart,
   Trash2,
   X,
+  Send,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import {
     AlertDialog,
@@ -46,7 +48,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getScheduledPosts, deletePost, type PostDataOutput } from "@/lib/services/posts-service";
+import { getScheduledPosts, deletePost, schedulePost, type PostDataOutput, PostDataInput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -59,11 +61,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 
 
 interface DisplayPost {
     id: string;
     title: string;
+    text: string;
     imageUrl?: string;
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     date: Date;
@@ -74,7 +81,7 @@ interface DisplayPost {
     pageName?: string;
 }
 
-const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: DisplayPost, onRepublish: (postId: string) => void, isRepublishing: boolean, onDelete: (postId: string) => void }) => {
+const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: DisplayPost, onRepublish: (post: DisplayPost) => void, isRepublishing: boolean, onDelete: (postId: string) => void }) => {
     const statusConfig = {
         published: { icon: CheckCircle, className: "bg-green-100 text-green-700" },
         scheduled: { icon: Clock, className: "bg-blue-100 text-blue-700" },
@@ -143,7 +150,7 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-blue-600 focus:text-blue-700"
-                          onClick={() => onRepublish(post.id)}
+                          onClick={() => onRepublish(post)}
                           disabled={isRepublishing || post.status === 'publishing'}
                         >
                           {isRepublishing ? (
@@ -190,7 +197,14 @@ export default function Conteudo() {
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  
+  // State for republish modal
+  const [isRepublishModalOpen, setIsRepublishModalOpen] = useState(false);
+  const [postToRepublish, setPostToRepublish] = useState<DisplayPost | null>(null);
+  const [republishPlatforms, setRepublishPlatforms] = useState<Array<'instagram' | 'facebook'>>(['instagram']);
+  const [republishScheduleType, setRepublishScheduleType] = useState<'now' | 'schedule'>('now');
+  const [republishScheduleDate, setRepublishScheduleDate] = useState('');
+
+
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -206,6 +220,7 @@ export default function Conteudo() {
                     return {
                         id: post.id,
                         title: post.title,
+                        text: post.text,
                         imageUrl: post.imageUrl,
                         status: post.status,
                         date: scheduledDate,
@@ -406,51 +421,65 @@ export default function Conteudo() {
   }
 
   
-  const handleRepublish = async (postId: string) => {
+  const handleRepublish = (post: DisplayPost) => {
     if (!user) {
       toast({ variant: 'destructive', title: "Erro", description: "Usuário não encontrado."});
       return;
     }
-    const postToRepublish = allPosts.find(p => p.id === postId);
-    if (!postToRepublish || !postToRepublish.imageUrl || !metaConnection.isConnected) {
-         toast({ variant: 'destructive', title: "Erro", description: "Dados do post ou conexão com a Meta ausentes para republicar."});
-         return;
+    setPostToRepublish(post);
+    setRepublishPlatforms(post.platforms as Array<'instagram' | 'facebook'> || ['instagram']);
+    setRepublishScheduleType('now');
+    setRepublishScheduleDate('');
+    setIsRepublishModalOpen(true);
+  };
+
+  const handleConfirmRepublish = async () => {
+    if (!user || !postToRepublish || !metaConnection.isConnected || !postToRepublish.imageUrl) {
+        toast({ variant: 'destructive', title: "Erro", description: "Dados insuficientes para republicar."});
+        return;
+    }
+     if (republishPlatforms.length === 0) {
+        toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
+        return;
+    }
+    if (republishScheduleType === 'schedule' && !republishScheduleDate) {
+        toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
+        return;
     }
 
     setIsRepublishing(true);
-    toast({ title: "Republicando Post...", description: `Enviando post ${postId} para publicação.`});
-    
-     try {
-        const payload = {
-            postData: {
-                title: postToRepublish.title,
-                text: '', // Legenda pode ser extraída ou deixada em branco
-                imageUrl: postToRepublish.imageUrl,
-                metaConnection: {
-                    accessToken: metaConnection.accessToken!,
-                    instagramId: metaConnection.instagramId!,
-                }
-            }
-        };
+    toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente."});
 
-        const response = await fetch('/api/instagram/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
+    const postInput: PostDataInput = {
+        title: postToRepublish.title,
+        text: postToRepublish.text,
+        media: postToRepublish.imageUrl,
+        platforms: republishPlatforms,
+        scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
+        metaConnection: metaConnection,
+    };
 
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Falha ao republicar o post.');
-        }
-        toast({ title: "Sucesso!", description: 'Seu post foi enviado para publicação novamente.'});
-        fetchPageData();
-    } catch(error: any) {
-        toast({ variant: 'destructive', title: "Erro ao Republicar", description: error.message });
-    } finally {
-        setIsRepublishing(false);
+    const result = await schedulePost(user.uid, postInput);
+
+    setIsRepublishing(false);
+    setIsRepublishModalOpen(false);
+    setPostToRepublish(null);
+
+    if (result.success) {
+        toast({ variant: 'success', title: "Sucesso!", description: `Post ${republishScheduleType === 'now' ? 'enviado para publicação' : 'agendado para republicação'}!` });
+        fetchPageData(); // Refresh the list
+    } else {
+        toast({ variant: 'destructive', title: "Erro ao Republicar", description: result.error });
     }
-  }
+  };
+
+  const handlePlatformChange = (platform: 'instagram' | 'facebook') => {
+    setRepublishPlatforms(prev => 
+        prev.includes(platform) 
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
 
 
   const isLoadingInitial = loading && allPosts.length === 0;
@@ -578,7 +607,7 @@ export default function Conteudo() {
                 </AlertDialogFooter>
             </AlertDialogContent>
       </AlertDialog>
-        <Dialog open={isDateModalOpen} onOpenChange={setIsDateModalOpen}>
+      <Dialog open={isDateModalOpen} onOpenChange={setIsDateModalOpen}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Posts de {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ''}</DialogTitle>
@@ -593,23 +622,78 @@ export default function Conteudo() {
                     )}
                 </div>
             </DialogContent>
-        </Dialog>
+      </Dialog>
+      <Dialog open={isRepublishModalOpen} onOpenChange={setIsRepublishModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Republicar Post</DialogTitle>
+                <DialogDescription>Escolha onde e quando você quer republicar este conteúdo.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-6">
+                <div>
+                    <Label className="font-semibold">Onde Publicar?</Label>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={republishPlatforms.includes('instagram') ? 'checked' : 'unchecked'}>
+                            <Checkbox id="republish-instagram" checked={republishPlatforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} />
+                            <Label htmlFor="republish-instagram" className="flex items-center gap-2 cursor-pointer">
+                                <Instagram className="w-5 h-5 text-pink-500" />
+                                Instagram
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={republishPlatforms.includes('facebook') ? 'checked' : 'unchecked'}>
+                            <Checkbox id="republish-facebook" checked={republishPlatforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} />
+                            <Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer">
+                                <Facebook className="w-5 h-5 text-blue-600" />
+                                Facebook
+                            </Label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <Label className="font-semibold">Quando publicar?</Label>
+                    <RadioGroup value={republishScheduleType} onValueChange={(v) => setRepublishScheduleType(v as 'now' | 'schedule')} className="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                            <RadioGroupItem value="now" id="republish-now" className="peer sr-only" />
+                            <Label htmlFor="republish-now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                                <Clock className="w-6 h-6 mb-2" />
+                                Publicar Agora
+                            </Label>
+                        </div>
+                        <div>
+                            <RadioGroupItem value="schedule" id="republish-schedule" className="peer sr-only" />
+                            <Label htmlFor="republish-schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary">
+                                <CalendarIcon className="w-6 h-6 mb-2" />
+                                Agendar
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                    {republishScheduleType === 'schedule' && (
+                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
+                            <Input type="datetime-local" value={republishScheduleDate} onChange={(e) => setRepublishScheduleDate(e.target.value)} />
+                        </motion.div>
+                    )}
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
+                <Button onClick={handleConfirmRepublish} disabled={isRepublishing || republishPlatforms.length === 0 || (republishScheduleType === 'schedule' && !republishScheduleDate)}>
+                    {isRepublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                    {republishScheduleType === 'now' ? 'Republicar' : 'Agendar'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
           <style>{`
-              .day-published::after,
-              .day-scheduled::after,
-              .day-failed::after { 
-                content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; 
-              }
+              .day-published::after { background-color: #22c55e; }
+              .day-scheduled::after { background-color: #3b82f6; }
+              .day-failed::after { background-color: #ef4444; }
               .day-published[aria-selected="true"]::after,
               .day-scheduled[aria-selected="true"]::after,
               .day-failed[aria-selected="true"]::after {
                   display: none;
               }
-              .day-published::after { background-color: #22c55e; }
-              .day-scheduled::after { background-color: #3b82f6; }
-              .day-failed::after { background-color: #ef4444; }
               .rdp-day_today:not([aria-selected="true"]) { background-color: #f3f4f6; border-radius: 0.375rem; }
               .rdp-button:hover:not([disabled]):not([aria-selected="true"]):not(.rdp-day_today) { background-color: #f3f4f6; }
           `}</style>

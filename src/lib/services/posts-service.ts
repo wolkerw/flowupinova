@@ -38,6 +38,7 @@ export type PostDataOutput = {
     post?: Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
         id: string; // Ensure ID is always present on output
         scheduledAt: string; // Client receives an ISO string for serialization
+        text: string; // Include full text for republishing
         instagramUsername?: string; // Send username to the client
         pageName?: string;
     }
