@@ -604,7 +604,7 @@ export default function Conteudo() {
               .day-failed { position: relative; }
               .day-failed::after { content: ''; display: block; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: #ef4444; }
               .rdp-day_today:not(.rdp-day_selected) { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
-              .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: transparent; }
+              .rdp-button:hover:not([disabled]):not(.rdp-day_selected):not(.rdp-day_today) { background-color: hsl(var(--accent)); }
           `}</style>
         
         {/* Cabeçalho */}
