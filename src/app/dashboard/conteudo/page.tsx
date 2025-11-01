@@ -553,35 +553,35 @@ export default function Conteudo() {
   );
 
   const CalendarCard = () => (
-    <Card className="shadow-lg border-none">
-        <CardHeader>
-            <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-             <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                month={displayedMonth}
-                onMonthChange={setDisplayedMonth}
-                className="p-0"
-                locale={ptBR}
-                modifiers={calendarModifiers}
-                modifiersClassNames={{
-                    published: 'day-published',
-                    scheduled: 'day-scheduled',
-                    failed: 'day-failed',
-                }}
-            />
-        </CardContent>
-        <CardFooter className="flex flex-col items-start gap-4 text-sm border-t pt-4">
-            <div className="flex flex-wrap items-start gap-x-4 gap-y-2 text-sm pt-4 border-t w-full">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"/> Falhou</div>
-            </div>
-        </CardFooter>
-    </Card>
+      <Card className="shadow-lg border-none">
+          <CardHeader>
+              <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center gap-6">
+              <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  month={displayedMonth}
+                  onMonthChange={setDisplayedMonth}
+                  className="p-0"
+                  locale={ptBR}
+                  modifiers={calendarModifiers}
+                  modifiersClassNames={{
+                      published: 'day-published',
+                      scheduled: 'day-scheduled',
+                      failed: 'day-failed',
+                  }}
+              />
+              <div className="w-full border-t pt-4">
+                  <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"/> Publicado</div>
+                      <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"/> Agendado</div>
+                      <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"/> Falhou</div>
+                  </div>
+              </div>
+          </CardContent>
+      </Card>
   )
   
   return (
@@ -687,14 +687,29 @@ export default function Conteudo() {
 
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
           <style>{`
+              .day-published::after, .day-scheduled::after, .day-failed::after {
+                  content: '';
+                  position: absolute;
+                  bottom: 4px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+              }
+              .rdp-day_selected:not([disabled])::after {
+                  display: none;
+              }
               .day-published::after { background-color: #22c55e; }
               .day-scheduled::after { background-color: #3b82f6; }
               .day-failed::after { background-color: #ef4444; }
-              .rdp-day_selected[aria-selected="true"]::after {
-                  display: none;
+              .rdp-day_today:not([aria-selected=true]) { 
+                  background-color: #f3f4f6; 
+                  border-radius: 0.375rem; 
               }
-              .rdp-day_today:not([aria-selected="true"]) { background-color: #f3f4f6; border-radius: 0.375rem; }
-              .rdp-button:hover:not([disabled]):not([aria-selected="true"]):not(.rdp-day_today) { background-color: #f3f4f6; }
+              .rdp-button:hover:not([disabled]):not(.rdp-day_today):not([aria-selected=true]) {
+                  background-color: #f3f4f6;
+              }
           `}</style>
         
         {/* Cabeçalho */}
