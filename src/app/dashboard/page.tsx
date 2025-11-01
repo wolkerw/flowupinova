@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -120,10 +121,12 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
           <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Calendar className="w-4 h-4" />
-          <span>Última atualização: há 2 minutos</span>
-        </div>
+        <Button asChild variant="outline">
+            <Link href="/dashboard/conteudo">
+                <FileText className="w-4 h-4 mr-2" />
+                Ir para Conteúdo
+            </Link>
+        </Button>
       </div>
 
        {/* Resumo da semana */}
