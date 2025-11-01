@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,21 @@ import {
   Plus,
   Send,
   Bot,
-  Loader2
+  Loader2,
+  Rocket,
+  CheckCircle,
+  Circle,
+  Building2,
+  Instagram,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { cn } from "@/lib/utils";
 
 const initialMessages: Message[] = [
   {
@@ -28,14 +36,40 @@ const initialMessages: Message[] = [
   }
 ];
 
+const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title: string; description: string; href: string; isCompleted: boolean; isCurrent: boolean }) => {
+  return (
+    <div className={cn("flex items-start gap-4 transition-opacity", isCompleted && "opacity-50")}>
+      <div className="flex flex-col items-center">
+        {isCompleted ? (
+          <CheckCircle className="w-6 h-6 text-green-500" />
+        ) : (
+          <Circle className={cn("w-6 h-6", isCurrent ? "text-primary" : "text-gray-300")} />
+        )}
+        <div className={cn("w-px h-full mt-2", isCompleted ? "bg-green-500" : "bg-gray-300")}></div>
+      </div>
+      <div>
+        <h4 className={cn("font-semibold", isCurrent && "text-primary")}>{title}</h4>
+        <p className="text-sm text-gray-500 mb-3">{description}</p>
+        {!isCompleted && isCurrent && (
+          <Button asChild size="sm">
+            <Link href={href}>Começar Agora</Link>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-
+  
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -45,6 +79,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     getMetaConnection(user.uid).then(setMetaConnection);
+    getBusinessProfile(user.uid).then(setBusinessProfile);
   }, [user]);
 
   const handleSendMessage = async () => {
@@ -94,6 +129,12 @@ export default function Dashboard() {
     { title: "Engajamento", value: "8.7%", change: "+3.2%", icon: Heart, color: "text-pink-600" },
     { title: "Leads/Vendas", value: "89", change: "+24%", icon: ShoppingCart, color: "text-green-600" }
   ];
+
+  const allStepsCompleted = useMemo(() => {
+    if (!metaConnection || !businessProfile) return false;
+    return metaConnection.isConnected && businessProfile.isVerified;
+  }, [metaConnection, businessProfile]);
+
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -151,6 +192,49 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
+       )}
+
+       {/* First Steps Section */}
+       {!allStepsCompleted && (metaConnection !== null && businessProfile !== null) && (
+         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+         >
+          <Card className="shadow-lg border-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Rocket className="w-6 h-6 text-primary" />
+                Primeiros Passos Para Decolar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <StepItem 
+                  title="1. Conecte suas Redes Sociais"
+                  description="Integre seu Instagram e Facebook para começar a publicar e agendar."
+                  href="/dashboard/conteudo"
+                  isCompleted={metaConnection?.isConnected || false}
+                  isCurrent={!metaConnection?.isConnected}
+                />
+                 <StepItem 
+                  title="2. Conecte seu Perfil de Empresa"
+                  description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
+                  href="/dashboard/meu-negocio"
+                  isCompleted={businessProfile?.isVerified || false}
+                  isCurrent={metaConnection?.isConnected && !businessProfile?.isVerified}
+                />
+                 <StepItem 
+                  title="3. Crie sua Primeira Publicação"
+                  description="Use nossa IA para gerar e agendar seu primeiro post incrível."
+                  href="/dashboard/conteudo/gerar"
+                  isCompleted={false}
+                  isCurrent={metaConnection?.isConnected && (businessProfile?.isVerified || false)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
        )}
 
        {/* Chat Section */}

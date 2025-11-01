@@ -32,10 +32,10 @@ function getProfileDocRef(userId: string) {
     return doc(db, `users/${userId}/business/profile`);
 }
 
-export async function getBusinessProfile(userId: string): Promise<BusinessProfileData | null> {
+export async function getBusinessProfile(userId: string): Promise<BusinessProfileData> {
     if (!userId) {
         console.error("getBusinessProfile called without userId.");
-        return null;
+        return defaultProfile;
     }
     try {
         const profileDocRef = getProfileDocRef(userId);
@@ -45,15 +45,14 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
             return docSnap.data() as BusinessProfileData;
         } else {
             // Document doesn't exist, so create it with default data for this user
-            // This also creates the parent user document if it's missing.
-            await setDoc(doc(db, "users", userId), { createdAt: new Date() });
+            await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
             await setDoc(profileDocRef, defaultProfile);
             console.log(`Profile document created with default data for user ${userId}.`);
             return defaultProfile;
         }
     } catch (error) {
         console.error(`Error getting business profile for user ${userId}:`, error);
-        return null;
+        return defaultProfile;
     }
 }
 
