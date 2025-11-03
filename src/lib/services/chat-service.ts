@@ -71,7 +71,7 @@ export async function saveChatHistory(userId: string, messages: StoredMessage[])
         // Convert JS Dates to Firestore Timestamps before saving
         const messagesToStore = messages.map(msg => ({
             ...msg,
-            createdAt: Timestamp.fromDate(msg.createdAt),
+            createdAt: Timestamp.fromDate(msg.createdAt instanceof Date ? msg.createdAt : new Date()),
         }));
 
         // Use setDoc with merge to create or update the chatHistory field
