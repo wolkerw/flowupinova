@@ -34,8 +34,13 @@ export async function POST(request: NextRequest) {
         const mediaProductType = mediaInfo.media_product_type;
 
         // Step 2: Build the metrics list based on the media type
-        let metricsList = 'reach,views,likes,comments,shares,saved,total_interactions,profile_visits';
+        let metricsList = 'reach,views,likes,comments,shares,saved,total_interactions';
         
+        // profile_visits is only supported for IMAGE and CAROUSEL
+        if (mediaProductType === 'IMAGE' || mediaProductType === 'CAROUSEL_ALBUM') {
+            metricsList += ',profile_visits';
+        }
+
         if (mediaProductType === 'REELS') {
             metricsList += ',ig_reels_avg_watch_time,ig_reels_video_view_total_time';
         }
