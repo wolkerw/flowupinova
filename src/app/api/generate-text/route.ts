@@ -3,15 +3,21 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { summary } = await request.json();
+    const { summary, brandSummary } = await request.json(); // Adicionado brandSummary
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
+
+    // Adicionado o brandSummary ao corpo da requisição do webhook
+    const webhookPayload = {
+      summary,
+      brand_summary: brandSummary,
+    };
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ summary }),
+      body: JSON.stringify(webhookPayload),
     });
 
     if (!webhookResponse.ok) {

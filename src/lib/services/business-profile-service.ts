@@ -11,6 +11,7 @@ export interface BusinessProfileData {
     phone: string;
     website: string;
     description: string;
+    brandSummary: string; // Novo campo para o resumo da marca
     rating: number;
     totalReviews: number;
     isVerified: boolean;
@@ -23,6 +24,7 @@ const defaultProfile: BusinessProfileData = {
     phone: "(00) 00000-0000",
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
+    brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.", // Valor padrão
     rating: 0,
     totalReviews: 0,
     isVerified: false
@@ -42,7 +44,8 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
-            return docSnap.data() as BusinessProfileData;
+            // Retorna os dados existentes mesclados com o padrão para garantir que o novo campo exista
+            return { ...defaultProfile, ...docSnap.data() } as BusinessProfileData;
         } else {
             // Document doesn't exist, so create it with default data for this user
             await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });

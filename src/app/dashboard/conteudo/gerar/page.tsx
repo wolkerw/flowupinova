@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getUnusedImages, saveUnusedImages, removeUnusedImage, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -106,6 +107,7 @@ export default function GerarConteudoPage() {
   
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
   
@@ -143,15 +145,14 @@ export default function GerarConteudoPage() {
     
     async function loadInitialData() {
         try {
-            // Fetch Meta connection status
-            const metaConn = await getMetaConnection(user.uid);
+            const [metaConn, busProfile] = await Promise.all([
+                getMetaConnection(user.uid),
+                getBusinessProfile(user.uid),
+                fetchUnusedImages(),
+                fetchContentHistory()
+            ]);
             setMetaConnection(metaConn);
-
-            // Fetch unused images
-            await fetchUnusedImages();
-            // Fetch content history
-            await fetchContentHistory();
-
+            setBusinessProfile(busProfile);
         } catch (error: any) {
             console.error("Failed to load initial data:", error);
             toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: error.message });
@@ -185,10 +186,15 @@ export default function GerarConteudoPage() {
     setIsLoading(true);
 
     try {
+        const payload = {
+            summary: textToGenerate,
+            brandSummary: businessProfile?.brandSummary || ""
+        };
+
         const response = await fetch('/api/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ summary: textToGenerate }),
+            body: JSON.stringify(payload),
         });
         
         const data = await response.json();
