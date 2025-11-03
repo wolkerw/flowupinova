@@ -461,105 +461,107 @@ export default function GerarConteudoPage() {
             </CardFooter>
           </Card>
 
-          <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
-             <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                      <History className="w-6 h-6 text-gray-600" />
-                      Histórico e Recursos
-                  </CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <Tabs defaultValue="history">
-                      <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="history">
-                            <History className="w-4 h-4 mr-2" />
-                            Conteúdos Anteriores
-                          </TabsTrigger>
-                          <TabsTrigger value="unused-images">
-                              <Archive className="w-4 h-4 mr-2" />
-                              Artes não Utilizadas
-                          </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="history" className="mt-4">
-                          <RadioGroup onValueChange={handleHistoryContentSelection}>
-                            <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
-                                {contentHistory.length > 0 ? contentHistory.map((content, index) => (
-                                    <div key={index} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50/50">
-                                        <RadioGroupItem 
-                                            value={index.toString()}
-                                            id={`history-item-${index}`}
-                                        />
-                                        <Label htmlFor={`history-item-${index}`} className="flex-1 cursor-pointer">
-                                          <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
-                                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
-                                        </Label>
-                                    </div>
-                                )) : (
-                                    <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
-                                )}
-                            </div>
-                          </RadioGroup>
-                          {selectedHistoryContent && !selectedUnusedImage && (
-                            <div className="mt-4 flex justify-end">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleGenerateImages(selectedHistoryContent)}
-                                  disabled={isGeneratingImages}
-                                >
-                                  {isGeneratingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
-                                  Gerar Imagens para o item selecionado
-                                </Button>
-                            </div>
-                          )}
-                      </TabsContent>
-                      <TabsContent value="unused-images" className="mt-4">
-                            <RadioGroup onValueChange={handleUnusedImageSelection}>
-                                <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
-                                    {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
-                                        <div key={index} className="relative">
-                                            <RadioGroupItem value={img} id={`unused-img-${index}`} className="peer sr-only" />
-                                            <Label htmlFor={`unused-img-${index}`} className="block aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-background peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary">
-                                                <Image src={img} alt={`Arte não utilizada ${index + 1}`} layout="fill" objectFit="cover" />
-                                            </Label>
-                                        </div>
-                                    )) : (
-                                        <p className="text-sm text-center text-gray-500 py-8 col-span-full">Nenhuma arte não utilizada.</p>
-                                    )}
-                                </div>
+          <div className="hidden">
+            <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
+              <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <History className="w-6 h-6 text-gray-600" />
+                        Histórico e Recursos
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="history">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="history">
+                              <History className="w-4 h-4 mr-2" />
+                              Conteúdos Anteriores
+                            </TabsTrigger>
+                            <TabsTrigger value="unused-images">
+                                <Archive className="w-4 h-4 mr-2" />
+                                Artes não Utilizadas
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="history" className="mt-4">
+                            <RadioGroup onValueChange={handleHistoryContentSelection}>
+                              <div className="space-y-3 max-h-60 overflow-y-auto pr-3">
+                                  {contentHistory.length > 0 ? contentHistory.map((content, index) => (
+                                      <div key={index} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50/50">
+                                          <RadioGroupItem 
+                                              value={index.toString()}
+                                              id={`history-item-${index}`}
+                                          />
+                                          <Label htmlFor={`history-item-${index}`} className="flex-1 cursor-pointer">
+                                            <p className="font-semibold text-sm text-gray-800">{content.titulo}</p>
+                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.subtitulo}</p>
+                                          </Label>
+                                      </div>
+                                  )) : (
+                                      <p className="text-sm text-center text-gray-500 py-8">Nenhum conteúdo no histórico.</p>
+                                  )}
+                              </div>
                             </RadioGroup>
-                             {selectedUnusedImage && !selectedHistoryContent && (
-                                <div className="mt-4 flex justify-end">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={handleUseUnusedImage}
-                                      disabled={!selectedUnusedImage}
-                                    >
-                                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-                                      Usar esta arte para publicar
-                                    </Button>
-                                </div>
+                            {selectedHistoryContent && !selectedUnusedImage && (
+                              <div className="mt-4 flex justify-end">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleGenerateImages(selectedHistoryContent)}
+                                    disabled={isGeneratingImages}
+                                  >
+                                    {isGeneratingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
+                                    Gerar Imagens para o item selecionado
+                                  </Button>
+                              </div>
                             )}
-                             {!selectedUnusedImage && !selectedHistoryContent && unusedImagesHistory.length > 0 && (
-                                <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
-                             )}
-                      </TabsContent>
-                  </Tabs>
-                   {selectedHistoryContent && selectedUnusedImage && (
-                        <div className="mt-6 flex justify-center border-t pt-4">
-                            <Button
-                                size="sm"
-                                onClick={handleReuseContentAndArt}
-                                className="bg-gradient-to-r from-green-500 to-teal-500 text-white"
-                            >
-                                <Combine className="w-4 h-4 mr-2"/>
-                                Reutilizar Conteúdo e Arte
-                            </Button>
-                        </div>
-                   )}
-              </CardContent>
-          </Card>
+                        </TabsContent>
+                        <TabsContent value="unused-images" className="mt-4">
+                              <RadioGroup onValueChange={handleUnusedImageSelection}>
+                                  <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-3">
+                                      {unusedImagesHistory.length > 0 ? unusedImagesHistory.map((img, index) => (
+                                          <div key={index} className="relative">
+                                              <RadioGroupItem value={img} id={`unused-img-${index}`} className="peer sr-only" />
+                                              <Label htmlFor={`unused-img-${index}`} className="block aspect-square rounded-md overflow-hidden cursor-pointer ring-offset-background peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary">
+                                                  <Image src={img} alt={`Arte não utilizada ${index + 1}`} layout="fill" objectFit="cover" />
+                                              </Label>
+                                          </div>
+                                      )) : (
+                                          <p className="text-sm text-center text-gray-500 py-8 col-span-full">Nenhuma arte não utilizada.</p>
+                                      )}
+                                  </div>
+                              </RadioGroup>
+                              {selectedUnusedImage && !selectedHistoryContent && (
+                                  <div className="mt-4 flex justify-end">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={handleUseUnusedImage}
+                                        disabled={!selectedUnusedImage}
+                                      >
+                                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                                        Usar esta arte para publicar
+                                      </Button>
+                                  </div>
+                              )}
+                              {!selectedUnusedImage && !selectedHistoryContent && unusedImagesHistory.length > 0 && (
+                                  <p className="text-xs text-center text-gray-500 pt-4">Selecione uma arte e escreva um resumo acima para publicá-la.</p>
+                              )}
+                        </TabsContent>
+                    </Tabs>
+                    {selectedHistoryContent && selectedUnusedImage && (
+                          <div className="mt-6 flex justify-center border-t pt-4">
+                              <Button
+                                  size="sm"
+                                  onClick={handleReuseContentAndArt}
+                                  className="bg-gradient-to-r from-green-500 to-teal-500 text-white"
+                              >
+                                  <Combine className="w-4 h-4 mr-2"/>
+                                  Reutilizar Conteúdo e Arte
+                              </Button>
+                          </div>
+                    )}
+                </CardContent>
+            </Card>
+          </div>
         </motion.div>
       )}
 
