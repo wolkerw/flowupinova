@@ -302,7 +302,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     }, [open, post, connection]);
 
     const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
-    const isReel = post?.media_product_type === 'REELS';
+    const isReel = post?.media_product_type === 'REELS' || post?.media_type === 'VIDEO';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -319,7 +319,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                             
                             <Card className="bg-white overflow-hidden shadow-sm">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <Image src={post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={post.thumbnail_url || post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
                                         <p className="text-sm text-gray-600 line-clamp-3 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
@@ -467,10 +467,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
         <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
-                // Determine the image source: media_url for images, thumbnail_url for videos, or a placeholder
-                const imageSrc = item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM'
-                    ? item.media_url
-                    : item.thumbnail_url || 'https://placehold.co/400x400';
+                const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
 
                 return (
                     <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
