@@ -27,6 +27,7 @@ import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -120,10 +121,35 @@ export default function Dashboard() {
         } else {
             setMetricsLoading(false);
         }
+
+        // Fetch chat history
+        const history = await getChatHistory(user.uid);
+        if (history.length > 0) {
+            const historyMessages: Message[] = history.map(msg => ({
+                sender: msg.sender,
+                text: msg.text,
+                isError: msg.isError,
+            }));
+            setMessages(historyMessages);
+        }
     };
 
     fetchInitialData();
   }, [user]);
+
+   // Save history whenever messages change
+  useEffect(() => {
+    if (user && messages.length > initialMessages.length) { // Avoid saving initial message
+      const storedMessages: StoredMessage[] = messages.map(msg => ({
+        sender: msg.sender,
+        text: msg.text,
+        isError: msg.isError,
+        createdAt: new Date(),
+      }));
+      saveChatHistory(user.uid, storedMessages);
+    }
+  }, [messages, user]);
+
   
   const fetchPlatformMetrics = async (connection: MetaConnectionData) => {
         setMetricsLoading(true);
@@ -431,5 +457,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
