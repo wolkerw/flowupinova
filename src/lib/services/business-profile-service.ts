@@ -44,8 +44,15 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
-            // Retorna os dados existentes mesclados com o padrão para garantir que o novo campo exista
-            return { ...defaultProfile, ...docSnap.data() } as BusinessProfileData;
+            const data = docSnap.data();
+            // Verifica se o campo brandSummary existe e o adiciona se não existir
+            if (!data.brandSummary) {
+                await setDoc(profileDocRef, { brandSummary: defaultProfile.brandSummary }, { merge: true });
+                // Retorna os dados atualizados
+                return { ...defaultProfile, ...data, brandSummary: defaultProfile.brandSummary } as BusinessProfileData;
+            }
+            // Retorna os dados existentes mesclados com o padrão para garantir consistência
+            return { ...defaultProfile, ...data } as BusinessProfileData;
         } else {
             // Document doesn't exist, so create it with default data for this user
             await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
