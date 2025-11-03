@@ -24,6 +24,7 @@ function getUserAppDataDocRef(userId: string) {
 
 /**
  * Retrieves the list of unused image URLs for a specific user from Firestore.
+ * If the document doesn't exist, it creates it.
  * @param userId The UID of the user.
  * @returns A promise that resolves to an array of image URLs.
  */
@@ -40,13 +41,17 @@ export async function getUnusedImages(userId: string): Promise<string[]> {
         if (docSnap.exists()) {
             const data = docSnap.data() as UserAppData;
             return data.unusedImageUrls || [];
+        } else {
+            // Document doesn't exist, create it with an empty array
+            await setDoc(docRef, { unusedImageUrls: [] }, { merge: true });
+            return [];
         }
-        return [];
     } catch (error: any) {
         console.error(`Erro ao buscar imagens não utilizadas para o usuário ${userId}:`, error);
         throw new Error("Não foi possível buscar o histórico de imagens do banco de dados.");
     }
 }
+
 
 /**
  * Saves an array of image URLs to the user's unused images list in Firestore.
