@@ -21,13 +21,15 @@ import {
   LogOut,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Label } from "@/components/ui/label";
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
@@ -340,47 +342,38 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
                   {editingProfile ? (
                     <div className="space-y-4">
-                      <Input
-                        placeholder="Nome do negócio"
-                        name="name"
-                        value={formState.name}
-                        onChange={handleFormChange}
-                      />
-                       <Input
-                        placeholder="Categoria"
-                        name="category"
-                        value={formState.category}
-                        onChange={handleFormChange}
-                      />
-                      <Textarea
-                        placeholder="Descrição"
-                        name="description"
-                        value={formState.description}
-                        onChange={handleFormChange}
-                        className="h-20"
-                      />
-                      <Input
-                        placeholder="Endereço"
-                        name="address"
-                        value={formState.address}
-                        onChange={handleFormChange}
-                      />
-                      <Input
-                        placeholder="Telefone"
-                        name="phone"
-                        value={formState.phone}
-                        onChange={handleFormChange}
-                      />
-                       <Input
-                        placeholder="Website"
-                        name="website"
-                        value={formState.website}
-                        onChange={handleFormChange}
-                      />
-                      <div className="flex gap-2">
+                        <div>
+                            <Label htmlFor="name">Nome do Negócio</Label>
+                            <Input id="name" name="name" value={formState.name} onChange={handleFormChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="category">Categoria</Label>
+                            <Input id="category" name="category" value={formState.category} onChange={handleFormChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="description">Descrição</Label>
+                            <Textarea id="description" name="description" value={formState.description} onChange={handleFormChange} className="h-20" />
+                        </div>
+                        <div>
+                            <Label htmlFor="brandSummary">Resumo da Marca (para IA)</Label>
+                            <Textarea id="brandSummary" name="brandSummary" value={formState.brandSummary} onChange={handleFormChange} placeholder="Ex: Cores: azul e branco. Tom de voz: amigável. Público: pequenas empresas." className="h-24" />
+                        </div>
+                        <div>
+                            <Label htmlFor="address">Endereço</Label>
+                            <Input id="address" name="address" value={formState.address} onChange={handleFormChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="phone">Telefone</Label>
+                            <Input id="phone" name="phone" value={formState.phone} onChange={handleFormChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="website">Website</Label>
+                            <Input id="website" name="website" value={formState.website} onChange={handleFormChange} />
+                        </div>
+                      <div className="flex gap-2 pt-2">
                         <Button size="sm" onClick={handleSaveProfile} disabled={dataLoading}>
                           {dataLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                          Salvar
+                          Salvar Alterações
                         </Button>
                         <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                           Cancelar
@@ -402,6 +395,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a>
                       </div>
                       <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
+                      
+                      {profile.brandSummary && (
+                        <div className="p-3 bg-gray-50 rounded-lg mt-4 border">
+                            <h4 className="font-semibold text-sm flex items-center gap-2"><Info className="w-4 h-4 text-blue-500" /> Resumo da Marca (para IA)</h4>
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{profile.brandSummary}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -460,3 +460,4 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
