@@ -23,6 +23,11 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
     
+    if (!Array.isArray(data)) {
+        console.error("Formato de resposta do webhook inesperado (não é um array):", data);
+        return NextResponse.json({ error: "Formato de resposta do webhook inesperado.", details: JSON.stringify(data, null, 2) }, { status: 500 });
+    }
+
     // Process data to match the expected structure, handling potential inconsistencies.
     const processedData = data.map((item: any) => {
         // The webhook might return 'título' or 'titulo'. We normalize to 'titulo' with accent.
@@ -49,10 +54,13 @@ export async function POST(request: Request) {
         }
 
         return { 
-            titulo: title, // Use the normalized title
+            id: item.id || crypto.randomUUID(), // Ensure an ID exists
+            created_at: item.created_at || new Date().toISOString(),
+            título: title, // Use the normalized title
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
             hashtags: hashtags,
-            url_da_imagem: item.url_da_imagem || null
+            url_da_imagem: item.url_da_imagem || null,
+            aprovado_por_humano: item.aprovado_por_humano || false
         };
     });
 
