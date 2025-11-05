@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nenhum arquivo encontrado na requisição." }, { status: 400 });
     }
 
-    // A URL do webhook agora é a que você especificou.
+    // A URL do webhook agora está correta.
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook-test/logomarcas";
 
     // Recriamos o FormData para enviar ao webhook externo.
@@ -38,5 +38,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
-
-    
