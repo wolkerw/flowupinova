@@ -249,35 +249,36 @@ export default function Dashboard() {
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
     const file = event.target.files[0];
-    
+
     setIsUploadingLogo(true);
     toast({ title: "Enviando logomarca..." });
-    
+
     try {
-        // 1. Upload to Firebase Storage
+        // Step 1: Upload to Firebase Storage and get URL
         const logoUrl = await uploadMediaAndGetURL(user.uid, file);
-        
-        // 2. Update Firestore profile
-        await updateBusinessProfile(user.uid, { logoUrl });
-        
-        // 3. Trigger webhook via proxy
+        toast({ title: "Logomarca enviada para o Storage!", variant: "success" });
+
+        // Step 2: Call the proxy webhook API
         const proxyFormData = new FormData();
         proxyFormData.append('file', file);
-
         const proxyResponse = await fetch('/api/proxy-webhook', {
             method: 'POST',
             body: proxyFormData,
         });
-
-        if (!proxyResponse.ok) {
-            // Even if webhook fails, we don't block the user, just log it.
-            console.warn(`Webhook proxy call failed with status: ${proxyResponse.status}`);
-            toast({ title: "Aviso", description: "Sua logomarca foi salva, mas a comunicação com o serviço externo falhou." });
-        }
         
-        // 4. Refresh UI
+        if (!proxyResponse.ok) {
+           console.warn(`Webhook proxy call failed with status: ${proxyResponse.status}`);
+           toast({ title: "Aviso", description: "Sua logomarca foi salva, mas a comunicação com o serviço externo falhou." });
+        } else {
+            toast({ title: "Webhook acionado!", variant: "success" });
+        }
+
+        // Step 3: Update Firestore profile with the new logo URL
+        await updateBusinessProfile(user.uid, { logoUrl });
+
+        // Step 4: Refresh UI
         await fetchBusinessProfile();
-        toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
+        toast({ title: "Sucesso!", description: "Sua logomarca foi salva e o processo finalizado.", variant: "success" });
 
     } catch (error: any) {
         toast({ title: "Erro no Upload", description: error.message, variant: "destructive" });
@@ -285,7 +286,7 @@ export default function Dashboard() {
         setIsUploadingLogo(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
+};
 
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
@@ -525,3 +526,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
