@@ -254,10 +254,32 @@ export default function Dashboard() {
     toast({ title: "Enviando logomarca..." });
     
     try {
+        // 1. Upload to Firebase Storage
         const logoUrl = await uploadMediaAndGetURL(user.uid, file);
+        
+        // 2. Update Firestore profile
         await updateBusinessProfile(user.uid, { logoUrl });
+        
+        // 3. Trigger n8n webhook
+        const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/logomarcas";
+        const formData = new FormData();
+        formData.append('file', file); // Send the file itself
+
+        const webhookResponse = await fetch(webhookUrl, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!webhookResponse.ok) {
+            // Even if webhook fails, we don't block the user, just log it.
+            console.warn(`Webhook call failed with status: ${webhookResponse.status}`);
+            toast({ title: "Aviso", description: "Sua logomarca foi salva, mas a comunicação com o serviço externo falhou." });
+        }
+        
+        // 4. Refresh UI
         await fetchBusinessProfile();
         toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
+
     } catch (error: any) {
         toast({ title: "Erro no Upload", description: error.message, variant: "destructive" });
     } finally {
