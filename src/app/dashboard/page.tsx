@@ -260,19 +260,18 @@ export default function Dashboard() {
         // 2. Update Firestore profile
         await updateBusinessProfile(user.uid, { logoUrl });
         
-        // 3. Trigger n8n webhook
-        const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/logomarcas";
-        const formData = new FormData();
-        formData.append('file', file); // Send the file itself
+        // 3. Trigger webhook via proxy
+        const proxyFormData = new FormData();
+        proxyFormData.append('file', file);
 
-        const webhookResponse = await fetch(webhookUrl, {
+        const proxyResponse = await fetch('/api/proxy-webhook', {
             method: 'POST',
-            body: formData,
+            body: proxyFormData,
         });
 
-        if (!webhookResponse.ok) {
+        if (!proxyResponse.ok) {
             // Even if webhook fails, we don't block the user, just log it.
-            console.warn(`Webhook call failed with status: ${webhookResponse.status}`);
+            console.warn(`Webhook proxy call failed with status: ${proxyResponse.status}`);
             toast({ title: "Aviso", description: "Sua logomarca foi salva, mas a comunicação com o serviço externo falhou." });
         }
         
