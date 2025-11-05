@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,17 +19,22 @@ import {
   Instagram,
   Facebook,
   MessageCircle,
-  Share2
+  Share2,
+  Image as ImageIcon,
+  UploadCloud,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { uploadMediaAndGetURL } from "@/lib/services/posts-service";
 import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from 'next/image';
+import { useToast } from "@/hooks/use-toast";
 
 const initialMessages: Message[] = [
   {
@@ -38,7 +43,7 @@ const initialMessages: Message[] = [
   }
 ];
 
-const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title: string; description: string; href: string; isCompleted: boolean; isCurrent: boolean }) => {
+const StepItem = ({ title, description, href, isCompleted, isCurrent, children }: { title: string; description: string; href?: string; isCompleted: boolean; isCurrent: boolean; children?: React.ReactNode }) => {
   return (
     <div className="flex items-start gap-4 relative pb-8">
        <div className="absolute left-3 top-3 -bottom-5 w-px bg-gray-200"></div>
@@ -60,11 +65,12 @@ const StepItem = ({ title, description, href, isCompleted, isCurrent }: { title:
       <div className="pt-0.5">
         <h4 className={cn("font-semibold", isCurrent ? "text-primary" : "text-gray-800")}>{title}</h4>
         <p className="text-sm text-gray-500 mb-3 mt-1">{description}</p>
-        {!isCompleted && isCurrent && (
+        {!isCompleted && isCurrent && href && (
           <Button asChild size="sm" variant={isCurrent ? 'default' : 'outline'}>
             <Link href={href}>Começar Agora</Link>
           </Button>
         )}
+        {children}
       </div>
     </div>
   );
@@ -96,11 +102,18 @@ export default function Dashboard() {
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [instagramMetrics, setInstagramMetrics] = useState<PlatformMetrics | null>(null);
   const [facebookMetrics, setFacebookMetrics] = useState<PlatformMetrics | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchBusinessProfile = useCallback(async () => {
+    if (!user) return;
+    getBusinessProfile(user.uid).then(setBusinessProfile);
+  }, [user]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -114,7 +127,7 @@ export default function Dashboard() {
     const fetchInitialData = async () => {
         const connection = await getMetaConnection(user.uid);
         setMetaConnection(connection);
-        getBusinessProfile(user.uid).then(setBusinessProfile);
+        fetchBusinessProfile();
 
         if (connection.isConnected) {
             fetchPlatformMetrics(connection);
@@ -122,7 +135,6 @@ export default function Dashboard() {
             setMetricsLoading(false);
         }
 
-        // Fetch chat history
         const history = await getChatHistory(user.uid);
         if (history.length > 0) {
             const historyMessages: Message[] = history.map(msg => ({
@@ -135,11 +147,10 @@ export default function Dashboard() {
     };
 
     fetchInitialData();
-  }, [user]);
+  }, [user, fetchBusinessProfile]);
 
-   // Save history whenever messages change
   useEffect(() => {
-    if (user && messages.length > initialMessages.length) { // Avoid saving initial message
+    if (user && messages.length > initialMessages.length) {
       const storedMessages: StoredMessage[] = messages.map(msg => ({
         sender: msg.sender,
         text: msg.text,
@@ -155,7 +166,6 @@ export default function Dashboard() {
         setMetricsLoading(true);
 
         try {
-            // Fetch Instagram Data
             if (connection.instagramId && connection.accessToken) {
                 const igResponse = await fetch('/api/instagram/media', {
                     method: 'POST',
@@ -172,7 +182,6 @@ export default function Dashboard() {
                 }
             }
 
-             // Fetch Facebook Data
             if (connection.pageId && connection.accessToken) {
                 const fbResponse = await fetch('/api/meta/page-posts', {
                     method: 'POST',
@@ -194,7 +203,6 @@ export default function Dashboard() {
             setMetricsLoading(false);
         }
     };
-
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -238,16 +246,33 @@ export default function Dashboard() {
     }
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !event.target.files || event.target.files.length === 0) return;
+    const file = event.target.files[0];
+    
+    setIsUploadingLogo(true);
+    toast({ title: "Enviando logomarca..." });
+    
+    try {
+        const logoUrl = await uploadMediaAndGetURL(user.uid, file);
+        await updateBusinessProfile(user.uid, { logoUrl });
+        await fetchBusinessProfile();
+        toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
+    } catch (error: any) {
+        toast({ title: "Erro no Upload", description: error.message, variant: "destructive" });
+    } finally {
+        setIsUploadingLogo(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
-    return metaConnection.isConnected && businessProfile.isVerified;
+    return !!businessProfile.logoUrl && metaConnection.isConnected && businessProfile.isVerified;
   }, [metaConnection, businessProfile]);
-
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
@@ -267,7 +292,6 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
-            {/* Resumo da semana */}
             {metaConnection?.isConnected && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -340,7 +364,6 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            {/* Chat Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -388,7 +411,7 @@ export default function Dashboard() {
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
                           handleSendMessage();
-                          e.preventDefault(); // Prevents adding a new line in some browsers
+                          e.preventDefault();
                         }
                       }}
                       disabled={loading}
@@ -410,7 +433,6 @@ export default function Dashboard() {
         </div>
 
         <div className="lg:col-span-1 space-y-8">
-            {/* First Steps Section */}
             {!allStepsCompleted && (metaConnection !== null && businessProfile !== null) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -427,25 +449,50 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="flex flex-col">
                       <StepItem 
-                        title="1. Conecte suas Redes Sociais"
+                        title="1. Adicione sua Logomarca"
+                        description="Faça o upload da sua logomarca para personalizar seus conteúdos."
+                        isCompleted={!!businessProfile?.logoUrl}
+                        isCurrent={!businessProfile?.logoUrl}
+                      >
+                         {!businessProfile?.logoUrl && (
+                           <div className="mt-2">
+                            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" />
+                             <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploadingLogo}>
+                               {isUploadingLogo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2"/>}
+                               Enviar Logomarca
+                             </Button>
+                           </div>
+                         )}
+                         {businessProfile?.logoUrl && (
+                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-4">
+                                <Image src={businessProfile.logoUrl} alt="Preview da logomarca" width={48} height={48} className="object-contain rounded-md bg-white"/>
+                                <div>
+                                    <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
+                                    <p className="text-xs text-green-700">Esta imagem será usada pela IA.</p>
+                                </div>
+                            </div>
+                         )}
+                      </StepItem>
+                      <StepItem 
+                        title="2. Conecte suas Redes Sociais"
                         description="Integre seu Instagram e Facebook para começar a publicar e agendar."
                         href="/dashboard/conteudo"
                         isCompleted={metaConnection?.isConnected || false}
-                        isCurrent={!metaConnection?.isConnected}
+                        isCurrent={!!businessProfile?.logoUrl && !metaConnection?.isConnected}
                       />
                       <StepItem 
-                        title="2. Conecte seu Perfil de Empresa"
+                        title="3. Conecte seu Perfil de Empresa"
                         description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
                         href="/dashboard/meu-negocio"
                         isCompleted={businessProfile?.isVerified || false}
-                        isCurrent={!!metaConnection?.isConnected && !businessProfile?.isVerified}
+                        isCurrent={!!businessProfile?.logoUrl && !!metaConnection?.isConnected && !businessProfile?.isVerified}
                       />
                       <StepItem 
-                        title="3. Crie sua Primeira Publicação"
+                        title="4. Crie sua Primeira Publicação"
                         description="Use nossa IA para gerar e agendar seu primeiro post incrível."
                         href="/dashboard/conteudo/gerar"
-                        isCompleted={false} // This step is never 'completed' in this list
-                        isCurrent={!!metaConnection?.isConnected && !!businessProfile?.isVerified}
+                        isCompleted={false}
+                        isCurrent={allStepsCompleted}
                       />
                     </div>
                   </CardContent>

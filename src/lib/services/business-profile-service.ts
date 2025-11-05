@@ -12,6 +12,7 @@ export interface BusinessProfileData {
     website: string;
     description: string;
     brandSummary: string; // Novo campo para o resumo da marca
+    logoUrl?: string; // Campo para a logomarca
     rating: number;
     totalReviews: number;
     isVerified: boolean;
@@ -25,6 +26,7 @@ const defaultProfile: BusinessProfileData = {
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
     brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.", // Valor padrão
+    logoUrl: "",
     rating: 0,
     totalReviews: 0,
     isVerified: false
@@ -45,16 +47,26 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Verifica se o campo brandSummary existe e o adiciona se não existir
+            let needsUpdate = false;
+            const updatedData: Partial<BusinessProfileData> = {};
+
             if (!data.brandSummary) {
-                await setDoc(profileDocRef, { brandSummary: defaultProfile.brandSummary }, { merge: true });
-                // Retorna os dados atualizados
-                return { ...defaultProfile, ...data, brandSummary: defaultProfile.brandSummary } as BusinessProfileData;
+                updatedData.brandSummary = defaultProfile.brandSummary;
+                needsUpdate = true;
             }
-            // Retorna os dados existentes mesclados com o padrão para garantir consistência
+
+            if (data.logoUrl === undefined) {
+                updatedData.logoUrl = defaultProfile.logoUrl;
+                needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+                await setDoc(profileDocRef, updatedData, { merge: true });
+                return { ...defaultProfile, ...data, ...updatedData } as BusinessProfileData;
+            }
+            
             return { ...defaultProfile, ...data } as BusinessProfileData;
         } else {
-            // Document doesn't exist, so create it with default data for this user
             await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
             await setDoc(profileDocRef, defaultProfile);
             console.log(`Profile document created with default data for user ${userId}.`);
@@ -73,7 +85,6 @@ export async function updateBusinessProfile(userId: string, data: Partial<Busine
     }
     try {
         const profileDocRef = getProfileDocRef(userId);
-        // Use set with merge to create or update
         await setDoc(profileDocRef, data, { merge: true });
         console.log(`Business profile updated successfully for user ${userId}.`);
     } catch (error) {
