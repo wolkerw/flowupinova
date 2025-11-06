@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, AppWindow, Move, Scaling, Blend } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,10 @@ import { schedulePost } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
@@ -30,6 +33,13 @@ type MediaItem = {
     previewUrl: string; // Blob or data URL for local preview
     publicUrl?: string; // URL from webhook
 };
+
+type LogoSettings = {
+    show: boolean;
+    position: string;
+    size: number;
+    opacity: number;
+}
 
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
@@ -59,7 +69,19 @@ const contentOptions: { id: ContentType; icon: React.ElementType; title: string;
     }
 ];
 
-const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaItems: MediaItem[], onRemoveItem: (index: number) => void }) => {
+const Preview = ({ 
+    type, 
+    mediaItems, 
+    onRemoveItem,
+    logoUrl,
+    logoSettings
+}: { 
+    type: ContentType, 
+    mediaItems: MediaItem[], 
+    onRemoveItem: (index: number) => void,
+    logoUrl?: string,
+    logoSettings: LogoSettings
+}) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
@@ -79,6 +101,22 @@ const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaI
             setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
         }
     }
+    
+    const getPositionClasses = (position: string) => {
+        const classes: { [key: string]: string } = {
+            'top-left': 'top-4 left-4',
+            'top-center': 'top-4 left-1/2 -translate-x-1/2',
+            'top-right': 'top-4 right-4',
+            'middle-left': 'top-1/2 -translate-y-1/2 left-4',
+            'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+            'middle-right': 'top-1/2 -translate-y-1/2 right-4',
+            'bottom-left': 'bottom-4 left-4',
+            'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+            'bottom-right': 'bottom-4 right-4',
+        };
+        return classes[position] || 'bottom-4 right-4';
+    };
+
 
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
@@ -88,12 +126,43 @@ const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaI
             imageSizeProps.height = 444; // approx 9:16
         }
 
+        const renderLogo = () => {
+            if (!logoUrl || !logoSettings.show) return null;
+            
+            const positionClass = getPositionClasses(logoSettings.position);
+            
+            return (
+                 <Image
+                    src={logoUrl}
+                    alt="Logomarca"
+                    width={logoSettings.size * 2} // Assuming base size, multiply for display
+                    height={logoSettings.size * 2}
+                    className={cn("absolute z-10 transition-all", positionClass)}
+                    style={{ 
+                        width: `${logoSettings.size}%`,
+                        height: 'auto',
+                        opacity: logoSettings.opacity / 100 
+                    }}
+                />
+            )
+        }
+
         if (item.type === 'image') {
-            return <Image src={imageUrlToDisplay} alt="Preview da imagem" width={imageSizeProps.width} height={imageSizeProps.height} className="object-cover w-full h-full" />;
+            return (
+                <div className="relative w-full h-full">
+                    <Image src={imageUrlToDisplay} alt="Preview da imagem" layout="fill" className="object-cover w-full h-full" />
+                    {renderLogo()}
+                </div>
+            );
         }
         
         if (item.type === 'video') {
-            return <video src={item.previewUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />;
+             return (
+                <div className="relative w-full h-full">
+                    <video src={item.previewUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
+                    {renderLogo()}
+                </div>
+            );
         }
         
         return null;
@@ -125,18 +194,18 @@ const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaI
                                 {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
 
                                 {mediaItems.length > 0 && (
-                                     <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
+                                     <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-20 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
                                         <X className="w-4 h-4"/>
                                      </button>
                                 )}
 
                                 {mediaItems.length > 1 && (
                                     <>
-                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-10 transform -translate-y-1/2">
+                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-20 transform -translate-y-1/2">
                                             <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
                                             <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
                                         </div>
-                                        <div className="absolute bottom-4 flex gap-1.5 z-10">
+                                        <div className="absolute bottom-4 flex gap-1.5 z-20">
                                             {mediaItems.map((_, index) => (
                                                  <div key={index} className={cn("w-2 h-2 rounded-full", currentSlide === index ? 'bg-blue-500' : 'bg-gray-400')}></div>
                                             ))}
@@ -144,7 +213,7 @@ const Preview = ({ type, mediaItems, onRemoveItem }: { type: ContentType, mediaI
                                     </>
                                 )}
                                 {mediaItems.length > 0 && (
-                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-10">
+                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-20">
                                         {currentSlide + 1} / {mediaItems.length}
                                     </div>
                                 )}
@@ -188,6 +257,13 @@ export default function CriarConteudoPage() {
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
     const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
+    const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+    const [logoSettings, setLogoSettings] = useState<LogoSettings>({
+        show: false,
+        position: 'bottom-right',
+        size: 15,
+        opacity: 80,
+    });
 
     const { user } = useAuth();
     const { toast } = useToast();
@@ -201,6 +277,7 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
+        getBusinessProfile(user.uid).then(setBusinessProfile);
     }, [user]);
 
     const handleNextStep = async () => {
@@ -465,7 +542,61 @@ export default function CriarConteudoPage() {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="space-y-4">
+                                
+                                <div className="space-y-4 pt-4 border-t">
+                                     <Label className="font-semibold flex items-center gap-2"><AppWindow className="w-5 h-5 text-gray-600" /> Ferramentas de Edição</Label>
+                                     
+                                     {businessProfile?.logoUrl ? (
+                                        <div className="space-y-6 p-4 bg-gray-50 rounded-lg border">
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="show-logo" className="flex items-center gap-3">
+                                                    <Image src={businessProfile.logoUrl} alt="Logo" width={24} height={24} className="rounded-sm object-contain" />
+                                                    Adicionar Logomarca
+                                                </Label>
+                                                <Switch id="show-logo" checked={logoSettings.show} onCheckedChange={(checked) => setLogoSettings(p => ({ ...p, show: checked }))} />
+                                            </div>
+
+                                            <AnimatePresence>
+                                            {logoSettings.show && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="space-y-6 overflow-hidden"
+                                                >
+                                                    {/* Posição */}
+                                                    <div className="space-y-3">
+                                                        <Label className="flex items-center gap-2 text-sm"><Move className="w-4 h-4" />Posição</Label>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'].map(pos => (
+                                                                <Button key={pos} variant={logoSettings.position === pos ? 'default' : 'outline'} size="icon" className="h-9 w-9" onClick={() => setLogoSettings(p => ({ ...p, position: pos }))}>
+                                                                    <div className={cn("w-3 h-3 rounded-full", logoSettings.position === pos ? 'bg-primary-foreground' : 'bg-primary')} />
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tamanho */}
+                                                    <div className="space-y-3">
+                                                        <Label htmlFor="logo-size" className="flex items-center gap-2 text-sm"><Scaling className="w-4 h-4"/>Tamanho ({logoSettings.size}%)</Label>
+                                                        <Slider id="logo-size" min={5} max={50} step={1} value={[logoSettings.size]} onValueChange={([val]) => setLogoSettings(p => ({ ...p, size: val }))} />
+                                                    </div>
+                                                    
+                                                    {/* Opacidade */}
+                                                    <div className="space-y-3">
+                                                        <Label htmlFor="logo-opacity" className="flex items-center gap-2 text-sm"><Blend className="w-4 h-4" />Opacidade ({logoSettings.opacity}%)</Label>
+                                                        <Slider id="logo-opacity" min={10} max={100} step={5} value={[logoSettings.opacity]} onValueChange={([val]) => setLogoSettings(p => ({ ...p, opacity: val }))} />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                            </AnimatePresence>
+                                        </div>
+                                     ) : (
+                                         <p className="text-xs text-gray-500 p-4 bg-gray-50 rounded-lg border">Para usar a ferramenta de logomarca, adicione sua logo na página "Meu Negócio".</p>
+                                     )}
+                                </div>
+                                
+                                <div className="space-y-4 pt-4 border-t">
                                     <div>
                                         <Label htmlFor="post-title" className="font-semibold">Título</Label>
                                         <Input
@@ -505,7 +636,13 @@ export default function CriarConteudoPage() {
                         
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24">
-                             <Preview type={selectedType} mediaItems={mediaItems} onRemoveItem={handleRemoveItem} />
+                             <Preview 
+                               type={selectedType} 
+                               mediaItems={mediaItems} 
+                               onRemoveItem={handleRemoveItem} 
+                               logoUrl={businessProfile?.logoUrl}
+                               logoSettings={logoSettings}
+                             />
                            </div>
                         </div>
                     </div>
@@ -551,7 +688,13 @@ export default function CriarConteudoPage() {
                                                 <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
                                             </div>
                                             <div className="relative aspect-square bg-gray-200">
-                                                 <Preview type={selectedType} mediaItems={mediaItems} onRemoveItem={handleRemoveItem} />
+                                                 <Preview 
+                                                    type={selectedType} 
+                                                    mediaItems={mediaItems} 
+                                                    onRemoveItem={handleRemoveItem} 
+                                                    logoUrl={businessProfile?.logoUrl}
+                                                    logoSettings={logoSettings}
+                                                 />
                                             </div>
                                             <div className="p-3 text-sm">
                                                 <p>
