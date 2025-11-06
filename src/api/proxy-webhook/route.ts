@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // A URL do webhook agora está correta.
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook-test/logomarcas";
+    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
 
     // Recriamos o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
@@ -38,3 +38,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
+
+    
