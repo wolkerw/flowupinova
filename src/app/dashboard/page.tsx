@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -22,6 +23,7 @@ import {
   Share2,
   Image as ImageIcon,
   UploadCloud,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -286,6 +288,22 @@ export default function Dashboard() {
     }
 };
 
+  const handleRemoveLogo = async () => {
+    if (!user) return;
+    setIsUploadingLogo(true); // Re-use the same loading state
+    toast({ title: "Removendo logomarca..." });
+
+    try {
+        await updateBusinessProfile(user.uid, { logoUrl: "" });
+        await fetchBusinessProfile();
+        toast({ title: "Sucesso!", description: "Sua logomarca foi removida.", variant: "success" });
+    } catch (error: any) {
+        toast({ title: "Erro ao Remover", description: error.message, variant: "destructive" });
+    } finally {
+        setIsUploadingLogo(false);
+    }
+};
+
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
     return !!businessProfile.logoUrl && metaConnection.isConnected && businessProfile.isVerified;
@@ -484,12 +502,17 @@ export default function Dashboard() {
                            </div>
                          )}
                          {businessProfile?.logoUrl && (
-                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-4">
-                                <Image src={businessProfile.logoUrl} alt="Preview da logomarca" width={48} height={48} className="object-contain rounded-md bg-white"/>
-                                <div>
-                                    <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
-                                    <p className="text-xs text-green-700">Esta imagem será usada pela IA.</p>
+                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Image src={businessProfile.logoUrl} alt="Preview da logomarca" width={40} height={40} className="object-contain rounded-md bg-white"/>
+                                    <div>
+                                        <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
+                                        <p className="text-xs text-green-700">Esta imagem será usada pela IA.</p>
+                                    </div>
                                 </div>
+                                <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-100 h-8 w-8" onClick={handleRemoveLogo} disabled={isUploadingLogo}>
+                                    {isUploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4"/>}
+                                </Button>
                             </div>
                          )}
                       </StepItem>

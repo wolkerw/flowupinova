@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // A URL do webhook agora é a que você especificou.
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook-test/logomarcas";
+    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
 
     // Recriamos o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
