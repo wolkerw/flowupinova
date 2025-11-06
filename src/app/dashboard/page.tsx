@@ -252,10 +252,10 @@ export default function Dashboard() {
     setIsUploadingLogo(true);
     toast({ title: "Enviando logomarca..." });
 
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
         const response = await fetch('/api/proxy-webhook', {
             method: 'POST',
             body: formData,
