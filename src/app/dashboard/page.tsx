@@ -29,7 +29,6 @@ import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
-import { uploadMediaAndGetURL } from "@/lib/services/posts-service";
 import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -254,31 +253,30 @@ export default function Dashboard() {
     toast({ title: "Enviando logomarca..." });
 
     try {
-        // Step 1: Upload to Firebase Storage and get URL
-        const logoUrl = await uploadMediaAndGetURL(user.uid, file);
-        toast({ title: "Logomarca enviada para o Storage!", variant: "success" });
-
-        // Step 2: Call the proxy webhook API
-        const proxyFormData = new FormData();
-        proxyFormData.append('file', file);
-        const proxyResponse = await fetch('/api/proxy-webhook', {
-            method: 'POST',
-            body: proxyFormData,
-        });
+        const formData = new FormData();
+        formData.append('file', file);
         
-        if (!proxyResponse.ok) {
-           console.warn(`Webhook proxy call failed with status: ${proxyResponse.status}`);
-           toast({ title: "Aviso", description: "Sua logomarca foi salva, mas a comunicação com o serviço externo falhou." });
-        } else {
-            toast({ title: "Webhook acionado!", variant: "success" });
+        const response = await fetch('/api/proxy-webhook', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || `Falha na API proxy: ${response.statusText}`);
         }
 
-        // Step 3: Update Firestore profile with the new logo URL
-        await updateBusinessProfile(user.uid, { logoUrl });
+        const result = await response.json();
+        const logoUrl = result?.[0]?.url_post;
 
-        // Step 4: Refresh UI
+        if (!logoUrl) {
+            throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+        }
+        
+        await updateBusinessProfile(user.uid, { logoUrl });
         await fetchBusinessProfile();
-        toast({ title: "Sucesso!", description: "Sua logomarca foi salva e o processo finalizado.", variant: "success" });
+
+        toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
 
     } catch (error: any) {
         toast({ title: "Erro no Upload", description: error.message, variant: "destructive" });
@@ -526,5 +524,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
