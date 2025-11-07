@@ -547,13 +547,10 @@ export default function CriarConteudoPage() {
                                      
                                      {businessProfile?.logoUrl ? (
                                         <div className="space-y-6 p-4 bg-gray-50 rounded-lg border">
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="show-logo" className="flex items-center gap-3">
-                                                    <Image src={businessProfile.logoUrl} alt="Logo" width={24} height={24} className="rounded-sm object-contain" />
-                                                    Adicionar Logomarca
-                                                </Label>
-                                                <Switch id="show-logo" checked={logoSettings.show} onCheckedChange={(checked) => setLogoSettings(p => ({ ...p, show: checked }))} />
-                                            </div>
+                                            <Button variant="outline" className="w-full" onClick={() => setLogoSettings(p => ({ ...p, show: !p.show }))}>
+                                                <Image src={businessProfile.logoUrl} alt="Logo" width={20} height={20} className="mr-2 rounded-sm object-contain" />
+                                                {logoSettings.show ? 'Remover Logomarca' : 'Adicionar Logomarca'}
+                                            </Button>
 
                                             <AnimatePresence>
                                             {logoSettings.show && (
@@ -801,5 +798,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
