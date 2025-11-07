@@ -286,12 +286,15 @@ export default function CriarConteudoPage() {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
             setIsUploading(true);
-            toast({ title: "Processando imagem...", description: "Aplicando edições e obtendo URL pública." });
+            toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
-            const file = mediaItems[0].file;
+            const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
             const formData = new FormData();
-            formData.append('file', file);
             
+            // Append the main media file
+            formData.append('file', mediaItems[0].file);
+            
+            // Append logo file and settings if they exist
             if (logoSettings.show && postLogo) {
                 formData.append('logoFile', postLogo.file);
                 formData.append('logoPosition', logoSettings.position);
@@ -300,14 +303,14 @@ export default function CriarConteudoPage() {
             }
 
             try {
-                const response = await fetch('/api/proxy-webhook', {
+                const response = await fetch(webhookUrl, {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.details || `Falha na API proxy: ${response.statusText}`);
+                    throw new Error(errorData.details || `Falha ao chamar o webhook: ${response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -330,7 +333,7 @@ export default function CriarConteudoPage() {
                 setStep(3);
 
             } catch (error: any) {
-                console.error("Erro ao enviar para a API proxy:", error);
+                console.error("Erro ao enviar para o webhook:", error);
                 toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
             } finally {
                 setIsUploading(false);
