@@ -126,8 +126,9 @@ const Preview = ({
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         
+        // Only render the frontend logo if we are showing a local preview (item.publicUrl is not set)
         const renderLogo = () => {
-            if (!postLogo || !logoSettings.show) return null;
+            if (!postLogo || !logoSettings.show || item.publicUrl) return null;
             
             const positionClass = getPositionClasses(logoSettings.position);
             
