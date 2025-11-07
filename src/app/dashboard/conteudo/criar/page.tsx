@@ -120,12 +120,7 @@ const Preview = ({
 
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
-        const imageSizeProps = { width: 400, height: 400 };
-        if (type === 'reels' || type === 'story') {
-            imageSizeProps.width = 250;
-            imageSizeProps.height = 444; // approx 9:16
-        }
-
+        
         const renderLogo = () => {
             if (!logoUrl || !logoSettings.show) return null;
             
@@ -150,7 +145,7 @@ const Preview = ({
         if (item.type === 'image') {
             return (
                 <div className="relative w-full h-full">
-                    <Image src={imageUrlToDisplay} alt="Preview da imagem" layout="fill" className="object-cover w-full h-full" />
+                    <Image src={imageUrlToDisplay} alt="Preview da imagem" layout="fill" objectFit="contain" />
                     {renderLogo()}
                 </div>
             );
@@ -641,7 +636,7 @@ export default function CriarConteudoPage() {
                             </CardContent>
                         </Card>
                         
-                        <div className="flex flex-col items-center justify-start h-full group">
+                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24 w-full">
                                 <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
                                     <div className="p-3 flex items-center gap-2 border-b">
