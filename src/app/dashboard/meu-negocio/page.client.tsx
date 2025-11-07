@@ -65,13 +65,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   }, [user, fetchProfileData]);
 
-  const handleTokenExchange = useCallback(async (code: string) => {
+  const handleTokenExchange = useCallback(async (code: string, state: string | null) => {
     setAuthLoading(true);
     try {
       const response = await fetch('/api/google/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, state, origin: window.location.origin }), // Envia o origin
       });
 
       const result = await response.json();
@@ -94,6 +94,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   useEffect(() => {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const state = searchParams.get('state');
 
     if (error) {
       toast({ title: "Erro na Conexão", description: decodeURIComponent(error), variant: "destructive" });
@@ -101,7 +102,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
     
     if (code && user) {
-      handleTokenExchange(code);
+      handleTokenExchange(code, state);
     }
   }, [searchParams, user, handleTokenExchange, router, toast]);
 
@@ -115,9 +116,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       setAuthLoading(false);
       return;
     }
+
+    // Criação do valor de 'state' para segurança
+    const stateValue = Math.random().toString(36).substring(2, 15);
+    // Idealmente, você armazenaria 'stateValue' na sessão do usuário para validar no callback.
     
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https%3A//www.googleapis.com/auth/business.manage&access_type=offline&prompt=consent`;
-    window.location.href = googleAuthUrl;
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.append('client_id', googleClientId);
+    googleAuthUrl.searchParams.append('redirect_uri', redirectUri);
+    googleAuthUrl.searchParams.append('response_type', 'code');
+    googleAuthUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/business.manage');
+    googleAuthUrl.searchParams.append('access_type', 'offline');
+    googleAuthUrl.searchParams.append('prompt', 'consent');
+    googleAuthUrl.searchParams.append('state', stateValue);
+    
+    window.location.href = googleAuthUrl.toString();
   };
   
   const handleDisconnect = async () => {
@@ -460,4 +473,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
