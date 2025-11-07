@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
+    
     const file = formData.get('file');
 
     if (!file) {
@@ -14,23 +15,23 @@ export async function POST(request: Request) {
 
     // Recriamos o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
+    
+    // Adiciona o arquivo
     webhookFormData.append('file', file);
     
-    // Adiciona os parâmetros da logomarca se eles existirem
-    const logoUrl = formData.get('logoUrl');
-    const logoPosition = formData.get('logoPosition');
-    const logoSize = formData.get('logoSize');
-    const logoOpacity = formData.get('logoOpacity');
-    
-    if (logoUrl) webhookFormData.append('logoUrl', logoUrl);
-    if (logoPosition) webhookFormData.append('logoPosition', logoPosition);
-    if (logoSize) webhookFormData.append('logoSize', logoSize);
-    if (logoOpacity) webhookFormData.append('logoOpacity', logoOpacity);
-
+    // Adiciona todos os outros campos do formData original
+    // Isso garante que os parâmetros da logomarca sejam repassados
+    for (const [key, value] of formData.entries()) {
+      if (key !== 'file') {
+        webhookFormData.append(key, value);
+      }
+    }
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       body: webhookFormData,
+      // Não defina o 'Content-Type' manualmente, o fetch fará isso
+      // automaticamente com o boundary correto para multipart/form-data.
     });
 
     if (!webhookResponse.ok) {
