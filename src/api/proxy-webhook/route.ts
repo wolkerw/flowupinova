@@ -10,12 +10,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nenhum arquivo encontrado na requisição." }, { status: 400 });
     }
 
-    // A URL do webhook agora está correta.
     const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
 
     // Recriamos o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
     webhookFormData.append('file', file);
+    
+    // Adiciona os parâmetros da logomarca se eles existirem
+    const logoUrl = formData.get('logoUrl');
+    const logoPosition = formData.get('logoPosition');
+    const logoSize = formData.get('logoSize');
+    const logoOpacity = formData.get('logoOpacity');
+    
+    if (logoUrl) webhookFormData.append('logoUrl', logoUrl);
+    if (logoPosition) webhookFormData.append('logoPosition', logoPosition);
+    if (logoSize) webhookFormData.append('logoSize', logoSize);
+    if (logoOpacity) webhookFormData.append('logoOpacity', logoOpacity);
+
 
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
@@ -38,5 +49,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
-
-    

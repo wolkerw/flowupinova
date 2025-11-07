@@ -285,12 +285,19 @@ export default function CriarConteudoPage() {
             setStep(2);
         } else if (step === 2 && mediaItems.length > 0) {
             setIsUploading(true);
-            toast({ title: "Processando imagem...", description: "Enviando imagem para obter URL pública." });
+            toast({ title: "Processando imagem...", description: "Aplicando edições e obtendo URL pública." });
 
             const file = mediaItems[0].file;
-
             const formData = new FormData();
             formData.append('file', file);
+            
+            // Append logo settings to FormData if a logo is being applied
+            if (logoSettings.show && businessProfile?.logoUrl) {
+                formData.append('logoUrl', businessProfile.logoUrl);
+                formData.append('logoPosition', logoSettings.position);
+                formData.append('logoSize', logoSettings.size.toString());
+                formData.append('logoOpacity', logoSettings.opacity.toString());
+            }
 
             try {
                 // Call the internal API proxy instead of the external webhook
@@ -635,7 +642,7 @@ export default function CriarConteudoPage() {
                         </Card>
                         
                         <div className="flex flex-col items-center justify-start h-full group">
-                           <div className="sticky top-24 w-full max-w-sm">
+                           <div className="sticky top-24 w-full">
                                 <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
                                     <div className="p-3 flex items-center gap-2 border-b">
                                         <Avatar className="h-8 w-8">
