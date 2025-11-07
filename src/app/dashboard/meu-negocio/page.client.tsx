@@ -66,12 +66,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   }, [user, fetchProfileData]);
 
   const handleTokenExchange = useCallback(async (code: string, state: string | null) => {
+    if (!user) {
+        toast({ title: "Erro de Autenticação", description: "O usuário não foi encontrado para salvar os dados.", variant: "destructive" });
+        return;
+    }
+
     setAuthLoading(true);
     try {
       const response = await fetch('/api/google/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state, origin: window.location.origin }), // Envia o origin
+          body: JSON.stringify({ code, state }),
       });
 
       const result = await response.json();
@@ -80,6 +85,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
       }
       
+      // A API retornou os dados do perfil, agora o cliente salva.
+      await updateBusinessProfile(user.uid, result.businessProfileData);
+
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
       await fetchProfileData();
 
@@ -89,7 +97,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       router.replace('/dashboard/meu-negocio');
       setAuthLoading(false);
     }
-  }, [toast, router, fetchProfileData]);
+  }, [user, toast, router, fetchProfileData]);
 
   useEffect(() => {
     const code = searchParams.get('code');
