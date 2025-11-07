@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, AppWindow, Move, Scaling, Blend } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, AppWindow, Move, Scaling, Blend, UploadCloud, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,11 @@ type LogoSettings = {
     position: string;
     size: number;
     opacity: number;
+}
+
+type PostLogo = {
+    file: File;
+    previewUrl: string;
 }
 
 
@@ -73,13 +78,13 @@ const Preview = ({
     type, 
     mediaItems, 
     onRemoveItem,
-    logoUrl,
+    postLogo,
     logoSettings
 }: { 
     type: ContentType, 
     mediaItems: MediaItem[], 
     onRemoveItem: (index: number) => void,
-    logoUrl?: string,
+    postLogo: PostLogo | null,
     logoSettings: LogoSettings
 }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -122,13 +127,13 @@ const Preview = ({
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         
         const renderLogo = () => {
-            if (!logoUrl || !logoSettings.show) return null;
+            if (!postLogo || !logoSettings.show) return null;
             
             const positionClass = getPositionClasses(logoSettings.position);
             
             return (
                  <Image
-                    src={logoUrl}
+                    src={postLogo.previewUrl}
                     alt="Logomarca"
                     width={logoSettings.size * 2} // Assuming base size, multiply for display
                     height={logoSettings.size * 2}
@@ -252,7 +257,8 @@ export default function CriarConteudoPage() {
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
     const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
-    const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+    
+    const [postLogo, setPostLogo] = useState<PostLogo | null>(null);
     const [logoSettings, setLogoSettings] = useState<LogoSettings>({
         show: false,
         position: 'bottom-right',
@@ -268,11 +274,11 @@ export default function CriarConteudoPage() {
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
-        getBusinessProfile(user.uid).then(setBusinessProfile);
     }, [user]);
 
     const handleNextStep = async () => {
@@ -286,8 +292,8 @@ export default function CriarConteudoPage() {
             const formData = new FormData();
             formData.append('file', file);
             
-            if (logoSettings.show && businessProfile?.logoUrl) {
-                formData.append('logoUrl', businessProfile.logoUrl);
+            if (logoSettings.show && postLogo) {
+                formData.append('logoFile', postLogo.file);
                 formData.append('logoPosition', logoSettings.position);
                 formData.append('logoSize', logoSettings.size.toString());
                 formData.append('logoOpacity', logoSettings.opacity.toString());
@@ -336,7 +342,7 @@ export default function CriarConteudoPage() {
         ref.current?.click();
     };
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'video') => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             const previewUrl = URL.createObjectURL(file);
@@ -354,6 +360,24 @@ export default function CriarConteudoPage() {
         if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
     };
     
+    const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const previewUrl = URL.createObjectURL(file);
+            setPostLogo({ file, previewUrl });
+            setLogoSettings(prev => ({ ...prev, show: true }));
+        }
+        if (event.target) event.target.value = "";
+    };
+    
+    const handleRemoveLogo = () => {
+        if (postLogo) {
+            URL.revokeObjectURL(postLogo.previewUrl);
+        }
+        setPostLogo(null);
+        setLogoSettings(prev => ({ ...prev, show: false }));
+    };
+
     const handleRemoveItem = (index: number) => {
         const itemToRemove = mediaItems[index];
         if(itemToRemove.previewUrl.startsWith('blob:')) {
@@ -441,8 +465,11 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
+            if (postLogo) {
+                URL.revokeObjectURL(postLogo.previewUrl);
+            }
         };
-    }, [mediaItems]);
+    }, [mediaItems, postLogo]);
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -527,9 +554,10 @@ export default function CriarConteudoPage() {
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
-                                    <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
-                                    <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
-                                    
+                                    <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
+                                    <input type="file" ref={videoInputRef} onChange={handleFileChange} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
+                                    <input type="file" ref={logoInputRef} onChange={handleLogoFileChange} accept="image/png, image/jpeg" className="hidden" />
+
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)} disabled={isUploading}>
                                             {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <FileImage className="w-4 h-4 text-blue-500" />}
@@ -545,15 +573,26 @@ export default function CriarConteudoPage() {
                                 <div className="space-y-4 pt-4 border-t">
                                      <Label className="font-semibold flex items-center gap-2"><AppWindow className="w-5 h-5 text-gray-600" /> Ferramentas de Edição</Label>
                                      
-                                     {businessProfile?.logoUrl ? (
-                                        <div className="space-y-6 p-4 bg-gray-50 rounded-lg border">
-                                            <Button variant="outline" className="w-full" onClick={() => setLogoSettings(p => ({ ...p, show: !p.show }))}>
-                                                <Image src={businessProfile.logoUrl} alt="Logo" width={20} height={20} className="mr-2 rounded-sm object-contain" />
-                                                {logoSettings.show ? 'Remover Logomarca' : 'Adicionar Logomarca'}
-                                            </Button>
+                                     <div className="space-y-6 p-4 bg-gray-50 rounded-lg border">
+                                            {!postLogo ? (
+                                                <Button variant="outline" className="w-full" onClick={() => handleFileSelect(logoInputRef)}>
+                                                    <UploadCloud className="w-4 h-4 mr-2" />
+                                                    Adicionar Logomarca
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Image src={postLogo.previewUrl} alt="logo preview" width={32} height={32} className="rounded-sm object-contain bg-white shadow-sm" />
+                                                        <span className="text-sm font-medium text-gray-700 truncate">{postLogo.file.name}</span>
+                                                    </div>
+                                                    <Button variant="ghost" size="icon" onClick={handleRemoveLogo}>
+                                                        <Trash2 className="w-4 h-4 text-red-500"/>
+                                                    </Button>
+                                                </div>
+                                            )}
 
                                             <AnimatePresence>
-                                            {logoSettings.show && (
+                                            {postLogo && (
                                                 <motion.div 
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
@@ -587,9 +626,6 @@ export default function CriarConteudoPage() {
                                             )}
                                             </AnimatePresence>
                                         </div>
-                                     ) : (
-                                         <p className="text-xs text-gray-500 p-4 bg-gray-50 rounded-lg border">Para usar a ferramenta de logomarca, adicione sua logo na página "Meu Negócio".</p>
-                                     )}
                                 </div>
                                 
                                 <div className="space-y-4 pt-4 border-t">
@@ -646,7 +682,7 @@ export default function CriarConteudoPage() {
                                                 type={selectedType} 
                                                 mediaItems={mediaItems} 
                                                 onRemoveItem={handleRemoveItem} 
-                                                logoUrl={businessProfile?.logoUrl}
+                                                postLogo={postLogo}
                                                 logoSettings={logoSettings}
                                             />
                                         </div>
@@ -706,7 +742,7 @@ export default function CriarConteudoPage() {
                                                     type={selectedType} 
                                                     mediaItems={mediaItems} 
                                                     onRemoveItem={handleRemoveItem} 
-                                                    logoUrl={businessProfile?.logoUrl}
+                                                    postLogo={postLogo}
                                                     logoSettings={logoSettings}
                                                  />
                                             </div>
