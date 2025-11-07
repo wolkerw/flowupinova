@@ -297,7 +297,23 @@ export default function CriarConteudoPage() {
             // Append logo file and settings if they exist
             if (logoSettings.show && postLogo) {
                 formData.append('logoFile', postLogo.file);
-                formData.append('logoPosition', logoSettings.position);
+                
+                const positionCoords = {
+                    'top-left': { x: 0, y: 0 },
+                    'top-center': { x: 50, y: 0 },
+                    'top-right': { x: 100, y: 0 },
+                    'middle-left': { x: 0, y: 50 },
+                    'middle-center': { x: 50, y: 50 },
+                    'middle-right': { x: 100, y: 50 },
+                    'bottom-left': { x: 0, y: 100 },
+                    'bottom-center': { x: 50, y: 100 },
+                    'bottom-right': { x: 100, y: 100 },
+                };
+                
+                const coords = positionCoords[logoSettings.position as keyof typeof positionCoords] || positionCoords['bottom-right'];
+                
+                formData.append('logoX', coords.x.toString());
+                formData.append('logoY', coords.y.toString());
                 formData.append('logoSize', logoSettings.size.toString());
                 formData.append('logoOpacity', logoSettings.opacity.toString());
             }
@@ -392,7 +408,7 @@ export default function CriarConteudoPage() {
     const handleGenerateText = () => {
         setIsGeneratingText(true);
         setTimeout(() => {
-            setText(prevText => prevText + "\n\nTexto melhorado pela IA: " + prevText);
+            setText(prevText => prevText + "\\n\\nTexto melhorado pela IA: " + prevText);
             setIsGeneratingText(false);
         }, 1500);
     };
