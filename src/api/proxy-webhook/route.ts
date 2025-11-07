@@ -16,15 +16,10 @@ export async function POST(request: Request) {
     // Recriamos o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
     
-    // Adiciona o arquivo
-    webhookFormData.append('file', file);
-    
-    // Adiciona todos os outros campos do formData original
-    // Isso garante que os parâmetros da logomarca sejam repassados
+    // Anexa cada campo do FormData original ao novo FormData.
+    // Isso garante que tanto o arquivo quanto os campos de texto (logoUrl, etc.) sejam repassados.
     for (const [key, value] of formData.entries()) {
-      if (key !== 'file') {
-        webhookFormData.append(key, value);
-      }
+      webhookFormData.append(key, value);
     }
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -50,3 +45,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
+
+    

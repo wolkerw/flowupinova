@@ -286,7 +286,6 @@ export default function CriarConteudoPage() {
             const formData = new FormData();
             formData.append('file', file);
             
-            // Append logo settings to FormData if a logo is being applied
             if (logoSettings.show && businessProfile?.logoUrl) {
                 formData.append('logoUrl', businessProfile.logoUrl);
                 formData.append('logoPosition', logoSettings.position);
@@ -295,7 +294,6 @@ export default function CriarConteudoPage() {
             }
 
             try {
-                // Call the internal API proxy instead of the external webhook
                 const response = await fetch('/api/proxy-webhook', {
                     method: 'POST',
                     body: formData,
@@ -311,7 +309,7 @@ export default function CriarConteudoPage() {
                 const publicUrl = result?.[0]?.url_post;
 
                 if (!publicUrl) {
-                    throw new Error("A resposta do webhook (via proxy) não continha uma 'url_post' válida.");
+                    throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
                 }
 
                 setMediaItems(prevItems => {
@@ -394,7 +392,6 @@ export default function CriarConteudoPage() {
             return;
         }
         
-        // Use the publicUrl if available, otherwise pass the File object
         const mediaToPublish = mediaItems[0].publicUrl || mediaItems[0].file;
 
         if (!mediaToPublish) {
@@ -636,7 +633,7 @@ export default function CriarConteudoPage() {
                             </CardContent>
                         </Card>
                         
-                         <div className="flex flex-col items-center justify-start h-full group">
+                        <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24 w-full">
                                 <div className="w-full max-w-sm">
                                     <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
@@ -804,3 +801,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
