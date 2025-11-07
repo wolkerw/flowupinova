@@ -638,27 +638,29 @@ export default function CriarConteudoPage() {
                         
                          <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24 w-full">
-                                <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
-                                    <div className="p-3 flex items-center gap-2 border-b">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={user?.photoURL || undefined} />
-                                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
-                                    </div>
-                                    <div className="relative aspect-square bg-gray-200">
-                                         <Preview 
-                                            type={selectedType} 
-                                            mediaItems={mediaItems} 
-                                            onRemoveItem={handleRemoveItem} 
-                                            logoUrl={businessProfile?.logoUrl}
-                                            logoSettings={logoSettings}
-                                         />
-                                    </div>
-                                    <div className="p-3 text-sm min-h-[6rem]">
-                                        <p className="whitespace-pre-wrap">
-                                            <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {title && <span className="font-bold">{title}</span>} {text}
-                                        </p>
+                                <div className="w-full max-w-sm">
+                                    <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+                                        <div className="p-3 flex items-center gap-2 border-b">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={user?.photoURL || undefined} />
+                                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
+                                        </div>
+                                        <div className="relative aspect-square bg-gray-200">
+                                            <Preview 
+                                                type={selectedType} 
+                                                mediaItems={mediaItems} 
+                                                onRemoveItem={handleRemoveItem} 
+                                                logoUrl={businessProfile?.logoUrl}
+                                                logoSettings={logoSettings}
+                                            />
+                                        </div>
+                                        <div className="p-3 text-sm min-h-[6rem]">
+                                            <p className="whitespace-pre-wrap">
+                                                <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {title && <span className="font-bold">{title}</span>} {text}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                            </div>
