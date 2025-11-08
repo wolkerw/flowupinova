@@ -57,12 +57,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Log the application URL for debugging purposes
-if (process.env.APP_HOST) {
-  console.log("==================================================");
-  console.log("APP URL (for Cloud Scheduler):", process.env.APP_HOST);
-  console.log("==================================================");
-}
-
-// Forçando uma reinicialização do servidor para limpar o cache. Este comentário força outra reinicialização.
 export default nextConfig;
