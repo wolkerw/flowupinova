@@ -11,8 +11,10 @@ export interface BusinessProfileData {
     phone: string;
     website: string;
     description: string;
-    brandSummary: string; // Novo campo para o resumo da marca
-    logoUrl?: string; // Campo para a logomarca
+    brandSummary: string;
+    logoUrl?: string;
+    logoWidth?: number;
+    logoHeight?: number;
     rating: number;
     totalReviews: number;
     isVerified: boolean;
@@ -25,8 +27,10 @@ const defaultProfile: BusinessProfileData = {
     phone: "(00) 00000-0000",
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
-    brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.", // Valor padrão
+    brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.",
     logoUrl: "",
+    logoWidth: 0,
+    logoHeight: 0,
     rating: 0,
     totalReviews: 0,
     isVerified: false

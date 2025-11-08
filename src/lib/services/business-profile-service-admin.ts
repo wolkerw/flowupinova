@@ -13,6 +13,8 @@ const defaultProfile: BusinessProfileData = {
   description: "Descreva sua empresa aqui.",
   brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.",
   logoUrl: "",
+  logoWidth: 0,
+  logoHeight: 0,
   rating: 0,
   totalReviews: 0,
   isVerified: false

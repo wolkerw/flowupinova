@@ -248,6 +248,22 @@ export default function Dashboard() {
     }
   };
 
+  const getImageDimensions = (file: File): Promise<{width: number, height: number}> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = document.createElement('img');
+            img.onload = () => {
+                resolve({ width: img.width, height: img.height });
+            };
+            img.onerror = reject;
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+  };
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
     const file = event.target.files[0];
@@ -256,11 +272,12 @@ export default function Dashboard() {
     toast({ title: "Enviando logomarca..." });
 
     try {
+        const { width, height } = await getImageDimensions(file);
         const logoUrl = await uploadMediaAndGetURL(user.uid, file, (progress) => {
             console.log(`Upload is ${progress}% done`);
         });
         
-        await updateBusinessProfile(user.uid, { logoUrl });
+        await updateBusinessProfile(user.uid, { logoUrl, logoWidth: width, logoHeight: height });
         await fetchBusinessProfile();
 
         toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
@@ -279,7 +296,7 @@ export default function Dashboard() {
     toast({ title: "Removendo logomarca..." });
 
     try {
-        await updateBusinessProfile(user.uid, { logoUrl: "" });
+        await updateBusinessProfile(user.uid, { logoUrl: "", logoWidth: 0, logoHeight: 0 });
         await fetchBusinessProfile();
         toast({ title: "Sucesso!", description: "Sua logomarca foi removida.", variant: "success" });
     } catch (error: any) {
