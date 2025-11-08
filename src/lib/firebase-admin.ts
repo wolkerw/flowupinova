@@ -14,7 +14,8 @@ if (!admin.apps.length) {
     // ou ter um mecanismo de fallback, mas para depuração, o log é crucial.
   }
 } else {
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK já estava inicializado.");
+    // This case is for hot-reloading in development.
+    // It's useful to know the SDK was already initialized.
 }
 
 

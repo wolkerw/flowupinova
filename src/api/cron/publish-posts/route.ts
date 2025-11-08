@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
             const response = await fetch(requestUrl.toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // O corpo da requisição para a API de publicação precisa de um objeto `postData`
                 body: JSON.stringify(payload),
             });
 
