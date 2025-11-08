@@ -265,30 +265,8 @@ export default function Dashboard() {
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !event.target.files || event.target.files.length === 0) return;
-    const file = event.target.files[0];
-
-    setIsUploadingLogo(true);
-    toast({ title: "Enviando logomarca..." });
-
-    try {
-        const { width, height } = await getImageDimensions(file);
-        const logoUrl = await uploadMediaAndGetURL(user.uid, file, (progress) => {
-            console.log(`Upload is ${progress}% done`);
-        });
-        
-        await updateBusinessProfile(user.uid, { logoUrl, logoWidth: width, logoHeight: height });
-        await fetchBusinessProfile();
-
-        toast({ title: "Sucesso!", description: "Sua logomarca foi salva.", variant: "success" });
-
-    } catch (error: any) {
-        toast({ title: "Erro no Upload", description: error.message, variant: "destructive" });
-    } finally {
-        setIsUploadingLogo(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-};
+    // This function will do nothing.
+  };
 
   const handleRemoveLogo = async () => {
     if (!user) return;
