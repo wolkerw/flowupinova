@@ -41,11 +41,6 @@ type LogoSettings = {
     opacity: number;
 }
 
-type PostLogo = {
-    file: File;
-    previewUrl: string;
-}
-
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
     {
@@ -78,13 +73,13 @@ const Preview = ({
     type, 
     mediaItems, 
     onRemoveItem,
-    postLogo,
+    logoUrl,
     logoSettings
 }: { 
     type: ContentType, 
     mediaItems: MediaItem[], 
     onRemoveItem: (index: number) => void,
-    postLogo: PostLogo | null,
+    logoUrl: string | null,
     logoSettings: LogoSettings
 }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -126,17 +121,16 @@ const Preview = ({
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         
-        // Only render the frontend logo if we are showing a local preview (item.publicUrl is not set)
         const renderLogo = () => {
-            if (!postLogo || !logoSettings.show || item.publicUrl) return null;
+            if (!logoUrl || !logoSettings.show || item.publicUrl) return null;
             
             const positionClass = getPositionClasses(logoSettings.position);
             
             return (
                  <Image
-                    src={postLogo.previewUrl}
+                    src={logoUrl}
                     alt="Logomarca"
-                    width={logoSettings.size * 2} // Assuming base size, multiply for display
+                    width={logoSettings.size * 2}
                     height={logoSettings.size * 2}
                     className={cn("absolute z-10 transition-all", positionClass)}
                     style={{ 
@@ -258,10 +252,10 @@ export default function CriarConteudoPage() {
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
     const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
-    
-    const [postLogo, setPostLogo] = useState<PostLogo | null>(null);
+    const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+
     const [logoSettings, setLogoSettings] = useState<LogoSettings>({
-        show: false,
+        show: true,
         position: 'bottom-right',
         size: 15,
         opacity: 80,
@@ -275,11 +269,11 @@ export default function CriarConteudoPage() {
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
-    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
+        getBusinessProfile(user.uid).then(setBusinessProfile);
     }, [user]);
 
     const handleNextStep = async () => {
@@ -289,35 +283,15 @@ export default function CriarConteudoPage() {
             setIsUploading(true);
             toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
-            const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+            const webhookUrl = "/api/proxy-webhook";
             const formData = new FormData();
             
-            // Append the main media file
             formData.append('file', mediaItems[0].file);
             
-            // Append logo file and settings if they exist
-            if (logoSettings.show && postLogo) {
-                formData.append('logoFile', postLogo.file);
-                
-                const positionCoords = {
-                    'top-left': { x: 0, y: 0 },
-                    'top-center': { x: 50, y: 0 },
-                    'top-right': { x: 100, y: 0 },
-                    'middle-left': { x: 0, y: 50 },
-                    'middle-center': { x: 50, y: 50 },
-                    'middle-right': { x: 100, y: 50 },
-                    'bottom-left': { x: 0, y: 100 },
-                    'bottom-center': { x: 50, y: 100 },
-                    'bottom-right': { x: 100, y: 100 },
-                };
-                
-                const coords = positionCoords[logoSettings.position as keyof typeof positionCoords] || positionCoords['bottom-right'];
-                
-                formData.append('logoX', coords.x.toString());
-                formData.append('logoY', coords.y.toString());
-                formData.append('logoSize', logoSettings.size.toString());
-                formData.append('logoOpacity', logoSettings.opacity.toString());
+            if (businessProfile?.logo?.url) {
+                formData.append('logoUrl', businessProfile.logo.url);
             }
+
 
             try {
                 const response = await fetch(webhookUrl, {
@@ -378,24 +352,6 @@ export default function CriarConteudoPage() {
             }
         }
         if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
-    };
-    
-    const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const previewUrl = URL.createObjectURL(file);
-            setPostLogo({ file, previewUrl });
-            setLogoSettings(prev => ({ ...prev, show: true }));
-        }
-        if (event.target) event.target.value = "";
-    };
-    
-    const handleRemoveLogo = () => {
-        if (postLogo) {
-            URL.revokeObjectURL(postLogo.previewUrl);
-        }
-        setPostLogo(null);
-        setLogoSettings(prev => ({ ...prev, show: false }));
     };
 
     const handleRemoveItem = (index: number) => {
@@ -485,11 +441,8 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
-            if (postLogo) {
-                URL.revokeObjectURL(postLogo.previewUrl);
-            }
         };
-    }, [mediaItems, postLogo]);
+    }, [mediaItems]);
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -576,7 +529,6 @@ export default function CriarConteudoPage() {
                                     <p className="text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
                                     <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
                                     <input type="file" ref={videoInputRef} onChange={handleFileChange} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
-                                    <input type="file" ref={logoInputRef} onChange={handleLogoFileChange} accept="image/png, image/jpeg" className="hidden" />
 
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleFileSelect(imageInputRef)} disabled={isUploading}>
@@ -588,64 +540,6 @@ export default function CriarConteudoPage() {
                                             Anexar Vídeo
                                         </Button>
                                     </div>
-                                </div>
-                                
-                                <div className="space-y-4 pt-4 border-t">
-                                     <Label className="font-semibold flex items-center gap-2"><AppWindow className="w-5 h-5 text-gray-600" /> Ferramentas de Edição</Label>
-                                     
-                                     <div className="space-y-6 p-4 bg-gray-50 rounded-lg border">
-                                            {!postLogo ? (
-                                                <Button variant="outline" className="w-full" onClick={() => handleFileSelect(logoInputRef)}>
-                                                    <UploadCloud className="w-4 h-4 mr-2" />
-                                                    Adicionar Logomarca
-                                                </Button>
-                                            ) : (
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Image src={postLogo.previewUrl} alt="logo preview" width={32} height={32} className="rounded-sm object-contain bg-white shadow-sm" />
-                                                        <span className="text-sm font-medium text-gray-700 truncate">{postLogo.file.name}</span>
-                                                    </div>
-                                                    <Button variant="ghost" size="icon" onClick={handleRemoveLogo}>
-                                                        <Trash2 className="w-4 h-4 text-red-500"/>
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            <AnimatePresence>
-                                            {postLogo && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="space-y-6 overflow-hidden"
-                                                >
-                                                    {/* Posição */}
-                                                    <div className="space-y-3">
-                                                        <Label className="flex items-center gap-2 text-sm"><Move className="w-4 h-4" />Posição</Label>
-                                                        <div className="grid grid-cols-3 gap-2">
-                                                            {['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'].map(pos => (
-                                                                <Button key={pos} variant={logoSettings.position === pos ? 'default' : 'outline'} size="icon" className="h-9 w-9" onClick={() => setLogoSettings(p => ({ ...p, position: pos }))}>
-                                                                    <div className={cn("w-3 h-3 rounded-full", logoSettings.position === pos ? 'bg-primary-foreground' : 'bg-primary')} />
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Tamanho */}
-                                                    <div className="space-y-3">
-                                                        <Label htmlFor="logo-size" className="flex items-center gap-2 text-sm"><Scaling className="w-4 h-4"/>Tamanho ({logoSettings.size}%)</Label>
-                                                        <Slider id="logo-size" min={5} max={50} step={1} value={[logoSettings.size]} onValueChange={([val]) => setLogoSettings(p => ({ ...p, size: val }))} />
-                                                    </div>
-                                                    
-                                                    {/* Opacidade */}
-                                                    <div className="space-y-3">
-                                                        <Label htmlFor="logo-opacity" className="flex items-center gap-2 text-sm"><Blend className="w-4 h-4" />Opacidade ({logoSettings.opacity}%)</Label>
-                                                        <Slider id="logo-opacity" min={10} max={100} step={5} value={[logoSettings.opacity]} onValueChange={([val]) => setLogoSettings(p => ({ ...p, opacity: val }))} />
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                            </AnimatePresence>
-                                        </div>
                                 </div>
                                 
                                 <div className="space-y-4 pt-4 border-t">
@@ -702,7 +596,7 @@ export default function CriarConteudoPage() {
                                                 type={selectedType} 
                                                 mediaItems={mediaItems} 
                                                 onRemoveItem={handleRemoveItem} 
-                                                postLogo={postLogo}
+                                                logoUrl={businessProfile?.logo?.url || null}
                                                 logoSettings={logoSettings}
                                             />
                                         </div>
@@ -762,7 +656,7 @@ export default function CriarConteudoPage() {
                                                     type={selectedType} 
                                                     mediaItems={mediaItems} 
                                                     onRemoveItem={handleRemoveItem} 
-                                                    postLogo={postLogo}
+                                                    logoUrl={businessProfile?.logo?.url || null}
                                                     logoSettings={logoSettings}
                                                  />
                                             </div>
