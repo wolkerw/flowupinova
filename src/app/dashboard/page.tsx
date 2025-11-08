@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
+import { uploadMediaAndGetURL } from "@/lib/services/posts-service";
 
 const initialMessages: Message[] = [
   {
@@ -254,26 +255,10 @@ export default function Dashboard() {
     setIsUploadingLogo(true);
     toast({ title: "Enviando logomarca..." });
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-        const response = await fetch('/api/proxy-webhook', {
-            method: 'POST',
-            body: formData,
+        const logoUrl = await uploadMediaAndGetURL(user.uid, file, (progress) => {
+            console.log(`Upload is ${progress}% done`);
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.details || `Falha na API proxy: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        const logoUrl = result?.[0]?.url_post;
-
-        if (!logoUrl) {
-            throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
-        }
         
         await updateBusinessProfile(user.uid, { logoUrl });
         await fetchBusinessProfile();
