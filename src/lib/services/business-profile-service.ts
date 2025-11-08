@@ -4,6 +4,12 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
+export interface LogoData {
+    url: string;
+    width: number;
+    height: number;
+}
+
 export interface BusinessProfileData {
     name: string;
     category: string;
@@ -12,9 +18,7 @@ export interface BusinessProfileData {
     website: string;
     description: string;
     brandSummary: string;
-    logoUrl?: string;
-    logoWidth?: number;
-    logoHeight?: number;
+    logo: LogoData;
     rating: number;
     totalReviews: number;
     isVerified: boolean;
@@ -28,9 +32,11 @@ const defaultProfile: BusinessProfileData = {
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
     brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.",
-    logoUrl: "",
-    logoWidth: 0,
-    logoHeight: 0,
+    logo: {
+        url: "",
+        width: 0,
+        height: 0,
+    },
     rating: 0,
     totalReviews: 0,
     isVerified: false
@@ -50,26 +56,38 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
-            const data = docSnap.data();
+            const data = docSnap.data() as any; // Read as 'any' to handle migration
             let needsUpdate = false;
             const updatedData: Partial<BusinessProfileData> = {};
 
-            if (!data.brandSummary) {
-                updatedData.brandSummary = defaultProfile.brandSummary;
+            // Start with a clean default logo object
+            const finalProfile: BusinessProfileData = { ...defaultProfile, ...data };
+            
+            // Migration from old structure (logoUrl, logoWidth) to new (logo object)
+            if (data.logoUrl !== undefined || data.logoWidth !== undefined) {
+                finalProfile.logo = {
+                    url: data.logoUrl || "",
+                    width: data.logoWidth || 0,
+                    height: data.logoHeight || 0,
+                };
+                // Unset the old fields
+                delete (finalProfile as any).logoUrl;
+                delete (finalProfile as any).logoWidth;
+                delete (finalProfile as any).logoHeight;
                 needsUpdate = true;
             }
 
-            if (data.logoUrl === undefined) {
-                updatedData.logoUrl = defaultProfile.logoUrl;
+            if (!data.brandSummary) {
+                finalProfile.brandSummary = defaultProfile.brandSummary;
                 needsUpdate = true;
             }
 
             if (needsUpdate) {
-                await setDoc(profileDocRef, updatedData, { merge: true });
-                return { ...defaultProfile, ...data, ...updatedData } as BusinessProfileData;
+                await setDoc(profileDocRef, finalProfile);
+                return finalProfile;
             }
             
-            return { ...defaultProfile, ...data } as BusinessProfileData;
+            return finalProfile;
         } else {
             await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
             await setDoc(profileDocRef, defaultProfile);

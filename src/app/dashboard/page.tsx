@@ -263,7 +263,7 @@ export default function Dashboard() {
     });
   };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+ const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -274,9 +274,11 @@ export default function Dashboard() {
         const { width, height } = await getImageDimensions(file);
         
         await updateBusinessProfile(user.uid, {
-            logoUrl: '', // Do not save the URL
-            logoWidth: width,
-            logoHeight: height,
+            logo: {
+                url: "", // Not uploading the file, just saving dimensions
+                width: width,
+                height: height,
+            }
         });
 
         await fetchBusinessProfile();
@@ -287,12 +289,12 @@ export default function Dashboard() {
         toast({ title: "Erro ao Processar", description: error.message, variant: "destructive" });
     } finally {
         setIsUploadingLogo(false);
-        // Reset file input to allow selecting the same file again
         if (event.target) {
             event.target.value = "";
         }
     }
 };
+
 
   const handleRemoveLogo = async () => {
     if (!user) return;
@@ -300,7 +302,13 @@ export default function Dashboard() {
     toast({ title: "Removendo logomarca..." });
 
     try {
-        await updateBusinessProfile(user.uid, { logoUrl: "", logoWidth: 0, logoHeight: 0 });
+        await updateBusinessProfile(user.uid, { 
+            logo: {
+                url: "", 
+                width: 0, 
+                height: 0 
+            }
+        });
         await fetchBusinessProfile();
         toast({ title: "Sucesso!", description: "Sua logomarca foi removida.", variant: "success" });
     } catch (error: any) {
@@ -312,7 +320,7 @@ export default function Dashboard() {
 
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
-    return !!businessProfile.logoUrl && metaConnection.isConnected && businessProfile.isVerified;
+    return !!(businessProfile.logo?.url) && metaConnection.isConnected && businessProfile.isVerified;
   }, [metaConnection, businessProfile]);
 
   return (
@@ -495,10 +503,10 @@ export default function Dashboard() {
                       <StepItem 
                         title="1. Adicione sua Logomarca"
                         description="Faça o upload da sua logomarca para personalizar seus conteúdos."
-                        isCompleted={!!businessProfile?.logoUrl}
-                        isCurrent={!businessProfile?.logoUrl}
+                        isCompleted={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0)}
+                        isCurrent={!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0)}
                       >
-                         {!businessProfile?.logoUrl && (
+                         {!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) ? (
                            <div className="mt-2">
                             <input type="file" accept="image/*" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" />
                              <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploadingLogo}>
@@ -506,14 +514,13 @@ export default function Dashboard() {
                                Enviar Logomarca
                              </Button>
                            </div>
-                         )}
-                         {businessProfile?.logoUrl && (
+                         ) : (
                             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                    <Image src={businessProfile.logoUrl} alt="Preview da logomarca" width={40} height={40} className="object-contain rounded-md bg-white"/>
+                                    <ImageIcon className="w-8 h-8 text-green-600" />
                                     <div>
                                         <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
-                                        <p className="text-xs text-green-700">Esta imagem será usada pela IA.</p>
+                                        <p className="text-xs text-green-700">Dimensões: {businessProfile.logo.width}x{businessProfile.logo.height}</p>
                                     </div>
                                 </div>
                                 <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-100 h-8 w-8" onClick={handleRemoveLogo} disabled={isUploadingLogo}>
@@ -527,14 +534,14 @@ export default function Dashboard() {
                         description="Integre seu Instagram e Facebook para começar a publicar e agendar."
                         href="/dashboard/conteudo"
                         isCompleted={metaConnection?.isConnected || false}
-                        isCurrent={!!businessProfile?.logoUrl && !metaConnection?.isConnected}
+                        isCurrent={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) && !metaConnection?.isConnected}
                       />
                       <StepItem 
                         title="3. Conecte seu Perfil de Empresa"
                         description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
                         href="/dashboard/meu-negocio"
                         isCompleted={businessProfile?.isVerified || false}
-                        isCurrent={!!businessProfile?.logoUrl && !!metaConnection?.isConnected && !businessProfile?.isVerified}
+                        isCurrent={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) && !!metaConnection?.isConnected && !businessProfile?.isVerified}
                       />
                       <StepItem 
                         title="4. Crie sua Primeira Publicação"

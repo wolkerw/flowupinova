@@ -2,7 +2,13 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
-import type { BusinessProfileData } from "./business-profile-service";
+import type { BusinessProfileData, LogoData } from "./business-profile-service";
+
+const defaultLogo: LogoData = {
+    url: "",
+    width: 0,
+    height: 0,
+};
 
 const defaultProfile: BusinessProfileData = {
   name: "Minha Empresa",
@@ -12,9 +18,7 @@ const defaultProfile: BusinessProfileData = {
   website: "www.suaempresa.com.br",
   description: "Descreva sua empresa aqui.",
   brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.",
-  logoUrl: "",
-  logoWidth: 0,
-  logoHeight: 0,
+  logo: defaultLogo,
   rating: 0,
   totalReviews: 0,
   isVerified: false
@@ -36,7 +40,26 @@ export async function getBusinessProfileAdmin(userId: string): Promise<BusinessP
         const docSnap = await profileDocRef.get();
 
         if (docSnap.exists) {
-            return { ...defaultProfile, ...docSnap.data() } as BusinessProfileData;
+            const data = docSnap.data();
+            // Handle migration from old structure
+            if (data?.logoUrl !== undefined) {
+                const migratedProfile = {
+                    ...defaultProfile,
+                    ...data,
+                    logo: {
+                        url: data.logoUrl || "",
+                        width: data.logoWidth || 0,
+                        height: data.logoHeight || 0
+                    }
+                };
+                delete migratedProfile.logoUrl;
+                delete migratedProfile.logoWidth;
+                delete migratedProfile.logoHeight;
+                // Save the migrated structure back
+                await profileDocRef.set(migratedProfile);
+                return migratedProfile;
+            }
+            return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
         } else {
             // Document doesn't exist, create it.
             const userDocRef = adminDb.collection('users').doc(userId);
