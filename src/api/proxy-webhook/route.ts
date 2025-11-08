@@ -1,32 +1,29 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/post_manual";
+
   try {
-    const formData = await request.formData();
-    
-    const file = formData.get('file');
+    // A solução robusta é fazer o streaming do corpo da requisição original
+    // diretamente para o webhook externo, em vez de tentar recriar o FormData.
+    // Isso preserva todos os headers, boundaries e o conteúdo exatamente como vieram do cliente.
 
-    if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo encontrado na requisição." }, { status: 400 });
+    // Pegamos os headers da requisição original que são relevantes para o corpo (Content-Type)
+    const headers = new Headers();
+    const contentType = request.headers.get('Content-Type');
+    if (contentType) {
+        headers.set('Content-Type', contentType);
     }
-
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
-
-    // Recriamos o FormData para enviar ao webhook externo.
-    const webhookFormData = new FormData();
     
-    // Anexa cada campo do FormData original ao novo FormData.
-    // Isso garante que tanto o arquivo quanto os campos de texto (logoUrl, etc.) sejam repassados.
-    for (const [key, value] of formData.entries()) {
-      webhookFormData.append(key, value);
-    }
-
+    // Fazemos o fetch para o webhook externo passando o corpo e os headers da requisição original.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
-      body: webhookFormData,
-      // Não defina o 'Content-Type' manualmente, o fetch fará isso
-      // automaticamente com o boundary correto para multipart/form-data.
+      headers: headers,
+      body: request.body,
+      // A propriedade 'duplex' é necessária para streaming de corpos de requisição no Node.js
+      // @ts-ignore
+      duplex: 'half'
     });
 
     if (!webhookResponse.ok) {
@@ -45,5 +42,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
-
-    
