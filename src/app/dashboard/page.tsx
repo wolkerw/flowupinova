@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -265,8 +264,35 @@ export default function Dashboard() {
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // This function will do nothing.
-  };
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploadingLogo(true);
+    toast({ title: "Processando logomarca..." });
+
+    try {
+        const { width, height } = await getImageDimensions(file);
+        
+        await updateBusinessProfile(user.uid, {
+            logoUrl: '', // Do not save the URL
+            logoWidth: width,
+            logoHeight: height,
+        });
+
+        await fetchBusinessProfile();
+        toast({ title: "Sucesso!", description: "Dimensões da logomarca salvas.", variant: "success" });
+
+    } catch (error: any) {
+        console.error("Error processing logo:", error);
+        toast({ title: "Erro ao Processar", description: error.message, variant: "destructive" });
+    } finally {
+        setIsUploadingLogo(false);
+        // Reset file input to allow selecting the same file again
+        if (event.target) {
+            event.target.value = "";
+        }
+    }
+};
 
   const handleRemoveLogo = async () => {
     if (!user) return;
