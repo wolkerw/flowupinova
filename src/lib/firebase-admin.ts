@@ -4,15 +4,19 @@ import { cookies } from 'next/headers';
 
 // Garante que a inicialização só ocorra uma vez.
 // Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
-// Não é necessário passar o service account manualmente.
 if (!admin.apps.length) {
   try {
     admin.initializeApp();
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente.");
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente padrão.");
   } catch (error: any) {
     console.error("[ADMIN_SDK_FATAL] Falha crítica ao inicializar o Firebase Admin SDK:", error);
+    // Em um cenário de produção, você poderia lançar o erro
+    // ou ter um mecanismo de fallback, mas para depuração, o log é crucial.
   }
+} else {
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK já estava inicializado.");
 }
+
 
 const adminAuth = admin.auth();
 const adminDb = admin.firestore();
@@ -40,7 +44,7 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
  * Retrieves the user's UID from the ID token stored in cookies on the server-side.
  * This is a server-side utility.
  * @returns The user's UID string.
- * @throws An error if the user is not authenticated.
+ * @throws An error if the user is not authenticated or the token is invalid.
  */
 export async function getUidFromCookie(): Promise<string> {
     const cookieStore = cookies();
@@ -55,7 +59,7 @@ export async function getUidFromCookie(): Promise<string> {
         return decodedToken.uid;
     } catch (error: any) {
         console.error("Error verifying ID token from cookie:", error.message);
-        // Propaga o erro detalhado da função verifyIdToken
+        // Propaga o erro detalhado da função verifyIdToken para fornecer mais contexto.
         throw new Error(`Falha na verificação do usuário Firebase. ${error.message}`);
     }
 }
