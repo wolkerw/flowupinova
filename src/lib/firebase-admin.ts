@@ -1,10 +1,12 @@
 
 import * as admin from 'firebase-admin';
+import { getApps } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
 
-// Garante que a inicialização só ocorra uma vez.
+// Inicializa o Firebase Admin SDK, mas apenas se ainda não foi inicializado.
 // Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
-if (!admin.apps.length) {
+// Esta é a forma mais robusta e recomendada de inicialização para produção.
+if (!getApps().length) {
   try {
     admin.initializeApp();
     console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente padrão.");
@@ -13,11 +15,7 @@ if (!admin.apps.length) {
     // Em um cenário de produção, você poderia lançar o erro
     // ou ter um mecanismo de fallback, mas para depuração, o log é crucial.
   }
-} else {
-    // This case is for hot-reloading in development.
-    // It's useful to know the SDK was already initialized.
 }
-
 
 const adminAuth = admin.auth();
 const adminDb = admin.firestore();
