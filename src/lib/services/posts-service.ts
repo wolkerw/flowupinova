@@ -48,48 +48,69 @@ function getPostsCollectionRef(userId: string) {
     return collection(db, "users", userId, "posts");
 }
 
+/**
+ * [REBUILT] Uploads a media file to Firebase Storage and returns its public URL.
+ * Includes detailed logging for debugging.
+ * @param userId The UID of the user.
+ * @param media The File object to upload.
+ * @param onProgress Optional callback to report upload progress.
+ * @returns A promise that resolves with the public download URL of the file.
+ */
 export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (progress: number) => void): Promise<string> {
+    console.log("[UPLOAD_START] Iniciando upload para o usuário:", userId);
+
     return new Promise((resolve, reject) => {
         if (!userId) {
-            return reject(new Error("UserID é necessário para o upload."));
+            const errorMsg = "UserID é necessário para o upload.";
+            console.error("[UPLOAD_ERROR]", errorMsg);
+            return reject(new Error(errorMsg));
         }
-        const filePath = `users/${userId}/posts/${Date.now()}_${media.name}`;
+
+        const filePath = `users/${userId}/uploads/${Date.now()}_${media.name}`;
         const storageRef = ref(storage, filePath);
         const uploadTask = uploadBytesResumable(storageRef, media);
 
+        console.log(`[UPLOAD_INFO] Criado caminho do arquivo: ${filePath}`);
+
         uploadTask.on('state_changed',
             (snapshot) => {
+                // Monitor upload progress
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log(`[UPLOAD_PROGRESS] Upload está ${progress.toFixed(2)}% concluído.`);
                 onProgress?.(progress);
             },
             (error) => {
-                console.error("Firebase Storage Error:", error);
-                let errorMessage = "Falha no upload. ";
+                // Handle unsuccessful uploads
+                console.error("[UPLOAD_ERROR] Ocorreu um erro durante o upload:", error);
+                
+                let detailedErrorMessage = "Falha no upload. ";
                 switch (error.code) {
                     case 'storage/unauthorized':
-                        errorMessage += "Verifique as regras de segurança do seu Storage. Você não tem permissão para realizar esta ação.";
+                        detailedErrorMessage += "Você não tem permissão para realizar esta ação. Verifique as regras de segurança do seu Firebase Storage.";
                         break;
                     case 'storage/canceled':
-                        errorMessage += "O upload foi cancelado.";
+                        detailedErrorMessage += "O upload foi cancelado.";
                         break;
-                    case 'storage/object-not-found':
-                         errorMessage += "O arquivo não foi encontrado. Isso pode ocorrer se as regras do Storage não permitirem a leitura.";
-                         break;
                     case 'storage/unknown':
-                        errorMessage += "Ocorreu um erro desconhecido. Verifique sua conexão e as configurações de CORS do seu bucket no Google Cloud.";
+                        detailedErrorMessage += "Ocorreu um erro desconhecido. Verifique sua conexão com a internet e as configurações de CORS do seu bucket no Google Cloud.";
                         break;
                     default:
-                         errorMessage += `(${error.code}) ${error.message}`;
+                        detailedErrorMessage += `(${error.code}) ${error.message}`;
                 }
-                reject(new Error(errorMessage));
+                
+                console.error("[UPLOAD_ERROR_DETAILS]", detailedErrorMessage);
+                reject(new Error(detailedErrorMessage));
             },
             async () => {
+                // Handle successful uploads on complete
+                console.log("[UPLOAD_SUCCESS] O arquivo foi enviado com sucesso. Obtendo URL de download...");
                 try {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    console.log("[UPLOAD_URL_OBTAINED] URL de download:", downloadURL);
                     resolve(downloadURL);
-                } catch (error: any) {
-                     console.error("Error getting download URL:", error);
-                    reject(new Error("Falha ao obter a URL de download após o upload."));
+                } catch (getUrlError: any) {
+                    console.error("[UPLOAD_ERROR] Falha ao obter a URL de download:", getUrlError);
+                    reject(new Error("Upload bem-sucedido, mas falha ao obter a URL de download."));
                 }
             }
         );
