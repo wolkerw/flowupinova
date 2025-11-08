@@ -52,6 +52,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { processPendingNotifications, getNotifications, markAllNotificationsAsRead, type Notification } from "@/lib/services/notifications-service";
 import { cn } from "@/lib/utils";
+import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+
 
 const allNavigationItems = [
   {
@@ -115,6 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
 
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
@@ -137,6 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (user) {
         fetchAndProcessNotifications();
+        getBusinessProfile(user.uid).then(setBusinessProfile);
     }
   }, [user, fetchAndProcessNotifications]);
 
@@ -157,6 +161,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  const getAvatarFallback = () => {
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
+    return "U";
   }
 
   return (
@@ -268,10 +278,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" className="flex items-center gap-2">
+                     <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full">
                         <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.photoURL || undefined} />
-                            <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                            <AvatarImage src={businessProfile?.logo?.url || user.photoURL || undefined} />
+                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                      </Button>
                   </DropdownMenuTrigger>
