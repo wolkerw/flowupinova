@@ -101,9 +101,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        console.error(`[INSTAGRAM_PUBLISH_ERROR] Mensagem:`, error.message);
-        console.error(`[INSTAGRAM_PUBLISH_ERROR_DETAILS] Causa:`, error.cause);
-        console.error(`[INSTAGRAM_PUBLISH_ERROR_STACK] Stack Trace:`, error.stack);
+        const errorMessage = `[INSTAGRAM_PUBLISH_ERROR] Mensagem: ${error.message}. Causa: ${error.cause}. Stack: ${error.stack}`;
+        console.error(errorMessage);
         
         return NextResponse.json({
             success: false,

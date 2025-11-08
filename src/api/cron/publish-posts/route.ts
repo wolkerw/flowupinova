@@ -81,10 +81,8 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        // Log enriquecido para depuração
-        console.error(`[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem:`, publishError.message);
-        console.error(`[CRON_ERROR_DETAILS] Causa:`, publishError.cause);
-        console.error(`[CRON_ERROR_STACK] Stack Trace:`, publishError.stack);
+        const errorMessage = `[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}. Causa: ${publishError.cause}. Stack: ${publishError.stack}`;
+        console.error(errorMessage);
         failedCount++;
         await updatePostStatus(userPath, postId, {
           status: "failed",
