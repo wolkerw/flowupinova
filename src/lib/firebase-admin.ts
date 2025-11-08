@@ -1,22 +1,16 @@
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '@/service-account.json';
 import { cookies } from 'next/headers';
 
-// Garante que a inicialização só ocorra uma vez, forçando o uso do service-account.json.
-// Este é o método mais robusto para ambientes de nuvem onde a detecção automática pode falhar.
+// Garante que a inicialização só ocorra uma vez.
+// Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
+// Não é necessário passar o service account manualmente.
 if (!admin.apps.length) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
-    });
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de Service Account.");
+    admin.initializeApp();
+    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente.");
   } catch (error: any) {
     console.error("[ADMIN_SDK_FATAL] Falha crítica ao inicializar o Firebase Admin SDK:", error);
-    // Em um ambiente de produção, você pode querer lançar o erro
-    // para impedir que a aplicação continue em um estado inválido.
-    // throw new Error("Não foi possível inicializar o Firebase Admin.");
   }
 }
 
