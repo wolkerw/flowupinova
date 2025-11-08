@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
                 }
             };
             
-            console.log(`[CRON_FETCH] Chamando ${requestUrl.toString()} para o post ${postId}`);
+            console.log(`[CRON_FETCH] Chamando ${requestUrl.toString()} para o post ${postId} com payload:`, JSON.stringify(payload, null, 2));
              
             const response = await fetch(requestUrl.toString(), {
                 method: 'POST',

@@ -75,8 +75,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 export async function POST(request: NextRequest) {
     console.log("[INSTAGRAM_PUBLISH] Rota de publicação do Instagram alcançada.");
     try {
-        const body: PublishRequestBody = await request.json(); 
-        const { postData } = body;
+        const { postData }: PublishRequestBody = await request.json(); 
         
         console.log("[INSTAGRAM_PUBLISH] Validando payload...");
         if (!postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {

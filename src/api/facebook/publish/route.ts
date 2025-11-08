@@ -37,8 +37,7 @@ async function publishToFacebookPage(pageId: string, accessToken: string, imageU
 export async function POST(request: NextRequest) {
     console.log("[FACEBOOK_PUBLISH] Rota de publicação do Facebook alcançada.");
     try {
-        const body: PublishRequestBody = await request.json();
-        const { postData } = body;
+        const { postData }: PublishRequestBody = await request.json();
         
         console.log("[FACEBOOK_PUBLISH] Validando payload...");
         if (!postData || !postData.metaConnection?.pageId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
