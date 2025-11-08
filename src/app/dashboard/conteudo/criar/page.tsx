@@ -276,8 +276,10 @@ export default function CriarConteudoPage() {
             const webhookUrl = "/api/proxy-webhook";
             const formData = new FormData();
             
+            // Adiciona o arquivo principal
             formData.append('file', mediaItems[0].file);
             
+            // Adiciona os dados do logo se o toggle estiver ativo
             if (showLogo && businessProfile?.logo?.url) {
                 formData.append('logoUrl', businessProfile.logo.url);
                 formData.append('logoPosition', logoPosition);
@@ -795,4 +797,3 @@ export default function CriarConteudoPage() {
     );
 }
 
-    
