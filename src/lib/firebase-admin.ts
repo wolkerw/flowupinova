@@ -3,11 +3,12 @@ import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
 
-// Inicializa o Firebase Admin SDK, mas apenas se ainda não foi inicializado.
-// Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
-// Esta é a forma mais robusta e recomendada de inicialização para produção.
+// Esta é a implementação do padrão Singleton para o Firebase Admin SDK.
+// Garante que a inicialização ocorra apenas uma vez em todo o ciclo de vida do servidor.
 if (!getApps().length) {
   try {
+    // Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
+    // Esta é a forma mais robusta e recomendada de inicialização para produção.
     admin.initializeApp();
     console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente padrão.");
   } catch (error: any) {
