@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
 
         const platformPromises = post.platforms.map(async (platform) => {
             const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
-            const requestUrl = new URL(apiPath, request.nextUrl.origin); // Constrói a URL completa para a API interna
+            // Constrói a URL completa para a API interna. Essencial para o ambiente de servidor.
+            const requestUrl = new URL(apiPath, request.nextUrl.origin);
 
             const payload = {
                 postData: {
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
                     metaConnection: post.metaConnection,
                 }
             };
+            
+            console.log(`[CRON_FETCH] Chamando ${requestUrl.toString()} para o post ${postId}`);
              
             const response = await fetch(requestUrl.toString(), {
                 method: 'POST',
@@ -64,9 +67,14 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify(payload),
             });
 
+            if (!response.ok) {
+                 const errorBody = await response.text();
+                 throw new Error(`Falha na API de publicação (${platform}) com status ${response.status}. Resposta: ${errorBody}`);
+            }
+
             const result = await response.json();
 
-            if (!response.ok || !result.success) {
+            if (!result.success) {
                 throw new Error(`Falha ao publicar no ${platform}: ${result.error || `Status ${response.status}`}`);
             }
             return result.publishedMediaId;
@@ -81,8 +89,8 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        const errorMessage = `[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}. Causa: ${publishError.cause}. Stack: ${publishError.stack}`;
-        console.error(errorMessage);
+        const errorMessage = `[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}.`;
+        console.error(errorMessage, { cause: publishError.cause, stack: publishError.stack });
         failedCount++;
         await updatePostStatus(userPath, postId, {
           status: "failed",

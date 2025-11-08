@@ -73,16 +73,19 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 }
 
 export async function POST(request: NextRequest) {
+    console.log("[INSTAGRAM_PUBLISH] Rota de publicação do Instagram alcançada.");
     try {
         const body: PublishRequestBody = await request.json(); 
         const { postData } = body;
         
+        console.log("[INSTAGRAM_PUBLISH] Validando payload...");
         if (!postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando postData ou detalhes da conexão Meta." }, { status: 400 });
         }
         
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
+        console.log("[INSTAGRAM_PUBLISH] Criando container de mídia...");
         const creationId = await createMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
@@ -90,19 +93,20 @@ export async function POST(request: NextRequest) {
             caption
         );
 
+        console.log(`[INSTAGRAM_PUBLISH] Container criado: ${creationId}. Publicando mídia...`);
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
         
-        console.log(`[INSTAGRAM_PUBLISH_SUCCESS] Media published (id: ${publishedMediaId}).`);
+        console.log(`[INSTAGRAM_PUBLISH_SUCCESS] Mídia publicada (id: ${publishedMediaId}).`);
 
         return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        const errorMessage = `[INSTAGRAM_PUBLISH_ERROR] Mensagem: ${error.message}. Causa: ${error.cause}. Stack: ${error.stack}`;
-        console.error(errorMessage);
+        const errorMessage = `[INSTAGRAM_PUBLISH_ERROR] Mensagem: ${error.message}.`;
+        console.error(errorMessage, { cause: error.cause, stack: error.stack });
         
         return NextResponse.json({
             success: false,

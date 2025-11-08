@@ -35,16 +35,19 @@ async function publishToFacebookPage(pageId: string, accessToken: string, imageU
 
 
 export async function POST(request: NextRequest) {
+    console.log("[FACEBOOK_PUBLISH] Rota de publicação do Facebook alcançada.");
     try {
         const body: PublishRequestBody = await request.json();
         const { postData } = body;
         
+        console.log("[FACEBOOK_PUBLISH] Validando payload...");
         if (!postData || !postData.metaConnection?.pageId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando ID da página, token, ou URL da imagem." }, { status: 400 });
         }
         
         const caption = postData.text.slice(0, 2200); // Facebook has a higher limit, but let's be safe
         
+        console.log(`[FACEBOOK_PUBLISH] Publicando foto na página ${postData.metaConnection.pageId}...`);
         const publishedPostId = await publishToFacebookPage(
             postData.metaConnection.pageId,
             postData.metaConnection.accessToken,
@@ -52,12 +55,13 @@ export async function POST(request: NextRequest) {
             caption
         );
         
-        console.log(`[API_FB_PUBLISH] Foto publicada com sucesso na página ${postData.metaConnection.pageId}. Post ID: ${publishedPostId}`);
+        console.log(`[FACEBOOK_PUBLISH_SUCCESS] Foto publicada com sucesso na página ${postData.metaConnection.pageId}. Post ID: ${publishedPostId}`);
 
         return NextResponse.json({ success: true, publishedMediaId: publishedPostId });
 
     } catch (error: any) {
-        console.error(`[FACEBOOK_PUBLISH_ERROR]`, error.message);
+        const errorMessage = `[FACEBOOK_PUBLISH_ERROR] Mensagem: ${error.message}.`;
+        console.error(errorMessage, { cause: error.cause, stack: error.stack });
         return NextResponse.json({
             success: false,
             error: error.message,
