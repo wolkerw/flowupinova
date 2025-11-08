@@ -24,6 +24,13 @@ export interface BusinessProfileData {
     isVerified: boolean;
 }
 
+const defaultLogo: LogoData = {
+    url: "",
+    width: 0,
+    height: 0,
+};
+
+
 const defaultProfile: BusinessProfileData = {
     name: "Minha Empresa",
     category: "Consultoria de Marketing",
@@ -32,11 +39,7 @@ const defaultProfile: BusinessProfileData = {
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
     brandSummary: "Descreva a identidade da sua marca, incluindo cores, tom de voz e público-alvo.",
-    logo: {
-        url: "",
-        width: 0,
-        height: 0,
-    },
+    logo: defaultLogo,
     rating: 0,
     totalReviews: 0,
     isVerified: false

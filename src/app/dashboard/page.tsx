@@ -247,13 +247,17 @@ export default function Dashboard() {
     }
   };
 
-  const getImageDimensions = (file: File): Promise<{width: number, height: number}> => {
+  const getImageDimensions = (file: File): Promise<{width: number, height: number, dataUrl: string}> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = document.createElement('img');
             img.onload = () => {
-                resolve({ width: img.width, height: img.height });
+                resolve({ 
+                    width: img.width, 
+                    height: img.height,
+                    dataUrl: e.target?.result as string,
+                });
             };
             img.onerror = reject;
             img.src = e.target?.result as string;
@@ -271,18 +275,18 @@ export default function Dashboard() {
     toast({ title: "Processando logomarca..." });
 
     try {
-        const { width, height } = await getImageDimensions(file);
+        const { dataUrl, width, height } = await getImageDimensions(file);
         
         await updateBusinessProfile(user.uid, {
             logo: {
-                url: "", // Not uploading the file, just saving dimensions
+                url: dataUrl,
                 width: width,
                 height: height,
             }
         });
 
         await fetchBusinessProfile();
-        toast({ title: "Sucesso!", description: "Dimensões da logomarca salvas.", variant: "success" });
+        toast({ title: "Sucesso!", description: "Logomarca salva no perfil.", variant: "success" });
 
     } catch (error: any) {
         console.error("Error processing logo:", error);
@@ -503,10 +507,10 @@ export default function Dashboard() {
                       <StepItem 
                         title="1. Adicione sua Logomarca"
                         description="Faça o upload da sua logomarca para personalizar seus conteúdos."
-                        isCompleted={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0)}
-                        isCurrent={!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0)}
+                        isCompleted={!!(businessProfile?.logo?.url)}
+                        isCurrent={!(businessProfile?.logo?.url)}
                       >
-                         {!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) ? (
+                         {!(businessProfile?.logo?.url) ? (
                            <div className="mt-2">
                             <input type="file" accept="image/*" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" />
                              <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploadingLogo}>
@@ -534,14 +538,14 @@ export default function Dashboard() {
                         description="Integre seu Instagram e Facebook para começar a publicar e agendar."
                         href="/dashboard/conteudo"
                         isCompleted={metaConnection?.isConnected || false}
-                        isCurrent={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) && !metaConnection?.isConnected}
+                        isCurrent={!!(businessProfile?.logo?.url) && !metaConnection?.isConnected}
                       />
                       <StepItem 
                         title="3. Conecte seu Perfil de Empresa"
                         description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
                         href="/dashboard/meu-negocio"
                         isCompleted={businessProfile?.isVerified || false}
-                        isCurrent={!!(businessProfile?.logo?.width && businessProfile?.logo?.width > 0) && !!metaConnection?.isConnected && !businessProfile?.isVerified}
+                        isCurrent={!!(businessProfile?.logo?.url) && !!metaConnection?.isConnected && !businessProfile?.isVerified}
                       />
                       <StepItem 
                         title="4. Crie sua Primeira Publicação"
