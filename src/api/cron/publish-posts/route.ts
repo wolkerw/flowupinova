@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
             const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
             const requestUrl = new URL(apiPath, request.nextUrl.origin); // Constrói a URL completa para a API interna
 
-            // O corpo da requisição precisa de um objeto `postData` no topo
             const payload = {
                 postData: {
                     title: post.title,
@@ -82,7 +81,10 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        console.error(`[CRON_ERROR] Falha ao publicar o post ${postId}:`, publishError.message);
+        // Log enriquecido para depuração
+        console.error(`[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem:`, publishError.message);
+        console.error(`[CRON_ERROR_DETAILS] Causa:`, publishError.cause);
+        console.error(`[CRON_ERROR_STACK] Stack Trace:`, publishError.stack);
         failedCount++;
         await updatePostStatus(userPath, postId, {
           status: "failed",
