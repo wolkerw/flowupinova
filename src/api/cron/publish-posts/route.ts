@@ -25,8 +25,11 @@ export async function POST(request: NextRequest) {
     const duePosts = await getDueScheduledPosts();
 
     if (duePosts.length === 0) {
+      console.log("[CRON_JOB] Nenhum post para publicar.");
       return NextResponse.json({ success: true, message: "Nenhum post para publicar." });
     }
+
+    console.log(`[CRON_JOB] Encontrados ${duePosts.length} posts para processar.`);
 
     // Processa cada post em paralelo
     const publishPromises = duePosts.map(async (post: PostData & { _parentPath?: string }) => {
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
             const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
             const requestUrl = new URL(apiPath, request.nextUrl.origin); // Constrói a URL completa para a API interna
 
+            // O corpo da requisição precisa de um objeto `postData` no topo
             const payload = {
                 postData: {
                     title: post.title,

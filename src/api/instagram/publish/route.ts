@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     let debugMessage = "[API] Endpoint hit. ";
 
     try {
+        // Simplificado para usar o método padrão e mais seguro request.json()
         const body: PublishRequestBody = await request.json(); 
         const { postData } = body;
         
@@ -118,4 +119,3 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
     }
 }
-    
