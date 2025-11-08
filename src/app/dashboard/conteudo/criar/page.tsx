@@ -21,10 +21,12 @@ import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type Platform = 'instagram' | 'facebook';
+type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
 
 type MediaItem = {
     type: 'image' | 'video';
@@ -66,12 +68,18 @@ const Preview = ({
     onRemoveItem,
     logoUrl,
     showLogo,
+    logoPosition,
+    logoScale,
+    logoOpacity,
 }: { 
     type: ContentType, 
     mediaItems: MediaItem[], 
     onRemoveItem: (index: number) => void,
     logoUrl: string | null,
-    showLogo: boolean
+    showLogo: boolean,
+    logoPosition: LogoPosition,
+    logoScale: number,
+    logoOpacity: number,
 }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -92,6 +100,14 @@ const Preview = ({
             setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
         }
     }
+    
+    const positionClasses: Record<LogoPosition, string> = {
+        'top-left': 'top-4 left-4',
+        'top-right': 'top-4 right-4',
+        'bottom-left': 'bottom-4 left-4',
+        'bottom-right': 'bottom-4 right-4',
+        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    };
 
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
@@ -103,9 +119,16 @@ const Preview = ({
                  <Image
                     src={logoUrl}
                     alt="Logomarca"
-                    layout="fill"
-                    objectFit="contain"
-                    className="absolute bottom-4 right-4 z-10 w-[15%] h-auto opacity-80"
+                    width={500} // A largura e altura aqui podem ser maiores para garantir qualidade
+                    height={500}
+                    className={cn(
+                        "absolute z-10 h-auto",
+                        positionClasses[logoPosition]
+                    )}
+                    style={{
+                        width: `${logoScale}%`,
+                        opacity: logoOpacity / 100,
+                    }}
                 />
             )
         }
@@ -223,6 +246,10 @@ export default function CriarConteudoPage() {
     const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
 
     const [showLogo, setShowLogo] = useState(true);
+    const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
+    const [logoScale, setLogoScale] = useState(15);
+    const [logoOpacity, setLogoOpacity] = useState(80);
+
 
     const { user } = useAuth();
     const { toast } = useToast();
@@ -253,8 +280,10 @@ export default function CriarConteudoPage() {
             
             if (showLogo && businessProfile?.logo?.url) {
                 formData.append('logoUrl', businessProfile.logo.url);
+                formData.append('logoPosition', logoPosition);
+                formData.append('logoScale', logoScale.toString());
+                formData.append('logoOpacity', logoOpacity.toString());
             }
-
 
             try {
                 const response = await fetch(webhookUrl, {
@@ -516,8 +545,41 @@ export default function CriarConteudoPage() {
                                         />
                                     </div>
                                     {!businessProfile?.logo?.url && (
-                                        <p className="text-xs text-muted-foreground">Para usar esta opção, adicione uma logomarca no seu <a href="/dashboard" className="underline">painel inicial</a>.</p>
+                                        <p className="text-xs text-muted-foreground">Para usar esta opção, adicione uma logomarca no seu <a href="/dashboard/meu-negocio" className="underline">perfil de negócio</a>.</p>
                                     )}
+
+                                    <AnimatePresence>
+                                        {showLogo && businessProfile?.logo?.url && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10, height: 0 }}
+                                                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                                exit={{ opacity: 0, y: -10, height: 0 }}
+                                                className="space-y-4 overflow-hidden"
+                                            >
+                                                <div className="space-y-2">
+                                                    <Label>Posição da logomarca</Label>
+                                                    <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2">
+                                                        {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
+                                                            <div key={pos}>
+                                                                <RadioGroupItem value={pos} id={pos} className="peer sr-only"/>
+                                                                <Label htmlFor={pos} className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary text-xs cursor-pointer capitalize">
+                                                                    {pos.replace('-', ' ')}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </RadioGroup>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Tamanho da logomarca ({logoScale}%)</Label>
+                                                    <Slider value={[logoScale]} onValueChange={(v) => setLogoScale(v[0])} max={50} step={1} />
+                                                </div>
+                                                 <div className="space-y-2">
+                                                    <Label>Opacidade da logomarca ({logoOpacity}%)</Label>
+                                                    <Slider value={[logoOpacity]} onValueChange={(v) => setLogoOpacity(v[0])} max={100} step={5} />
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                                 
                                 <div className="space-y-4 pt-4 border-t">
@@ -576,6 +638,9 @@ export default function CriarConteudoPage() {
                                                 onRemoveItem={handleRemoveItem} 
                                                 logoUrl={businessProfile?.logo?.url || null}
                                                 showLogo={showLogo}
+                                                logoPosition={logoPosition}
+                                                logoScale={logoScale}
+                                                logoOpacity={logoOpacity}
                                             />
                                         </div>
                                         <div className="p-3 text-sm min-h-[6rem]">
@@ -636,6 +701,9 @@ export default function CriarConteudoPage() {
                                                     onRemoveItem={handleRemoveItem} 
                                                     logoUrl={businessProfile?.logo?.url || null}
                                                     showLogo={showLogo}
+                                                    logoPosition={logoPosition}
+                                                    logoScale={logoScale}
+                                                    logoOpacity={logoOpacity}
                                                  />
                                             </div>
                                             <div className="p-3 text-sm min-h-[6rem]">
@@ -726,3 +794,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
