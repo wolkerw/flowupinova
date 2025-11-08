@@ -267,9 +267,7 @@ export default function CriarConteudoPage() {
     }, [user]);
 
     const handleNextStep = async () => {
-        if(step === 1 && selectedType) {
-            setStep(2);
-        } else if (step === 2 && mediaItems.length > 0) {
+        if (step === 2 && mediaItems.length > 0) {
             setIsUploading(true);
             toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
@@ -325,6 +323,11 @@ export default function CriarConteudoPage() {
             }
         }
     }
+
+    const handleContentTypeSelect = (value: string) => {
+        setSelectedType(value as ContentType);
+        setStep(2);
+    };
 
     const handleFileSelect = (ref: React.RefObject<HTMLInputElement>) => {
         ref.current?.click();
@@ -416,7 +419,7 @@ export default function CriarConteudoPage() {
     }
     
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
-    const isNextDisabled = (step === 1 && !selectedType) || (step === 2 && (mediaItems.length === 0 || isUploading));
+    const isNextDisabled = (step === 2 && (mediaItems.length === 0 || isUploading));
     const isSubmitDisabled = (
         !metaConnection?.isConnected || 
         isPublishing || 
@@ -466,7 +469,7 @@ export default function CriarConteudoPage() {
                         <CardContent>
                             <RadioGroup 
                                 value={selectedType || ""}
-                                onValueChange={(value) => setSelectedType(value as ContentType)}
+                                onValueChange={handleContentTypeSelect}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
                             >
                                 {contentOptions.map(option => (
@@ -491,16 +494,6 @@ export default function CriarConteudoPage() {
                                 ))}
                             </RadioGroup>
                         </CardContent>
-                        <CardFooter className="flex justify-end">
-                            <Button
-                                onClick={handleNextStep}
-                                disabled={isNextDisabled}
-                                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                            >
-                                Próxima Etapa
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                        </CardFooter>
                     </Card>
                 </motion.div>
             )}
