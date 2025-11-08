@@ -10,7 +10,7 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
     databaseURL: `https://studio-7502195980-3983c.firebaseio.com`
   });
-  console.log("[ADMIN_SDK_INIT] Tentativa de inicialização do Firebase Admin SDK.");
+  console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de Service Account.");
 }
 
 const adminAuth = admin.auth();
