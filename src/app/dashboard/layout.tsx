@@ -164,8 +164,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getAvatarFallback = () => {
-    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     return "U";
   }
 
@@ -278,16 +278,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src={businessProfile?.logo?.url || user.photoURL || undefined} />
-                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                        </Avatar>
+                     <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full h-auto">
+                       {businessProfile?.logo?.url ? (
+                            <Avatar className="w-24 h-9 rounded-md">
+                                <AvatarImage 
+                                    src={businessProfile.logo.url} 
+                                    alt={businessProfile.name}
+                                    className="object-contain"
+                                />
+                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                            </Avatar>
+                       ) : (
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.photoURL || undefined} />
+                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                            </Avatar>
+                       )}
                      </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                        <DropdownMenuLabel>
-                          <p className="font-bold">{user.displayName}</p>
+                          <p className="font-bold">{businessProfile?.name || user.displayName}</p>
                           <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
                        </DropdownMenuLabel>
                        <DropdownMenuSeparator />
