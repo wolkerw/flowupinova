@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, AppWindow, Move, Scaling, Blend, UploadCloud, Trash2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,6 @@ import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
@@ -33,14 +32,6 @@ type MediaItem = {
     previewUrl: string; // Blob or data URL for local preview
     publicUrl?: string; // URL from webhook
 };
-
-type LogoSettings = {
-    show: boolean;
-    position: string;
-    size: number;
-    opacity: number;
-}
-
 
 const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
     {
@@ -74,13 +65,13 @@ const Preview = ({
     mediaItems, 
     onRemoveItem,
     logoUrl,
-    logoSettings
+    showLogo,
 }: { 
     type: ContentType, 
     mediaItems: MediaItem[], 
     onRemoveItem: (index: number) => void,
     logoUrl: string | null,
-    logoSettings: LogoSettings
+    showLogo: boolean
 }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -101,43 +92,20 @@ const Preview = ({
             setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
         }
     }
-    
-    const getPositionClasses = (position: string) => {
-        const classes: { [key: string]: string } = {
-            'top-left': 'top-4 left-4',
-            'top-center': 'top-4 left-1/2 -translate-x-1/2',
-            'top-right': 'top-4 right-4',
-            'middle-left': 'top-1/2 -translate-y-1/2 left-4',
-            'middle-center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            'middle-right': 'top-1/2 -translate-y-1/2 right-4',
-            'bottom-left': 'bottom-4 left-4',
-            'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
-            'bottom-right': 'bottom-4 right-4',
-        };
-        return classes[position] || 'bottom-4 right-4';
-    };
-
 
     const renderContent = (item: MediaItem) => {
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         
         const renderLogo = () => {
-            if (!logoUrl || !logoSettings.show || item.publicUrl) return null;
-            
-            const positionClass = getPositionClasses(logoSettings.position);
+            if (!logoUrl || !showLogo || item.publicUrl) return null;
             
             return (
                  <Image
                     src={logoUrl}
                     alt="Logomarca"
-                    width={logoSettings.size * 2}
-                    height={logoSettings.size * 2}
-                    className={cn("absolute z-10 transition-all", positionClass)}
-                    style={{ 
-                        width: `${logoSettings.size}%`,
-                        height: 'auto',
-                        opacity: logoSettings.opacity / 100 
-                    }}
+                    layout="fill"
+                    objectFit="contain"
+                    className="absolute bottom-4 right-4 z-10 w-[15%] h-auto opacity-80"
                 />
             )
         }
@@ -254,12 +222,7 @@ export default function CriarConteudoPage() {
     const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
     const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
 
-    const [logoSettings, setLogoSettings] = useState<LogoSettings>({
-        show: true,
-        position: 'bottom-right',
-        size: 15,
-        opacity: 80,
-    });
+    const [showLogo, setShowLogo] = useState(true);
 
     const { user } = useAuth();
     const { toast } = useToast();
@@ -288,7 +251,7 @@ export default function CriarConteudoPage() {
             
             formData.append('file', mediaItems[0].file);
             
-            if (businessProfile?.logo?.url) {
+            if (showLogo && businessProfile?.logo?.url) {
                 formData.append('logoUrl', businessProfile.logo.url);
             }
 
@@ -542,6 +505,21 @@ export default function CriarConteudoPage() {
                                     </div>
                                 </div>
                                 
+                                 <div className="space-y-4 pt-4 border-t">
+                                     <div className="flex items-center justify-between">
+                                        <Label htmlFor="show-logo" className="font-semibold flex-grow">Adicionar logomarca na imagem</Label>
+                                        <Switch
+                                            id="show-logo"
+                                            checked={showLogo}
+                                            onCheckedChange={setShowLogo}
+                                            disabled={!businessProfile?.logo?.url}
+                                        />
+                                    </div>
+                                    {!businessProfile?.logo?.url && (
+                                        <p className="text-xs text-muted-foreground">Para usar esta opção, adicione uma logomarca no seu <a href="/dashboard" className="underline">painel inicial</a>.</p>
+                                    )}
+                                </div>
+                                
                                 <div className="space-y-4 pt-4 border-t">
                                     <div>
                                         <Label htmlFor="post-title" className="font-semibold">Título</Label>
@@ -597,7 +575,7 @@ export default function CriarConteudoPage() {
                                                 mediaItems={mediaItems} 
                                                 onRemoveItem={handleRemoveItem} 
                                                 logoUrl={businessProfile?.logo?.url || null}
-                                                logoSettings={logoSettings}
+                                                showLogo={showLogo}
                                             />
                                         </div>
                                         <div className="p-3 text-sm min-h-[6rem]">
@@ -657,7 +635,7 @@ export default function CriarConteudoPage() {
                                                     mediaItems={mediaItems} 
                                                     onRemoveItem={handleRemoveItem} 
                                                     logoUrl={businessProfile?.logo?.url || null}
-                                                    logoSettings={logoSettings}
+                                                    showLogo={showLogo}
                                                  />
                                             </div>
                                             <div className="p-3 text-sm min-h-[6rem]">
