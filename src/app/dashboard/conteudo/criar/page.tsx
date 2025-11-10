@@ -25,7 +25,7 @@ import { Slider } from "@/components/ui/slider";
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type Platform = 'instagram' | 'facebook';
-type LogoPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+type LogoPosition = 'top-left' | 'top-center' | 'top-right' | 'left-center' | 'center' | 'right-center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 type MediaItem = {
     type: 'image' | 'video';
@@ -100,10 +100,14 @@ const Preview = ({
     
     const positionClasses: Record<LogoPosition, string> = {
         'top-left': 'top-4 left-4',
+        'top-center': 'top-4 left-1/2 -translate-x-1/2',
         'top-right': 'top-4 right-4',
-        'bottom-left': 'bottom-4 left-4',
-        'bottom-right': 'bottom-4 right-4',
+        'left-center': 'top-1/2 left-4 -translate-y-1/2',
         'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        'right-center': 'top-1/2 right-4 -translate-y-1/2',
+        'bottom-left': 'bottom-4 left-4',
+        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+        'bottom-right': 'bottom-4 right-4',
     };
 
     const renderContent = (item: MediaItem) => {
@@ -576,10 +580,10 @@ export default function CriarConteudoPage() {
                                             <div>
                                                 <Label className="text-sm">Posição</Label>
                                                 <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2 mt-2">
-                                                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
+                                                    {(['top-left', 'top-center', 'top-right', 'left-center', 'center', 'right-center', 'bottom-left', 'bottom-center', 'bottom-right'] as LogoPosition[]).map(pos => (
                                                         <div key={pos}>
                                                             <RadioGroupItem value={pos} id={pos} className="sr-only peer" />
-                                                            <Label htmlFor={pos} className="flex items-center justify-center text-xs rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary">
+                                                            <Label htmlFor={pos} className="flex items-center justify-center text-xs rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary capitalize">
                                                                 {pos.replace('-', ' ')}
                                                             </Label>
                                                         </div>
