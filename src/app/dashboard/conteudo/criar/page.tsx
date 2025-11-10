@@ -311,7 +311,7 @@ export default function CriarConteudoPage() {
                     return updatedItems;
                 });
                 
-                toast({ title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
+                toast({ variant: "success", title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
                 setStep(3);
 
             } catch (error: any) {
