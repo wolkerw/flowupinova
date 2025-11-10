@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, UploadCloud, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 
 
@@ -67,7 +66,6 @@ const Preview = ({
     mediaItems, 
     onRemoveItem,
     logoUrl,
-    showLogo,
     logoPosition,
     logoScale,
     logoOpacity,
@@ -76,7 +74,6 @@ const Preview = ({
     mediaItems: MediaItem[], 
     onRemoveItem: (index: number) => void,
     logoUrl: string | null,
-    showLogo: boolean,
     logoPosition: LogoPosition,
     logoScale: number,
     logoOpacity: number,
@@ -113,13 +110,13 @@ const Preview = ({
         const imageUrlToDisplay = item.publicUrl || item.previewUrl;
         
         const renderLogo = () => {
-            if (!logoUrl || !showLogo || item.publicUrl) return null;
+            if (!logoUrl || item.publicUrl) return null;
             
             return (
                  <Image
                     src={logoUrl}
                     alt="Logomarca"
-                    width={500} // A largura e altura aqui podem ser maiores para garantir qualidade
+                    width={500}
                     height={500}
                     className={cn(
                         "absolute z-10 h-auto",
@@ -243,9 +240,9 @@ export default function CriarConteudoPage() {
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
     const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
-    const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
 
-    const [showLogo, setShowLogo] = useState(true);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
     const [logoScale, setLogoScale] = useState(15);
     const [logoOpacity, setLogoOpacity] = useState(80);
@@ -259,11 +256,11 @@ export default function CriarConteudoPage() {
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
-        getBusinessProfile(user.uid).then(setBusinessProfile);
     }, [user]);
 
     const handleNextStep = async () => {
@@ -274,12 +271,10 @@ export default function CriarConteudoPage() {
             const webhookUrl = "/api/proxy-webhook";
             const formData = new FormData();
             
-            // Adiciona o arquivo principal
             formData.append('file', mediaItems[0].file);
             
-            // Adiciona os dados do logo se o toggle estiver ativo
-            if (showLogo && businessProfile?.logo?.url) {
-                formData.append('logoUrl', businessProfile.logo.url);
+            if (logoFile && logoPreviewUrl) {
+                formData.append('logoUrl', logoPreviewUrl); // Send as data URL
                 formData.append('logoPosition', logoPosition);
                 formData.append('logoScale', logoScale.toString());
                 formData.append('logoOpacity', logoOpacity.toString());
@@ -350,6 +345,32 @@ export default function CriarConteudoPage() {
         }
         if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
     };
+    
+     const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            // Check file size (e.g., limit to 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                toast({ variant: "destructive", title: "Arquivo muito grande", description: "Por favor, escolha uma logomarca com menos de 2MB." });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreviewUrl(reader.result as string);
+                setLogoFile(file);
+            };
+            reader.readAsDataURL(file);
+        }
+        if(event.target) event.target.value = "";
+    };
+
+    const handleRemoveLogo = () => {
+        if(logoPreviewUrl) {
+            URL.revokeObjectURL(logoPreviewUrl);
+        }
+        setLogoFile(null);
+        setLogoPreviewUrl(null);
+    }
 
     const handleRemoveItem = (index: number) => {
         const itemToRemove = mediaItems[index];
@@ -362,7 +383,7 @@ export default function CriarConteudoPage() {
     const handleGenerateText = () => {
         setIsGeneratingText(true);
         setTimeout(() => {
-            setText(prevText => prevText + "\\n\\nTexto melhorado pela IA: " + prevText);
+            setText(prevText => prevText + "\n\nTexto melhorado pela IA: " + prevText);
             setIsGeneratingText(false);
         }, 1500);
     };
@@ -438,8 +459,11 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
+             if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(logoPreviewUrl);
+            }
         };
-    }, [mediaItems]);
+    }, [mediaItems, logoPreviewUrl]);
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -564,43 +588,51 @@ export default function CriarConteudoPage() {
                                         Melhorar com IA
                                     </Button>
                                 </div>
-                                {businessProfile?.logo?.url && (
-                                     <div className="space-y-6 pt-4 border-t">
-                                        <div className="flex items-center justify-between">
-                                            <Label htmlFor="show-logo" className="font-semibold flex flex-col gap-1">
-                                                <span>Personalização da Marca</span>
-                                                <span className="text-xs text-gray-500 font-normal">Aplique sua logomarca na imagem.</span>
-                                            </Label>
-                                            <Switch id="show-logo" checked={showLogo} onCheckedChange={setShowLogo} />
-                                        </div>
+                                
+                                 <div className="space-y-4 pt-4 border-t">
+                                    <h4 className="font-semibold">Personalização da Marca</h4>
+                                    <input type="file" ref={logoInputRef} onChange={handleLogoFileChange} accept="image/png, image/jpeg" className="hidden" />
+                                     {!logoPreviewUrl ? (
+                                         <Button variant="outline" className="w-full" onClick={() => handleFileSelect(logoInputRef)}>
+                                            <UploadCloud className="w-4 h-4 mr-2"/>
+                                            Anexar Logomarca
+                                         </Button>
+                                     ) : (
+                                        <div className="space-y-4">
+                                             <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                                                <div className="flex items-center gap-2">
+                                                    <Image src={logoPreviewUrl} alt="Preview da logomarca" width={40} height={40} className="object-contain rounded" />
+                                                    <span className="text-sm text-gray-600 truncate max-w-[150px]">{logoFile?.name}</span>
+                                                </div>
+                                                <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-100" onClick={handleRemoveLogo}>
+                                                    <Trash2 className="w-4 h-4"/>
+                                                </Button>
+                                             </div>
 
-                                        {showLogo && (
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <Label className="text-sm">Posição</Label>
-                                                    <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2 mt-2">
-                                                        {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
-                                                            <div key={pos}>
-                                                                <RadioGroupItem value={pos} id={pos} className="sr-only peer" />
-                                                                <Label htmlFor={pos} className="flex items-center justify-center text-xs rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary">
-                                                                    {pos.replace('-', ' ')}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </RadioGroup>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="logo-scale" className="text-sm">Tamanho ({logoScale}%)</Label>
-                                                    <Slider id="logo-scale" min={5} max={50} step={1} value={[logoScale]} onValueChange={([v]) => setLogoScale(v)} />
-                                                </div>
-                                                 <div>
-                                                    <Label htmlFor="logo-opacity" className="text-sm">Opacidade ({logoOpacity}%)</Label>
-                                                    <Slider id="logo-opacity" min={10} max={100} step={5} value={[logoOpacity]} onValueChange={([v]) => setLogoOpacity(v)} />
-                                                </div>
+                                            <div>
+                                                <Label className="text-sm">Posição</Label>
+                                                <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2 mt-2">
+                                                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
+                                                        <div key={pos}>
+                                                            <RadioGroupItem value={pos} id={pos} className="sr-only peer" />
+                                                            <Label htmlFor={pos} className="flex items-center justify-center text-xs rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary">
+                                                                {pos.replace('-', ' ')}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
+                                                </RadioGroup>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
+                                            <div>
+                                                <Label htmlFor="logo-scale" className="text-sm">Tamanho ({logoScale}%)</Label>
+                                                <Slider id="logo-scale" min={5} max={50} step={1} value={[logoScale]} onValueChange={([v]) => setLogoScale(v)} />
+                                            </div>
+                                             <div>
+                                                <Label htmlFor="logo-opacity" className="text-sm">Opacidade ({logoOpacity}%)</Label>
+                                                <Slider id="logo-opacity" min={10} max={100} step={5} value={[logoOpacity]} onValueChange={([v]) => setLogoOpacity(v)} />
+                                            </div>
+                                        </div>
+                                     )}
+                                 </div>
                             </CardContent>
                         </Card>
                         
@@ -620,8 +652,7 @@ export default function CriarConteudoPage() {
                                                 type={selectedType} 
                                                 mediaItems={mediaItems} 
                                                 onRemoveItem={handleRemoveItem} 
-                                                logoUrl={businessProfile?.logo?.url || null}
-                                                showLogo={showLogo}
+                                                logoUrl={logoPreviewUrl}
                                                 logoPosition={logoPosition}
                                                 logoScale={logoScale}
                                                 logoOpacity={logoOpacity}
@@ -683,8 +714,7 @@ export default function CriarConteudoPage() {
                                                     type={selectedType} 
                                                     mediaItems={mediaItems} 
                                                     onRemoveItem={handleRemoveItem} 
-                                                    logoUrl={businessProfile?.logo?.url || null}
-                                                    showLogo={showLogo}
+                                                    logoUrl={logoPreviewUrl}
                                                     logoPosition={logoPosition}
                                                     logoScale={logoScale}
                                                     logoOpacity={logoOpacity}
