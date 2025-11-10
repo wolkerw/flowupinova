@@ -564,6 +564,43 @@ export default function CriarConteudoPage() {
                                         Melhorar com IA
                                     </Button>
                                 </div>
+                                {businessProfile?.logo?.url && (
+                                     <div className="space-y-6 pt-4 border-t">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="show-logo" className="font-semibold flex flex-col gap-1">
+                                                <span>Personalização da Marca</span>
+                                                <span className="text-xs text-gray-500 font-normal">Aplique sua logomarca na imagem.</span>
+                                            </Label>
+                                            <Switch id="show-logo" checked={showLogo} onCheckedChange={setShowLogo} />
+                                        </div>
+
+                                        {showLogo && (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <Label className="text-sm">Posição</Label>
+                                                    <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2 mt-2">
+                                                        {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
+                                                            <div key={pos}>
+                                                                <RadioGroupItem value={pos} id={pos} className="sr-only peer" />
+                                                                <Label htmlFor={pos} className="flex items-center justify-center text-xs rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary">
+                                                                    {pos.replace('-', ' ')}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </RadioGroup>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="logo-scale" className="text-sm">Tamanho ({logoScale}%)</Label>
+                                                    <Slider id="logo-scale" min={5} max={50} step={1} value={[logoScale]} onValueChange={([v]) => setLogoScale(v)} />
+                                                </div>
+                                                 <div>
+                                                    <Label htmlFor="logo-opacity" className="text-sm">Opacidade ({logoOpacity}%)</Label>
+                                                    <Slider id="logo-opacity" min={10} max={100} step={5} value={[logoOpacity]} onValueChange={([v]) => setLogoOpacity(v)} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                         
@@ -741,3 +778,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
