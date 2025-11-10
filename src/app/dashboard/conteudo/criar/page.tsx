@@ -554,42 +554,6 @@ export default function CriarConteudoPage() {
                                 </div>
                                 
                                 <div className="space-y-4 pt-4 border-t">
-                                    <div>
-                                        <Label htmlFor="post-title" className="font-semibold">Título</Label>
-                                        <Input
-                                            id="post-title"
-                                            placeholder="Um título chamativo para seu post"
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="post-text" className="font-semibold">Legenda</Label>
-                                        <p className="text-xs text-gray-500 mb-2">Escreva o que quiser sobre sua publicação e peça para a IA melhorar seu texto.</p>
-                                        <Textarea
-                                            id="post-text"
-                                            placeholder="Escreva aqui a legenda da sua publicação..."
-                                            value={text}
-                                            onChange={(e) => setText(e.target.value)}
-                                            className="h-32"
-                                        />
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full flex items-center gap-2"
-                                        onClick={handleGenerateText}
-                                        disabled={isGeneratingText}
-                                    >
-                                        {isGeneratingText ? (
-                                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
-                                        ) : (
-                                            <Sparkles className="w-4 h-4 text-purple-500" />
-                                        )}
-                                        Melhorar com IA
-                                    </Button>
-                                </div>
-                                
-                                 <div className="space-y-4 pt-4 border-t">
                                     <h4 className="font-semibold">Personalização da Marca</h4>
                                     <input type="file" ref={logoInputRef} onChange={handleLogoFileChange} accept="image/png, image/jpeg" className="hidden" />
                                      {!logoPreviewUrl ? (
@@ -633,6 +597,42 @@ export default function CriarConteudoPage() {
                                         </div>
                                      )}
                                  </div>
+
+                                <div className="space-y-4 pt-4 border-t">
+                                    <div>
+                                        <Label htmlFor="post-title" className="font-semibold">Título</Label>
+                                        <Input
+                                            id="post-title"
+                                            placeholder="Um título chamativo para seu post"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="post-text" className="font-semibold">Legenda</Label>
+                                        <p className="text-xs text-gray-500 mb-2">Escreva o que quiser sobre sua publicação e peça para a IA melhorar seu texto.</p>
+                                        <Textarea
+                                            id="post-text"
+                                            placeholder="Escreva aqui a legenda da sua publicação..."
+                                            value={text}
+                                            onChange={(e) => setText(e.target.value)}
+                                            className="h-32"
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full flex items-center gap-2"
+                                        onClick={handleGenerateText}
+                                        disabled={isGeneratingText}
+                                    >
+                                        {isGeneratingText ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                                        ) : (
+                                            <Sparkles className="w-4 h-4 text-purple-500" />
+                                        )}
+                                        Melhorar com IA
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
                         
@@ -809,4 +809,3 @@ export default function CriarConteudoPage() {
     );
 }
 
-    
