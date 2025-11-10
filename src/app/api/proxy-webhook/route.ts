@@ -1,22 +1,20 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+
   try {
     const formData = await request.formData();
-    const file = formData.get('file');
-
-    if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo encontrado na requisição." }, { status: 400 });
-    }
-
-    // A URL do webhook agora é a que você especificou.
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
-
-    // Recriamos o FormData para enviar ao webhook externo.
+    
+    // Recria o FormData para enviar ao webhook externo.
+    // Isso garante que todos os campos sejam repassados.
     const webhookFormData = new FormData();
-    webhookFormData.append('file', file);
-
+    for (const [key, value] of formData.entries()) {
+      webhookFormData.append(key, value);
+    }
+    
+    // Deixa o `fetch` definir o Content-Type para `multipart/form-data` com a boundary correta.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       body: webhookFormData,
@@ -38,5 +36,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }
-
-    

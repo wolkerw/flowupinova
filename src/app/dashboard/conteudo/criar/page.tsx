@@ -277,8 +277,8 @@ export default function CriarConteudoPage() {
             
             formData.append('file', mediaItems[0].file);
             
-            if (logoFile && logoPreviewUrl) {
-                formData.append('logoUrl', logoPreviewUrl); // Send as data URL
+            if (logoFile) {
+                formData.append('logo', logoFile);
                 formData.append('logoPosition', logoPosition);
                 formData.append('logoScale', logoScale.toString());
                 formData.append('logoOpacity', logoOpacity.toString());
@@ -812,4 +812,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
