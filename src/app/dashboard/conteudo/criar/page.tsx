@@ -529,54 +529,6 @@ export default function CriarConteudoPage() {
                                     </div>
                                 </div>
                                 
-                                 <div className="space-y-4 pt-4 border-t">
-                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="show-logo" className="font-semibold flex-grow">Adicionar logomarca na imagem</Label>
-                                        <Switch
-                                            id="show-logo"
-                                            checked={showLogo}
-                                            onCheckedChange={setShowLogo}
-                                            disabled={!businessProfile?.logo?.url}
-                                        />
-                                    </div>
-                                    {!businessProfile?.logo?.url && (
-                                        <p className="text-xs text-muted-foreground">Para usar esta opção, adicione uma logomarca no seu <a href="/dashboard/meu-negocio" className="underline">perfil de negócio</a>.</p>
-                                    )}
-
-                                    <AnimatePresence>
-                                        {showLogo && businessProfile?.logo?.url && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: -10, height: 0 }}
-                                                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                                exit={{ opacity: 0, y: -10, height: 0 }}
-                                                className="space-y-4 overflow-hidden"
-                                            >
-                                                <div className="space-y-2">
-                                                    <Label>Posição da logomarca</Label>
-                                                    <RadioGroup value={logoPosition} onValueChange={(v) => setLogoPosition(v as LogoPosition)} className="grid grid-cols-3 gap-2">
-                                                        {(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] as LogoPosition[]).map(pos => (
-                                                            <div key={pos}>
-                                                                <RadioGroupItem value={pos} id={pos} className="peer sr-only"/>
-                                                                <Label htmlFor={pos} className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary text-xs cursor-pointer capitalize">
-                                                                    {pos.replace('-', ' ')}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </RadioGroup>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Tamanho da logomarca ({logoScale}%)</Label>
-                                                    <Slider value={[logoScale]} onValueChange={(v) => setLogoScale(v[0])} max={50} step={1} />
-                                                </div>
-                                                 <div className="space-y-2">
-                                                    <Label>Opacidade da logomarca ({logoOpacity}%)</Label>
-                                                    <Slider value={[logoOpacity]} onValueChange={(v) => setLogoOpacity(v[0])} max={100} step={5} />
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                                
                                 <div className="space-y-4 pt-4 border-t">
                                     <div>
                                         <Label htmlFor="post-title" className="font-semibold">Título</Label>
