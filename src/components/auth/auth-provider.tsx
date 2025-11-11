@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         router.push('/dashboard');
       }
     } else {
-      // Se o usuário não está logado, redireciona para a página de acesso,
+      // Se o usuário não está logado, redireciona para la página de acesso,
       // a menos que ele já esteja em uma página pública.
       if (!isPublicPage) {
         router.push('/acesso/login');
@@ -91,13 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       await updateProfile(user, { displayName: name });
       
-      // Store user creation date in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, {
         uid: user.uid,
         email: user.email,
         displayName: name,
         createdAt: new Date(), // This is the trial start date
+        plan: 'trial',
+        paymentStatus: 'active',
       }, { merge: true });
 
       const token = await userCredential.user.getIdToken();
