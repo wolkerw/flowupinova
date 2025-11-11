@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -122,8 +121,8 @@ const TrialEndedOverlay = () => {
                             Falar no WhatsApp
                         </a>
                     </Button>
-                     <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                        <a href="mailto:contato@flowupinova.com.br?subject=Upgrade de Plano FlowUp">
+                     <Button asChild size="lg" variant="outline">
+                        <a href="mailto:flowupinova@gmail.com?subject=Interesse%20em%20Plano&body=Ol%C3%A1%2C%20tenho%20interesse%20em%20contratar%20um%20plano.">
                             <Mail className="w-5 h-5 mr-2" />
                             Enviar E-mail
                         </a>
@@ -639,3 +638,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
