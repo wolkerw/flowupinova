@@ -3,7 +3,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -87,10 +88,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUpWithEmail = async (name: string, email: string, pass: string, phone: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      // We are not using the phone number for auth purposes here, just for display/record.
-      await updateProfile(userCredential.user, { displayName: name });
-       const token = await userCredential.user.getIdToken();
-       setCookie('firebase-id-token', token, 1);
+      const user = userCredential.user;
+      await updateProfile(user, { displayName: name });
+      
+      // Store user creation date in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: name,
+        createdAt: new Date(), // This is the trial start date
+      }, { merge: true });
+
+      const token = await userCredential.user.getIdToken();
+      setCookie('firebase-id-token', token, 1);
       setUser(auth.currentUser); 
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {

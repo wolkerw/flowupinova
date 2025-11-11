@@ -23,6 +23,8 @@ import {
   Image as ImageIcon,
   UploadCloud,
   Trash2,
+  Clock,
+  Mail,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -35,7 +37,8 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
-import { uploadMediaAndGetURL } from "@/lib/services/posts-service";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const initialMessages: Message[] = [
   {
@@ -94,6 +97,43 @@ const MetricDisplay = ({ icon, value, label }: { icon: React.ElementType, value:
     </div>
 );
 
+const TrialEndedOverlay = () => {
+    return (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl shadow-2xl max-w-lg w-full text-center p-8"
+            >
+                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center mb-6">
+                    <Clock className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Seu período de teste terminou</h2>
+                <p className="text-gray-600 mb-6">
+                    Esperamos que você tenha gostado de usar a FlowUp! Para continuar a impulsionar seu marketing,
+                    por favor, entre em contato para escolher um plano.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                     <Button asChild size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600">
+                        <a href="https://wa.me/555199922177?text=Olá!%20Meu%20período%20de%20teste%20na%20FlowUp%20terminou%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20planos." target="_blank" rel="noopener noreferrer">
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z"/>
+                            </svg>
+                            Falar no WhatsApp
+                        </a>
+                    </Button>
+                     <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                        <a href="mailto:contato@flowupinova.com.br?subject=Upgrade de Plano FlowUp">
+                            <Mail className="w-5 h-5 mr-2" />
+                            Enviar E-mail
+                        </a>
+                    </Button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
 
 export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
@@ -110,6 +150,8 @@ export default function Dashboard() {
   const [facebookMetrics, setFacebookMetrics] = useState<PlatformMetrics | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [trialEnded, setTrialEnded] = useState(false);
+  const [trialLoading, setTrialLoading] = useState(true);
 
   const fetchBusinessProfile = useCallback(async () => {
     if (!user) return;
@@ -124,6 +166,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
+
+    const checkTrialStatus = async () => {
+        setTrialLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            const createdAt = userData.createdAt?.toDate(); // Firestore timestamp to Date
+
+            if (createdAt) {
+                const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+                if (new Date() > trialEndDate) {
+                    setTrialEnded(true);
+                }
+            }
+        }
+        setTrialLoading(false);
+    };
+
+    checkTrialStatus();
     
     const fetchInitialData = async () => {
         const connection = await getMetaConnection(user.uid);
@@ -326,6 +389,18 @@ export default function Dashboard() {
     if (!metaConnection || !businessProfile) return false;
     return !!(businessProfile.logo?.url) && metaConnection.isConnected && businessProfile.isVerified;
   }, [metaConnection, businessProfile]);
+
+  if (trialLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (trialEnded) {
+      return <TrialEndedOverlay />;
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
