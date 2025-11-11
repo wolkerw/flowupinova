@@ -30,6 +30,9 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
@@ -85,7 +88,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
       }
       
-      // A API retornou os dados do perfil, agora o cliente salva.
       await updateBusinessProfile(user.uid, result.businessProfileData);
 
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
@@ -129,7 +131,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       return;
     }
 
-    // Usar o UID do usuário como 'state' para maior segurança e conformidade.
     const stateValue = user.uid;
     
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -182,6 +183,28 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setFormState(profile);
     setEditingProfile(false);
   }
+
+  const handleUpdateUserPlan = async () => {
+      if (!user || user.uid !== 'qrtRs4OT7cd9Cw759D3j5eiIrOD2') {
+          toast({ variant: "destructive", title: "Não autorizado", description: "Esta ação é apenas para o usuário especificado." });
+          return;
+      }
+
+      setDataLoading(true);
+      try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+              plan: 'trial',
+              paymentStatus: 'active',
+              createdAt: new Date() // Define a data de início do trial
+          }, { merge: true });
+          toast({ title: "Sucesso!", description: `Usuário ${user.uid} atualizado para o plano de teste.` });
+      } catch (error: any) {
+          toast({ variant: "destructive", title: "Erro ao atualizar", description: error.message });
+      } finally {
+          setDataLoading(false);
+      }
+  }
   
   const recentReviews = [
     {
@@ -217,6 +240,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      {/* Botão de atualização para usuário específico */}
+      {user && user.uid === 'qrtRs4OT7cd9Cw759D3j5eiIrOD2' && (
+        <Card>
+            <CardContent className="p-4 flex items-center justify-between">
+                <p className="text-sm">Clique aqui para definir seu plano como "trial" (apenas para o usuário de teste).</p>
+                <Button onClick={handleUpdateUserPlan} disabled={dataLoading}>
+                    {dataLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Ativar Plano de Teste
+                </Button>
+            </CardContent>
+        </Card>
+      )}
+
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
