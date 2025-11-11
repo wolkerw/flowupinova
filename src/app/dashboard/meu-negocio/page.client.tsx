@@ -115,6 +115,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   }, [searchParams, user, handleTokenExchange, router, toast]);
 
   const handleConnect = () => {
+    if (!user) {
+        toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+        return;
+    }
     setAuthLoading(true);
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const redirectUri = `${window.location.origin}/dashboard/meu-negocio`;
@@ -125,9 +129,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       return;
     }
 
-    // Criação do valor de 'state' para segurança
-    const stateValue = Math.random().toString(36).substring(2, 15);
-    // Idealmente, você armazenaria 'stateValue' na sessão do usuário para validar no callback.
+    // Usar o UID do usuário como 'state' para maior segurança e conformidade.
+    const stateValue = user.uid;
     
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     googleAuthUrl.searchParams.append('client_id', googleClientId);
