@@ -116,7 +116,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
   const handleConnect = () => {
     setAuthLoading(true);
-    const googleClientId = "569130702994-a9gjs7gopkquehcui77s58umbdrupql5.apps.googleusercontent.com";
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const redirectUri = `${window.location.origin}/dashboard/meu-negocio`;
 
     if (!googleClientId) {
