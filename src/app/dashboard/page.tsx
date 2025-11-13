@@ -123,7 +123,7 @@ const TrialEndedOverlay = () => {
                         </a>
                     </Button>
                      <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                        <a href="mailto:flowupinova@gmail.com?subject=Interesse%20em%20Plano&body=Ol%C3%A1%2C%20tenho%20interesse%20em%20contratar%20um%20plano.">
+                        <a href="mailto:flowupinova@gmail.com?subject=Interesse%20em%20Plano&body=Tenho%20interesse%20em%20contratar%20um%20plano.">
                             <Mail className="w-5 h-5 mr-2" />
                             Enviar E-mail
                         </a>
@@ -179,12 +179,15 @@ export default function Dashboard() {
 
         if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            const createdAt = userData.createdAt?.toDate(); // Firestore timestamp to Date
+            // A lógica de expiração só se aplica se o plano for 'trial'
+            if (userData.plan === 'trial') {
+                const createdAt = userData.createdAt?.toDate(); // Firestore timestamp to Date
 
-            if (createdAt) {
-                const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-                if (new Date() > trialEndDate) {
-                    setTrialEnded(true);
+                if (createdAt) {
+                    const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    if (new Date() > trialEndDate) {
+                        setTrialEnded(true);
+                    }
                 }
             }
         }
