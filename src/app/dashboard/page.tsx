@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -121,7 +122,7 @@ const TrialEndedOverlay = () => {
                             Falar no WhatsApp
                         </a>
                     </Button>
-                     <Button asChild size="lg" variant="outline">
+                     <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
                         <a href="mailto:flowupinova@gmail.com?subject=Interesse%20em%20Plano&body=Ol%C3%A1%2C%20tenho%20interesse%20em%20contratar%20um%20plano.">
                             <Mail className="w-5 h-5 mr-2" />
                             Enviar E-mail
@@ -167,6 +168,11 @@ export default function Dashboard() {
     if (!user) return;
 
     const checkTrialStatus = async () => {
+        if (user.email === 'fernando.home@hotmail.com') {
+            setTrialLoading(false);
+            return;
+        }
+
         setTrialLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
@@ -638,5 +644,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
