@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
@@ -179,6 +180,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
 export default function HomePage() {
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const [modalSubject, setModalSubject] = React.useState('');
+  const [isAnnual, setIsAnnual] = React.useState(false);
 
   const openContactModal = (subject = '') => {
     setModalSubject(subject);
@@ -334,7 +336,23 @@ export default function HomePage() {
         <section id="pricing" className="py-20 px-6">
             <div className="container mx-auto">
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
-                <p className="text-center text-gray-600 mb-12">Escolha o plano perfeito para impulsionar seu negócio.</p>
+                <p className="text-center text-gray-600 mb-8">Escolha o plano perfeito para impulsionar seu negócio.</p>
+                <div className="flex justify-center items-center gap-4 mb-12">
+                    <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary font-bold' : 'text-gray-500'}>
+                        Mensal
+                    </Label>
+                    <Switch
+                        id="billing-cycle"
+                        checked={isAnnual}
+                        onCheckedChange={setIsAnnual}
+                    />
+                    <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary font-bold' : 'text-gray-500'}>
+                        Anual
+                    </Label>
+                    <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
+                        Economize 2 meses!
+                    </div>
+                </div>
                 <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     <Card className="shadow-lg border-gray-200 flex flex-col">
                          <CardHeader className="pb-4">
@@ -364,8 +382,11 @@ export default function HomePage() {
                                 Mais Popular
                             </div>
                             <CardTitle className="text-2xl font-bold pt-8">Plano Standard</CardTitle>
-                            <p className="text-4xl font-bold text-primary pt-2">R$490,00<span className="text-lg font-medium text-gray-500">/mês</span></p>
-                            <p className="text-gray-600 text-sm">Acesso completo às ferramentas de automação.</p>
+                            <p className="text-4xl font-bold text-primary pt-2">
+                                {isAnnual ? 'R$400,00' : 'R$490,00'}
+                                <span className="text-lg font-medium text-gray-500">/mês</span>
+                            </p>
+                            <p className="text-gray-600 text-sm">{isAnnual ? 'Cobrado anualmente' : 'Cobrado mensalmente'}</p>
                         </CardHeader>
                         <CardContent className="space-y-4 flex-grow">
                             <ul className="space-y-3 text-gray-700">
