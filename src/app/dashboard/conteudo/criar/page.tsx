@@ -34,33 +34,6 @@ type MediaItem = {
     publicUrl?: string; // URL from webhook
 };
 
-const contentOptions: { id: ContentType; icon: React.ElementType; title: string; description: string; }[] = [
-    {
-        id: "single_post",
-        icon: ImageIcon,
-        title: "Postagem Única",
-        description: "Uma imagem ou vídeo para o feed."
-    },
-    {
-        id: "carousel",
-        icon: Copy,
-        title: "Carrossel",
-        description: "Múltiplas imagens ou vídeos em um post."
-    },
-    {
-        id: "story",
-        icon: Film,
-        title: "Stories",
-        description: "Conteúdo vertical que dura 24 horas."
-    },
-    {
-        id: "reels",
-        icon: Sparkles,
-        title: "Reels",
-        description: "Vídeos curtos e criativos para o feed."
-    }
-];
-
 const Preview = ({ 
     type, 
     mediaItems, 
@@ -282,7 +255,6 @@ export default function CriarConteudoPage() {
             
             if (logoFile) {
                 formData.append('logo', logoFile);
-                formData.append('logoPosition', logoPosition);
                 formData.append('logoScale', logoScale.toString());
                 formData.append('logoOpacity', logoOpacity.toString());
             }
