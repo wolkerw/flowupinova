@@ -248,7 +248,7 @@ export default function CriarConteudoPage() {
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
-    const [logoScale, setLogoScale] = useState(15);
+    const [logoScale, setLogoScale] = useState(30); // Default to 30% of the new 10-100 scale
     const [logoOpacity, setLogoOpacity] = useState(80);
 
 
@@ -261,6 +261,9 @@ export default function CriarConteudoPage() {
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
+
+    // Remap the 10-100 slider value to the 5-50 visual scale.
+    const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
 
     useEffect(() => {
         if (!user) return;
@@ -592,7 +595,7 @@ export default function CriarConteudoPage() {
                                             </div>
                                             <div>
                                                 <Label htmlFor="logo-scale" className="text-sm">Tamanho ({logoScale}%)</Label>
-                                                <Slider id="logo-scale" min={5} max={50} step={1} value={[logoScale]} onValueChange={([v]) => setLogoScale(v)} />
+                                                <Slider id="logo-scale" min={10} max={100} step={1} value={[logoScale]} onValueChange={([v]) => setLogoScale(v)} />
                                             </div>
                                              <div>
                                                 <Label htmlFor="logo-opacity" className="text-sm">Opacidade ({logoOpacity}%)</Label>
@@ -658,7 +661,7 @@ export default function CriarConteudoPage() {
                                                 onRemoveItem={handleRemoveItem} 
                                                 logoUrl={logoPreviewUrl}
                                                 logoPosition={logoPosition}
-                                                logoScale={logoScale}
+                                                logoScale={visualLogoScale}
                                                 logoOpacity={logoOpacity}
                                             />
                                         </div>
@@ -720,7 +723,7 @@ export default function CriarConteudoPage() {
                                                     onRemoveItem={handleRemoveItem} 
                                                     logoUrl={logoPreviewUrl}
                                                     logoPosition={logoPosition}
-                                                    logoScale={logoScale}
+                                                    logoScale={visualLogoScale}
                                                     logoOpacity={logoOpacity}
                                                  />
                                             </div>
