@@ -270,23 +270,60 @@ export default function CriarConteudoPage() {
         getMetaConnection(user.uid).then(setMetaConnection);
     }, [user]);
 
+    const getImageDimensions = (file: File): Promise<{ width: number, height: number }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.onerror = reject;
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleNextStep = async () => {
         if (step === 2 && mediaItems.length > 0) {
             setIsUploading(true);
             toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
-            const webhookUrl = "/api/proxy-webhook";
-            const formData = new FormData();
-            
-            formData.append('file', mediaItems[0].file);
-            
-            if (logoFile) {
-                formData.append('logo', logoFile);
-                formData.append('logoScale', logoScale.toString());
-                formData.append('logoOpacity', logoOpacity.toString());
-            }
-
             try {
+                const mainImageFile = mediaItems[0].file;
+                const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(mainImageFile);
+
+                const formData = new FormData();
+                formData.append('file', mainImageFile);
+
+                if (logoFile) {
+                    formData.append('logo', logoFile);
+                    formData.append('logoScale', logoScale.toString());
+                    formData.append('logoOpacity', logoOpacity.toString());
+
+                    // Calculate pixel positions
+                    const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+                    let positionX = 0;
+                    let positionY = 0;
+                    const margin = 10; // 10px margin
+
+                    switch (logoPosition) {
+                        case 'top-left':    positionX = margin; positionY = margin; break;
+                        case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
+                        case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
+                        case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break; // Assuming square logo for height
+                        case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                        case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                        case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                        case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
+                        case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                    }
+                    
+                    formData.append('positionX', Math.round(positionX).toString());
+                    formData.append('positionY', Math.round(positionY).toString());
+                }
+
+                const webhookUrl = "/api/proxy-webhook";
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     body: formData,
@@ -298,7 +335,6 @@ export default function CriarConteudoPage() {
                 }
 
                 const result = await response.json();
-                
                 const publicUrl = result?.[0]?.url_post;
 
                 if (!publicUrl) {
@@ -312,7 +348,7 @@ export default function CriarConteudoPage() {
                     }
                     return updatedItems;
                 });
-                
+
                 toast({ variant: "success", title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
                 setStep(3);
 
