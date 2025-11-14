@@ -34,6 +34,33 @@ type MediaItem = {
     publicUrl?: string; // URL from webhook
 };
 
+const contentOptions = [
+    {
+        id: "single_post",
+        title: "Post Único (Feed)",
+        description: "Uma única imagem ou vídeo para o feed.",
+        icon: ImageIcon
+    },
+    {
+        id: "carousel",
+        title: "Carrossel (Feed)",
+        description: "Várias imagens ou vídeos em um só post.",
+        icon: Copy
+    },
+    {
+        id: "story",
+        title: "Story",
+        description: "Conteúdo vertical que some em 24 horas.",
+        icon: Film
+    },
+    {
+        id: "reels",
+        title: "Reels",
+        description: "Vídeo curto vertical para o feed e aba Reels.",
+        icon: Sparkles
+    }
+];
+
 const Preview = ({ 
     type, 
     mediaItems, 
