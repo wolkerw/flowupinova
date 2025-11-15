@@ -52,12 +52,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const fetchProfileData = useCallback(async () => {
     if (!user) return;
     setDataLoading(true);
-    const fetchedProfile = await getBusinessProfile(user.uid);
-    if (fetchedProfile) {
-        setProfile(fetchedProfile);
-        setFormState(fetchedProfile);
-    } else {
-        toast({ title: "Erro ao carregar perfil", description: "Não foi possível buscar os dados do seu negócio.", variant: "destructive" });
+    try {
+      const fetchedProfile = await getBusinessProfile(user.uid);
+      setProfile(fetchedProfile);
+      setFormState(fetchedProfile);
+    } catch (error: any) {
+        toast({ title: "Erro ao carregar perfil", description: `Não foi possível buscar os dados do seu negócio: ${error.message}`, variant: "destructive" });
     }
     setDataLoading(false);
   }, [user, toast]);
