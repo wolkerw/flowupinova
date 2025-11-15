@@ -123,7 +123,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
     setAuthLoading(true);
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/dashboard/meu-negocio`;
+    const redirectUri = 'https://flowupinova.com.br/dashboard/meu-negocio';
 
     if (!googleClientId) {
       toast({ title: "Erro de Configuração", description: "O ID de cliente do Google não está configurado.", variant: "destructive" });
