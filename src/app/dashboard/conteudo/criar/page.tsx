@@ -305,7 +305,7 @@ export default function CriarConteudoPage() {
                     const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
                     let positionX = 0;
                     let positionY = 0;
-                    const margin = 10; // 10px margin
+                    const margin = 16; // 1rem = 16px for margin like 'top-4'
 
                     switch (logoPosition) {
                         case 'top-left':    positionX = margin; positionY = margin; break;
