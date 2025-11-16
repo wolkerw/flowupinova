@@ -29,7 +29,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   getIdToken: () => Promise<string | null>;
-  signUpWithEmail: (name: string, email: string, pass: string, phone: string) => Promise<void>;
+  signUpWithEmail: (name: string, email: string, pass: string, phone: string, segment?: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return auth.currentUser.getIdToken();
   };
 
-  const signUpWithEmail = async (name: string, email: string, pass: string, phone: string) => {
+  const signUpWithEmail = async (name: string, email: string, pass: string, phone: string, segment?: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
@@ -96,6 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: user.uid,
         email: user.email,
         displayName: name,
+        phone: phone,
+        segment: segment || null,
         createdAt: new Date(), // This is the trial start date
         plan: 'trial',
         paymentStatus: 'active',
