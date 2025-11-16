@@ -543,6 +543,7 @@ export default function CriarConteudoPage() {
                                         <RadioGroupItem value={option.id} id={option.id} className="peer sr-only" />
                                         <Label
                                             htmlFor={option.id}
+                                            onClick={() => handleContentTypeSelect(option.id)}
                                             className={cn(
                                                 "flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
                                                 "peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
