@@ -33,6 +33,8 @@ import {
   ShoppingCart,
   MousePointer,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
     Dialog,
@@ -172,7 +174,7 @@ const ProfileSelectionModal = ({
 }: {
   isOpen: boolean;
   profiles: BusinessProfileData[];
-  onSelect: (profile: BusinessProfileData) => void;
+  onSelect: (profile?: BusinessProfileData) => void;
   onCancel: () => void;
 }) => {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
@@ -291,6 +293,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [pendingConnectionData, setPendingConnectionData] = useState<any>(null);
   const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -304,6 +307,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   });
   
   const totalViews = (metrics?.viewsSearch || 0) + (metrics?.viewsMaps || 0);
+  const INITIAL_PHOTO_LIMIT = 6;
+  const photosToShow = showAllPhotos ? media?.gallery : media?.gallery.slice(0, INITIAL_PHOTO_LIMIT);
 
   const fetchFullProfile = useCallback(async () => {
     if (!user) return;
@@ -483,10 +488,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           setPendingAccountId(result.accountId);
           setIsSelectionModalOpen(true);
       } else if (result.businessProfiles && result.businessProfiles.length === 1) {
-          await updateGoogleConnection(user.uid, { ...result.connectionData, isConnected: true, accountId: result.accountId });
-          await updateBusinessProfile(user.uid, result.businessProfiles[0]);
-          toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
-          await fetchFullProfile();
+          await handleProfileSelection(result.businessProfiles[0]);
       } else {
           throw new Error("Nenhum perfil de empresa válido foi encontrado para esta conta Google.");
       }
@@ -498,7 +500,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       router.replace('/dashboard/meu-negocio');
       setAuthLoading(false);
     }
-  }, [user, toast, router, fetchFullProfile]);
+  }, [user, toast, router, fetchFullProfile, handleProfileSelection]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -655,33 +657,31 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         
                         <div className="h-48 bg-gray-100 rounded-t-lg relative">
                             {profile.isVerified && media?.coverPhoto?.url ? (
-                                <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
+                                <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" objectPosition="center" className="rounded-t-lg"/>
                             ) : (
                             <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
                             )}
+                             <div className="absolute -bottom-12 left-6 z-10">
+                                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                    {profile.isVerified && media?.profilePhoto?.url ? (
+                                        <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
+                                    ) : (
+                                        <Building2 className="w-12 h-12 text-gray-400" />
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="relative px-6 pb-6">
-                            <div className="flex items-end gap-6 -mt-12">
-                                <div className="relative z-10">
-                                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                                        {profile.isVerified && media?.profilePhoto?.url ? (
-                                            <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
-                                        ) : (
-                                            <Building2 className="w-12 h-12 text-gray-400" />
-                                        )}
+                            <div className="pt-14 pb-2">
+                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                {profile.isVerified && (
+                                    <div className="flex items-center gap-2 mt-1 text-sm">
+                                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                        <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                        <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
                                     </div>
-                                </div>
-                                <div className="pt-14 pb-2">
-                                    <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                                    {profile.isVerified && (
-                                        <div className="flex items-center gap-2 mt-1 text-sm">
-                                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                            <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                            <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
-                                        </div>
-                                    )}
-                                </div>
+                                )}
                             </div>
 
                             <div className="space-y-3 pt-6 border-t mt-4">
@@ -759,32 +759,40 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <CardContent>
                         {mediaLoading ? (
                             <div className="flex justify-center items-center h-40">
-                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                             </div>
-                        ) : media && media.gallery.length > 0 ? (
+                        ) : photosToShow && photosToShow.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
-                            {media.gallery.map((item, index) => (
-                                <div key={index} className="aspect-square relative rounded-md overflow-hidden group cursor-pointer" onClick={() => setLightboxImage(item.url)}>
-                                <Image
-                                    src={item.thumbnailUrl || item.url}
-                                    alt={`Foto da galeria ${index + 1}`}
-                                    layout="fill"
-                                    objectFit="cover"
-                                    className="group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <Search className="w-6 h-6 text-white" />
-                                </div>
-                                </div>
-                            ))}
+                                {photosToShow.map((item: any, index: number) => (
+                                    <div key={index} className="aspect-square relative rounded-md overflow-hidden group cursor-pointer" onClick={() => setLightboxImage(item.url)}>
+                                        <Image
+                                            src={item.thumbnailUrl || item.url}
+                                            alt={`Foto da galeria ${index + 1}`}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            className="group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Search className="w-6 h-6 text-white" />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <div className="text-center text-gray-500 py-10">
-                            <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm">Nenhuma foto na galeria.</p>
+                                <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                <p className="text-sm">Nenhuma foto na galeria.</p>
                             </div>
                         )}
                     </CardContent>
+                     {media && media.gallery.length > INITIAL_PHOTO_LIMIT && (
+                        <CardFooter className="pt-4 justify-center">
+                             <Button variant="ghost" onClick={() => setShowAllPhotos(!showAllPhotos)} className="text-sm text-primary hover:text-primary">
+                                {showAllPhotos ? <ChevronUp className="w-4 h-4 mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
+                                {showAllPhotos ? 'Ver menos' : `Ver mais ${media.gallery.length - INITIAL_PHOTO_LIMIT} fotos`}
+                            </Button>
+                        </CardFooter>
+                    )}
                     </Card>
                 </motion.div>
 
