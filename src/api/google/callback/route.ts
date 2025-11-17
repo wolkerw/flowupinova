@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         if (!location.name) {
           throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
-
+        
         // 3. Monta o objeto que será enviado para o frontend com os dados detalhados
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
             website: location.websiteUri || 'Website não encontrado',
             description: location.profile?.description || 'Descrição não disponível.',
             isVerified: true,
+            regularHours: location.regularHours || null,
         };
 
         const connectionData = {
