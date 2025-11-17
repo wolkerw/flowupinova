@@ -498,7 +498,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-gray-900">{profile.name}</h3>
-                            <p className="text-gray-600">{profile.category}</p>
                             <div className="flex items-center gap-2 mt-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                 <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
