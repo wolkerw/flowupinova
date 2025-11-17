@@ -4,27 +4,26 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { google } from "googleapis";
 import type { BusinessProfileData } from "./business-profile-service";
-import type { MetaConnectionData } from "./meta-service";
+import type { GoogleConnectionData } from "./google-service";
 
 /**
- * Retrieves the Meta connection data, which includes the necessary Google access token.
+ * Retrieves the Google connection data.
  * @param userId The UID of the user.
- * @returns The user's Meta/Google connection data.
+ * @returns The user's Google connection data.
  * @throws An error if the connection data is not found or is invalid.
  */
-async function getMetaConnectionForGoogle(userId: string): Promise<MetaConnectionData> {
-    const connDoc = await adminDb.collection('users').doc(userId).collection('connections').doc('meta').get();
+async function getGoogleConnectionAdmin(userId: string): Promise<GoogleConnectionData> {
+    const connDoc = await adminDb.collection('users').doc(userId).collection('connections').doc('google').get();
     if (!connDoc.exists) {
-        throw new Error("Conexão com a Meta/Google não encontrada. Por favor, reconecte sua conta.");
+        throw new Error("Conexão com o Google não encontrada. Por favor, reconecte sua conta.");
     }
-    return connDoc.data() as MetaConnectionData;
+    return connDoc.data() as GoogleConnectionData;
 }
 
 
 /**
- * Creates and returns an authenticated Google OAuth2 client using the stored access token.
- * This is a simplified client for making direct API calls, as we are not using a refresh token flow here.
- * The access token is expected to be a long-lived page access token.
+ * Creates and returns an authenticated Google OAuth2 client using the stored refresh token.
+ * This client can be used to make authenticated API calls.
  * @param userId The UID of the user.
  * @returns An authenticated OAuth2 client instance.
  */
@@ -33,17 +32,21 @@ export async function getAuthenticatedGoogleClient(userId: string) {
         throw new Error("UserID é necessário para autenticar com o Google.");
     }
     
-    // The access token is stored in the 'meta' connection document.
-    const connectionData = await getMetaConnectionForGoogle(userId);
-    if (!connectionData.accessToken) {
-        throw new Error("Token de acesso do Google não encontrado. Por favor, reconecte sua conta.");
+    const connectionData = await getGoogleConnectionAdmin(userId);
+    if (!connectionData.refreshToken) {
+        throw new Error("Token de atualização do Google não encontrado. Por favor, reconecte sua conta.");
     }
 
-    const oauth2Client = new google.auth.OAuth2();
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+    );
+    
     oauth2Client.setCredentials({
-        access_token: connectionData.accessToken,
+        refresh_token: connectionData.refreshToken,
     });
 
+    // A biblioteca irá usar o refresh token para buscar um novo access token automaticamente na primeira chamada.
     return oauth2Client;
 }
 

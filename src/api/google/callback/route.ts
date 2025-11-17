@@ -1,16 +1,25 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { google } from "googleapis";
+import { updateGoogleConnection } from "@/lib/services/google-service";
+import { getUidFromCookie } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const { code, state } = body;
+    const { code, state, origin } = body;
+    const uid = await getUidFromCookie();
+
+    if (!uid) {
+         return NextResponse.json({ success: false, error: "Usuário não autenticado." }, { status: 401 });
+    }
 
     if (!code) {
         return NextResponse.json({ success: false, error: "Código de autorização não fornecido." }, { status: 400 });
     }
-
-    // TODO: Validar o parâmetro 'state' para proteção contra CSRF.
+    
+    if (!origin) {
+         return NextResponse.json({ success: false, error: "Origem da requisição não fornecida." }, { status: 400 });
+    }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -20,16 +29,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Erro de configuração no servidor. As credenciais do Google não foram encontradas." }, { status: 500 });
     }
 
-    // O redirectUri deve ser o mesmo que iniciou o fluxo.
-    const redirectUri = new URL(request.url).origin + "/dashboard/meu-negocio";
+    const redirectUri = new URL('/dashboard/meu-negocio', origin).toString();
 
     try {
         const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-        const { tokens } = await oauth2Client.getToken(code);
+        const { tokens } = await oauth2Client.getToken({ code });
 
         if (!tokens || !tokens.access_token) {
             throw new Error("Não foi possível obter os tokens de acesso do Google.");
         }
+        
+        // Salva os tokens no Firestore para uso futuro
+        await updateGoogleConnection(uid, {
+            isConnected: true,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            expiryDate: tokens.expiry_date,
+        });
         
         oauth2Client.setCredentials(tokens);
 
@@ -65,8 +81,13 @@ export async function POST(request: NextRequest) {
         }
 
         const location = locations[0];
+        if (!location.name) {
+            throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
+        }
+        
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
+            googleName: location.name, // Ex: locations/12345
             category: location.categories?.[0]?.displayName || 'Categoria não encontrada',
             address: location.storefrontAddress ? 
                      `${location.storefrontAddress.addressLines?.join(', ')}, ${location.storefrontAddress.locality}, ${location.storefrontAddress.administrativeArea} - ${location.storefrontAddress.postalCode}` 
@@ -77,7 +98,6 @@ export async function POST(request: NextRequest) {
             isVerified: true,
         };
 
-        // A API agora retorna os dados para serem salvos pelo cliente.
         return NextResponse.json({ success: true, businessProfileData });
 
     } catch (error: any) {

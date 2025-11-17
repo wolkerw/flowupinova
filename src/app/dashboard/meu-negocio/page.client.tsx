@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getGoogleConnection, updateGoogleConnection } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -117,8 +118,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setMetricsLoading(true);
     setReviewsLoading(true);
     try {
-        const [fetchedProfile, insightsResponse, reviewsResponse] = await Promise.all([
+        const [fetchedProfile, googleConn, insightsResponse, reviewsResponse] = await Promise.all([
             getBusinessProfile(user.uid),
+            getGoogleConnection(user.uid),
             fetch('/api/google/insights'),
             fetch('/api/google/reviews')
         ]);
@@ -127,15 +129,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setFormState(fetchedProfile);
         setDataLoading(false);
 
-        if (insightsResponse.ok) {
-            const insightsData = await insightsResponse.json();
-            if (insightsData.success) setMetrics(insightsData.insights);
-        }
-        setMetricsLoading(false);
+        if (googleConn.isConnected) {
+            if (insightsResponse.ok) {
+                const insightsData = await insightsResponse.json();
+                if (insightsData.success) setMetrics(insightsData.insights);
+            }
+            setMetricsLoading(false);
 
-        if (reviewsResponse.ok) {
-            const reviewsData = await reviewsResponse.json();
-            if(reviewsData.success) setReviews(reviewsData.reviews || []);
+            if (reviewsResponse.ok) {
+                const reviewsData = await reviewsResponse.json();
+                if(reviewsData.success) setReviews(reviewsData.reviews || []);
+            }
         }
         setReviewsLoading(false);
 
@@ -230,12 +234,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   };
   
   const handleDisconnect = async () => {
-    // This is a placeholder as disconnecting requires revoking tokens, which is complex.
-    // For now, we'll just clear the local state. A full implementation would call a backend
-    // endpoint to revoke the refresh token.
     if (!user) return;
     setAuthLoading(true);
     try {
+        await updateGoogleConnection(user.uid, { isConnected: false });
         await updateBusinessProfile(user.uid, { isVerified: false, googleName: "" }); // Clear the name
         toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
         await fetchFullProfile();
