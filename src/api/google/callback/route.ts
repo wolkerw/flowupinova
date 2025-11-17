@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
             throw new Error("Não foi possível obter os tokens de acesso do Google.");
         }
         
+        oauth2Client.setCredentials(tokens);
+        
         // 1. Usa a API de Gerenciamento de Contas para listar as contas e pegar o ID da conta primária
         const myBizAccount = google.mybusinessaccountmanagement({
             version: 'v1',
@@ -49,31 +51,11 @@ export async function POST(request: NextRequest) {
             throw new Error("A conta principal do Google Meu Negócio não tem um nome válido.");
         }
         const accountId = primaryAccount.name.split('/')[1];
-        
-        // 2. Usa a mesma API para listar as localizações e obter o ID da localização principal
-        const locationsList = await myBizAccount.accounts.locations.list({
-            parent: primaryAccount.name,
-        });
-        
-        const baseLocations = locationsList.data.locations;
-        if (!baseLocations || baseLocations.length === 0) {
-          throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
-        }
-        
-        // Lógica de seleção robusta para encontrar a localização correta
-        const baseLocation =
-            baseLocations.find(loc => loc.title && loc.title.length > 0) ||
-            baseLocations.find(loc => loc.metadata?.placeId) ||
-            baseLocations[0];
 
-        if (!baseLocation.name) {
-          throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
-        }
-
-        // 3. Usa FETCH para buscar os detalhes completos da localização, como no Postman
+        // 2. Usa FETCH para buscar a lista de localizações COMPLETAS, como no Postman
         const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours";
-        const locationDetailsResponse = await fetch(
-            `https://mybusinessbusinessinformation.googleapis.com/v1/${baseLocation.name}?readMask=${encodeURIComponent(readMask)}`,
+        const locationsListResponse = await fetch(
+            `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
             {
                 headers: {
                     Authorization: `Bearer ${tokens.access_token}`,
@@ -81,14 +63,30 @@ export async function POST(request: NextRequest) {
             }
         );
 
-        if (!locationDetailsResponse.ok) {
-            const errorData = await locationDetailsResponse.json();
-            throw new Error(`Falha ao buscar detalhes da localização: ${errorData.error?.message || 'Erro desconhecido'}`);
+        if (!locationsListResponse.ok) {
+            const errorData = await locationsListResponse.json();
+            console.error("[GOOGLE_CALLBACK_ERROR] Falha ao listar localizações detalhadas:", errorData);
+            throw new Error(`Falha ao buscar localizações: ${errorData.error?.message || 'Erro desconhecido'}`);
         }
         
-        const location = await locationDetailsResponse.json();
+        const { locations } = await locationsListResponse.json();
+        
+        if (!locations || locations.length === 0) {
+          throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
+        }
+        
+        // Lógica de seleção robusta para encontrar a localização correta
+        const location =
+            locations.find((loc: any) => loc.categories?.primaryCategory) ||
+            locations.find((loc: any) => loc.title && loc.title.length > 0) ||
+            locations.find((loc: any) => loc.metadata?.placeId) ||
+            locations[0];
 
-        // 4. Monta o objeto que será enviado para o frontend com os dados detalhados
+        if (!location.name) {
+          throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
+        }
+
+        // 3. Monta o objeto que será enviado para o frontend com os dados detalhados
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
             googleName: location.name, // Ex: locations/12345
