@@ -1,27 +1,23 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthenticatedGoogleClient, getGoogleBusinessProfile } from "@/lib/services/google-service-admin";
+import { getGoogleBusinessProfile } from "@/lib/services/google-service-admin";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+interface InsightsRequestBody {
+  accessToken: string;
+  locationId: string;
+}
+
+export async function POST(request: NextRequest) {
     try {
-        const uid = await getUidFromCookie();
-        const profile = await getGoogleBusinessProfile(uid);
+        const { accessToken, locationId } = await request.json() as InsightsRequestBody;
 
-        if (!profile.isVerified || !profile.googleName) {
-            return NextResponse.json({ success: false, error: "Perfil do Google Meu Negócio não está conectado ou é inválido." }, { status: 400 });
+        if (!accessToken || !locationId) {
+            return NextResponse.json({ success: false, error: "Access Token e Location ID são obrigatórios." }, { status: 400 });
         }
 
-        const oauth2Client = await getAuthenticatedGoogleClient(uid);
-        const accessToken = (await oauth2Client.getAccessToken())?.token;
-
-        if (!accessToken) {
-            throw new Error("Não foi possível obter um token de acesso válido do Google.");
-        }
-
-        const locationName = profile.googleName; // Formato: locations/{locationId}
         const today = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -38,7 +34,7 @@ export async function GET(request: NextRequest) {
 
         const metricsParams = metrics.map(m => `dailyMetrics=${m}`).join('&');
         
-        const url = `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${metricsParams}&dailyRange.start_date.year=${thirtyDaysAgo.getFullYear()}&dailyRange.start_date.month=${thirtyDaysAgo.getMonth() + 1}&dailyRange.start_date.day=${thirtyDaysAgo.getDate()}&dailyRange.end_date.year=${today.getFullYear()}&dailyRange.end_date.month=${today.getMonth() + 1}&dailyRange.end_date.day=${today.getDate()}`;
+        const url = `https://businessprofileperformance.googleapis.com/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries?${metricsParams}&dailyRange.start_date.year=${thirtyDaysAgo.getFullYear()}&dailyRange.start_date.month=${thirtyDaysAgo.getMonth() + 1}&dailyRange.start_date.day=${thirtyDaysAgo.getDate()}&dailyRange.end_date.year=${today.getFullYear()}&dailyRange.end_date.month=${today.getMonth() + 1}&dailyRange.end_date.day=${today.getDate()}`;
         
         const response = await fetch(url, {
             headers: {

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
-import { getGoogleConnection, updateGoogleConnection } from "@/lib/services/google-service";
+import { getGoogleConnection, updateGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -127,25 +127,43 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setFormState(fetchedProfile);
         setDataLoading(false);
 
-        // Somente busca métricas e reviews se a conexão estiver ativa
-        if (googleConn.isConnected) {
-            const [insightsResponse, reviewsResponse] = await Promise.all([
-                fetch('/api/google/insights'),
-                fetch('/api/google/reviews')
-            ]);
+        if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName) {
+            const locationId = fetchedProfile.googleName.split('/')[1];
 
+            // Fetch Insights
+            const insightsResponse = await fetch('/api/google/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessToken: googleConn.accessToken, locationId: locationId })
+            });
             if (insightsResponse.ok) {
                 const insightsData = await insightsResponse.json();
                 if (insightsData.success) setMetrics(insightsData.insights);
             }
-            if (reviewsResponse.ok) {
-                const reviewsData = await reviewsResponse.json();
-                if(reviewsData.success) setReviews(reviewsData.reviews || []);
-            }
+            setMetricsLoading(false);
+            
+            // Fetch Reviews (requires accountId, which we don't have on the client)
+            // This part is more complex, as it would require another API call to get accounts first.
+            // For now, let's assume we need to adapt this.
+            // Let's postpone review fetching for a moment to fix insights.
+            //
+            // const reviewsResponse = await fetch('/api/google/reviews', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ accessToken: googleConn.accessToken, parentName: `accounts/YOUR_ACCOUNT_ID_HERE/${fetchedProfile.googleName}` })
+            // });
+            // if (reviewsResponse.ok) {
+            //     const reviewsData = await reviewsResponse.json();
+            //     if(reviewsData.success) setReviews(reviewsData.reviews || []);
+            // }
+             setReviewsLoading(false); // Temporarily stop loading reviews
+
+        } else {
+            setMetricsLoading(false);
+            setReviewsLoading(false);
         }
     } catch (error: any) {
         toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${error.message}`, variant: "destructive" });
-    } finally {
         setDataLoading(false);
         setMetricsLoading(false);
         setReviewsLoading(false);
@@ -179,7 +197,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
       }
       
-      // Salva os dados de conexão e o perfil do negócio no cliente
       await updateGoogleConnection(user.uid, {
           ...result.connectionData,
           isConnected: true,
@@ -187,7 +204,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       await updateBusinessProfile(user.uid, result.businessProfileData);
 
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
-      await fetchFullProfile(); // Busca todos os dados novamente após a conexão
+      await fetchFullProfile();
 
     } catch (err: any) {
       toast({ title: "Erro na Conexão", description: err.message, variant: "destructive" });
@@ -245,7 +262,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setAuthLoading(true);
     try {
         await updateGoogleConnection(user.uid, { isConnected: false });
-        await updateBusinessProfile(user.uid, { isVerified: false, googleName: "" }); // Clear the name
+        await updateBusinessProfile(user.uid, { isVerified: false, googleName: "" });
         toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
         await fetchFullProfile();
     } catch(err: any) {
