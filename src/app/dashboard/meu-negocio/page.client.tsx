@@ -153,31 +153,32 @@ const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['re
             <Card className="shadow-lg border-none">
                 <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-cyan-500" />Horários de Funcionamento</CardTitle></CardHeader>
                 <CardContent>
-                    <div className="space-y-3">
-                        {loading ? (
-                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                    {loading ? (
+                        <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                    ) : (
+                         hours?.periods && hours.periods.length > 0 ? (
+                            <div className="space-y-3">
+                                {allDays.map((day) => {
+                                    const period = hours.periods.find(p => p.openDay === day.key);
+                                    return (
+                                        <div key={day.key} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
+                                            <span className="font-medium text-gray-800">{day.name}</span>
+                                            {period ? (
+                                                <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
+                                            ) : (
+                                                <span className="font-semibold text-red-600">Fechado</span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         ) : (
-                            allDays.map((day) => {
-                                const period = hours?.periods.find(p => p.openDay === day.key);
-                                return (
-                                    <div key={day.key} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
-                                        <span className="font-medium text-gray-800">{day.name}</span>
-                                        {period ? (
-                                            <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
-                                        ) : (
-                                            <span className="font-semibold text-red-600">Fechado</span>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                        {!loading && !hours?.periods.length && (
                              <div className="text-center text-gray-500 py-10">
                                 <Clock className="w-10 h-10 mx-auto text-gray-400 mb-2" />
                                 <p>Nenhum horário de funcionamento informado.</p>
                             </div>
-                        )}
-                    </div>
+                        )
+                    )}
                 </CardContent>
             </Card>
         </motion.div>
