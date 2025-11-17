@@ -118,38 +118,40 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setMetricsLoading(true);
     setReviewsLoading(true);
     try {
-        const [fetchedProfile, googleConn, insightsResponse, reviewsResponse] = await Promise.all([
+        const [fetchedProfile, googleConn] = await Promise.all([
             getBusinessProfile(user.uid),
             getGoogleConnection(user.uid),
-            fetch('/api/google/insights'),
-            fetch('/api/google/reviews')
         ]);
         
         setProfile(fetchedProfile);
         setFormState(fetchedProfile);
         setDataLoading(false);
 
+        // Somente busca métricas e reviews se a conexão estiver ativa
         if (googleConn.isConnected) {
+            const [insightsResponse, reviewsResponse] = await Promise.all([
+                fetch('/api/google/insights'),
+                fetch('/api/google/reviews')
+            ]);
+
             if (insightsResponse.ok) {
                 const insightsData = await insightsResponse.json();
                 if (insightsData.success) setMetrics(insightsData.insights);
             }
-            setMetricsLoading(false);
-
             if (reviewsResponse.ok) {
                 const reviewsData = await reviewsResponse.json();
                 if(reviewsData.success) setReviews(reviewsData.reviews || []);
             }
         }
-        setReviewsLoading(false);
-
     } catch (error: any) {
         toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${error.message}`, variant: "destructive" });
+    } finally {
         setDataLoading(false);
         setMetricsLoading(false);
         setReviewsLoading(false);
     }
   }, [user, toast]);
+
 
   useEffect(() => {
     if (user) {
@@ -177,10 +179,15 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
       }
       
+      // Salva os dados de conexão e o perfil do negócio no cliente
+      await updateGoogleConnection(user.uid, {
+          ...result.connectionData,
+          isConnected: true,
+      });
       await updateBusinessProfile(user.uid, result.businessProfileData);
 
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
-      await fetchFullProfile(); // Fetch all data after connection
+      await fetchFullProfile(); // Busca todos os dados novamente após a conexão
 
     } catch (err: any) {
       toast({ title: "Erro na Conexão", description: err.message, variant: "destructive" });
