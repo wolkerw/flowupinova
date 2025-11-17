@@ -78,6 +78,12 @@ const ReviewCard = ({ review }: { review: any }) => {
     };
     const numericRating = ratingMap[review.starRating] || 0;
 
+    let comment = review.comment || '';
+    const translationMarker = '(Translated by Google)';
+    if (comment.includes(translationMarker)) {
+        comment = comment.split(translationMarker)[0].trim();
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -109,7 +115,7 @@ const ReviewCard = ({ review }: { review: any }) => {
                 </div>
                 <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString('pt-BR')}</span>
             </div>
-            <p className="text-sm text-gray-700">{review.comment}</p>
+            <p className="text-sm text-gray-700">{comment}</p>
         </motion.div>
     );
 };
