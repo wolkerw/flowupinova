@@ -59,40 +59,51 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
     </motion.div>
 );
 
-const ReviewCard = ({ review }: { review: any }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-4 border rounded-lg"
-    >
-        <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {review.reviewer.profilePhotoUrl ? (
-                        <img src={review.reviewer.profilePhotoUrl} alt={review.reviewer.displayName} className="w-full h-full object-cover" />
-                    ) : (
-                        <User className="w-5 h-5 text-gray-500"/>
-                    )}
-                </div>
-                <div>
-                    <h4 className="font-medium text-gray-900">{review.reviewer.displayName}</h4>
-                    <div className="flex items-center gap-1 mt-1">
-                        {[...Array(5)].map((_, i) => (
-                            <Star
-                                key={i}
-                                className={`w-3 h-3 ${
-                                    i < parseInt(review.starRating.replace('STAR_RATING_', '')) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                                }`}
-                            />
-                        ))}
+const ReviewCard = ({ review }: { review: any }) => {
+    const ratingMap: { [key: string]: number } = {
+        'ONE': 1,
+        'TWO': 2,
+        'THREE': 3,
+        'FOUR': 4,
+        'FIVE': 5,
+    };
+    const numericRating = ratingMap[review.starRating] || 0;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 border rounded-lg"
+        >
+            <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {review.reviewer.profilePhotoUrl ? (
+                            <img src={review.reviewer.profilePhotoUrl} alt={review.reviewer.displayName} className="w-full h-full object-cover" />
+                        ) : (
+                            <User className="w-5 h-5 text-gray-500"/>
+                        )}
+                    </div>
+                    <div>
+                        <h4 className="font-medium text-gray-900">{review.reviewer.displayName}</h4>
+                        <div className="flex items-center gap-1 mt-1">
+                            {[...Array(5)].map((_, i) => (
+                                <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                        i < numericRating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                                    }`}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
+                <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString()}</span>
             </div>
-            <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString()}</span>
-        </div>
-        <p className="text-sm text-gray-700">{review.comment}</p>
-    </motion.div>
-);
+            <p className="text-sm text-gray-700">{review.comment}</p>
+        </motion.div>
+    );
+};
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
