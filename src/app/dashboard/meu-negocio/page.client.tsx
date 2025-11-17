@@ -420,7 +420,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   }, [user, fetchFullProfile]);
 
-  const handleProfileSelection = async (selectedProfileData: BusinessProfileData | undefined) => {
+  const handleProfileSelection = async (selectedProfileData?: BusinessProfileData) => {
     if (!user || !pendingConnectionData || !pendingAccountId) {
       toast({ title: "Erro", description: "Dados da conexão não encontrados.", variant: "destructive" });
       setIsSelectionModalOpen(false);
@@ -802,7 +802,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-xs text-gray-600 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
+                                    <p className="text-xs text-gray-600 truncate max-w-[150px]">{profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
