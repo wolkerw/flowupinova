@@ -137,6 +137,23 @@ const ReviewCard = ({ review }: { review: any }) => {
     );
 };
 
+const ConnectGoogleCard = ({ onConnect, loading }: { onConnect: () => void, loading: boolean }) => (
+    <Card className="shadow-lg border-dashed border-2 max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-xl">
+                <LinkIcon className="w-6 h-6 text-gray-700" />
+                Conecte seu Perfil da Empresa no Google
+            </CardTitle>
+            <p className="text-gray-600 text-sm pt-2">Para gerenciar seu negócio, ver métricas e interagir com clientes, você precisa conectar sua conta do Google.</p>
+        </CardHeader>
+        <CardContent className="flex justify-center">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={onConnect} disabled={loading}>
+                {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Globe className="w-5 h-5 mr-2" />}
+                Conectar ao Google
+            </Button>
+        </CardContent>
+    </Card>
+);
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
   const [authLoading, setAuthLoading] = useState(false);
@@ -375,7 +392,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
   
-  if (userLoading || (dataLoading && !profile.name)) {
+  if (userLoading || (dataLoading && !profile.isVerified)) {
     return (
         <div className="flex h-full w-full items-center justify-center p-6">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -391,6 +408,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           <h1 className="text-3xl font-bold text-gray-900">Meu Negócio</h1>
           <p className="text-gray-600 mt-1">Gerencie seu perfil no Google Meu Negócio</p>
         </div>
+        {profile.isVerified && (
          <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -427,209 +445,195 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               />
             </PopoverContent>
           </Popover>
+        )}
       </div>
       
-       <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
-                <MetricCard title="Visualizações na Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
-                <MetricCard title="Visualizações no Google Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+      {!profile.isVerified ? (
+         <ConnectGoogleCard onConnect={handleConnect} loading={authLoading} />
+      ) : (
+        <>
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
+                    <MetricCard title="Visualizações na Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+                    <MetricCard title="Visualizações no Google Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <MetricCard title="Cliques para acessar o site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
+                    <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
+                    <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
+                </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard title="Cliques para acessar o site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
-                <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
-                <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
-            </div>
-        </div>
 
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Coluna Principal (Esquerda) */}
-        <div className="lg:col-span-2 space-y-8">
-             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <Card className="shadow-lg border-none relative overflow-hidden">
-                    {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
-                    
-                    <div className="h-48 bg-gray-100 rounded-t-lg relative">
-                        {profile.isVerified && media?.coverPhoto?.url ? (
-                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-2 space-y-8">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                    <Card className="shadow-lg border-none relative overflow-hidden">
+                        {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
+                        
+                        <div className="h-48 bg-gray-100 rounded-t-lg relative">
+                            {profile.isVerified && media?.coverPhoto?.url ? (
+                                <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
+                            ) : (
+                            <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
+                            )}
+                        </div>
+
+                        <div className="relative px-6 pb-6">
+                            <div className="flex items-end gap-6 -mt-12">
+                                <div className="relative z-10">
+                                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                        {profile.isVerified && media?.profilePhoto?.url ? (
+                                            <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
+                                        ) : (
+                                            <Building2 className="w-12 h-12 text-gray-400" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="pt-14 pb-2">
+                                    <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                    {profile.isVerified && (
+                                        <div className="flex items-center gap-2 mt-1 text-sm">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                            <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                            <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-6 border-t mt-4">
+                                <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
+                                <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
+                                <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
+                                <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
+                            </div>
+                        </div>
+                    </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <Card className="shadow-lg border-none">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                            <Key className="w-5 h-5 text-green-500" />
+                            Palavras-chave de Busca
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                            {keywordsLoading ? (
+                            <div className="flex justify-center items-center h-40">
+                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                            </div>
+                            ) : keywords.length > 0 ? (
+                            keywords.map((kw, index) => (
+                                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                                <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                                <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
+                                </div>
+                            ))
+                            ) : (
+                            <div className="text-center text-gray-500 py-10">
+                                <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                                <p>Nenhuma palavra-chave encontrada para o período.</p>
+                            </div>
+                            )}
+                        </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+
+            </div>
+            
+            <div className="lg:col-span-1 space-y-8">
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                    <Card className="shadow-lg border-none h-full">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        {reviewsLoading ? (
+                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                        ) : reviews.length > 0 ? (
+                            reviews.map((review) => <ReviewCard key={review.name} review={review} />)
                         ) : (
-                           <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
+                            <div className="text-center text-gray-500 py-10">
+                                <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                <p>Nenhuma avaliação encontrada.</p>
+                            </div>
                         )}
-                    </div>
-
-                    <div className="px-6 pb-6">
-                        <div className="flex items-end gap-6 -mt-12">
-                           <div className="relative z-10">
-                               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                                   {profile.isVerified && media?.profilePhoto?.url ? (
-                                       <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
-                                   ) : (
-                                       <Building2 className="w-12 h-12 text-gray-400" />
-                                   )}
-                               </div>
-                           </div>
-                           <div className="pt-14 pb-2">
-                               <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                               {profile.isVerified && (
-                                   <div className="flex items-center gap-2 mt-1 text-sm">
-                                       <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                       <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                       <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
-                                   </div>
-                               )}
-                           </div>
                         </div>
+                    </CardContent>
+                    </Card>
+                </motion.div>
 
-                        <div className="space-y-3 pt-6 border-t mt-4">
-                            <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
-                            <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
-                            <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
-                            <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
-                        </div>
-                    </div>
-                </Card>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card className="shadow-lg border-none">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <Card className="shadow-lg border-none">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                           <Key className="w-5 h-5 text-green-500" />
-                           Palavras-chave de Busca
+                        <CardTitle className="flex items-center gap-2 text-base">
+                        <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                       <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                         {keywordsLoading ? (
-                           <div className="flex justify-center items-center h-40">
-                             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                           </div>
-                         ) : keywords.length > 0 ? (
-                           keywords.map((kw, index) => (
-                             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
-                               <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
-                               <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
-                             </div>
-                           ))
-                         ) : (
-                           <div className="text-center text-gray-500 py-10">
-                             <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                             <p>Nenhuma palavra-chave encontrada para o período.</p>
-                           </div>
-                         )}
-                       </div>
-                    </CardContent>
-                </Card>
-            </motion.div>
-
-        </div>
-        
-        {/* Coluna Secundária (Direita) */}
-        <div className="lg:col-span-1 space-y-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className="shadow-lg border-none">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <LinkIcon className="w-5 h-5 text-gray-700" />
-                      Integração Google Meu Negócio
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {authLoading ? (
-                      <div className="flex items-center justify-center h-24">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        <p className="ml-2">Aguardando autenticação...</p>
-                      </div>
-                    ) : profile.isVerified ? (
-                      <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
-                          <div>
-                            <h3 className="font-semibold text-green-900">Conectado</h3>
-                            <p className="text-sm text-green-700 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
-                           Desconectar
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-4 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
-                        <XCircle className="w-8 h-8 text-gray-400 mb-2" />
-                        <h3 className="font-semibold text-gray-800">Não conectado</h3>
-                        <p className="text-xs text-gray-600 mb-3 text-center">Conecte sua conta para sincronizar os dados.</p>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleConnect} disabled={authLoading}>
-                          {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
-                          Conectar ao Google
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-            </motion.div>
-            
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                <Card className="shadow-lg border-none h-full">
-                  <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                      {reviewsLoading ? (
-                          <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                      ) : reviews.length > 0 ? (
-                          reviews.map((review) => <ReviewCard key={review.name} review={review} />)
-                      ) : (
-                          <div className="text-center text-gray-500 py-10">
-                              <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                              <p>Nenhuma avaliação encontrada.</p>
-                          </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                <Card className="shadow-lg border-none">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                    <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {mediaLoading ? (
-                        <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        </div>
-                    ) : media && media.gallery.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-2">
-                        {media.gallery.slice(0, 9).map((item, index) => (
-                            <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
-                            <Image
-                                src={item.thumbnailUrl || item.url}
-                                alt={`Foto da galeria ${index + 1}`}
-                                layout="fill"
-                                objectFit="cover"
-                                className="group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Search className="w-6 h-6 text-white" />
-                            </a>
+                        {mediaLoading ? (
+                            <div className="flex justify-center items-center h-40">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                             </div>
-                        ))}
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-500 py-10">
-                        <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                        <p className="text-sm">Nenhuma foto na galeria.</p>
-                        </div>
-                    )}
-                </CardContent>
-                </Card>
-            </motion.div>
-            
+                        ) : media && media.gallery.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-2">
+                            {media.gallery.slice(0, 9).map((item, index) => (
+                                <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
+                                <Image
+                                    src={item.thumbnailUrl || item.url}
+                                    alt={`Foto da galeria ${index + 1}`}
+                                    layout="fill"
+                                    objectFit="cover"
+                                    className="group-hover:scale-105 transition-transform duration-300"
+                                />
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Search className="w-6 h-6 text-white" />
+                                </a>
+                                </div>
+                            ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-500 py-10">
+                            <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                            <p className="text-sm">Nenhuma foto na galeria.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                    </Card>
+                </motion.div>
 
-        </div>
-      </div>
+                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                    <Card className="shadow-lg border-none">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                            <LinkIcon className="w-5 h-5 text-gray-700" />
+                            Integração Google Meu Negócio
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                                <div>
+                                    <h3 className="font-semibold text-green-900">Conectado</h3>
+                                    <p className="text-sm text-green-700 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
+                                </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
+                                Desconectar
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            </div>
+            </div>
+        </>
+      )}
     </div>
   );
 }
