@@ -271,6 +271,8 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         src={mediaItem.url}
                         controls
                         autoPlay
+                        loop
+                        muted
                         onLoadedData={() => setIsLoading(false)}
                         className="rounded-lg"
                         style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
