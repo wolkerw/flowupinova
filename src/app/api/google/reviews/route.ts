@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         // O endpoint v4 retorna um objeto com uma propriedade 'reviews'
         const reviews = data.reviews || [];
 
-        return NextResponse.json({ success: true, reviews: reviews });
+        return NextResponse.json({ success: true, reviews: reviews, averageRating: data.averageRating || 0 });
 
     } catch (error: any) {
         console.error("[GOOGLE_REVIEWS_ERROR]", error.message);
