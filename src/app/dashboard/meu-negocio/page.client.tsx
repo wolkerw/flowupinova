@@ -429,7 +429,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         <div className="lg:col-span-2 space-y-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card className="shadow-lg border-none relative overflow-hidden">
-                 {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
+                 {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                  
                 {profile.isVerified && media?.coverPhoto?.url && (
                     <div className="aspect-[21/9] relative w-full rounded-t-lg overflow-hidden bg-gray-100">
@@ -437,7 +437,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     </div>
                 )}
                  
-                <CardHeader className="pt-6">
+                <CardHeader className="pt-6 relative z-10">
                     <div className="flex items-start gap-6">
                         {profile.isVerified && (
                             <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 -mt-16 ml-6 border-4 border-white shadow-md">
@@ -615,5 +615,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
