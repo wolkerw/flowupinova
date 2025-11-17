@@ -142,21 +142,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             }
             setMetricsLoading(false);
             
-            // Fetch Reviews (requires accountId, which we don't have on the client)
-            // This part is more complex, as it would require another API call to get accounts first.
-            // For now, let's assume we need to adapt this.
-            // Let's postpone review fetching for a moment to fix insights.
-            //
-            // const reviewsResponse = await fetch('/api/google/reviews', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ accessToken: googleConn.accessToken, parentName: `accounts/YOUR_ACCOUNT_ID_HERE/${fetchedProfile.googleName}` })
-            // });
-            // if (reviewsResponse.ok) {
-            //     const reviewsData = await reviewsResponse.json();
-            //     if(reviewsData.success) setReviews(reviewsData.reviews || []);
-            // }
-             setReviewsLoading(false); // Temporarily stop loading reviews
+            // Fetch Reviews
+            const reviewsResponse = await fetch('/api/google/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessToken: googleConn.accessToken, parentName: fetchedProfile.googleName })
+            });
+            if (reviewsResponse.ok) {
+                const reviewsData = await reviewsResponse.json();
+                if(reviewsData.success) setReviews(reviewsData.reviews || []);
+            }
+             setReviewsLoading(false);
 
         } else {
             setMetricsLoading(false);
