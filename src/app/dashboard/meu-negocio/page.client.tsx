@@ -432,7 +432,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
        <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
-                <MetricCard title="Visualizações na pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+                <MetricCard title="Visualizações na Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
                 <MetricCard title="Visualizações no Google Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -629,4 +629,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
