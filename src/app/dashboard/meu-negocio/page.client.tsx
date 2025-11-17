@@ -22,6 +22,7 @@ import {
   Link as LinkIcon,
   User,
   Image as ImageIcon,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -31,6 +32,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { addDays, format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
@@ -140,6 +147,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  });
+
   const fetchFullProfile = useCallback(async () => {
     if (!user) return;
     setDataLoading(true);
@@ -164,7 +176,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             const insightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken: googleConn.accessToken, locationId: locationId })
+                body: JSON.stringify({ 
+                    accessToken: googleConn.accessToken, 
+                    locationId: locationId,
+                    startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+                    endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+                })
             });
             if (insightsResponse.ok) {
                 const insightsData = await insightsResponse.json();
@@ -222,7 +239,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setReviewsLoading(false);
         setMediaLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, dateRange]);
 
 
   useEffect(() => {
@@ -368,6 +385,42 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           <h1 className="text-3xl font-bold text-gray-900">Meu Negócio</h1>
           <p className="text-gray-600 mt-1">Gerencie seu perfil no Google Meu Negócio</p>
         </div>
+         <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className={cn(
+                  "w-[300px] justify-start text-left font-normal",
+                  !dateRange && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Selecione uma data</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
       </div>
 
       {/* Card de Integração Google */}

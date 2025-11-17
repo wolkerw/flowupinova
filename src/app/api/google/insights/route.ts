@@ -8,19 +8,24 @@ export const dynamic = 'force-dynamic';
 interface InsightsRequestBody {
   accessToken: string;
   locationId: string;
+  startDate?: string; // Formato YYYY-MM-DD
+  endDate?: string;   // Formato YYYY-MM-DD
 }
 
 export async function POST(request: NextRequest) {
     try {
-        const { accessToken, locationId } = await request.json() as InsightsRequestBody;
+        const { accessToken, locationId, startDate, endDate } = await request.json() as InsightsRequestBody;
 
         if (!accessToken || !locationId) {
             return NextResponse.json({ success: false, error: "Access Token e Location ID são obrigatórios." }, { status: 400 });
         }
 
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
+        // Define as datas do intervalo. Se não forem fornecidas, usa os últimos 30 dias.
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date();
+        if (!startDate) {
+            start.setDate(end.getDate() - 30);
+        }
 
         const metrics = [
             'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
 
         const metricsParams = metrics.map(m => `dailyMetrics=${m}`).join('&');
         
-        const url = `https://businessprofileperformance.googleapis.com/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries?${metricsParams}&dailyRange.start_date.year=${thirtyDaysAgo.getFullYear()}&dailyRange.start_date.month=${thirtyDaysAgo.getMonth() + 1}&dailyRange.start_date.day=${thirtyDaysAgo.getDate()}&dailyRange.end_date.year=${today.getFullYear()}&dailyRange.end_date.month=${today.getMonth() + 1}&dailyRange.end_date.day=${today.getDate()}`;
+        const url = `https://businessprofileperformance.googleapis.com/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries?${metricsParams}&dailyRange.start_date.year=${start.getFullYear()}&dailyRange.start_date.month=${start.getMonth() + 1}&dailyRange.start_date.day=${start.getDate()}&dailyRange.end_date.year=${end.getFullYear()}&dailyRange.end_date.month=${end.getMonth() + 1}&dailyRange.end_date.day=${end.getDate()}`;
         
         const response = await fetch(url, {
             headers: {
