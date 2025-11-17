@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
                 url: m.googleUrl,
                 thumbnailUrl: m.thumbnailUrl,
                 category: m.locationAssociation?.category,
+                mediaFormat: m.mediaFormat, // Inclui o formato da mídia (PHOTO ou VIDEO)
             })),
         };
 

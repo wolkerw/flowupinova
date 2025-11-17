@@ -63,10 +63,16 @@ interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
 }
 
+interface GalleryItem {
+    url: string;
+    thumbnailUrl: string;
+    mediaFormat: 'PHOTO' | 'VIDEO';
+}
+
 interface GoogleMedia {
     coverPhoto: { url: string; thumbnailUrl: string; } | null;
     profilePhoto: { url: string; thumbnailUrl: string; } | null;
-    gallery: { url: string; thumbnailUrl: string; }[];
+    gallery: GalleryItem[];
 }
 
 const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, value: string | number, icon: React.ElementType, loading: boolean }) => (
@@ -183,9 +189,7 @@ const ProfileSelectionModal = ({
 
   const handleSelect = () => {
     const profile = profiles.find((p) => p.googleName === selectedProfileId);
-    if (profile) {
-      onSelect(profile);
-    }
+    onSelect(profile);
   };
 
   return (
@@ -235,8 +239,12 @@ const ProfileSelectionModal = ({
   );
 };
 
-const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => {
+const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClose: () => void }) => {
     const [isLoading, setIsLoading] = useState(true);
+
+    if (!mediaItem) return null;
+
+    const isVideo = mediaItem.mediaFormat === 'VIDEO';
 
     return (
         <motion.div
@@ -258,15 +266,26 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
                 onClick={(e) => e.stopPropagation()}
                 className={cn("relative max-w-4xl max-h-[90vh]", isLoading && "opacity-0")}
             >
-                <Image
-                    src={imageUrl}
-                    alt="Visualização ampliada"
-                    width={1920}
-                    height={1080}
-                    style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
-                    className="rounded-lg"
-                    onLoad={() => setIsLoading(false)}
-                />
+                {isVideo ? (
+                     <video
+                        src={mediaItem.url}
+                        controls
+                        autoPlay
+                        onLoadedData={() => setIsLoading(false)}
+                        className="rounded-lg"
+                        style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
+                    />
+                ) : (
+                    <Image
+                        src={mediaItem.url}
+                        alt="Visualização ampliada"
+                        width={1920}
+                        height={1080}
+                        style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
+                        className="rounded-lg"
+                        onLoad={() => setIsLoading(false)}
+                    />
+                )}
                 {!isLoading && (
                     <Button
                         variant="ghost"
@@ -281,6 +300,7 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
         </motion.div>
     );
 };
+
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
@@ -302,7 +322,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [pendingProfiles, setPendingProfiles] = useState<BusinessProfileData[]>([]);
   const [pendingConnectionData, setPendingConnectionData] = useState<any>(null);
   const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxMediaItem, setLightboxMediaItem] = useState<GalleryItem | null>(null);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
 
 
@@ -599,9 +619,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         }}
       />
       
-      {lightboxImage && (
-        <Lightbox imageUrl={lightboxImage} onClose={() => setLightboxImage(null)} />
-      )}
+      <AnimatePresence>
+        {lightboxMediaItem && (
+            <Lightbox mediaItem={lightboxMediaItem} onClose={() => setLightboxMediaItem(null)} />
+        )}
+      </AnimatePresence>
+
 
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -780,8 +803,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         ) : photosToShow && photosToShow.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
-                                {photosToShow.map((item: any, index: number) => (
-                                    <div key={index} className="aspect-square relative rounded-md overflow-hidden group cursor-pointer" onClick={() => setLightboxImage(item.url)}>
+                                {photosToShow.map((item, index) => (
+                                    <div key={index} className="aspect-square relative rounded-md overflow-hidden group cursor-pointer" onClick={() => setLightboxMediaItem(item)}>
                                         <Image
                                             src={item.thumbnailUrl || item.url}
                                             alt={`Foto da galeria ${index + 1}`}
