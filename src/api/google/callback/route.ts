@@ -58,29 +58,34 @@ export async function POST(request: NextRequest) {
         }
         const accountId = primaryAccount.name.split('/')[1];
 
-        // API para informações de negócio
+        // 1. Lista as localizações para encontrar o ID da localização
+        const locationsList = await myBizAccount.accounts.locations.list({
+            parent: primaryAccount.name,
+        });
+        
+        const baseLocations = locationsList.data.locations;
+        if (!baseLocations || baseLocations.length === 0) {
+          throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
+        }
+        
+        const baseLocation = baseLocations[0];
+        if (!baseLocation.name) {
+          throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
+        }
+
+        // 2. Busca os detalhes completos da localização usando a Business Information API
         const myBizInfo = google.mybusinessbusinessinformation({
             version: 'v1',
             auth: oauth2Client
         });
-        
-        // 1. Lista as localizações para encontrar o ID
-        const locationsResponse = await myBizInfo.accounts.locations.list({
-            parent: primaryAccount.name,
+
+        const fullLocationResponse = await myBizInfo.locations.get({
+            name: baseLocation.name,
             readMask: "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours",
         });
 
-        const locations = locationsResponse.data.locations;
-        if (!locations || locations.length === 0) {
-            throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
-        }
+        const location = fullLocationResponse.data;
 
-        // 2. Usa a primeira localização retornada que já contém todos os detalhes.
-        const location = locations[0];
-        if (!location.name) {
-            throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
-        }
-        
         // 3. Monta o objeto que será enviado para o frontend
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
