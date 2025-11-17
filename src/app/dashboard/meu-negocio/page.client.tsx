@@ -148,7 +148,7 @@ const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['re
         return `${hours}:${minutes}`;
     };
     
-    const hasHoursData = hours && hours.periods && hours.periods.length > 0;
+    const hasHoursData = hours && Array.isArray(hours.periods) && hours.periods.length > 0;
 
     return (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
@@ -164,7 +164,7 @@ const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['re
                                 return (
                                     <div key={dayKey} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
                                         <span className="font-medium text-gray-800">{dayTranslations[dayKey]}</span>
-                                        {period ? (
+                                        {period && period.openTime && period.closeTime ? (
                                             <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
                                         ) : (
                                             <span className="font-semibold text-red-600">Fechado</span>

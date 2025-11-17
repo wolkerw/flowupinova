@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
             website: location.websiteUri || 'Website não encontrado',
             description: location.profile?.description || 'Descrição não disponível.',
             isVerified: true,
-            regularHours: location.regularHours || null,
+            regularHours: location.regularHours || null, // <- GARANTINDO QUE OS HORÁRIOS SEJAM SALVOS
         };
 
         const connectionData = {
