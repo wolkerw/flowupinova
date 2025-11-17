@@ -451,67 +451,65 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         )}
                     </div>
                     
-                    <div className="relative px-6">
-                        <div className="flex items-end gap-6 -mt-12">
-                             {profile.isVerified && (
-                                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md z-10">
-                                    {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
-                                </div>
-                            )}
-                            <div className="flex-grow py-4">
-                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                                {profile.isVerified && (
+                    <div className="px-6 pb-6 pt-0">
+                      <div className="flex items-end gap-6 -mt-12">
+                          {profile.isVerified && (
+                              <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md z-10">
+                                  {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
+                              </div>
+                          )}
+                          <div className="flex-grow pt-14 pb-2">
+                              <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                              {profile.isVerified && (
                                 <div className="flex items-center gap-2 mt-1 text-sm">
                                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                     <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
                                     <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
                                 </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                              )}
+                          </div>
+                      </div>
 
-                    <CardContent className="space-y-4 px-6 pb-6 pt-4 border-t">
-                        <div className="space-y-3 pt-4">
+                      <div className="space-y-3 pt-6 border-t mt-6">
                             <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
                             <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
-                        </div>
-                    </CardContent>
+                      </div>
+                    </div>
                 </Card>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="shadow-lg border-none">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="w-5 h-5 text-green-500" />
-                    Palavras-chave de Busca
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                    {keywordsLoading ? (
-                      <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : keywords.length > 0 ? (
-                      keywords.map((kw, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
-                          <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
-                          <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-500 py-10">
-                        <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                        <p>Nenhuma palavra-chave encontrada para o período.</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                <Card className="shadow-lg border-none">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <Key className="w-5 h-5 text-green-500" />
+                           Palavras-chave de Busca
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                       <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                         {keywordsLoading ? (
+                           <div className="flex justify-center items-center h-40">
+                             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                           </div>
+                         ) : keywords.length > 0 ? (
+                           keywords.map((kw, index) => (
+                             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                               <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                               <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
+                             </div>
+                           ))
+                         ) : (
+                           <div className="text-center text-gray-500 py-10">
+                             <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                             <p>Nenhuma palavra-chave encontrada para o período.</p>
+                           </div>
+                         )}
+                       </div>
+                    </CardContent>
+                </Card>
             </motion.div>
 
         </div>
@@ -627,7 +625,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
 
     
