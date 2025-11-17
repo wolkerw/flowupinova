@@ -60,13 +60,8 @@ export async function POST(request: NextRequest) {
         }
         const accountId = primaryAccount.name.split('/')[1];
 
-        const myBizInfo = google.mybusinessbusinessinformation({
-            version: 'v1',
-            auth: oauth2Client
-        });
-        
-        // 1) Lista as locations só pra achar o ID
-        const locationsListResponse = await myBizInfo.accounts.locations.list({
+        // 1) Lista as locations só pra achar o ID usando mybusinessaccountmanagement
+        const locationsListResponse = await myBizAccount.accounts.locations.list({
             parent: primaryAccount.name,
             readMask: "name,title,metadata",
         });
@@ -81,7 +76,12 @@ export async function POST(request: NextRequest) {
             throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
 
-        // 2) Agora busca os detalhes completos da location
+        // 2) Agora busca os detalhes completos da location usando mybusinessbusinessinformation
+        const myBizInfo = google.mybusinessbusinessinformation({
+            version: 'v1',
+            auth: oauth2Client
+        });
+
         const fullLocationResponse = await myBizInfo.locations.get({
             name: baseLocation.name,
             readMask: 'name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours',
