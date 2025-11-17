@@ -164,7 +164,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       const response = await fetch('/api/google/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state }),
+          body: JSON.stringify({ code, state, origin: window.location.origin }),
       });
 
       const result = await response.json();
