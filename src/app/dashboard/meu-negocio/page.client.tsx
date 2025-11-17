@@ -25,7 +25,8 @@ import {
   Calendar as CalendarIcon,
   Eye,
   Key,
-  Clock
+  Clock,
+  Hourglass,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -52,25 +53,26 @@ interface GoogleMedia {
     gallery: { url: string; thumbnailUrl: string; }[];
 }
 
-
 const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, value: string, icon: React.ElementType, loading: boolean }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
     >
         <Card className="shadow-lg border-none h-full">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center h-[96px]">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    <div className="flex flex-col items-center justify-center h-[72px]">
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                     </div>
                 ) : (
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">{title}</p>
-                            <p className="text-2xl font-bold text-gray-900">{value}</p>
+                    <div className="flex items-center gap-4">
+                        <div className="bg-blue-100 p-2 rounded-lg">
+                           <Icon className="w-5 h-5 text-blue-600" />
                         </div>
-                        <Icon className="w-8 h-8 text-blue-500" />
+                        <div>
+                            <p className="text-xs text-gray-600">{title}</p>
+                            <p className="text-lg font-bold text-gray-900">{value}</p>
+                        </div>
                     </div>
                 )}
             </CardContent>
@@ -98,7 +100,7 @@ const ReviewCard = ({ review }: { review: any }) => {
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 border rounded-lg"
+            className="p-4 border rounded-lg bg-white"
         >
             <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">
@@ -422,91 +424,41 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           </Popover>
       </div>
 
-      {/* Card de Integração Google */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="shadow-lg border-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <LinkIcon className="w-5 h-5 text-gray-700" />
-              Integração Google Meu Negócio
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {authLoading ? (
-              <div className="flex items-center justify-center h-24">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                <p className="ml-2">Aguardando autenticação com o Google...</p>
-              </div>
-            ) : profile.isVerified ? (
-              <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                  <div>
-                    <h3 className="font-semibold text-green-900">Status: Conectado</h3>
-                    <p className="text-sm text-green-700">Sincronizando com: {profile.name}</p>
-                  </div>
-                </div>
-                <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
-                   Desconectar
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
-                <XCircle className="w-10 h-10 text-gray-400 mb-3" />
-                <h3 className="font-semibold text-gray-800">Não conectado</h3>
-                <p className="text-sm text-gray-600 mb-4 text-center">Conecte sua conta do Google para sincronizar os dados do seu perfil.</p>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleConnect} disabled={authLoading}>
-                  {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
-                  Conectar ao Google
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {profile.isVerified && (
-        <>
-          {/* Métricas */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-            <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
-            <MetricCard title="Visualizações na Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
-            <MetricCard title="Visualizações no Google Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
-            <MetricCard title="Cliques para acessar o site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
-            <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
-            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Perfil do Negócio */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-3">
-              <Card className="shadow-lg border-none relative">
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Coluna Principal (Esquerda) */}
+        <div className="lg:col-span-2 space-y-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <Card className="shadow-lg border-none relative overflow-hidden">
                  {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                  
-                {media?.coverPhoto?.url && (
-                    <div className="aspect-video relative w-full rounded-t-lg overflow-hidden bg-gray-100">
+                {profile.isVerified && media?.coverPhoto?.url && (
+                    <div className="aspect-[21/9] relative w-full rounded-t-lg overflow-hidden bg-gray-100">
                         <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover"/>
                     </div>
                 )}
                  
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5 text-blue-500" /> Perfil do Negócio</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                           {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={64} height={64} className="w-full h-full object-cover"/> : <Building2 className="w-8 h-8 text-gray-400" />}
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-900">{profile.name}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                <CardHeader className="pt-6">
+                    <div className="flex items-start gap-6">
+                        {profile.isVerified && (
+                            <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 -mt-16 ml-6 border-4 border-white shadow-md">
+                               {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={80} height={80} className="w-full h-full object-cover"/> : <Building2 className="w-10 h-10 text-gray-400" />}
                             </div>
+                        )}
+                        <div className="flex-grow">
+                             <CardTitle className="flex items-center gap-2 text-2xl"><Building2 className="w-6 h-6 text-blue-500" /> {profile.name}</CardTitle>
+                             {profile.isVerified && (
+                                <div className="flex items-center gap-2 mt-2 text-sm">
+                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                    <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                    <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                </div>
+                             )}
                         </div>
                     </div>
-                    <div className="space-y-3">
+                </CardHeader>
+
+                <CardContent className="space-y-4 px-6 pb-6">
+                    <div className="space-y-3 pt-4 border-t">
                         <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                         <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
                         <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
@@ -515,90 +467,153 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 </CardContent>
               </Card>
             </motion.div>
-            
-          </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Avaliações Recentes */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="shadow-lg border-none">
-                <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                    {reviewsLoading ? (
-                        <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                    ) : reviews.length > 0 ? (
-                        reviews.map((review) => <ReviewCard key={review.name} review={review} />)
-                    ) : (
-                        <div className="text-center text-gray-500 py-10">
-                            <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                            <p>Nenhuma avaliação encontrada.</p>
+            {profile.isVerified && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Avaliações Recentes */}
+                  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+                    <Card className="shadow-lg border-none h-full">
+                      <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                          {reviewsLoading ? (
+                              <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                          ) : reviews.length > 0 ? (
+                              reviews.map((review) => <ReviewCard key={review.name} review={review} />)
+                          ) : (
+                              <div className="text-center text-gray-500 py-10">
+                                  <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                  <p>Nenhuma avaliação encontrada.</p>
+                              </div>
+                          )}
                         </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-            {/* Palavras-chave de Busca */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                  {/* Palavras-chave de Busca */}
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+                      <Card className="shadow-lg border-none h-full">
+                          <CardHeader><CardTitle className="flex items-center gap-2"><Key className="w-5 h-5 text-green-500" />Palavras-chave de Busca</CardTitle></CardHeader>
+                          <CardContent>
+                            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                             {keywordsLoading ? (
+                                  <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                              ) : keywords.length > 0 ? (
+                                      keywords.map((kw, index) => (
+                                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                                              <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                                              <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
+                                          </div>
+                                      ))
+                              ) : (
+                                  <div className="text-center text-gray-500 py-10">
+                                      <Key className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                      <p>Nenhuma palavra-chave encontrada para o período.</p>
+                                  </div>
+                              )}
+                            </div>
+                          </CardContent>
+                      </Card>
+                  </motion.div>
+                </div>
+              </>
+            )}
+        </div>
+        
+        {/* Coluna Secundária (Direita) */}
+        <div className="lg:col-span-1 space-y-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <Card className="shadow-lg border-none">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><Key className="w-5 h-5 text-green-500" />Palavras-chave de Busca</CardTitle></CardHeader>
-                    <CardContent>
-                       {keywordsLoading ? (
-                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                        ) : keywords.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {keywords.map((kw, index) => (
-                                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
-                                        <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
-                                        <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center text-gray-500 py-10">
-                                <Key className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                                <p>Nenhuma palavra-chave encontrada para o período.</p>
-                            </div>
-                        )}
-                    </CardContent>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <LinkIcon className="w-5 h-5 text-gray-700" />
+                      Integração Google Meu Negócio
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {authLoading ? (
+                      <div className="flex items-center justify-center h-24">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <p className="ml-2">Aguardando autenticação...</p>
+                      </div>
+                    ) : profile.isVerified ? (
+                      <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-6 h-6 text-green-600" />
+                          <div>
+                            <h3 className="font-semibold text-green-900">Conectado</h3>
+                            <p className="text-sm text-green-700 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
+                           Desconectar
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-4 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
+                        <XCircle className="w-8 h-8 text-gray-400 mb-2" />
+                        <h3 className="font-semibold text-gray-800">Não conectado</h3>
+                        <p className="text-xs text-gray-600 mb-3 text-center">Conecte sua conta para sincronizar os dados.</p>
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleConnect} disabled={authLoading}>
+                          {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
+                          Conectar ao Google
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
             </motion.div>
-          </div>
+            
+            {profile.isVerified && (
+                <>
+                 <Card className="shadow-lg border-none">
+                    <CardHeader>
+                         <CardTitle className="text-base font-bold">Desempenho</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                        <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
+                        <MetricCard title="Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+                        <MetricCard title="Mapas" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+                        <MetricCard title="Acessos ao site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
+                        <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
+                        <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
+                    </CardContent>
+                 </Card>
 
-
-          {/* Galeria de Fotos */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Card className="shadow-lg border-none">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos</CardTitle></CardHeader>
-                    <CardContent>
-                        {mediaLoading ? (
-                             <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                        ) : media && media.gallery.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {media.gallery.map((item, index) => (
-                                    <div key={index} className="aspect-square relative rounded-lg overflow-hidden group">
-                                        <Image src={item.thumbnailUrl || item.url} alt={`Foto da galeria ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300"/>
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <a href={item.url} target="_blank" rel="noopener noreferrer">
-                                                <Search className="w-8 h-8 text-white" />
+                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                    <Card className="shadow-lg border-none">
+                        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos</CardTitle></CardHeader>
+                        <CardContent>
+                            {mediaLoading ? (
+                                 <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                            ) : media && media.gallery.length > 0 ? (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {media.gallery.slice(0, 9).map((item, index) => (
+                                        <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
+                                            <Image src={item.thumbnailUrl || item.url} alt={`Foto da galeria ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300"/>
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Search className="w-6 h-6 text-white" />
                                             </a>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                             <div className="text-center text-gray-500 py-10">
-                                <ImageIcon className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                                <p>Nenhuma foto na galeria.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </motion.div>
-        </>
-      )}
+                                    ))}
+                                </div>
+                            ) : (
+                                 <div className="text-center text-gray-500 py-10">
+                                    <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
+                                    <p className="text-sm">Nenhuma foto na galeria.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </motion.div>
+                </>
+            )}
+        </div>
+      </div>
     </div>
   );
 }
+
+    
