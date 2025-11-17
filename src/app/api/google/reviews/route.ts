@@ -25,12 +25,24 @@ export async function POST(request: NextRequest) {
             },
         });
         
-        const data = await response.json();
-
+        // Primeiro, verifique se a resposta da API foi bem-sucedida
         if (!response.ok) {
-            console.error("[GOOGLE_REVIEWS_ERROR] API Response:", data);
-            throw new Error(data.error?.message || "Falha ao buscar avaliações do Google.");
+            // Se não foi OK, o corpo provavelmente não é JSON (pode ser HTML, texto, etc.)
+            const errorText = await response.text();
+            console.error(`[GOOGLE_REVIEWS_ERROR] API retornou status ${response.status}. Resposta:`, errorText);
+            // Tenta extrair uma mensagem de erro do JSON se possível, caso contrário usa o texto.
+            let errorMessage = `Falha ao buscar avaliações do Google (status: ${response.status}).`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error?.message || errorMessage;
+            } catch (e) {
+                // O corpo não era JSON, o que confirma o problema.
+            }
+            throw new Error(errorMessage);
         }
+
+        // Somente se a resposta for OK, analise o JSON
+        const data = await response.json();
 
         const reviews = data.reviews || [];
 
