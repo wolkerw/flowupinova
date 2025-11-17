@@ -107,7 +107,7 @@ const ReviewCard = ({ review }: { review: any }) => {
                         </div>
                     </div>
                 </div>
-                <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString()}</span>
+                <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString('pt-BR')}</span>
             </div>
             <p className="text-sm text-gray-700">{review.comment}</p>
         </motion.div>
@@ -205,7 +205,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             setMediaLoading(false);
         }
     } catch (error: any) {
-        toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${error.message}`, variant: "destructive" });
+        toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${'error'}.message}`, variant: "destructive" });
         setDataLoading(false);
         setMetricsLoading(false);
         setReviewsLoading(false);
@@ -526,3 +526,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
