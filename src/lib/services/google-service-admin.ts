@@ -33,6 +33,7 @@ export async function getAuthenticatedGoogleClient(userId: string) {
         throw new Error("UserID é necessário para autenticar com o Google.");
     }
     
+    // For server-side, we can directly access the stored refresh token
     const connectionData = await getGoogleConnection(userId);
     if (!connectionData.refreshToken) {
         throw new Error("Token de atualização do Google não encontrado. Por favor, reconecte sua conta.");

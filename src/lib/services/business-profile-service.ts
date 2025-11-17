@@ -22,6 +22,7 @@ export interface BusinessProfileData {
     rating: number;
     totalReviews: number;
     isVerified: boolean;
+    googleName?: string; // Formato: locations/{locationId}
 }
 
 const defaultLogo: LogoData = {
@@ -42,7 +43,8 @@ const defaultProfile: BusinessProfileData = {
     logo: defaultLogo,
     rating: 0,
     totalReviews: 0,
-    isVerified: false
+    isVerified: false,
+    googleName: ""
 };
 
 function getProfileDocRef(userId: string) {
@@ -61,9 +63,6 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
         if (docSnap.exists()) {
             const data = docSnap.data() as any; // Read as 'any' to handle migration
             let needsUpdate = false;
-            const updatedData: Partial<BusinessProfileData> = {};
-
-            // Start with a clean default logo object
             const finalProfile: BusinessProfileData = { ...defaultProfile, ...data };
             
             // Migration from old structure (logoUrl, logoWidth) to new (logo object)
@@ -84,6 +83,10 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
                 finalProfile.brandSummary = defaultProfile.brandSummary;
                 needsUpdate = true;
             }
+             if (!data.googleName) {
+                finalProfile.googleName = "";
+             }
+
 
             if (needsUpdate) {
                 await setDoc(profileDocRef, finalProfile);

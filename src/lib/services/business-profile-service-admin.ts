@@ -21,7 +21,8 @@ const defaultProfile: BusinessProfileData = {
   logo: defaultLogo,
   rating: 0,
   totalReviews: 0,
-  isVerified: false
+  isVerified: false,
+  googleName: ""
 };
 
 
@@ -43,7 +44,7 @@ export async function getBusinessProfileAdmin(userId: string): Promise<BusinessP
             const data = docSnap.data();
             // Handle migration from old structure
             if (data?.logoUrl !== undefined) {
-                const migratedProfile = {
+                const migratedProfile: any = { // Use any to allow deletion
                     ...defaultProfile,
                     ...data,
                     logo: {

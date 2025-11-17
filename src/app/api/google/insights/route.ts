@@ -53,7 +53,6 @@ export async function GET(request: NextRequest) {
             throw new Error(data.error?.message || "Falha ao buscar dados de performance do Google.");
         }
 
-        // Processar os dados para somar os totais
         const aggregatedMetrics: { [key: string]: number } = {};
         data.multiDailyMetricTimeSeries?.forEach((series: any) => {
             series.dailyMetricTimeSeries?.forEach((metricSeries: any) => {
@@ -70,8 +69,6 @@ export async function GET(request: NextRequest) {
             phoneCalls: aggregatedMetrics['CALL_CLICKS'] || 0,
             directionsRequests: aggregatedMetrics['BUSINESS_DIRECTION_REQUESTS'] || 0,
         };
-
-        finalInsights.totalViews = finalInsights.viewsSearch + finalInsights.viewsMaps;
 
         return NextResponse.json({ success: true, insights: finalInsights });
 

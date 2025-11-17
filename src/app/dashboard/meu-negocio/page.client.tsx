@@ -12,18 +12,15 @@ import {
   Phone,
   Star,
   Edit,
-  ExternalLink,
   Globe,
   Users,
-  TrendingUp,
-  Settings,
-  LogOut,
+  Search,
   CheckCircle,
   XCircle,
   Loader2,
   Info,
   Link as LinkIcon,
-  Search,
+  User,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -36,7 +33,7 @@ interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
 }
 
-const MetricCard = ({ title, value, change, icon: Icon, loading }: { title: string, value: string, change: string | null, icon: React.ElementType, loading: boolean }) => (
+const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, value: string, icon: React.ElementType, loading: boolean }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -52,7 +49,6 @@ const MetricCard = ({ title, value, change, icon: Icon, loading }: { title: stri
                         <div>
                             <p className="text-sm text-gray-600">{title}</p>
                             <p className="text-2xl font-bold text-gray-900">{value}</p>
-                            {change && <p className={`text-sm font-medium ${change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>{change}</p>}
                         </div>
                         <Icon className="w-8 h-8 text-blue-500" />
                     </div>
@@ -212,7 +208,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
     setAuthLoading(true);
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    const redirectUri = 'https://flowupinova.com.br/dashboard/meu-negocio';
+    const redirectUri = new URL('/dashboard/meu-negocio', window.location.origin).toString();
+
 
     if (!googleClientId) {
       toast({ title: "Erro de Configuração", description: "O ID de cliente do Google não está configurado.", variant: "destructive" });
@@ -233,16 +230,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   };
   
   const handleDisconnect = async () => {
+    // This is a placeholder as disconnecting requires revoking tokens, which is complex.
+    // For now, we'll just clear the local state. A full implementation would call a backend
+    // endpoint to revoke the refresh token.
     if (!user) return;
     setAuthLoading(true);
     try {
-        await updateBusinessProfile(user.uid, { isVerified: false });
+        await updateBusinessProfile(user.uid, { isVerified: false, googleName: "" }); // Clear the name
         toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
         await fetchFullProfile();
-    } catch (err: any) {
+    } catch(err: any) {
         toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });
     } finally {
-        setAuthLoading(false);
+       setAuthLoading(false);
     }
   };
 
@@ -313,9 +313,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <p className="text-sm text-green-700">Sincronizando com: {profile.name}</p>
                   </div>
                 </div>
-                <Button variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
-                  {authLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogOut className="w-4 h-4 mr-2" />}
-                  Desconectar
+                <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
+                   Desconectar
                 </Button>
               </div>
             ) : (
@@ -336,11 +335,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       {profile.isVerified && (
         <>
           {/* Métricas */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard title="Visualizações do Perfil" value={metrics?.views || '0'} change={null} icon={Users} loading={metricsLoading}/>
-            <MetricCard title="Buscas Diretas" value={metrics?.searches || '0'} change={null} icon={Search} loading={metricsLoading}/>
-            <MetricCard title="Cliques no Site" value={metrics?.websiteClicks || '0'} change={null} icon={Globe} loading={metricsLoading}/>
-            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests || '0'} change={null} icon={MapPin} loading={metricsLoading}/>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+            <MetricCard title="Visualizações (Busca)" value={metrics?.viewsSearch || '0'} icon={Search} loading={metricsLoading}/>
+            <MetricCard title="Visualizações (Mapas)" value={metrics?.viewsMaps || '0'} icon={MapPin} loading={metricsLoading}/>
+            <MetricCard title="Cliques no Site" value={metrics?.websiteClicks || '0'} icon={Globe} loading={metricsLoading}/>
+            <MetricCard title="Ligações" value={metrics?.phoneCalls || '0'} icon={Phone} loading={metricsLoading}/>
+            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests || '0'} icon={Users} loading={metricsLoading}/>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -365,7 +365,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             <div className="flex items-center gap-2 mt-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                 <span className="font-semibold">{profile.rating || 'N/A'}</span>
-                                <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                <span className="text-gray-600">({reviews.length > 0 ? reviews.length : 0} avaliações)</span>
                             </div>
                         </div>
                     </div>
