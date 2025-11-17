@@ -131,22 +131,24 @@ const ReviewCard = ({ review }: { review: any }) => {
 };
 
 const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['regularHours'], loading: boolean }) => {
-    const allDays = [
-        { key: "MONDAY", name: "Segunda-feira" },
-        { key: "TUESDAY", name: "Terça-feira" },
-        { key: "WEDNESDAY", name: "Quarta-feira" },
-        { key: "THURSDAY", name: "Quinta-feira" },
-        { key: "FRIDAY", name: "Sexta-feira" },
-        { key: "SATURDAY", name: "Sábado" },
-        { key: "SUNDAY", name: "Domingo" },
-    ];
+    const dayTranslations: { [key: string]: string } = {
+        MONDAY: "Segunda-feira",
+        TUESDAY: "Terça-feira",
+        WEDNESDAY: "Quarta-feira",
+        THURSDAY: "Quinta-feira",
+        FRIDAY: "Sexta-feira",
+        SATURDAY: "Sábado",
+        SUNDAY: "Domingo",
+    };
+    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 
     const formatTime = (time: { hours?: number, minutes?: number }) => {
-        if (time.hours === undefined) return ""; // Should not happen if period exists
-        const hours = String(time.hours).padStart(2, '0');
+        const hours = String(time.hours || 0).padStart(2, '0');
         const minutes = String(time.minutes || 0).padStart(2, '0');
         return `${hours}:${minutes}`;
     };
+    
+    const hasHoursData = hours && hours.periods && hours.periods.length > 0;
 
     return (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
@@ -155,35 +157,34 @@ const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['re
                 <CardContent>
                     {loading ? (
                         <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                    ) : hasHoursData ? (
+                        <div className="space-y-3">
+                            {allDays.map((dayKey) => {
+                                const period = hours!.periods.find(p => p.openDay === dayKey);
+                                return (
+                                    <div key={dayKey} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
+                                        <span className="font-medium text-gray-800">{dayTranslations[dayKey]}</span>
+                                        {period ? (
+                                            <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
+                                        ) : (
+                                            <span className="font-semibold text-red-600">Fechado</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     ) : (
-                         hours?.periods && hours.periods.length > 0 ? (
-                            <div className="space-y-3">
-                                {allDays.map((day) => {
-                                    const period = hours.periods.find(p => p.openDay === day.key);
-                                    return (
-                                        <div key={day.key} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
-                                            <span className="font-medium text-gray-800">{day.name}</span>
-                                            {period ? (
-                                                <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
-                                            ) : (
-                                                <span className="font-semibold text-red-600">Fechado</span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                             <div className="text-center text-gray-500 py-10">
-                                <Clock className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                                <p>Nenhum horário de funcionamento informado.</p>
-                            </div>
-                        )
+                        <div className="text-center text-gray-500 py-10">
+                            <Clock className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                            <p>Nenhum horário de funcionamento informado.</p>
+                        </div>
                     )}
                 </CardContent>
             </Card>
         </motion.div>
     );
 };
+
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
