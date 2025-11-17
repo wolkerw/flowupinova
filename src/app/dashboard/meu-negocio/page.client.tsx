@@ -620,7 +620,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-sm text-green-700 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
