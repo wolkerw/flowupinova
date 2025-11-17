@@ -27,6 +27,11 @@ import {
   Key,
   Clock,
   Hourglass,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ShoppingCart,
+  MousePointer,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -424,8 +429,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           </Popover>
       </div>
 
-       {profile.isVerified && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
             <MetricCard title="Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
             <MetricCard title="Mapas" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
@@ -433,7 +437,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
             <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
         </div>
-       )}
 
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Coluna Principal (Esquerda) */}
@@ -442,31 +445,36 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               <Card className="shadow-lg border-none relative overflow-hidden">
                  {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                  
-                 <div className="p-6 pb-0 relative">
-                    {profile.isVerified && media?.coverPhoto?.url && (
-                        <div className="aspect-[21/9] relative w-full rounded-lg overflow-hidden bg-gray-100">
-                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover"/>
-                        </div>
-                    )}
-                    
-                    <div className="relative z-10 flex items-end gap-6 -mt-12">
-                        {profile.isVerified && (
-                            <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                               {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
-                            </div>
-                        )}
-                        <div className="flex-grow pb-2">
-                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                             {profile.isVerified && (
-                                <div className="flex items-center gap-2 mt-2 text-sm">
-                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                    <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                    <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
-                                </div>
-                             )}
-                        </div>
-                    </div>
-                 </div>
+                <div className="p-6 pb-0 relative">
+                  {profile.isVerified && media?.coverPhoto?.url ? (
+                      <div className="aspect-[21/9] relative w-full rounded-lg overflow-hidden bg-gray-100">
+                          <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover"/>
+                      </div>
+                  ) : (
+                    <div className="aspect-[21/9] w-full rounded-lg bg-gray-100"></div>
+                  )}
+                  
+                  <div className="relative -mt-12 ml-4">
+                      <div className="flex items-end gap-6">
+                          {profile.isVerified && (
+                              <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                 {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
+                              </div>
+                          )}
+                          <div className="flex-grow pb-2">
+                               <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                               {profile.isVerified && (
+                                  <div className="flex items-center gap-2 mt-1 text-sm">
+                                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                      <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                      <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                  </div>
+                               )}
+                          </div>
+                      </div>
+                  </div>
+                </div>
+
 
                 <CardContent className="space-y-4 px-6 pb-6">
                     <div className="space-y-3 pt-4 border-t">
@@ -597,7 +605,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             </motion.div>
             
             {profile.isVerified && (
-                <>
                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                     <Card className="shadow-lg border-none h-full">
                       <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
@@ -617,7 +624,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                       </CardContent>
                     </Card>
                   </motion.div>
-                </>
             )}
         </div>
       </div>
@@ -625,3 +631,4 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   );
 }
 
+    
