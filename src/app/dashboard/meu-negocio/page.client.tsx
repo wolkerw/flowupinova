@@ -236,6 +236,8 @@ const ProfileSelectionModal = ({
 };
 
 const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => {
+    const [isLoading, setIsLoading] = useState(true);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -244,12 +246,17 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
             onClick={onClose}
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
         >
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-10 h-10 text-white animate-spin" />
+                </div>
+            )}
             <motion.div
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative max-w-4xl max-h-[90vh]"
+                className={cn("relative max-w-4xl max-h-[90vh]", isLoading && "opacity-0")}
             >
                 <Image
                     src={imageUrl}
@@ -258,15 +265,18 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
                     height={1080}
                     style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
                     className="rounded-lg"
+                    onLoad={() => setIsLoading(false)}
                 />
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="absolute -top-4 -right-4 bg-white/20 hover:bg-white/40 text-white rounded-full"
-                >
-                    <X className="w-6 h-6" />
-                </Button>
+                {!isLoading && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="absolute -top-2 -right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10"
+                    >
+                        <X className="w-6 h-6" />
+                    </Button>
+                )}
             </motion.div>
         </motion.div>
     );
@@ -817,7 +827,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-sm text-gray-700 truncate" title={profile.name}>{profile.name}</p>
+                                    <p className="text-sm text-gray-700">{profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
