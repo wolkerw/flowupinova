@@ -23,7 +23,7 @@ const defaultProfile: BusinessProfileData = {
   totalReviews: 0,
   isVerified: false,
   googleName: "",
-  regularHours: null
+  regularHours: null,
 };
 
 
