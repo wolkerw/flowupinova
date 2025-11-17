@@ -255,7 +255,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
         >
             {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center z-20">
                     <Loader2 className="w-10 h-10 text-white animate-spin" />
                 </div>
             )}
@@ -264,7 +264,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className={cn("relative max-w-4xl max-h-[90vh]", isLoading && "opacity-0")}
+                className="relative max-w-4xl max-h-[90vh]"
             >
                 {isVideo ? (
                      <video
@@ -273,8 +273,9 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         autoPlay
                         loop
                         muted
+                        playsInline
                         onLoadedData={() => setIsLoading(false)}
-                        className="rounded-lg"
+                        className={cn("rounded-lg", isLoading ? 'invisible' : 'visible')}
                         style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
                     />
                 ) : (
@@ -284,7 +285,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         width={1920}
                         height={1080}
                         style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
-                        className="rounded-lg"
+                        className={cn("rounded-lg", isLoading ? 'invisible' : 'visible')}
                         onLoad={() => setIsLoading(false)}
                     />
                 )}
@@ -293,7 +294,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="absolute -top-2 -right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10"
+                        className="absolute -top-2 -right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 z-30"
                     >
                         <X className="w-6 h-6" />
                     </Button>
@@ -869,3 +870,4 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
