@@ -10,13 +10,6 @@ export interface LogoData {
     height: number;
 }
 
-export interface BusinessHoursPeriod {
-    openDay: string;
-    openTime: { hours?: number; minutes?: number; };
-    closeDay: string;
-    closeTime: { hours?: number; minutes?: number; };
-}
-
 export interface BusinessProfileData {
     name: string;
     category: string;
@@ -30,7 +23,6 @@ export interface BusinessProfileData {
     totalReviews: number;
     isVerified: boolean;
     googleName?: string; // Formato: locations/{locationId}
-    regularHours?: { periods: BusinessHoursPeriod[] } | null;
 }
 
 const defaultLogo: LogoData = {
@@ -53,7 +45,6 @@ const defaultProfile: BusinessProfileData = {
     totalReviews: 0,
     isVerified: false,
     googleName: "",
-    regularHours: null,
 };
 
 function getProfileDocRef(userId: string) {

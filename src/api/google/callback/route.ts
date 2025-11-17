@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         const accountId = primaryAccount.name.split('/')[1];
 
         // 2. Usa FETCH para buscar a lista de localizações COMPLETAS, como no Postman
-        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours";
+        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile";
         const locationsListResponse = await fetch(
             `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
             {
@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
             website: location.websiteUri || 'Website não encontrado',
             description: location.profile?.description || 'Descrição não disponível.',
             isVerified: true,
-            regularHours: location.regularHours || null, // <- GARANTINDO QUE OS HORÁRIOS SEJAM SALVOS
         };
 
         const connectionData = {

@@ -28,7 +28,7 @@ import {
   Clock
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData, type BusinessHoursPeriod } from "@/lib/services/business-profile-service";
+import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getGoogleConnection, updateGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -129,62 +129,6 @@ const ReviewCard = ({ review }: { review: any }) => {
         </motion.div>
     );
 };
-
-const OperatingHoursCard = ({ hours, loading }: { hours: BusinessProfileData['regularHours'], loading: boolean }) => {
-    const dayTranslations: { [key: string]: string } = {
-        MONDAY: "Segunda-feira",
-        TUESDAY: "Terça-feira",
-        WEDNESDAY: "Quarta-feira",
-        THURSDAY: "Quinta-feira",
-        FRIDAY: "Sexta-feira",
-        SATURDAY: "Sábado",
-        SUNDAY: "Domingo",
-    };
-    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-
-    const formatTime = (time: { hours?: number, minutes?: number }) => {
-        const hours = String(time.hours || 0).padStart(2, '0');
-        const minutes = String(time.minutes || 0).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    };
-    
-    const hasHoursData = hours && Array.isArray(hours.periods) && hours.periods.length > 0;
-
-    return (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="shadow-lg border-none">
-                <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-cyan-500" />Horários de Funcionamento</CardTitle></CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                    ) : hasHoursData ? (
-                        <div className="space-y-3">
-                            {allDays.map((dayKey) => {
-                                const period = hours!.periods.find(p => p.openDay === dayKey);
-                                return (
-                                    <div key={dayKey} className="flex justify-between items-center text-sm p-2 rounded-md even:bg-gray-50/50">
-                                        <span className="font-medium text-gray-800">{dayTranslations[dayKey]}</span>
-                                        {period && period.openTime && period.closeTime ? (
-                                            <span className="font-semibold text-gray-700">{formatTime(period.openTime)} – {formatTime(period.closeTime)}</span>
-                                        ) : (
-                                            <span className="font-semibold text-red-600">Fechado</span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-500 py-10">
-                            <Clock className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                            <p>Nenhum horário de funcionamento informado.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </motion.div>
-    );
-};
-
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
@@ -535,7 +479,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Perfil do Negócio */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-3">
               <Card className="shadow-lg border-none relative">
                  {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                  
@@ -572,7 +516,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               </Card>
             </motion.div>
             
-            <OperatingHoursCard hours={profile.regularHours} loading={dataLoading} />
           </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

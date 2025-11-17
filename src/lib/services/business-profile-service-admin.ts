@@ -2,7 +2,7 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
-import type { BusinessProfileData, LogoData, BusinessHoursPeriod } from "./business-profile-service";
+import type { BusinessProfileData, LogoData } from "./business-profile-service";
 
 const defaultLogo: LogoData = {
     url: "",
@@ -23,7 +23,6 @@ const defaultProfile: BusinessProfileData = {
   totalReviews: 0,
   isVerified: false,
   googleName: "",
-  regularHours: null,
 };
 
 
