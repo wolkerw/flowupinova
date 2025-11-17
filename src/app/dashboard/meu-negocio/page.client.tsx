@@ -131,7 +131,6 @@ const ReviewCard = ({ review }: { review: any }) => {
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
-  const [editingProfile, setEditingProfile] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(true);
@@ -140,7 +139,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [keywordsLoading, setKeywordsLoading] = useState(true);
   
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
-  const [formState, setFormState] = useState<BusinessProfileData>(initialProfile);
   const [metrics, setMetrics] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
@@ -173,7 +171,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         ]);
         
         setProfile(fetchedProfile);
-        setFormState(fetchedProfile);
         setDataLoading(false);
 
         if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName && googleConn.accountId) {
@@ -369,31 +366,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
        setAuthLoading(false);
     }
   };
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormState(prev => ({...prev, [name]: value} as BusinessProfileData));
-  }
-
-  const handleSaveProfile = async () => {
-    if (!user) return;
-    setDataLoading(true);
-     try {
-        await updateBusinessProfile(user.uid, formState);
-        setProfile(formState);
-        setEditingProfile(false);
-        toast({ title: "Sucesso!", description: "Perfil atualizado." });
-    } catch (err: any) {
-        toast({ title: "Erro ao Salvar", description: err.message, variant: "destructive" });
-    } finally {
-        setDataLoading(false);
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setFormState(profile);
-    setEditingProfile(false);
-  }
   
   if (userLoading || (dataLoading && !profile.name)) {
     return (
@@ -518,9 +490,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                  
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5 text-blue-500" /> Perfil do Negócio</CardTitle>
-                  {!editingProfile && (
-                    <Button variant="ghost" size="icon" onClick={() => setEditingProfile(true)}><Edit className="w-4 h-4" /></Button>
-                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center gap-4 mb-6">
@@ -537,27 +506,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         </div>
                     </div>
-                  {editingProfile ? (
-                    <div className="space-y-4">
-                        <div><Label htmlFor="name">Nome do Negócio</Label><Input id="name" name="name" value={formState.name} onChange={handleFormChange} /></div>
-                        <div><Label htmlFor="category">Categoria</Label><Input id="category" name="category" value={formState.category} onChange={handleFormChange} /></div>
-                        <div><Label htmlFor="description">Descrição</Label><Textarea id="description" name="description" value={formState.description} onChange={handleFormChange} className="h-20" /></div>
-                        <div><Label htmlFor="address">Endereço</Label><Input id="address" name="address" value={formState.address} onChange={handleFormChange} /></div>
-                        <div><Label htmlFor="phone">Telefone</Label><Input id="phone" name="phone" value={formState.phone} onChange={handleFormChange} /></div>
-                        <div><Label htmlFor="website">Website</Label><Input id="website" name="website" value={formState.website} onChange={handleFormChange} /></div>
-                        <div className="flex gap-2 pt-2">
-                            <Button size="sm" onClick={handleSaveProfile} disabled={dataLoading}>{dataLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button>
-                            <Button size="sm" variant="outline" onClick={handleCancelEdit}>Cancelar</Button>
-                        </div>
-                    </div>
-                  ) : (
                     <div className="space-y-3">
                         <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                         <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
                         <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
                         <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
                     </div>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
