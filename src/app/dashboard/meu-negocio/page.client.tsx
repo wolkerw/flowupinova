@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
   Calendar as CalendarIcon,
   Eye,
+  Key,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -136,12 +137,14 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [mediaLoading, setMediaLoading] = useState(true);
+  const [keywordsLoading, setKeywordsLoading] = useState(true);
   
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
   const [formState, setFormState] = useState<BusinessProfileData>(initialProfile);
   const [metrics, setMetrics] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
+  const [keywords, setKeywords] = useState<any[]>([]);
 
   const { user, loading: userLoading } = useAuth();
   const { toast } = useToast();
@@ -161,6 +164,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setMetricsLoading(true);
     setReviewsLoading(true);
     setMediaLoading(true);
+    setKeywordsLoading(true);
 
     try {
         const [fetchedProfile, googleConn] = await Promise.all([
@@ -229,11 +233,29 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             }
             setMediaLoading(false);
 
+            // Fetch Search Keywords
+            const keywordsResponse = await fetch('/api/google/search-keywords', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accessToken: googleConn.accessToken,
+                    locationId: locationId,
+                    startDate: dateRange?.from ? { year: dateRange.from.getFullYear(), month: dateRange.from.getMonth() + 1, day: dateRange.from.getDate() } : undefined,
+                    endDate: dateRange?.to ? { year: dateRange.to.getFullYear(), month: dateRange.to.getMonth() + 1, day: dateRange.to.getDate() } : undefined,
+                })
+            });
+            if (keywordsResponse.ok) {
+                const keywordsData = await keywordsResponse.json();
+                if (keywordsData.success) setKeywords(keywordsData.keywords);
+            }
+            setKeywordsLoading(false);
+
 
         } else {
             setMetricsLoading(false);
             setReviewsLoading(false);
             setMediaLoading(false);
+            setKeywordsLoading(false);
         }
     } catch (error: any) {
         toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${'error'}.message}`, variant: "destructive" });
@@ -241,6 +263,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setMetricsLoading(false);
         setReviewsLoading(false);
         setMediaLoading(false);
+        setKeywordsLoading(false);
     }
   }, [user, toast, dateRange]);
 
@@ -560,6 +583,34 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               </Card>
             </motion.div>
           </div>
+            
+            {/* Palavras-chave de Busca */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="shadow-lg border-none">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Key className="w-5 h-5 text-green-500" />Palavras-chave de Busca</CardTitle></CardHeader>
+                    <CardContent>
+                       {keywordsLoading ? (
+                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                        ) : keywords.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {keywords.map((kw, index) => (
+                                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                                        <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                                        <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-500 py-10">
+                                <Key className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                <p>Nenhuma palavra-chave encontrada para o período.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </motion.div>
+
+
           {/* Galeria de Fotos */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <Card className="shadow-lg border-none">
