@@ -64,7 +64,7 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
         animate={{ opacity: 1, y: 0 }}
     >
         <Card className="shadow-lg border-none h-full">
-            <CardContent className="p-4">
+            <CardContent className="p-4 flex items-center justify-center">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-[72px]">
                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
@@ -428,14 +428,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             </PopoverContent>
           </Popover>
       </div>
-
-       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
-            <MetricCard title="Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
-            <MetricCard title="Mapas" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
-            <MetricCard title="Acessos ao site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
-            <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
-            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
+      
+       <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
+                <MetricCard title="Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+                <MetricCard title="Mapas" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <MetricCard title="Acessos ao site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
+                <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
+                <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
+            </div>
         </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -446,36 +450,38 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                     
                     <div className="h-48 bg-gray-100 rounded-t-lg relative">
-                        {profile.isVerified && media?.coverPhoto?.url && (
-                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
+                        {profile.isVerified && media?.coverPhoto?.url ? (
+                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="contain" className="rounded-t-lg"/>
+                        ) : (
+                           <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
                         )}
                     </div>
                     
-                    <div className="px-6 pb-6 pt-0">
-                      <div className="flex items-end gap-6 -mt-12">
-                          {profile.isVerified && (
-                              <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md z-10">
-                                  {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
-                              </div>
-                          )}
-                          <div className="flex-grow pt-14 pb-2">
-                              <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                              {profile.isVerified && (
-                                <div className="flex items-center gap-2 mt-1 text-sm">
-                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                    <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                    <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                     <div className="px-6 pb-6 relative">
+                        <div className="flex items-end gap-6 -mt-12 relative z-10">
+                            {profile.isVerified && (
+                                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                    {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
                                 </div>
-                              )}
-                          </div>
-                      </div>
+                            )}
+                            <div className="pt-14 pb-2 flex-grow">
+                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                {profile.isVerified && (
+                                    <div className="flex items-center gap-2 mt-1 text-sm">
+                                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                        <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                        <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                      <div className="space-y-3 pt-6 border-t mt-6">
+                        <div className="space-y-3 pt-6 border-t mt-6">
                             <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
                             <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
-                      </div>
+                        </div>
                     </div>
                 </Card>
             </motion.div>
@@ -557,28 +563,26 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                   </CardContent>
                 </Card>
             </motion.div>
-
-            {profile.isVerified && (
-                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                    <Card className="shadow-lg border-none h-full">
-                      <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                          {reviewsLoading ? (
-                              <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                          ) : reviews.length > 0 ? (
-                              reviews.map((review) => <ReviewCard key={review.name} review={review} />)
-                          ) : (
-                              <div className="text-center text-gray-500 py-10">
-                                  <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                                  <p>Nenhuma avaliação encontrada.</p>
-                              </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-            )}
+            
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="shadow-lg border-none h-full">
+                  <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                      {reviewsLoading ? (
+                          <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                      ) : reviews.length > 0 ? (
+                          reviews.map((review) => <ReviewCard key={review.name} review={review} />)
+                      ) : (
+                          <div className="text-center text-gray-500 py-10">
+                              <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                              <p>Nenhuma avaliação encontrada.</p>
+                          </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <Card className="shadow-lg border-none">
