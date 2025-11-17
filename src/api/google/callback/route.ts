@@ -38,11 +38,9 @@ export async function POST(request: NextRequest) {
             throw new Error("Não foi possível obter os tokens de acesso do Google.");
         }
         
-        // A API AGORA APENAS RETORNA OS DADOS PARA O CLIENTE
-        // O cliente será responsável por salvar no Firestore
-        
         oauth2Client.setCredentials(tokens);
 
+        // API para gerenciamento de contas
         const myBizAccount = google.mybusinessaccountmanagement({
             version: 'v1',
             auth: oauth2Client
@@ -60,12 +58,13 @@ export async function POST(request: NextRequest) {
         }
         const accountId = primaryAccount.name.split('/')[1];
 
-        // CORREÇÃO: Usar a mybusinessbusinessinformation API para listar as localizações com todos os detalhes.
+        // API para informações de negócio
         const myBizInfo = google.mybusinessbusinessinformation({
             version: 'v1',
             auth: oauth2Client
         });
         
+        // 1. Lista as localizações para encontrar o ID
         const locationsResponse = await myBizInfo.accounts.locations.list({
             parent: primaryAccount.name,
             readMask: "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours",
@@ -76,12 +75,13 @@ export async function POST(request: NextRequest) {
             throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
         }
 
-        // Usamos a primeira localização retornada que já contém todos os detalhes.
+        // 2. Usa a primeira localização retornada que já contém todos os detalhes.
         const location = locations[0];
         if (!location.name) {
             throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
         
+        // 3. Monta o objeto que será enviado para o frontend
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
             googleName: location.name, // Ex: locations/12345
