@@ -60,7 +60,12 @@ export async function POST(request: NextRequest) {
           throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
         }
         
-        const baseLocation = baseLocations[0];
+        // Lógica de seleção robusta para encontrar a localização correta
+        const baseLocation =
+            baseLocations.find(loc => loc.title && loc.title.length > 0) ||
+            baseLocations.find(loc => loc.metadata?.placeId) ||
+            baseLocations[0];
+
         if (!baseLocation.name) {
           throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
