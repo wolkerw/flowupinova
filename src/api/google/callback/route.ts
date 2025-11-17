@@ -1,16 +1,10 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { google } from "googleapis";
-import { getUidFromCookie } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, state, origin } = body;
-    
-    // NOTA: A validação de UID do cookie é removida daqui porque o token
-    // pode não estar disponível imediatamente nesta chamada de servidor para servidor.
-    // A segurança é mantida porque apenas o usuário que iniciou o fluxo OAuth
-    // no cliente poderá salvar os dados retornados no seu próprio perfil.
 
     if (!code) {
         return NextResponse.json({ success: false, error: "Código de autorização não fornecido." }, { status: 400 });
@@ -40,7 +34,7 @@ export async function POST(request: NextRequest) {
         
         oauth2Client.setCredentials(tokens);
 
-        // API para gerenciamento de contas
+        // 1. Usa a API de Gerenciamento de Contas para listar as contas e pegar o ID da conta primária
         const myBizAccount = google.mybusinessaccountmanagement({
             version: 'v1',
             auth: oauth2Client
@@ -57,8 +51,8 @@ export async function POST(request: NextRequest) {
             throw new Error("A conta principal do Google Meu Negócio não tem um nome válido.");
         }
         const accountId = primaryAccount.name.split('/')[1];
-
-        // 1. Lista as localizações apenas para encontrar o ID da localização principal
+        
+        // 2. Usa a mesma API de Gerenciamento de Contas para listar as localizações e obter o ID da localização principal
         const locationsList = await myBizAccount.accounts.locations.list({
             parent: primaryAccount.name,
         });
@@ -73,7 +67,7 @@ export async function POST(request: NextRequest) {
           throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
 
-        // 2. Busca os detalhes completos da localização usando a Business Information API
+        // 3. Usa a API de Informações de Negócio (`businessprofile`) para buscar os detalhes completos da localização
         const myBizInfo = google.businessprofile({
             version: 'v1',
             auth: oauth2Client
@@ -86,7 +80,7 @@ export async function POST(request: NextRequest) {
 
         const location = fullLocationResponse.data;
 
-        // 3. Monta o objeto que será enviado para o frontend
+        // 4. Monta o objeto que será enviado para o frontend com os dados detalhados
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
             googleName: location.name, // Ex: locations/12345
