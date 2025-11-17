@@ -32,6 +32,7 @@ import {
   DollarSign,
   ShoppingCart,
   MousePointer,
+  X,
 } from "lucide-react";
 import {
     Dialog,
@@ -232,6 +233,43 @@ const ProfileSelectionModal = ({
   );
 };
 
+const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+        >
+            <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative max-w-4xl max-h-[90vh]"
+            >
+                <Image
+                    src={imageUrl}
+                    alt="Visualização ampliada"
+                    width={1920}
+                    height={1080}
+                    style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
+                    className="rounded-lg"
+                />
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="absolute -top-4 -right-4 bg-white/20 hover:bg-white/40 text-white rounded-full"
+                >
+                    <X className="w-6 h-6" />
+                </Button>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
   const [authLoading, setAuthLoading] = useState(false);
@@ -252,6 +290,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [pendingProfiles, setPendingProfiles] = useState<BusinessProfileData[]>([]);
   const [pendingConnectionData, setPendingConnectionData] = useState<any>(null);
   const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -381,7 +420,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   }, [user, fetchFullProfile]);
 
-  const handleProfileSelection = async (selectedProfileData?: BusinessProfileData) => {
+  const handleProfileSelection = async (selectedProfileData: BusinessProfileData | undefined) => {
     if (!user || !pendingConnectionData || !pendingAccountId) {
       toast({ title: "Erro", description: "Dados da conexão não encontrados.", variant: "destructive" });
       setIsSelectionModalOpen(false);
@@ -540,6 +579,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           setPendingAccountId(null);
         }}
       />
+      
+      {lightboxImage && (
+        <Lightbox imageUrl={lightboxImage} onClose={() => setLightboxImage(null)} />
+      )}
 
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -720,8 +763,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         ) : media && media.gallery.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
-                            {media.gallery.slice(0, 9).map((item, index) => (
-                                <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
+                            {media.gallery.map((item, index) => (
+                                <div key={index} className="aspect-square relative rounded-md overflow-hidden group cursor-pointer" onClick={() => setLightboxImage(item.url)}>
                                 <Image
                                     src={item.thumbnailUrl || item.url}
                                     alt={`Foto da galeria ${index + 1}`}
@@ -729,9 +772,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                     objectFit="cover"
                                     className="group-hover:scale-105 transition-transform duration-300"
                                 />
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Search className="w-6 h-6 text-white" />
-                                </a>
+                                </div>
                                 </div>
                             ))}
                             </div>
@@ -759,7 +802,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-xs text-gray-600">Sincronizando com {profile.name}</p>
+                                    <p className="text-xs text-gray-600 truncate max-w-[150px]">Sincronizando com {profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
