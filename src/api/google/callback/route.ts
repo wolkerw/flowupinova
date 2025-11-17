@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Busca os detalhes completos da localização usando a Business Information API
-        const myBizInfo = google.mybusinessbusinessinformation({
+        const myBizInfo = google.businessprofile({
             version: 'v1',
             auth: oauth2Client
         });
