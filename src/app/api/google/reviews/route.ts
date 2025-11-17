@@ -16,12 +16,30 @@ export async function GET(request: NextRequest) {
         }
         
         // A API de avaliações espera o formato "accounts/{accountId}/locations/{locationId}"
-        const accountId = profile.googleName.split('/')[0]; // Extrai "accounts"
-        const locationId = profile.googleName.split('/')[1]; // Extrai "{locationId}"
-        const parentName = `accounts/${accountId}/locations/${locationId}`;
-
-
+        // No entanto, a biblioteca googleapis abstrai isso, e precisamos do 'parent' correto.
+        // O `googleName` (locations/...) não é o parent direto.
+        // O `parent` precisa ser `accounts/{accountId}`. A API de reviews usa o `parent` da location.
+        // O `googleName` é no formato 'locations/{locationId}' mas a API de reviews precisa de 'accounts/{accountId}/locations/{locationId}'
+        // Vamos precisar buscar as contas primeiro.
+        
         const oauth2Client = await getAuthenticatedGoogleClient(uid);
+        
+        const myBizAccount = google.mybusinessaccountmanagement({
+            version: 'v1',
+            auth: oauth2Client
+        });
+
+        const accountsResponse = await myBizAccount.accounts.list();
+        const accounts = accountsResponse.data.accounts;
+
+        if (!accounts || accounts.length === 0) {
+            throw new Error("Nenhuma conta do Google Meu Negócio encontrada.");
+        }
+        
+        // Assume a primeira conta. Em um app mais complexo, permitiria ao usuário escolher.
+        const accountName = accounts[0].name; // Formato: accounts/{accountId}
+        const parentName = `${accountName}/${profile.googleName}`;
+
 
         const myBusinessReviews = google.mybusinessreviews({
             version: 'v1',

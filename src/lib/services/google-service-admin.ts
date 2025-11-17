@@ -4,48 +4,44 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { google } from "googleapis";
 import type { BusinessProfileData } from "./business-profile-service";
+import type { MetaConnectionData } from "./meta-service";
 
 /**
- * Retrieves the Google connection data (including the crucial refresh token) from Firestore.
+ * Retrieves the Meta connection data, which includes the necessary Google access token.
  * @param userId The UID of the user.
- * @returns The user's Google connection data.
+ * @returns The user's Meta/Google connection data.
  * @throws An error if the connection data is not found or is invalid.
  */
-async function getGoogleConnection(userId: string): Promise<any> {
-    const connDoc = await adminDb.collection('users').doc(userId).collection('connections').doc('google').get();
+async function getMetaConnectionForGoogle(userId: string): Promise<MetaConnectionData> {
+    const connDoc = await adminDb.collection('users').doc(userId).collection('connections').doc('meta').get();
     if (!connDoc.exists) {
-        throw new Error("Conexão com o Google não encontrada.");
+        throw new Error("Conexão com a Meta/Google não encontrada. Por favor, reconecte sua conta.");
     }
-    return connDoc.data();
+    return connDoc.data() as MetaConnectionData;
 }
 
+
 /**
- * Creates and returns an authenticated Google OAuth2 client using the stored refresh token.
- * This client will automatically handle access token refreshing.
+ * Creates and returns an authenticated Google OAuth2 client using the stored access token.
+ * This is a simplified client for making direct API calls, as we are not using a refresh token flow here.
+ * The access token is expected to be a long-lived page access token.
  * @param userId The UID of the user.
  * @returns An authenticated OAuth2 client instance.
  */
 export async function getAuthenticatedGoogleClient(userId: string) {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-        throw new Error("Credenciais do cliente Google não estão configuradas no servidor.");
-    }
     if (!userId) {
         throw new Error("UserID é necessário para autenticar com o Google.");
     }
     
-    // For server-side, we can directly access the stored refresh token
-    const connectionData = await getGoogleConnection(userId);
-    if (!connectionData.refreshToken) {
-        throw new Error("Token de atualização do Google não encontrado. Por favor, reconecte sua conta.");
+    // The access token is stored in the 'meta' connection document.
+    const connectionData = await getMetaConnectionForGoogle(userId);
+    if (!connectionData.accessToken) {
+        throw new Error("Token de acesso do Google não encontrado. Por favor, reconecte sua conta.");
     }
 
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-    );
-
+    const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials({
-        refresh_token: connectionData.refreshToken,
+        access_token: connectionData.accessToken,
     });
 
     return oauth2Client;
