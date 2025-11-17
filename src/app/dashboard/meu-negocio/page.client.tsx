@@ -64,13 +64,13 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
         animate={{ opacity: 1, y: 0 }}
     >
         <Card className="shadow-lg border-none h-full">
-            <CardContent className="p-4 flex items-center justify-center">
+            <CardContent className="p-4 flex items-center">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center h-[72px]">
+                    <div className="flex flex-col items-center justify-center h-[72px] w-full">
                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center gap-4">
+                    <div className="flex items-center justify-start gap-4 w-full">
                         <div className="bg-blue-100 p-2 rounded-lg">
                            <Icon className="w-5 h-5 text-blue-600" />
                         </div>
@@ -432,11 +432,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
        <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
-                <MetricCard title="Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
-                <MetricCard title="Mapas" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+                <MetricCard title="Visualizações na pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+                <MetricCard title="Visualizações no Google Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard title="Acessos ao site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
+                <MetricCard title="Cliques para acessar o site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
                 <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
                 <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
             </div>
@@ -629,3 +629,4 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
