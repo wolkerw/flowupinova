@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         const businessProfileData = {
             name: location.title || 'Nome não encontrado',
             googleName: location.name, // Ex: locations/12345
-            category: location.categories?.[0]?.displayName || 'Categoria não encontrada',
+            category: location.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
             address: location.storefrontAddress ? 
                      `${location.storefrontAddress.addressLines?.join(', ')}, ${location.storefrontAddress.locality}, ${location.storefrontAddress.administrativeArea} - ${location.storefrontAddress.postalCode}` 
                      : 'Endereço não encontrado',
