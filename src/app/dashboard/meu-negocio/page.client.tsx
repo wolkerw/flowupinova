@@ -21,6 +21,7 @@ import {
   Info,
   Link as LinkIcon,
   User,
+  Image as ImageIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -29,10 +30,18 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
+import Image from 'next/image';
 
 interface MeuNegocioClientProps {
     initialProfile: BusinessProfileData;
 }
+
+interface GoogleMedia {
+    coverPhoto: { url: string; thumbnailUrl: string; } | null;
+    profilePhoto: { url: string; thumbnailUrl: string; } | null;
+    gallery: { url: string; thumbnailUrl: string; }[];
+}
+
 
 const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, value: string, icon: React.ElementType, loading: boolean }) => (
     <motion.div
@@ -79,7 +88,7 @@ const ReviewCard = ({ review }: { review: any }) => {
                 <div className="flex items-center gap-3">
                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                         {review.reviewer.profilePhotoUrl ? (
-                            <img src={review.reviewer.profilePhotoUrl} alt={review.reviewer.displayName} className="w-full h-full object-cover" />
+                            <Image src={review.reviewer.profilePhotoUrl} alt={review.reviewer.displayName} width={40} height={40} className="w-full h-full object-cover" />
                         ) : (
                             <User className="w-5 h-5 text-gray-500"/>
                         )}
@@ -112,11 +121,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [dataLoading, setDataLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [mediaLoading, setMediaLoading] = useState(true);
   
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
   const [formState, setFormState] = useState<BusinessProfileData>(initialProfile);
   const [metrics, setMetrics] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [media, setMedia] = useState<GoogleMedia | null>(null);
 
   const { user, loading: userLoading } = useAuth();
   const { toast } = useToast();
@@ -128,6 +139,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setDataLoading(true);
     setMetricsLoading(true);
     setReviewsLoading(true);
+    setMediaLoading(true);
+
     try {
         const [fetchedProfile, googleConn] = await Promise.all([
             getBusinessProfile(user.uid),
@@ -168,16 +181,35 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 if(reviewsData.success) setReviews(reviewsData.reviews || []);
             }
              setReviewsLoading(false);
+             
+            // Fetch Media
+            const mediaResponse = await fetch('/api/google/media', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accessToken: googleConn.accessToken,
+                    accountId: googleConn.accountId,
+                    locationId: locationId
+                })
+            });
+            if (mediaResponse.ok) {
+                const mediaData = await mediaResponse.json();
+                if (mediaData.success) setMedia(mediaData.media);
+            }
+            setMediaLoading(false);
+
 
         } else {
             setMetricsLoading(false);
             setReviewsLoading(false);
+            setMediaLoading(false);
         }
     } catch (error: any) {
         toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${error.message}`, variant: "destructive" });
         setDataLoading(false);
         setMetricsLoading(false);
         setReviewsLoading(false);
+        setMediaLoading(false);
     }
   }, [user, toast]);
 
@@ -386,6 +418,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
               <Card className="shadow-lg border-none relative">
                  {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
+                 
+                {media?.coverPhoto?.url && (
+                    <div className="aspect-video relative w-full rounded-t-lg overflow-hidden bg-gray-100">
+                        <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover"/>
+                    </div>
+                )}
+                 
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5 text-blue-500" /> Perfil do Negócio</CardTitle>
                   {!editingProfile && (
@@ -394,8 +433,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center overflow-hidden">
-                            {profile.logo?.url ? <img src={profile.logo.url} alt="Logo" className="w-full h-full object-contain p-2"/> : <Building2 className="w-8 h-8 text-white" />}
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                           {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={64} height={64} className="w-full h-full object-cover"/> : <Building2 className="w-8 h-8 text-gray-400" />}
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-gray-900">{profile.name}</h3>
@@ -460,6 +499,35 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               </Card>
             </motion.div>
           </div>
+          {/* Galeria de Fotos */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="shadow-lg border-none">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos</CardTitle></CardHeader>
+                    <CardContent>
+                        {mediaLoading ? (
+                             <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                        ) : media && media.gallery.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {media.gallery.map((item, index) => (
+                                    <div key={index} className="aspect-square relative rounded-lg overflow-hidden group">
+                                        <Image src={item.thumbnailUrl || item.url} alt={`Foto da galeria ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300"/>
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer">
+                                                <Search className="w-8 h-8 text-white" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                             <div className="text-center text-gray-500 py-10">
+                                <ImageIcon className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                <p>Nenhuma foto na galeria.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </motion.div>
         </>
       )}
     </div>
