@@ -456,7 +456,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         )}
                         <div className="flex-grow pb-2">
-                             <CardTitle className="flex items-center gap-2 text-2xl">{profile.name}</CardTitle>
+                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
                              {profile.isVerified && (
                                 <div className="flex items-center gap-2 mt-2 text-sm">
                                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
@@ -606,4 +606,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
