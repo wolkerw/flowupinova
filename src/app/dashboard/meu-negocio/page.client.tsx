@@ -64,7 +64,7 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
         animate={{ opacity: 1, y: 0 }}
     >
         <Card className="shadow-lg border-none h-full">
-            <CardContent className="p-4 flex items-center justify-start gap-4 w-full">
+            <CardContent className="p-4 flex items-start justify-start gap-4 w-full">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-[72px] w-full">
                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
@@ -451,22 +451,24 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     
                     <div className="h-48 bg-gray-100 rounded-t-lg relative">
                         {profile.isVerified && media?.coverPhoto?.url ? (
-                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="contain" className="rounded-t-lg"/>
+                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
                         ) : (
                            <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
                         )}
                     </div>
-                    
+
                     <div className="px-6 pb-6">
                         <div className="flex items-end gap-6 -mt-12">
                            <div className="relative z-10">
-                               {profile.isVerified && (
-                                   <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                                       {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
-                                   </div>
-                               )}
+                               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                   {profile.isVerified && media?.profilePhoto?.url ? (
+                                       <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
+                                   ) : (
+                                       <Building2 className="w-12 h-12 text-gray-400" />
+                                   )}
+                               </div>
                            </div>
-                           <div className="flex-grow pb-2 pt-14"> {/* Added padding-top */}
+                           <div className="pt-14 pb-2">
                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
                                {profile.isVerified && (
                                    <div className="flex items-center gap-2 mt-1 text-sm">
