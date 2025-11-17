@@ -33,6 +33,14 @@ import {
   ShoppingCart,
   MousePointer,
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getGoogleConnection, updateGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
@@ -155,6 +163,76 @@ const ConnectGoogleCard = ({ onConnect, loading }: { onConnect: () => void, load
     </Card>
 );
 
+const ProfileSelectionModal = ({
+  isOpen,
+  profiles,
+  onSelect,
+  onCancel,
+}: {
+  isOpen: boolean;
+  profiles: BusinessProfileData[];
+  onSelect: (profile: BusinessProfileData) => void;
+  onCancel: () => void;
+}) => {
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    profiles.length > 0 ? profiles[0].googleName || null : null
+  );
+
+  const handleSelect = () => {
+    const profile = profiles.find((p) => p.googleName === selectedProfileId);
+    if (profile) {
+      onSelect(profile);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Selecione um Perfil de Empresa</DialogTitle>
+          <DialogDescription>
+            Encontramos mais de um negócio associado a esta conta Google. Por
+            favor, escolha qual você deseja conectar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 max-h-80 overflow-y-auto">
+          <RadioGroup
+            value={selectedProfileId || ''}
+            onValueChange={setSelectedProfileId}
+            className="space-y-3"
+          >
+            {profiles.map((profile) => (
+              <Label
+                key={profile.googleName}
+                htmlFor={profile.googleName}
+                className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+              >
+                <RadioGroupItem
+                  value={profile.googleName || ''}
+                  id={profile.googleName}
+                />
+                <div>
+                  <p className="font-semibold text-gray-800">{profile.name}</p>
+                  <p className="text-sm text-gray-500">{profile.address}</p>
+                </div>
+              </Label>
+            ))}
+          </RadioGroup>
+        </div>
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSelect} disabled={!selectedProfileId}>
+            Conectar Perfil
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
   const [authLoading, setAuthLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -168,6 +246,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
   const [keywords, setKeywords] = useState<any[]>([]);
+
+  // State for profile selection modal
+  const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+  const [pendingProfiles, setPendingProfiles] = useState<BusinessProfileData[]>([]);
+  const [pendingConnectionData, setPendingConnectionData] = useState<any>(null);
+  const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
+
 
   const { user, loading: userLoading } = useAuth();
   const { toast } = useToast();
@@ -296,6 +381,43 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   }, [user, fetchFullProfile]);
 
+  const handleProfileSelection = async (selectedProfileData?: BusinessProfileData) => {
+    if (!user || !pendingConnectionData || !pendingAccountId) {
+      toast({ title: "Erro", description: "Dados da conexão não encontrados.", variant: "destructive" });
+      setIsSelectionModalOpen(false);
+      return;
+    }
+    if (!selectedProfileData) {
+        toast({ title: "Erro", description: "Nenhum perfil foi selecionado.", variant: "destructive" });
+        return;
+    }
+
+    setAuthLoading(true);
+    setIsSelectionModalOpen(false);
+
+    try {
+      await updateGoogleConnection(user.uid, {
+        ...pendingConnectionData,
+        isConnected: true,
+        accountId: pendingAccountId,
+      });
+      
+      await updateBusinessProfile(user.uid, selectedProfileData);
+
+      toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
+      await fetchFullProfile();
+
+    } catch (error: any) {
+       toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
+    } finally {
+       setAuthLoading(false);
+       setPendingProfiles([]);
+       setPendingConnectionData(null);
+       setPendingAccountId(null);
+    }
+  };
+
+
   const handleTokenExchange = useCallback(async (code: string, state: string | null) => {
     if (!user) {
         toast({ title: "Erro de Autenticação", description: "O usuário não foi encontrado para salvar os dados.", variant: "destructive" });
@@ -315,16 +437,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       if (!response.ok || !result.success) {
           throw new Error(result.error || "Ocorreu um erro desconhecido durante a conexão.");
       }
-      
-      await updateGoogleConnection(user.uid, {
-          ...result.connectionData,
-          isConnected: true,
-          accountId: result.accountId,
-      });
-      await updateBusinessProfile(user.uid, result.businessProfileData);
 
-      toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
-      await fetchFullProfile();
+      if (result.businessProfiles && result.businessProfiles.length > 1) {
+          setPendingProfiles(result.businessProfiles);
+          setPendingConnectionData(result.connectionData);
+          setPendingAccountId(result.accountId);
+          setIsSelectionModalOpen(true);
+      } else if (result.businessProfiles && result.businessProfiles.length === 1) {
+          await updateGoogleConnection(user.uid, { ...result.connectionData, isConnected: true, accountId: result.accountId });
+          await updateBusinessProfile(user.uid, result.businessProfiles[0]);
+          toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
+          await fetchFullProfile();
+      } else {
+          throw new Error("Nenhum perfil de empresa válido foi encontrado para esta conta Google.");
+      }
+
 
     } catch (err: any) {
       toast({ title: "Erro na Conexão", description: err.message, variant: "destructive" });
@@ -402,6 +529,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+       <ProfileSelectionModal
+        isOpen={isSelectionModalOpen}
+        profiles={pendingProfiles}
+        onSelect={handleProfileSelection}
+        onCancel={() => {
+          setIsSelectionModalOpen(false);
+          setPendingProfiles([]);
+          setPendingConnectionData(null);
+          setPendingAccountId(null);
+        }}
+      />
+
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
@@ -620,6 +759,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
+                                    <p className="text-xs text-gray-600">Sincronizando com {profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
