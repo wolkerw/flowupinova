@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -488,7 +488,14 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           setPendingAccountId(result.accountId);
           setIsSelectionModalOpen(true);
       } else if (result.businessProfiles && result.businessProfiles.length === 1) {
-          await handleProfileSelection(result.businessProfiles[0]);
+          await updateGoogleConnection(user.uid, {
+            ...result.connectionData,
+            isConnected: true,
+            accountId: result.accountId,
+          });
+          await updateBusinessProfile(user.uid, result.businessProfiles[0]);
+          toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
+          await fetchFullProfile();
       } else {
           throw new Error("Nenhum perfil de empresa válido foi encontrado para esta conta Google.");
       }
@@ -500,7 +507,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       router.replace('/dashboard/meu-negocio');
       setAuthLoading(false);
     }
-  }, [user, toast, router, fetchFullProfile, handleProfileSelection]);
+  }, [user, toast, router, fetchFullProfile]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -673,7 +680,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         </div>
 
                         <div className="relative px-6 pb-6">
-                            <div className="pt-14 pb-2">
+                             <div className="pt-14 pb-2">
                                 <CardTitle className="text-2xl">{profile.name}</CardTitle>
                                 {profile.isVerified && (
                                     <div className="flex items-center gap-2 mt-1 text-sm">
@@ -805,12 +812,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-start justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                                 <div className="flex items-center gap-3">
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-xs text-gray-600 truncate max-w-[150px]">{profile.name}</p>
+                                    <p className="text-sm text-gray-700 truncate" title={profile.name}>{profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
