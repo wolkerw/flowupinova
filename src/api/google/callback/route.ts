@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         }
         const accountId = primaryAccount.name.split('/')[1];
 
-        // 1. Lista as localizações para encontrar o ID da localização
+        // 1. Lista as localizações apenas para encontrar o ID da localização principal
         const locationsList = await myBizAccount.accounts.locations.list({
             parent: primaryAccount.name,
         });
