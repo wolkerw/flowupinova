@@ -44,7 +44,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getGoogleConnection, updateGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
