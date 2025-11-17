@@ -23,6 +23,7 @@ import {
   User,
   Image as ImageIcon,
   Calendar as CalendarIcon,
+  Eye,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -151,6 +152,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     from: addDays(new Date(), -30),
     to: new Date(),
   });
+  
+  const totalViews = (metrics?.viewsSearch || 0) + (metrics?.viewsMaps || 0);
 
   const fetchFullProfile = useCallback(async () => {
     if (!user) return;
@@ -203,8 +206,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 const reviewsData = await reviewsResponse.json();
                 if(reviewsData.success) {
                     setReviews(reviewsData.reviews || []);
-                    if (reviewsData.averageRating) {
-                        setProfile(prev => ({...prev, rating: reviewsData.averageRating}));
+                     if (reviewsData.averageRating) {
+                        setProfile(prev => ({...prev, rating: reviewsData.averageRating, totalReviews: reviewsData.reviews.length}));
                     }
                 }
             }
@@ -469,9 +472,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       {profile.isVerified && (
         <>
           {/* Métricas */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-            <MetricCard title="Visualizações (Busca)" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
-            <MetricCard title="Visualizações (Mapas)" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+            <MetricCard title="Visualizações Totais" value={totalViews.toLocaleString() || '0'} icon={Eye} loading={metricsLoading}/>
+            <MetricCard title="Visualizações na Pesquisa" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+            <MetricCard title="Visualizações no Maps" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
             <MetricCard title="Cliques no Site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
             <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
             <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
@@ -506,7 +510,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             <div className="flex items-center gap-2 mt-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                 <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                <span className="text-gray-600">({reviews.length > 0 ? reviews.length : 0} avaliações)</span>
+                                <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
                             </div>
                         </div>
                     </div>
