@@ -32,8 +32,6 @@ export async function POST(request: NextRequest) {
             throw new Error("Não foi possível obter os tokens de acesso do Google.");
         }
         
-        oauth2Client.setCredentials(tokens);
-
         // 1. Usa a API de Gerenciamento de Contas para listar as contas e pegar o ID da conta primária
         const myBizAccount = google.mybusinessaccountmanagement({
             version: 'v1',
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
         }
         const accountId = primaryAccount.name.split('/')[1];
         
-        // 2. Usa a mesma API de Gerenciamento de Contas para listar as localizações e obter o ID da localização principal
+        // 2. Usa a mesma API para listar as localizações e obter o ID da localização principal
         const locationsList = await myBizAccount.accounts.locations.list({
             parent: primaryAccount.name,
         });
@@ -67,18 +65,23 @@ export async function POST(request: NextRequest) {
           throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
         }
 
-        // 3. Usa a API de Informações de Negócio (`businessprofile`) para buscar os detalhes completos da localização
-        const myBizInfo = google.businessprofile({
-            version: 'v1',
-            auth: oauth2Client
-        });
+        // 3. Usa FETCH para buscar os detalhes completos da localização, como no Postman
+        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours";
+        const locationDetailsResponse = await fetch(
+            `https://mybusinessbusinessinformation.googleapis.com/v1/${baseLocation.name}?readMask=${encodeURIComponent(readMask)}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${tokens.access_token}`,
+                },
+            }
+        );
 
-        const fullLocationResponse = await myBizInfo.locations.get({
-            name: baseLocation.name,
-            readMask: "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,regularHours",
-        });
-
-        const location = fullLocationResponse.data;
+        if (!locationDetailsResponse.ok) {
+            const errorData = await locationDetailsResponse.json();
+            throw new Error(`Falha ao buscar detalhes da localização: ${errorData.error?.message || 'Erro desconhecido'}`);
+        }
+        
+        const location = await locationDetailsResponse.json();
 
         // 4. Monta o objeto que será enviado para o frontend com os dados detalhados
         const businessProfileData = {
