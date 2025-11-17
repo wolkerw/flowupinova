@@ -70,7 +70,7 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                     </div>
                 ) : (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center gap-4">
                         <div className="bg-blue-100 p-2 rounded-lg">
                            <Icon className="w-5 h-5 text-blue-600" />
                         </div>
@@ -625,5 +625,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
