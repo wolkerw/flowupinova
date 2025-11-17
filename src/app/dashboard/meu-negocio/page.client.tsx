@@ -444,12 +444,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                  
                  <div className="p-6 pb-0 relative">
                     {profile.isVerified && media?.coverPhoto?.url && (
-                        <div className="aspect-[21/9] relative w-full rounded-lg overflow-hidden bg-gray-100 mb-[-50px]">
+                        <div className="aspect-[21/9] relative w-full rounded-lg overflow-hidden bg-gray-100">
                             <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover"/>
                         </div>
                     )}
                     
-                    <div className="relative z-10 flex items-end gap-6">
+                    <div className="relative z-10 flex items-end gap-6 -mt-12">
                         {profile.isVerified && (
                             <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
                                {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
@@ -479,32 +479,38 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               </Card>
             </motion.div>
 
-            {profile.isVerified && (
-              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-                  <Card className="shadow-lg border-none h-full">
-                      <CardHeader><CardTitle className="flex items-center gap-2"><Key className="w-5 h-5 text-green-500" />Palavras-chave de Busca</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                         {keywordsLoading ? (
-                              <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                          ) : keywords.length > 0 ? (
-                                  keywords.map((kw, index) => (
-                                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
-                                          <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
-                                          <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
-                                      </div>
-                                  ))
-                          ) : (
-                              <div className="text-center text-gray-500 py-10">
-                                  <Key className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
-                                  <p>Nenhuma palavra-chave encontrada para o período.</p>
-                              </div>
-                          )}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <Card className="shadow-lg border-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="w-5 h-5 text-green-500" />
+                    Palavras-chave de Busca
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    {keywordsLoading ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                      </div>
+                    ) : keywords.length > 0 ? (
+                      keywords.map((kw, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                          <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                          <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
                         </div>
-                      </CardContent>
-                  </Card>
-              </motion.div>
-            )}
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-500 py-10">
+                        <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                        <p>Nenhuma palavra-chave encontrada para o período.</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
         </div>
         
         {/* Coluna Secundária (Direita) */}
@@ -550,10 +556,49 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                   </CardContent>
                 </Card>
             </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Card className="shadow-lg border-none">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                    <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {mediaLoading ? (
+                        <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        </div>
+                    ) : media && media.gallery.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                        {media.gallery.slice(0, 9).map((item, index) => (
+                            <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
+                            <Image
+                                src={item.thumbnailUrl || item.url}
+                                alt={`Foto da galeria ${index + 1}`}
+                                layout="fill"
+                                objectFit="cover"
+                                className="group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Search className="w-6 h-6 text-white" />
+                            </a>
+                            </div>
+                        ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 py-10">
+                        <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm">Nenhuma foto na galeria.</p>
+                        </div>
+                    )}
+                </CardContent>
+                </Card>
+            </motion.div>
             
             {profile.isVerified && (
                 <>
-                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                     <Card className="shadow-lg border-none h-full">
                       <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
                       <CardContent>
@@ -572,33 +617,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                       </CardContent>
                     </Card>
                   </motion.div>
-
-                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                    <Card className="shadow-lg border-none">
-                        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos</CardTitle></CardHeader>
-                        <CardContent>
-                            {mediaLoading ? (
-                                 <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                            ) : media && media.gallery.length > 0 ? (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {media.gallery.slice(0, 9).map((item, index) => (
-                                        <div key={index} className="aspect-square relative rounded-md overflow-hidden group">
-                                            <Image src={item.thumbnailUrl || item.url} alt={`Foto da galeria ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300"/>
-                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <Search className="w-6 h-6 text-white" />
-                                            </a>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                 <div className="text-center text-gray-500 py-10">
-                                    <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2"/>
-                                    <p className="text-sm">Nenhuma foto na galeria.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </motion.div>
                 </>
             )}
         </div>
@@ -606,3 +624,4 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
