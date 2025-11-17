@@ -240,8 +240,6 @@ const ProfileSelectionModal = ({
 };
 
 const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClose: () => void }) => {
-    const [isLoading, setIsLoading] = useState(true);
-
     if (!mediaItem) return null;
 
     const isVideo = mediaItem.mediaFormat === 'VIDEO';
@@ -254,11 +252,6 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
             onClick={onClose}
             className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
         >
-            {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <Loader2 className="w-10 h-10 text-white animate-spin" />
-                </div>
-            )}
             <motion.div
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
@@ -274,8 +267,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         loop
                         muted
                         playsInline
-                        onLoadedData={() => setIsLoading(false)}
-                        className={cn("rounded-lg", isLoading ? 'invisible' : 'visible')}
+                        className="rounded-lg"
                         style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
                     />
                 ) : (
@@ -285,20 +277,17 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
                         width={1920}
                         height={1080}
                         style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxHeight: '90vh', maxWidth: '90vw' }}
-                        className={cn("rounded-lg", isLoading ? 'invisible' : 'visible')}
-                        onLoad={() => setIsLoading(false)}
+                        className="rounded-lg"
                     />
                 )}
-                {!isLoading && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="absolute -top-2 -right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 z-30"
-                    >
-                        <X className="w-6 h-6" />
-                    </Button>
-                )}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="absolute -top-2 -right-2 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 z-30"
+                >
+                    <X className="w-6 h-6" />
+                </Button>
             </motion.div>
         </motion.div>
     );
@@ -844,7 +833,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                             <LinkIcon className="w-5 h-5 text-gray-700" />
-                            Integração Google Meu Negócio
+                            Integração Google
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -870,4 +859,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
