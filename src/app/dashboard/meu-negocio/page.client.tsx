@@ -127,7 +127,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setFormState(fetchedProfile);
         setDataLoading(false);
 
-        if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName) {
+        if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName && googleConn.accountId) {
             const locationId = fetchedProfile.googleName.split('/')[1];
 
             // Fetch Insights
@@ -146,7 +146,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             const reviewsResponse = await fetch('/api/google/reviews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken: googleConn.accessToken, parentName: fetchedProfile.googleName })
+                body: JSON.stringify({ 
+                    accessToken: googleConn.accessToken,
+                    accountId: googleConn.accountId,
+                    locationId: locationId
+                })
             });
             if (reviewsResponse.ok) {
                 const reviewsData = await reviewsResponse.json();
@@ -196,6 +200,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       await updateGoogleConnection(user.uid, {
           ...result.connectionData,
           isConnected: true,
+          accountId: result.accountId,
       });
       await updateBusinessProfile(user.uid, result.businessProfileData);
 
@@ -358,11 +363,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         <>
           {/* Métricas */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-            <MetricCard title="Visualizações (Busca)" value={metrics?.viewsSearch || '0'} icon={Search} loading={metricsLoading}/>
-            <MetricCard title="Visualizações (Mapas)" value={metrics?.viewsMaps || '0'} icon={MapPin} loading={metricsLoading}/>
-            <MetricCard title="Cliques no Site" value={metrics?.websiteClicks || '0'} icon={Globe} loading={metricsLoading}/>
-            <MetricCard title="Ligações" value={metrics?.phoneCalls || '0'} icon={Phone} loading={metricsLoading}/>
-            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests || '0'} icon={Users} loading={metricsLoading}/>
+            <MetricCard title="Visualizações (Busca)" value={metrics?.viewsSearch?.toLocaleString() || '0'} icon={Search} loading={metricsLoading}/>
+            <MetricCard title="Visualizações (Mapas)" value={metrics?.viewsMaps?.toLocaleString() || '0'} icon={MapPin} loading={metricsLoading}/>
+            <MetricCard title="Cliques no Site" value={metrics?.websiteClicks?.toLocaleString() || '0'} icon={Globe} loading={metricsLoading}/>
+            <MetricCard title="Ligações" value={metrics?.phoneCalls?.toLocaleString() || '0'} icon={Phone} loading={metricsLoading}/>
+            <MetricCard title="Solicitações de Rota" value={metrics?.directionsRequests?.toLocaleString() || '0'} icon={Users} loading={metricsLoading}/>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -11,6 +11,7 @@ export interface GoogleConnectionData {
     accessToken?: string;
     refreshToken?: string | null; // Refresh token is crucial
     expiryDate?: number | null;
+    accountId?: string;
 }
 
 const defaultConnection: GoogleConnectionData = {
@@ -75,7 +76,8 @@ export async function updateGoogleConnection(userId: string, connectionData: Par
                 refreshToken: deleteField(),
                 expiryDate: deleteField(),
                 connectedAt: deleteField(),
-                error: deleteField()
+                error: deleteField(),
+                accountId: deleteField()
             };
         } else if (connectionData.isConnected === true) {
             dataToSet.connectedAt = new Date();
