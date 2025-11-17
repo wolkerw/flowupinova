@@ -64,13 +64,13 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
         animate={{ opacity: 1, y: 0 }}
     >
         <Card className="shadow-lg border-none h-full">
-            <CardContent className="p-4 flex items-center">
+            <CardContent className="p-4 flex items-center justify-start gap-4 w-full">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-[72px] w-full">
                         <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                     </div>
                 ) : (
-                    <div className="flex items-center justify-start gap-4 w-full">
+                    <>
                         <div className="bg-blue-100 p-2 rounded-lg">
                            <Icon className="w-5 h-5 text-blue-600" />
                         </div>
@@ -78,7 +78,7 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
                             <p className="text-xs text-gray-600">{title}</p>
                             <p className="text-lg font-bold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</p>
                         </div>
-                    </div>
+                    </>
                 )}
             </CardContent>
         </Card>
@@ -446,39 +446,39 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         {/* Coluna Principal (Esquerda) */}
         <div className="lg:col-span-2 space-y-8">
              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <Card className="shadow-lg border-none relative overflow-visible">
+                <Card className="shadow-lg border-none relative overflow-hidden">
                     {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                     
                     <div className="h-48 bg-gray-100 rounded-t-lg relative">
                         {profile.isVerified && media?.coverPhoto?.url ? (
-                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" className="rounded-t-lg"/>
+                            <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="contain" className="rounded-t-lg"/>
                         ) : (
                            <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
                         )}
                     </div>
                     
-                    <div className="relative px-6 pb-6">
+                    <div className="px-6 pb-6">
                         <div className="flex items-end gap-6 -mt-12">
-                            <div className="relative z-10">
-                                {profile.isVerified && (
-                                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                                        {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex-grow pb-2">
-                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                                {profile.isVerified && (
-                                    <div className="flex items-center gap-2 mt-1 text-sm">
-                                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                        <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                        <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
-                                    </div>
-                                )}
-                            </div>
+                           <div className="relative z-10">
+                               {profile.isVerified && (
+                                   <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                       {media?.profilePhoto?.url ? <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/> : <Building2 className="w-12 h-12 text-gray-400" />}
+                                   </div>
+                               )}
+                           </div>
+                           <div className="flex-grow pb-2 pt-14"> {/* Added padding-top */}
+                               <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                               {profile.isVerified && (
+                                   <div className="flex items-center gap-2 mt-1 text-sm">
+                                       <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                       <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                       <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                   </div>
+                               )}
+                           </div>
                         </div>
 
-                        <div className="space-y-3 pt-6 border-t mt-6">
+                        <div className="space-y-3 pt-6 border-t mt-4">
                             <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
                             <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
