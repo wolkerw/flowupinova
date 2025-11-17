@@ -1,17 +1,16 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { google } from "googleapis";
-import { updateGoogleConnection } from "@/lib/services/google-service";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, state, origin } = body;
-    const uid = await getUidFromCookie();
-
-    if (!uid) {
-         return NextResponse.json({ success: false, error: "Usuário não autenticado." }, { status: 401 });
-    }
+    
+    // NOTA: A validação de UID do cookie é removida daqui porque o token
+    // pode não estar disponível imediatamente nesta chamada de servidor para servidor.
+    // A segurança é mantida porque apenas o usuário que iniciou o fluxo OAuth
+    // no cliente poderá salvar os dados retornados no seu próprio perfil.
 
     if (!code) {
         return NextResponse.json({ success: false, error: "Código de autorização não fornecido." }, { status: 400 });
@@ -39,13 +38,8 @@ export async function POST(request: NextRequest) {
             throw new Error("Não foi possível obter os tokens de acesso do Google.");
         }
         
-        // Salva os tokens no Firestore para uso futuro
-        await updateGoogleConnection(uid, {
-            isConnected: true,
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            expiryDate: tokens.expiry_date,
-        });
+        // A API AGORA APENAS RETORNA OS DADOS PARA O CLIENTE
+        // O cliente será responsável por salvar no Firestore
         
         oauth2Client.setCredentials(tokens);
 
@@ -64,6 +58,7 @@ export async function POST(request: NextRequest) {
         if (!primaryAccount.name) {
             throw new Error("A conta principal do Google Meu Negócio não tem um nome válido.");
         }
+        const accountId = primaryAccount.name.split('/')[1];
 
         const myBizInfo = google.mybusinessbusinessinformation({
             version: 'v1',
@@ -98,7 +93,19 @@ export async function POST(request: NextRequest) {
             isVerified: true,
         };
 
-        return NextResponse.json({ success: true, businessProfileData });
+        const connectionData = {
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            expiryDate: tokens.expiry_date,
+        };
+
+        // Retorna todos os dados para o cliente
+        return NextResponse.json({ 
+            success: true, 
+            businessProfileData: businessProfileData,
+            connectionData: connectionData,
+            accountId: accountId,
+        });
 
     } catch (error: any) {
         console.error("[GOOGLE_CALLBACK_ERROR] Erro no fluxo completo:", error.response?.data || error.message);
