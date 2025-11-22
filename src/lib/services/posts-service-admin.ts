@@ -6,52 +6,47 @@ import type { PostData } from "./posts-service";
 import { FieldValue } from "firebase-admin/firestore";
 
 /**
- * Busca posts agendados ou em publicação para processamento pelo CRON.
- * Esta versão simplificada busca todos os documentos com status relevante e
- * a verificação da data é feita no código do servidor para evitar a necessidade
- * de um índice composto complexo no Firestore.
+ * Busca posts agendados que já passaram da hora de publicação.
+ * Esta consulta requer um índice composto no Firestore.
  */
 export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?: string })[]> {
     const now = new Date();
-    console.log(`[CRON_V2] Buscando posts 'scheduled' ou 'publishing' para verificação. Horário atual: ${now.toISOString()}`);
+    console.log(`[CRON_V2] Buscando posts agendados com data anterior a: ${now.toISOString()}`);
     
-    const processingStatus = ['scheduled', 'publishing'];
-    // Consulta simplificada para evitar erro de índice.
-    const postsQuery = adminDb.collectionGroup('posts').where('status', 'in', processingStatus);
+    // Consulta otimizada que requer um índice: (posts, status ASC, scheduledAt ASC)
+    const postsQuery = adminDb.collectionGroup('posts')
+                              .where('status', '==', 'scheduled')
+                              .where('scheduledAt', '<=', now)
+                              .orderBy('scheduledAt', 'asc');
 
     try {
         const querySnapshot = await postsQuery.get();
-        const postsToProcess: (PostData & { _parentPath?: string })[] = [];
         
         if (querySnapshot.empty) {
-            console.log("[CRON_V2] Nenhum post com status 'scheduled' ou 'publishing' foi encontrado no banco de dados.");
+            console.log("[CRON_V2] Nenhum post agendado encontrado para o momento.");
             return [];
         }
         
-        console.log(`[CRON_V2] Verificando ${querySnapshot.docs.length} post(s) com status 'scheduled' ou 'publishing'.`);
-        
-        // Filtra os posts no lado do servidor para ver se a data de agendamento já passou
+        const postsToProcess: (PostData & { _parentPath?: string })[] = [];
         querySnapshot.docs.forEach(doc => {
-            const postData = doc.data() as PostData;
-            // O Firestore armazena Timestamp, então precisamos convertê-lo para Date
-            const scheduledAt = (postData.scheduledAt as any).toDate();
-
-            if (scheduledAt <= now) {
-                postsToProcess.push({
-                    ...postData,
-                    id: doc.id,
-                    _parentPath: doc.ref.parent.parent?.path, // Caminho para o documento do usuário (ex: users/userId)
-                    scheduledAt: scheduledAt, // Garante que a data já é um objeto Date
-                });
-            }
+            postsToProcess.push({
+                ...(doc.data() as PostData),
+                id: doc.id,
+                _parentPath: doc.ref.parent.parent?.path, // Caminho para o doc do usuário (ex: users/userId)
+                scheduledAt: (doc.data().scheduledAt as any).toDate(),
+            });
         });
         
-        console.log(`[CRON_V2] ${postsToProcess.length} post(s) estão com a data de publicação vencida e prontos para processar.`);
+        console.log(`[CRON_V2] ${postsToProcess.length} post(s) encontrados e prontos para processar.`);
         return postsToProcess;
 
     } catch (error: any) {
         console.error("[CRON_V2_ERROR] Erro crítico ao buscar posts agendados:", error);
-        throw error; // Lança o erro para ser capturado pela rota da API
+        // Se o erro for FAILED_PRECONDITION, o log agora será muito claro sobre a necessidade do índice.
+        if (error.code === 'failed-precondition') {
+             console.error("[CRON_V2_FATAL] A consulta falhou porque o índice composto do Firestore não foi criado. Por favor, crie o índice conforme as instruções.");
+        }
+        throw error;
     }
 }
 
