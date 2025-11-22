@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   //   return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   // }
   
-  console.log("[CRON1_JOB] Iniciando verificação de posts agendados...");
+  console.log("[CRON_JOB] Iniciando verificação de posts agendados...");
 
   let processedCount = 0;
   let failedCount = 0;
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        const errorMessage = `[CRON1_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}.`;
+        const errorMessage = `[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}.`;
         console.error(errorMessage, { cause: publishError.cause, stack: publishError.stack });
         failedCount++;
         await updatePostStatus(userPath, postId, {
