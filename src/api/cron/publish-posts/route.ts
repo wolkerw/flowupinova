@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   console.log("==============================================");
   console.log("[CRON] RECEBIDO POST DO SCHEDULER");
-  console.log("[CRON] Origin detectado:", request.nextUrl.origin);
-  console.log("[CRON] URL acessada:", request.nextUrl.href);
+  console.log(`[CRON] Origin detectado: ${request.nextUrl.origin}`);
+  console.log(`[CRON] URL acessada: ${request.nextUrl.href}`);
   console.log("==============================================");
 
   let processedCount = 0;
@@ -20,7 +20,9 @@ export async function POST(request: NextRequest) {
     const duePosts = await getDueScheduledPosts();
 
     console.log(`[CRON] Posts retornados pelo banco: ${duePosts.length}`);
-    console.log("[CRON] Conteúdo dos posts:", JSON.stringify(duePosts, null, 2));
+    if (duePosts.length > 0) {
+      console.log("[CRON] Conteúdo dos posts:", JSON.stringify(duePosts, null, 2));
+    }
 
     if (duePosts.length === 0) {
       console.log("[CRON] Nenhum post agendado encontrado. Encerrando.");
@@ -72,39 +74,39 @@ export async function POST(request: NextRequest) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
-          } catch (networkErr) {
-            console.error(`[CRON] ERRO DE REDE ao chamar ${platform}:`, networkErr);
-            throw new Error(`NETWORK ERROR (${platform}): ${networkErr}`);
+          } catch (networkErr: any) {
+            console.error(`[CRON] ERRO DE REDE ao chamar ${platform}:`, networkErr.message);
+            throw new Error(`Falha de rede ao tentar publicar no ${platform}: ${networkErr.message}`);
           }
 
-          console.log(`[CRON] Código HTTP retornado pela publish API:`, response.status);
+          console.log(`[CRON] Código HTTP retornado pela publish API: ${response.status}`);
 
           let responseText;
           try {
             responseText = await response.text();
-          } catch (parseErr) {
-            console.error(`[CRON] Erro ao ler corpo da resposta de ${platform}:`, parseErr);
-            throw new Error(`BODY READ ERROR (${platform})`);
+          } catch (parseErr: any) {
+            console.error(`[CRON] Erro ao ler corpo da resposta de ${platform}:`, parseErr.message);
+            throw new Error(`Falha ao ler corpo da resposta da API de ${platform}`);
           }
 
           console.log(`[CRON] Corpo retornado:`, responseText);
 
           if (!response.ok) {
-            throw new Error(`Falha da API interna (${platform}): HTTP ${response.status}: ${responseText}`);
+            throw new Error(`Falha na API interna de ${platform}: HTTP ${response.status} - ${responseText}`);
           }
 
           let resultJson;
           try {
             resultJson = JSON.parse(responseText);
-          } catch (errJson) {
-            console.error(`[CRON] ERRO ao parsear JSON da resposta (${platform}):`, errJson);
-            throw new Error(`INVALID JSON (${platform})`);
+          } catch (errJson: any) {
+            console.error(`[CRON] ERRO ao parsear JSON da resposta (${platform}):`, errJson.message);
+            throw new Error(`Resposta inválida (não-JSON) da API de ${platform}`);
           }
 
           console.log(`[CRON] JSON final retornado:`, resultJson);
 
           if (!resultJson.success) {
-            throw new Error(`Falha lógica da API interna (${platform}): ${resultJson.error}`);
+            throw new Error(`Falha lógica na API de ${platform}: ${resultJson.error}`);
           }
 
           return resultJson.publishedMediaId;
@@ -122,7 +124,7 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        console.error(`[CRON] ERRO AO PUBLICAR ${post.id}:`, publishError);
+        console.error(`[CRON] ERRO AO PUBLICAR ${post.id}:`, publishError.message);
         failedCount++;
         await updatePostStatus(userPath, post.id, {
           status: "failed",
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: summary });
 
   } catch (fatalErr: any) {
-    console.error("[CRON] ERRO FATAL:", fatalErr);
+    console.error("[CRON] ERRO FATAL:", fatalErr.message);
     return NextResponse.json({ success: false, error: fatalErr.message }, { status: 500 });
   }
 }
