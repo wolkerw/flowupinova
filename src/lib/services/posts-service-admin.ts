@@ -14,9 +14,11 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
     console.log(`[CRON_V2] Buscando posts agendados com data anterior a: ${now.toISOString()}`);
     
     // Consulta otimizada que requer um índice: (posts, status ASC, scheduledAt ASC)
+    // Adicionamos o orderBy('status') para corresponder explicitamente ao índice.
     const postsQuery = adminDb.collectionGroup('posts')
                               .where('status', '==', 'scheduled')
                               .where('scheduledAt', '<=', now)
+                              .orderBy('status', 'asc') // Adicionado para espelhar o índice
                               .orderBy('scheduledAt', 'asc');
 
     try {
@@ -44,7 +46,7 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
         console.error("[CRON_V2_ERROR] Erro crítico ao buscar posts agendados:", error);
         // Se o erro for FAILED_PRECONDITION, o log agora será muito claro sobre a necessidade do índice.
         if (error.code === 'failed-precondition') {
-             console.error("[CRON_V2_FATAL] A consulta falhou porque o índice composto do Firestore não foi criado. Por favor, crie o índice conforme as instruções.");
+             console.error("[CRON_V2_FATAL] A consulta falhou. Mesmo com o índice presente, pode haver uma inconsistência. Verifique a configuração do índice no console do Firebase.");
         }
         throw error;
     }
