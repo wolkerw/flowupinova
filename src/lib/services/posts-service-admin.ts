@@ -11,7 +11,7 @@ import { FieldValue } from "firebase-admin/firestore";
  */
 export async function getDueScheduledPosts(): Promise<PostData[]> {
     const now = new Date();
-    console.log(`[CRON] Buscando posts agendados que deveriam ter sido publicados antes de: ${now.toISOString()}`);
+    console.log(`[CRON1] Buscando posts agendados que deveriam ter sido publicados antes de: ${now.toISOString()}`);
     
     const postsQuery = adminDb.collectionGroup('posts')
         .where('status', '==', 'scheduled')
@@ -20,11 +20,11 @@ export async function getDueScheduledPosts(): Promise<PostData[]> {
     try {
         const snapshot = await postsQuery.get();
         if (snapshot.empty) {
-            console.log("[CRON] Nenhum post agendado encontrado para publicação.");
+            console.log("[CRON1] Nenhum post agendado encontrado para publicação.");
             return [];
         }
 
-        console.log(`[CRON] Encontrados ${snapshot.docs.length} posts para processar.`);
+        console.log(`[CRON1] Encontrados ${snapshot.docs.length} posts para processar.`);
         
         const posts: PostData[] = snapshot.docs.map(doc => {
             const data = doc.data() as PostData;
@@ -43,11 +43,11 @@ export async function getDueScheduledPosts(): Promise<PostData[]> {
     } catch (error: any) {
         // Um erro comum aqui é a falta de um índice composto no Firestore.
         if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
-            console.error("[CRON_ERROR] Erro de pré-condição do Firestore. Provavelmente falta um índice composto. Verifique o link no log de erro para criar o índice necessário.", error.message);
+            console.error("[CRON1_ERROR] Erro de pré-condição do Firestore. Provavelmente falta um índice composto. Verifique o link no log de erro para criar o índice necessário.", error.message);
             // Lança o erro para que o Cloud Scheduler possa registrar a falha na execução.
             throw new Error(`Firestore query failed. A composite index is likely required. Check logs for a creation link.`);
         }
-        console.error("[CRON_ERROR] Erro ao buscar posts agendados:", error);
+        console.error("[CRON1_ERROR] Erro ao buscar posts agendados:", error);
         throw error; // Propaga o erro
     }
 }
@@ -65,5 +65,5 @@ export async function updatePostStatus(userPath: string, postId: string, updates
     }
     const postRef = adminDb.doc(`${userPath}/posts/${postId}`);
     await postRef.update(updates);
-    console.log(`[CRON] Post ${postId} atualizado com status: ${updates.status}`);
+    console.log(`[CRON1] Post ${postId} atualizado com status: ${updates.status}`);
 }

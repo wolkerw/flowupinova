@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   //   return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   // }
   
-  console.log("[CRON_JOB] Iniciando verificação de posts agendados...");
+  console.log("[CRON1_JOB] Iniciando verificação de posts agendados...");
 
   let processedCount = 0;
   let failedCount = 0;
@@ -25,18 +25,18 @@ export async function POST(request: NextRequest) {
     const duePosts = await getDueScheduledPosts();
 
     if (duePosts.length === 0) {
-      console.log("[CRON_JOB] Nenhum post para publicar.");
+      console.log("[CRON1_JOB] Nenhum post para publicar.");
       return NextResponse.json({ success: true, message: "Nenhum post para publicar." });
     }
 
-    console.log(`[CRON_JOB] Encontrados ${duePosts.length} posts para processar.`);
+    console.log(`[CRON1_JOB] Encontrados ${duePosts.length} posts para processar.`);
 
     // Processa cada post em paralelo
     const publishPromises = duePosts.map(async (post: PostData & { _parentPath?: string }) => {
       const { id: postId, _parentPath: userPath } = post;
 
       if (!postId || !userPath) {
-        console.error("[CRON_ERROR] Post encontrado sem ID ou caminho do usuário.", post);
+        console.error("[CRON1_ERROR] Post encontrado sem ID ou caminho do usuário.", post);
         failedCount++;
         return;
       }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
                 }
             };
             
-            console.log(`[CRON_FETCH] Chamando ${requestUrl.toString()} para o post ${postId} com payload:`, JSON.stringify(payload, null, 2));
+            console.log(`[CRON1_FETCH] Chamando ${requestUrl.toString()} para o post ${postId} com payload:`, JSON.stringify(payload, null, 2));
              
             const response = await fetch(requestUrl.toString(), {
                 method: 'POST',
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         processedCount++;
 
       } catch (publishError: any) {
-        const errorMessage = `[CRON_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}.`;
+        const errorMessage = `[CRON1_ERROR] Falha ao publicar o post ${postId}. Mensagem: ${publishError.message}.`;
         console.error(errorMessage, { cause: publishError.cause, stack: publishError.stack });
         failedCount++;
         await updatePostStatus(userPath, postId, {
@@ -102,11 +102,11 @@ export async function POST(request: NextRequest) {
     await Promise.all(publishPromises);
 
     const summary = `Processamento finalizado. Publicados: ${processedCount}, Falhas: ${failedCount}.`;
-    console.log(`[CRON_JOB] ${summary}`);
+    console.log(`[CRON1_JOB] ${summary}`);
     return NextResponse.json({ success: true, message: summary });
 
   } catch (error: any) {
-    console.error("[CRON_JOB_FATAL] Erro fatal durante a execução do CRON:", error);
+    console.error("[CRON1_JOB_FATAL] Erro fatal durante a execução do CRON:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
