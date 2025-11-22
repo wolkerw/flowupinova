@@ -10,6 +10,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
     const requestUrl = new URL(apiPath, origin);
 
+    // O corpo da requisição para as APIs de publicação agora é o objeto `postData` dentro de outro objeto.
     const payload = {
         postData: {
             title: post.title,
@@ -27,6 +28,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     try {
         response = await fetch(requestUrl.toString(), {
             method: 'POST',
+            // O corpo da requisição precisa ser um JSON do payload
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
@@ -83,6 +85,8 @@ export async function runCronJob(request: NextRequest) {
             console.log(`[CRON_V2] Status atual: ${post.status}`);
 
             try {
+                // Marca o post como 'publishing' para evitar reprocessamento em caso de falha no meio.
+                // A nova query `getDueScheduledPosts` também busca por este status para retentativa.
                 if (post.status === 'scheduled') {
                     await updatePostStatus(userPath, postId, { status: "publishing" });
                 }

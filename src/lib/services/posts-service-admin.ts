@@ -6,70 +6,56 @@ import type { PostData } from "./posts-service";
 import { FieldValue } from "firebase-admin/firestore";
 
 /**
- * Busca no Firestore por posts agendados que já passaram da hora de publicação.
- * @returns Uma lista de posts prontos para serem publicados.
+ * Busca no Firestore por posts que estão em um estado que requer processamento (scheduled ou publishing).
+ * @returns Uma lista de posts prontos para serem processados.
  */
 export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?: string })[]> {
     const now = new Date();
-    console.log(`[CRON_V2] Buscando posts agendados que deveriam ter sido publicados antes de: ${now.toISOString()}`);
+    console.log(`[CRON_V2] Buscando posts 'scheduled' ou 'publishing' que deveriam ter sido publicados antes de: ${now.toISOString()}`);
     
-    // Consulta para posts agendados
-    const scheduledPostsQuery = adminDb.collectionGroup('posts')
-        .where('status', '==', 'scheduled')
-        .where('scheduledAt', '<=', now);
-
-    // Consulta para posts em estado de "publishing" para retentativa
-    const publishingPostsQuery = adminDb.collectionGroup('posts')
-        .where('status', '==', 'publishing');
+    // Consulta simplificada para evitar a necessidade de um índice composto.
+    // Buscamos todos os posts que não estão em estado final ('published', 'failed').
+    const processingStatus = ['scheduled', 'publishing'];
+    const postsQuery = adminDb.collectionGroup('posts')
+        .where('status', 'in', processingStatus);
 
     try {
-        const [scheduledSnapshot, publishingSnapshot] = await Promise.all([
-            scheduledPostsQuery.get(),
-            publishingPostsQuery.get()
-        ]);
-
-        const posts: (PostData & { _parentPath?: string })[] = [];
+        const querySnapshot = await postsQuery.get();
+        const postsToProcess: (PostData & { _parentPath?: string })[] = [];
         
-        if (scheduledSnapshot.empty) {
-            console.log("[CRON_V2] Nenhum post agendado encontrado para publicação.");
-        } else {
-            console.log(`[CRON_V2] Encontrados ${scheduledSnapshot.docs.length} posts agendados para processar.`);
-            scheduledSnapshot.docs.forEach(doc => {
-                 posts.push({
-                    ...(doc.data() as PostData),
+        if (querySnapshot.empty) {
+            console.log("[CRON_V2] Nenhum post com status 'scheduled' ou 'publishing' encontrado.");
+            return [];
+        }
+        
+        console.log(`[CRON_V2] Encontrados ${querySnapshot.docs.length} posts com status 'scheduled' ou 'publishing'.`);
+        
+        querySnapshot.docs.forEach(doc => {
+            const postData = doc.data() as PostData;
+            const scheduledAt = (postData.scheduledAt as any).toDate();
+
+            // Filtramos a data aqui, no código, em vez de na query do Firestore.
+            if (scheduledAt <= now) {
+                postsToProcess.push({
+                    ...postData,
                     id: doc.id,
                     _parentPath: doc.ref.parent.parent?.path,
-                    scheduledAt: (doc.data().scheduledAt as any).toDate(),
+                    scheduledAt: scheduledAt,
                 });
-            });
-        }
+            }
+        });
         
-        if (publishingSnapshot.empty) {
-            console.log("[CRON_V2] Nenhum post em estado 'publishing' encontrado para retentativa.");
-        } else {
-             console.log(`[CRON_V2] Encontrados ${publishingSnapshot.docs.length} posts em 'publishing' para retentativa.`);
-             publishingSnapshot.docs.forEach(doc => {
-                 posts.push({
-                    ...(doc.data() as PostData),
-                    id: doc.id,
-                    _parentPath: doc.ref.parent.parent?.path,
-                    scheduledAt: (doc.data().scheduledAt as any).toDate(),
-                });
-            });
-        }
-        
-        if(posts.length === 0) {
-             console.log("[CRON_V2] Nenhum post encontrado para processar nesta execução.");
-        }
+        console.log(`[CRON_V2] ${postsToProcess.length} posts estão realmente prontos para serem processados.`);
+        return postsToProcess;
 
-
-        return posts;
     } catch (error: any) {
-        if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
-            console.error("[CRON_V2_ERROR] Falta um índice composto no Firestore. Crie o índice sugerido no link do log de erro.", error.message);
-            throw new Error(`Firestore query failed. A composite index is likely required.`);
+        // Este erro é menos provável agora, mas mantemos o log por segurança.
+        if (error.code === 'FAILED_PRECONDITION') {
+            console.error("[CRON_V2_ERROR] Mesmo com a query simplificada, um erro de índice ocorreu. Verifique as regras do Firestore.", error.message);
+        } else {
+            console.error("[CRON_V2_ERROR] Erro ao buscar posts para o CRON:", error);
         }
-        console.error("[CRON_V2_ERROR] Erro ao buscar posts agendados:", error);
+        // Lançar o erro força a falha do job e o log de erro fatal na rota principal.
         throw error;
     }
 }

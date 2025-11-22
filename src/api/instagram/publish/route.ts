@@ -79,8 +79,7 @@ export async function POST(request: NextRequest) {
     let debugMessage = "[API] Endpoint hit. ";
 
     try {
-        const bodyAsString = await request.text();
-        const body: PublishRequestBody = JSON.parse(bodyAsString); // The body is now double-stringified
+        const body: PublishRequestBody = await request.json(); 
         const { postData } = body;
         
         debugMessage += "[API] Validating request... ";
