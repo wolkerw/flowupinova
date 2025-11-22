@@ -6,6 +6,13 @@ import { getDueScheduledPosts, updatePostStatus } from "@/lib/services/posts-ser
 import type { PostData } from "@/lib/services/posts-service";
 import { FieldValue } from "firebase-admin/firestore";
 
+/**
+ * Tenta publicar um post em uma plataforma específica.
+ * @param platform A plataforma (instagram ou facebook).
+ * @param post Os dados do post.
+ * @param origin A URL de origem da requisição para construir a URL da API interna.
+ * @returns O ID da mídia publicada.
+ */
 async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostData, origin: string): Promise<string> {
     const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
     const requestUrl = new URL(apiPath, origin);
@@ -19,9 +26,9 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
         }
     };
 
-    console.log(`[CRON_V2] ===== FETCH PARA ${platform.toUpperCase()} =====`);
-    console.log(`[CRON_V2] URL da API interna:`, requestUrl.toString());
-    console.log(`[CRON_V2] Payload enviado:`, JSON.stringify(payload, null, 2));
+    console.log(`[CRON_V2] ===== INICIANDO FETCH PARA ${platform.toUpperCase()} =====`);
+    console.log(`[CRON_V2] URL da API interna de publicação:`, requestUrl.toString());
+    console.log(`[CRON_V2] Payload que será enviado:`, JSON.stringify(payload, null, 2));
 
     let response;
     try {
@@ -31,41 +38,45 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
             body: JSON.stringify(payload),
         });
     } catch (networkErr: any) {
-        console.error(`[CRON_V2] ERRO DE REDE ao chamar ${platform}:`, networkErr.message);
-        throw new Error(`Falha de rede ao tentar publicar no ${platform}: ${networkErr.message}`);
+        console.error(`[CRON_V2] ERRO DE REDE ao tentar chamar a API de ${platform}:`, networkErr.message);
+        throw new Error(`Falha de rede ao tentar publicar no ${platform}. Verifique se a API interna está acessível.`);
     }
 
     const responseText = await response.text();
-    console.log(`[CRON_V2] Resposta da API (${platform}): status ${response.status}, corpo: ${responseText}`);
+    console.log(`[CRON_V2] Resposta recebida da API de ${platform}: status ${response.status}, corpo: ${responseText}`);
 
     if (!response.ok) {
-        throw new Error(`Falha na API interna de ${platform}: HTTP ${response.status} - ${responseText}`);
+        throw new Error(`A API de publicação de ${platform} retornou um erro: HTTP ${response.status} - ${responseText}`);
     }
 
     try {
         const resultJson = JSON.parse(responseText);
         if (!resultJson.success) {
-            throw new Error(`Falha lógica na API de ${platform}: ${resultJson.error}`);
+            throw new Error(`A API de ${platform} retornou uma falha lógica: ${resultJson.error}`);
         }
         return resultJson.publishedMediaId;
     } catch (e: any) {
-        throw new Error(`Resposta inválida (não-JSON) da API de ${platform}`);
+        throw new Error(`A resposta da API de ${platform} não era um JSON válido.`);
     }
 }
 
 
+/**
+ * Executa a lógica principal do CRON Job.
+ * @param request A requisição Next.js recebida pela rota da API.
+ * @returns Uma contagem de posts processados e com falha.
+ */
 export async function runCronJob(request: NextRequest) {
     let processedCount = 0;
     let failedCount = 0;
 
     console.log("[CRON_V2] Serviço de CRON iniciado.");
-    console.log("[CRON_V2] Origin detectado:", request.nextUrl.origin);
 
     try {
         const duePosts = await getDueScheduledPosts();
 
         if (duePosts.length === 0) {
-            console.log("[CRON_V2] Nenhum post encontrado para processar.");
+            console.log("[CRON_V2] Nenhum post agendado para o momento. Encerrando execução.");
             return { processedCount, failedCount };
         }
 
@@ -73,19 +84,17 @@ export async function runCronJob(request: NextRequest) {
             const { id: postId, _parentPath: userPath } = post;
 
             if (!postId || !userPath) {
-                console.error("[CRON_V2] ERRO: Post sem ID ou userPath, pulando:", post);
+                console.error("[CRON_V2] ERRO CRÍTICO: Post encontrado sem ID ou caminho do usuário, pulando:", post);
                 failedCount++;
                 return;
             }
 
             console.log("--------------------------------------------------");
-            console.log(`[CRON_V2] PROCESSANDO POST: ${postId}`);
-            console.log(`[CRON_V2] Status atual: ${post.status}`);
+            console.log(`[CRON_V2] PROCESSANDO POST ID: ${postId}`);
 
             try {
-                if (post.status === 'scheduled') {
-                    await updatePostStatus(userPath, postId, { status: "publishing" });
-                }
+                // Marca o post como "publishing" para evitar reprocessamento em caso de falha no meio
+                await updatePostStatus(userPath, postId, { status: "publishing" });
                 
                 const results = await Promise.all(
                     post.platforms.map(platform => publishToPlatform(platform, post, request.nextUrl.origin))
@@ -94,15 +103,15 @@ export async function runCronJob(request: NextRequest) {
                 await updatePostStatus(userPath, postId, {
                     status: "published",
                     publishedMediaId: results.filter(Boolean).join(', '),
-                    failureReason: FieldValue.delete(),
+                    failureReason: FieldValue.delete(), // Limpa qualquer razão de falha anterior
                 });
 
                 processedCount++;
-                console.log(`[CRON_V2] Sucesso ao publicar ${postId}. IDs:`, results);
+                console.log(`[CRON_V2] SUCESSO: Post ${postId} publicado. IDs:`, results);
 
             } catch (publishError: any) {
                 failedCount++;
-                console.error(`[CRON_V2] ERRO AO PUBLICAR ${postId}:`, publishError.message);
+                console.error(`[CRON_V2] FALHA AO PUBLICAR o post ${postId}:`, publishError.message);
                 await updatePostStatus(userPath, postId, {
                     status: "failed",
                     failureReason: publishError.message,
@@ -113,8 +122,8 @@ export async function runCronJob(request: NextRequest) {
         await Promise.all(publishPromises);
 
     } catch (error: any) {
-        console.error("[CRON_V2] Erro fatal no serviço de CRON:", error);
-        throw error;
+        console.error("[CRON_V2] Erro fatal e inesperado durante a execução do serviço de CRON:", error);
+        throw error; // Lança o erro para a rota da API tratar
     }
 
     return { processedCount, failedCount };
