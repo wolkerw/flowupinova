@@ -15,7 +15,10 @@ import { FieldValue } from "firebase-admin/firestore";
  */
 async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostData, origin: string): Promise<string> {
     const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
-    const requestUrl = new URL(apiPath, origin);
+    
+    // A URL de produção da sua aplicação. Substitua se necessário.
+    const productionUrl = "https://studio--studio-7502195980-3983c.us-central1.hosted.app";
+    const requestUrl = new URL(apiPath, productionUrl);
 
     const payload = {
         postData: {
