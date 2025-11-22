@@ -33,14 +33,15 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
         // Filtra os posts no lado do servidor para ver se a data de agendamento já passou
         querySnapshot.docs.forEach(doc => {
             const postData = doc.data() as PostData;
-            const scheduledAt = (postData.scheduledAt as any).toDate(); // Converte Timestamp do Firestore para Date
+            // O Firestore armazena Timestamp, então precisamos convertê-lo para Date
+            const scheduledAt = (postData.scheduledAt as any).toDate();
 
             if (scheduledAt <= now) {
                 postsToProcess.push({
                     ...postData,
                     id: doc.id,
                     _parentPath: doc.ref.parent.parent?.path, // Caminho para o documento do usuário (ex: users/userId)
-                    scheduledAt: scheduledAt,
+                    scheduledAt: scheduledAt, // Garante que a data já é um objeto Date
                 });
             }
         });
@@ -49,7 +50,8 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
         return postsToProcess;
 
     } catch (error: any) {
-        // O erro FAILED_PRECONDITION não deve mais acontecer com esta consulta simplificada.
+        // Com a nova query, o erro FAILED_PRECONDITION não deve mais acontecer.
+        // Se acontecer, é um problema diferente.
         console.error("[CRON_V2_ERROR] Erro crítico ao buscar posts agendados:", error);
         throw error; // Lança o erro para ser capturado pela rota da API
     }
