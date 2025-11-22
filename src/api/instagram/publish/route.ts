@@ -41,7 +41,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
     access_token: accessToken,
   });
 
-  // Loop to check container status before publishing
+  // Loop para verificar o status do container antes de publicar
   let attempts = 0;
   while (attempts < 12) { // Max wait time of ~60 seconds
     const statusResponse = await fetch(`https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${accessToken}`);
@@ -76,18 +76,13 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 }
 
 export async function POST(request: NextRequest) {
-    let debugMessage = "[API] Endpoint hit. ";
-
     try {
-        const body: PublishRequestBody = await request.json(); 
-        const { postData } = body;
+        const { postData }: PublishRequestBody = await request.json(); 
         
-        debugMessage += "[API] Validating request... ";
         if (!postData || !postData.metaConnection?.instagramId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando postData ou detalhes da conexão Meta." }, { status: 400 });
         }
         
-        debugMessage += "[API] Publishing to Instagram... ";
         const caption = `${postData.title}\n\n${postData.text}`.slice(0, 2200);
         
         const creationId = await createMediaContainer(
@@ -96,28 +91,24 @@ export async function POST(request: NextRequest) {
             postData.imageUrl,
             caption
         );
-        debugMessage += `Container created (id: ${creationId}). `;
 
         const publishedMediaId = await publishMediaContainer(
             postData.metaConnection.instagramId,
             postData.metaConnection.accessToken,
             creationId
         );
-        debugMessage += `Media published (id: ${publishedMediaId}). `;
         
-        debugMessage += `[API] Instagram publication finished. Returning success to client.`;
-        console.log(debugMessage);
+        console.log(`[INSTAGRAM_PUBLISH_SUCCESS] Mídia publicada com sucesso no Instagram. Post ID: ${publishedMediaId}`);
 
-        // A API agora só retorna o ID da mídia publicada. O salvamento no DB é responsabilidade do cliente.
         return NextResponse.json({ success: true, publishedMediaId: publishedMediaId });
 
     } catch (error: any) {
-        const finalErrorMessage = `Error during Instagram publish. Flow: ${debugMessage}. Error Details: ${error.message}`;
-        console.error(`[INSTAGRAM_PUBLISH_ERROR]`, finalErrorMessage);
+        const errorMessage = `[INSTAGRAM_PUBLISH_ERROR] Mensagem: ${error.message}.`;
+        console.error(errorMessage, { cause: error.cause, stack: error.stack });
         
         return NextResponse.json({
             success: false,
-            error: finalErrorMessage,
+            error: error.message,
         }, { status: 500 });
     }
 }

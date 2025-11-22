@@ -35,18 +35,15 @@ async function publishToFacebookPage(pageId: string, accessToken: string, imageU
 
 
 export async function POST(request: NextRequest) {
-    console.log("[FACEBOOK_PUBLISH] Rota de publicação do Facebook alcançada.");
     try {
         const { postData }: PublishRequestBody = await request.json();
         
-        console.log("[FACEBOOK_PUBLISH] Validando payload...");
         if (!postData || !postData.metaConnection?.pageId || !postData.metaConnection?.accessToken || !postData.imageUrl) {
             return NextResponse.json({ success: false, error: "Dados da requisição incompletos. Faltando ID da página, token, ou URL da imagem." }, { status: 400 });
         }
         
         const caption = postData.text.slice(0, 2200); // Facebook has a higher limit, but let's be safe
         
-        console.log(`[FACEBOOK_PUBLISH] Publicando foto na página ${postData.metaConnection.pageId}...`);
         const publishedPostId = await publishToFacebookPage(
             postData.metaConnection.pageId,
             postData.metaConnection.accessToken,
