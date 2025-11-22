@@ -460,15 +460,18 @@ export default function Conteudo() {
         metaConnection: metaConnection,
     };
 
+    // The result from schedulePost will now reflect the final status of immediate publications
     const result = await schedulePost(user.uid, postInput);
 
     setIsRepublishing(false);
     setIsRepublishModalOpen(false);
     setPostToRepublish(null);
 
+    // After the operation, always refresh the data to get the final state from the DB
+    await fetchPageData();
+
     if (result.success) {
-        toast({ variant: 'success', title: "Sucesso!", description: `Post ${republishScheduleType === 'now' ? 'enviado para publicação' : 'agendado para republicação'}!` });
-        fetchPageData(); // Refresh the list
+        toast({ variant: 'success', title: "Sucesso!", description: `Post ${republishScheduleType === 'now' ? 'publicado' : 'agendado para republicação'}!` });
     } else {
         toast({ variant: 'destructive', title: "Erro ao Republicar", description: result.error });
     }

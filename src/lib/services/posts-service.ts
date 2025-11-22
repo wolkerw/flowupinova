@@ -91,7 +91,7 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
     });
 }
 
-async function publishPostImmediately(userId: string, postId: string, postData: Omit<PostData, 'id'>): Promise<void> {
+async function publishPostImmediately(userId: string, postId: string, postData: Omit<PostData, 'id'>): Promise<{ success: boolean; error?: string }> {
     const postRef = doc(db, `users/${userId}/posts/${postId}`);
     try {
         await updateDoc(postRef, { status: "publishing" });
@@ -125,16 +125,17 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
         await updateDoc(postRef, {
             status: "published",
             publishedMediaId: publishedMediaIds.join(', '),
-            failureReason: deleteDoc,
+            failureReason: deleteField(),
         });
+        return { success: true };
 
     } catch (error: any) {
          await updateDoc(postRef, {
             status: "failed",
             failureReason: error.message || "Erro desconhecido durante publicação imediata."
         });
-        // Re-throw to be caught by the calling function and reported to the user
-        throw error;
+        console.error(`[PUBLISH_IMMEDIATELY_ERROR] Post ${postId} failed:`, error);
+        return { success: false, error: error.message };
     }
 }
 
@@ -178,12 +179,11 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         console.log(`Post ${docRef.id} document created with status: ${postToSave.status}.`);
 
         if (isImmediate) {
-            // Don't await this, let it run in the background. The user gets an immediate response.
-            // The UI will update via Firestore listeners or manual refresh.
-            publishPostImmediately(userId, docRef.id, postToSave).catch(error => {
-                console.error(`[BACKGROUND_PUBLISH_ERROR] Post ${docRef.id} failed to publish immediately:`, error);
-                // The error is already saved to the post document within the function.
-            });
+            const result = await publishPostImmediately(userId, docRef.id, postToSave);
+            if (!result.success) {
+                // The error is already saved in the doc, but we return it to the client for immediate feedback
+                return { success: false, error: result.error };
+            }
         } else {
              // Create a pending notification only for future scheduled posts
             const notificationsCollection = collection(db, `users/${userId}/notifications`);
