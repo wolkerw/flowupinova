@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp, updateDoc, deleteField } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
