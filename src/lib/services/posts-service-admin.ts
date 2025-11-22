@@ -15,8 +15,8 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
     const now = new Date();
     console.log(`[CRON_V2] Buscando posts 'scheduled' ou 'publishing' para verificação. Horário atual: ${now.toISOString()}`);
     
-    // Status que indicam que um post precisa ser verificado
     const processingStatus = ['scheduled', 'publishing'];
+    // Consulta simplificada para evitar erro de índice.
     const postsQuery = adminDb.collectionGroup('posts').where('status', 'in', processingStatus);
 
     try {
@@ -50,8 +50,6 @@ export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?
         return postsToProcess;
 
     } catch (error: any) {
-        // Com a nova query, o erro FAILED_PRECONDITION não deve mais acontecer.
-        // Se acontecer, é um problema diferente.
         console.error("[CRON_V2_ERROR] Erro crítico ao buscar posts agendados:", error);
         throw error; // Lança o erro para ser capturado pela rota da API
     }
