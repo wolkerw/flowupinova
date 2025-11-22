@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -18,6 +18,7 @@ export interface PostData {
     metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername' | 'pageName'>;
     publishedMediaId?: string; // Can be for Instagram or Facebook
     failureReason?: string;
+    creationId?: string; // For Instagram container polling
 }
 
 // Interface for data coming from the client
@@ -48,42 +49,21 @@ function getPostsCollectionRef(userId: string) {
     return collection(db, "users", userId, "posts");
 }
 
-/**
- * [REBUILT] Uploads a media file to Firebase Storage and returns its public URL.
- * Includes detailed logging for debugging.
- * @param userId The UID of the user.
- * @param media The File object to upload.
- * @param onProgress Optional callback to report upload progress.
- * @returns A promise that resolves with the public download URL of the file.
- */
 export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (progress: number) => void): Promise<string> {
-    console.log("[UPLOAD_START] Iniciando upload para o usuário:", userId);
-
     return new Promise((resolve, reject) => {
-        if (!userId) {
-            const errorMsg = "UserID é necessário para o upload.";
-            console.error("[UPLOAD_ERROR]", errorMsg);
-            return reject(new Error(errorMsg));
-        }
+        if (!userId) return reject(new Error("UserID é necessário para o upload."));
 
         const filePath = `users/${userId}/uploads/${Date.now()}_${media.name}`;
         const storageRef = ref(storage, filePath);
         const uploadTask = uploadBytesResumable(storageRef, media);
 
-        console.log(`[UPLOAD_INFO] Criado caminho do arquivo: ${filePath}`);
-
         uploadTask.on('state_changed',
             (snapshot) => {
-                // Monitor upload progress
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log(`[UPLOAD_PROGRESS] Upload está ${progress.toFixed(2)}% concluído.`);
                 onProgress?.(progress);
             },
             (error) => {
-                // Handle unsuccessful uploads
-                console.error("[UPLOAD_ERROR] Ocorreu um erro durante o upload:", error);
-                
-                let detailedErrorMessage = "Falha no upload. ";
+                 let detailedErrorMessage = "Falha no upload. ";
                 switch (error.code) {
                     case 'storage/unauthorized':
                         detailedErrorMessage += "Você não tem permissão para realizar esta ação. Verifique as regras de segurança do seu Firebase Storage.";
@@ -97,19 +77,13 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
                     default:
                         detailedErrorMessage += `(${error.code}) ${error.message}`;
                 }
-                
-                console.error("[UPLOAD_ERROR_DETAILS]", detailedErrorMessage);
                 reject(new Error(detailedErrorMessage));
             },
             async () => {
-                // Handle successful uploads on complete
-                console.log("[UPLOAD_SUCCESS] O arquivo foi enviado com sucesso. Obtendo URL de download...");
                 try {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    console.log("[UPLOAD_URL_OBTAINED] URL de download:", downloadURL);
                     resolve(downloadURL);
                 } catch (getUrlError: any) {
-                    console.error("[UPLOAD_ERROR] Falha ao obter a URL de download:", getUrlError);
                     reject(new Error("Upload bem-sucedido, mas falha ao obter a URL de download."));
                 }
             }
@@ -127,28 +101,21 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     }
     
     let imageUrl: string;
-    let docRef; 
 
     try {
-        // Step 1: Handle Media URL
         if (postData.media instanceof File) {
             imageUrl = await uploadMediaAndGetURL(userId, postData.media);
         } else {
             imageUrl = postData.media;
         }
-
-        const now = new Date();
-        const isImmediate = (postData.scheduledAt.getTime() - now.getTime()) < 60000;
-        const initialStatus = isImmediate ? 'publishing' : 'scheduled';
         
-        // Step 2: Save to Firestore
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
             imageUrl: imageUrl,
             platforms: postData.platforms,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-            status: initialStatus,
+            status: 'scheduled', // Always schedule first, CRON job will handle it
             metaConnection: {
                 accessToken: postData.metaConnection.accessToken,
                 pageId: postData.metaConnection.pageId,
@@ -158,105 +125,24 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             }
         };
 
-        docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-        console.log(`Post ${docRef.id} saved to DB with status '${initialStatus}'.`);
+        const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
+        console.log(`Post ${docRef.id} successfully scheduled.`);
 
-        // Step 2.5: Create a pending notification
         const notificationsCollection = collection(db, `users/${userId}/notifications`);
         await addDoc(notificationsCollection, {
             postId: docRef.id,
             postTitle: postToSave.title,
             status: 'pending',
             scheduledAt: postToSave.scheduledAt,
-            createdAt: Timestamp.now(),
+            createdAt: serverTimestamp(),
         });
         console.log(`Pending notification created for post ${docRef.id}`);
 
-        if (!isImmediate) {
-            console.log(`Post ${docRef.id} is scheduled for a future date.`);
-            return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
-        }
-        
-        // Step 3: Handle immediate publishing
-        console.log(`Attempting immediate publish for post ${docRef.id} to platforms: ${postData.platforms.join(', ')}`);
-
-        const publishPromises = postData.platforms.map(async (platform) => {
-            let apiPath: string;
-            let payload: any;
-            
-            if (platform === 'instagram') {
-                if (!postData.metaConnection.instagramId) throw new Error("Instagram ID de negócio não encontrado para publicação.");
-                apiPath = '/api/instagram/publish';
-                payload = {
-                    postData: {
-                        title: postData.title,
-                        text: postData.text,
-                        imageUrl: imageUrl,
-                        metaConnection: {
-                            accessToken: postData.metaConnection.accessToken!,
-                            instagramId: postData.metaConnection.instagramId!,
-                        }
-                    }
-                };
-            } else if (platform === 'facebook') {
-                if (!postData.metaConnection.pageId) throw new Error("ID da Página do Facebook não encontrado para publicação.");
-                 apiPath = '/api/facebook/publish';
-                 payload = {
-                     postData: {
-                         text: `${postData.title}\n\n${postData.text}`,
-                         imageUrl: imageUrl,
-                         metaConnection: {
-                             accessToken: postData.metaConnection.accessToken!,
-                             pageId: postData.metaConnection.pageId!,
-                         }
-                     }
-                 };
-            } else {
-                console.warn(`Plataforma desconhecida: ${platform}. Ignorando.`);
-                return null;
-            }
-
-            const response = await fetch(apiPath, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(`Falha ao publicar no ${platform}: ${result.error || `status ${response.status}`}`);
-            }
-            return { platform, result };
-        });
-
-        const results = await Promise.all(publishPromises);
-        
-        console.log(`[3] API calls successful. Updating post ${docRef.id} to 'published'.`);
-        await setDoc(docRef, { status: 'published' }, { merge: true });
-
-        return { 
-            success: true, 
-            post: { 
-                id: docRef.id, 
-                ...postToSave, 
-                status: 'published', 
-                scheduledAt: postData.scheduledAt.toISOString() 
-            }
-        };
+        return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
-
-        if (docRef) {
-            await setDoc(docRef, {
-                status: 'failed',
-                failureReason: error.message
-            }, { merge: true });
-        }
-        
-        return { 
-            success: false, 
-            error: `Falha ao processar post. Motivo: ${error.message}` 
-        };
+        return { success: false, error: `Falha ao agendar post. Motivo: ${error.message}` };
     }
 }
 
@@ -270,7 +156,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
         const userDocRef = doc(db, "users", userId);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
-            console.log(`User document for ${userId} does not exist. Creating it.`);
             await setDoc(userDocRef, { createdAt: new Date() });
         }
 
@@ -303,7 +188,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
 
    } catch (error: any) {
        console.error(`Error fetching posts for user ${userId}:`, error);
-       // Retorna um array que indica o erro, para que o frontend possa lidar com isso
        return [{ success: false, error: error.message }];
    }
 }
@@ -315,10 +199,8 @@ export async function deletePost(userId: string, postId: string): Promise<void> 
     try {
         const postDocRef = doc(db, "users", userId, "posts", postId);
         await deleteDoc(postDocRef);
-        console.log(`Post ${postId} deleted successfully for user ${userId}.`);
     } catch (error: any) {
         console.error(`Error deleting post ${postId} for user ${userId}:`, error);
         throw new Error("Não foi possível excluir a publicação do banco de dados.");
     }
 }
-    

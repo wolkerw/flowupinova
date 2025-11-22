@@ -9,48 +9,71 @@ import { FieldValue } from "firebase-admin/firestore";
  * Busca no Firestore por posts agendados que já passaram da hora de publicação.
  * @returns Uma lista de posts prontos para serem publicados.
  */
-export async function getDueScheduledPosts(): Promise<PostData[]> {
+export async function getDueScheduledPosts(): Promise<(PostData & { _parentPath?: string })[]> {
     const now = new Date();
-    console.log(`[CRON1] Buscando posts agendados que deveriam ter sido publicados antes de: ${now.toISOString()}`);
+    console.log(`[CRON_V2] Buscando posts agendados que deveriam ter sido publicados antes de: ${now.toISOString()}`);
     
-    const postsQuery = adminDb.collectionGroup('posts')
+    // Consulta para posts agendados
+    const scheduledPostsQuery = adminDb.collectionGroup('posts')
         .where('status', '==', 'scheduled')
         .where('scheduledAt', '<=', now);
 
+    // Consulta para posts em estado de "publishing" para retentativa
+    const publishingPostsQuery = adminDb.collectionGroup('posts')
+        .where('status', '==', 'publishing');
+
     try {
-        const snapshot = await postsQuery.get();
-        if (snapshot.empty) {
-            console.log("[CRON1] Nenhum post agendado encontrado para publicação.");
-            return [];
+        const [scheduledSnapshot, publishingSnapshot] = await Promise.all([
+            scheduledPostsQuery.get(),
+            publishingPostsQuery.get()
+        ]);
+
+        const posts: (PostData & { _parentPath?: string })[] = [];
+        
+        if (scheduledSnapshot.empty) {
+            console.log("[CRON_V2] Nenhum post agendado encontrado para publicação.");
+        } else {
+            console.log(`[CRON_V2] Encontrados ${scheduledSnapshot.docs.length} posts agendados para processar.`);
+            scheduledSnapshot.docs.forEach(doc => {
+                 posts.push({
+                    ...(doc.data() as PostData),
+                    id: doc.id,
+                    _parentPath: doc.ref.parent.parent?.path,
+                    scheduledAt: (doc.data().scheduledAt as any).toDate(),
+                });
+            });
+        }
+        
+        if (publishingSnapshot.empty) {
+            console.log("[CRON_V2] Nenhum post em estado 'publishing' encontrado para retentativa.");
+        } else {
+             console.log(`[CRON_V2] Encontrados ${publishingSnapshot.docs.length} posts em 'publishing' para retentativa.`);
+             publishingSnapshot.docs.forEach(doc => {
+                 posts.push({
+                    ...(doc.data() as PostData),
+                    id: doc.id,
+                    _parentPath: doc.ref.parent.parent?.path,
+                    scheduledAt: (doc.data().scheduledAt as any).toDate(),
+                });
+            });
+        }
+        
+        if(posts.length === 0) {
+             console.log("[CRON_V2] Nenhum post encontrado para processar nesta execução.");
         }
 
-        console.log(`[CRON1] Encontrados ${snapshot.docs.length} posts para processar.`);
-        
-        const posts: PostData[] = snapshot.docs.map(doc => {
-            const data = doc.data() as PostData;
-            // O timestamp do Firestore precisa ser convertido para um objeto Date do JS
-            return {
-                ...data,
-                id: doc.id,
-                // A referência ao documento pai (usuário) é importante para atualizações futuras
-                _parentPath: doc.ref.parent.parent?.path,
-                // Converte o Timestamp do Firestore para um objeto Date
-                scheduledAt: (data.scheduledAt as any).toDate ? (data.scheduledAt as any).toDate() : new Date(data.scheduledAt),
-            };
-        });
 
         return posts;
     } catch (error: any) {
-        // Um erro comum aqui é a falta de um índice composto no Firestore.
         if (error.code === 'FAILED_PRECONDITION' && error.message.includes('index')) {
-            console.error("[CRON1_ERROR] Erro de pré-condição do Firestore. Provavelmente falta um índice composto. Verifique o link no log de erro para criar o índice necessário.", error.message);
-            // Lança o erro para que o Cloud Scheduler possa registrar a falha na execução.
-            throw new Error(`Firestore query failed. A composite index is likely required. Check logs for a creation link.`);
+            console.error("[CRON_V2_ERROR] Falta um índice composto no Firestore. Crie o índice sugerido no link do log de erro.", error.message);
+            throw new Error(`Firestore query failed. A composite index is likely required.`);
         }
-        console.error("[CRON1_ERROR] Erro ao buscar posts agendados:", error);
-        throw error; // Propaga o erro
+        console.error("[CRON_V2_ERROR] Erro ao buscar posts agendados:", error);
+        throw error;
     }
 }
+
 
 /**
  * Atualiza o status de um post no Firestore.
@@ -58,12 +81,12 @@ export async function getDueScheduledPosts(): Promise<PostData[]> {
  * @param postId O ID do post a ser atualizado.
  * @param updates O objeto com os campos a serem atualizados.
  */
-export async function updatePostStatus(userPath: string, postId: string, updates: { status: 'publishing' | 'published' | 'failed', failureReason?: string | FieldValue, publishedMediaId?: string | FieldValue }) {
+export async function updatePostStatus(userPath: string, postId: string, updates: { status: 'publishing' | 'published' | 'failed', failureReason?: string | FieldValue, publishedMediaId?: string | FieldValue, creationId?: string | FieldValue }) {
     if (!userPath || !postId) {
-        console.error("[UPDATE_STATUS_ERROR] Caminho do usuário ou ID do post ausente.");
+        console.error("[CRON_V2_ERROR] Caminho do usuário ou ID do post ausente ao tentar atualizar status.");
         return;
     }
     const postRef = adminDb.doc(`${userPath}/posts/${postId}`);
     await postRef.update(updates);
-    console.log(`[CRON1] Post ${postId} atualizado com status: ${updates.status}`);
+    console.log(`[CRON_V2] Post ${postId} atualizado. Novo status: ${updates.status}`);
 }
