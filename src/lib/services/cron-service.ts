@@ -10,7 +10,6 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
     const requestUrl = new URL(apiPath, origin);
 
-    // O corpo da requisição para as APIs de publicação agora é o objeto `postData` dentro de outro objeto.
     const payload = {
         postData: {
             title: post.title,
@@ -84,7 +83,6 @@ export async function runCronJob(request: NextRequest) {
             console.log(`[CRON_V2] Status atual: ${post.status}`);
 
             try {
-                // Marca o post como 'publishing' para evitar reprocessamento em caso de falha no meio.
                 if (post.status === 'scheduled') {
                     await updatePostStatus(userPath, postId, { status: "publishing" });
                 }
@@ -96,7 +94,7 @@ export async function runCronJob(request: NextRequest) {
                 await updatePostStatus(userPath, postId, {
                     status: "published",
                     publishedMediaId: results.filter(Boolean).join(', '),
-                    failureReason: FieldValue.delete(), // Limpa erros anteriores
+                    failureReason: FieldValue.delete(),
                 });
 
                 processedCount++;
@@ -116,7 +114,6 @@ export async function runCronJob(request: NextRequest) {
 
     } catch (error: any) {
         console.error("[CRON_V2] Erro fatal no serviço de CRON:", error);
-        // Lança o erro para que a rota principal possa capturá-lo e retornar uma resposta 500.
         throw error;
     }
 
