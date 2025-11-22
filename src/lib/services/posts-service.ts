@@ -2,7 +2,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 
@@ -91,6 +91,53 @@ export function uploadMediaAndGetURL(userId: string, media: File, onProgress?: (
     });
 }
 
+async function publishPostImmediately(userId: string, postId: string, postData: Omit<PostData, 'id'>): Promise<void> {
+    const postRef = doc(db, `users/${userId}/posts/${postId}`);
+    try {
+        await updateDoc(postRef, { status: "publishing" });
+
+        const publishPromises = postData.platforms.map(platform => {
+             const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
+             return fetch(apiPath, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    postData: {
+                        title: postData.title,
+                        text: postData.text,
+                        imageUrl: postData.imageUrl,
+                        metaConnection: postData.metaConnection,
+                    }
+                }),
+            });
+        });
+
+        const responses = await Promise.all(publishPromises);
+        const results = await Promise.all(responses.map(res => res.json()));
+
+        const failedResult = results.find(result => !result.success);
+        if (failedResult) {
+            throw new Error(failedResult.error || `Uma das plataformas falhou ao publicar.`);
+        }
+        
+        const publishedMediaIds = results.map(result => result.publishedMediaId).filter(Boolean);
+
+        await updateDoc(postRef, {
+            status: "published",
+            publishedMediaId: publishedMediaIds.join(', '),
+            failureReason: deleteDoc,
+        });
+
+    } catch (error: any) {
+         await updateDoc(postRef, {
+            status: "failed",
+            failureReason: error.message || "Erro desconhecido durante publicação imediata."
+        });
+        // Re-throw to be caught by the calling function and reported to the user
+        throw error;
+    }
+}
+
 
 export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
     if (!userId) {
@@ -109,13 +156,15 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             imageUrl = postData.media;
         }
         
+        const isImmediate = postData.scheduledAt <= new Date();
+
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title,
             text: postData.text,
             imageUrl: imageUrl,
             platforms: postData.platforms,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
-            status: 'scheduled', // Always schedule first, CRON job will handle it
+            status: isImmediate ? 'publishing' : 'scheduled',
             metaConnection: {
                 accessToken: postData.metaConnection.accessToken,
                 pageId: postData.metaConnection.pageId,
@@ -126,23 +175,33 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         };
 
         const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
-        console.log(`Post ${docRef.id} successfully scheduled.`);
+        console.log(`Post ${docRef.id} document created with status: ${postToSave.status}.`);
 
-        const notificationsCollection = collection(db, `users/${userId}/notifications`);
-        await addDoc(notificationsCollection, {
-            postId: docRef.id,
-            postTitle: postToSave.title,
-            status: 'pending',
-            scheduledAt: postToSave.scheduledAt,
-            createdAt: serverTimestamp(),
-        });
-        console.log(`Pending notification created for post ${docRef.id}`);
+        if (isImmediate) {
+            // Don't await this, let it run in the background. The user gets an immediate response.
+            // The UI will update via Firestore listeners or manual refresh.
+            publishPostImmediately(userId, docRef.id, postToSave).catch(error => {
+                console.error(`[BACKGROUND_PUBLISH_ERROR] Post ${docRef.id} failed to publish immediately:`, error);
+                // The error is already saved to the post document within the function.
+            });
+        } else {
+             // Create a pending notification only for future scheduled posts
+            const notificationsCollection = collection(db, `users/${userId}/notifications`);
+            await addDoc(notificationsCollection, {
+                postId: docRef.id,
+                postTitle: postToSave.title,
+                status: 'pending',
+                scheduledAt: postToSave.scheduledAt,
+                createdAt: serverTimestamp(),
+            });
+            console.log(`Pending notification created for post ${docRef.id}`);
+        }
 
         return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
-        return { success: false, error: `Falha ao agendar post. Motivo: ${error.message}` };
+        return { success: false, error: `Falha ao processar post. Motivo: ${error.message}` };
     }
 }
 
