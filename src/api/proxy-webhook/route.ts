@@ -5,31 +5,28 @@ export async function POST(request: NextRequest) {
   const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/URL_imagem_sem_logo";
 
   try {
-    // A solução robusta é fazer o streaming do corpo da requisição original
-    // diretamente para o webhook externo, em vez de tentar recriar o FormData.
-    // Isso preserva todos os headers, boundaries e o conteúdo exatamente como vieram do cliente.
+    const fileBlob = await request.blob();
+    const fileName = request.headers.get('X-File-Name') || 'image.png';
 
-    // Pegamos os headers da requisição original que são relevantes para o corpo (Content-Type)
-    const headers = new Headers();
-    const contentType = request.headers.get('Content-Type');
-    if (contentType) {
-        headers.set('Content-Type', contentType);
-    }
+    // Recria o FormData no servidor para enviar ao webhook externo.
+    const webhookFormData = new FormData();
+    webhookFormData.append('file', fileBlob, fileName);
     
-    // Fazemos o fetch para o webhook externo passando o corpo e os headers da requisição original.
+    // O `fetch` nativo definirá o Content-Type para `multipart/form-data` com o boundary correto.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
-      headers: headers,
-      body: request.body,
-      // A propriedade 'duplex' é necessária para streaming de corpos de requisição no Node.js
-      // @ts-ignore
-      duplex: 'half'
+      body: webhookFormData,
     });
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
-      console.error("Erro no webhook externo:", errorText);
-      return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorText }, { status: webhookResponse.status });
+      console.error("Erro no webhook externo:", webhookResponse.status, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorJson.message || errorJson }, { status: webhookResponse.status });
+      } catch (e) {
+        return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorText }, { status: webhookResponse.status });
+      }
     }
 
     const data = await webhookResponse.json();
