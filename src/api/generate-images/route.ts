@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Nenhuma URL de imagem válida foi encontrada na resposta do webhook." }, { status: 500 });
     }
     
-    // Retorna o array de objetos completo
+    // Retorna o array de objetos completo dentro da propriedade 'data'
     return NextResponse.json({ success: true, data: data });
 
   } catch (error: any) {

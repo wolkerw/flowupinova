@@ -280,7 +280,6 @@ export default function GerarConteudoPage() {
         throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
       }
       
-      // A API agora retorna { success: true, data: [...] }
       const responseData = result.data;
 
       if (!Array.isArray(responseData)) {
