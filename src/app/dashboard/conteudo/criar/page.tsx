@@ -393,10 +393,13 @@ export default function CriarConteudoPage() {
 
             setMediaItems(prev => {
                 const newItems = [...prev];
-                newItems[0].publicUrl = publicUrl;
+                if (newItems[0]) {
+                    newItems[0].publicUrl = publicUrl;
+                }
                 return newItems;
             });
 
+            toast({ variant: "success", title: "Sucesso!", description: "Mídia pronta para agendamento." });
             setStep(3);
 
         } catch (error: any) {
