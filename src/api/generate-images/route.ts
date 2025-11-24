@@ -7,8 +7,8 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
 
-    // O webhook espera um objeto que tenha a chave "publicacoes"
-    // Garante que o payload enviado ao webhook esteja no formato correto
+    // Garante que o payload enviado ao webhook esteja no formato correto.
+    // O webhook espera um objeto que tenha a chave "publicacoes".
     const webhookPayload = payload.publicacoes ? payload : { publicacoes: payload };
 
     const webhookResponse = await fetch(webhookUrl, {
@@ -24,15 +24,20 @@ export async function POST(request: Request) {
 
     if (!webhookResponse.ok) {
       console.error("Webhook error:", webhookResponse.status, responseText);
-      // Tenta parsear o erro, se houver, caso contrário usa o texto puro
+      // Tenta extrair uma mensagem de erro mais detalhada do corpo da resposta
       let errorDetails = responseText;
       try {
         const errorJson = JSON.parse(responseText);
         errorDetails = errorJson.detail || errorJson.error || responseText;
       } catch (e) {
-        // O erro não era JSON, usa o texto como está
+        // O corpo da resposta de erro não era JSON, usa o texto puro.
       }
       return NextResponse.json({ success: false, error: "Falha ao comunicar com o webhook de geração de imagem.", details: errorDetails }, { status: webhookResponse.status });
+    }
+    
+    // Se a resposta estiver vazia, retorna um erro claro.
+    if (!responseText) {
+        return NextResponse.json({ success: false, error: "O webhook de imagem retornou uma resposta vazia." }, { status: 500 });
     }
 
     // Tenta parsear a resposta de sucesso como JSON
@@ -54,6 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data: data });
 
   } catch (error: any) {
+    // Captura erros da requisição inicial (ex: body malformado) ou outros erros inesperados.
     console.error("Internal server error in /api/generate-images:", error);
     return NextResponse.json({ success: false, error: "Erro interno do servidor.", details: error.message }, { status: 500 });
   }
