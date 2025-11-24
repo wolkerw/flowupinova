@@ -10,6 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados de publicação inválidos ou ausentes." }, { status: 400 });
     }
 
+    // O webhook espera um objeto que tenha a chave "publicacoes"
     const webhookPayload = {
       publicacoes: publicacoes.map((pub: any) => ({
         titulo: pub.titulo,
