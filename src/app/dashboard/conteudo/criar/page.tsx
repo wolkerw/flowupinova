@@ -361,6 +361,53 @@ export default function CriarConteudoPage() {
         }
     }
 
+    const handleSkipToSchedule = async () => {
+        if (mediaItems.length === 0) {
+            toast({ variant: "destructive", title: "Nenhuma mídia", description: "Por favor, anexe uma imagem ou vídeo primeiro." });
+            return;
+        }
+
+        setIsUploading(true);
+        toast({ title: "Preparando para agendamento...", description: "A imagem será usada sem edições." });
+
+        try {
+            const mediaToUse = mediaItems[0];
+            const fileToUpload = mediaToUse.file;
+
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+
+            const response = await fetch("/api/proxy-webhook", { method: 'POST', body: formData });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || `Falha ao chamar o webhook: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            const publicUrl = result?.[0]?.url_post;
+
+            if (!publicUrl) {
+                throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+            }
+
+            setMediaItems(prev => {
+                const newItems = [...prev];
+                newItems[0].publicUrl = publicUrl;
+                return newItems;
+            });
+
+            setStep(3);
+
+        } catch (error: any) {
+             console.error("Erro ao pular para agendamento:", error);
+             toast({ variant: "destructive", title: "Erro ao Preparar Mídia", description: error.message });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+
     const handleContentTypeSelect = (value: string) => {
         setSelectedType(value as ContentType);
         setStep(2);
@@ -717,14 +764,24 @@ export default function CriarConteudoPage() {
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Voltar
                         </Button>
-                        <Button 
-                          onClick={handleNextStep}
-                          disabled={isNextDisabled}
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                           {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                           {isUploading ? 'Processando...' : 'Próxima Etapa'}
-                           {!isUploading && <ArrowRight className="w-4 h-4 ml-2" />}
-                        </Button>
+                        <div className="flex gap-4">
+                            <Button
+                                variant="outline"
+                                onClick={handleSkipToSchedule}
+                                disabled={isNextDisabled}
+                            >
+                               {isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                Pular para Agendamento
+                            </Button>
+                            <Button 
+                              onClick={handleNextStep}
+                              disabled={isNextDisabled}
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                               {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                               {isUploading ? 'Processando...' : 'Próxima Etapa'}
+                               {!isUploading && <ArrowRight className="w-4 h-4 ml-2" />}
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}
