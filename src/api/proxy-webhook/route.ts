@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/URL_imagem_sem_logo";
 
   try {
     // A solução robusta é fazer o streaming do corpo da requisição original
