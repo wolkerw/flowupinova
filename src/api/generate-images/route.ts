@@ -35,22 +35,20 @@ export async function POST(request: Request) {
 
     const data = await webhookResponse.json();
 
+    // A resposta do webhook é um array de objetos. Vamos retornar a resposta completa.
     if (!Array.isArray(data)) {
-        // Log do formato inesperado para depuração
         console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
-        // Retorna um erro JSON claro para o frontend
         return NextResponse.json({ error: "Formato de resposta do webhook de imagem inesperado.", details: JSON.stringify(data, null, 2) }, { status: 500 });
     }
     
-    // A chave correta retornada pelo webhook é 'url_da_imagem'
+    // Apenas para verificação, vamos garantir que pelo menos uma url de imagem exista.
     const imageUrls = data.map(item => item.url_da_imagem).filter(Boolean);
-
     if (imageUrls.length === 0) {
-        return NextResponse.json({ error: "Nenhuma URL de imagem válida foi encontrada na resposta." }, { status: 500 });
+        return NextResponse.json({ error: "Nenhuma URL de imagem válida foi encontrada na resposta do webhook." }, { status: 500 });
     }
     
-    // Retorna um array de strings (URLs)
-    return NextResponse.json({ success: true, imageUrls: imageUrls });
+    // Retorna o array de objetos completo
+    return NextResponse.json({ success: true, data: data });
 
   } catch (error: any) {
     // Captura qualquer outro erro, como falha ao parsear o JSON da requisição inicial

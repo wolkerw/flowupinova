@@ -280,11 +280,14 @@ export default function GerarConteudoPage() {
         throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
       }
       
-      const imageUrls = result.imageUrls;
+      // A API agora retorna { success: true, data: [...] }
+      const responseData = result.data;
 
-      if (!Array.isArray(imageUrls)) {
+      if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
       }
+      
+      const imageUrls = responseData.map(item => item.url_da_imagem).filter(Boolean);
 
       if (imageUrls.length === 0) {
         throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
