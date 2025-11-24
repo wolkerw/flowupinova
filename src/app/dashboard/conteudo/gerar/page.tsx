@@ -694,7 +694,7 @@ export default function GerarConteudoPage() {
                                 <Button onClick={() => handlePublish('now')} disabled={!metaConnection?.isConnected || isPublishing || (!processedImageUrl && !selectedImage) || isGeneratingImages || platforms.length === 0} className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700" size="lg">{isPublishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}{isPublishing ? 'Publicando...' : 'Publicar Agora'}</Button>
                                 <Button onClick={() => setShowSchedulerModal(true)} disabled={!metaConnection?.isConnected || isPublishing || (!processedImageUrl && !selectedImage) || isGeneratingImages || platforms.length === 0} variant="outline" size="lg"><Calendar className="w-5 h-5 mr-2" />Agendar</Button>
                             </div>
-                            {!metaConnection?.isConnected && (<p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" />Conecte sua conta da Meta na página de Conteúdo para publicar.</p>)}
+                            {!metaConnection?.isConnected && (<p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" />Conecte sua conta da Meta na página de "Conteúdo" para publicar.</p>)}
                        </div>
                     </div>
                </div>
