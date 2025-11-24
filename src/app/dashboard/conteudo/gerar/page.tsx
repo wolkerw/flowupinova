@@ -128,6 +128,7 @@ export default function GerarConteudoPage() {
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+  const [jsonTestInput, setJsonTestInput] = useState("");
 
 
   const fetchUnusedImages = async () => {
@@ -309,6 +310,31 @@ export default function GerarConteudoPage() {
       toast({ variant: 'destructive', title: "Erro ao Gerar Imagens", description: error.message });
     } finally {
       setIsGeneratingImages(false);
+    }
+  };
+
+    const handleJsonTest = () => {
+    try {
+      const testData = JSON.parse(jsonTestInput);
+      if (!Array.isArray(testData)) {
+        throw new Error("O JSON fornecido não é um array.");
+      }
+      
+      const imageUrls = testData.map(item => item.url_da_imagem).filter(Boolean);
+      if (imageUrls.length === 0) {
+        throw new Error("O JSON fornecido não contém a chave 'url_da_imagem' ou os valores estão vazios.");
+      }
+
+      setRawImageResponse(testData);
+      setGeneratedImages(imageUrls);
+      setSelectedImage(imageUrls[0]);
+      setStep(3);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro no JSON de Teste",
+        description: error.message,
+      });
     }
   };
 
@@ -562,6 +588,19 @@ export default function GerarConteudoPage() {
                   </div>
                 ))}
               </RadioGroup>
+               <div className="mt-6 border-t pt-4">
+                <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
+                <Textarea
+                  id="json-test-input"
+                  placeholder='Cole o array JSON aqui...'
+                  className="mt-2 h-24 font-mono text-xs"
+                  value={jsonTestInput}
+                  onChange={(e) => setJsonTestInput(e.target.value)}
+                />
+                <Button onClick={handleJsonTest} variant="secondary" size="sm" className="mt-2">
+                  Testar com JSON
+                </Button>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
                <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
@@ -683,3 +722,4 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
