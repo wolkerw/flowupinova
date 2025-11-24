@@ -25,12 +25,15 @@ export async function POST(request: NextRequest) {
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
       console.error("Erro no webhook externo:", webhookResponse.status, errorText);
+      let errorDetails = errorText;
       try {
+        // Tenta extrair a mensagem de erro se a resposta for um JSON de erro.
         const errorJson = JSON.parse(errorText);
-        return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorJson.message || errorJson }, { status: webhookResponse.status });
+        errorDetails = errorJson.message || errorJson.error || errorText;
       } catch (e) {
-        return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorText }, { status: webhookResponse.status });
+        // Se a resposta de erro não for JSON, usa o texto puro.
       }
+      return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorDetails }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error.message);
     // Se o erro for sobre Content-Type, é porque o cliente não enviou FormData
-    if (error.message.includes("Content-Type")) {
+    if (error.message && typeof error.message === 'string' && error.message.includes("Content-Type")) {
          return NextResponse.json({ error: "Erro de formato da requisição.", details: "A requisição deve ser do tipo 'multipart/form-data'." }, { status: 415 });
     }
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
