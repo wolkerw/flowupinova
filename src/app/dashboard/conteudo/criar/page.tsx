@@ -374,15 +374,12 @@ export default function CriarConteudoPage() {
             const mediaToUse = mediaItems[0];
             const fileToUpload = mediaToUse.file;
 
-            // Envia o arquivo blob diretamente, a API vai lidar com o FormData.
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+
             const response = await fetch("/api/proxy-webhook", {
                 method: 'POST',
-                headers: {
-                    // A API de proxy precisa do nome do arquivo
-                    'X-File-Name': fileToUpload.name,
-                    'Content-Type': fileToUpload.type,
-                },
-                body: fileToUpload,
+                body: formData,
             });
             
             if (!response.ok) {
@@ -391,10 +388,10 @@ export default function CriarConteudoPage() {
             }
 
             const result = await response.json();
-            const publicUrl = result?.[0]?.url_da_imagem;
+            const publicUrl = result?.[0]?.url_da_imagem || result?.[0]?.url_post;
 
             if (!publicUrl) {
-                throw new Error("A resposta do webhook não continha uma 'url_da_imagem' válida.");
+                throw new Error("A resposta do webhook não continha uma URL de imagem válida.");
             }
 
             setMediaItems(prev => {
