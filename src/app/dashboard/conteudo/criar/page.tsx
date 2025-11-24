@@ -362,55 +362,7 @@ export default function CriarConteudoPage() {
     }
 
     const handleSkipToSchedule = async () => {
-        if (mediaItems.length === 0) {
-            toast({ variant: "destructive", title: "Nenhuma mídia", description: "Por favor, anexe uma imagem ou vídeo primeiro." });
-            return;
-        }
-
-        setIsUploading(true);
-        toast({ title: "Preparando para agendamento...", description: "A imagem será usada sem edições." });
-
-        try {
-            const mediaToUse = mediaItems[0];
-            const fileToUpload = mediaToUse.file;
-
-            const formData = new FormData();
-            formData.append('file', fileToUpload);
-
-            const response = await fetch("/api/proxy-webhook", {
-                method: 'POST',
-                body: formData,
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || `Falha ao chamar o webhook: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            const publicUrl = result?.[0]?.url_da_imagem || result?.[0]?.url_post;
-
-            if (!publicUrl) {
-                throw new Error("A resposta do webhook não continha uma URL de imagem válida.");
-            }
-
-            setMediaItems(prev => {
-                const newItems = [...prev];
-                if (newItems[0]) {
-                    newItems[0].publicUrl = publicUrl;
-                }
-                return newItems;
-            });
-
-            toast({ variant: "success", title: "Sucesso!", description: "Mídia pronta para agendamento." });
-            setStep(3);
-
-        } catch (error: any) {
-             console.error("Erro ao pular para agendamento:", error);
-             toast({ variant: "destructive", title: "Erro ao Preparar Mídia", description: error.message });
-        } finally {
-            setIsUploading(false);
-        }
+        // This function is now empty as per the user's request.
     };
 
 
