@@ -284,7 +284,7 @@ export default function GerarConteudoPage() {
       }
       
       const responseData = result.data;
-      setRawImageResponse(responseData); // Store the raw response for debugging
+      setRawImageResponse(responseData);
 
       if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
