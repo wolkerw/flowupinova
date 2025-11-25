@@ -284,89 +284,99 @@ export default function CriarConteudoPage() {
         });
     };
 
+    const processSingleMediaItem = async (mediaItem: MediaItem): Promise<string> => {
+        if (mediaItem.type === 'video') {
+            // Se for vídeo, apenas retornamos a URL de preview local, pois não há processamento de webhook
+            return mediaItem.previewUrl;
+        }
+
+        const imageFile = mediaItem.file;
+        const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(imageFile);
+
+        const formData = new FormData();
+        formData.append('file', imageFile);
+
+        let webhookUrl = "";
+
+        if (logoFile) {
+            webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+            formData.append('logo', logoFile);
+            formData.append('logoScale', logoScale.toString());
+            formData.append('logoOpacity', logoOpacity.toString());
+
+            const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+            let positionX = 0, positionY = 0;
+            const margin = 16; 
+
+            switch (logoPosition) {
+                case 'top-left':    positionX = margin; positionY = margin; break;
+                case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
+                case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
+                case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
+                case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+            }
+            
+            formData.append('positionX', Math.round(positionX).toString());
+            formData.append('positionY', Math.round(positionY).toString());
+        } else {
+            webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+        }
+
+        const response = await fetch(webhookUrl, { method: 'POST', body: formData });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorDetails = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorDetails = errorJson.details || errorJson.error || errorText;
+            } catch (e) { /* Use plain text */ }
+            throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const publicUrl = result?.[0]?.url_post;
+
+        if (!publicUrl) {
+            throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+        }
+
+        return publicUrl;
+    };
+
     const handleNextStep = async () => {
         if (step === 2 && mediaItems.length > 0) {
             setIsUploading(true);
-            toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
+            toast({ title: `Processando ${mediaItems.length} mídia(s)...`, description: "Aplicando edições e enviando para o webhook." });
 
             try {
-                const mainImageFile = mediaItems[0].file;
-                const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(mainImageFile);
-
-                const formData = new FormData();
-                formData.append('file', mainImageFile);
+                const processedUrls: string[] = [];
+                for (const item of mediaItems) {
+                    // Apenas processa imagens. Vídeos são pulados nesta etapa.
+                    if (item.type === 'image') {
+                        const url = await processSingleMediaItem(item);
+                        processedUrls.push(url);
+                    } else {
+                        processedUrls.push(item.previewUrl); // Mantém a URL local para vídeos
+                    }
+                }
                 
-                let webhookUrl = "/api/proxy-webhook";
-                let webhookParams: { [key: string]: string } = {};
+                // Atualiza os itens de mídia com as novas URLs públicas (se aplicável)
+                setMediaItems(prevItems => prevItems.map((item, index) => ({
+                    ...item,
+                    publicUrl: processedUrls[index]
+                })));
 
-                if (logoFile) {
-                    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
-                    formData.append('logo', logoFile);
-                    formData.append('logoScale', logoScale.toString());
-                    formData.append('logoOpacity', logoOpacity.toString());
-
-                    // Calculate pixel positions
-                    const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
-                    let positionX = 0;
-                    let positionY = 0;
-                    const margin = 16; // 1rem = 16px for margin like 'top-4'
-
-                    switch (logoPosition) {
-                        case 'top-left':    positionX = margin; positionY = margin; break;
-                        case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
-                        case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
-                        case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break; // Assuming square logo for height
-                        case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                        case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                        case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-                        case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
-                        case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-                    }
-                    
-                    formData.append('positionX', Math.round(positionX).toString());
-                    formData.append('positionY', Math.round(positionY).toString());
-                } else {
-                     webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
-                }
-
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    let errorDetails = errorText;
-                    try {
-                        const errorJson = JSON.parse(errorText);
-                        errorDetails = errorJson.details || errorJson.error || errorText;
-                    } catch (e) {
-                       // Do nothing, use plain text
-                    }
-                    throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                const publicUrl = result?.[0]?.url_post;
-
-                if (!publicUrl) {
-                    throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
-                }
-
-                setMediaItems(prevItems => {
-                    const updatedItems = [...prevItems];
-                    if (updatedItems[0]) {
-                        updatedItems[0].publicUrl = publicUrl;
-                    }
-                    return updatedItems;
-                });
-
-                toast({ variant: "success", title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
+                toast({ variant: "success", title: "Sucesso!", description: "Mídias processadas e prontas para a próxima etapa." });
                 setStep(3);
 
             } catch (error: any) {
                 console.error("Erro ao enviar para o webhook:", error);
-                toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
+                toast({ variant: "destructive", title: "Erro ao Processar Mídia", description: error.message });
             } finally {
                 setIsUploading(false);
             }
