@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -615,7 +616,7 @@ export default function GerarConteudoPage() {
                   </div>
                 ))}
               </RadioGroup>
-              <div>
+              <div className="hidden">
                  <div className="mt-6 border-t pt-4">
                   <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
                   <Textarea
@@ -755,3 +756,4 @@ export default function GerarConteudoPage() {
     
 
     
+
