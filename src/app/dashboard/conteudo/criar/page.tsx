@@ -362,59 +362,7 @@ export default function CriarConteudoPage() {
     }
 
     const handleSkipToSchedule = async () => {
-        if (mediaItems.length === 0) {
-            toast({ variant: "destructive", title: "Nenhuma mídia", description: "Por favor, anexe uma imagem ou vídeo primeiro." });
-            return;
-        }
-
-        setIsUploading(true);
-        toast({ title: "Buscando imagem...", description: "Enviando para o webhook para obter a URL final." });
-
-        try {
-            const formData = new FormData();
-            formData.append('file', mediaItems[0].file);
-            
-            const response = await fetch('/api/proxy-webhook', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                 const errorText = await response.text();
-                 let errorDetails;
-                 try {
-                     const errorJson = JSON.parse(errorText);
-                     errorDetails = errorJson.details || errorJson.error || errorText;
-                 } catch (e) {
-                     errorDetails = errorText;
-                 }
-                throw new Error(errorDetails || `Falha na chamada ao webhook: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            const publicUrl = result?.[0]?.url_post;
-
-            if (!publicUrl) {
-                throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
-            }
-
-            setMediaItems(prevItems => {
-                const updatedItems = [...prevItems];
-                if (updatedItems[0]) {
-                    updatedItems[0].publicUrl = publicUrl;
-                }
-                return updatedItems;
-            });
-            
-            toast({ variant: "success", title: "Sucesso!", description: "Imagem pronta para agendamento." });
-            setStep(3);
-
-        } catch (error: any) {
-            console.error("Erro ao pular para agendamento:", error);
-            toast({ variant: "destructive", title: "Erro ao Obter Imagem", description: error.message });
-        } finally {
-            setIsUploading(false);
-        }
+        // Functionality removed as per user request.
     };
 
 
@@ -776,10 +724,9 @@ export default function CriarConteudoPage() {
                             <Button
                                 variant="outline"
                                 onClick={handleSkipToSchedule}
-                                disabled={isNextDisabled || isUploading}
+                                disabled={true}
                             >
-                               {isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                Pular para Agendamento
+                               Pular para Agendamento
                             </Button>
                             <Button 
                               onClick={handleNextStep}
