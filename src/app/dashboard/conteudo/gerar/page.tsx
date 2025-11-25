@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive, Combine, Edit } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive, Combine, Edit, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -545,6 +545,25 @@ export default function GerarConteudoPage() {
     setLogoPreviewUrl(null);
   }
 
+  const handleDownloadImage = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flowup-image-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Download iniciado", description: "Sua imagem está sendo baixada." });
+    } catch (error) {
+      console.error("Erro ao baixar imagem:", error);
+      toast({ variant: 'destructive', title: "Erro no Download", description: "Não foi possível baixar a imagem." });
+    }
+  };
+
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
   
   return (
@@ -634,7 +653,7 @@ export default function GerarConteudoPage() {
               <div className="flex justify-between items-center"><p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p><Button variant="outline" onClick={() => handleGenerateImages()} disabled={isGeneratingImages || !selectedContentId}>{isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}Gerar Novas Imagens</Button></div>
             </CardHeader>
             <CardContent>
-              {isGeneratingImages ? (<div className="flex flex-col items-center justify-center h-64"><Loader2 className="w-12 h-12 mr-2 animate-spin text-purple-500" /><span className="text-lg text-gray-600 mt-4">Criando imagens incríveis...</span></div>) : generatedImages.length > 0 ? (<div className="grid grid-cols-2 md:grid-cols-3 gap-4">{generatedImages.map((imgSrc, index) => (<div key={index} onClick={() => setSelectedImage(imgSrc)} className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300", "ring-4 ring-offset-2", selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent")}><Image src={imgSrc} alt={`Imagem gerada ${index + 1}`} layout="fill" objectFit="cover" className="hover:scale-105 transition-transform duration-300" />{selectedImage === imgSrc && (<div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Check className="w-12 h-12 text-white" /></div>)}</div>))}</div>) : (<div className="flex flex-col items-center justify-center h-64 text-center"><AlertTriangle className="w-12 h-12 text-destructive mb-4" /><p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p><p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente gerar novamente.</p></div>)}
+              {isGeneratingImages ? (<div className="flex flex-col items-center justify-center h-64"><Loader2 className="w-12 h-12 mr-2 animate-spin text-purple-500" /><span className="text-lg text-gray-600 mt-4">Criando imagens incríveis...</span></div>) : generatedImages.length > 0 ? (<div className="grid grid-cols-2 md:grid-cols-3 gap-4">{generatedImages.map((imgSrc, index) => (<div key={index} onClick={() => setSelectedImage(imgSrc)} className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300 group", "ring-4 ring-offset-2", selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent")}><Image src={imgSrc} alt={`Imagem gerada ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300" />{selectedImage === imgSrc && (<div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Check className="w-12 h-12 text-white" /></div>)}<Button size="icon" variant="secondary" onClick={(e) => { e.stopPropagation(); handleDownloadImage(imgSrc); }} className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="w-4 h-4" /></Button></div>))}</div>) : (<div className="flex flex-col items-center justify-center h-64 text-center"><AlertTriangle className="w-12 h-12 text-destructive mb-4" /><p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p><p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente gerar novamente.</p></div>)}
               {rawImageResponse && (
                 <div className="mt-6 hidden">
                   <h4 className="font-bold text-lg mb-2">Resposta Bruta do Webhook (para depuração):</h4>
@@ -732,5 +751,7 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
+    
 
     
