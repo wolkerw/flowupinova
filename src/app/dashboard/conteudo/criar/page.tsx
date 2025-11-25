@@ -46,18 +46,6 @@ const contentOptions = [
         title: "Carrossel (Feed)",
         description: "Várias imagens ou vídeos em um só post.",
         icon: Copy
-    },
-    {
-        id: "story",
-        title: "Story",
-        description: "Conteúdo vertical que some em 24 horas.",
-        icon: Film
-    },
-    {
-        id: "reels",
-        title: "Reels",
-        description: "Vídeo curto vertical para o feed e aba Reels.",
-        icon: Sparkles
     }
 ];
 
@@ -236,7 +224,7 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isUploading, setIsUploading] = useState(isUploading);
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
@@ -872,3 +860,5 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
+    
