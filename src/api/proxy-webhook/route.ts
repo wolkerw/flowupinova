@@ -2,19 +2,37 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/URL_imagem_sem_logo";
+  // Este endpoint agora é um proxy genérico. A URL real do webhook é determinada
+  // pelo cliente que chama esta API, através de um header customizado ou parâmetro.
+  // Por simplicidade, vamos manter a lógica de repasse, mas ela precisa ser robusta.
+
+  // A URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
+  const targetWebhookName = request.nextUrl.searchParams.get('target');
+  
+  let webhookUrl = "";
+
+  if (targetWebhookName === 'post_manual') {
+      webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/URL_imagem_sem_logo";
+  } else if (targetWebhookName === 'imagem_sem_logo') {
+      webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+  } else {
+      return NextResponse.json({ error: "Webhook de destino não especificado ou inválido." }, { status: 400 });
+  }
+
 
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
-    }
-
+    
     // Recria o FormData no servidor para enviar ao webhook externo.
     const webhookFormData = new FormData();
-    webhookFormData.append('file', file, file.name);
+    for (const [key, value] of formData.entries()) {
+      // Se o valor for um arquivo, precisamos garantir que ele seja tratado como tal
+      if (value instanceof File) {
+        webhookFormData.append(key, value, value.name);
+      } else {
+        webhookFormData.append(key, value);
+      }
+    }
     
     // O `fetch` nativo definirá o Content-Type para `multipart/form-data` com o boundary correto.
     const webhookResponse = await fetch(webhookUrl, {

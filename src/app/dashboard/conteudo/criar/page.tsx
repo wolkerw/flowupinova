@@ -295,8 +295,12 @@ export default function CriarConteudoPage() {
 
                 const formData = new FormData();
                 formData.append('file', mainImageFile);
+                
+                let webhookUrl = "/api/proxy-webhook";
+                let webhookParams: { [key: string]: string } = {};
 
                 if (logoFile) {
+                    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
                     formData.append('logo', logoFile);
                     formData.append('logoScale', logoScale.toString());
                     formData.append('logoOpacity', logoOpacity.toString());
@@ -321,17 +325,25 @@ export default function CriarConteudoPage() {
                     
                     formData.append('positionX', Math.round(positionX).toString());
                     formData.append('positionY', Math.round(positionY).toString());
+                } else {
+                     webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
                 }
 
-                const webhookUrl = "/api/proxy-webhook";
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.details || `Falha ao chamar o webhook: ${response.statusText}`);
+                    const errorText = await response.text();
+                    let errorDetails = errorText;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorDetails = errorJson.details || errorJson.error || errorText;
+                    } catch (e) {
+                       // Do nothing, use plain text
+                    }
+                    throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -360,10 +372,6 @@ export default function CriarConteudoPage() {
             }
         }
     }
-
-    const handleSkipToSchedule = async () => {
-        // Functionality removed as per user request.
-    };
 
 
     const handleContentTypeSelect = (value: string) => {
