@@ -615,7 +615,7 @@ export default function GerarConteudoPage() {
                   </div>
                 ))}
               </RadioGroup>
-              <div className="hidden">
+              <div>
                  <div className="mt-6 border-t pt-4">
                   <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
                   <Textarea
