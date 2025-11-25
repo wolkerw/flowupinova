@@ -224,7 +224,7 @@ export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [isUploading, setIsUploading] = useState(isUploading);
+    const [isUploading, setIsUploading] = useState(false);
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
@@ -860,5 +860,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-    
