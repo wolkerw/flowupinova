@@ -28,5 +28,12 @@ yarn-error.log*
 .env*.local
 .env
 
-# service account credentials
-/src/service-account.json
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Firebase
+src/service-account.json
