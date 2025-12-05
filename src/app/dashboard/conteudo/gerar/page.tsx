@@ -100,7 +100,6 @@ export default function GerarConteudoPage() {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [rawImageResponse, setRawImageResponse] = useState<any>(null); // State to store raw JSON
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
@@ -268,7 +267,6 @@ export default function GerarConteudoPage() {
     setGeneratedImages([]);
     setSelectedImage(null);
     setProcessedImageUrl(null);
-    setRawImageResponse(null);
     
     try {
       const response = await fetch('/api/generate-images', {
@@ -285,7 +283,6 @@ export default function GerarConteudoPage() {
       }
       
       const responseData = result.data;
-      setRawImageResponse(responseData);
 
       if (!Array.isArray(responseData)) {
           throw new Error("Formato de resposta do webhook de imagem inesperado.");
@@ -326,7 +323,6 @@ export default function GerarConteudoPage() {
         throw new Error("O JSON fornecido não contém a chave 'url_da_imagem' ou os valores estão vazios.");
       }
 
-      setRawImageResponse(testData);
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
       setStep(3);
@@ -370,8 +366,6 @@ export default function GerarConteudoPage() {
         toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
     
         try {
-            const webhookUrl = "/api/proxy-webhook?target=post_manual";
-    
             const imageBlob = await urlToBlob(selectedImage);
             const imageFile = new File([imageBlob], "generated-image.jpg", { type: imageBlob.type });
     
@@ -402,7 +396,7 @@ export default function GerarConteudoPage() {
             formData.append('positionX', Math.round(positionX).toString());
             formData.append('positionY', Math.round(positionY).toString());
     
-            const response = await fetch(webhookUrl, { method: 'POST', body: formData });
+            const response = await fetch("/api/proxy-webhook?target=post_manual", { method: 'POST', body: formData });
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -658,14 +652,6 @@ export default function GerarConteudoPage() {
             </CardHeader>
             <CardContent>
               {isGeneratingImages ? (<div className="flex flex-col items-center justify-center h-64"><Loader2 className="w-12 h-12 mr-2 animate-spin text-purple-500" /><span className="text-lg text-gray-600 mt-4">Criando imagens incríveis...</span></div>) : generatedImages.length > 0 ? (<div className="grid grid-cols-2 md:grid-cols-3 gap-4">{generatedImages.map((imgSrc, index) => (<div key={index} onClick={() => setSelectedImage(imgSrc)} className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300 group", "ring-4 ring-offset-2", selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent")}><Image src={imgSrc} alt={`Imagem gerada ${index + 1}`} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-300" />{selectedImage === imgSrc && (<div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Check className="w-12 h-12 text-white" /></div>)}<Button size="icon" variant="secondary" onClick={(e) => { e.stopPropagation(); handleDownloadImage(imgSrc); }} className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="w-4 h-4" /></Button></div>))}</div>) : (<div className="flex flex-col items-center justify-center h-64 text-center"><AlertTriangle className="w-12 h-12 text-destructive mb-4" /><p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p><p className="text-sm text-gray-500 mb-6">Parece que houve um problema. Tente gerar novamente.</p></div>)}
-              {rawImageResponse && (
-                <div className="mt-6">
-                  <h4 className="font-bold text-lg mb-2">Resposta Bruta do Webhook (para depuração):</h4>
-                  <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-auto max-h-60">
-                    {JSON.stringify(rawImageResponse, null, 2)}
-                  </pre>
-                </div>
-              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-2" />Voltar e Mudar Texto</Button>
@@ -759,6 +745,7 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
 
