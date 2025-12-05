@@ -103,7 +103,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     postData: {
-                        title: postData.title,
+                        title: postData.title, // Correctly pass the title
                         text: postData.text,
                         imageUrl: postData.imageUrl,
                         metaConnection: postData.metaConnection,
@@ -160,7 +160,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         const isImmediate = postData.scheduledAt <= new Date();
 
         const postToSave: Omit<PostData, 'id'> = {
-            title: postData.title,
+            title: postData.title || "Post sem título", // Ensure title is never undefined
             text: postData.text,
             imageUrl: imageUrl,
             platforms: postData.platforms,
