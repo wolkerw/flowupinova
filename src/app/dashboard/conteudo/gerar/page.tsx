@@ -203,7 +203,7 @@ export default function GerarConteudoPage() {
     try {
         const payload = {
             summary: textToGenerate,
-            brandSummary: businessProfile?.brandSummary || ""
+            brand_summary: businessProfile?.brandSummary || ""
         };
 
         const response = await fetch('/api/generate-text', {
@@ -353,80 +353,80 @@ export default function GerarConteudoPage() {
         });
     };
 
-   const handleLogoProcessing = async () => {
-    if (!selectedImage) {
-      toast({ variant: 'destructive', title: "Erro", description: "Nenhuma imagem selecionada para processar." });
-      return;
-    }
-    
-    setIsUploading(true);
-    toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
-
-    try {
-        const webhookUrl = logoFile
-            ? "/api/proxy-webhook?target=post_manual"
-            : "/api/proxy-webhook?target=imagem_sem_logo";
-
-        const imageBlob = await urlToBlob(selectedImage);
-        const imageFile = new File([imageBlob], "generated-image.jpg", { type: imageBlob.type });
-
-        const formData = new FormData();
-        formData.append('file', imageFile);
-
-        if (logoFile) {
-            const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensionsFromUrl(selectedImage);
-            formData.append('logo', logoFile);
-            formData.append('logoScale', logoScale.toString());
-            formData.append('logoOpacity', logoOpacity.toString());
-
-            const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
-            let positionX = 0, positionY = 0;
-            const margin = 10;
-
-            switch (logoPosition) {
-                case 'top-left':    positionX = margin; positionY = margin; break;
-                case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
-                case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
-                case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-                case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
-                case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-            }
-            
-            formData.append('positionX', Math.round(positionX).toString());
-            formData.append('positionY', Math.round(positionY).toString());
+    const handleLogoProcessing = async () => {
+        if (!selectedImage) {
+          toast({ variant: 'destructive', title: "Erro", description: "Nenhuma imagem selecionada para processar." });
+          return;
         }
-
-        const response = await fetch(webhookUrl, { method: 'POST', body: formData });
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorDetails = errorText;
-            try {
-                const errorJson = JSON.parse(errorText);
-                errorDetails = errorJson.details || errorJson.error || errorText;
-            } catch (e) { /* Use plain text */ }
-            throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
+        setIsUploading(true);
+        toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
+    
+        try {
+            const webhookUrl = logoFile
+                ? "/api/proxy-webhook?target=post_manual"
+                : "/api/proxy-webhook?target=imagem_sem_logo";
+    
+            const imageBlob = await urlToBlob(selectedImage);
+            const imageFile = new File([imageBlob], "generated-image.jpg", { type: imageBlob.type });
+    
+            const formData = new FormData();
+            formData.append('file', imageFile);
+    
+            if (logoFile) {
+                const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensionsFromUrl(selectedImage);
+                formData.append('logo', logoFile);
+                formData.append('logoScale', logoScale.toString());
+                formData.append('logoOpacity', logoOpacity.toString());
+    
+                const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+                let positionX = 0, positionY = 0;
+                const margin = 10;
+    
+                switch (logoPosition) {
+                    case 'top-left':    positionX = margin; positionY = margin; break;
+                    case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
+                    case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
+                    case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                    case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                    case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                    case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                    case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
+                    case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                }
+                
+                formData.append('positionX', Math.round(positionX).toString());
+                formData.append('positionY', Math.round(positionY).toString());
+            }
+    
+            const response = await fetch(webhookUrl, { method: 'POST', body: formData });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorDetails = errorText;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorDetails = errorJson.details || errorJson.error || errorText;
+                } catch (e) { /* Use plain text */ }
+                throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
+            }
+    
+            const result = await response.json();
+            const publicUrl = result?.[0]?.url_post;
+    
+            if (!publicUrl) throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+    
+            setProcessedImageUrl(publicUrl);
+            toast({ variant: "success", title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
+            setStep(5);
+    
+        } catch (error: any) {
+            console.error("Erro ao processar imagem:", error);
+            toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
+        } finally {
+            setIsUploading(false);
         }
-
-        const result = await response.json();
-        const publicUrl = result?.[0]?.url_post;
-
-        if (!publicUrl) throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
-
-        setProcessedImageUrl(publicUrl);
-        toast({ variant: "success", title: "Sucesso!", description: "Imagem processada e pronta para a próxima etapa." });
-        setStep(5);
-
-    } catch (error: any) {
-        console.error("Erro ao processar imagem:", error);
-        toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
-    } finally {
-        setIsUploading(false);
-    }
-  };
+      };
 
 
   const handleUseUnusedImage = async () => {
@@ -756,6 +756,7 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
 
