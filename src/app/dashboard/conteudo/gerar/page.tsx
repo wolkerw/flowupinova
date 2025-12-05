@@ -251,7 +251,7 @@ export default function GerarConteudoPage() {
 };
 
 
-  const handleGenerateImages = async (publication?: GeneratedContent | null) => {
+ const handleGenerateImages = async (publication?: GeneratedContent | null) => {
     if (!user) return;
     const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
     if (contentToUse.length === 0) {
@@ -616,7 +616,7 @@ export default function GerarConteudoPage() {
                   </div>
                 ))}
               </RadioGroup>
-              <div>
+              
                  <div className="mt-6 border-t pt-4">
                   <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
                   <Textarea
@@ -630,7 +630,7 @@ export default function GerarConteudoPage() {
                     Testar com JSON
                   </Button>
                 </div>
-              </div>
+              
             </CardContent>
             <CardFooter className="flex justify-between">
                <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
@@ -756,6 +756,7 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
 
