@@ -279,7 +279,7 @@ export default function GerarConteudoPage() {
 
       const result = await response.json();
       
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         throw new Error(result.details || result.error || `Erro HTTP: ${response.status}`);
       }
       
@@ -616,7 +616,7 @@ export default function GerarConteudoPage() {
                   </div>
                 ))}
               </RadioGroup>
-              <div className="hidden">
+              <div>
                  <div className="mt-6 border-t pt-4">
                   <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
                   <Textarea
@@ -756,5 +756,6 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
