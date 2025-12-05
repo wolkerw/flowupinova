@@ -274,20 +274,18 @@ export default function CriarConteudoPage() {
 
     const processSingleMediaItem = async (mediaItem: MediaItem): Promise<string> => {
         if (mediaItem.type === 'video') {
-            // Se for vídeo, apenas retornamos a URL de preview local, pois não há processamento de webhook
             return mediaItem.previewUrl;
         }
 
         const imageFile = mediaItem.file;
-        const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(imageFile);
-
         const formData = new FormData();
         formData.append('file', imageFile);
 
         let webhookUrl = "";
-
+        
         if (logoFile) {
             webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+            const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(imageFile);
             formData.append('logo', logoFile);
             formData.append('logoScale', logoScale.toString());
             formData.append('logoOpacity', logoOpacity.toString());
@@ -344,16 +342,14 @@ export default function CriarConteudoPage() {
             try {
                 const processedUrls: string[] = [];
                 for (const item of mediaItems) {
-                    // Apenas processa imagens. Vídeos são pulados nesta etapa.
                     if (item.type === 'image') {
                         const url = await processSingleMediaItem(item);
                         processedUrls.push(url);
                     } else {
-                        processedUrls.push(item.previewUrl); // Mantém a URL local para vídeos
+                        processedUrls.push(item.previewUrl); 
                     }
                 }
                 
-                // Atualiza os itens de mídia com as novas URLs públicas (se aplicável)
                 setMediaItems(prevItems => prevItems.map((item, index) => ({
                     ...item,
                     publicUrl: processedUrls[index]
