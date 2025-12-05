@@ -355,17 +355,22 @@ export default function GerarConteudoPage() {
 
     const handleLogoProcessing = async () => {
         if (!selectedImage) {
-          toast({ variant: 'destructive', title: "Erro", description: "Nenhuma imagem selecionada para processar." });
-          return;
+            toast({ variant: 'destructive', title: "Erro", description: "Nenhuma imagem selecionada para processar." });
+            return;
+        }
+
+        // Se não houver logomarca, simplesmente avance para a próxima etapa.
+        if (!logoFile) {
+            setProcessedImageUrl(null); // Garante que a imagem processada anterior seja limpa
+            setStep(5);
+            return;
         }
         
         setIsUploading(true);
         toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
     
         try {
-            const webhookUrl = logoFile
-                ? "/api/proxy-webhook?target=post_manual"
-                : "/api/proxy-webhook?target=imagem_sem_logo";
+            const webhookUrl = "/api/proxy-webhook?target=post_manual";
     
             const imageBlob = await urlToBlob(selectedImage);
             const imageFile = new File([imageBlob], "generated-image.jpg", { type: imageBlob.type });
@@ -373,31 +378,29 @@ export default function GerarConteudoPage() {
             const formData = new FormData();
             formData.append('file', imageFile);
     
-            if (logoFile) {
-                const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensionsFromUrl(selectedImage);
-                formData.append('logo', logoFile);
-                formData.append('logoScale', logoScale.toString());
-                formData.append('logoOpacity', logoOpacity.toString());
-    
-                const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
-                let positionX = 0, positionY = 0;
-                const margin = 10;
-    
-                switch (logoPosition) {
-                    case 'top-left':    positionX = margin; positionY = margin; break;
-                    case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
-                    case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
-                    case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                    case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                    case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
-                    case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-                    case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
-                    case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-                }
-                
-                formData.append('positionX', Math.round(positionX).toString());
-                formData.append('positionY', Math.round(positionY).toString());
+            const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensionsFromUrl(selectedImage);
+            formData.append('logo', logoFile);
+            formData.append('logoScale', logoScale.toString());
+            formData.append('logoOpacity', logoOpacity.toString());
+
+            const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+            let positionX = 0, positionY = 0;
+            const margin = 10;
+
+            switch (logoPosition) {
+                case 'top-left':    positionX = margin; positionY = margin; break;
+                case 'top-center':  positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = margin; break;
+                case 'top-right':   positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
+                case 'left-center': positionX = margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'center':      positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'right-center':positionX = mainImageWidth - logoPixelWidth - margin; positionY = (mainImageHeight / 2) - (logoPixelWidth / 2); break;
+                case 'bottom-left': positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+                case 'bottom-center':positionX = (mainImageWidth / 2) - (logoPixelWidth / 2); positionY = mainImageHeight - logoPixelWidth - margin; break;
+                case 'bottom-right':positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
             }
+            
+            formData.append('positionX', Math.round(positionX).toString());
+            formData.append('positionY', Math.round(positionY).toString());
     
             const response = await fetch(webhookUrl, { method: 'POST', body: formData });
             
@@ -756,6 +759,7 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
 
