@@ -359,9 +359,8 @@ export default function GerarConteudoPage() {
             return;
         }
 
-        // Se não houver logomarca, simplesmente avance para a próxima etapa.
         if (!logoFile) {
-            setProcessedImageUrl(null); // Garante que a imagem processada anterior seja limpa
+            setProcessedImageUrl(null);
             setStep(5);
             return;
         }
@@ -620,7 +619,7 @@ export default function GerarConteudoPage() {
                 ))}
               </RadioGroup>
               
-                 <div className="mt-6 border-t pt-4">
+                 <div className="mt-6 border-t pt-4 hidden">
                   <Label htmlFor="json-test-input">Área de Teste: Cole o JSON do Webhook aqui</Label>
                   <Textarea
                     id="json-test-input"
@@ -759,6 +758,7 @@ export default function GerarConteudoPage() {
     
 
     
+
 
 
 
