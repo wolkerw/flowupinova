@@ -589,7 +589,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
   
-  if (userLoading || (dataLoading && !profile.isVerified)) {
+  if (userLoading || (dataLoading && !profile?.isVerified)) {
     return (
         <div className="flex h-full w-full items-center justify-center p-6">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -859,3 +859,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
