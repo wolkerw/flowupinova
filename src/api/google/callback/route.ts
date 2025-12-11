@@ -34,71 +34,77 @@ export async function POST(request: NextRequest) {
         
         oauth2Client.setCredentials(tokens);
         
-        // 1. Usa a API de Gerenciamento de Contas para listar as contas e pegar o ID da conta primária
+        // 1. Usa a API de Gerenciamento de Contas para listar TODAS as contas com paginação
         const myBizAccount = google.mybusinessaccountmanagement({
             version: 'v1',
             auth: oauth2Client
         });
 
-        const accountsResponse = await myBizAccount.accounts.list();
-        const accounts = accountsResponse.data.accounts;
-        if (!accounts || accounts.length === 0) {
+        let allAccounts: any[] = [];
+        let nextPageToken: string | undefined | null = undefined;
+
+        do {
+            const accountsResponse = await myBizAccount.accounts.list({
+                pageSize: 20, // Pede mais contas por vez
+                pageToken: nextPageToken || undefined,
+            });
+            
+            const accounts = accountsResponse.data.accounts;
+            if (accounts) {
+                allAccounts.push(...accounts);
+            }
+            nextPageToken = accountsResponse.data.nextPageToken;
+        } while (nextPageToken);
+
+        if (allAccounts.length === 0) {
             throw new Error("Nenhuma conta do Google Meu Negócio encontrada para este usuário.");
         }
         
-        const primaryAccount = accounts[0];
-        if (!primaryAccount.name) {
-            throw new Error("A conta principal do Google Meu Negócio não tem um nome válido.");
-        }
-        const accountId = primaryAccount.name.split('/')[1];
+        // 2. Para cada conta, busca as localizações (perfis de empresa)
+        let allBusinessProfiles: any[] = [];
+        let primaryAccountId: string | undefined;
 
-        // 2. Usa FETCH para buscar a lista de localizações COMPLETAS, como no Postman
-        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile";
-        const locationsListResponse = await fetch(
-            `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${tokens.access_token}`,
-                },
+        for (const account of allAccounts) {
+            if (!account.name) continue;
+            const accountId = account.name.split('/')[1];
+            if(!primaryAccountId) primaryAccountId = accountId; // Salva o primeiro para o caso de ter múltiplos
+
+            const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile";
+            const locationsListResponse = await fetch(
+                `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
+                {
+                    headers: { Authorization: `Bearer ${tokens.access_token}` },
+                }
+            );
+
+            if (!locationsListResponse.ok) {
+                const errorData = await locationsListResponse.json();
+                console.warn(`[GOOGLE_CALLBACK_WARN] Falha ao buscar localizações para a conta ${accountId}:`, errorData.error?.message);
+                continue; // Pula para a próxima conta em caso de erro
             }
-        );
 
-        if (!locationsListResponse.ok) {
-            const errorData = await locationsListResponse.json();
-            console.error("[GOOGLE_CALLBACK_ERROR] Falha ao listar localizações detalhadas:", errorData);
-            throw new Error(`Falha ao buscar localizações: ${errorData.error?.message || 'Erro desconhecido'}`);
-        }
-        
-        const { locations } = await locationsListResponse.json();
-        
-        if (!locations || locations.length === 0) {
-          throw new Error("Nenhum perfil de empresa (local) encontrado nesta conta do Google.");
-        }
-        
-        // Lógica de seleção robusta para encontrar a localização correta
-        const location =
-            locations.find((loc: any) => loc.categories?.primaryCategory) ||
-            locations.find((loc: any) => loc.title && loc.title.length > 0) ||
-            locations.find((loc: any) => loc.metadata?.placeId) ||
-            locations[0];
+            const { locations } = await locationsListResponse.json();
 
-        if (!location.name) {
-          throw new Error("O perfil da empresa encontrado não possui um 'name' (ID da localização) válido.");
+            if (locations && locations.length > 0) {
+                const formattedLocations = locations.map((loc: any) => ({
+                    name: loc.title || 'Nome não encontrado',
+                    googleName: loc.name, // Ex: locations/12345
+                    category: loc.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
+                    address: loc.storefrontAddress ? 
+                             `${loc.storefrontAddress.addressLines?.join(', ')}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}` 
+                             : 'Endereço não encontrado',
+                    phone: loc.phoneNumbers?.primaryPhone || 'Telefone não encontrado',
+                    website: loc.websiteUri || 'Website não encontrado',
+                    description: loc.profile?.description || 'Descrição não disponível.',
+                    isVerified: true,
+                }));
+                allBusinessProfiles.push(...formattedLocations);
+            }
         }
         
-        // 3. Monta o objeto que será enviado para o frontend com os dados detalhados
-        const businessProfileData = {
-            name: location.title || 'Nome não encontrado',
-            googleName: location.name, // Ex: locations/12345
-            category: location.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
-            address: location.storefrontAddress ? 
-                     `${location.storefrontAddress.addressLines?.join(', ')}, ${location.storefrontAddress.locality}, ${location.storefrontAddress.administrativeArea} - ${location.storefrontAddress.postalCode}` 
-                     : 'Endereço não encontrado',
-            phone: location.phoneNumbers?.primaryPhone || 'Telefone não encontrado',
-            website: location.websiteUri || 'Website não encontrado',
-            description: location.profile?.description || 'Descrição não disponível.',
-            isVerified: true,
-        };
+        if (allBusinessProfiles.length === 0) {
+          throw new Error("Nenhum perfil de empresa (local) encontrado em nenhuma das contas Google.");
+        }
 
         const connectionData = {
             accessToken: tokens.access_token,
@@ -109,9 +115,9 @@ export async function POST(request: NextRequest) {
         // Retorna todos os dados para o cliente
         return NextResponse.json({ 
             success: true, 
-            businessProfileData: businessProfileData,
+            businessProfiles: allBusinessProfiles, // Retorna a lista completa de perfis de empresa
             connectionData: connectionData,
-            accountId: accountId,
+            accountId: primaryAccountId, // Retorna o ID da primeira conta encontrada
         });
 
     } catch (error: any) {

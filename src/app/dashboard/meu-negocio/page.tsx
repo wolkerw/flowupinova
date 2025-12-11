@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,32 +183,64 @@ const ProfileSelectionModal = ({
   onSelect: (profile?: BusinessProfileData) => void;
   onCancel: () => void;
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(10);
+
+  const filteredProfiles = useMemo(() => {
+    if (!searchQuery) return profiles;
+    return profiles.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      p.address.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [profiles, searchQuery]);
+
+  const profilesToShow = useMemo(() => {
+    return filteredProfiles.slice(0, visibleCount);
+  }, [filteredProfiles, visibleCount]);
+
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
-    profiles.length > 0 ? profiles[0].googleName || null : null
+    profilesToShow.length > 0 ? profilesToShow[0].googleName || null : null
   );
 
   const handleSelect = () => {
     const profile = profiles.find((p) => p.googleName === selectedProfileId);
     onSelect(profile);
   };
+  
+  const handleLoadMore = () => {
+      setVisibleCount(prev => prev + 10);
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Selecione um Perfil de Empresa</DialogTitle>
           <DialogDescription>
-            Encontramos mais de um negócio associado a esta conta Google. Por
-            favor, escolha qual você deseja conectar.
+            {profiles.length > 1 
+              ? `Encontramos ${profiles.length} negócios associados a esta conta. Por favor, escolha qual você deseja conectar.`
+              : "Encontramos mais de um negócio associado a esta conta Google. Por favor, escolha qual você deseja conectar."
+            }
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 max-h-80 overflow-y-auto">
+        
+        <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+                placeholder="Pesquisar por nome ou endereço..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+            />
+        </div>
+
+        <div className="py-4 max-h-80 overflow-y-auto pr-2 space-y-3">
           <RadioGroup
             value={selectedProfileId || ''}
             onValueChange={setSelectedProfileId}
             className="space-y-3"
           >
-            {profiles.map((profile) => (
+            {profilesToShow.map((profile) => (
               <Label
                 key={profile.googleName}
                 htmlFor={profile.googleName}
@@ -225,7 +257,17 @@ const ProfileSelectionModal = ({
               </Label>
             ))}
           </RadioGroup>
+          {filteredProfiles.length === 0 && (
+            <p className="text-center text-sm text-gray-500 py-4">Nenhum perfil encontrado com sua busca.</p>
+          )}
         </div>
+        
+        {visibleCount < filteredProfiles.length && (
+            <div className="flex justify-center">
+                <Button variant="ghost" onClick={handleLoadMore}>Ver mais</Button>
+            </div>
+        )}
+
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onCancel}>
             Cancelar
@@ -624,7 +666,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           <h1 className="text-3xl font-bold text-gray-900">Meu Negócio</h1>
           <p className="text-gray-600 mt-1">Gerencie seu perfil no Google Meu Negócio</p>
         </div>
-        {profile.isVerified && (
+        {profile?.isVerified && (
          <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -664,7 +706,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         )}
       </div>
       
-      {!profile.isVerified ? (
+      {!profile?.isVerified ? (
          <ConnectGoogleCard onConnect={handleConnect} loading={authLoading} />
       ) : (
         <>
@@ -859,5 +901,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
