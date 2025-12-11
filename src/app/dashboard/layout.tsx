@@ -53,6 +53,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { processPendingNotifications, getNotifications, markAllNotificationsAsRead, type Notification } from "@/lib/services/notifications-service";
 import { cn } from "@/lib/utils";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { Badge } from "@/components/ui/badge";
 
 
 const allNavigationItems = [
@@ -75,6 +76,7 @@ const allNavigationItems = [
     title: "Anúncios",
     url: "/dashboard/anuncios",
     icon: Megaphone,
+    disabled: true,
   },
   {
     title: "Relacionamento",
@@ -199,19 +201,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
+                        disabled={item.disabled}
                         className={`hover:bg-gray-50 transition-all duration-200 rounded-xl mb-1 ${
                           pathname === item.url
                             ? 'text-white border' 
                             : 'hover:text-gray-700'
-                        }`}
+                        } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                         style={pathname === item.url ? { 
                           background: 'var(--flowup-gradient)',
                           borderColor: 'var(--flowup-cyan)'
                         } : {}}
                       >
-                        <Link href={item.url} className="flex items-center gap-3 px-4 py-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
+                        <Link href={item.disabled ? "#" : item.url} className="flex items-center justify-between w-full gap-3 px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <item.icon className="w-5 h-5" />
+                            <span className="font-medium">{item.title}</span>
+                          </div>
+                          {item.disabled && <Badge variant="secondary" className="text-xs">Em breve</Badge>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
