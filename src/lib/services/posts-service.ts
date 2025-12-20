@@ -5,6 +5,7 @@ import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, Timestamp, doc, getDocs, query, orderBy, setDoc, deleteDoc, getDoc, FieldValue, serverTimestamp, updateDoc, deleteField } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
+import type { InstagramConnectionData } from "./instagram-service";
 
 // Interface for data stored in Firestore
 export interface PostData {
@@ -28,7 +29,8 @@ export type PostDataInput = {
     media: File | string; // Can be a File for upload or a string URL from AI gen/webhook
     platforms: Array<'instagram' | 'facebook'>;
     scheduledAt: Date;
-    metaConnection: MetaConnectionData; // Pass the full connection object
+    metaConnection?: MetaConnectionData; // For the original flow
+    instagramConnection?: InstagramConnectionData; // For the V2 flow
 };
 
 // Interface for data being sent to the client from the service
@@ -156,8 +158,10 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
     if (!userId) {
         return { success: false, error: "User ID is required to schedule a post." };
     }
-     if (!postData.metaConnection.isConnected || !postData.metaConnection.accessToken) {
-        return { success: false, error: "Conexão com a Meta não está configurada ou é inválida." };
+
+    const connection = postData.metaConnection || postData.instagramConnection;
+    if (!connection || !connection.isConnected || !connection.accessToken) {
+        return { success: false, error: "Conexão com a Meta/Instagram não está configurada ou é inválida." };
     }
     
     let imageUrl: string;
@@ -171,20 +175,24 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         const isImmediate = postData.scheduledAt <= new Date();
 
+        // Build the metaConnection object to be saved in Firestore
+        const metaConnectionToSave = {
+            accessToken: connection.accessToken,
+            instagramId: connection.instagramId,
+            instagramUsername: connection.instagramUsername,
+            // Use null for fields that might not exist in the instagramConnection
+            pageId: postData.metaConnection?.pageId || null,
+            pageName: postData.metaConnection?.pageName || null,
+        };
+
         const postToSave: Omit<PostData, 'id'> = {
-            title: postData.title || "Post sem título", // Ensure title is never undefined
+            title: postData.title || "Post sem título",
             text: postData.text,
             imageUrl: imageUrl,
             platforms: postData.platforms,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
             status: isImmediate ? 'publishing' : 'scheduled',
-            metaConnection: {
-                accessToken: postData.metaConnection.accessToken,
-                pageId: postData.metaConnection.pageId,
-                instagramId: postData.metaConnection.instagramId,
-                instagramUsername: postData.metaConnection.instagramUsername,
-                pageName: postData.metaConnection.pageName
-            }
+            metaConnection: metaConnectionToSave,
         };
 
         const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
@@ -275,5 +283,3 @@ export async function deletePost(userId: string, postId: string): Promise<void> 
         throw new Error("Não foi possível excluir a publicação do banco de dados.");
     }
 }
-
-    

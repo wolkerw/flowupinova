@@ -502,22 +502,22 @@ export default function ConteudoV2() {
 
   const handleConfirmRepublish = async () => {
     if (!user || !postToRepublish || !postToRepublish.imageUrl) {
-      toast({ variant: "destructive", title: "Erro", description: "Dados insuficientes para republicar. O post precisa ter uma imagem." });
-      return;
+        toast({ variant: 'destructive', title: "Erro", description: "Dados insuficientes para republicar. O post precisa ter uma imagem."});
+        return;
     }
 
     if (!instagramConnection.isConnected) {
-      toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar." });
-      return;
+        toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
+        return;
     }
 
-    if (republishScheduleType === "schedule" && !republishScheduleDate) {
-      toast({ variant: "destructive", title: "Data inválida", description: "Selecione data e hora para o agendamento." });
-      return;
+    if (republishScheduleType === 'schedule' && !republishScheduleDate) {
+        toast({ variant: "destructive", title: "Data inválida", description: "Selecione data e hora para o agendamento."});
+        return;
     }
 
     setIsRepublishing(true);
-    toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
+    toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente."});
 
     const postInput: PostDataInput = {
       title: postToRepublish.title,
@@ -525,12 +525,8 @@ export default function ConteudoV2() {
       media: postToRepublish.imageUrl,
       platforms: ["instagram"],
       scheduledAt: republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
-      metaConnection: { // O serviço ainda espera um metaConnection
-          isConnected: instagramConnection.isConnected,
-          accessToken: instagramConnection.accessToken,
-          instagramId: instagramConnection.instagramId,
-          instagramUsername: instagramConnection.instagramUsername
-      },
+      // Pass the correct connection object for this page
+      instagramConnection: instagramConnection,
     };
 
     const result = await schedulePost(user.uid, postInput);
