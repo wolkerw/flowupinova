@@ -56,10 +56,13 @@ export async function GET(request: NextRequest) {
     
     const longLivedToken = longLivedTokenData.access_token;
     
-    // Redireciona para a página de conteúdo com o token como parâmetro para feedback
-    const redirectUrl = new URL('/dashboard/conteudo', request.url);
+    // Força o redirecionamento para a porta 9000
+    const redirectUrl = new URL(request.url);
+    redirectUrl.port = '9000';
+    redirectUrl.pathname = '/dashboard/conteudo';
     redirectUrl.searchParams.set('new_token_success', 'true');
     redirectUrl.searchParams.set('token_preview', longLivedToken.substring(0, 15));
+
 
     const response = NextResponse.redirect(redirectUrl);
 
