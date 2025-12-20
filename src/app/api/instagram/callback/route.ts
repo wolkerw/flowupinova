@@ -82,9 +82,8 @@ export async function GET(request: NextRequest) {
     
     longLivedToken = longLivedTokenData.access_token;
 
-    // A partir daqui, o fluxo principal está completo. Salvamos o cookie e preparamos o redirect.
+    // A partir daqui, o fluxo principal está completo. Preparamos o redirect.
     redirectUrl.searchParams.set('new_token_success', 'true');
-    redirectUrl.searchParams.set('token_preview', longLivedToken.substring(0, 15));
 
     response.cookies.set('instagram_access_token_new', longLivedToken, {
       httpOnly: true,
@@ -113,7 +112,6 @@ export async function GET(request: NextRequest) {
         }
         
         // 4. Save to Firestore using admin service
-        // A chave aqui é garantir que nenhum valor `undefined` seja passado.
         const dataToSave = {
             isConnected: true,
             accessToken: longLivedToken,
@@ -125,12 +123,11 @@ export async function GET(request: NextRequest) {
 
         await updateMetaConnectionAdmin(userId, dataToSave);
         console.log(`Firestore updated successfully for user ${userId}`);
+        redirectUrl.searchParams.set('firestore_success', 'true');
+
 
     } catch (firestoreError: any) {
         console.error('Secondary Error (Firestore Save):', firestoreError);
-        // Não alteramos a URL de redirecionamento em caso de falha aqui.
-        // O usuário ainda verá o sucesso da conexão via cookie.
-        // Poderíamos adicionar um parâmetro de log se quiséssemos.
         redirectUrl.searchParams.set('firestore_error', 'true');
     }
   }

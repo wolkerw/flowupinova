@@ -328,12 +328,32 @@ export default function Conteudo() {
 
   useEffect(() => {
     const newTokenSuccess = searchParams.get('new_token_success');
-    if (newTokenSuccess) {
+    const firestoreSuccess = searchParams.get('firestore_success');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    if (error) {
+        toast({
+            variant: "destructive",
+            title: `Erro na Conexão (${error})`,
+            description: decodeURIComponent(errorDescription || 'Ocorreu um erro desconhecido.'),
+        });
+    } else if (newTokenSuccess) {
       toast({
         variant: "success",
-        title: "Conexão (Novo Método) bem-sucedida!",
-        description: `O token foi recebido. Próximo passo é salvá-lo e usá-lo.`,
+        title: "Conexão bem-sucedida!",
+        description: `O token foi recebido e a autenticação foi completada.`,
       });
+      if (firestoreSuccess) {
+        toast({
+            variant: "success",
+            title: "Dados Salvos!",
+            description: "As informações da conexão foram salvas no seu perfil.",
+        });
+      }
+    }
+    
+    if (newTokenSuccess || error) {
        router.replace('/dashboard/conteudo', undefined);
     }
     
@@ -431,7 +451,7 @@ export default function Conteudo() {
     }
     
     const state = user?.uid;
-    const scope = 'instagram_business_basic,instagram_business_content_publish';
+    const scope = 'instagram_business_basic';
     const responseType = 'code';
     const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
     window.location.href = authUrl;
@@ -892,4 +912,5 @@ export default function Conteudo() {
 
 
     
+
 
