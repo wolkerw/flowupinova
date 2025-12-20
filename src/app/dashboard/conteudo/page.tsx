@@ -206,6 +206,9 @@ export default function Conteudo() {
   const [republishPlatforms, setRepublishPlatforms] = useState<Array<'instagram' | 'facebook'>>(['instagram']);
   const [republishScheduleType, setRepublishScheduleType] = useState<'now' | 'schedule'>('now');
   const [republishScheduleDate, setRepublishScheduleDate] = useState('');
+  
+  const [newMethodProfile, setNewMethodProfile] = useState<{username: string} | null>(null);
+  const [checkingNewConnection, setCheckingNewConnection] = useState(true);
 
 
   const fetchPageData = useCallback(async () => {
@@ -334,6 +337,17 @@ export default function Conteudo() {
        router.replace('/dashboard/conteudo', undefined);
     }
     
+    setCheckingNewConnection(true);
+    fetch('/api/instagram/get-profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setNewMethodProfile({ username: data.username });
+        }
+      })
+      .catch(err => console.error("Could not fetch new method profile", err))
+      .finally(() => setCheckingNewConnection(false));
+
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }
@@ -559,9 +573,18 @@ export default function Conteudo() {
                         <p className="text-sm text-gray-500">Método 2 (Em teste)</p>
                     </div>
                 </div>
-                <Button variant="secondary" onClick={handleConnectInstagram}>
-                    Conectar (Novo Método)
-                </Button>
+                 {checkingNewConnection ? (
+                    <Loader2 className="w-5 h-5 animate-spin"/>
+                ) : newMethodProfile ? (
+                    <div className="flex items-center gap-2 text-sm text-green-600 font-semibold">
+                        <CheckCircle className="w-4 h-4" />
+                        @{newMethodProfile.username}
+                    </div>
+                ) : (
+                    <Button variant="secondary" onClick={handleConnectInstagram}>
+                        Conectar (Novo Método)
+                    </Button>
+                )}
             </div>
         </CardContent>
     </Card>
