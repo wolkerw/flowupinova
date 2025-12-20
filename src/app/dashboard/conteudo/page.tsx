@@ -519,6 +519,20 @@ export default function Conteudo() {
                     Conectar
                 </Button>
             </div>
+             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mt-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500">
+                        <Instagram className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-800">Conexão (Novo Método)</h3>
+                        <p className="text-sm text-gray-500">Teste o novo fluxo de conexão.</p>
+                    </div>
+                </div>
+                <Button variant="secondary" disabled>
+                    Conectar (Novo)
+                </Button>
+            </div>
         </CardContent>
     </Card>
   );
