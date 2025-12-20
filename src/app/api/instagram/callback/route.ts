@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 import { updateInstagramConnectionAdmin } from '@/lib/services/instagram-service-admin';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,9 +10,13 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
+  // Build the redirect URL pointing to the correct port (9000)
   const redirectUrl = new URL(request.url);
   redirectUrl.protocol = 'https:';
-  redirectUrl.host = request.nextUrl.host.replace(/:\d+$/, '');
+  redirectUrl.host = request.nextUrl.host; // This should already contain the correct host
+  if (redirectUrl.host.includes(':9002')) {
+      redirectUrl.host = redirectUrl.host.replace(':9002', ':9000');
+  }
   redirectUrl.port = '9000';
   redirectUrl.pathname = '/dashboard/conteudo';
   redirectUrl.search = '';
@@ -27,18 +32,18 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set('error_description', 'Authorization code is missing.');
     return NextResponse.redirect(redirectUrl);
   }
+  
+  if (!userId) {
+     redirectUrl.searchParams.set('error', 'missing_state');
+     redirectUrl.searchParams.set('error_description', 'User ID (state) is missing.');
+     return NextResponse.redirect(redirectUrl);
+  }
 
   if (!config.instagram.appId || !config.instagram.appSecret || !config.instagram.redirectUri) {
     console.error('Instagram app credentials are not configured on the server.');
     redirectUrl.searchParams.set('error', 'missing_config');
     redirectUrl.searchParams.set('error_description', 'Server configuration is incomplete.');
     return NextResponse.redirect(redirectUrl);
-  }
-  
-  if (!userId) {
-     redirectUrl.searchParams.set('error', 'missing_state');
-     redirectUrl.searchParams.set('error_description', 'User ID (state) is missing.');
-     return NextResponse.redirect(redirectUrl);
   }
 
   let longLivedToken: string | null = null;
@@ -75,6 +80,15 @@ export async function GET(request: NextRequest) {
     }
     
     longLivedToken = longLivedTokenData.access_token;
+    
+    // Set the cookie for immediate client-side feedback
+    cookies().set('instagram_access_token_new', longLivedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        maxAge: 60 * 60 * 24 * 60, // 60 days
+        path: '/',
+    });
+    
     redirectUrl.searchParams.set('new_token_success', 'true');
 
   } catch (err: any) {
@@ -84,11 +98,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // ATTEMPT TO SAVE TO FIRESTORE, BUT DO NOT BLOCK THE MAIN FLOW
   if (longLivedToken) {
     try {
         const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
         const profileResponse = await fetch(profileUrl);
         const profileData = await profileResponse.json();
+
         if (profileData.error) {
             throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
         }
@@ -100,17 +116,20 @@ export async function GET(request: NextRequest) {
             instagramUsername: profileData.username,
         };
 
+        // This function call is now wrapped in a try/catch
         await updateInstagramConnectionAdmin(userId, dataToSave);
+        
         console.log(`Firestore updated successfully for user ${userId} in 'instagram' collection.`);
         redirectUrl.searchParams.set('firestore_success', 'true');
 
     } catch (firestoreError: any) {
-        console.error('Secondary Error (Firestore Save):', firestoreError);
+        console.error('Error saving to Firestore (will not block redirect):', firestoreError);
         redirectUrl.searchParams.set('firestore_error', 'true');
         redirectUrl.searchParams.set('firestore_error_description', encodeURIComponent(firestoreError.message));
     }
   }
 
+  // Redirect regardless of Firestore success
   const response = NextResponse.redirect(redirectUrl);
   return response;
 }
