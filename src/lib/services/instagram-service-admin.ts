@@ -2,31 +2,28 @@
 
 import { admin } from "@/lib/firebase-admin";
 
-export interface MetaConnectionAdminData {
+export interface InstagramConnectionAdminData {
     isConnected: boolean;
     error?: string;
     connectedAt?: any;
     accessToken?: string;
-    pageId?: string;
-    pageName?: string;
     instagramId?: string;
     instagramUsername?: string;
 }
 
-
 /**
- * Updates the Meta connection status for a user using the Admin SDK.
+ * Updates the Instagram connection status for a user using the Admin SDK.
  * This is a server-side only function.
  * @param userId The UID of the user.
  * @param connectionData The partial data to update the connection with.
  */
-export async function updateMetaConnectionAdmin(userId: string, connectionData: Partial<MetaConnectionAdminData>): Promise<void> {
+export async function updateInstagramConnectionAdmin(userId: string, connectionData: Partial<InstagramConnectionAdminData>): Promise<void> {
     if (!userId) {
-        throw new Error("User ID is required to update Meta connection.");
+        throw new Error("User ID is required to update Instagram connection.");
     }
 
     try {
-        const docRef = admin.firestore().collection("users").doc(userId).collection("connections").doc("meta");
+        const docRef = admin.firestore().collection("users").doc(userId).collection("connections").doc("instagram");
         
         let dataToSet: { [key: string]: any } = connectionData;
 
@@ -38,10 +35,10 @@ export async function updateMetaConnectionAdmin(userId: string, connectionData: 
         // Use set with merge to create or update the document.
         await docRef.set(dataToSet, { merge: true });
         
-        console.log(`Admin SDK: Meta connection status updated for user ${userId}.`);
+        console.log(`Admin SDK: Instagram connection status updated for user ${userId}.`);
 
     } catch (error: any) {
-        console.error(`Admin SDK Error: updating Meta connection for user ${userId}:`, error);
-        throw new Error(`Failed to update Meta connection status via admin. Reason: ${error.message}`);
+        console.error(`Admin SDK Error: updating Instagram connection for user ${userId}:`, error);
+        throw new Error(`Failed to update Instagram connection status via admin. Reason: ${error.message}`);
     }
 }

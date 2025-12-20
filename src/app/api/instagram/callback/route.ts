@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
-import { updateMetaConnectionAdmin } from '@/lib/services/meta-service-admin';
+import { updateInstagramConnectionAdmin } from '@/lib/services/instagram-service-admin';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
-  // Construir a URL base para o redirecionamento, forçando a porta 9000
   const redirectUrl = new URL(request.url);
   redirectUrl.protocol = 'https:';
   redirectUrl.host = request.nextUrl.host.replace(/:\d+$/, '');
@@ -42,11 +41,9 @@ export async function GET(request: NextRequest) {
      return NextResponse.redirect(redirectUrl);
   }
 
-  let longLivedTokenData: any;
   let longLivedToken: string | null = null;
   
   try {
-    // 1. Exchange code for short-lived token
     const tokenFormData = new FormData();
     tokenFormData.append('client_id', config.instagram.appId);
     tokenFormData.append('client_secret', config.instagram.appSecret);
@@ -69,17 +66,15 @@ export async function GET(request: NextRequest) {
       throw new Error('Short-lived access token not found in response.');
     }
 
-    // 2. Exchange short-lived token for long-lived token
     const longLivedTokenUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${config.instagram.appSecret}&access_token=${shortLivedToken}`;
     const longLivedTokenResponse = await fetch(longLivedTokenUrl);
-    longLivedTokenData = await longLivedTokenResponse.json();
+    const longLivedTokenData = await longLivedTokenResponse.json();
 
     if (longLivedTokenData.error) {
       throw new Error(longLivedTokenData.error.message);
     }
     
     longLivedToken = longLivedTokenData.access_token;
-
     redirectUrl.searchParams.set('new_token_success', 'true');
 
   } catch (err: any) {
@@ -89,7 +84,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Bloco secundário: Tenta salvar no Firestore, mas não impede o redirecionamento em caso de falha.
   if (longLivedToken) {
     try {
         const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
@@ -104,12 +98,10 @@ export async function GET(request: NextRequest) {
             accessToken: longLivedToken,
             instagramId: profileData.id,
             instagramUsername: profileData.username,
-            pageId: null,
-            pageName: null,
         };
 
-        await updateMetaConnectionAdmin(userId, dataToSave);
-        console.log(`Firestore updated successfully for user ${userId}`);
+        await updateInstagramConnectionAdmin(userId, dataToSave);
+        console.log(`Firestore updated successfully for user ${userId} in 'instagram' collection.`);
         redirectUrl.searchParams.set('firestore_success', 'true');
 
     } catch (firestoreError: any) {
@@ -119,19 +111,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Cria a resposta de redirecionamento DEPOIS de todos os parâmetros terem sido adicionados
   const response = NextResponse.redirect(redirectUrl);
-
-  // Adiciona o cookie
-  if (longLivedToken) {
-      response.cookies.set('instagram_access_token_new', longLivedToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: longLivedTokenData.expires_in,
-        path: '/',
-        sameSite: 'lax',
-      });
-  }
-
   return response;
 }

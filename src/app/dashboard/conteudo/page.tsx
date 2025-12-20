@@ -51,6 +51,7 @@ import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSame
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, deletePost, schedulePost, type PostDataOutput, PostDataInput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -187,6 +188,7 @@ export default function Conteudo() {
   const [loading, setLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -207,7 +209,6 @@ export default function Conteudo() {
   const [republishScheduleType, setRepublishScheduleType] = useState<'now' | 'schedule'>('now');
   const [republishScheduleDate, setRepublishScheduleDate] = useState('');
   
-  const [newMethodProfile, setNewMethodProfile] = useState<{username: string} | null>(null);
   const [checkingNewConnection, setCheckingNewConnection] = useState(true);
 
 
@@ -216,7 +217,12 @@ export default function Conteudo() {
     setLoading(true);
 
     try {
-        const postsResults = await getScheduledPosts(user.uid);
+        const [postsResults, metaResult, instagramResult] = await Promise.all([
+            getScheduledPosts(user.uid),
+            getMetaConnection(user.uid),
+            getInstagramConnection(user.uid)
+        ]);
+
         if (Array.isArray(postsResults) && !postsResults[0]?.error) {
             const displayPosts = postsResults
                 .filter(result => result.success && result.post)
@@ -245,20 +251,14 @@ export default function Conteudo() {
         } else {
             setAllPosts([]);
         }
-
-    } catch (error: any) {
-        console.error("Failed to fetch posts:", error);
-        toast({ variant: 'destructive', title: "Erro ao Carregar Posts", description: "Não foi possível carregar as publicações." });
-    }
-
-    try {
-        const metaResult = await getMetaConnection(user.uid);
+        
         setMetaConnection(metaResult);
-    } catch (error: any) {
-        console.error("Failed to fetch meta connection:", error);
-        setMetaConnection({ isConnected: false, error: "Falha ao buscar dados de conexão com a Meta." });
-    }
+        setInstagramConnection(instagramResult);
 
+    } catch (error: any) {
+        console.error("Failed to fetch page data:", error);
+        toast({ variant: 'destructive', title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
+    }
 
     setLoading(false);
   }, [user, toast]);
@@ -316,7 +316,6 @@ export default function Conteudo() {
              });
         } finally {
             setIsConnecting(false);
-            // Remove code from URL after processing.
             router.replace('/dashboard/conteudo', undefined);
         }
     };
@@ -329,6 +328,8 @@ export default function Conteudo() {
   useEffect(() => {
     const newTokenSuccess = searchParams.get('new_token_success');
     const firestoreSuccess = searchParams.get('firestore_success');
+    const firestoreError = searchParams.get('firestore_error');
+    const firestoreErrorDescription = searchParams.get('firestore_error_description');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
@@ -341,33 +342,29 @@ export default function Conteudo() {
     } else if (newTokenSuccess) {
       toast({
         variant: "success",
-        title: "Conexão bem-sucedida!",
+        title: "Conexão com Instagram bem-sucedida!",
         description: `O token foi recebido e a autenticação foi completada.`,
       });
+
       if (firestoreSuccess) {
         toast({
             variant: "success",
             title: "Dados Salvos!",
             description: "As informações da conexão foram salvas no seu perfil.",
         });
+      } else if (firestoreError) {
+          toast({
+            variant: "destructive",
+            title: "Erro ao Salvar Dados",
+            description: decodeURIComponent(firestoreErrorDescription || 'Não foi possível salvar os dados da conexão no Firestore.'),
+        });
       }
     }
     
-    if (newTokenSuccess || error) {
+    if (newTokenSuccess || error || firestoreError) {
        router.replace('/dashboard/conteudo', undefined);
     }
     
-    setCheckingNewConnection(true);
-    fetch('/api/instagram/get-profile')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setNewMethodProfile({ username: data.username });
-        }
-      })
-      .catch(err => console.error("Could not fetch new method profile", err))
-      .finally(() => setCheckingNewConnection(false));
-
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }
@@ -410,7 +407,6 @@ export default function Conteudo() {
         return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
     }, [allPosts, historyFilter, selectedDate]);
     
-    // Abre o modal se houver posts no dia selecionado
     useEffect(() => {
         if (selectedDate && postsForSelectedDay.length > 0) {
             setIsDateModalOpen(true);
@@ -422,8 +418,6 @@ export default function Conteudo() {
         setSelectedDate(date);
         const postsOnDay = allPosts.filter(p => isSameDay(p.date, date));
         if (postsOnDay.length === 0) {
-            // Se não houver posts, apenas seleciona o dia, não abre o modal.
-            // Opcional: pode-se exibir um toast informando que não há posts.
         }
     }
 
@@ -596,10 +590,10 @@ export default function Conteudo() {
                 </div>
                  {checkingNewConnection ? (
                     <Loader2 className="w-5 h-5 animate-spin"/>
-                ) : newMethodProfile ? (
+                ) : instagramConnection.isConnected ? (
                     <div className="flex items-center gap-2 text-sm text-green-600 font-semibold">
                         <CheckCircle className="w-4 h-4" />
-                        @{newMethodProfile.username}
+                        @{instagramConnection.instagramUsername}
                     </div>
                 ) : (
                     <Button variant="secondary" onClick={handleConnectInstagram}>
@@ -912,5 +906,6 @@ export default function Conteudo() {
 
 
     
+
 
 

@@ -3,8 +3,8 @@ import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
 
-// Esta é a implementação do padrão Singleton para o Firebase Admin SDK.
-// Garante que a inicialização ocorra apenas uma vez em todo o ciclo de vida do servidor.
+// This is the Singleton pattern for the Firebase Admin SDK.
+// It ensures that initialization happens only once across the server's lifecycle.
 if (!getApps().length) {
     admin.initializeApp();
 }
@@ -15,19 +15,19 @@ const adminDb = admin.firestore();
 export { admin, adminAuth, adminDb };
 
 /**
- * Verifica o ID Token do Firebase enviado pelo cliente.
- * @param idToken O token a ser verificado.
- * @returns O token decodificado se for válido.
- * @throws Uma exceção se o token for inválido.
+ * Verifies the Firebase ID Token sent from the client.
+ * @param idToken The token to verify.
+ * @returns The decoded token if valid.
+ * @throws An exception if the token is invalid.
  */
 export async function verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken;
   } catch (error: any) {
-    console.error(`Erro detalhado ao verificar o ID token: (${error.code}) ${error.message}`);
-    // Lança um erro mais detalhado para o chamador
-    throw new Error(`O token do Firebase é inválido. Motivo: ${error.message}`);
+    console.error(`Detailed error verifying ID token: (${error.code}) ${error.message}`);
+    // Throw a more detailed error to the caller
+    throw new Error(`The Firebase token is invalid. Reason: ${error.message}`);
   }
 }
 
@@ -42,7 +42,7 @@ export async function getUidFromCookie(): Promise<string> {
     const idTokenCookie = cookieStore.get('firebase-id-token');
 
     if (!idTokenCookie?.value) {
-        throw new Error("Falha na verificação do usuário Firebase. O cookie de autenticação não foi encontrado.");
+        throw new Error("Firebase user verification failed. Authentication cookie not found.");
     }
 
     try {
@@ -50,7 +50,7 @@ export async function getUidFromCookie(): Promise<string> {
         return decodedToken.uid;
     } catch (error: any) {
         console.error("Error verifying ID token from cookie:", error.message);
-        // Propaga o erro detalhado da função verifyIdToken para fornecer mais contexto.
-        throw new Error(`Falha na verificação do usuário Firebase. ${error.message}`);
+        // Propagate the detailed error from the verifyIdToken function to provide more context.
+        throw new Error(`Firebase user verification failed. ${error.message}`);
     }
 }
