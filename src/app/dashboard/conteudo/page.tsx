@@ -51,7 +51,7 @@ import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSame
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, deletePost, schedulePost, type PostDataOutput, PostDataInput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
+import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -328,6 +328,7 @@ export default function Conteudo() {
   }, [searchParams, user, router, fetchPageData, toast]);
 
   useEffect(() => {
+    // Logic for old Instagram connection flow
     const newTokenSuccess = searchParams.get('new_token_success');
     const firestoreSuccess = searchParams.get('firestore_success');
     const firestoreError = searchParams.get('firestore_error');
@@ -363,7 +364,15 @@ export default function Conteudo() {
       }
     }
     
-    if (newTokenSuccess || error || firestoreError) {
+    // Logic for new Instagram connection flow
+    const instagramConnectionSuccess = searchParams.get('instagram_connection_success');
+    if (instagramConnectionSuccess === 'true') {
+        console.log("Instagram connection successful! Parameters found in URL.");
+        // Next step: save the token here.
+    }
+
+
+    if (newTokenSuccess || error || firestoreError || instagramConnectionSuccess) {
        router.replace('/dashboard/conteudo', undefined);
     }
     
