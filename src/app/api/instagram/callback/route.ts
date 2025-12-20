@@ -10,14 +10,11 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
-  // Build the redirect URL pointing to the correct port (9000)
+  // Build the redirect URL pointing to the correct port
   const redirectUrl = new URL(request.url);
   redirectUrl.protocol = 'https:';
   redirectUrl.host = request.nextUrl.host; // This should already contain the correct host
-  if (redirectUrl.host.includes(':9002')) {
-      redirectUrl.host = redirectUrl.host.replace(':9002', ':9000');
-  }
-  redirectUrl.port = '9000';
+  redirectUrl.port = '9000'; // Force port 9000
   redirectUrl.pathname = '/dashboard/conteudo';
   redirectUrl.search = '';
 
@@ -81,7 +78,7 @@ export async function GET(request: NextRequest) {
     
     longLivedToken = longLivedTokenData.access_token;
     
-    // Set the cookie for immediate client-side feedback
+    // The main flow MUST succeed: set cookie and prepare success redirect
     cookies().set('instagram_access_token_new', longLivedToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development',
@@ -98,7 +95,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // ATTEMPT TO SAVE TO FIRESTORE, BUT DO NOT BLOCK THE MAIN FLOW
+  // SECONDARY FLOW: Attempt to save to Firestore, but DO NOT block the main success flow.
   if (longLivedToken) {
     try {
         const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
@@ -129,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect regardless of Firestore success
+  // Redirect regardless of Firestore success. The URL will have the appropriate params.
   const response = NextResponse.redirect(redirectUrl);
   return response;
 }
