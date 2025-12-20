@@ -142,15 +142,16 @@ const PostItem = ({
             </span>
           </div>
 
-          {/* Instagram only */}
-          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1.5">
-            <Instagram className="w-3.5 h-3.5" />
-            {post.instagramUsername ? (
-              <span className="font-medium">@{post.instagramUsername}</span>
-            ) : (
-              <span className="font-medium">Instagram</span>
-            )}
-          </div>
+          {post.platforms?.includes('instagram') && (
+            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1.5">
+                <Instagram className="w-3.5 h-3.5" />
+                {post.instagramUsername ? (
+                <span className="font-medium">@{post.instagramUsername}</span>
+                ) : (
+                <span className="font-medium">Instagram</span>
+                )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -525,7 +526,6 @@ export default function ConteudoV2() {
       media: postToRepublish.imageUrl,
       platforms: ["instagram"],
       scheduledAt: republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
-      // Pass the correct connection object for this page
       instagramConnection: instagramConnection,
     };
 
