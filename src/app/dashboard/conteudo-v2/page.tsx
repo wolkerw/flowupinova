@@ -519,22 +519,18 @@ export default function ConteudoV2() {
     setIsRepublishing(true);
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
 
-    // ✅ Shim: adapta instagramConnection para o formato esperado pelo schedulePost (se ele ainda usa metaConnection)
-    const metaConnectionShim: any = {
-      isConnected: instagramConnection.isConnected,
-      accessToken: instagramConnection.accessToken,
-      instagramId: instagramConnection.instagramId,
-      instagramUsername: instagramConnection.instagramUsername,
-    };
-
     const postInput: PostDataInput = {
       title: postToRepublish.title,
       text: postToRepublish.text,
       media: postToRepublish.imageUrl,
       platforms: ["instagram"],
       scheduledAt: republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
-      // @ts-expect-error - shim temporário até schedulePost aceitar instagramConnection nativo
-      metaConnection: metaConnectionShim,
+      metaConnection: { // O serviço ainda espera um metaConnection
+          isConnected: instagramConnection.isConnected,
+          accessToken: instagramConnection.accessToken,
+          instagramId: instagramConnection.instagramId,
+          instagramUsername: instagramConnection.instagramUsername
+      },
     };
 
     const result = await schedulePost(user.uid, postInput);
