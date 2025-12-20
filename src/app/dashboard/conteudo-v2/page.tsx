@@ -114,7 +114,7 @@ const PostItem = ({
 
   const currentStatus = post.status as keyof typeof statusConfig;
   const { icon: StatusIcon, className: statusClassName } = statusConfig[currentStatus] || {};
-  const imageSrc = typeof post.imageUrl === "string" ? post.imageUrl : "https://placehold.co/400";
+  const imageSrc = typeof post.imageUrl === "string" && post.imageUrl ? post.imageUrl : "https://placehold.co/400";
 
   return (
     <motion.div
@@ -502,7 +502,7 @@ export default function ConteudoV2() {
 
   const handleConfirmRepublish = async () => {
     if (!user || !postToRepublish || !postToRepublish.imageUrl) {
-      toast({ variant: "destructive", title: "Erro", description: "Dados insuficientes para republicar." });
+      toast({ variant: "destructive", title: "Erro", description: "Dados insuficientes para republicar. O post precisa ter uma imagem." });
       return;
     }
 
@@ -737,7 +737,7 @@ export default function ConteudoV2() {
                   className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary"
                   data-state={republishPlatforms.includes("instagram") ? "checked" : "unchecked"}
                 >
-                  <Checkbox id="republish-instagram" checked />
+                  <Checkbox id="republish-instagram" checked disabled />
                   <Label htmlFor="republish-instagram" className="flex items-center gap-2 cursor-pointer">
                     <Instagram className="w-5 h-5 text-pink-500" />
                     Instagram
