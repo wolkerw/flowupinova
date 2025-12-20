@@ -11,12 +11,11 @@ export async function GET(request: NextRequest) {
 
   // Construir a URL base para o redirecionamento, forçando a porta 9000
   const redirectUrl = new URL(request.url);
-  redirectUrl.protocol = 'https:'; // Garante o protocolo https
-  redirectUrl.host = request.nextUrl.host.replace(/:\d+$/, ''); // Remove a porta atual se houver
-  redirectUrl.port = '9000'; // Força a porta 9000
+  redirectUrl.protocol = 'https:';
+  redirectUrl.host = request.nextUrl.host.replace(/:\d+$/, '');
+  redirectUrl.port = '9000';
   redirectUrl.pathname = '/dashboard/conteudo';
-  redirectUrl.search = ''; // Limpa todos os parâmetros de busca existentes
-
+  redirectUrl.search = '';
 
   if (error) {
     redirectUrl.searchParams.set('error', error);
@@ -45,8 +44,7 @@ export async function GET(request: NextRequest) {
 
   let longLivedTokenData: any;
   let longLivedToken: string | null = null;
-  const response = NextResponse.redirect(redirectUrl);
-
+  
   try {
     // 1. Exchange code for short-lived token
     const tokenFormData = new FormData();
@@ -54,7 +52,7 @@ export async function GET(request: NextRequest) {
     tokenFormData.append('client_secret', config.instagram.appSecret);
     tokenFormData.append('grant_type', 'authorization_code');
     tokenFormData.append('redirect_uri', config.instagram.redirectUri);
-    tokenFormData.append('code', code.replace(/#_$/, '')); // As per docs, remove trailing #_
+    tokenFormData.append('code', code.replace(/#_$/, ''));
 
     const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
       method: 'POST',
@@ -82,16 +80,7 @@ export async function GET(request: NextRequest) {
     
     longLivedToken = longLivedTokenData.access_token;
 
-    // A partir daqui, o fluxo principal está completo. Preparamos o redirect.
     redirectUrl.searchParams.set('new_token_success', 'true');
-
-    response.cookies.set('instagram_access_token_new', longLivedToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: longLivedTokenData.expires_in,
-      path: '/',
-      sameSite: 'lax',
-    });
 
   } catch (err: any) {
     console.error('Error during token exchange:', err);
@@ -103,7 +92,6 @@ export async function GET(request: NextRequest) {
   // Bloco secundário: Tenta salvar no Firestore, mas não impede o redirecionamento em caso de falha.
   if (longLivedToken) {
     try {
-        // 3. Get user profile info
         const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
         const profileResponse = await fetch(profileUrl);
         const profileData = await profileResponse.json();
@@ -111,27 +99,39 @@ export async function GET(request: NextRequest) {
             throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
         }
         
-        // 4. Save to Firestore using admin service
         const dataToSave = {
             isConnected: true,
             accessToken: longLivedToken,
             instagramId: profileData.id,
             instagramUsername: profileData.username,
-            pageId: null, // Define como null se não for aplicável
-            pageName: null, // Define como null se não for aplicável
+            pageId: null,
+            pageName: null,
         };
 
         await updateMetaConnectionAdmin(userId, dataToSave);
         console.log(`Firestore updated successfully for user ${userId}`);
         redirectUrl.searchParams.set('firestore_success', 'true');
 
-
     } catch (firestoreError: any) {
         console.error('Secondary Error (Firestore Save):', firestoreError);
         redirectUrl.searchParams.set('firestore_error', 'true');
+        redirectUrl.searchParams.set('firestore_error_description', encodeURIComponent(firestoreError.message));
     }
   }
 
-  // Redireciona o usuário de qualquer maneira.
+  // Cria a resposta de redirecionamento DEPOIS de todos os parâmetros terem sido adicionados
+  const response = NextResponse.redirect(redirectUrl);
+
+  // Adiciona o cookie
+  if (longLivedToken) {
+      response.cookies.set('instagram_access_token_new', longLivedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: longLivedTokenData.expires_in,
+        path: '/',
+        sameSite: 'lax',
+      });
+  }
+
   return response;
 }
