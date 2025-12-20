@@ -366,10 +366,48 @@ export default function Conteudo() {
     
     // Logic for new Instagram connection flow
     const instagramConnectionSuccess = searchParams.get('instagram_connection_success');
-    if (instagramConnectionSuccess === 'true') {
-        console.log("Instagram connection successful! Parameters found in URL.");
-        // Next step: save the token here.
+
+if (instagramConnectionSuccess === 'true') {
+  console.log("Instagram connection successful! Parameters found in URL.");
+
+  const accessToken = searchParams.get("instagram_accessToken"); // <- seu nome real
+  const instagramId = searchParams.get("instagram_id");
+  const instagramUsername = searchParams.get("instagram_username");
+  const uidFromState = searchParams.get("user_id_from_state");
+
+  console.log("[PASSO 2 OK] Extracted:", { accessToken, instagramId, instagramUsername, uidFromState });
+
+  (async () => {
+    try {
+      if (!user?.uid) {
+        console.warn("[PASSO 3 SKIP] user não disponível ainda.");
+        return;
+      }
+
+      // Segurança simples: se veio uid no state e não bate com o usuário logado, não salva.
+      if (uidFromState && uidFromState !== user.uid) {
+        console.error("[PASSO 3 BLOCK] uid do state não bate com user.uid", { uidFromState, userUid: user.uid });
+        return;
+      }
+
+      if (!accessToken || !instagramId || !instagramUsername) {
+        console.error("[PASSO 3 BLOCK] Faltando params obrigatórios", { accessToken, instagramId, instagramUsername });
+        return;
+      }
+
+      await updateInstagramConnection(user.uid, {
+        isConnected: true,
+        accessToken,
+        instagramId,
+        instagramUsername,
+      });
+
+      console.log("[PASSO 3 OK] Salvamento concluído no Firestore.");
+    } catch (err) {
+      console.error("[PASSO 3 FAIL] Erro ao salvar no Firestore:", err);
     }
+  })();
+}
 
 
     if (newTokenSuccess || error || firestoreError || instagramConnectionSuccess) {
@@ -913,10 +951,3 @@ export default function Conteudo() {
     </>
   );
 }
-
-
-
-    
-
-
-    
