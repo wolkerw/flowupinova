@@ -1,8 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
-import { updateInstagramConnectionAdmin } from '@/lib/services/instagram-service-admin';
-import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,42 +8,41 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
-  // Build the redirect URL pointing to the correct port
+  // Constrói a URL de redirecionamento para a porta correta do dashboard
   const redirectUrl = new URL(request.url);
   redirectUrl.protocol = 'https:';
-  redirectUrl.host = request.nextUrl.host; // This should already contain the correct host
-  redirectUrl.port = '9000'; // Force port 9000
+  redirectUrl.host = request.nextUrl.host;
+  redirectUrl.port = '9000'; // Garante a porta do cliente
   redirectUrl.pathname = '/dashboard/conteudo';
   redirectUrl.search = '';
 
   if (error) {
-    redirectUrl.searchParams.set('error', error);
-    redirectUrl.searchParams.set('error_description', searchParams.get('error_description') || 'User denied access.');
+    redirectUrl.searchParams.set('instagram_error', error);
+    redirectUrl.searchParams.set('instagram_error_description', searchParams.get('error_description') || 'User denied access.');
     return NextResponse.redirect(redirectUrl);
   }
 
   if (!code) {
-    redirectUrl.searchParams.set('error', 'missing_code');
-    redirectUrl.searchParams.set('error_description', 'Authorization code is missing.');
+    redirectUrl.searchParams.set('instagram_error', 'missing_code');
+    redirectUrl.searchParams.set('instagram_error_description', 'Authorization code is missing.');
     return NextResponse.redirect(redirectUrl);
   }
   
   if (!userId) {
-     redirectUrl.searchParams.set('error', 'missing_state');
-     redirectUrl.searchParams.set('error_description', 'User ID (state) is missing.');
+     redirectUrl.searchParams.set('instagram_error', 'missing_state');
+     redirectUrl.searchParams.set('instagram_error_description', 'User ID (state) is missing.');
      return NextResponse.redirect(redirectUrl);
   }
 
   if (!config.instagram.appId || !config.instagram.appSecret || !config.instagram.redirectUri) {
     console.error('Instagram app credentials are not configured on the server.');
-    redirectUrl.searchParams.set('error', 'missing_config');
-    redirectUrl.searchParams.set('error_description', 'Server configuration is incomplete.');
+    redirectUrl.searchParams.set('instagram_error', 'server_config_missing');
+    redirectUrl.searchParams.set('instagram_error_description', 'Server configuration for Instagram is incomplete.');
     return NextResponse.redirect(redirectUrl);
   }
 
-  let longLivedToken: string | null = null;
-  
   try {
+    // 1. Trocar o código por um token de curta duração
     const tokenFormData = new FormData();
     tokenFormData.append('client_id', config.instagram.appId);
     tokenFormData.append('client_secret', config.instagram.appSecret);
@@ -62,71 +59,37 @@ export async function GET(request: NextRequest) {
     if (tokenData.error_message) {
       throw new Error(tokenData.error_message);
     }
-
     const shortLivedToken = tokenData.access_token;
-    if (!shortLivedToken) {
-      throw new Error('Short-lived access token not found in response.');
-    }
+    if (!shortLivedToken) throw new Error('Short-lived access token not found in response.');
 
+    // 2. Trocar o token de curta duração por um de longa duração
     const longLivedTokenUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${config.instagram.appSecret}&access_token=${shortLivedToken}`;
     const longLivedTokenResponse = await fetch(longLivedTokenUrl);
     const longLivedTokenData = await longLivedTokenResponse.json();
 
-    if (longLivedTokenData.error) {
-      throw new Error(longLivedTokenData.error.message);
-    }
-    
-    longLivedToken = longLivedTokenData.access_token;
-    
-    // The main flow MUST succeed: set cookie and prepare success redirect
-    cookies().set('instagram_access_token_new', longLivedToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        maxAge: 60 * 60 * 24 * 60, // 60 days
-        path: '/',
-    });
-    
-    redirectUrl.searchParams.set('new_token_success', 'true');
+    if (longLivedTokenData.error) throw new Error(longLivedTokenData.error.message);
+    const longLivedToken = longLivedTokenData.access_token;
+
+    // 3. Obter os dados do perfil do usuário
+    const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
+    const profileResponse = await fetch(profileUrl);
+    const profileData = await profileResponse.json();
+
+    if (profileData.error) throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
+
+    // 4. Redirecionar para o cliente com os dados na URL
+    redirectUrl.searchParams.set('instagram_connection_success', 'true');
+    redirectUrl.searchParams.set('instagram_accessToken', longLivedToken);
+    redirectUrl.searchParams.set('instagram_id', profileData.id);
+    redirectUrl.searchParams.set('instagram_username', profileData.username);
+    redirectUrl.searchParams.set('user_id_from_state', userId);
+
+    return NextResponse.redirect(redirectUrl);
 
   } catch (err: any) {
-    console.error('Error during token exchange:', err);
-    redirectUrl.searchParams.set('error', 'token_exchange_failed');
-    redirectUrl.searchParams.set('error_description', encodeURIComponent(err.message));
+    console.error('[INSTAGRAM_CALLBACK_ERROR]', err);
+    redirectUrl.searchParams.set('instagram_error', 'token_exchange_failed');
+    redirectUrl.searchParams.set('instagram_error_description', encodeURIComponent(err.message));
     return NextResponse.redirect(redirectUrl);
   }
-
-  // SECONDARY FLOW: Attempt to save to Firestore, but DO NOT block the main success flow.
-  if (longLivedToken) {
-    try {
-        const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
-        const profileResponse = await fetch(profileUrl);
-        const profileData = await profileResponse.json();
-
-        if (profileData.error) {
-            throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
-        }
-        
-        const dataToSave = {
-            isConnected: true,
-            accessToken: longLivedToken,
-            instagramId: profileData.id,
-            instagramUsername: profileData.username,
-        };
-
-        // This function call is now wrapped in a try/catch
-        await updateInstagramConnectionAdmin(userId, dataToSave);
-        
-        console.log(`Firestore updated successfully for user ${userId} in 'instagram' collection.`);
-        redirectUrl.searchParams.set('firestore_success', 'true');
-
-    } catch (firestoreError: any) {
-        console.error('Error saving to Firestore (will not block redirect):', firestoreError);
-        redirectUrl.searchParams.set('firestore_error', 'true');
-        redirectUrl.searchParams.set('firestore_error_description', encodeURIComponent(firestoreError.message));
-    }
-  }
-
-  // Redirect regardless of Firestore success. The URL will have the appropriate params.
-  const response = NextResponse.redirect(redirectUrl);
-  return response;
 }
