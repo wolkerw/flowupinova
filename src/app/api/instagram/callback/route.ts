@@ -9,22 +9,36 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
+  // Construir a URL base para o redirecionamento, forçando a porta 9000
+  const redirectUrl = new URL(request.url);
+  redirectUrl.port = '9000';
+  redirectUrl.pathname = '/dashboard/conteudo';
+  redirectUrl.search = ''; // Limpa todos os parâmetros de busca existentes
+
+
   if (error) {
-    const errorDescription = searchParams.get('error_description');
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${error}&error_description=${errorDescription || 'User denied access.'}`, request.url));
+    redirectUrl.searchParams.set('error', error);
+    redirectUrl.searchParams.set('error_description', searchParams.get('error_description') || 'User denied access.');
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_code&error_description=Authorization code is missing.', request.url));
+    redirectUrl.searchParams.set('error', 'missing_code');
+    redirectUrl.searchParams.set('error_description', 'Authorization code is missing.');
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (!config.instagram.appId || !config.instagram.appSecret || !config.instagram.redirectUri) {
     console.error('Instagram app credentials are not configured on the server.');
-    return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_config&error_description=Server configuration is incomplete.', request.url));
+    redirectUrl.searchParams.set('error', 'missing_config');
+    redirectUrl.searchParams.set('error_description', 'Server configuration is incomplete.');
+    return NextResponse.redirect(redirectUrl);
   }
   
   if (!userId) {
-     return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_state&error_description=User ID (state) is missing.', request.url));
+     redirectUrl.searchParams.set('error', 'missing_state');
+     redirectUrl.searchParams.set('error_description', 'User ID (state) is missing.');
+     return NextResponse.redirect(redirectUrl);
   }
 
 
@@ -77,24 +91,16 @@ export async function GET(request: NextRequest) {
         accessToken: longLivedToken,
         instagramId: profileData.id,
         instagramUsername: profileData.username,
-        // Mantemos os dados de página do Facebook se já existirem
         pageId: undefined, 
         pageName: undefined,
     });
     
-    
-    // Força o redirecionamento para a porta 9000
-    const redirectUrl = new URL(request.url);
-    redirectUrl.port = '9000';
-    redirectUrl.pathname = '/dashboard/conteudo';
     redirectUrl.searchParams.set('new_token_success', 'true');
     redirectUrl.searchParams.set('token_preview', longLivedToken.substring(0, 15));
 
-
     const response = NextResponse.redirect(redirectUrl);
 
-    // O ideal seria salvar o token no banco de dados aqui, associado ao usuário.
-    // Por enquanto, apenas o colocamos em um cookie para prova de conceito.
+    // Continue using cookie for now to display username on client as requested
     response.cookies.set('instagram_access_token_new', longLivedToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -107,6 +113,8 @@ export async function GET(request: NextRequest) {
 
   } catch (err: any) {
     console.error('Error exchanging token:', err);
-    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=token_exchange_failed&error_description=${encodeURIComponent(err.message)}`, request.url));
+    redirectUrl.searchParams.set('error', 'token_exchange_failed');
+    redirectUrl.searchParams.set('error_description', encodeURIComponent(err.message));
+    return NextResponse.redirect(redirectUrl);
   }
 }

@@ -1,7 +1,7 @@
 
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
+import { admin, adminDb } from "@/lib/firebase-admin";
 
 export interface MetaConnectionAdminData {
     isConnected: boolean;
