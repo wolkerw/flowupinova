@@ -429,10 +429,11 @@ export default function Conteudo() {
        toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais do Instagram não estão configuradas."});
        return;
     }
-
+    
+    const state = user?.uid;
     const scope = 'instagram_business_basic,instagram_business_content_publish';
     const responseType = 'code';
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
     window.location.href = authUrl;
   };
   
@@ -891,3 +892,4 @@ export default function Conteudo() {
 
 
     
+

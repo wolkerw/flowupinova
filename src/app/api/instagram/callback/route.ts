@@ -1,25 +1,32 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
+import { updateMetaConnectionAdmin } from '@/lib/services/meta-service-admin';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const error = searchParams.get('error');
+  const userId = searchParams.get('state');
 
   if (error) {
     const errorDescription = searchParams.get('error_description');
-    return NextResponse.redirect(new URL(`/?error=${error}&error_description=${errorDescription || 'User denied access.'}`, request.url));
+    return NextResponse.redirect(new URL(`/dashboard/conteudo?error=${error}&error_description=${errorDescription || 'User denied access.'}`, request.url));
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/?error=missing_code&error_description=Authorization code is missing.', request.url));
+    return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_code&error_description=Authorization code is missing.', request.url));
   }
 
   if (!config.instagram.appId || !config.instagram.appSecret || !config.instagram.redirectUri) {
     console.error('Instagram app credentials are not configured on the server.');
-    return NextResponse.redirect(new URL('/?error=missing_config&error_description=Server configuration is incomplete.', request.url));
+    return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_config&error_description=Server configuration is incomplete.', request.url));
   }
+  
+  if (!userId) {
+     return NextResponse.redirect(new URL('/dashboard/conteudo?error=missing_state&error_description=User ID (state) is missing.', request.url));
+  }
+
 
   try {
     // 1. Exchange code for short-lived token
@@ -55,6 +62,26 @@ export async function GET(request: NextRequest) {
     }
     
     const longLivedToken = longLivedTokenData.access_token;
+
+    // 3. Get user profile info
+    const profileUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longLivedToken}`;
+    const profileResponse = await fetch(profileUrl);
+    const profileData = await profileResponse.json();
+    if (profileData.error) {
+        throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
+    }
+    
+    // 4. Save to Firestore using admin service
+    await updateMetaConnectionAdmin(userId, {
+        isConnected: true,
+        accessToken: longLivedToken,
+        instagramId: profileData.id,
+        instagramUsername: profileData.username,
+        // Mantemos os dados de página do Facebook se já existirem
+        pageId: undefined, 
+        pageName: undefined,
+    });
+    
     
     // Força o redirecionamento para a porta 9000
     const redirectUrl = new URL(request.url);
