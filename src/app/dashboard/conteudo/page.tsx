@@ -215,6 +215,7 @@ export default function Conteudo() {
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setCheckingNewConnection(true);
 
     try {
         const [postsResults, metaResult, instagramResult] = await Promise.all([
@@ -261,6 +262,7 @@ export default function Conteudo() {
     }
 
     setLoading(false);
+    setCheckingNewConnection(false);
   }, [user, toast]);
 
 
@@ -908,4 +910,4 @@ export default function Conteudo() {
     
 
 
-
+    
