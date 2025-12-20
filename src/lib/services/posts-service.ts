@@ -97,31 +97,32 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
         await updateDoc(postRef, { status: "publishing" });
 
         const publishPromises = postData.platforms.map(platform => {
-             // Adaptado para direcionar para a API V2 no caso do Instagram
-             const isInstagramV2 = platform === 'instagram';
-             const apiPath = isInstagramV2 ? '/api/instagram/v2/publish' : '/api/facebook/publish';
+            const isInstagram = platform === 'instagram';
+            const apiPath = isInstagram ? '/api/instagram/v2/publish' : '/api/facebook/publish';
 
-             const payload = {
-                 postData: {
-                     title: postData.title,
-                     text: postData.text,
-                     imageUrl: postData.imageUrl,
-                     // A API V2 espera a conexão diretamente, não aninhada
-                     ...(isInstagramV2 ? {
-                         accessToken: postData.metaConnection.accessToken,
-                         instagramId: postData.metaConnection.instagramId
-                     } : {
-                         metaConnection: postData.metaConnection
-                     })
-                 }
-             };
+            const payload = {
+                postData: {
+                    title: postData.title,
+                    text: postData.text,
+                    imageUrl: postData.imageUrl,
+                    // Para a API V2 (instagram-only), passamos os dados diretamente.
+                    // Para a API legada (facebook), mantemos o objeto aninhado.
+                    ...(isInstagram ? {
+                        accessToken: postData.metaConnection.accessToken,
+                        instagramId: postData.metaConnection.instagramId
+                    } : {
+                        metaConnection: postData.metaConnection
+                    })
+                }
+            };
             
-             return fetch(apiPath, {
+            return fetch(apiPath, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
         });
+
 
         const responses = await Promise.all(publishPromises);
         const results = await Promise.all(responses.map(res => res.json()));
