@@ -66,6 +66,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
+import { config } from "@/lib/config";
+import Link from "next/link";
 
 
 interface DisplayPost {
@@ -322,10 +324,20 @@ export default function Conteudo() {
   }, [searchParams, user, router, fetchPageData, toast]);
 
   useEffect(() => {
+    const newTokenSuccess = searchParams.get('new_token_success');
+    if (newTokenSuccess) {
+      toast({
+        variant: "success",
+        title: "Conexão (Novo Método) bem-sucedida!",
+        description: `O token foi recebido. Próximo passo é salvá-lo e usá-lo.`,
+      });
+       router.replace('/dashboard/conteudo', undefined);
+    }
+    
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }
-  }, [user, fetchPageData, searchParams]);
+  }, [user, fetchPageData, searchParams, router, toast]);
   
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled');
@@ -382,13 +394,31 @@ export default function Conteudo() {
     }
 
   const handleConnectMeta = () => {
-    const clientId = "826418333144156";
-    const redirectUri = `${window.location.origin}/dashboard/conteudo`;
+    const clientId = config.meta.appId;
+    const redirectUri = config.meta.redirectUri;
+    const configId = config.meta.configId;
     const state = user?.uid;
-    const configId = "657201687223122";
     const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content,pages_manage_posts";
-    if (!state) return;
+    if (!state || !clientId || !redirectUri || !configId) {
+        toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
+        return;
+    };
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
+    window.location.href = authUrl;
+  };
+
+  const handleConnectInstagram = () => {
+    const clientId = config.instagram.appId;
+    const redirectUri = config.instagram.redirectUri;
+
+    if (!clientId || !redirectUri) {
+       toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais do Instagram não estão configuradas."});
+       return;
+    }
+
+    const scope = 'instagram_business_basic,instagram_business_content_publish';
+    const responseType = 'code';
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}`;
     window.location.href = authUrl;
   };
   
@@ -511,8 +541,8 @@ export default function Conteudo() {
                         <Instagram className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-800">Instagram & Facebook</h3>
-                        <p className="text-sm text-gray-500">Publique seus conteúdos.</p>
+                        <h3 className="font-semibold text-gray-800">Facebook Login for Business</h3>
+                        <p className="text-sm text-gray-500">Método 1 (Funcionando)</p>
                     </div>
                 </div>
                 <Button variant="outline" onClick={handleConnectMeta} disabled={isConnecting}>
@@ -525,12 +555,12 @@ export default function Conteudo() {
                         <Instagram className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-800">Conexão (Novo Método)</h3>
-                        <p className="text-sm text-gray-500">Teste o novo fluxo de conexão.</p>
+                        <h3 className="font-semibold text-gray-800">Instagram API (Novo)</h3>
+                        <p className="text-sm text-gray-500">Método 2 (Em teste)</p>
                     </div>
                 </div>
-                <Button variant="secondary" disabled>
-                    Conectar (Novo)
+                <Button variant="secondary" onClick={handleConnectInstagram}>
+                    Conectar (Novo Método)
                 </Button>
             </div>
         </CardContent>
