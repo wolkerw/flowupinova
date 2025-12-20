@@ -6,16 +6,7 @@ import { cookies } from 'next/headers';
 // Esta é a implementação do padrão Singleton para o Firebase Admin SDK.
 // Garante que a inicialização ocorra apenas uma vez em todo o ciclo de vida do servidor.
 if (!getApps().length) {
-  try {
-    // Em ambientes Google Cloud (como App Hosting), o SDK detecta as credenciais automaticamente.
-    // Esta é a forma mais robusta e recomendada de inicialização para produção.
     admin.initializeApp();
-    console.log("[ADMIN_SDK_INIT] Firebase Admin SDK inicializado com credenciais de ambiente padrão.");
-  } catch (error: any) {
-    console.error("[ADMIN_SDK_FATAL] Falha crítica ao inicializar o Firebase Admin SDK:", error);
-    // Em um cenário de produção, você poderia lançar o erro
-    // ou ter um mecanismo de fallback, mas para depuração, o log é crucial.
-  }
 }
 
 const adminAuth = admin.auth();
