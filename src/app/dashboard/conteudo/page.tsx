@@ -10,7 +10,6 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Plus,
   Edit,
-  Instagram,
   Sparkles,
   Clock,
   CheckCircle,
@@ -21,7 +20,6 @@ import {
   Facebook,
   RefreshCw,
   MoreVertical,
-  BarChart,
   Trash2,
   X,
   Send,
@@ -51,7 +49,6 @@ import { format, isFuture, isPast, startOfDay, startOfMonth, startOfYear, isSame
 import { ptBR } from 'date-fns/locale';
 import { getScheduledPosts, deletePost, schedulePost, type PostDataOutput, PostDataInput } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -81,7 +78,6 @@ interface DisplayPost {
     formattedDate: string;
     formattedTime: string;
     platforms: string[];
-    instagramUsername?: string;
     pageName?: string;
 }
 
@@ -96,7 +92,6 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
     const currentStatus = post.status as keyof typeof statusConfig;
     const { icon: StatusIcon, className: statusClassName } = statusConfig[currentStatus] || {};
     
-    // Safely determine the image source.
     const imageSrc = typeof post.imageUrl === 'string' ? post.imageUrl : "https://placehold.co/400";
 
 
@@ -124,12 +119,6 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
                         <span>{post.formattedDate} às {post.formattedTime}</span>
                     </div>
                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-1.5">
-                        {post.platforms?.includes('instagram') && (
-                            <div className="flex items-center gap-1.5">
-                                <Instagram className="w-3.5 h-3.5" />
-                                {post.instagramUsername && <span className="font-medium">@{post.instagramUsername}</span>}
-                            </div>
-                        )}
                          {post.platforms?.includes('facebook') && (
                             <div className="flex items-center gap-1.5">
                                 <Facebook className="w-3.5 h-3.5 text-blue-600" />
@@ -188,7 +177,6 @@ export default function Conteudo() {
   const [loading, setLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
-  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({ isConnected: false });
   const [isConnecting, setIsConnecting] = useState(false);
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -202,10 +190,8 @@ export default function Conteudo() {
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // State for republish modal
   const [isRepublishModalOpen, setIsRepublishModalOpen] = useState(false);
   const [postToRepublish, setPostToRepublish] = useState<DisplayPost | null>(null);
-  const [republishPlatforms, setRepublishPlatforms] = useState<Array<'instagram' | 'facebook'>>(['instagram']);
   const [republishScheduleType, setRepublishScheduleType] = useState<'now' | 'schedule'>('now');
   const [republishScheduleDate, setRepublishScheduleDate] = useState('');
   
@@ -218,10 +204,9 @@ export default function Conteudo() {
     setCheckingNewConnection(true);
 
     try {
-        const [postsResults, metaResult, instagramResult] = await Promise.all([
+        const [postsResults, metaResult] = await Promise.all([
             getScheduledPosts(user.uid),
             getMetaConnection(user.uid),
-            getInstagramConnection(user.uid)
         ]);
 
         if (Array.isArray(postsResults) && !postsResults[0]?.error) {
@@ -240,7 +225,6 @@ export default function Conteudo() {
                         formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
                         formattedTime: format(scheduledDate, 'HH:mm'),
                         platforms: post.platforms,
-                        instagramUsername: post.instagramUsername,
                         pageName: post.pageName,
                     };
                 })
@@ -254,7 +238,6 @@ export default function Conteudo() {
         }
         
         setMetaConnection(metaResult);
-        setInstagramConnection(instagramResult);
 
     } catch (error: any) {
         console.error("Failed to fetch page data:", error);
@@ -291,30 +274,17 @@ export default function Conteudo() {
               });
             }
             
-            const connectedParts = [];
-            if (result.instagramUsername) {
-                connectedParts.push(`Instagram (@${result.instagramUsername})`);
-            }
-            if (result.pageName) {
-                connectedParts.push(`Facebook (${result.pageName})`);
-            }
-            
-            const description = connectedParts.length > 0
-                ? `Contas conectadas: ${connectedParts.join(' e ')}.`
-                : "Nenhuma conta nova foi conectada.";
-
-
             toast({
                 variant: "success",
-                title: "Conexão Estabelecida!",
-                description: description,
+                title: "Conexão com Facebook Estabelecida!",
+                description: `Página "${result.pageName}" conectada com sucesso.`,
             });
             await fetchPageData();
         } catch (err: any) {
              toast({
                 variant: "destructive",
                 title: "Falha na Conexão",
-                description: err.message || "Não foi possível completar a conexão.",
+                description: err.message || "Não foi possível completar a conexão com o Facebook.",
              });
         } finally {
             setIsConnecting(false);
@@ -328,96 +298,10 @@ export default function Conteudo() {
   }, [searchParams, user, router, fetchPageData, toast]);
 
   useEffect(() => {
-    // Logic for old Instagram connection flow
-    const newTokenSuccess = searchParams.get('new_token_success');
-    const firestoreSuccess = searchParams.get('firestore_success');
-    const firestoreError = searchParams.get('firestore_error');
-    const firestoreErrorDescription = searchParams.get('firestore_error_description');
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-
-    if (error) {
-        toast({
-            variant: "destructive",
-            title: `Erro na Conexão (${error})`,
-            description: decodeURIComponent(errorDescription || 'Ocorreu um erro desconhecido.'),
-        });
-    } else if (newTokenSuccess) {
-      toast({
-        variant: "success",
-        title: "Conexão com Instagram bem-sucedida!",
-        description: `O token foi recebido e a autenticação foi completada.`,
-      });
-
-      if (firestoreSuccess) {
-        toast({
-            variant: "success",
-            title: "Dados Salvos!",
-            description: "As informações da conexão foram salvas no seu perfil.",
-        });
-      } else if (firestoreError) {
-          toast({
-            variant: "destructive",
-            title: "Erro ao Salvar Dados",
-            description: decodeURIComponent(firestoreErrorDescription || 'Não foi possível salvar os dados da conexão no Firestore.'),
-        });
-      }
-    }
-    
-    // Logic for new Instagram connection flow
-    const instagramConnectionSuccess = searchParams.get('instagram_connection_success');
-
-if (instagramConnectionSuccess === 'true') {
-  console.log("Instagram connection successful! Parameters found in URL.");
-
-  const accessToken = searchParams.get("instagram_accessToken"); // <- seu nome real
-  const instagramId = searchParams.get("instagram_id");
-  const instagramUsername = searchParams.get("instagram_username");
-  const uidFromState = searchParams.get("user_id_from_state");
-
-  console.log("[PASSO 2 OK] Extracted:", { accessToken, instagramId, instagramUsername, uidFromState });
-
-  (async () => {
-    try {
-      if (!user?.uid) {
-        console.warn("[PASSO 3 SKIP] user não disponível ainda.");
-        return;
-      }
-
-      // Segurança simples: se veio uid no state e não bate com o usuário logado, não salva.
-      if (uidFromState && uidFromState !== user.uid) {
-        console.error("[PASSO 3 BLOCK] uid do state não bate com user.uid", { uidFromState, userUid: user.uid });
-        return;
-      }
-
-      if (!accessToken || !instagramId || !instagramUsername) {
-        console.error("[PASSO 3 BLOCK] Faltando params obrigatórios", { accessToken, instagramId, instagramUsername });
-        return;
-      }
-
-      await updateInstagramConnection(user.uid, {
-        isConnected: true,
-        accessToken,
-        instagramId,
-        instagramUsername,
-      });
-
-      console.log("[PASSO 3 OK] Salvamento concluído no Firestore.");
-    } catch (err) {
-      console.error("[PASSO 3 FAIL] Erro ao salvar no Firestore:", err);
-    }
-  })();
-}
-
-
-    if (newTokenSuccess || error || firestoreError || instagramConnectionSuccess) {
-       router.replace('/dashboard/conteudo', undefined);
-    }
-    
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }
-  }, [user, fetchPageData, searchParams, router, toast]);
+  }, [user, fetchPageData, searchParams]);
   
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled');
@@ -436,7 +320,7 @@ if (instagramConnectionSuccess === 'true') {
                 case 'this-year':
                     return startOfYear(today);
                 default:
-                    return null; // All time
+                    return null;
             }
         };
 
@@ -475,7 +359,7 @@ if (instagramConnectionSuccess === 'true') {
     const redirectUri = config.meta.redirectUri;
     const configId = config.meta.configId;
     const state = user?.uid;
-    const scope = "public_profile,email,pages_show_list,instagram_basic,instagram_content_publish,pages_read_engagement,pages_read_user_content,pages_manage_posts";
+    const scope = "public_profile,email,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts";
     if (!state || !clientId || !redirectUri || !configId) {
         toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
         return;
@@ -483,28 +367,12 @@ if (instagramConnectionSuccess === 'true') {
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
     window.location.href = authUrl;
   };
-
-  const handleConnectInstagram = () => {
-    const clientId = config.instagram.appId;
-    const redirectUri = config.instagram.redirectUri;
-
-    if (!clientId || !redirectUri) {
-       toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais do Instagram não estão configuradas."});
-       return;
-    }
-    
-    const state = user?.uid;
-    const scope = 'instagram_business_basic';
-    const responseType = 'code';
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
-    window.location.href = authUrl;
-  };
   
   const handleDisconnectMeta = async () => {
     if (!user) return;
     await updateMetaConnection(user.uid, { isConnected: false });
     fetchPageData();
-    toast({ title: "Desconectado", description: "A conexão com a Meta foi removida." });
+    toast({ title: "Desconectado", description: "A conexão com o Facebook foi removida." });
   };
 
   const handleDeleteRequest = (postId: string) => {
@@ -519,7 +387,7 @@ if (instagramConnectionSuccess === 'true') {
     try {
         await deletePost(user.uid, postToDelete);
         toast({ title: "Sucesso!", description: "A publicação foi excluída." });
-        fetchPageData(); // Refresh the list
+        fetchPageData();
     } catch (error: any) {
         toast({ variant: 'destructive', title: "Erro ao Excluir", description: error.message });
     } finally {
@@ -536,7 +404,6 @@ if (instagramConnectionSuccess === 'true') {
       return;
     }
     setPostToRepublish(post);
-    setRepublishPlatforms(post.platforms as Array<'instagram' | 'facebook'> || ['instagram']);
     setRepublishScheduleType('now');
     setRepublishScheduleDate('');
     setIsRepublishModalOpen(true);
@@ -545,10 +412,6 @@ if (instagramConnectionSuccess === 'true') {
   const handleConfirmRepublish = async () => {
     if (!user || !postToRepublish || !metaConnection.isConnected || !postToRepublish.imageUrl) {
         toast({ variant: 'destructive', title: "Erro", description: "Dados insuficientes para republicar."});
-        return;
-    }
-     if (republishPlatforms.length === 0) {
-        toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
         return;
     }
     if (republishScheduleType === 'schedule' && !republishScheduleDate) {
@@ -563,19 +426,17 @@ if (instagramConnectionSuccess === 'true') {
         title: postToRepublish.title,
         text: postToRepublish.text,
         media: postToRepublish.imageUrl,
-        platforms: republishPlatforms,
+        platforms: ['facebook'], // Hardcoded to facebook
         scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
         metaConnection: metaConnection,
     };
 
-    // The result from schedulePost will now reflect the final status of immediate publications
     const result = await schedulePost(user.uid, postInput);
 
     setIsRepublishing(false);
     setIsRepublishModalOpen(false);
     setPostToRepublish(null);
 
-    // After the operation, always refresh the data to get the final state from the DB
     await fetchPageData();
 
     if (result.success) {
@@ -584,15 +445,6 @@ if (instagramConnectionSuccess === 'true') {
         toast({ variant: 'destructive', title: "Erro ao Republicar", description: result.error });
     }
   };
-
-  const handlePlatformChange = (platform: 'instagram' | 'facebook') => {
-    setRepublishPlatforms(prev => 
-        prev.includes(platform) 
-        ? prev.filter(p => p !== platform)
-        : [...prev, platform]
-    );
-  };
-
 
   const isLoadingInitial = loading && allPosts.length === 0;
 
@@ -608,47 +460,24 @@ if (instagramConnectionSuccess === 'true') {
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
                 <LinkIcon className="w-6 h-6 text-gray-700" />
-                Conecte suas contas
+                Conecte sua Página do Facebook
             </CardTitle>
-            <p className="text-gray-600 text-sm pt-2">Para publicar e agendar seus posts, você precisa conectar seu perfil do Instagram e página do Facebook.</p>
+            <p className="text-gray-600 text-sm pt-2">Para publicar e agendar seus posts, você precisa conectar sua página do Facebook.</p>
         </CardHeader>
         <CardContent>
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500">
-                        <Instagram className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-600">
+                        <Facebook className="w-6 h-6 text-white" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-800">Facebook Login for Business</h3>
-                        <p className="text-sm text-gray-500">Método 1 (Funcionando)</p>
+                        <p className="text-sm text-gray-500">Conecte sua página profissional</p>
                     </div>
                 </div>
                 <Button variant="outline" onClick={handleConnectMeta} disabled={isConnecting}>
-                    Conectar
+                    Conectar ao Facebook
                 </Button>
-            </div>
-             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mt-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500">
-                        <Instagram className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-gray-800">Instagram API (Novo)</h3>
-                        <p className="text-sm text-gray-500">Método 2 (Em teste)</p>
-                    </div>
-                </div>
-                 {checkingNewConnection ? (
-                    <Loader2 className="w-5 h-5 animate-spin"/>
-                ) : instagramConnection.isConnected ? (
-                    <div className="flex items-center gap-2 text-sm text-green-600 font-semibold">
-                        <CheckCircle className="w-4 h-4" />
-                        @{instagramConnection.instagramUsername}
-                    </div>
-                ) : (
-                    <Button variant="secondary" onClick={handleConnectInstagram}>
-                        Conectar (Novo Método)
-                    </Button>
-                )}
             </div>
         </CardContent>
     </Card>
@@ -659,22 +488,19 @@ if (instagramConnectionSuccess === 'true') {
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
                 <LinkIcon className="w-5 h-5 text-gray-700" />
-                Contas Conectadas
+                Página Conectada
             </CardTitle>
         </CardHeader>
         <CardContent>
              <div className="flex items-start justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-start gap-4">
                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm shrink-0">
-                        <Instagram className="w-6 h-6 text-pink-500" />
+                        <Facebook className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-green-900 leading-tight">Conectado</h3>
-                        <p className="text-sm text-green-800 font-medium truncate" title={metaConnection.instagramUsername}>
-                            @{metaConnection.instagramUsername}
-                        </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1" title={metaConnection.pageName}>
-                            <Facebook className="w-3 h-3"/> {metaConnection.pageName}
+                        <p className="text-sm text-green-800 font-medium truncate" title={metaConnection.pageName}>
+                            {metaConnection.pageName}
                         </p>
                     </div>
                 </div>
@@ -761,22 +587,15 @@ if (instagramConnectionSuccess === 'true') {
       <Dialog open={isRepublishModalOpen} onOpenChange={setIsRepublishModalOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Republicar Post</DialogTitle>
-                <DialogDescription>Escolha onde e quando você quer republicar este conteúdo.</DialogDescription>
+                <DialogTitle>Republicar Post no Facebook</DialogTitle>
+                <DialogDescription>Escolha quando você quer republicar este conteúdo.</DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-6">
                 <div>
                     <Label className="font-semibold">Onde Publicar?</Label>
-                    <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={republishPlatforms.includes('instagram') ? 'checked' : 'unchecked'}>
-                            <Checkbox id="republish-instagram" checked={republishPlatforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} />
-                            <Label htmlFor="republish-instagram" className="flex items-center gap-2 cursor-pointer">
-                                <Instagram className="w-5 h-5 text-pink-500" />
-                                Instagram
-                            </Label>
-                        </div>
-                        <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={republishPlatforms.includes('facebook') ? 'checked' : 'unchecked'}>
-                            <Checkbox id="republish-facebook" checked={republishPlatforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} />
+                    <div className="grid grid-cols-1 gap-4 mt-2">
+                        <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
+                            <Checkbox id="republish-facebook" checked disabled />
                             <Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer">
                                 <Facebook className="w-5 h-5 text-blue-600" />
                                 Facebook
@@ -811,7 +630,7 @@ if (instagramConnectionSuccess === 'true') {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
-                <Button onClick={handleConfirmRepublish} disabled={isRepublishing || republishPlatforms.length === 0 || (republishScheduleType === 'schedule' && !republishScheduleDate)}>
+                <Button onClick={handleConfirmRepublish} disabled={isRepublishing || (republishScheduleType === 'schedule' && !republishScheduleDate)}>
                     {isRepublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                     {republishScheduleType === 'now' ? 'Republicar' : 'Agendar'}
                 </Button>
@@ -846,11 +665,10 @@ if (instagramConnectionSuccess === 'true') {
               }
           `}</style>
         
-        {/* Cabeçalho */}
         <div className="space-y-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
-            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
+            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para sua Página do Facebook.</p>
           </div>
           
           <div className="flex gap-4 pt-2">
@@ -937,7 +755,7 @@ if (instagramConnectionSuccess === 'true') {
                                   pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
                               ) : (
                                   <div className="text-center text-gray-500 py-10">
-                                      <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                                      <Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
                                       <p>Nenhuma publicação encontrada no histórico.</p>
                                   </div>
                               )}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Instagram, Facebook, UploadCloud, Trash2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, UploadCloud, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,20 +18,18 @@ import { schedulePost } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
-type Platform = 'instagram' | 'facebook';
 type LogoPosition = 'top-left' | 'top-center' | 'top-right' | 'left-center' | 'center' | 'right-center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 type MediaItem = {
     type: 'image' | 'video';
     file: File;
-    previewUrl: string; // Blob or data URL for local preview
-    publicUrl?: string; // URL from webhook
+    previewUrl: string;
+    publicUrl?: string;
 };
 
 const contentOptions = [
@@ -56,6 +55,7 @@ const Preview = ({
     logoPosition,
     logoScale,
     logoOpacity,
+    pageName
 }: { 
     type: ContentType, 
     mediaItems: MediaItem[], 
@@ -64,6 +64,7 @@ const Preview = ({
     logoPosition: LogoPosition,
     logoScale: number,
     logoOpacity: number,
+    pageName?: string;
 }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -230,12 +231,11 @@ export default function CriarConteudoPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
-    const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
 
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
     const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
-    const [logoScale, setLogoScale] = useState(30); // Default to 30% of the new 10-100 scale
+    const [logoScale, setLogoScale] = useState(30);
     const [logoOpacity, setLogoOpacity] = useState(80);
 
 
@@ -249,7 +249,6 @@ export default function CriarConteudoPage() {
     const videoInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
-    // Remap the 10-100 slider value to the 5-50 visual scale.
     const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
 
     useEffect(() => {
@@ -391,13 +390,12 @@ export default function CriarConteudoPage() {
                 setMediaItems([newMediaItem]);
             }
         }
-        if(event.target) event.target.value = ""; // Reset input to allow selecting same file again
+        if(event.target) event.target.value = "";
     };
     
      const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            // Check file size (e.g., limit to 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 toast({ variant: "destructive", title: "Arquivo muito grande", description: "Por favor, escolha uma logomarca com menos de 2MB." });
                 return;
@@ -436,21 +434,9 @@ export default function CriarConteudoPage() {
         }, 1500);
     };
 
-    const handlePlatformChange = (platform: Platform) => {
-        setPlatforms(prev => 
-            prev.includes(platform) 
-            ? prev.filter(p => p !== platform)
-            : [...prev, platform]
-        );
-    }
-
     const handleSubmit = async () => {
         if (!user || !metaConnection?.isConnected || mediaItems.length === 0) {
-            toast({ variant: "destructive", title: "Erro", description: "Verifique se você conectou sua conta, está logado e adicionou uma mídia." });
-            return;
-        }
-         if (platforms.length === 0) {
-            toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
+            toast({ variant: "destructive", title: "Erro", description: "Verifique se sua conta do Facebook está conectada e se você adicionou uma mídia." });
             return;
         }
         if (scheduleType === 'schedule' && !scheduleDate) {
@@ -472,7 +458,7 @@ export default function CriarConteudoPage() {
             title: title || "Post sem título",
             text: text,
             media: mediaToPublish,
-            platforms: platforms,
+            platforms: ['facebook'],
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
             metaConnection: metaConnection,
         });
@@ -493,17 +479,15 @@ export default function CriarConteudoPage() {
         !metaConnection?.isConnected || 
         isPublishing || 
         mediaItems.length === 0 ||
-        platforms.length === 0 ||
         (scheduleType === 'schedule' && !scheduleDate)
     );
 
     const getAvatarFallback = () => {
         if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
-        if (metaConnection?.instagramUsername) return metaConnection.instagramUsername.charAt(0).toUpperCase();
+        if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
         return "U";
     }
 
-    // Cleanup blob URLs on unmount
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
@@ -520,7 +504,7 @@ export default function CriarConteudoPage() {
                 <p className="text-gray-600 mt-1">
                     {step === 1 && "Escolha o formato do conteúdo que você deseja criar."}
                     {step === 2 && `Etapa 2 de 3: Personalize seu ${selectedOption?.title || 'conteúdo'}`}
-                    {step === 3 && `Etapa 3 de 3: Revise e agende sua publicação`}
+                    {step === 3 && `Etapa 3 de 3: Revise e agende sua publicação no Facebook`}
                 </p>
             </div>
 
@@ -692,7 +676,7 @@ export default function CriarConteudoPage() {
                                                 <AvatarImage src={user?.photoURL || undefined} />
                                                 <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                             </Avatar>
-                                            <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
+                                            <span className="font-bold text-sm">{metaConnection?.pageName || 'Sua Página'}</span>
                                         </div>
                                         <div className="relative aspect-square bg-gray-200">
                                             <Preview 
@@ -703,11 +687,12 @@ export default function CriarConteudoPage() {
                                                 logoPosition={logoPosition}
                                                 logoScale={visualLogoScale}
                                                 logoOpacity={logoOpacity}
+                                                pageName={metaConnection?.pageName}
                                             />
                                         </div>
                                         <div className="p-3 text-sm min-h-[6rem]">
                                             <p className="whitespace-pre-wrap">
-                                                <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {title && <span className="font-bold">{title}</span>} {text}
+                                                <span className="font-bold">{metaConnection?.pageName || 'Sua Página'}</span> {title && <span className="font-bold">{title}</span>} {text}
                                             </p>
                                         </div>
                                     </div>
@@ -754,7 +739,7 @@ export default function CriarConteudoPage() {
                                                     <AvatarImage src={user?.photoURL || undefined} />
                                                     <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                                 </Avatar>
-                                                <span className="font-bold text-sm">{metaConnection?.instagramUsername || 'seu_usuario'}</span>
+                                                <span className="font-bold text-sm">{metaConnection?.pageName || 'Sua Página'}</span>
                                             </div>
                                             <div className="relative aspect-square bg-gray-200">
                                                  <Preview 
@@ -765,11 +750,12 @@ export default function CriarConteudoPage() {
                                                     logoPosition={logoPosition}
                                                     logoScale={visualLogoScale}
                                                     logoOpacity={logoOpacity}
+                                                    pageName={metaConnection?.pageName}
                                                  />
                                             </div>
                                             <div className="p-3 text-sm min-h-[6rem]">
                                                 <p className="whitespace-pre-wrap">
-                                                    <span className="font-bold">{metaConnection?.instagramUsername || 'seu_usuario'}</span> {title && <span className="font-bold">{title}</span>} {text}
+                                                    <span className="font-bold">{metaConnection?.pageName || 'Sua Página'}</span> {title && <span className="font-bold">{title}</span>} {text}
                                                 </p>
                                             </div>
                                         </div>
@@ -782,21 +768,14 @@ export default function CriarConteudoPage() {
                     <Card className="shadow-lg border-none">
                         <CardHeader>
                             <CardTitle className="text-lg">Agendamento e Plataformas</CardTitle>
-                            <p className="text-sm text-gray-600">Escolha onde e quando publicar seu conteúdo.</p>
+                            <p className="text-sm text-gray-600">Escolha quando publicar seu conteúdo.</p>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div>
                                 <Label className="font-semibold">Onde Publicar?</Label>
-                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                    <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('instagram') ? 'checked' : 'unchecked'}>
-                                        <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} />
-                                        <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer">
-                                            <Instagram className="w-5 h-5 text-pink-500" />
-                                            Instagram
-                                        </Label>
-                                    </div>
-                                     <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state={platforms.includes('facebook') ? 'checked' : 'unchecked'}>
-                                        <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} />
+                                <div className="grid grid-cols-1 gap-4 mt-2">
+                                     <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
+                                        <Checkbox id="platform-facebook" checked disabled />
                                         <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer">
                                             <Facebook className="w-5 h-5 text-blue-600" />
                                             Facebook
@@ -839,7 +818,7 @@ export default function CriarConteudoPage() {
                                 {isPublishing ? 'Publicando...' : scheduleType === 'now' ? 'Publicar Post' : 'Agendar Post'}
                             </Button>
                             {!metaConnection?.isConnected && (
-                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta da Meta na página de Conteúdo para publicar.</p>
+                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta do Facebook na página de Conteúdo para publicar.</p>
                             )}
                         </CardFooter>
                     </Card>
