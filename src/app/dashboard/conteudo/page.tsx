@@ -64,7 +64,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { config } from "@/lib/config";
 import Link from "next/link";
 
 
@@ -251,53 +250,56 @@ export default function Conteudo() {
 
   useEffect(() => {
     const code = searchParams.get('code');
-    
-    // Prevent re-running if a connection attempt is already in progress
     if (code && !isConnecting) {
-        const exchangeCodeForToken = async (codeToExchange: string) => {
-            setIsConnecting(true);
-            try {
-                const response = await fetch('/api/meta/callback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: codeToExchange }),
-                });
-                const result = await response.json();
+      setIsConnecting(true);
 
-                if (!response.ok || !result.success) throw new Error(result.error);
-                
-                if (user) {
-                  await updateMetaConnection(user.uid, {
-                      isConnected: true,
-                      accessToken: result.accessToken,
-                      pageId: result.pageId,
-                      pageName: result.pageName,
-                  });
-                }
-                
-                toast({
-                    variant: "success",
-                    title: "Conexão com Facebook Estabelecida!",
-                    description: `Página "${result.pageName}" conectada com sucesso.`,
-                });
-                
-                await fetchPageData();
+      const exchangeCodeForToken = async (codeToExchange: string) => {
+        if (!user) {
+            toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não encontrado. Tente novamente."});
+            setIsConnecting(false);
+            return;
+        }
 
-            } catch (err: any) {
-                 toast({
-                    variant: "destructive",
-                    title: "Falha na Conexão",
-                    description: err.message || "Não foi possível completar a conexão com o Facebook.",
-                 });
-            } finally {
-                setIsConnecting(false);
-                router.replace('/dashboard/conteudo', undefined);
-            }
-        };
+        try {
+          const response = await fetch('/api/meta/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeToExchange }),
+          });
 
-        exchangeCodeForToken(code);
+          const result = await response.json();
+          if (!response.ok || !result.success) throw new Error(result.error);
+
+          await updateMetaConnection(user.uid, {
+            isConnected: true,
+            accessToken: result.accessToken,
+            pageId: result.pageId,
+            pageName: result.pageName,
+          });
+
+          toast({
+            variant: "success",
+            title: "Conexão Estabelecida!",
+            description: `Página "${result.pageName}" conectada com sucesso.`,
+          });
+          await fetchPageData();
+
+        } catch (err: any) {
+          toast({
+            variant: "destructive",
+            title: "Falha na Conexão",
+            description: err.message || "Não foi possível completar a conexão com o Facebook.",
+          });
+        } finally {
+          setIsConnecting(false);
+          router.replace('/dashboard/conteudo', undefined);
+        }
+      };
+
+      exchangeCodeForToken(code);
     }
-  }, [searchParams, user, router, fetchPageData, toast, isConnecting]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user]);
 
   useEffect(() => {
     if(user && !searchParams.get('code')) {
@@ -357,15 +359,9 @@ export default function Conteudo() {
     }
 
     const handleConnectMeta = () => {
-        const clientId = config.meta.appId;
-        const redirectUri = config.meta.redirectUri;
-        const scope = "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list";
-        
-        if (!clientId || !redirectUri) {
-            toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
-            return;
-        };
-
+        const clientId = '826418333144156';
+        const redirectUri = new URL('/dashboard/conteudo', window.location.origin).toString();
+        const scope = 'pages_show_list,pages_manage_posts,pages_read_engagement,pages_read_user_content,read_insights';
         const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${scope}&response_type=code`;
         window.location.href = authUrl;
   };
