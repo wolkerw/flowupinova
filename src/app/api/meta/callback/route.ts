@@ -11,15 +11,35 @@ type PageData = {
   owner_business?: { id: string, name: string };
 };
 
+// Função auxiliar robustecida para fazer chamadas à API da Meta
 async function fetchWithToken(url: string) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error(`Meta API Error fetching URL ${url}:`, errorData.error);
-    // Não lança erro aqui para permitir que o fluxo continue se uma das fontes falhar
-    return null; 
+  try {
+    const response = await fetch(url);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+        let errorDetails = responseText;
+        try {
+            const errorJson = JSON.parse(responseText);
+            errorDetails = errorJson.error?.message || JSON.stringify(errorJson.error);
+        } catch (e) {
+            // A resposta de erro não era JSON, usa o texto puro.
+        }
+        console.error(`Meta API Error fetching URL ${url}: Status ${response.status}`, errorDetails);
+        return null; 
+    }
+    
+    // Se a resposta for OK mas vazia, retorna um objeto vazio para não quebrar o JSON.parse
+    if (!responseText) {
+        return {};
+    }
+
+    return JSON.parse(responseText);
+
+  } catch (error: any) {
+      console.error(`Network or parsing error fetching URL ${url}:`, error.message);
+      return null;
   }
-  return response.json();
 }
 
 
@@ -46,7 +66,7 @@ export async function POST(request: NextRequest) {
     const tokenData = await fetchWithToken(tokenUrl);
 
     if (!tokenData || !tokenData.access_token) {
-      throw new Error(tokenData?.error?.message || "Falha ao obter token de acesso de curta duração da Meta.");
+      throw new Error("Falha ao obter token de acesso de curta duração da Meta.");
     }
     const shortLivedUserToken = tokenData.access_token;
     
@@ -55,39 +75,50 @@ export async function POST(request: NextRequest) {
     const longLivedTokenData = await fetchWithToken(longLivedTokenUrl);
     const userAccessToken = longLivedTokenData?.access_token || shortLivedUserToken;
 
-    // Etapa 3: Coletar todas as páginas
+    // Etapa 3: Coletar todas as páginas com paginação
     const allPages: PageData[] = [];
     const pageIds = new Set<string>();
 
-    // 3a: Buscar páginas da conta pessoal
-    const personalPagesUrl = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks,owner_business{id,name}`;
-    const personalPagesData = await fetchWithToken(personalPagesUrl);
-    if (personalPagesData?.data) {
-        personalPagesData.data.forEach((page: PageData) => {
-            if (page.access_token && !pageIds.has(page.id)) {
-                allPages.push(page);
-                pageIds.add(page.id);
-            }
-        });
+    // 3a: Buscar páginas da conta pessoal com paginação
+    let personalPagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks,owner_business{id,name}&limit=100`;
+    while(personalPagesUrl) {
+        const personalPagesData = await fetchWithToken(personalPagesUrl);
+        if (personalPagesData?.data) {
+            personalPagesData.data.forEach((page: PageData) => {
+                if (page.access_token && !pageIds.has(page.id)) {
+                    allPages.push(page);
+                    pageIds.add(page.id);
+                }
+            });
+        }
+        personalPagesUrl = personalPagesData?.paging?.next;
     }
 
-    // 3b: Buscar Business Managers e suas páginas
-    const businessesUrl = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}`;
-    const businessesData = await fetchWithToken(businessesUrl);
-    if (businessesData?.data) {
-        for (const business of businessesData.data) {
-            const businessPagesUrl = `https://graph.facebook.com/v20.0/${business.id}/owned_pages?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks`;
-            const businessPagesData = await fetchWithToken(businessPagesUrl);
-            if (businessPagesData?.data) {
-                businessPagesData.data.forEach((page: PageData) => {
-                     if (page.access_token && !pageIds.has(page.id)) {
-                        allPages.push({ ...page, owner_business: { id: business.id, name: business.name } });
-                        pageIds.add(page.id);
+
+    // 3b: Buscar Business Managers e suas páginas com paginação
+    let businessesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}&limit=100`;
+    while(businessesUrl) {
+        const businessesData = await fetchWithToken(businessesUrl);
+        if (businessesData?.data) {
+            for (const business of businessesData.data) {
+                let businessPagesUrl: string | undefined = `https://graph.facebook.com/v20.0/${business.id}/owned_pages?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks&limit=100`;
+                while(businessPagesUrl) {
+                    const businessPagesData = await fetchWithToken(businessPagesUrl);
+                    if (businessPagesData?.data) {
+                        businessPagesData.data.forEach((page: PageData) => {
+                             if (page.access_token && !pageIds.has(page.id)) {
+                                allPages.push({ ...page, owner_business: { id: business.id, name: business.name } });
+                                pageIds.add(page.id);
+                            }
+                        });
                     }
-                });
+                    businessPagesUrl = businessPagesData?.paging?.next;
+                }
             }
         }
+        businessesUrl = businessesData?.paging?.next;
     }
+
 
     if (allPages.length === 0) {
       throw new Error("Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta.");
