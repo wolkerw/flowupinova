@@ -361,7 +361,7 @@ export default function Conteudo() {
     const handleConnectMeta = () => {
         const clientId = '826418333144156';
         const redirectUri = new URL('/dashboard/conteudo', window.location.origin).toString();
-        const scope = 'pages_show_list,pages_manage_posts,pages_read_engagement,pages_read_user_content,read_insights';
+        const scope = 'pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management';
         const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${scope}&response_type=code`;
         window.location.href = authUrl;
   };
