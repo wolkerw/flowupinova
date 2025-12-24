@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -843,7 +844,7 @@ export default function ConteudoV2() {
 
             <Button
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
-              onClick={() => router.push("/dashboard/conteudo/criar")}
+              onClick={() => router.push("/dashboard/conteudo-v2/criar")}
               size="lg"
             >
               <Plus className="w-5 h-5 mr-2" />
