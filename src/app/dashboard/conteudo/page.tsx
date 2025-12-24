@@ -252,48 +252,52 @@ export default function Conteudo() {
   useEffect(() => {
     const code = searchParams.get('code');
     
-    const exchangeCodeForToken = async (codeToExchange: string) => {
-        setIsConnecting(true);
-        try {
-            const response = await fetch('/api/meta/callback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: codeToExchange }),
-            });
-            const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.error);
-            
-            if (user) {
-              await updateMetaConnection(user.uid, {
-                  isConnected: true,
-                  accessToken: result.accessToken,
-                  pageId: result.pageId,
-                  pageName: result.pageName,
-              });
-            }
-            
-            toast({
-                variant: "success",
-                title: "Conexão com Facebook Estabelecida!",
-                description: `Página "${result.pageName}" conectada com sucesso.`,
-            });
-            await fetchPageData();
-        } catch (err: any) {
-             toast({
-                variant: "destructive",
-                title: "Falha na Conexão",
-                description: err.message || "Não foi possível completar a conexão com o Facebook.",
-             });
-        } finally {
-            setIsConnecting(false);
-            router.replace('/dashboard/conteudo', undefined);
-        }
-    };
+    // Prevent re-running if a connection attempt is already in progress
+    if (code && !isConnecting) {
+        const exchangeCodeForToken = async (codeToExchange: string) => {
+            setIsConnecting(true);
+            try {
+                const response = await fetch('/api/meta/callback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeToExchange }),
+                });
+                const result = await response.json();
 
-    if (code) {
+                if (!response.ok || !result.success) throw new Error(result.error);
+                
+                if (user) {
+                  await updateMetaConnection(user.uid, {
+                      isConnected: true,
+                      accessToken: result.accessToken,
+                      pageId: result.pageId,
+                      pageName: result.pageName,
+                  });
+                }
+                
+                toast({
+                    variant: "success",
+                    title: "Conexão com Facebook Estabelecida!",
+                    description: `Página "${result.pageName}" conectada com sucesso.`,
+                });
+                
+                await fetchPageData();
+
+            } catch (err: any) {
+                 toast({
+                    variant: "destructive",
+                    title: "Falha na Conexão",
+                    description: err.message || "Não foi possível completar a conexão com o Facebook.",
+                 });
+            } finally {
+                setIsConnecting(false);
+                router.replace('/dashboard/conteudo', undefined);
+            }
+        };
+
         exchangeCodeForToken(code);
     }
-  }, [searchParams, user, router, fetchPageData, toast]);
+  }, [searchParams, user, router, fetchPageData, toast, isConnecting]);
 
   useEffect(() => {
     if(user && !searchParams.get('code')) {
@@ -301,7 +305,7 @@ export default function Conteudo() {
     }
   }, [user, fetchPageData, searchParams]);
   
-  const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
+    const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
         const scheduled = allPosts.filter(p => p.status === 'scheduled');
         
         let historyBase = allPosts.filter(p => p.status === 'published' || p.status === 'failed' || p.status === 'publishing');
@@ -352,18 +356,18 @@ export default function Conteudo() {
         }
     }
 
-  const handleConnectMeta = () => {
-    const clientId = config.meta.appId;
-    const redirectUri = config.meta.redirectUri;
-    const configId = config.meta.configId;
-    const state = user?.uid;
-    const scope = "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list";
-    if (!state || !clientId || !redirectUri || !configId) {
-        toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
-        return;
-    };
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}&response_type=code&config_id=${configId}`;
-    window.location.href = authUrl;
+    const handleConnectMeta = () => {
+        const clientId = config.meta.appId;
+        const redirectUri = config.meta.redirectUri;
+        const scope = "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list";
+        
+        if (!clientId || !redirectUri) {
+            toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
+            return;
+        };
+
+        const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${scope}&response_type=code`;
+        window.location.href = authUrl;
   };
   
   const handleDisconnectMeta = async () => {
@@ -767,3 +771,5 @@ export default function Conteudo() {
     </>
   );
 }
+
+    
