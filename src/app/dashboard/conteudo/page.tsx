@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -170,12 +171,19 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
 const PageSelectionModal = ({ pages, isOpen, onSelect, onCancel }: { pages: any[], isOpen: boolean, onSelect: (page: any) => void, onCancel: () => void }) => {
     const [selectedPageId, setSelectedPageId] = useState<string | null>(pages.length > 0 ? pages[0].id : null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const normalizeText = (text: string) => {
+        return text
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+    };
     
     const filteredPages = useMemo(() => {
         if (!searchQuery) return pages;
+        const normalizedQuery = normalizeText(searchQuery);
         return pages.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+            normalizeText(p.name).includes(normalizedQuery)
         );
     }, [pages, searchQuery]);
 
@@ -198,7 +206,7 @@ const PageSelectionModal = ({ pages, isOpen, onSelect, onCancel }: { pages: any[
                 <div className="relative my-4">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Pesquisar por nome ou categoria..."
+                        placeholder="Pesquisar por nome..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
@@ -211,7 +219,6 @@ const PageSelectionModal = ({ pages, isOpen, onSelect, onCancel }: { pages: any[
                                 <RadioGroupItem value={page.id} id={page.id} />
                                 <div>
                                     <p className="font-semibold text-gray-800">{page.name}</p>
-                                    <p className="text-sm text-gray-500">{page.category} {page.owner_business && `(Gerenciado por: ${page.owner_business.name})`}</p>
                                 </div>
                             </Label>
                         ))}
@@ -862,3 +869,4 @@ export default function Conteudo() {
     </>
   );
 }
+
