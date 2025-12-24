@@ -200,7 +200,7 @@ const PageSelectionModal = ({ pages, isOpen, onSelect, onCancel }: { pages: any[
                 <DialogHeader>
                     <DialogTitle>Selecione uma Página do Facebook</DialogTitle>
                     <DialogDescription>
-                        Encontramos múltiplas páginas. Por favor, escolha a página que você deseja conectar à FlowUp.
+                        Encontramos {pages.length} página(s). Por favor, escolha a que você deseja conectar à FlowUp.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="relative my-4">
