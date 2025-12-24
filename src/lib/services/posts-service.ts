@@ -177,10 +177,9 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
         // Build the metaConnection object to be saved in Firestore
         const metaConnectionToSave = {
-            accessToken: connection.accessToken,
-            instagramId: connection.instagramId,
-            instagramUsername: connection.instagramUsername,
-            // Use null for fields that might not exist in the instagramConnection
+            accessToken: connection.accessToken || null,
+            instagramId: connection.instagramId || null,
+            instagramUsername: connection.instagramUsername || null,
             pageId: postData.metaConnection?.pageId || null,
             pageName: postData.metaConnection?.pageName || null,
         };
