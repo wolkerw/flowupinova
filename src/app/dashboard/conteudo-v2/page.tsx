@@ -835,7 +835,7 @@ export default function ConteudoV2() {
           <div className="flex gap-4 pt-2">
             <Button
               className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow"
-              onClick={() => router.push("/dashboard/conteudo/gerar")}
+              onClick={() => router.push("/dashboard/conteudo-v2/gerar")}
               size="lg"
             >
               <Sparkles className="w-5 h-5 mr-2" />
@@ -955,3 +955,5 @@ export default function ConteudoV2() {
     </>
   );
 }
+
+    
