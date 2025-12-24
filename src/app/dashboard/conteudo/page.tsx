@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -24,6 +23,7 @@ import {
   X,
   Send,
   Calendar as CalendarIcon,
+  Search,
 } from "lucide-react";
 import {
     AlertDialog,
@@ -167,6 +167,69 @@ const PostItem = ({ post, onRepublish, isRepublishing, onDelete }: { post: Displ
     );
 }
 
+const PageSelectionModal = ({ pages, isOpen, onSelect, onCancel }: { pages: any[], isOpen: boolean, onSelect: (page: any) => void, onCancel: () => void }) => {
+    const [selectedPageId, setSelectedPageId] = useState<string | null>(pages.length > 0 ? pages[0].id : null);
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    const filteredPages = useMemo(() => {
+        if (!searchQuery) return pages;
+        return pages.filter(p => 
+            p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [pages, searchQuery]);
+
+    const handleSelect = () => {
+        const page = pages.find(p => p.id === selectedPageId);
+        if (page) {
+            onSelect(page);
+        }
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+            <DialogContent className="max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Selecione uma Página do Facebook</DialogTitle>
+                    <DialogDescription>
+                        Encontramos múltiplas páginas. Por favor, escolha a página que você deseja conectar à FlowUp.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="relative my-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Pesquisar por nome ou categoria..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+                <div className="max-h-80 overflow-y-auto pr-2">
+                    <RadioGroup value={selectedPageId ?? ''} onValueChange={setSelectedPageId} className="space-y-3">
+                        {filteredPages.map(page => (
+                            <Label key={page.id} htmlFor={page.id} className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50">
+                                <RadioGroupItem value={page.id} id={page.id} />
+                                <div>
+                                    <p className="font-semibold text-gray-800">{page.name}</p>
+                                    <p className="text-sm text-gray-500">{page.category} {page.owner_business && `(Gerenciado por: ${page.owner_business.name})`}</p>
+                                </div>
+                            </Label>
+                        ))}
+                    </RadioGroup>
+                    {filteredPages.length === 0 && (
+                        <p className="text-center text-sm text-gray-500 py-4">Nenhuma página encontrada com sua busca.</p>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+                    <Button onClick={handleSelect} disabled={!selectedPageId}>Conectar Página Selecionada</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function Conteudo() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -194,13 +257,13 @@ export default function Conteudo() {
   const [republishScheduleType, setRepublishScheduleType] = useState<'now' | 'schedule'>('now');
   const [republishScheduleDate, setRepublishScheduleDate] = useState('');
   
-  const [checkingNewConnection, setCheckingNewConnection] = useState(true);
+  const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+  const [pendingPages, setPendingPages] = useState<any[]>([]);
 
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    setCheckingNewConnection(true);
 
     try {
         const [postsResults, metaResult] = await Promise.all([
@@ -244,62 +307,83 @@ export default function Conteudo() {
     }
 
     setLoading(false);
-    setCheckingNewConnection(false);
   }, [user, toast]);
 
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    if (code && !isConnecting) {
-      setIsConnecting(true);
+    const handleConnectionCallback = async () => {
+        const code = searchParams.get('code');
+        if (!code || isConnecting || !user) return;
 
-      const exchangeCodeForToken = async (codeToExchange: string) => {
-        if (!user) {
-            toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não encontrado. Tente novamente."});
-            setIsConnecting(false);
-            return;
-        }
+        setIsConnecting(true);
 
         try {
-          const response = await fetch('/api/meta/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: codeToExchange }),
-          });
+            const response = await fetch('/api/meta/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code }),
+            });
 
-          const result = await response.json();
-          if (!response.ok || !result.success) throw new Error(result.error);
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "A troca de código falhou.");
+            }
 
-          await updateMetaConnection(user.uid, {
-            isConnected: true,
-            accessToken: result.accessToken,
-            pageId: result.pageId,
-            pageName: result.pageName,
-          });
-
-          toast({
-            variant: "success",
-            title: "Conexão Estabelecida!",
-            description: `Página "${result.pageName}" conectada com sucesso.`,
-          });
-          await fetchPageData();
+            if (result.pages && result.pages.length > 1) {
+                setPendingPages(result.pages);
+                setIsSelectionModalOpen(true);
+            } else if (result.pages && result.pages.length === 1) {
+                await handlePageSelection(result.pages[0]);
+            } else {
+                 throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
+            }
 
         } catch (err: any) {
-          toast({
-            variant: "destructive",
-            title: "Falha na Conexão",
-            description: err.message || "Não foi possível completar a conexão com o Facebook.",
-          });
+            toast({
+                variant: "destructive",
+                title: "Falha na Conexão",
+                description: err.message,
+            });
         } finally {
-          setIsConnecting(false);
-          router.replace('/dashboard/conteudo', undefined);
+            router.replace('/dashboard/conteudo', undefined); // Clean URL
+            setIsConnecting(false);
         }
-      };
+    };
+    handleConnectionCallback();
+  }, [searchParams, user, isConnecting, router, toast]);
 
-      exchangeCodeForToken(code);
+  const handlePageSelection = async (page: any) => {
+    if (!user) return;
+
+    setIsConnecting(true);
+    setIsSelectionModalOpen(false);
+
+    try {
+        await updateMetaConnection(user.uid, {
+            isConnected: true,
+            accessToken: page.access_token,
+            pageId: page.id,
+            pageName: page.name,
+        });
+
+        toast({
+            variant: "success",
+            title: "Conexão Estabelecida!",
+            description: `Página "${page.name}" conectada com sucesso.`,
+        });
+        await fetchPageData();
+    } catch (err: any) {
+         toast({
+            variant: "destructive",
+            title: "Falha ao Salvar Conexão",
+            description: err.message,
+        });
+    } finally {
+        setIsConnecting(false);
+        setPendingPages([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user]);
+  };
+
 
   useEffect(() => {
     if(user && !searchParams.get('code')) {
@@ -354,7 +438,8 @@ export default function Conteudo() {
         if (!date) return;
         setSelectedDate(date);
         const postsOnDay = allPosts.filter(p => isSameDay(p.date, date));
-        if (postsOnDay.length === 0) {
+        if (postsOnDay.length > 0) {
+            setIsDateModalOpen(true);
         }
     }
 
@@ -448,7 +533,7 @@ export default function Conteudo() {
 
   const ConnectCard = () => (
     <Card className="shadow-lg border-dashed border-2 relative">
-        {isConnecting && (
+        {(isConnecting) && (
              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg p-4 text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
@@ -636,6 +721,16 @@ export default function Conteudo() {
         </DialogContent>
       </Dialog>
 
+      <PageSelectionModal
+        isOpen={isSelectionModalOpen}
+        pages={pendingPages}
+        onSelect={handlePageSelection}
+        onCancel={() => {
+            setIsSelectionModalOpen(false);
+            setPendingPages([]);
+        }}
+      />
+
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
           <style>{`
               .day-published::after, .day-scheduled::after, .day-failed::after {
@@ -767,5 +862,3 @@ export default function Conteudo() {
     </>
   );
 }
-
-    
