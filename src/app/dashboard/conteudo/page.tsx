@@ -269,8 +269,6 @@ export default function Conteudo() {
                   accessToken: result.accessToken,
                   pageId: result.pageId,
                   pageName: result.pageName,
-                  instagramId: result.instagramId,
-                  instagramUsername: result.instagramUsername,
               });
             }
             
@@ -359,7 +357,7 @@ export default function Conteudo() {
     const redirectUri = config.meta.redirectUri;
     const configId = config.meta.configId;
     const state = user?.uid;
-    const scope = "public_profile,email,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts";
+    const scope = "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list";
     if (!state || !clientId || !redirectUri || !configId) {
         toast({ variant: 'destructive', title: "Erro de Configuração", description: "As credenciais da Meta não estão completas."});
         return;

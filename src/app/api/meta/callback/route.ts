@@ -48,36 +48,35 @@ export async function POST(request: NextRequest) {
     }
     const userAccessToken = longLivedTokenData.access_token || shortLivedUserToken;
 
-    // Etapa 3: Usar o token do usuário para buscar as PÁGINAS e obter o TOKEN DE ACESSO DA PÁGINA
-    // Este é o passo crucial que estava faltando
-    const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,instagram_business_account{id,username,name}`;
+    // Etapa 3: Usar o token do usuário para buscar as PÁGINAS.
+    // Removido o campo instagram_business_account
+    const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token`;
     const pagesResponse = await fetch(pagesUrl);
     const pagesData = await pagesResponse.json();
 
     if (!pagesResponse.ok || !pagesData.data) {
-        throw new Error("Não foi possível buscar as páginas do Facebook gerenciadas por este usuário.");
+        console.error("Meta API Error fetching pages:", pagesData.error);
+        throw new Error(pagesData.error?.message || "Não foi possível buscar as páginas do Facebook gerenciadas por este usuário.");
     }
     
-    // Etapa 4: Encontrar a primeira página com uma conta do Instagram conectada
-    const connectedPage = pagesData.data.find((page: any) => page.instagram_business_account);
+    // Etapa 4: Pegar a primeira página da lista (a que o usuário selecionou na tela da Meta)
+    const page = pagesData.data?.[0];
 
-    if (!connectedPage) {
-        throw new Error("Nenhuma Página do Facebook com um perfil do Instagram Business conectado foi encontrada.");
+    if (!page) {
+      throw new Error("Nenhuma Página do Facebook foi encontrada para este usuário.");
     }
 
-    if (!connectedPage.access_token) {
-        throw new Error("A página conectada não retornou um token de acesso de página. Verifique as permissões.");
+    if (!page.access_token) {
+      throw new Error("A Página não retornou um token de acesso. Verifique as permissões (pages_show_list, pages_manage_posts).");
     }
 
-    // Etapa 5: Retornar os dados relevantes, usando o TOKEN DA PÁGINA
+    // Etapa 5: Retornar apenas os dados relevantes da PÁGINA
     return NextResponse.json({
       success: true,
-      accessToken: connectedPage.access_token, // <<<< USA O TOKEN DA PÁGINA
-      pageId: connectedPage.id,
-      pageName: connectedPage.name,
-      instagramId: connectedPage.instagram_business_account.id,
-      instagramUsername: connectedPage.instagram_business_account.username,
-      message: "Token e perfis obtidos com sucesso.",
+      accessToken: page.access_token,   // <<< USA O TOKEN DA PÁGINA
+      pageId: page.id,
+      pageName: page.name,
+      message: "Página conectada com sucesso.",
     });
 
   } catch (error: any) {
