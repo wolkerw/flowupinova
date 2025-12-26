@@ -95,7 +95,7 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
             // When finalizing the connection
             dataToSet.connectedAt = new Date();
             // Ensure pending field is removed
-            dataToSet.pending = deleteField();
+            dataToSet.pending = false;
         } else if (connectionData.pending === true) {
              // When setting the pending state, just save the pending token
              dataToSet = {

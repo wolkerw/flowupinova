@@ -319,10 +319,12 @@ export default function Conteudo() {
   useEffect(() => {
     const handleConnectionCallback = async () => {
       const code = searchParams.get('code');
+      // Adicionamos a verificação `!isConnecting` para evitar o loop
       if (!code || isConnecting || !user) return;
 
       setIsConnecting(true);
-      router.replace('/dashboard/conteudo', undefined);
+      // Limpamos a URL imediatamente para evitar re-gatilhos
+      router.replace('/dashboard/conteudo', undefined); 
 
       try {
         // Etapa 1: Obter o userAccessToken
