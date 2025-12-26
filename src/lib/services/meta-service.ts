@@ -14,6 +14,9 @@ export interface MetaConnectionData {
     pageName?: string;
     instagramId?: string;
     instagramUsername?: string;
+    // For pending state
+    pending?: boolean;
+    pendingUserToken?: string;
 }
 
 const defaultConnection: MetaConnectionData = {
@@ -73,11 +76,8 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         
         let dataToSet: { [key: string]: any } = connectionData;
 
-        if (connectionData.isConnected) {
-            // No serverTimestamp on client, just use the current date
-            dataToSet.connectedAt = new Date();
-        } else {
-            // If disconnecting, explicitly set isConnected to false and remove other fields
+        if (connectionData.isConnected === false) {
+            // If explicitly disconnecting, clear all fields.
             dataToSet = {
                 isConnected: false,
                 accessToken: deleteField(),
@@ -86,8 +86,23 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
                 instagramId: deleteField(),
                 instagramUsername: deleteField(),
                 connectedAt: deleteField(),
-                error: deleteField()
+                error: deleteField(),
+                pending: deleteField(),
+                pendingUserToken: deleteField(),
             };
+        } else if (connectionData.isConnected === true) {
+            // When finalizing the connection
+            dataToSet.connectedAt = new Date();
+            // Ensure pending fields are removed
+            dataToSet.pending = deleteField();
+            dataToSet.pendingUserToken = deleteField();
+        } else if (connectionData.pending === true) {
+             // When setting the pending state, just save the pending token
+             dataToSet = {
+                isConnected: false,
+                pending: true,
+                pendingUserToken: connectionData.pendingUserToken
+             }
         }
         
         // Use set with merge to create or update

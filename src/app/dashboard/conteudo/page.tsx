@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -318,13 +317,18 @@ export default function Conteudo() {
 
 
   useEffect(() => {
+    // This effect runs only once on mount to handle the callback
     const handleConnectionCallback = async () => {
         const code = searchParams.get('code');
+        // Prevent running if there's no code, if we are already connecting, or if the user is not available
         if (!code || isConnecting || !user) return;
 
         setIsConnecting(true);
 
         try {
+            // First, optimistically clean the URL
+            router.replace('/dashboard/conteudo', undefined);
+
             const response = await fetch('/api/meta/callback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -334,6 +338,16 @@ export default function Conteudo() {
             const result = await response.json();
             if (!response.ok || !result.success) {
                 throw new Error(result.error || "A troca de código falhou.");
+            }
+
+            // **NEW**: Immediately save the main user token in a pending state
+            if (result.userAccessToken) {
+                await updateMetaConnection(user.uid, {
+                    isConnected: false, // Not fully connected yet
+                    // @ts-ignore - We'll add this field to the type later
+                    pendingUserToken: result.userAccessToken,
+                    pending: true,
+                });
             }
 
             if (result.pages && result.pages.length > 1) {
@@ -351,18 +365,21 @@ export default function Conteudo() {
                 title: "Falha na Conexão",
                 description: err.message,
             });
-        } finally {
-            router.replace('/dashboard/conteudo', undefined); // Clean URL
-            setIsConnecting(false);
+            setIsConnecting(false); // Reset on error
         }
+        // Don't set isConnecting to false here, it's done in handlePageSelection
     };
-    handleConnectionCallback();
+
+    if (searchParams.get('code')) {
+        handleConnectionCallback();
+    }
   }, [searchParams, user, isConnecting, router, toast]);
 
   const handlePageSelection = async (page: any) => {
     if (!user) return;
 
-    setIsConnecting(true);
+    // isConnecting should already be true, but we set it again to be safe
+    setIsConnecting(true); 
     setIsSelectionModalOpen(false);
 
     try {
@@ -371,6 +388,9 @@ export default function Conteudo() {
             accessToken: page.access_token,
             pageId: page.id,
             pageName: page.name,
+            pending: false, // Finalize the connection
+             // @ts-ignore
+            pendingUserToken: null, // Clear the pending token
         });
 
         toast({
@@ -378,7 +398,7 @@ export default function Conteudo() {
             title: "Conexão Estabelecida!",
             description: `Página "${page.name}" conectada com sucesso.`,
         });
-        await fetchPageData();
+        await fetchPageData(); // Refresh all data now that we're connected
     } catch (err: any) {
          toast({
             variant: "destructive",
@@ -393,6 +413,7 @@ export default function Conteudo() {
 
 
   useEffect(() => {
+    // This effect fetches data if the user is present and there's no auth callback in progress
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }
@@ -869,4 +890,3 @@ export default function Conteudo() {
     </>
   );
 }
-

@@ -75,50 +75,17 @@ export async function POST(request: NextRequest) {
     const longLivedTokenData = await fetchWithToken(longLivedTokenUrl);
     const userAccessToken = longLivedTokenData?.access_token || shortLivedUserToken;
 
-    // Etapa 3: Coletar todas as páginas com paginação
+    // Etapa 3: Coletar todas as páginas usando APENAS o endpoint me/accounts
     const allPages: PageData[] = [];
-    const pageIds = new Set<string>();
+    let pagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks&limit=100`;
 
-    // 3a: Buscar páginas da conta pessoal com paginação
-    let personalPagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks,owner_business{id,name}&limit=100`;
-    while(personalPagesUrl) {
-        const personalPagesData = await fetchWithToken(personalPagesUrl);
-        if (personalPagesData?.data) {
-            personalPagesData.data.forEach((page: PageData) => {
-                if (page.access_token && !pageIds.has(page.id)) {
-                    allPages.push(page);
-                    pageIds.add(page.id);
-                }
-            });
+    while(pagesUrl) {
+        const pagesData = await fetchWithToken(pagesUrl);
+        if (pagesData?.data) {
+            allPages.push(...pagesData.data.filter((page: PageData) => page.access_token));
         }
-        personalPagesUrl = personalPagesData?.paging?.next;
+        pagesUrl = pagesData?.paging?.next;
     }
-
-
-    // 3b: Buscar Business Managers e suas páginas com paginação
-    let businessesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}&limit=100`;
-    while(businessesUrl) {
-        const businessesData = await fetchWithToken(businessesUrl);
-        if (businessesData?.data) {
-            for (const business of businessesData.data) {
-                let businessPagesUrl: string | undefined = `https://graph.facebook.com/v20.0/${business.id}/owned_pages?access_token=${userAccessToken}&fields=id,name,access_token,category,tasks&limit=100`;
-                while(businessPagesUrl) {
-                    const businessPagesData = await fetchWithToken(businessPagesUrl);
-                    if (businessPagesData?.data) {
-                        businessPagesData.data.forEach((page: PageData) => {
-                             if (page.access_token && !pageIds.has(page.id)) {
-                                allPages.push({ ...page, owner_business: { id: business.id, name: business.name } });
-                                pageIds.add(page.id);
-                            }
-                        });
-                    }
-                    businessPagesUrl = businessPagesData?.paging?.next;
-                }
-            }
-        }
-        businessesUrl = businessesData?.paging?.next;
-    }
-
 
     if (allPages.length === 0) {
       throw new Error("Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta.");
@@ -128,6 +95,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       pages: allPages,
+      userAccessToken: userAccessToken, // **NOVO** Retorna o token principal do usuário
       message: `${allPages.length} página(s) encontrada(s).`,
     });
 
