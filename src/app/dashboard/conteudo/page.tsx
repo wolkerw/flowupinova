@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -97,7 +97,6 @@ const PLACEHOLDER_IMAGE = "https://placehold.co/400";
 
 const META_OAUTH = {
   clientId: "826418333144156",
-  // Keep the same scopes to preserve functionality.
   scope:
     "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management",
 };
@@ -362,22 +361,12 @@ function PageSelectionModal({
 }
 
 function ConnectCard({
-  isConnecting,
   onConnect,
 }: {
-  isConnecting: boolean;
   onConnect: () => void;
 }) {
   return (
     <Card className="shadow-lg border-dashed border-2 relative">
-      {isConnecting ? (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg p-4 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="mt-4 text-sm font-medium text-gray-700">Conectando com a Meta...</p>
-          <p className="text-xs text-gray-500">Aguarde, estamos finalizando a conexão.</p>
-        </div>
-      ) : null}
-
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
           <LinkIcon className="w-6 h-6 text-gray-700" />
@@ -400,7 +389,7 @@ function ConnectCard({
             </div>
           </div>
 
-          <Button variant="outline" onClick={onConnect} disabled={isConnecting}>
+          <Button variant="outline" onClick={onConnect}>
             Conectar ao Facebook
           </Button>
         </div>
@@ -515,13 +504,14 @@ export default function Conteudo() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const effectRan = useRef(false); // Ref para evitar dupla execução em StrictMode
 
   // Data
   const [loading, setLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
 
-  // Connection / selection flow
+  // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<FacebookPage[]>([]);
@@ -555,196 +545,138 @@ export default function Conteudo() {
     try {
       const [postsResults, metaResult] = await Promise.all([getScheduledPosts(user.uid), getMetaConnection(user.uid)]);
 
-      // Posts
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
-        const displayPosts = postsResults
-          .filter((r) => r.success && r.post)
-          .map((r) => toDisplayPost(r.post))
-          .sort((a, b) => b.date.getTime() - a.date.getTime());
-
-        setAllPosts(displayPosts);
+        setAllPosts(postsResults.filter(r => r.success && r.post).map(r => toDisplayPost(r.post)).sort((a, b) => b.date.getTime() - a.date.getTime()));
       } else if (postsResults?.[0]?.error) {
         toast({ variant: "destructive", title: "Erro ao Carregar Posts", description: postsResults[0].error });
       } else {
         setAllPosts([]);
       }
-
-      // Meta connection
       setMetaConnection(metaResult);
     } catch (err) {
       console.error("Failed to fetch page data:", err);
-      toast({
-        variant: "destructive",
-        title: "Erro ao Carregar Dados",
-        description: "Não foi possível carregar os dados da página.",
-      });
+      toast({ variant: "destructive", title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
     } finally {
       setLoading(false);
     }
   }, [toast, user]);
 
-  /* ----------------------------------
-   * Meta connection callback
-   * ---------------------------------- */
+  const handlePageSelection = useCallback(async (page: FacebookPage) => {
+    if (!user) return;
 
-  const handlePageSelection = useCallback(
-    async (page: FacebookPage) => {
-      if (!user) return;
-
-      setIsConnecting(true);
-      setIsSelectionModalOpen(false);
-
-      try {
-        const connectionDoc = await getMetaConnection(user.uid);
-        if (!connectionDoc.userAccessToken) {
-          throw new Error("Token de usuário pendente não encontrado. Tente reconectar.");
+    setIsConnecting(true);
+    setIsSelectionModalOpen(false);
+    try {
+        const currentConnection = await getMetaConnection(user.uid);
+        if (!currentConnection.userAccessToken) {
+            throw new Error("Token de usuário pendente não encontrado. Tente reconectar.");
         }
 
         await updateMetaConnection(user.uid, {
-          isConnected: true,
-          pageId: page.id,
-          pageName: page.name,
-          accessToken: page.access_token,
-          userAccessToken: connectionDoc.userAccessToken,
-          pending: false,
+            isConnected: true,
+            pageId: page.id,
+            pageName: page.name,
+            accessToken: page.access_token,
+            userAccessToken: currentConnection.userAccessToken,
         });
 
-        toast({
-          variant: "success",
-          title: "Conexão Estabelecida!",
-          description: `Página "${page.name}" conectada com sucesso.`,
-        });
-
+        toast({ variant: "success", title: "Conexão Estabelecida!", description: `Página "${page.name}" conectada com sucesso.` });
         await fetchPageData();
-      } catch (err: any) {
+    } catch (err: any) {
         toast({ variant: "destructive", title: "Falha ao Salvar Conexão", description: err?.message ?? "Erro" });
-      } finally {
+    } finally {
         setIsConnecting(false);
         setPendingPages([]);
-      }
-    },
-    [fetchPageData, toast, user]
-  );
+    }
+  }, [fetchPageData, toast, user]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !user || effectRan.current) {
+        return;
+    }
+
     const code = searchParams.get("code");
-    if (!code || isConnecting || !user) return;
-
-    const run = async () => {
-      setIsConnecting(true);
-      // Clean URL early to prevent re-trigger on refresh/back.
-      router.replace("/dashboard/conteudo");
-
-      try {
-        // Step 1: exchange code -> userAccessToken
-        const tokenResponse = await fetch("/api/meta/callback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
-        });
-
-        const tokenResult = await tokenResponse.json();
-        if (!tokenResponse.ok || !tokenResult.success || !tokenResult.userAccessToken) {
-          throw new Error(tokenResult.error || "Falha ao obter o token de acesso do usuário.");
-        }
-
-        const userAccessToken = tokenResult.userAccessToken as string;
-
-        // Step 2: save pending connection (token only)
-        await updateMetaConnection(user.uid, {
-          isConnected: false,
-          pending: true,
-          userAccessToken,
-        });
-
-        // Step 3: fetch pages using token
-        const pagesResponse = await fetch("/api/meta/callback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userAccessToken }),
-        });
-
-        const pagesResult = await pagesResponse.json();
-        if (!pagesResponse.ok || !pagesResult.success) {
-          throw new Error(pagesResult.error || "Falha ao buscar as páginas do usuário.");
-        }
-
-        const pages: FacebookPage[] = Array.isArray(pagesResult.pages) ? pagesResult.pages : [];
-
-        if (pages.length > 1) {
-          setPendingPages(pages);
-          setIsSelectionModalOpen(true);
-          // NOTE: keep isConnecting=true here (same behavior as original)
-        } else if (pages.length === 1) {
-          await handlePageSelection(pages[0]);
-        } else {
-          throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
-        }
-      } catch (err: any) {
-        toast({ variant: "destructive", title: "Falha na Conexão", description: err?.message ?? "Erro" });
-        setIsConnecting(false);
-      }
+    if (!code) {
+        fetchPageData();
+        return;
     };
+    
+    effectRan.current = true; // Trava para evitar re-execução
+    setIsConnecting(true);
+    
+    const runConnectionFlow = async () => {
+        try {
+            // ETAPA 1: Trocar o código pelo userAccessToken
+            const tokenResponse = await fetch("/api/meta/callback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code, redirectUri: window.location.origin + window.location.pathname }),
+            });
+            const tokenResult = await tokenResponse.json();
+            if (!tokenResult.success) throw new Error(tokenResult.error);
 
-    run();
-  }, [handlePageSelection, isConnecting, router, searchParams, toast, user]);
+            const { userAccessToken } = tokenResult;
 
-  /* ----------------------------------
-   * Initial load (when not in callback)
-   * ---------------------------------- */
-  useEffect(() => {
-    if (user && !searchParams.get("code")) fetchPageData();
-  }, [fetchPageData, searchParams, user]);
+            // ETAPA 2: Salvar o token no Firestore com status 'pending'
+            await updateMetaConnection(user.uid, { userAccessToken, pending: true });
+            router.replace('/dashboard/conteudo', undefined); // Limpa a URL imediatamente
 
-  /* ----------------------------------
-   * Derived lists / calendar modifiers
-   * ---------------------------------- */
+            // ETAPA 3: Buscar as páginas usando o token salvo
+            const pagesResponse = await fetch("/api/meta/callback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userAccessToken }),
+            });
+            const pagesResult = await pagesResponse.json();
+            if (!pagesResult.success) throw new Error(pagesResult.error);
+
+            const pages: FacebookPage[] = pagesResult.pages || [];
+            if (pages.length > 1) {
+                setPendingPages(pages);
+                setIsSelectionModalOpen(true);
+            } else if (pages.length === 1) {
+                await handlePageSelection(pages[0]);
+            } else {
+                throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
+            }
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Falha na Conexão", description: err?.message ?? "Erro" });
+            setIsConnecting(false);
+            router.replace('/dashboard/conteudo', undefined);
+        }
+    };
+    
+    runConnectionFlow();
+
+  }, [user, searchParams, router, toast, handlePageSelection]);
+
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
     const scheduled = allPosts.filter((p) => p.status === "scheduled");
-
-    let historyBase = allPosts.filter((p) => p.status === "published" || p.status === "failed" || p.status === "publishing");
-
+    const historyBase = allPosts.filter((p) => p.status === "published" || p.status === "failed" || p.status === "publishing");
     const startDate = getHistoryStartDate(historyFilter);
-    if (startDate) historyBase = historyBase.filter((p) => p.date >= startDate);
-
+    const filteredHistory = startDate ? historyBase.filter((p) => p.date >= startDate) : historyBase;
     const modifiers = {
       published: allPosts.filter((p) => p.status === "published").map((p) => p.date),
       scheduled: allPosts.filter((p) => p.status === "scheduled" && isFuture(p.date)).map((p) => p.date),
       failed: allPosts.filter((p) => p.status === "failed").map((p) => p.date),
     };
-
     const postsOnDay = selectedDate ? allPosts.filter((p) => isSameDay(p.date, selectedDate)) : [];
-
-    return { scheduledPosts: scheduled, pastPosts: historyBase, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
+    return { scheduledPosts: scheduled, pastPosts: filteredHistory, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
   }, [allPosts, historyFilter, selectedDate]);
 
   useEffect(() => {
     if (selectedDate && postsForSelectedDay.length > 0) setIsDateModalOpen(true);
   }, [postsForSelectedDay.length, selectedDate]);
 
-  /* ----------------------------------
-   * UI handlers
-   * ---------------------------------- */
-
-  const handleDateSelect = useCallback(
-    (date: Date | undefined) => {
-      if (!date) return;
-      setSelectedDate(date);
-      const postsOnDay = allPosts.filter((p) => isSameDay(p.date, date));
-      if (postsOnDay.length > 0) setIsDateModalOpen(true);
-    },
-    [allPosts]
-  );
+  const handleDateSelect = useCallback((date: Date | undefined) => {
+    if (!date) return;
+    setSelectedDate(date);
+    if (allPosts.some((p) => isSameDay(p.date, date))) setIsDateModalOpen(true);
+  }, [allPosts]);
 
   const handleConnectMeta = useCallback(() => {
     const redirectUri = new URL("/dashboard/conteudo", window.location.origin).toString();
-    const authUrl =
-      `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&state=${user?.uid}` +
-      `&scope=${META_OAUTH.scope}` +
-      `&response_type=code`;
-
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${META_OAUTH.scope}&response_type=code`;
     window.location.href = authUrl;
   }, [user?.uid]);
 
@@ -762,7 +694,6 @@ export default function Conteudo() {
 
   const handleConfirmDelete = useCallback(async () => {
     if (!user || !postToDelete) return;
-
     setIsDeleting(true);
     try {
       await deletePost(user.uid, postToDelete);
@@ -777,314 +708,137 @@ export default function Conteudo() {
     }
   }, [fetchPageData, postToDelete, toast, user]);
 
-  const handleRepublish = useCallback(
-    (post: DisplayPost) => {
-      if (!user) {
-        toast({ variant: "destructive", title: "Erro", description: "Usuário não encontrado." });
-        return;
-      }
-      setPostToRepublish(post);
-      setRepublishScheduleType("now");
-      setRepublishScheduleDate("");
-      setIsRepublishModalOpen(true);
-    },
-    [toast, user]
-  );
+  const handleRepublish = useCallback((post: DisplayPost) => {
+    if (!user) return;
+    setPostToRepublish(post);
+    setRepublishScheduleType("now");
+    setRepublishScheduleDate("");
+    setIsRepublishModalOpen(true);
+  }, [user]);
 
   const handleConfirmRepublish = useCallback(async () => {
-    if (!user || !postToRepublish || !metaConnection.isConnected || !postToRepublish.imageUrl) {
-      toast({ variant: "destructive", title: "Erro", description: "Dados insuficientes para republicar." });
-      return;
-    }
-    if (republishScheduleType === "schedule" && !republishScheduleDate) {
+    if (!user || !postToRepublish || !metaConnection.isConnected || !postToRepublish.imageUrl) return;
+    if (republishScheduleType === 'schedule' && !republishScheduleDate) {
       toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento." });
       return;
     }
-
     setIsRepublishing(true);
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
-
     const input: PostDataInput = {
       title: postToRepublish.title,
       text: postToRepublish.text,
       media: postToRepublish.imageUrl,
-      platforms: ["facebook"], // keep hardcoded (original behavior)
-      scheduledAt: republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
+      platforms: ["facebook"],
+      scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
       metaConnection,
     };
-
     const result = await schedulePost(user.uid, input);
-
     setIsRepublishing(false);
     setIsRepublishModalOpen(false);
     setPostToRepublish(null);
-
     await fetchPageData();
-
     if (result.success) {
-      toast({
-        variant: "success",
-        title: "Sucesso!",
-        description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!`,
-      });
+      toast({ variant: "success", title: "Sucesso!", description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!` });
     } else {
       toast({ variant: "destructive", title: "Erro ao Republicar", description: result.error });
     }
-  }, [
-    fetchPageData,
-    metaConnection,
-    postToRepublish,
-    republishScheduleDate,
-    republishScheduleType,
-    toast,
-    user,
-  ]);
-
-  /* ----------------------------------
-   * Render
-   * ---------------------------------- */
+  }, [fetchPageData, metaConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user]);
 
   return (
     <>
       <style>{CALENDAR_DOT_STYLES}</style>
-
-      {/* Delete dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a publicação do seu histórico.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente a publicação do seu histórico.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Calendar day posts */}
       <Dialog open={isDateModalOpen} onOpenChange={setIsDateModalOpen}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              Posts de {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ""}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4 max-h-[60vh] overflow-y-auto space-y-3 pr-2">
-            {postsForSelectedDay.length > 0 ? (
-              postsForSelectedDay.map((post) => (
-                <PostItem
-                  key={post.id}
-                  post={post}
-                  onRepublish={handleRepublish}
-                  isRepublishing={isRepublishing}
-                  onDelete={handleDeleteRequest}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-8">Nenhum post para este dia.</p>
-            )}
-          </div>
+          <DialogHeader><DialogTitle>Posts de {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ""}</DialogTitle></DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto space-y-3 pr-2">{postsForSelectedDay.length > 0 ? postsForSelectedDay.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />) : <p className="text-sm text-gray-500 text-center py-8">Nenhum post para este dia.</p>}</div>
         </DialogContent>
       </Dialog>
-
-      {/* Republish modal */}
       <Dialog open={isRepublishModalOpen} onOpenChange={setIsRepublishModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Republicar Post no Facebook</DialogTitle>
             <DialogDescription>Escolha quando você quer republicar este conteúdo.</DialogDescription>
           </DialogHeader>
-
           <div className="py-4 space-y-6">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
               <div className="grid grid-cols-1 gap-4 mt-2">
-                <div
-                  className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary"
-                  data-state="checked"
-                >
-                  <Checkbox id="republish-facebook" checked disabled />
-                  <Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer">
-                    <Facebook className="w-5 h-5 text-blue-600" />
-                    Facebook
-                  </Label>
+                <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
+                  <Checkbox id="republish-facebook" checked disabled /><Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer"><Facebook className="w-5 h-5 text-blue-600" />Facebook</Label>
                 </div>
               </div>
             </div>
-
             <div>
               <Label className="font-semibold">Quando publicar?</Label>
-              <RadioGroup
-                value={republishScheduleType}
-                onValueChange={(v) => setRepublishScheduleType(v as RepublishScheduleType)}
-                className="grid grid-cols-2 gap-4 mt-2"
-              >
-                <div>
-                  <RadioGroupItem value="now" id="republish-now" className="peer sr-only" />
-                  <Label
-                    htmlFor="republish-now"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"
-                  >
-                    <Clock className="w-6 h-6 mb-2" />
-                    Publicar Agora
-                  </Label>
-                </div>
-
-                <div>
-                  <RadioGroupItem value="schedule" id="republish-schedule" className="peer sr-only" />
-                  <Label
-                    htmlFor="republish-schedule"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"
-                  >
-                    <CalendarIcon className="w-6 h-6 mb-2" />
-                    Agendar
-                  </Label>
-                </div>
+              <RadioGroup value={republishScheduleType} onValueChange={(v) => setRepublishScheduleType(v as RepublishScheduleType)} className="grid grid-cols-2 gap-4 mt-2">
+                <div><RadioGroupItem value="now" id="republish-now" className="peer sr-only" /><Label htmlFor="republish-now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"><Clock className="w-6 h-6 mb-2" />Publicar Agora</Label></div>
+                <div><RadioGroupItem value="schedule" id="republish-schedule" className="peer sr-only" /><Label htmlFor="republish-schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"><CalendarIcon className="w-6 h-6 mb-2" />Agendar</Label></div>
               </RadioGroup>
-
-              {republishScheduleType === "schedule" ? (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
-                  <Input
-                    type="datetime-local"
-                    value={republishScheduleDate}
-                    onChange={(e) => setRepublishScheduleDate(e.target.value)}
-                  />
-                </motion.div>
-              ) : null}
+              {republishScheduleType === "schedule" ? <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4"><Input type="datetime-local" value={republishScheduleDate} onChange={(e) => setRepublishScheduleDate(e.target.value)} /></motion.div> : null}
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmRepublish}
-              disabled={isRepublishing || (republishScheduleType === "schedule" && !republishScheduleDate)}
-            >
-              {isRepublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-              {republishScheduleType === "now" ? "Republicar" : "Agendar"}
-            </Button>
+            <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Page selection modal */}
-      <PageSelectionModal
-        isOpen={isSelectionModalOpen}
-        pages={pendingPages}
-        onSelect={handlePageSelection}
-        onCancel={() => {
-          setIsSelectionModalOpen(false);
-          setPendingPages([]);
-        }}
-      />
-
-      {/* Page content */}
+      <PageSelectionModal isOpen={isSelectionModalOpen} pages={pendingPages} onSelect={handlePageSelection} onCancel={() => { setIsSelectionModalOpen(false); setPendingPages([]); setIsConnecting(false); }} />
+      
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
         <div className="space-y-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
             <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para sua Página do Facebook.</p>
           </div>
-
           <div className="flex gap-4 pt-2">
-            <Button
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow"
-              onClick={() => router.push("/dashboard/conteudo/gerar")}
-              size="lg"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Gerar Conteúdo com IA
-            </Button>
-
-            <Button
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow"
-              onClick={() => router.push("/dashboard/conteudo/criar")}
-              size="lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Criar Conteúdo
-            </Button>
+            <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
+            <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
           </div>
         </div>
-
         <AnimatePresence>
-          {!metaConnection.isConnected && !loading ? (
+          {(isConnecting || (!metaConnection.isConnected && !loading)) && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <ConnectCard isConnecting={isConnecting} onConnect={handleConnectMeta} />
+              <ConnectCard onConnect={handleConnectMeta} />
             </motion.div>
-          ) : null}
+          )}
         </AnimatePresence>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-8">
-            <CalendarCard
-              selectedDate={selectedDate}
-              onSelect={handleDateSelect}
-              month={displayedMonth}
-              onMonthChange={setDisplayedMonth}
-              modifiers={calendarModifiers}
-            />
-
-            {metaConnection.isConnected ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-                <ConnectionStatusCard pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} />
-              </motion.div>
-            ) : null}
+            <CalendarCard selectedDate={selectedDate} onSelect={handleDateSelect} month={displayedMonth} onMonthChange={setDisplayedMonth} modifiers={calendarModifiers} />
+            {metaConnection.isConnected ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}><ConnectionStatusCard pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} /></motion.div> : null}
           </div>
-
           <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
-              <CardHeader>
-                <CardTitle className="text-xl">Publicações Agendadas</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-xl">Publicações Agendadas</CardTitle></CardHeader>
               <CardContent>
                 <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
                   <AnimatePresence>
-                    {isLoadingInitial ? (
-                      <div className="flex justify-center items-center h-24">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : scheduledPosts.length > 0 ? (
-                      scheduledPosts.map((post) => (
-                        <PostItem
-                          key={post.id}
-                          post={post}
-                          onRepublish={handleRepublish}
-                          isRepublishing={isRepublishing}
-                          onDelete={handleDeleteRequest}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-500 py-6">
-                        <Clock className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                        <p>Nenhuma publicação agendada.</p>
-                      </div>
-                    )}
+                    {isLoadingInitial ? <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                      : scheduledPosts.length > 0 ? scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                      : <div className="text-center text-gray-500 py-6"><Clock className="w-8 h-8 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação agendada.</p></div>
+                    }
                   </AnimatePresence>
                 </div>
               </CardContent>
             </Card>
-
             <Card className="shadow-lg border-none">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
                 <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filtrar por período" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por período" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
                     <SelectItem value="this-month">Este mês</SelectItem>
@@ -1093,41 +847,20 @@ export default function Conteudo() {
                   </SelectContent>
                 </Select>
               </CardHeader>
-
               <CardContent>
                 <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
                   <AnimatePresence>
-                    {isLoadingInitial ? (
-                      <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : pastPosts.length > 0 ? (
-                      pastPosts.map((post) => (
-                        <PostItem
-                          key={post.id}
-                          post={post}
-                          onRepublish={handleRepublish}
-                          isRepublishing={isRepublishing}
-                          onDelete={handleDeleteRequest}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-500 py-10">
-                        <Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                        <p>Nenhuma publicação encontrada no histórico.</p>
-                      </div>
-                    )}
+                    {isLoadingInitial ? <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                      : pastPosts.length > 0 ? pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                      : <div className="text-center text-gray-500 py-10"><Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação encontrada no histórico.</p></div>
+                    }
                   </AnimatePresence>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        {/* Link import kept to avoid breaking any implicit usage patterns; not used in UI, so we show a small hidden link to prevent lint unused errors in some setups. */}
-        <Link href="#" className="hidden" aria-hidden="true">
-          noop
-        </Link>
+        <Link href="#" className="hidden" aria-hidden="true">noop</Link>
       </div>
     </>
   );

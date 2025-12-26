@@ -8,105 +8,96 @@ type PageData = {
   access_token: string;
 };
 
-// Função auxiliar para fazer chamadas à API da Meta
-async function fetchWithToken(url: string) {
+// Função auxiliar para fazer chamadas à API da Meta de forma segura
+async function fetchFromMetaAPI(url: string, options?: RequestInit) {
   try {
-    const response = await fetch(url);
-    const responseText = await response.text();
+    const response = await fetch(url, options);
+    const data = await response.json();
 
-    if (!response.ok) {
-        let errorDetails = responseText;
-        try {
-            const errorJson = JSON.parse(responseText);
-            errorDetails = errorJson.error?.message || JSON.stringify(errorJson.error);
-        } catch (e) {
-            // A resposta de erro não era JSON, usa o texto puro.
-        }
-        console.error(`Meta API Error fetching URL ${url}: Status ${response.status}`, errorDetails);
-        return null; 
+    if (!response.ok || data.error) {
+      const errorMessage = data.error?.message || `Falha na API da Meta com status ${response.status}`;
+      console.error(`[META_CALLBACK_API] Erro na chamada para ${url}:`, errorMessage, data.error);
+      // Incluímos a mensagem original da Meta para melhor depuração
+      throw new Error(`Falha ao comunicar com a Meta. Razão: ${errorMessage}`);
     }
     
-    if (!responseText) {
-        return {};
-    }
-
-    return JSON.parse(responseText);
+    return data;
 
   } catch (error: any) {
-      console.error(`Network or parsing error fetching URL ${url}:`, error.message);
-      return null;
+    console.error(`[META_CALLBACK_API] Erro de rede ou parse na chamada para ${url}:`, error.message);
+    // Repassa o erro com a mensagem já formatada
+    throw new Error(error.message);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, userAccessToken: providedToken } = body;
-    const origin = headers().get('origin');
-
-    if (!origin) {
-        return NextResponse.json({ success: false, error: "Could not determine request origin." }, { status: 400 });
-    }
-
-    let userAccessToken: string;
-
-    // Etapa 1: Obter o token de acesso do usuário.
-    // Se um 'code' for fornecido, trocamos por um token.
-    // Se um 'userAccessToken' for fornecido, nós o usamos diretamente.
+    const { code, userAccessToken, redirectUri: clientRedirectUri } = body;
+    
+    // Se um 'code' for fornecido, trocamos por um token de usuário de longa duração.
+    // Esta é a ETAPA 1 do fluxo.
     if (code) {
+        if (!clientRedirectUri) {
+            return NextResponse.json({ success: false, error: "A 'redirect_uri' do cliente não foi fornecida." }, { status: 400 });
+        }
+
         const clientId = "826418333144156";
         const clientSecret = "944e053d34b162c13408cd00ad276aa2";
-        const redirectUri = `${origin}/dashboard/conteudo`;
         
-        // Trocar o código por um token de acesso de curta duração do USUÁRIO
-        const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;
-        const tokenData = await fetchWithToken(tokenUrl);
-        if (!tokenData || !tokenData.access_token) {
+        // Etapa 1.1: Trocar o código por um token de acesso de CURTA duração.
+        const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(clientRedirectUri)}&client_secret=${clientSecret}&code=${code}`;
+        const shortLivedTokenData = await fetchFromMetaAPI(shortLivedTokenUrl);
+        const shortLivedUserToken = shortLivedTokenData.access_token;
+        if (!shortLivedUserToken) {
           throw new Error("Falha ao obter token de acesso de curta duração da Meta.");
         }
-        const shortLivedUserToken = tokenData.access_token;
         
-        // Trocar por token de longa duração
+        // Etapa 1.2: Trocar o token de curta duração por um de LONGA duração.
         const longLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortLivedUserToken}`;
-        const longLivedTokenData = await fetchWithToken(longLivedTokenUrl);
-        userAccessToken = longLivedTokenData?.access_token || shortLivedUserToken;
+        const longLivedTokenData = await fetchFromMetaAPI(longLivedTokenUrl);
+        const finalUserAccessToken = longLivedTokenData?.access_token;
+        if (!finalUserAccessToken) {
+          throw new Error("Falha ao obter token de acesso de longa duração da Meta.");
+        }
 
-        // Nesta etapa, retornamos APENAS o token. O frontend irá salvá-lo e chamar a API novamente.
+        // Retorna APENAS o token para o frontend.
         return NextResponse.json({
             success: true,
-            userAccessToken: userAccessToken,
+            userAccessToken: finalUserAccessToken,
         });
-    } else if (providedToken) {
-        userAccessToken = providedToken;
-    } else {
-         return NextResponse.json({ success: false, error: "Authorization code or user access token not provided." }, { status: 400 });
-    }
 
-    // Etapa 2: Se um token foi fornecido (pelo frontend), buscamos as páginas.
-    const allPages: PageData[] = [];
-    let pagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
+    // Se um 'userAccessToken' for fornecido, buscamos as páginas associadas.
+    // Esta é a ETAPA 2 do fluxo.
+    } else if (userAccessToken) {
+        const allPages: PageData[] = [];
+        let pagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
 
-    while(pagesUrl) {
-        const pagesData = await fetchWithToken(pagesUrl);
-        if (pagesData?.data) {
-            allPages.push(...pagesData.data.filter((page: PageData) => page.access_token));
+        while(pagesUrl) {
+            const pagesData = await fetchFromMetaAPI(pagesUrl);
+            if (pagesData?.data) {
+                // Filtra para garantir que a página tenha um token de acesso próprio.
+                allPages.push(...pagesData.data.filter((page: PageData) => page.access_token));
+            }
+            pagesUrl = pagesData?.paging?.next;
         }
-        pagesUrl = pagesData?.paging?.next;
+
+        if (allPages.length === 0) {
+          throw new Error("Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta.");
+        }
+    
+        return NextResponse.json({
+          success: true,
+          pages: allPages,
+        });
     }
 
-    if (allPages.length === 0) {
-      throw new Error("Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta.");
-    }
-    
-    // Retorna a lista completa para o frontend escolher
-    return NextResponse.json({
-      success: true,
-      pages: allPages,
-      message: `${allPages.length} página(s) encontrada(s).`,
-    });
+    // Se nenhum 'code' ou 'userAccessToken' for fornecido.
+    return NextResponse.json({ success: false, error: "Código de autorização ou token de acesso do usuário não fornecido." }, { status: 400 });
 
   } catch (error: any) {
-    console.error("[META_CALLBACK_ERROR]", error);
-    return NextResponse.json({ success: false, error: error.message || "An unknown error occurred." }, { status: 500 });
+    console.error("[META_CALLBACK_API] Erro no fluxo:", error);
+    // Retorna a mensagem de erro detalhada, seja da nossa lógica ou da API da Meta.
+    return NextResponse.json({ success: false, error: error.message || "Ocorreu um erro desconhecido." }, { status: 500 });
   }
 }
