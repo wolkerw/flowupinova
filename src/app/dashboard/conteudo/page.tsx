@@ -317,57 +317,61 @@ export default function Conteudo() {
 
 
   useEffect(() => {
-    // This effect runs only once on mount to handle the callback
     const handleConnectionCallback = async () => {
-        const code = searchParams.get('code');
-        // Prevent running if there's no code, if we are already connecting, or if the user is not available
-        if (!code || isConnecting || !user) return;
+      const code = searchParams.get('code');
+      if (!code || isConnecting || !user) return;
 
-        setIsConnecting(true);
+      setIsConnecting(true);
+      router.replace('/dashboard/conteudo', undefined);
 
-        try {
-            // First, optimistically clean the URL
-            router.replace('/dashboard/conteudo', undefined);
-
-            const response = await fetch('/api/meta/callback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code }),
-            });
-
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || "A troca de código falhou.");
-            }
-
-            // **NEW**: Immediately save the main user token in a pending state
-            if (result.userAccessToken) {
-                await updateMetaConnection(user.uid, {
-                    isConnected: false, // Not fully connected yet
-                    // @ts-ignore - We'll add this field to the type later
-                    pendingUserToken: result.userAccessToken,
-                    pending: true,
-                });
-            }
-
-            if (result.pages && result.pages.length > 1) {
-                setPendingPages(result.pages);
-                setIsSelectionModalOpen(true);
-            } else if (result.pages && result.pages.length === 1) {
-                await handlePageSelection(result.pages[0]);
-            } else {
-                 throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
-            }
-
-        } catch (err: any) {
-            toast({
-                variant: "destructive",
-                title: "Falha na Conexão",
-                description: err.message,
-            });
-            setIsConnecting(false); // Reset on error
+      try {
+        // Etapa 1: Obter o userAccessToken
+        const tokenResponse = await fetch('/api/meta/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+        });
+        const tokenResult = await tokenResponse.json();
+        if (!tokenResponse.ok || !tokenResult.success || !tokenResult.userAccessToken) {
+            throw new Error(tokenResult.error || "Falha ao obter o token de acesso do usuário.");
         }
-        // Don't set isConnecting to false here, it's done in handlePageSelection
+        const userAccessToken = tokenResult.userAccessToken;
+
+        // Etapa 2: Salvar o token no Firestore em estado pendente
+        await updateMetaConnection(user.uid, {
+            isConnected: false,
+            pending: true,
+            userAccessToken: userAccessToken,
+        });
+
+        // Etapa 3: Buscar as páginas usando o token salvo
+        const pagesResponse = await fetch('/api/meta/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userAccessToken: userAccessToken }),
+        });
+        const pagesResult = await pagesResponse.json();
+        if (!pagesResponse.ok || !pagesResult.success) {
+            throw new Error(pagesResult.error || "Falha ao buscar as páginas do usuário.");
+        }
+
+        if (pagesResult.pages && pagesResult.pages.length > 1) {
+            setPendingPages(pagesResult.pages);
+            setIsSelectionModalOpen(true);
+        } else if (pagesResult.pages && pagesResult.pages.length === 1) {
+            await handlePageSelection(pagesResult.pages[0]);
+        } else {
+            throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
+        }
+
+      } catch (err: any) {
+        toast({
+            variant: "destructive",
+            title: "Falha na Conexão",
+            description: err.message,
+        });
+        setIsConnecting(false);
+      }
     };
 
     if (searchParams.get('code')) {
@@ -378,19 +382,22 @@ export default function Conteudo() {
   const handlePageSelection = async (page: any) => {
     if (!user) return;
 
-    // isConnecting should already be true, but we set it again to be safe
     setIsConnecting(true); 
     setIsSelectionModalOpen(false);
 
     try {
+        const connectionDoc = await getMetaConnection(user.uid);
+        if (!connectionDoc.userAccessToken) {
+            throw new Error("Token de usuário pendente não encontrado. Tente reconectar.");
+        }
+
         await updateMetaConnection(user.uid, {
             isConnected: true,
-            accessToken: page.access_token,
             pageId: page.id,
             pageName: page.name,
-            pending: false, // Finalize the connection
-             // @ts-ignore
-            pendingUserToken: null, // Clear the pending token
+            accessToken: page.access_token,
+            userAccessToken: connectionDoc.userAccessToken, 
+            pending: false,
         });
 
         toast({
@@ -398,7 +405,7 @@ export default function Conteudo() {
             title: "Conexão Estabelecida!",
             description: `Página "${page.name}" conectada com sucesso.`,
         });
-        await fetchPageData(); // Refresh all data now that we're connected
+        await fetchPageData();
     } catch (err: any) {
          toast({
             variant: "destructive",
@@ -413,7 +420,6 @@ export default function Conteudo() {
 
 
   useEffect(() => {
-    // This effect fetches data if the user is present and there's no auth callback in progress
     if(user && !searchParams.get('code')) {
         fetchPageData();
     }

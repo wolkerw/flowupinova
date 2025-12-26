@@ -9,14 +9,15 @@ export interface MetaConnectionData {
     isConnected: boolean;
     error?: string;
     connectedAt?: any; // Allow for server-side and client-side timestamps
-    accessToken?: string;
+    accessToken?: string; // This is the Page Access Token
     pageId?: string;
     pageName?: string;
     instagramId?: string;
     instagramUsername?: string;
+    // This is the main token used to fetch pages, etc.
+    userAccessToken?: string; 
     // For pending state
     pending?: boolean;
-    pendingUserToken?: string;
 }
 
 const defaultConnection: MetaConnectionData = {
@@ -76,7 +77,7 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
         
         let dataToSet: { [key: string]: any } = connectionData;
 
-        if (connectionData.isConnected === false) {
+        if (connectionData.isConnected === false && !connectionData.pending) {
             // If explicitly disconnecting, clear all fields.
             dataToSet = {
                 isConnected: false,
@@ -88,20 +89,19 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
                 connectedAt: deleteField(),
                 error: deleteField(),
                 pending: deleteField(),
-                pendingUserToken: deleteField(),
+                userAccessToken: deleteField(),
             };
         } else if (connectionData.isConnected === true) {
             // When finalizing the connection
             dataToSet.connectedAt = new Date();
-            // Ensure pending fields are removed
+            // Ensure pending field is removed
             dataToSet.pending = deleteField();
-            dataToSet.pendingUserToken = deleteField();
         } else if (connectionData.pending === true) {
              // When setting the pending state, just save the pending token
              dataToSet = {
                 isConnected: false,
                 pending: true,
-                pendingUserToken: connectionData.pendingUserToken
+                userAccessToken: connectionData.userAccessToken
              }
         }
         
