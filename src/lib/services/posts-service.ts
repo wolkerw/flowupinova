@@ -99,17 +99,38 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
         await updateDoc(postRef, { status: "publishing" });
 
         const publishPromises = postData.platforms.map(platform => {
-            const isInstagram = platform === 'instagram';
-            const apiPath = isInstagram ? '/api/instagram/publish' : '/api/facebook/publish';
+            let apiPath: string;
+            let payload: any;
 
-            const payload = {
-                postData: {
-                    title: postData.title,
-                    text: postData.text,
-                    imageUrl: postData.imageUrl,
-                    metaConnection: postData.metaConnection
-                }
-            };
+            if (platform === 'instagram') {
+                apiPath = '/api/instagram/publish';
+                payload = {
+                    postData: {
+                        title: postData.title,
+                        text: postData.text,
+                        imageUrl: postData.imageUrl,
+                        metaConnection: {
+                          // A API do Instagram espera o token e o ID diretamente
+                          accessToken: postData.metaConnection?.accessToken,
+                          instagramId: postData.metaConnection?.instagramId,
+                        }
+                    }
+                };
+            } else { // 'facebook'
+                apiPath = '/api/facebook/publish';
+                payload = {
+                    postData: {
+                        title: postData.title,
+                        text: postData.text,
+                        imageUrl: postData.imageUrl,
+                        // A API do Facebook espera o objeto metaConnection aninhado
+                        metaConnection: {
+                            accessToken: postData.metaConnection?.accessToken,
+                            pageId: postData.metaConnection?.pageId,
+                        }
+                    }
+                };
+            }
             
             return fetch(apiPath, {
                 method: 'POST',
@@ -117,7 +138,6 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 body: JSON.stringify(payload),
             });
         });
-
 
         const responses = await Promise.all(publishPromises);
         const results = await Promise.all(responses.map(res => res.json()));
