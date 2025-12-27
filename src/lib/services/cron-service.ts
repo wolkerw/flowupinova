@@ -33,10 +33,10 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
                 instagramId: post.connections.instagramId,
             }
         };
-    } else {
+    } else { // Facebook
         payload = {
             postData: {
-                title: post.title,
+                // title: post.title, // Facebook doesn't use a separate title in the photo API
                 text: post.text,
                 imageUrl: post.imageUrl,
                 metaConnection: {

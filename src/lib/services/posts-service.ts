@@ -117,7 +117,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 payload = {
                     postData: {
                         title: postData.title,
-                        text: postData.text, // Use only the text for the caption
+                        text: postData.text,
                         imageUrl: postData.imageUrl,
                         accessToken: postData.connections.igUserAccessToken, // Use correct token
                         instagramId: postData.connections.instagramId,
@@ -127,7 +127,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 apiPath = '/api/facebook/publish';
                 payload = {
                      postData: {
-                        title: postData.title,
+                        // title field removed for FB
                         text: postData.text,
                         imageUrl: postData.imageUrl,
                         metaConnection: { // Facebook API expects this nested structure
