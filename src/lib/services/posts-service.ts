@@ -16,11 +16,20 @@ export interface PostData {
     platforms: Array<'instagram' | 'facebook'>;
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
-    metaConnection: Pick<MetaConnectionData, 'accessToken' | 'pageId' | 'instagramId' | 'instagramUsername' | 'pageName'>;
-    publishedMediaId?: string; // Can be for Instagram or Facebook
+    // Updated to handle separate tokens
+    connections: {
+        fbPageAccessToken?: string | null;
+        igUserAccessToken?: string | null;
+        pageId?: string | null;
+        pageName?: string | null;
+        instagramId?: string | null;
+        instagramUsername?: string | null;
+    };
+    publishedMediaId?: string;
     failureReason?: string;
     creationId?: string; // For Instagram container polling
 }
+
 
 // Interface for data coming from the client
 export type PostDataInput = {
@@ -37,7 +46,7 @@ export type PostDataInput = {
 export type PostDataOutput = {
     success: boolean;
     error?: string;
-    post?: Omit<PostData, 'scheduledAt' | 'metaConnection'> & {
+    post?: Omit<PostData, 'scheduledAt' | 'connections'> & {
         id: string; // Ensure ID is always present on output
         scheduledAt: string; // Client receives an ISO string for serialization
         text: string; // Include full text for republishing
@@ -102,15 +111,15 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
             let apiPath: string;
             let payload: any;
 
-             if (platform === 'instagram') {
-                apiPath = '/api/instagram/v2/publish'; // Use a nova rota V2 para Instagram
+            if (platform === 'instagram') {
+                apiPath = '/api/instagram/v2/publish'; // Use the V2 route for Instagram
                 payload = {
                     postData: {
                         title: postData.title,
                         text: postData.text,
                         imageUrl: postData.imageUrl,
-                        accessToken: postData.metaConnection?.accessToken,
-                        instagramId: postData.metaConnection?.instagramId,
+                        accessToken: postData.connections.igUserAccessToken, // Use correct token
+                        instagramId: postData.connections.instagramId,
                     }
                 };
             } else { // 'facebook'
@@ -120,9 +129,9 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                         title: postData.title,
                         text: postData.text,
                         imageUrl: postData.imageUrl,
-                        metaConnection: {
-                            accessToken: postData.metaConnection?.accessToken,
-                            pageId: postData.metaConnection?.pageId,
+                        metaConnection: { // Facebook API expects this nested structure
+                            accessToken: postData.connections.fbPageAccessToken, // Use correct token
+                            pageId: postData.connections.pageId,
                         }
                     }
                 };
@@ -189,13 +198,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         const isImmediate = postData.scheduledAt <= new Date();
 
-        // Unify connection data into a single object for Firestore
-        const metaConnectionToSave: PostData['metaConnection'] = {
-            accessToken: postData.metaConnection?.accessToken || postData.instagramConnection?.accessToken,
+        // Save connection data with separate tokens
+        const connectionsToSave: PostData['connections'] = {
+            fbPageAccessToken: postData.metaConnection?.accessToken || null,
+            igUserAccessToken: postData.instagramConnection?.accessToken || null,
             pageId: postData.metaConnection?.pageId || null,
             pageName: postData.metaConnection?.pageName || null,
-            instagramId: postData.instagramConnection?.instagramId || postData.metaConnection?.instagramId,
-            instagramUsername: postData.instagramConnection?.instagramUsername || postData.metaConnection?.instagramUsername,
+            instagramId: postData.instagramConnection?.instagramId || null,
+            instagramUsername: postData.instagramConnection?.instagramUsername || null,
         };
 
         const postToSave: Omit<PostData, 'id'> = {
@@ -205,7 +215,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             platforms: postData.platforms,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
             status: isImmediate ? 'publishing' : 'scheduled',
-            metaConnection: metaConnectionToSave,
+            connections: connectionsToSave,
         };
 
         const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
@@ -269,8 +279,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                     publishedMediaId: data.publishedMediaId,
                     failureReason: data.failureReason,
                     scheduledAt: data.scheduledAt.toDate().toISOString(),
-                    instagramUsername: data.metaConnection?.instagramUsername,
-                    pageName: data.metaConnection?.pageName,
+                    instagramUsername: data.connections?.instagramUsername,
+                    pageName: data.connections?.pageName,
                 }
             });
         });

@@ -14,20 +14,37 @@ import { FieldValue } from "firebase-admin/firestore";
  * @returns O ID da mídia publicada.
  */
 async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostData, origin: string): Promise<string> {
-    const apiPath = platform === 'instagram' ? '/api/instagram/publish' : '/api/facebook/publish';
+    const isInstagram = platform === 'instagram';
+    const apiPath = isInstagram ? '/api/instagram/v2/publish' : '/api/facebook/publish';
     
     // A URL de produção da sua aplicação. Substitua se necessário.
     const productionUrl = "https://studio--studio-7502195980-3983c.us-central1.hosted.app";
     const requestUrl = new URL(apiPath, productionUrl);
 
-    const payload = {
-        postData: {
-            title: post.title,
-            text: post.text,
-            imageUrl: post.imageUrl,
-            metaConnection: post.metaConnection,
-        }
-    };
+    let payload: any;
+    if (isInstagram) {
+        payload = {
+            postData: {
+                title: post.title,
+                text: post.text,
+                imageUrl: post.imageUrl,
+                accessToken: post.connections.igUserAccessToken,
+                instagramId: post.connections.instagramId,
+            }
+        };
+    } else {
+        payload = {
+            postData: {
+                title: post.title,
+                text: post.text,
+                imageUrl: post.imageUrl,
+                metaConnection: {
+                    accessToken: post.connections.fbPageAccessToken,
+                    pageId: post.connections.pageId,
+                },
+            }
+        };
+    }
 
     console.log(`[CRON_V2] ===== INICIANDO FETCH PARA ${platform.toUpperCase()} =====`);
     console.log(`[CRON_V2] URL da API interna de publicação:`, requestUrl.toString());
