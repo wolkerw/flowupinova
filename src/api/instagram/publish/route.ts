@@ -16,7 +16,8 @@ interface PublishRequestBody {
 }
 
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
-  const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
+  const host = "https://graph.instagram.com";
+  const url = `${host}/v20.0/${instagramId}/media`;
   const params = new URLSearchParams({
     image_url: imageUrl,
     caption,
@@ -35,7 +36,8 @@ async function createMediaContainer(instagramId: string, accessToken: string, im
 }
 
 async function publishMediaContainer(instagramId: string, accessToken: string, creationId: string): Promise<string> {
-  const url = `https://graph.facebook.com/v20.0/${instagramId}/media_publish`;
+  const host = "https://graph.instagram.com";
+  const url = `${host}/v20.0/${instagramId}/media_publish`;
   const params = new URLSearchParams({
     creation_id: creationId,
     access_token: accessToken,
@@ -44,7 +46,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
   // Loop para verificar o status do container antes de publicar
   let attempts = 0;
   while (attempts < 12) { // Max wait time of ~60 seconds
-    const statusResponse = await fetch(`https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${accessToken}`);
+    const statusResponse = await fetch(`${host}/v20.0/${creationId}?fields=status_code&access_token=${accessToken}`);
     const statusData = await statusResponse.json();
     
     if (statusData.status_code === 'FINISHED') {
@@ -69,7 +71,7 @@ async function publishMediaContainer(instagramId: string, accessToken: string, c
 
   if (!response.ok || !data.id) {
     console.error("[META_API_ERROR] Falha ao publicar o container de mídia:", data.error);
-    throw new Error(data.error?.message || "Media ID is not available");
+    throw new Error(data.error?.message || "A API não retornou um ID de mídia publicado após a finalização.");
   }
 
   return data.id;
