@@ -746,7 +746,7 @@ export default function Conteudo() {
     const scope = "instagram_business_basic,instagram_business_content_publish";
     const responseType = "code";
 
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
     window.location.href = authUrl;
   };
 
@@ -807,7 +807,7 @@ export default function Conteudo() {
       media: postToRepublish.imageUrl,
       platforms: ["facebook"],
       scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
-      metaConnection,
+      metaConnection: metaConnection,
     };
     const result = await schedulePost(user.uid, input);
     setIsRepublishing(false);
@@ -899,24 +899,25 @@ export default function Conteudo() {
           <div className="lg:col-span-1 space-y-8">
             <CalendarCard selectedDate={selectedDate} onSelect={handleDateSelect} month={displayedMonth} onMonthChange={setDisplayedMonth} modifiers={calendarModifiers} />
             <AnimatePresence>
-                {!metaConnection.isConnected && !loading && (
-                    <motion.div key="connect-facebook" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <motion.div key="connect-facebook" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                    {!metaConnection.isConnected && !loading && (
                         <ConnectCard platform="facebook" onConnect={handleConnectMeta} isConnected={metaConnection.isConnected} isLoading={isConnecting} />
-                    </motion.div>
-                )}
+                    )}
+                </motion.div>
                 {metaConnection.isConnected && (
                 <motion.div key="status-facebook" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                     <ConnectionStatusCard platform="facebook" pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} />
                 </motion.div>
                 )}
-                {!instagramConnection.isConnected && !loading && (
-                    <motion.div key="connect-instagram" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    <ConnectCard platform="instagram" onConnect={handleConnectInstagram} isConnected={instagramConnection.isConnected} isLoading={checkingConnection} />
-                    </motion.div>
-                )}
+                
+                <motion.div key="connect-instagram" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                    {!instagramConnection.isConnected && !loading && (
+                        <ConnectCard platform="instagram" onConnect={handleConnectInstagram} isConnected={instagramConnection.isConnected} isLoading={checkingConnection} />
+                    )}
+                </motion.div>
                 {instagramConnection.isConnected && (
                     <motion.div key="status-instagram" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                    <ConnectionStatusCard platform="instagram" pageName={`@${instagramConnection.instagramUsername}`} onDisconnect={handleDisconnectInstagram} />
+                        <ConnectionStatusCard platform="instagram" pageName={`@${instagramConnection.instagramUsername}`} onDisconnect={handleDisconnectInstagram} />
                     </motion.div>
                 )}
             </AnimatePresence>
