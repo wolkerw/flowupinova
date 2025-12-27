@@ -67,7 +67,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                         <AvatarImage src={user?.photoURL || undefined} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                     <span className="font-bold text-sm text-gray-900">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                     <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
                  <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
@@ -150,9 +150,13 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
                         <Share2 className="w-5 h-5 text-gray-600"/>
                     </button>
                 </div>
-                 <div className="flex items-center">
-                    <Heart className="w-5 h-5 text-white fill-red-500 rounded-full border-2 border-white" />
-                    <ThumbsUp className="w-5 h-5 text-white fill-blue-600 rounded-full border-2 border-white -ml-2" />
+                <div className="flex items-center">
+                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
+                        <Heart className="w-3 h-3 text-white fill-white" />
+                    </div>
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white -ml-2">
+                        <ThumbsUp className="w-3 h-3 text-white fill-white" />
+                    </div>
                 </div>
             </div>
         </div>

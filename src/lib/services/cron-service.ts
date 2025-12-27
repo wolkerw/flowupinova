@@ -23,10 +23,12 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     const requestUrl = new URL(apiPath, productionUrl);
 
     let payload: any;
+    const caption = post.text; // Legenda é apenas o texto principal
+
     if (isInstagram) {
         payload = {
             postData: {
-                text: post.text,
+                text: caption,
                 imageUrl: post.imageUrl,
                 accessToken: post.connections.igUserAccessToken,
                 instagramId: post.connections.instagramId,
@@ -35,7 +37,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     } else { // Facebook
         payload = {
             postData: {
-                text: post.text,
+                text: caption,
                 imageUrl: post.imageUrl,
                 metaConnection: {
                     accessToken: post.connections.fbPageAccessToken,
