@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { schedulePost, type PostDataInput } from "@/lib/services/posts-service";
+import { schedulePost } from "@/lib/services/posts-service";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -42,24 +42,32 @@ const Preview = ({
     content, 
     user, 
     metaConnection,
-    instagramConnection
+    instagramConnection,
+    platforms,
 }: { 
     imageUrl: string | null, 
     content: GeneratedContent | null, 
     user: any,
     metaConnection: MetaConnectionData | null,
     instagramConnection: InstagramConnectionData | null,
+    platforms: Platform[],
 }) => {
     
     const getAvatarFallback = () => {
         if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
-        if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
         if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
+        if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
         return "U";
     }
 
-    const getUsername = () => {
-        return instagramConnection?.instagramUsername || metaConnection?.pageName || 'seu_usuario';
+    const getPageName = () => {
+        if (platforms.includes('facebook') && metaConnection?.pageName) {
+            return metaConnection.pageName;
+        }
+        if (platforms.includes('instagram') && instagramConnection?.instagramUsername) {
+            return instagramConnection.instagramUsername;
+        }
+        return metaConnection?.pageName || instagramConnection?.instagramUsername || "Sua Página";
     }
 
     return (
@@ -70,7 +78,7 @@ const Preview = ({
                         <AvatarImage src={user?.photoURL || undefined} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                    <span className="font-bold text-sm">{getUsername()}</span>
+                    <span className="font-bold text-sm">{getPageName()}</span>
                 </div>
                 <div className="relative aspect-square bg-gray-200">
                     {imageUrl ? (
@@ -84,7 +92,7 @@ const Preview = ({
                 </div>
                 <div className="p-3 text-sm min-h-[6rem]">
                     <p className="whitespace-pre-wrap">
-                        <span className="font-bold">{getUsername()}</span>{' '}
+                        <span className="font-bold">{getPageName()}</span>{' '}
                         {content && (
                             <>
                                 <span className="font-bold">{content.titulo}</span>
@@ -493,22 +501,15 @@ export default function GerarConteudoPage() {
     setIsPublishing(true);
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
-    const postInput: PostDataInput = {
+    const result = await schedulePost(user.uid, {
         title: selectedContent.titulo,
         text: fullCaption,
         media: finalImageUrl,
         platforms: platforms,
         scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
-    };
-
-    if (platforms.includes('facebook') && metaConnection?.isConnected) {
-        postInput.metaConnection = metaConnection;
-    }
-    if (platforms.includes('instagram') && instagramConnection?.isConnected) {
-        postInput.instagramConnection = instagramConnection;
-    }
-
-    const result = await schedulePost(user.uid, postInput);
+        metaConnection: metaConnection || undefined,
+        instagramConnection: instagramConnection || undefined,
+    });
     
     setIsPublishing(false);
     setShowSchedulerModal(false);
@@ -716,24 +717,27 @@ export default function GerarConteudoPage() {
             <CardHeader><CardTitle className="flex items-center gap-2 text-xl"><Sparkles className="w-6 h-6 text-purple-500" />Etapa 5: Revise e publique seu post</CardTitle><p className="text-sm text-gray-600 pt-1">Revise o texto, a imagem e agende a publicação.</p></CardHeader>
             <CardContent>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                    <div className="space-y-6"><h3 className="font-bold text-lg">Preview do Post</h3><div className="mt-6 flex items-center justify-center"><Preview imageUrl={processedImageUrl || selectedImage} content={selectedContent} user={user} metaConnection={metaConnection} instagramConnection={instagramConnection} /></div></div>
+                    <div className="space-y-6"><h3 className="font-bold text-lg">Preview do Post</h3><div className="mt-6 flex items-center justify-center">
+                        <Preview 
+                            imageUrl={processedImageUrl || selectedImage} 
+                            content={selectedContent} 
+                            user={user} 
+                            metaConnection={metaConnection}
+                            instagramConnection={instagramConnection}
+                            platforms={platforms}
+                        />
+                    </div></div>
                     <div className="space-y-6">
                         <div>
                             <Label className="font-semibold">Onde Publicar?</Label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                            <div className="grid grid-cols-2 gap-4 mt-2">
+                                <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !instagramConnection?.isConnected && "bg-gray-100 opacity-60")}>
+                                    <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} disabled={!instagramConnection?.isConnected} />
+                                    <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer"><Instagram className="w-5 h-5 text-pink-500" />Instagram</Label>
+                                </div>
                                 <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-60")}>
                                     <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} disabled={!metaConnection?.isConnected} />
-                                    <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer">
-                                        <Facebook className="w-5 h-5 text-blue-600" />
-                                        Facebook
-                                    </Label>
-                                </div>
-                                <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !instagramConnection?.isConnected && "bg-gray-100 opacity-60")}>
-                                    <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} disabled={!instagramConnection?.isConnected}/>
-                                    <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer">
-                                        <Instagram className="w-5 h-5 text-pink-500" />
-                                        Instagram
-                                    </Label>
+                                    <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer"><Facebook className="w-5 h-5 text-blue-600" />Facebook</Label>
                                 </div>
                             </div>
                         </div>
@@ -743,7 +747,9 @@ export default function GerarConteudoPage() {
                                 <Button onClick={() => handlePublish('now')} disabled={isPublishing || platforms.length === 0} className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700" size="lg">{isPublishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2" />}{isPublishing ? 'Publicando...' : 'Publicar Agora'}</Button>
                                 <Button onClick={() => setShowSchedulerModal(true)} disabled={isPublishing || platforms.length === 0} variant="outline" size="lg"><Calendar className="w-5 h-5 mr-2" />Agendar</Button>
                             </div>
-                            {(!metaConnection?.isConnected && !instagramConnection?.isConnected) && (<p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" />Conecte suas contas na página de "Conteúdo" para publicar.</p>)}
+                             {!metaConnection?.isConnected && !instagramConnection?.isConnected && (
+                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" />Conecte suas contas na página de "Conteúdo" para publicar.</p>
+                             )}
                        </div>
                     </div>
                </div>
@@ -771,3 +777,4 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
