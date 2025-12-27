@@ -654,7 +654,7 @@ export default function Conteudo() {
   }, [fetchPageData, toast, user]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user || effectRan.current) {
+    if (typeof window === 'undefined' || !user) {
       fetchPageData();
       return;
     }
@@ -665,6 +665,10 @@ export default function Conteudo() {
       return;
     }
   
+    // Evita loop de re-execução em dev mode
+    if (effectRan.current && process.env.NODE_ENV === 'development') {
+      return;
+    }
     effectRan.current = true;
     setIsConnecting(true);
   
@@ -735,9 +739,13 @@ export default function Conteudo() {
         router.replace('/dashboard/conteudo', undefined);
     };
   
-    if (searchParams.get("instagram_connection_success")) {
+    // Decide qual fluxo executar
+    const isFacebookAuth = searchParams.get('state')?.length ?? 0 > 28; // Facebook state is usually long
+    const isInstagramAuth = searchParams.has('instagram_connection_success');
+
+    if (isInstagramAuth) {
         handleInstagramCallback();
-    } else {
+    } else if (isFacebookAuth || searchParams.has('code')) {
         runConnectionFlow();
     }
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
