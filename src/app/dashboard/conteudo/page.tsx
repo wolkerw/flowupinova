@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format, isFuture, isSameDay, startOfDay, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
@@ -64,6 +64,7 @@ import { deletePost, getScheduledPosts, schedulePost, type PostDataInput } from 
 import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { config } from "@/lib/config";
+import { Separator } from "@/components/ui/separator";
 
 /* -------------------------------------------------------------------------------------------------
  * Types
@@ -374,125 +375,65 @@ function PageSelectionModal({
   );
 }
 
-function ConnectCard({
-  platform,
-  onConnect,
-  isConnected,
-  isLoading,
+function ConnectionStatus({
+    platform,
+    isConnected,
+    accountName,
+    onConnect,
+    onDisconnect,
+    isLoading,
 }: {
-  platform: 'facebook' | 'instagram';
-  onConnect: () => void;
-  isConnected: boolean;
-  isLoading: boolean;
+    platform: 'facebook' | 'instagram';
+    isConnected: boolean;
+    accountName?: string;
+    onConnect: () => void;
+    onDisconnect: () => void;
+    isLoading: boolean;
 }) {
-  const content = {
-    facebook: {
-      title: "Conecte sua Página do Facebook",
-      description: "Para publicar e agendar seus posts, você precisa conectar sua página.",
-      buttonText: "Conectar ao Facebook",
-      icon: <Facebook className="w-6 h-6 text-white" />,
-      bgColor: "bg-blue-600",
-    },
-    instagram: {
-      title: "Conecte seu Instagram",
-      description: "Conecte seu perfil para publicar e agendar posts no Instagram.",
-      buttonText: "Conectar ao Instagram",
-      icon: <Instagram className="w-6 h-6 text-white" />,
-      bgColor: "bg-gradient-to-br from-purple-500 to-indigo-500",
-    }
-  };
+    const platformConfig = {
+        facebook: {
+            icon: Facebook,
+            name: "Facebook",
+            color: "text-blue-600",
+        },
+        instagram: {
+            icon: Instagram,
+            name: "Instagram",
+            color: "text-pink-600",
+        }
+    };
+    
+    const { icon: Icon, name, color } = platformConfig[platform];
 
-  const { title, description, buttonText, icon, bgColor } = content[platform];
-  
-  if (isConnected) return null;
-
-  return (
-    <Card className="shadow-lg border-dashed border-2 relative">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <LinkIcon className="w-6 h-6 text-gray-700" />
-          {title}
-        </CardTitle>
-        <p className="text-gray-600 text-sm pt-2">{description}</p>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor}`}>
-              {icon}
+    return (
+        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50/50">
+            <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white shadow-sm shrink-0`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <div>
+                    <h4 className="font-semibold text-sm text-gray-800">{name}</h4>
+                    {isConnected ? (
+                        <p className="text-xs text-green-700 font-medium truncate" title={accountName}>
+                           Conectado como {accountName}
+                        </p>
+                    ) : (
+                         <p className="text-xs text-red-600">Não conectado</p>
+                    )}
+                </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-800">{platform === 'facebook' ? "Facebook Login" : "Instagram API"}</h3>
-              <p className="text-sm text-gray-500">{platform === 'facebook' ? 'Conecte sua página profissional' : 'Método novo'}</p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={onConnect} disabled={isLoading}>
-            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {buttonText}
-          </Button>
+            
+            {isConnected ? (
+                 <Button variant="ghost" size="sm" onClick={onDisconnect} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <LogOut className="w-4 h-4" />
+                </Button>
+            ) : (
+                 <Button variant="outline" size="sm" onClick={onConnect} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : "Conectar"}
+                </Button>
+            )}
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ConnectionStatusCard({
-  platform,
-  pageName,
-  onDisconnect,
-}: {
-  platform: 'facebook' | 'instagram';
-  pageName?: string;
-  onDisconnect: () => void;
-}) {
-  const content = {
-      facebook: {
-        title: "Página Conectada",
-        icon: <Facebook className="w-6 h-6 text-blue-600" />
-      },
-      instagram: {
-        title: "Instagram Conectado",
-        icon: <Instagram className="w-6 h-6 text-pink-500" />
-      }
-  };
-  const { title, icon } = content[platform];
-  
-  return (
-    <Card className="shadow-lg border-none">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <LinkIcon className="w-5 h-5 text-gray-700" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex items-start justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm shrink-0">
-              {icon}
-            </div>
-            <div>
-              <h3 className="font-semibold text-green-900 leading-tight">Conectado</h3>
-              <p className="text-sm text-green-800 font-medium truncate" title={pageName}>
-                {pageName}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDisconnect}
-            className="text-red-600 hover:bg-red-100 shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    );
 }
 
 function CalendarCard({
@@ -606,7 +547,7 @@ export default function Conteudo() {
       ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
-        setAllPosts(postsResults.filter(r => r.success && r.post).map(r => toDisplayPost(r.post)).sort((a, b) => b.date.getTime() - a.date.getTime()));
+        setAllPosts(postsResults.filter(r => r.success && r.post).map(r => toDisplayPost(r.post!)).sort((a, b) => b.date.getTime() - a.date.getTime()));
       } else if (postsResults?.[0]?.error) {
         toast({ variant: "destructive", title: "Erro ao Carregar Posts", description: postsResults[0].error });
       } else {
@@ -985,29 +926,30 @@ export default function Conteudo() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-8">
             <CalendarCard selectedDate={selectedDate} onSelect={handleDateSelect} month={displayedMonth} onMonthChange={setDisplayedMonth} modifiers={calendarModifiers} />
-            <AnimatePresence>
-                <motion.div key="connect-facebook" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    {!metaConnection.isConnected && !loading && (
-                        <ConnectCard platform="facebook" onConnect={handleConnectMeta} isConnected={metaConnection.isConnected} isLoading={isConnecting} />
-                    )}
-                </motion.div>
-                {metaConnection.isConnected && (
-                <motion.div key="status-facebook" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                    <ConnectionStatusCard platform="facebook" pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} />
-                </motion.div>
-                )}
-                
-                <motion.div key="connect-instagram" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                    {!instagramConnection.isConnected && !loading && (
-                        <ConnectCard platform="instagram" onConnect={handleConnectInstagram} isConnected={instagramConnection.isConnected} isLoading={checkingConnection} />
-                    )}
-                </motion.div>
-                {instagramConnection.isConnected && (
-                    <motion.div key="status-instagram" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                        <ConnectionStatusCard platform="instagram" pageName={`@${instagramConnection.instagramUsername}`} onDisconnect={handleDisconnectInstagram} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <Card className="shadow-lg border-none">
+              <CardHeader>
+                  <CardTitle className="text-xl">Conexões</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                  <ConnectionStatus 
+                      platform="facebook"
+                      isConnected={metaConnection.isConnected}
+                      accountName={metaConnection.pageName}
+                      onConnect={handleConnectMeta}
+                      onDisconnect={handleDisconnectMeta}
+                      isLoading={isConnecting}
+                  />
+                  <Separator />
+                  <ConnectionStatus 
+                      platform="instagram"
+                      isConnected={instagramConnection.isConnected}
+                      accountName={instagramConnection.instagramUsername ? `@${instagramConnection.instagramUsername}`: undefined}
+                      onConnect={handleConnectInstagram}
+                      onDisconnect={handleDisconnectInstagram}
+                      isLoading={checkingConnection}
+                  />
+              </CardContent>
+            </Card>
           </div>
           <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-lg border-none">
