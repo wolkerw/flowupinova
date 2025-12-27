@@ -504,7 +504,7 @@ export default function Conteudo() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const effectRan = useRef(false); // Ref para evitar dupla execução em StrictMode
+  const effectRan = useRef(false);
 
   // Data
   const [loading, setLoading] = useState(true);
@@ -592,63 +592,64 @@ export default function Conteudo() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !user || effectRan.current) {
-        return;
+      return;
     }
 
     const code = searchParams.get("code");
     if (!code) {
-        fetchPageData();
-        return;
-    };
-    
-    effectRan.current = true; // Trava para evitar re-execução
+      fetchPageData();
+      return;
+    }
+
+    effectRan.current = true; // Trava para evitar re-execução em StrictMode
     setIsConnecting(true);
-    
+
     const runConnectionFlow = async () => {
-        try {
-            // ETAPA 1: Trocar o código pelo userAccessToken
-            const tokenResponse = await fetch("/api/meta/callback", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code, redirectUri: window.location.origin + window.location.pathname }),
-            });
-            const tokenResult = await tokenResponse.json();
-            if (!tokenResult.success) throw new Error(tokenResult.error);
+      try {
+        // ETAPA 1: Trocar o código pelo userAccessToken
+        const tokenResponse = await fetch("/api/meta/callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, redirectUri: window.location.origin + window.location.pathname }),
+        });
+        const tokenResult = await tokenResponse.json();
+        if (!tokenResult.success) throw new Error(tokenResult.error);
 
-            const { userAccessToken } = tokenResult;
+        const { userAccessToken } = tokenResult;
 
-            // ETAPA 2: Salvar o token no Firestore com status 'pending'
-            await updateMetaConnection(user.uid, { userAccessToken, pending: true });
-            router.replace('/dashboard/conteudo', undefined); // Limpa a URL imediatamente
+        // ETAPA 2: Salvar o token com estado 'pending' e limpar a URL
+        await updateMetaConnection(user.uid, { userAccessToken, pending: true });
+        router.replace('/dashboard/conteudo', undefined); // Limpa a URL imediatamente
 
-            // ETAPA 3: Buscar as páginas usando o token salvo
-            const pagesResponse = await fetch("/api/meta/callback", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userAccessToken }),
-            });
-            const pagesResult = await pagesResponse.json();
-            if (!pagesResult.success) throw new Error(pagesResult.error);
+        // ETAPA 3: Buscar as páginas usando o token salvo
+        const pagesResponse = await fetch("/api/meta/callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userAccessToken }),
+        });
+        const pagesResult = await pagesResponse.json();
+        if (!pagesResult.success) throw new Error(pagesResult.error);
 
-            const pages: FacebookPage[] = pagesResult.pages || [];
-            if (pages.length > 1) {
-                setPendingPages(pages);
-                setIsSelectionModalOpen(true);
-            } else if (pages.length === 1) {
-                await handlePageSelection(pages[0]);
-            } else {
-                throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
-            }
-        } catch (err: any) {
-            toast({ variant: "destructive", title: "Falha na Conexão", description: err?.message ?? "Erro" });
-            setIsConnecting(false);
-            router.replace('/dashboard/conteudo', undefined);
+        const pages: FacebookPage[] = pagesResult.pages || [];
+        if (pages.length > 1) {
+          setPendingPages(pages);
+          setIsSelectionModalOpen(true);
+        } else if (pages.length === 1) {
+          await handlePageSelection(pages[0]);
+        } else {
+          throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
         }
+      } catch (err: any) {
+        toast({ variant: "destructive", title: "Falha na Conexão", description: err.message, duration: 9000 });
+        setIsConnecting(false);
+        router.replace('/dashboard/conteudo', undefined);
+      }
     };
-    
+
     runConnectionFlow();
 
-  }, [user, searchParams, router, toast, handlePageSelection]);
+  }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
+
 
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
     const scheduled = allPosts.filter((p) => p.status === "scheduled");
@@ -865,3 +866,5 @@ export default function Conteudo() {
     </>
   );
 }
+
+    

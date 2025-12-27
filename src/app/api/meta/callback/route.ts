@@ -1,6 +1,5 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { headers } from "next/headers";
 
 type PageData = {
   id: string;
@@ -17,7 +16,6 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
     if (!response.ok || data.error) {
       const errorMessage = data.error?.message || `Falha na API da Meta com status ${response.status}`;
       console.error(`[META_CALLBACK_API] Erro na chamada para ${url}:`, errorMessage, data.error);
-      // Incluímos a mensagem original da Meta para melhor depuração
       throw new Error(`Falha ao comunicar com a Meta. Razão: ${errorMessage}`);
     }
     
@@ -25,7 +23,6 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
 
   } catch (error: any) {
     console.error(`[META_CALLBACK_API] Erro de rede ou parse na chamada para ${url}:`, error.message);
-    // Repassa o erro com a mensagem já formatada
     throw new Error(error.message);
   }
 }
@@ -33,20 +30,19 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, userAccessToken, redirectUri: clientRedirectUri } = body;
+    const { code, userAccessToken, redirectUri } = body;
     
     // Se um 'code' for fornecido, trocamos por um token de usuário de longa duração.
-    // Esta é a ETAPA 1 do fluxo.
     if (code) {
-        if (!clientRedirectUri) {
-            return NextResponse.json({ success: false, error: "A 'redirect_uri' do cliente não foi fornecida." }, { status: 400 });
+        if (!redirectUri) {
+            return NextResponse.json({ success: false, error: "A 'redirect_uri' do cliente é necessária." }, { status: 400 });
         }
 
         const clientId = "826418333144156";
         const clientSecret = "944e053d34b162c13408cd00ad276aa2";
         
         // Etapa 1.1: Trocar o código por um token de acesso de CURTA duração.
-        const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(clientRedirectUri)}&client_secret=${clientSecret}&code=${code}`;
+        const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;
         const shortLivedTokenData = await fetchFromMetaAPI(shortLivedTokenUrl);
         const shortLivedUserToken = shortLivedTokenData.access_token;
         if (!shortLivedUserToken) {
@@ -68,9 +64,8 @@ export async function POST(request: NextRequest) {
         });
 
     // Se um 'userAccessToken' for fornecido, buscamos as páginas associadas.
-    // Esta é a ETAPA 2 do fluxo.
     } else if (userAccessToken) {
-        const allPages: PageData[] = [];
+        let allPages: PageData[] = [];
         let pagesUrl: string | undefined = `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
 
         while(pagesUrl) {
@@ -97,7 +92,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[META_CALLBACK_API] Erro no fluxo:", error);
-    // Retorna a mensagem de erro detalhada, seja da nossa lógica ou da API da Meta.
     return NextResponse.json({ success: false, error: error.message || "Ocorreu um erro desconhecido." }, { status: 500 });
   }
 }
+
+    
