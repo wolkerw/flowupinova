@@ -16,7 +16,7 @@ interface PublishRequestBody {
 // 1. Criar o container de mídia
 async function createMediaContainer(instagramId: string, accessToken: string, imageUrl: string, caption: string): Promise<string> {
   const host = "https://graph.instagram.com";
-  const url = `${host}/${instagramId}/media`;
+  const url = `${host}/v20.0/${instagramId}/media`;
   
   const params = new URLSearchParams({
     image_url: imageUrl,
@@ -43,7 +43,7 @@ async function checkContainerStatus(containerId: string, accessToken: string): P
   while (attempts < 12) { // Max wait time of ~60 seconds
     await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
     
-    const statusUrl = `${host}/${containerId}?fields=status_code&access_token=${accessToken}`;
+    const statusUrl = `${host}/v20.0/${containerId}?fields=status_code&access_token=${accessToken}`;
     const statusResponse = await fetch(statusUrl);
     const statusData = await statusResponse.json();
     
@@ -68,7 +68,7 @@ async function checkContainerStatus(containerId: string, accessToken: string): P
 // 3. Publicar o container
 async function publishMediaContainer(instagramId: string, accessToken: string, creationId: string): Promise<string> {
   const host = "https://graph.instagram.com";
-  const url = `${host}/${instagramId}/media_publish`;
+  const url = `${host}/v20.0/${instagramId}/media_publish`;
 
   const params = new URLSearchParams({
     creation_id: creationId,

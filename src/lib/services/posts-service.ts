@@ -102,28 +102,24 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
             let apiPath: string;
             let payload: any;
 
-            if (platform === 'instagram') {
-                apiPath = '/api/instagram/publish';
+             if (platform === 'instagram') {
+                apiPath = '/api/instagram/v2/publish'; // Use a nova rota V2 para Instagram
                 payload = {
                     postData: {
                         title: postData.title,
                         text: postData.text,
                         imageUrl: postData.imageUrl,
-                        metaConnection: {
-                          // A API do Instagram espera o token e o ID diretamente
-                          accessToken: postData.metaConnection?.accessToken,
-                          instagramId: postData.metaConnection?.instagramId,
-                        }
+                        accessToken: postData.metaConnection?.accessToken,
+                        instagramId: postData.metaConnection?.instagramId,
                     }
                 };
             } else { // 'facebook'
                 apiPath = '/api/facebook/publish';
                 payload = {
-                    postData: {
+                     postData: {
                         title: postData.title,
                         text: postData.text,
                         imageUrl: postData.imageUrl,
-                        // A API do Facebook espera o objeto metaConnection aninhado
                         metaConnection: {
                             accessToken: postData.metaConnection?.accessToken,
                             pageId: postData.metaConnection?.pageId,
@@ -196,8 +192,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         // Unify connection data into a single object for Firestore
         const metaConnectionToSave: PostData['metaConnection'] = {
             accessToken: postData.metaConnection?.accessToken || postData.instagramConnection?.accessToken,
-            pageId: postData.metaConnection?.pageId,
-            pageName: postData.metaConnection?.pageName,
+            pageId: postData.metaConnection?.pageId || null,
+            pageName: postData.metaConnection?.pageName || null,
             instagramId: postData.instagramConnection?.instagramId || postData.metaConnection?.instagramId,
             instagramUsername: postData.instagramConnection?.instagramUsername || postData.metaConnection?.instagramUsername,
         };
