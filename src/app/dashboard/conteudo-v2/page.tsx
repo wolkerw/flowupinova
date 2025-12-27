@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -82,7 +83,6 @@ import { config } from "@/lib/config";
 
 interface DisplayPost {
   id: string;
-  title: string;
   text: string;
   imageUrl?: string;
   status: "scheduled" | "publishing" | "published" | "failed";
@@ -129,13 +129,13 @@ const PostItem = ({
       <div className="flex items-center gap-4 overflow-hidden">
         <Image
           src={imageSrc}
-          alt={post.title}
+          alt={post.text.substring(0, 50) || 'Imagem do post'}
           width={56}
           height={56}
           className="w-14 h-14 object-cover rounded-md bg-gray-100"
         />
         <div className="overflow-hidden">
-          <h4 className="font-medium text-gray-900 truncate">{post.title}</h4>
+          <h4 className="font-medium text-gray-900 truncate">{post.text}</h4>
           <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
             {StatusIcon && <StatusIcon className="w-4 h-4" />}
             <span>
@@ -253,7 +253,6 @@ export default function ConteudoV2() {
 
             return {
               id: post.id,
-              title: post.title,
               text: post.text,
               imageUrl: post.imageUrl,
               status: post.status,
@@ -522,7 +521,6 @@ export default function ConteudoV2() {
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente."});
 
     const postInput: PostDataInput = {
-      title: postToRepublish.title,
       text: postToRepublish.text,
       media: postToRepublish.imageUrl,
       platforms: ["instagram"],
@@ -955,5 +953,3 @@ export default function ConteudoV2() {
     </>
   );
 }
-
-    

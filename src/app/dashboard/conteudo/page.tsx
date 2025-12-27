@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -72,7 +73,6 @@ type PostStatus = "scheduled" | "publishing" | "published" | "failed";
 
 interface DisplayPost {
   id: string;
-  title: string;
   text: string;
   imageUrl?: string;
   status: PostStatus;
@@ -144,7 +144,6 @@ function toDisplayPost(post: any): DisplayPost {
   const scheduledDate = new Date(post.scheduledAt);
   return {
     id: post.id,
-    title: post.title,
     text: post.text,
     imageUrl: post.imageUrl,
     status: post.status as PostStatus,
@@ -212,13 +211,13 @@ function PostItem({
       <div className="flex items-center gap-4 overflow-hidden">
         <Image
           src={imageSrc}
-          alt={post.title}
+          alt={post.text.substring(0, 50) || 'Imagem do post'}
           width={56}
           height={56}
           className="w-14 h-14 object-cover rounded-md bg-gray-100"
         />
         <div className="overflow-hidden">
-          <h4 className="font-medium text-gray-900 truncate">{post.title}</h4>
+          <h4 className="font-medium text-gray-900 truncate">{post.text}</h4>
 
           <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
             {StatusIcon ? <StatusIcon className="w-4 h-4" /> : null}
@@ -850,7 +849,6 @@ export default function Conteudo() {
 
     const useInstagram = postToRepublish.platforms.includes('instagram');
     const useFacebook = postToRepublish.platforms.includes('facebook');
-    let connection: MetaConnectionData | InstagramConnectionData | undefined;
     let postInputPlatforms: Array<'instagram' | 'facebook'> = [];
 
     if (useInstagram) {
@@ -858,14 +856,12 @@ export default function Conteudo() {
             toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
             return;
         }
-        connection = instagramConnection;
         postInputPlatforms.push('instagram');
     } else if (useFacebook) {
          if (!metaConnection.isConnected) {
             toast({ variant: "destructive", title: "Facebook não conectado", description: "Conecte o Facebook para republicar."});
             return;
         }
-        connection = metaConnection;
         postInputPlatforms.push('facebook');
     } else {
         toast({ variant: "destructive", title: "Nenhuma plataforma válida", description: "O post original não parece ser para Facebook ou Instagram."});
@@ -881,7 +877,6 @@ export default function Conteudo() {
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
 
     const input: PostDataInput = {
-      title: postToRepublish.title,
       text: postToRepublish.text,
       media: postToRepublish.imageUrl,
       platforms: postInputPlatforms,
