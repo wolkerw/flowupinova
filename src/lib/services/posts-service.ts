@@ -109,13 +109,12 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
         const publishPromises = postData.platforms.map(platform => {
             let apiPath: string;
             let payload: any;
-            const caption = postData.text; // CORREÇÃO: Usar apenas o texto principal
-
+            
             if (platform === 'instagram') {
                 apiPath = '/api/instagram/v2/publish'; // Use the V2 route for Instagram
                 payload = {
                     postData: {
-                        text: caption,
+                        text: postData.text,
                         imageUrl: postData.imageUrl,
                         accessToken: postData.connections.igUserAccessToken, // Use correct token
                         instagramId: postData.connections.instagramId,
@@ -125,7 +124,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 apiPath = '/api/facebook/publish';
                 payload = {
                      postData: {
-                        text: caption,
+                        text: postData.text,
                         imageUrl: postData.imageUrl,
                         metaConnection: { // Facebook API expects this nested structure
                             accessToken: postData.connections.fbPageAccessToken, // Use correct token
@@ -170,7 +169,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
 }
 
 
-export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
+export async function schedulePost(userId: string, postData: Omit<PostDataInput, 'title'>): Promise<PostDataOutput> {
     if (!userId) {
         return { success: false, error: "User ID is required to schedule a post." };
     }
@@ -228,7 +227,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             const notificationsCollection = collection(db, `users/${userId}/notifications`);
             await addDoc(notificationsCollection, {
                 postId: docRef.id,
-                postText: postToSave.text, // Using text for notification title
+                postText: postToSave.text,
                 status: 'pending',
                 scheduledAt: postToSave.scheduledAt,
                 createdAt: serverTimestamp(),
