@@ -67,7 +67,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                         <AvatarImage src={user?.photoURL || undefined} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                     <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                     <span className="font-bold text-sm text-gray-900">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
                  <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
@@ -90,7 +90,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
 
             {/* Likes and Caption */}
             <div className="p-3 pt-2 text-sm min-h-[6rem] space-y-1">
-                 <p className="text-xs">
+                 <p className="text-xs text-gray-900">
                     Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
                 <div className="text-sm text-gray-900">
@@ -141,22 +141,18 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
             <div className="flex items-center justify-between p-2">
                 <div className="flex items-center gap-1">
                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
-                        <ThumbsUp className="w-5 h-5"/>
+                        <ThumbsUp className="w-5 h-5 text-gray-600"/>
                     </button>
                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
-                        <MessageCircle className="w-5 h-5"/>
+                        <MessageCircle className="w-5 h-5 text-gray-600"/>
                     </button>
                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
-                        <Share2 className="w-5 h-5"/>
+                        <Share2 className="w-5 h-5 text-gray-600"/>
                     </button>
                 </div>
-                <div className="flex items-center">
-                    <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border-2 border-white z-10">
-                        <Heart className="w-3 h-3 text-white fill-current"/>
-                    </div>
-                    <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white -ml-2">
-                        <ThumbsUp className="w-3 h-3 text-white fill-current"/>
-                    </div>
+                 <div className="flex items-center">
+                    <Heart className="w-5 h-5 text-white fill-red-500 rounded-full border-2 border-white" />
+                    <ThumbsUp className="w-5 h-5 text-white fill-blue-600 rounded-full border-2 border-white -ml-2" />
                 </div>
             </div>
         </div>
@@ -415,7 +411,6 @@ export default function CriarConteudoPage() {
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
         
         const postInput: PostDataInput = {
-            title: "Post sem título", // Título removido da UI
             text: text,
             media: mediaToPublish,
             platforms: platforms,
@@ -781,10 +776,4 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
-
-
-
-
-
 

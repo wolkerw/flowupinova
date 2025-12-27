@@ -11,7 +11,6 @@ import type { InstagramConnectionData } from "./instagram-service";
 // Interface for data stored in Firestore
 export interface PostData {
     id?: string;
-    title: string;
     text: string;
     imageUrl: string; // URL must be public from Firebase Storage or AI source
     platforms: Array<'instagram' | 'facebook'>;
@@ -34,7 +33,6 @@ export interface PostData {
 
 // Interface for data coming from the client
 export type PostDataInput = {
-    title: string;
     text: string;
     media: File | string; // Can be a File for upload or a string URL from AI gen/webhook
     platforms: Array<'instagram' | 'facebook'>;
@@ -116,7 +114,6 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 apiPath = '/api/instagram/v2/publish'; // Use the V2 route for Instagram
                 payload = {
                     postData: {
-                        title: postData.title,
                         text: postData.text,
                         imageUrl: postData.imageUrl,
                         accessToken: postData.connections.igUserAccessToken, // Use correct token
@@ -127,7 +124,6 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 apiPath = '/api/facebook/publish';
                 payload = {
                      postData: {
-                        // title field removed for FB
                         text: postData.text,
                         imageUrl: postData.imageUrl,
                         metaConnection: { // Facebook API expects this nested structure
@@ -210,7 +206,6 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         };
 
         const postToSave: Omit<PostData, 'id'> = {
-            title: postData.title || "Post sem título",
             text: postData.text,
             imageUrl: imageUrl,
             platforms: postData.platforms,
@@ -232,7 +227,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             const notificationsCollection = collection(db, `users/${userId}/notifications`);
             await addDoc(notificationsCollection, {
                 postId: docRef.id,
-                postTitle: postToSave.title,
+                postText: postToSave.text, // Using text for notification title
                 status: 'pending',
                 scheduledAt: postToSave.scheduledAt,
                 createdAt: serverTimestamp(),
@@ -272,7 +267,6 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                 success: true,
                 post: {
                     id: doc.id,
-                    title: data.title,
                     text: data.text,
                     imageUrl: data.imageUrl,
                     platforms: data.platforms as Array<'instagram' | 'facebook'>,

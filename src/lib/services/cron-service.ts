@@ -26,7 +26,6 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     if (isInstagram) {
         payload = {
             postData: {
-                title: post.title,
                 text: post.text,
                 imageUrl: post.imageUrl,
                 accessToken: post.connections.igUserAccessToken,
@@ -36,7 +35,6 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     } else { // Facebook
         payload = {
             postData: {
-                // title: post.title, // Facebook doesn't use a separate title in the photo API
                 text: post.text,
                 imageUrl: post.imageUrl,
                 metaConnection: {
