@@ -94,10 +94,12 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                  <p className="text-xs">
                     Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
-                <p className="whitespace-pre-wrap text-sm">
-                    <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
-                </p>
-                <p className="text-gray-400 text-xs">Adicionar um comentário...</p>
+                <div className="text-sm">
+                    <p className="whitespace-pre-wrap">
+                        <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
+                    </p>
+                </div>
+                <p className="text-gray-400 text-xs pt-1">Adicionar um comentário...</p>
             </div>
         </div>
     );
@@ -146,15 +148,15 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
                     </div>
                 </div>
             </div>
-             <div className="flex items-center justify-around p-2 text-gray-600 font-semibold">
-                <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <ThumbsUp className="w-5 h-5"/>
+             <div className="flex items-center justify-start p-2 text-gray-600 font-semibold">
+                <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <ThumbsUp className="w-4 h-4"/>
                 </div>
-                 <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <MessageCircle className="w-5 h-5"/>
+                 <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <MessageCircle className="w-4 h-4"/>
                 </div>
-                 <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <Share2 className="w-5 h-5"/>
+                 <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <Share2 className="w-4 h-4"/>
                 </div>
             </div>
         </div>
@@ -779,5 +781,6 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
 
 
