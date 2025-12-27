@@ -592,21 +592,21 @@ export default function Conteudo() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !user || effectRan.current) {
+      fetchPageData();
       return;
     }
-
+  
     const code = searchParams.get("code");
     if (!code) {
       fetchPageData();
       return;
     }
-
-    effectRan.current = true; // Trava para evitar re-execução em StrictMode
+  
+    effectRan.current = true;
     setIsConnecting(true);
-
+  
     const runConnectionFlow = async () => {
       try {
-        // ETAPA 1: Trocar o código pelo userAccessToken
         const tokenResponse = await fetch("/api/meta/callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -614,30 +614,27 @@ export default function Conteudo() {
         });
         const tokenResult = await tokenResponse.json();
         if (!tokenResult.success) throw new Error(tokenResult.error);
-
         const { userAccessToken } = tokenResult;
-
-        // ETAPA 2: Salvar o token com estado 'pending' e limpar a URL
+        
         await updateMetaConnection(user.uid, { userAccessToken, pending: true });
-        router.replace('/dashboard/conteudo', undefined); // Limpa a URL imediatamente
-
-        // ETAPA 3: Buscar as páginas usando o token salvo
+        router.replace('/dashboard/conteudo', undefined);
+        
         const pagesResponse = await fetch("/api/meta/callback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userAccessToken }),
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userAccessToken }),
         });
         const pagesResult = await pagesResponse.json();
         if (!pagesResult.success) throw new Error(pagesResult.error);
 
         const pages: FacebookPage[] = pagesResult.pages || [];
         if (pages.length > 1) {
-          setPendingPages(pages);
-          setIsSelectionModalOpen(true);
+            setPendingPages(pages);
+            setIsSelectionModalOpen(true);
         } else if (pages.length === 1) {
-          await handlePageSelection(pages[0]);
+            await handlePageSelection(pages[0]);
         } else {
-          throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
+            throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
         }
       } catch (err: any) {
         toast({ variant: "destructive", title: "Falha na Conexão", description: err.message, duration: 9000 });
@@ -645,9 +642,8 @@ export default function Conteudo() {
         router.replace('/dashboard/conteudo', undefined);
       }
     };
-
+  
     runConnectionFlow();
-
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
 
 
@@ -796,7 +792,16 @@ export default function Conteudo() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <PageSelectionModal isOpen={isSelectionModalOpen} pages={pendingPages} onSelect={handlePageSelection} onCancel={() => { setIsSelectionModalOpen(false); setPendingPages([]); setIsConnecting(false); }} />
+      <PageSelectionModal
+        isOpen={isSelectionModalOpen}
+        pages={pendingPages}
+        onSelect={handlePageSelection}
+        onCancel={() => {
+          setIsSelectionModalOpen(false);
+          setPendingPages([]);
+          setIsConnecting(false);
+        }}
+      />
       
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
         <div className="space-y-4">
@@ -866,5 +871,3 @@ export default function Conteudo() {
     </>
   );
 }
-
-    
