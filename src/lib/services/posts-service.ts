@@ -100,21 +100,14 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
 
         const publishPromises = postData.platforms.map(platform => {
             const isInstagram = platform === 'instagram';
-            const apiPath = isInstagram ? '/api/instagram/v2/publish' : '/api/facebook/publish';
+            const apiPath = isInstagram ? '/api/instagram/publish' : '/api/facebook/publish';
 
             const payload = {
                 postData: {
                     title: postData.title,
                     text: postData.text,
                     imageUrl: postData.imageUrl,
-                    // Para a API V2 (instagram-only), passamos os dados diretamente.
-                    // Para a API legada (facebook), mantemos o objeto aninhado.
-                    ...(isInstagram ? {
-                        accessToken: postData.metaConnection.accessToken,
-                        instagramId: postData.metaConnection.instagramId
-                    } : {
-                        metaConnection: postData.metaConnection
-                    })
+                    metaConnection: postData.metaConnection
                 }
             };
             
@@ -159,9 +152,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         return { success: false, error: "User ID is required to schedule a post." };
     }
 
-    const connection = postData.instagramConnection || postData.metaConnection;
-    if (!connection || !connection.isConnected || !connection.accessToken) {
-        return { success: false, error: "Conexão com a Meta/Instagram não está configurada ou é inválida." };
+    const hasFacebook = postData.platforms.includes('facebook');
+    const hasInstagram = postData.platforms.includes('instagram');
+
+    if (hasFacebook && (!postData.metaConnection || !postData.metaConnection.isConnected)) {
+        return { success: false, error: "A conexão com o Facebook é necessária para publicar nesta plataforma."};
+    }
+    if (hasInstagram && (!postData.instagramConnection || !postData.instagramConnection.isConnected)) {
+        return { success: false, error: "A conexão com o Instagram é necessária para publicar nesta plataforma."};
     }
     
     let imageUrl: string;
@@ -175,15 +173,14 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         const isImmediate = postData.scheduledAt <= new Date();
 
-        // Build the metaConnection object to be saved in Firestore, unifying data from both connection types
+        // Unify connection data into a single object for Firestore
         const metaConnectionToSave: PostData['metaConnection'] = {
-            accessToken: connection.accessToken || null,
-            instagramId: postData.instagramConnection?.instagramId || postData.metaConnection?.instagramId || null,
-            instagramUsername: postData.instagramConnection?.instagramUsername || postData.metaConnection?.instagramUsername || null,
-            pageId: postData.metaConnection?.pageId || null,
-            pageName: postData.metaConnection?.pageName || null,
+            accessToken: postData.metaConnection?.accessToken || postData.instagramConnection?.accessToken,
+            pageId: postData.metaConnection?.pageId,
+            pageName: postData.metaConnection?.pageName,
+            instagramId: postData.instagramConnection?.instagramId || postData.metaConnection?.instagramId,
+            instagramUsername: postData.instagramConnection?.instagramUsername || postData.metaConnection?.instagramUsername,
         };
-        
 
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title || "Post sem título",
@@ -201,7 +198,6 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         if (isImmediate) {
             const result = await publishPostImmediately(userId, docRef.id, postToSave);
             if (!result.success) {
-                // The error is already saved in the doc, but we return it to the client for immediate feedback
                 return { success: false, error: result.error };
             }
         } else {

@@ -8,22 +8,24 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, UploadCloud, Trash2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { schedulePost } from "@/lib/services/posts-service";
+import { schedulePost, type PostDataInput } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
 type LogoPosition = 'top-left' | 'top-center' | 'top-right' | 'left-center' | 'center' | 'right-center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+type Platform = 'instagram' | 'facebook';
 
 type MediaItem = {
     type: 'image' | 'video';
@@ -231,6 +233,7 @@ export default function CriarConteudoPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
+    const [platforms, setPlatforms] = useState<Platform[]>(['facebook']);
 
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -244,6 +247,7 @@ export default function CriarConteudoPage() {
     const router = useRouter();
     
     const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+    const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
@@ -254,6 +258,7 @@ export default function CriarConteudoPage() {
     useEffect(() => {
         if (!user) return;
         getMetaConnection(user.uid).then(setMetaConnection);
+        getInstagramConnection(user.uid).then(setInstagramConnection);
     }, [user]);
 
     const getImageDimensions = (file: File): Promise<{ width: number, height: number }> => {
@@ -434,11 +439,25 @@ export default function CriarConteudoPage() {
         }, 1500);
     };
 
+    const handlePlatformChange = (platform: Platform) => {
+        setPlatforms(prev => 
+            prev.includes(platform) 
+            ? prev.filter(p => p !== platform)
+            : [...prev, platform]
+        );
+    }
+
     const handleSubmit = async () => {
-        if (!user || !metaConnection?.isConnected || mediaItems.length === 0) {
-            toast({ variant: "destructive", title: "Erro", description: "Verifique se sua conta do Facebook está conectada e se você adicionou uma mídia." });
+        if (!user || mediaItems.length === 0) {
+             toast({ variant: "destructive", title: "Erro", description: "Verifique se você adicionou uma mídia." });
             return;
         }
+
+        if (platforms.length === 0) {
+            toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
+            return;
+        }
+
         if (scheduleType === 'schedule' && !scheduleDate) {
             toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento."});
             return;
@@ -454,14 +473,22 @@ export default function CriarConteudoPage() {
         setIsPublishing(true);
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
         
-        const result = await schedulePost(user.uid, {
+        const postInput: PostDataInput = {
             title: title || "Post sem título",
             text: text,
             media: mediaToPublish,
-            platforms: ['facebook'],
+            platforms: platforms,
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
-            metaConnection: metaConnection,
-        });
+        };
+
+        if (platforms.includes('facebook') && metaConnection?.isConnected) {
+            postInput.metaConnection = metaConnection;
+        }
+        if (platforms.includes('instagram') && instagramConnection?.isConnected) {
+            postInput.instagramConnection = instagramConnection;
+        }
+
+        const result = await schedulePost(user.uid, postInput);
 
         setIsPublishing(false);
 
@@ -476,9 +503,11 @@ export default function CriarConteudoPage() {
     const selectedOption = contentOptions.find(opt => opt.id === selectedType);
     const isNextDisabled = (step === 2 && (mediaItems.length === 0 || isUploading));
     const isSubmitDisabled = (
-        !metaConnection?.isConnected || 
         isPublishing || 
         mediaItems.length === 0 ||
+        platforms.length === 0 ||
+        (platforms.includes('facebook') && !metaConnection?.isConnected) ||
+        (platforms.includes('instagram') && !instagramConnection?.isConnected) ||
         (scheduleType === 'schedule' && !scheduleDate)
     );
 
@@ -504,7 +533,7 @@ export default function CriarConteudoPage() {
                 <p className="text-gray-600 mt-1">
                     {step === 1 && "Escolha o formato do conteúdo que você deseja criar."}
                     {step === 2 && `Etapa 2 de 3: Personalize seu ${selectedOption?.title || 'conteúdo'}`}
-                    {step === 3 && `Etapa 3 de 3: Revise e agende sua publicação no Facebook`}
+                    {step === 3 && `Etapa 3 de 3: Revise e agende sua publicação`}
                 </p>
             </div>
 
@@ -768,17 +797,24 @@ export default function CriarConteudoPage() {
                     <Card className="shadow-lg border-none">
                         <CardHeader>
                             <CardTitle className="text-lg">Agendamento e Plataformas</CardTitle>
-                            <p className="text-sm text-gray-600">Escolha quando publicar seu conteúdo.</p>
+                            <p className="text-sm text-gray-600">Escolha quando e onde publicar seu conteúdo.</p>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div>
+                           <div>
                                 <Label className="font-semibold">Onde Publicar?</Label>
-                                <div className="grid grid-cols-1 gap-4 mt-2">
-                                     <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
-                                        <Checkbox id="platform-facebook" checked disabled />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                     <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-60")}>
+                                        <Checkbox id="platform-facebook" checked={platforms.includes('facebook')} onCheckedChange={() => handlePlatformChange('facebook')} disabled={!metaConnection?.isConnected} />
                                         <Label htmlFor="platform-facebook" className="flex items-center gap-2 cursor-pointer">
                                             <Facebook className="w-5 h-5 text-blue-600" />
                                             Facebook
+                                        </Label>
+                                    </div>
+                                    <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !instagramConnection?.isConnected && "bg-gray-100 opacity-60")}>
+                                        <Checkbox id="platform-instagram" checked={platforms.includes('instagram')} onCheckedChange={() => handlePlatformChange('instagram')} disabled={!instagramConnection?.isConnected} />
+                                        <Label htmlFor="platform-instagram" className="flex items-center gap-2 cursor-pointer">
+                                            <Instagram className="w-5 h-5 text-pink-500" />
+                                            Instagram
                                         </Label>
                                     </div>
                                 </div>
@@ -817,8 +853,8 @@ export default function CriarConteudoPage() {
                                 {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                                 {isPublishing ? 'Publicando...' : scheduleType === 'now' ? 'Publicar Post' : 'Agendar Post'}
                             </Button>
-                            {!metaConnection?.isConnected && (
-                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte sua conta do Facebook na página de Conteúdo para publicar.</p>
+                            {!metaConnection?.isConnected && !instagramConnection?.isConnected && (
+                                <p className="text-xs text-red-600 mt-2 text-center flex items-center justify-center gap-1"><AlertTriangle className="w-4 h-4" /> Conecte suas contas na página de Conteúdo para publicar.</p>
                             )}
                         </CardFooter>
                     </Card>
