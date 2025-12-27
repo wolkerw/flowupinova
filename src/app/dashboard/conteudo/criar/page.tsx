@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreVertical, Heart, Bookmark, Repeat, MoreHorizontal, Globe } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreVertical, MoreHorizontal, Globe, Bookmark, Repeat, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,7 +68,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                         <AvatarImage src={user?.photoURL || undefined} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                     <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                     <span className="font-bold text-sm text-gray-900">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
                  <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
@@ -90,7 +90,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
             </div>
 
             {/* Likes and Caption */}
-            <div className="p-3 pt-2 text-gray-900 min-h-[6rem] space-y-1">
+            <div className="p-3 pt-2 text-sm text-gray-900 min-h-[6rem] space-y-1">
                  <p className="text-xs">
                     Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
@@ -139,7 +139,7 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
             <div className="relative aspect-square bg-gray-200">
                 {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
             </div>
-            <div className="flex items-center justify-between p-2 text-gray-600 font-semibold border-t">
+            <div className="flex items-center justify-between p-2">
                 <div className="flex items-center gap-1">
                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
                         <ThumbsUp className="w-5 h-5"/>
@@ -782,6 +782,7 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
 
 
 

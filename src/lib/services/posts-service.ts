@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { db, storage } from "@/lib/firebase";
@@ -116,7 +117,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 payload = {
                     postData: {
                         title: postData.title,
-                        text: postData.text,
+                        text: postData.text, // Use only the text for the caption
                         imageUrl: postData.imageUrl,
                         accessToken: postData.connections.igUserAccessToken, // Use correct token
                         instagramId: postData.connections.instagramId,
