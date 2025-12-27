@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreHorizontal, Heart, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,20 +60,42 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
 
     return (
         <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
-            <div className="p-3 flex items-center gap-2 border-b">
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.photoURL || undefined} />
-                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                </Avatar>
-                <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+            {/* Header */}
+            <div className="p-3 flex items-center justify-between gap-2 border-b">
+                <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user?.photoURL || undefined} />
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                </div>
+                 <MoreHorizontal className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
+
+            {/* Image */}
             <div className="relative aspect-square bg-gray-200">
                 {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
             </div>
-            <div className="p-3 text-sm min-h-[6rem]">
+            
+            {/* Action Icons */}
+            <div className="px-3 pt-3 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Heart className="w-6 h-6 text-gray-800 cursor-pointer hover:text-red-500"/>
+                    <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer -ml-1 transform -scale-x-100"/>
+                    <Send className="w-6 h-6 text-gray-800 cursor-pointer -ml-1"/>
+                </div>
+                <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer"/>
+            </div>
+
+            {/* Likes and Caption */}
+            <div className="p-3 pt-2 text-sm min-h-[6rem] space-y-1">
+                 <p className="font-semibold text-gray-900">
+                    Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outros</span>
+                </p>
                 <p className="whitespace-pre-wrap">
                     <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
                 </p>
+                <p className="text-gray-400">Adicionar um comentário...</p>
             </div>
         </div>
     );
@@ -103,7 +125,7 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
             <div className="p-3 text-sm">
                 <p className="whitespace-pre-wrap">{text}</p>
             </div>
-            <div className="relative aspect-square bg-gray-200">
+            <div className="relative aspect-[1.91/1] bg-gray-200">
                 {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
             </div>
              <div className="flex items-center justify-around border-t p-2 text-sm text-gray-600 font-semibold">
