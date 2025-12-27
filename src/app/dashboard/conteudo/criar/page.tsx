@@ -7,12 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { schedulePost, type PostDataInput } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -21,6 +20,7 @@ import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-
 import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 type ContentType = "single_post" | "carousel" | "story" | "reels";
@@ -49,177 +49,77 @@ const contentOptions = [
     }
 ];
 
-const Preview = ({ 
-    type, 
-    mediaItems, 
-    onRemoveItem,
-    logoUrl,
-    logoPosition,
-    logoScale,
-    logoOpacity,
-    pageName
-}: { 
-    type: ContentType, 
-    mediaItems: MediaItem[], 
-    onRemoveItem: (index: number) => void,
-    logoUrl: string | null,
-    logoPosition: LogoPosition,
-    logoScale: number,
-    logoOpacity: number,
-    pageName?: string;
-}) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
-
-    useEffect(() => {
-        if (currentSlide >= mediaItems.length && mediaItems.length > 0) {
-            setCurrentSlide(mediaItems.length - 1);
-        }
-    }, [mediaItems, currentSlide]);
-
-    const handleNextSlide = () => {
-        if (mediaItems.length > 1) {
-            setCurrentSlide((prev) => (prev + 1) % mediaItems.length);
-        }
+const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, instagramConnection: InstagramConnectionData | null }) => {
+    const getAvatarFallback = () => {
+        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+        if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
+        return "U";
     }
-    
-    const handlePrevSlide = () => {
-        if (mediaItems.length > 1) {
-            setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
-        }
-    }
-    
-    const positionClasses: Record<LogoPosition, string> = {
-        'top-left': 'top-4 left-4',
-        'top-center': 'top-4 left-1/2 -translate-x-1/2',
-        'top-right': 'top-4 right-4',
-        'left-center': 'top-1/2 left-4 -translate-y-1/2',
-        'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-        'right-center': 'top-1/2 right-4 -translate-y-1/2',
-        'bottom-left': 'bottom-4 left-4',
-        'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
-        'bottom-right': 'bottom-4 right-4',
-    };
-
-    const renderContent = (item: MediaItem) => {
-        const imageUrlToDisplay = item.publicUrl || item.previewUrl;
-        
-        const renderLogo = () => {
-            if (!logoUrl || item.publicUrl) return null;
-            
-            return (
-                 <Image
-                    src={logoUrl}
-                    alt="Logomarca"
-                    width={500}
-                    height={500}
-                    className={cn(
-                        "absolute z-10 h-auto",
-                        positionClasses[logoPosition]
-                    )}
-                    style={{
-                        width: `${logoScale}%`,
-                        opacity: logoOpacity / 100,
-                    }}
-                />
-            )
-        }
-
-        if (item.type === 'image') {
-            return (
-                <div className="relative w-full h-full">
-                    <Image src={imageUrlToDisplay} alt="Preview da imagem" layout="fill" objectFit="contain" />
-                    {renderLogo()}
-                </div>
-            );
-        }
-        
-        if (item.type === 'video') {
-             return (
-                <div className="relative w-full h-full">
-                    <video src={item.previewUrl} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
-                    {renderLogo()}
-                </div>
-            );
-        }
-        
-        return null;
-    };
-
-    const placeholder = (icon: React.ElementType, text: string) => (
-        <div className="flex flex-col items-center justify-center text-center p-4 h-full">
-            {React.createElement(icon, { className: "w-16 h-16 text-gray-400 mb-4" })}
-            <p className="text-gray-500">{text}</p>
-        </div>
-    );
 
     const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
-    const currentCarouselItem = mediaItems.length > 0 ? mediaItems[currentSlide] : null;
 
-    switch (type) {
-        case 'single_post':
-            return (
-                <div className="w-full max-w-sm aspect-square bg-gray-200 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                    {singleItem ? renderContent(singleItem) : placeholder(ImageIcon, "Pré-visualização de Post Único (Feed)")}
-                </div>
-            );
-        case 'carousel':
-            return (
-                 <div className="flex flex-col items-center gap-6">
-                    <div className="w-full max-w-sm flex flex-col items-center gap-4">
-                        <div className="aspect-square w-full bg-gray-200 rounded-lg flex flex-col items-center justify-center p-0 relative overflow-hidden">
-                           <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center relative">
-                                {currentCarouselItem ? renderContent(currentCarouselItem) : placeholder(Copy, "Pré-visualização de Carrossel")}
+    return (
+        <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+            <div className="p-3 flex items-center gap-2 border-b">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.photoURL || undefined} />
+                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                </Avatar>
+                <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+            </div>
+            <div className="relative aspect-square bg-gray-200">
+                {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+            </div>
+            <div className="p-3 text-sm min-h-[6rem]">
+                <p className="whitespace-pre-wrap">
+                    <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
+                </p>
+            </div>
+        </div>
+    );
+};
 
-                                {mediaItems.length > 0 && (
-                                     <button onClick={() => onRemoveItem(currentSlide)} className="absolute top-2 right-2 z-20 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
-                                        <X className="w-4 h-4"/>
-                                     </button>
-                                )}
-
-                                {mediaItems.length > 1 && (
-                                    <>
-                                        <div className="absolute top-1/2 left-2 right-2 flex justify-between z-20 transform -translate-y-1/2">
-                                            <button onClick={handlePrevSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
-                                            <button onClick={handleNextSlide} className="bg-white/50 rounded-full p-1 text-gray-700 hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
-                                        </div>
-                                        <div className="absolute bottom-4 flex gap-1.5 z-20">
-                                            {mediaItems.map((_, index) => (
-                                                 <div key={index} className={cn("w-2 h-2 rounded-full", currentSlide === index ? 'bg-blue-500' : 'bg-gray-400')}></div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                                {mediaItems.length > 0 && (
-                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full z-20">
-                                        {currentSlide + 1} / {mediaItems.length}
-                                    </div>
-                                )}
-                           </div>
-                        </div>
-                    </div>
-                    <div className="w-full max-w-sm text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-800 font-medium mb-2">Sequência de 2 a 10 imagens ou vídeos que o usuário desliza.</p>
-                        <h5 className="font-bold text-blue-900">Ótimo para:</h5>
-                        <ul className="mt-2 space-y-1 text-sm text-blue-800 list-none">
-                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>“Passo a passo”</span></li>
-                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Comparativos (antes e depois)</span></li>
-                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Listas (“5 dicas rápidas…”)</span></li>
-                            <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span>Mostrar vários produtos/serviços</span></li>
-                        </ul>
-                    </div>
-                </div>
-            );
-        case 'story':
-        case 'reels':
-            return (
-                <div className="w-full max-w-[250px] aspect-[9/16] bg-gray-800 rounded-3xl border-4 border-gray-600 flex flex-col items-center justify-center p-0 overflow-hidden relative">
-                    {singleItem ? renderContent(singleItem) : placeholder(type === 'story' ? Film : Sparkles, `Pré-visualização de ${type === 'story' ? 'Story' : 'Reels'}`)}
-                </div>
-            );
-        default:
-            return null;
+const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItems: MediaItem[], user: any, text: string, metaConnection: MetaConnectionData | null }) => {
+    const getAvatarFallback = () => {
+        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+        if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
+        return "P";
     }
-}
+
+    const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+
+    return (
+        <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+            <div className="p-3 flex items-center gap-2 border-b">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.photoURL || undefined} />
+                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <span className="font-bold text-sm text-gray-800">{metaConnection?.pageName || 'Sua Página'}</span>
+                    <p className="text-xs text-gray-500">Agora mesmo</p>
+                </div>
+            </div>
+            <div className="p-3 text-sm">
+                <p className="whitespace-pre-wrap">{text}</p>
+            </div>
+            <div className="relative aspect-square bg-gray-200">
+                {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+            </div>
+             <div className="flex items-center justify-around border-t p-2 text-sm text-gray-600 font-semibold">
+                <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <ThumbsUp className="w-5 h-5"/> Curtir
+                </div>
+                 <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <MessageCircle className="w-5 h-5"/> Comentar
+                </div>
+                 <div className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
+                    <Share2 className="w-5 h-5"/> Compartilhar
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 export default function CriarConteudoPage() {
@@ -227,7 +127,6 @@ export default function CriarConteudoPage() {
     const [selectedType, setSelectedType] = useState<ContentType | null>(null);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
-    const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -474,7 +373,7 @@ export default function CriarConteudoPage() {
         toast({ title: "Iniciando publicação...", description: "Fazendo upload da mídia e agendando o post." });
         
         const postInput: PostDataInput = {
-            title: title || "Post sem título",
+            title: "Post sem título", // Título removido da UI
             text: text,
             media: mediaToPublish,
             platforms: platforms,
@@ -511,12 +410,7 @@ export default function CriarConteudoPage() {
         (scheduleType === 'schedule' && !scheduleDate)
     );
 
-    const getAvatarFallback = () => {
-        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
-        if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
-        return "U";
-    }
-
+    // Cleanup blob URLs on unmount
     useEffect(() => {
         return () => {
             mediaItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
@@ -660,15 +554,6 @@ export default function CriarConteudoPage() {
 
                                 <div className="space-y-4 pt-4 border-t">
                                     <div>
-                                        <Label htmlFor="post-title" className="font-semibold">Título</Label>
-                                        <Input
-                                            id="post-title"
-                                            placeholder="Um título chamativo para seu post"
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
                                         <Label htmlFor="post-text" className="font-semibold">Legenda</Label>
                                         <p className="text-xs text-gray-500 mb-2">Escreva o que quiser sobre sua publicação e peça para a IA melhorar seu texto.</p>
                                         <Textarea
@@ -699,32 +584,24 @@ export default function CriarConteudoPage() {
                         <div className="flex flex-col items-center justify-start h-full group">
                            <div className="sticky top-24 w-full">
                                 <div className="w-full max-w-sm">
-                                    <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
-                                        <div className="p-3 flex items-center gap-2 border-b">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarImage src={user?.photoURL || undefined} />
-                                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                            </Avatar>
-                                            <span className="font-bold text-sm">{metaConnection?.pageName || 'Sua Página'}</span>
-                                        </div>
-                                        <div className="relative aspect-square bg-gray-200">
-                                            <Preview 
-                                                type={selectedType} 
-                                                mediaItems={mediaItems} 
-                                                onRemoveItem={handleRemoveItem} 
-                                                logoUrl={logoPreviewUrl}
-                                                logoPosition={logoPosition}
-                                                logoScale={visualLogoScale}
-                                                logoOpacity={logoOpacity}
-                                                pageName={metaConnection?.pageName}
-                                            />
-                                        </div>
-                                        <div className="p-3 text-sm min-h-[6rem]">
-                                            <p className="whitespace-pre-wrap">
-                                                <span className="font-bold">{metaConnection?.pageName || 'Sua Página'}</span> {title && <span className="font-bold">{title}</span>} {text}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <Tabs defaultValue="instagram">
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger value="instagram">
+                                                <Instagram className="w-4 h-4 mr-2" />
+                                                Instagram
+                                            </TabsTrigger>
+                                            <TabsTrigger value="facebook">
+                                                <Facebook className="w-4 h-4 mr-2" />
+                                                Facebook
+                                            </TabsTrigger>
+                                        </TabsList>
+                                        <TabsContent value="instagram" className="mt-4">
+                                            <InstagramPreview mediaItems={mediaItems} user={user} text={text} instagramConnection={instagramConnection} />
+                                        </TabsContent>
+                                        <TabsContent value="facebook" className="mt-4">
+                                            <FacebookPreview mediaItems={mediaItems} user={user} text={text} metaConnection={metaConnection} />
+                                        </TabsContent>
+                                    </Tabs>
                                 </div>
                            </div>
                         </div>
@@ -762,32 +639,24 @@ export default function CriarConteudoPage() {
                                 </CardHeader>
                                 <CardContent className="flex justify-center">
                                     <div className="w-full max-w-sm">
-                                        <div className="w-full bg-white rounded-md shadow-lg border flex flex-col mt-4">
-                                            <div className="p-3 flex items-center gap-2 border-b">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={user?.photoURL || undefined} />
-                                                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                                </Avatar>
-                                                <span className="font-bold text-sm">{metaConnection?.pageName || 'Sua Página'}</span>
-                                            </div>
-                                            <div className="relative aspect-square bg-gray-200">
-                                                 <Preview 
-                                                    type={selectedType} 
-                                                    mediaItems={mediaItems} 
-                                                    onRemoveItem={handleRemoveItem} 
-                                                    logoUrl={logoPreviewUrl}
-                                                    logoPosition={logoPosition}
-                                                    logoScale={visualLogoScale}
-                                                    logoOpacity={logoOpacity}
-                                                    pageName={metaConnection?.pageName}
-                                                 />
-                                            </div>
-                                            <div className="p-3 text-sm min-h-[6rem]">
-                                                <p className="whitespace-pre-wrap">
-                                                    <span className="font-bold">{metaConnection?.pageName || 'Sua Página'}</span> {title && <span className="font-bold">{title}</span>} {text}
-                                                </p>
-                                            </div>
-                                        </div>
+                                        <Tabs defaultValue="instagram">
+                                            <TabsList className="grid w-full grid-cols-2">
+                                                <TabsTrigger value="instagram">
+                                                    <Instagram className="w-4 h-4 mr-2" />
+                                                    Instagram
+                                                </TabsTrigger>
+                                                <TabsTrigger value="facebook">
+                                                    <Facebook className="w-4 h-4 mr-2" />
+                                                    Facebook
+                                                </TabsTrigger>
+                                            </TabsList>
+                                            <TabsContent value="instagram" className="mt-4">
+                                                <InstagramPreview mediaItems={mediaItems} user={user} text={text} instagramConnection={instagramConnection} />
+                                            </TabsContent>
+                                            <TabsContent value="facebook" className="mt-4">
+                                                <FacebookPreview mediaItems={mediaItems} user={user} text={text} metaConnection={metaConnection} />
+                                            </TabsContent>
+                                        </Tabs>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -843,7 +712,7 @@ export default function CriarConteudoPage() {
                                       animate={{ opacity: 1, y: 0 }}
                                       className="mt-4"
                                     >
-                                        <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                                        <input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="w-full p-2 border rounded-md" />
                                     </motion.div>
                                 )}
                             </div>
