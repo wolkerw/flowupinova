@@ -1,6 +1,9 @@
 
 import { NextResponse } from 'next/server';
 
+// Aumenta o tempo máximo de execução desta rota para 90 segundos.
+export const maxDuration = 90;
+
 export async function POST(request: Request) {
   const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
@@ -22,14 +25,20 @@ export async function POST(request: Request) {
     const responseText = await webhookResponse.text();
 
     if (!webhookResponse.ok) {
-      console.error("Webhook error:", webhookResponse.status, responseText);
+      console.error("[API_GENERATE_IMAGES] Webhook error:", webhookResponse.status, responseText);
       // Tenta extrair uma mensagem de erro mais detalhada do corpo da resposta
-      let errorDetails = responseText;
+      let errorDetails = `O serviço de geração de imagens retornou um erro (HTTP ${webhookResponse.status}).`;
       try {
+        // Tenta parsear como JSON primeiro
         const errorJson = JSON.parse(responseText);
-        errorDetails = errorJson.detail || errorJson.error || responseText;
+        errorDetails = errorJson.detail || errorJson.error || JSON.stringify(errorJson);
       } catch (e) {
-        // O corpo da resposta de erro não era JSON, usa o texto puro.
+        // Se não for JSON, verifica se é um HTML de erro de gateway/timeout
+        if (responseText.toLowerCase().includes('<html>')) {
+            errorDetails = "O serviço de geração de imagens demorou muito para responder (timeout). Tente novamente.";
+        } else {
+             errorDetails = responseText.substring(0, 200); // Limita o tamanho do texto do erro
+        }
       }
       return NextResponse.json({ success: false, error: "Falha ao comunicar com o webhook de geração de imagem.", details: errorDetails }, { status: webhookResponse.status });
     }
@@ -44,13 +53,13 @@ export async function POST(request: Request) {
     try {
         data = JSON.parse(responseText);
     } catch (e) {
-        console.error("JSON.parse error on webhook response:", responseText);
+        console.error("[API_GENERATE_IMAGES] JSON.parse error on webhook response:", responseText);
         return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é JSON).", details: responseText }, { status: 500 });
     }
     
     // Verifica se a resposta é um array
     if (!Array.isArray(data)) {
-        console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
+        console.error("[API_GENERATE_IMAGES] Formato de resposta do webhook de imagem inesperado (não é um array):", data);
         return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é um array).", details: JSON.stringify(data, null, 2) }, { status: 500 });
     }
     
@@ -59,7 +68,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     // Captura erros da requisição inicial (ex: body malformado) ou outros erros inesperados.
-    console.error("Internal server error in /api/generate-images:", error);
-    return NextResponse.json({ success: false, error: "Erro interno do servidor.", details: error.message }, { status: 500 });
+    console.error("[API_GENERATE_IMAGES] Internal server error:", error);
+    return NextResponse.json({ success: false, error: "Erro interno do servidor ao processar a geração de imagens.", details: error.message }, { status: 500 });
   }
 }
