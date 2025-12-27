@@ -586,6 +586,7 @@ export default function Conteudo() {
   const fetchPageData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setCheckingConnection(true);
 
     try {
       const [postsResults, metaResult, instagramResult] = await Promise.all([
@@ -756,6 +757,13 @@ export default function Conteudo() {
     toast({ title: "Desconectado", description: "A conexão com o Facebook foi removida." });
   }, [fetchPageData, toast, user]);
 
+  const handleDisconnectInstagram = useCallback(async () => {
+    if (!user) return;
+    await updateInstagramConnection(user.uid, { isConnected: false });
+    await fetchPageData();
+    toast({ title: "Desconectado", description: "A conexão com o Instagram foi removida." });
+  }, [fetchPageData, toast, user]);
+
   const handleDeleteRequest = useCallback((postId: string) => {
     setPostToDelete(postId);
     setIsDeleteDialogOpen(true);
@@ -860,7 +868,7 @@ export default function Conteudo() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
+            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -891,26 +899,26 @@ export default function Conteudo() {
           <div className="lg:col-span-1 space-y-8">
             <CalendarCard selectedDate={selectedDate} onSelect={handleDateSelect} month={displayedMonth} onMonthChange={setDisplayedMonth} modifiers={calendarModifiers} />
             <AnimatePresence>
-              {!metaConnection.isConnected && !loading && (
-                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  <ConnectCard platform="facebook" onConnect={handleConnectMeta} isConnected={metaConnection.isConnected} isLoading={isConnecting} />
+                {!metaConnection.isConnected && !loading && (
+                    <motion.div key="connect-facebook" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                        <ConnectCard platform="facebook" onConnect={handleConnectMeta} isConnected={metaConnection.isConnected} isLoading={isConnecting} />
+                    </motion.div>
+                )}
+                {metaConnection.isConnected && (
+                <motion.div key="status-facebook" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                    <ConnectionStatusCard platform="facebook" pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} />
                 </motion.div>
-              )}
-              {metaConnection.isConnected && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                  <ConnectionStatusCard platform="facebook" pageName={metaConnection.pageName} onDisconnect={handleDisconnectMeta} />
-                </motion.div>
-              )}
-               {!instagramConnection.isConnected && !loading && (
-                  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                )}
+                {!instagramConnection.isConnected && !loading && (
+                    <motion.div key="connect-instagram" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                     <ConnectCard platform="instagram" onConnect={handleConnectInstagram} isConnected={instagramConnection.isConnected} isLoading={checkingConnection} />
-                  </motion.div>
-              )}
-               {instagramConnection.isConnected && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                  <ConnectionStatusCard platform="instagram" pageName={`@${instagramConnection.instagramUsername}`} onDisconnect={() => { /* TODO */ }} />
-                </motion.div>
-              )}
+                    </motion.div>
+                )}
+                {instagramConnection.isConnected && (
+                    <motion.div key="status-instagram" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                    <ConnectionStatusCard platform="instagram" pageName={`@${instagramConnection.instagramUsername}`} onDisconnect={handleDisconnectInstagram} />
+                    </motion.div>
+                )}
             </AnimatePresence>
           </div>
           <div className="lg:col-span-2 space-y-8">
@@ -958,4 +966,3 @@ export default function Conteudo() {
     </>
   );
 }
-
