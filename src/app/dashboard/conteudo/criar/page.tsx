@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -89,8 +90,8 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
             </div>
 
             {/* Likes and Caption */}
-            <div className="p-3 pt-2 text-sm min-h-[6rem] space-y-1">
-                 <p className="text-xs text-gray-900">
+            <div className="p-3 pt-2 text-sm text-gray-900 min-h-[6rem] space-y-1">
+                 <p className="text-xs">
                     Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
                 <p className="whitespace-pre-wrap text-sm">
@@ -762,3 +763,4 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
