@@ -1,4 +1,5 @@
 
+
 // Usamos NEXT_PUBLIC_ para acesso no lado do cliente, mas também lemos no lado do servidor.
 // O segredo é apenas do lado do servidor.
 export const config = {
@@ -14,3 +15,4 @@ export const config = {
      configId: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
   }
 };
+
