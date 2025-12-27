@@ -23,7 +23,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     const requestUrl = new URL(apiPath, productionUrl);
 
     let payload: any;
-    const caption = post.text; // Legenda é apenas o texto principal
+    const caption = post.text; // CORREÇÃO: Usar apenas o texto principal
 
     if (isInstagram) {
         payload = {

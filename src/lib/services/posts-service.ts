@@ -109,7 +109,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
         const publishPromises = postData.platforms.map(platform => {
             let apiPath: string;
             let payload: any;
-            const caption = postData.text; // Legenda é apenas o texto principal
+            const caption = postData.text; // CORREÇÃO: Usar apenas o texto principal
 
             if (platform === 'instagram') {
                 apiPath = '/api/instagram/v2/publish'; // Use the V2 route for Instagram
