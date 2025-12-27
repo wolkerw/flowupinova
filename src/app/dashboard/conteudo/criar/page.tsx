@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreHorizontal, Heart, Bookmark } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreVertical, Heart, Bookmark, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,7 +69,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                     </Avatar>
                     <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
-                 <MoreHorizontal className="h-5 w-5 text-gray-600 cursor-pointer" />
+                 <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
 
             {/* Image */}
@@ -89,13 +89,13 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
 
             {/* Likes and Caption */}
             <div className="p-3 pt-2 text-sm min-h-[6rem] space-y-1">
-                 <p className="font-semibold text-gray-900">
-                    Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outros</span>
+                 <p className="text-xs text-gray-900">
+                    Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
                 <p className="whitespace-pre-wrap">
                     <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
                 </p>
-                <p className="text-gray-400">Adicionar um comentário...</p>
+                <p className="text-gray-400 text-xs">Adicionar um comentário...</p>
             </div>
         </div>
     );
