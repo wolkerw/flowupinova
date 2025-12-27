@@ -68,7 +68,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                         <AvatarImage src={user?.photoURL || undefined} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                     <span className="font-bold text-sm text-gray-900">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                     <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
                  <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
             </div>
@@ -138,25 +138,26 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
             </div>
             <div className="relative aspect-square bg-gray-200">
                 {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
-                
-                <div className="absolute bottom-2 right-2 flex items-center">
+            </div>
+             <div className="flex items-center justify-between p-2 text-gray-600 font-semibold border-t">
+                <div className="flex items-center gap-1">
+                    <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
+                        <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.75 3.75a2 2 0 012 2v6.5a2 2 0 01-2 2h-7a2 2 0 01-2-2v-6.5a2 2 0 012-2h1.5l1-1.5h3l1 1.5h1.5z"></path><path d="M7.75 10.25a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"></path></svg>
+                    </button>
+                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
+                        <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.75 2.25c-3 0-5.5 1.5-5.5 4 0 1.5 1 3 2.5 3.5v2.5l2-1.5h1c3 0 5.5-1.5 5.5-4s-2.5-4-5.5-4z"></path></svg>
+                    </button>
+                     <button className="flex items-center gap-1.5 p-2 rounded-md hover:bg-gray-100">
+                        <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.75 2.75l3.5 3.5-3.5 3.5"></path><path d="M14.25 6.25h-9.5a2 2 0 00-2 2v5"></path></svg>
+                    </button>
+                </div>
+                 <div className="flex items-center">
                     <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border-2 border-white z-10">
                         <Heart className="w-3 h-3 text-white fill-current"/>
                     </div>
                     <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white -ml-1">
                         <ThumbsUp className="w-3 h-3 text-white fill-current"/>
                     </div>
-                </div>
-            </div>
-             <div className="flex items-center justify-start p-2 text-gray-600 font-semibold">
-                <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <ThumbsUp className="w-4 h-4"/>
-                </div>
-                 <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <MessageCircle className="w-4 h-4"/>
-                </div>
-                 <div className="flex items-center gap-1 hover:bg-gray-100 p-2 rounded-md cursor-pointer">
-                    <Share2 className="w-4 h-4"/>
                 </div>
             </div>
         </div>
@@ -781,6 +782,7 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
 
 
 
