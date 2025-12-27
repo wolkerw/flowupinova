@@ -128,7 +128,7 @@ export default function GerarConteudoPage() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [platforms, setPlatforms] = useState<Platform[]>(['facebook']);
+  const [platforms, setPlatforms] = useState<Platform[]>(['facebook', 'instagram']);
   
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
@@ -507,8 +507,8 @@ export default function GerarConteudoPage() {
         media: finalImageUrl,
         platforms: platforms,
         scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
-        metaConnection: metaConnection || undefined,
-        instagramConnection: instagramConnection || undefined,
+        metaConnection: metaConnection,
+        instagramConnection: instagramConnection,
     });
     
     setIsPublishing(false);
@@ -704,7 +704,7 @@ export default function GerarConteudoPage() {
           <div className="flex justify-between mt-8 max-w-4xl mx-auto">
             <Button variant="outline" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button>
             <Button onClick={handleLogoProcessing} disabled={isUploading} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-              {isUploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processando...</> : 'Revisar e Agendar'}
+              {isUploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processando...</> : 'Revisar publicação'}
               {!isUploading && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           </div>
@@ -777,4 +777,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
