@@ -82,6 +82,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                 <div className="flex items-center gap-4">
                     <Heart className="w-6 h-6 text-gray-800 cursor-pointer hover:text-red-500"/>
                     <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer -ml-1 transform -scale-x-100"/>
+                    <Repeat className="w-6 h-6 text-gray-800 cursor-pointer"/>
                     <Send className="w-6 h-6 text-gray-800 cursor-pointer -ml-1"/>
                 </div>
                 <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer"/>
@@ -92,7 +93,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                  <p className="text-xs text-gray-900">
                     Curtido por <span className="font-bold">FlowUp</span> e <span className="font-bold">outras pessoas</span>
                 </p>
-                <p className="whitespace-pre-wrap">
+                <p className="whitespace-pre-wrap text-sm">
                     <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
                 </p>
                 <p className="text-gray-400 text-xs">Adicionar um comentário...</p>
@@ -245,7 +246,7 @@ export default function CriarConteudoPage() {
                 const errorJson = JSON.parse(errorText);
                 errorDetails = errorJson.details || errorJson.error || errorText;
             } catch (e) { /* Use plain text */ }
-            throw new Error(errorDetails || `Falha ao chamar o webhook: ${response.statusText}`);
+            throw new Error(errorDetails || `Falha ao chamar o webhook: ${'error'}`);
         }
 
         const result = await response.json();
