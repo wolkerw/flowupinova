@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -82,6 +81,7 @@ interface DisplayPost {
   formattedTime: string;
   platforms: string[];
   pageName?: string;
+  instagramUsername?: string;
 }
 
 interface FacebookPage {
@@ -153,6 +153,7 @@ function toDisplayPost(post: any): DisplayPost {
     formattedTime: format(scheduledDate, "HH:mm"),
     platforms: post.platforms ?? [],
     pageName: post.pageName,
+    instagramUsername: post.instagramUsername,
   };
 }
 
@@ -233,6 +234,16 @@ function PostItem({
                 {post.pageName ? <span className="font-medium">{post.pageName}</span> : null}
               </div>
             ) : null}
+             {post.platforms?.includes('instagram') && (
+                <div className="flex items-center gap-1.5">
+                    <Instagram className="w-3.5 h-3.5" />
+                    {post.instagramUsername ? (
+                    <span className="font-medium">@{post.instagramUsername}</span>
+                    ) : (
+                    <span className="font-medium">Instagram</span>
+                    )}
+                </div>
+            )}
           </div>
         </div>
       </div>
@@ -694,8 +705,41 @@ export default function Conteudo() {
         router.replace('/dashboard/conteudo', undefined);
       }
     };
+
+    const handleInstagramCallback = async () => {
+        const instagramConnectionSuccess = searchParams.get("instagram_connection_success");
+        if (instagramConnectionSuccess !== "true") return;
+
+        const accessToken = searchParams.get("instagram_accessToken");
+        const instagramId = searchParams.get("instagram_id");
+        const instagramUsername = searchParams.get("instagram_username");
+        const uidFromState = searchParams.get("user_id_from_state");
+
+        if (uidFromState && uidFromState !== user.uid) {
+            toast({ variant: "destructive", title: "Falha de Segurança", description: "Incompatibilidade de usuários na autenticação."});
+            return;
+        }
+
+        if (accessToken && instagramId && instagramUsername) {
+            await updateInstagramConnection(user.uid, {
+                isConnected: true,
+                accessToken,
+                instagramId,
+                instagramUsername,
+            });
+            toast({ variant: "success", title: "Instagram Conectado!", description: `Conexão com @${instagramUsername} estabelecida.`});
+            await fetchPageData();
+        } else {
+            toast({ variant: "destructive", title: "Falha na Conexão", description: "Dados insuficientes retornados pelo Instagram."});
+        }
+        router.replace('/dashboard/conteudo', undefined);
+    };
   
-    runConnectionFlow();
+    if (searchParams.get("instagram_connection_success")) {
+        handleInstagramCallback();
+    } else {
+        runConnectionFlow();
+    }
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
 
 
@@ -793,33 +837,69 @@ export default function Conteudo() {
     setIsRepublishModalOpen(true);
   }, [user]);
 
-  const handleConfirmRepublish = useCallback(async () => {
-    if (!user || !postToRepublish || !metaConnection.isConnected || !postToRepublish.imageUrl) return;
+ const handleConfirmRepublish = useCallback(async () => {
+    if (!user || !postToRepublish || !postToRepublish.imageUrl) return;
+
+    const useInstagram = postToRepublish.platforms.includes('instagram');
+    const useFacebook = postToRepublish.platforms.includes('facebook');
+    let connection: MetaConnectionData | InstagramConnectionData | undefined;
+    let postInputPlatforms: Array<'instagram' | 'facebook'> = [];
+
+    if (useInstagram) {
+        if (!instagramConnection.isConnected) {
+            toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
+            return;
+        }
+        connection = instagramConnection;
+        postInputPlatforms.push('instagram');
+    } else if (useFacebook) {
+         if (!metaConnection.isConnected) {
+            toast({ variant: "destructive", title: "Facebook não conectado", description: "Conecte o Facebook para republicar."});
+            return;
+        }
+        connection = metaConnection;
+        postInputPlatforms.push('facebook');
+    } else {
+        toast({ variant: "destructive", title: "Nenhuma plataforma válida", description: "O post original não parece ser para Facebook ou Instagram."});
+        return;
+    }
+    
     if (republishScheduleType === 'schedule' && !republishScheduleDate) {
       toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento." });
       return;
     }
+    
     setIsRepublishing(true);
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
+
     const input: PostDataInput = {
       title: postToRepublish.title,
       text: postToRepublish.text,
       media: postToRepublish.imageUrl,
-      platforms: ["facebook"],
+      platforms: postInputPlatforms,
       scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
-      metaConnection: metaConnection,
     };
+
+    if (useInstagram) {
+        input.instagramConnection = instagramConnection;
+    } else {
+        input.metaConnection = metaConnection;
+    }
+    
     const result = await schedulePost(user.uid, input);
+
     setIsRepublishing(false);
     setIsRepublishModalOpen(false);
     setPostToRepublish(null);
     await fetchPageData();
+
     if (result.success) {
       toast({ variant: "success", title: "Sucesso!", description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!` });
     } else {
       toast({ variant: "destructive", title: "Erro ao Republicar", description: result.error });
     }
-  }, [fetchPageData, metaConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user]);
+  }, [fetchPageData, metaConnection, instagramConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user]);
+
 
   return (
     <>
@@ -845,16 +925,20 @@ export default function Conteudo() {
       <Dialog open={isRepublishModalOpen} onOpenChange={setIsRepublishModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Republicar Post no Facebook</DialogTitle>
+            <DialogTitle>Republicar Post</DialogTitle>
             <DialogDescription>Escolha quando você quer republicar este conteúdo.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
               <div className="grid grid-cols-1 gap-4 mt-2">
-                <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
-                  <Checkbox id="republish-facebook" checked disabled /><Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer"><Facebook className="w-5 h-5 text-blue-600" />Facebook</Label>
-                </div>
+                 <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
+                   <Checkbox id="republish-platform" checked disabled />
+                   <Label htmlFor="republish-platform" className="flex items-center gap-2 cursor-pointer">
+                     {postToRepublish?.platforms.includes('instagram') ? <Instagram className="w-5 h-5 text-pink-500" /> : <Facebook className="w-5 h-5 text-blue-600" />}
+                     {postToRepublish?.platforms.includes('instagram') ? 'Instagram' : 'Facebook'}
+                   </Label>
+                 </div>
               </div>
             </div>
             <div>
@@ -887,7 +971,7 @@ export default function Conteudo() {
         <div className="space-y-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
-            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para sua Página do Facebook.</p>
+            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
           </div>
           <div className="flex gap-4 pt-2">
             <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>

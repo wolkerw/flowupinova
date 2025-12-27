@@ -159,7 +159,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         return { success: false, error: "User ID is required to schedule a post." };
     }
 
-    const connection = postData.metaConnection || postData.instagramConnection;
+    const connection = postData.instagramConnection || postData.metaConnection;
     if (!connection || !connection.isConnected || !connection.accessToken) {
         return { success: false, error: "Conexão com a Meta/Instagram não está configurada ou é inválida." };
     }
@@ -175,14 +175,15 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         
         const isImmediate = postData.scheduledAt <= new Date();
 
-        // Build the metaConnection object to be saved in Firestore
-        const metaConnectionToSave = {
+        // Build the metaConnection object to be saved in Firestore, unifying data from both connection types
+        const metaConnectionToSave: PostData['metaConnection'] = {
             accessToken: connection.accessToken || null,
-            instagramId: connection.instagramId || null,
-            instagramUsername: connection.instagramUsername || null,
+            instagramId: postData.instagramConnection?.instagramId || postData.metaConnection?.instagramId || null,
+            instagramUsername: postData.instagramConnection?.instagramUsername || postData.metaConnection?.instagramUsername || null,
             pageId: postData.metaConnection?.pageId || null,
             pageName: postData.metaConnection?.pageName || null,
         };
+        
 
         const postToSave: Omit<PostData, 'id'> = {
             title: postData.title || "Post sem título",
