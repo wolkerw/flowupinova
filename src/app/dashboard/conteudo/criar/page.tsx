@@ -233,7 +233,7 @@ export default function CriarConteudoPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [scheduleType, setScheduleType] = useState<'now' | 'schedule'>('now');
     const [scheduleDate, setScheduleDate] = useState('');
-    const [platforms, setPlatforms] = useState<Platform[]>(['facebook']);
+    const [platforms, setPlatforms] = useState<Platform[]>(['facebook', 'instagram']);
 
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
