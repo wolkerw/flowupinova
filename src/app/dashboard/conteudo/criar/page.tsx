@@ -53,6 +53,7 @@ const contentOptions = [
 const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, instagramConnection: InstagramConnectionData | null }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const isCarousel = mediaItems.length > 1;
+    const currentMedia = mediaItems[currentSlide];
 
     const getAvatarFallback = () => {
         if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -63,7 +64,10 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % mediaItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
 
-    const currentMedia = mediaItems[currentSlide] || null;
+    useEffect(() => {
+        // Reset slide to 0 if mediaItems change
+        setCurrentSlide(0);
+    }, [mediaItems]);
 
     return (
         <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
@@ -311,16 +315,15 @@ export default function CriarConteudoPage() {
             toast({ title: `Processando ${mediaItems.length} mídia(s)...`, description: "Aplicando edições e enviando para o webhook." });
 
             try {
-                const processedUrls: string[] = [];
-                for (const item of mediaItems) {
+                const uploadPromises = mediaItems.map(item => {
                     if (item.type === 'image') {
-                        const url = await processSingleMediaItem(item);
-                        processedUrls.push(url);
-                    } else {
-                        // For now, let's just assume video is already a URL or doesn't need processing
-                        processedUrls.push(item.previewUrl); 
+                        return processSingleMediaItem(item);
                     }
-                }
+                    // For now, let's just assume video is already a URL or doesn't need processing
+                    return Promise.resolve(item.previewUrl);
+                });
+
+                const processedUrls = await Promise.all(uploadPromises);
                 
                 setMediaItems(prevItems => prevItems.map((item, index) => ({
                     ...item,
@@ -350,18 +353,22 @@ export default function CriarConteudoPage() {
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const previewUrl = URL.createObjectURL(file);
-             const newMediaItem: MediaItem = {
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            const newMediaItems: MediaItem[] = Array.from(files).map(file => ({
                 file: file,
-                previewUrl: previewUrl,
+                previewUrl: URL.createObjectURL(file),
                 type: file.type.startsWith('video') ? 'video' : 'image',
-            };
-            if (selectedType === 'carousel' || mediaItems.length === 0) {
-                setMediaItems(prev => [...prev, newMediaItem]);
+            }));
+
+            if (selectedType === 'carousel') {
+                 if (mediaItems.length + newMediaItems.length > 10) {
+                    toast({ variant: "destructive", title: "Limite excedido", description: "Você pode adicionar no máximo 10 mídias a um carrossel."});
+                    return;
+                }
+                setMediaItems(prev => [...prev, ...newMediaItems]);
             } else {
-                setMediaItems([newMediaItem]);
+                setMediaItems(newMediaItems.slice(0, 1)); // Only first file for single post
             }
         }
         if(event.target) event.target.value = "";
