@@ -126,21 +126,18 @@ export async function POST(request: NextRequest) {
                 createMediaItemContainer(postData.instagramId, postData.accessToken, url, true)
             );
             const childContainerIds = await Promise.all(childContainerPromises);
-
-            // Wait for all child containers to be ready
-            await Promise.all(childContainerIds.map(id => checkContainerStatus(id, postData.accessToken)));
             
-            // 2. Create carousel parent container
+            // 2. Create carousel parent container (this is where caption goes)
             creationId = await createCarouselContainer(postData.instagramId, postData.accessToken, childContainerIds, caption);
 
         } else {
             // Single Media Flow
             const singleImageUrl = postData.imageUrls[0];
-            // 1. Create single item container with caption
+            // 1. Create single item container (NO CAPTION HERE)
             const url = `https://graph.instagram.com/v20.0/${postData.instagramId}/media`;
             const params = new URLSearchParams({
                 image_url: singleImageUrl,
-                caption,
+                caption: caption,
                 access_token: postData.accessToken,
             });
             const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });

@@ -52,6 +52,12 @@ const contentOptions = [
 
 const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, instagramConnection: InstagramConnectionData | null }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
+
+    // FIX: useEffect was outside and causing re-render issues. Moved inside the component.
+    useEffect(() => {
+        setCurrentSlide(0);
+    }, [mediaItems]);
+    
     const isCarousel = mediaItems.length > 1;
     const currentMedia = mediaItems[currentSlide];
 
@@ -64,10 +70,6 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % mediaItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
 
-    useEffect(() => {
-        // Reset slide to 0 if mediaItems change
-        setCurrentSlide(0);
-    }, [mediaItems]);
 
     return (
         <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">

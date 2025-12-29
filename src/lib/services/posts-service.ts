@@ -244,7 +244,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             const notificationsCollection = collection(db, `users/${userId}/notifications`);
             await addDoc(notificationsCollection, {
                 postId: docRef.id,
-                postText: postToSave.text,
+                postTitle: postToSave.text.substring(0, 40) + '...',
                 status: 'pending',
                 scheduledAt: postToSave.scheduledAt,
                 createdAt: serverTimestamp(),
