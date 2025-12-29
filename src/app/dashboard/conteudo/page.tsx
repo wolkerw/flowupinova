@@ -219,7 +219,7 @@ function PostItem({
           className="w-14 h-14 object-cover rounded-md bg-gray-100"
         />
         <div className="overflow-hidden">
-          <h4 className="font-medium text-gray-900 truncate text-base">{post.text.substring(0, 50)}</h4>
+          <h4 className="font-medium text-gray-900 truncate text-base">{post.text.length > 50 ? post.text.substring(0, 50) + "..." : post.text}</h4>
 
           <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
             {StatusIcon ? <StatusIcon className="w-4 h-4" /> : null}
