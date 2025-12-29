@@ -146,15 +146,10 @@ function getHistoryStartDate(filter: HistoryFilter) {
 
 function toDisplayPost(post: any): DisplayPost {
     const scheduledDate = new Date(post.scheduledAt);
-    // Use the first image from the array for carousel previews
-    const displayImageUrl = post.isCarousel && Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-        ? post.imageUrls[0]
-        : post.imageUrl;
-
     return {
         id: post.id,
         text: post.text,
-        imageUrl: displayImageUrl,
+        imageUrl: post.imageUrl,
         imageUrls: post.imageUrls,
         isCarousel: post.isCarousel,
         status: post.status as PostStatus,
@@ -209,7 +204,8 @@ function PostItem({
 }) {
   const cfg = STATUS_CONFIG[post.status];
   const StatusIcon = cfg?.icon;
-  const imageSrc = typeof post.imageUrl === "string" ? post.imageUrl : PLACEHOLDER_IMAGE;
+  // Use the first image from the array for carousel previews, or the single imageUrl
+  const imageSrc = post.imageUrl || (post.imageUrls && post.imageUrls[0]) || PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -741,7 +737,7 @@ export default function Conteudo() {
   }, [user]);
 
  const handleConfirmRepublish = useCallback(async () => {
-    if (!user || !postToRepublish || !postToRepublish.imageUrl) return;
+    if (!user || !postToRepublish || !(postToRepublish.imageUrl || (postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0))) return;
 
     const useInstagram = postToRepublish.platforms.includes('instagram');
     const useFacebook = postToRepublish.platforms.includes('facebook');
@@ -772,9 +768,11 @@ export default function Conteudo() {
     setIsRepublishing(true);
     toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
 
+    const mediaUrls = postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0 ? postToRepublish.imageUrls : [postToRepublish.imageUrl!];
+
     const input: PostDataInput = {
       text: postToRepublish.text,
-      media: postToRepublish.imageUrls || [postToRepublish.imageUrl],
+      media: mediaUrls.map(url => ({ file: new File([], ''), publicUrl: url })),
       isCarousel: postToRepublish.isCarousel || false,
       platforms: postInputPlatforms,
       scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
@@ -782,7 +780,9 @@ export default function Conteudo() {
 
     if (useInstagram) {
         input.instagramConnection = instagramConnection;
-    } else {
+    }
+    
+    if (useFacebook) {
         input.metaConnection = metaConnection;
     }
     

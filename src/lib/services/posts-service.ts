@@ -225,7 +225,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
         const postToSave: Omit<PostData, 'id'> = {
             text: postData.text,
-            imageUrl: imageUrls[0] || "", // Always populate imageUrl for preview
+            imageUrl: imageUrls[0], // Always populate imageUrl for preview and single posts
             imageUrls: imageUrls,
             isCarousel: postData.isCarousel,
             platforms: postData.platforms,
