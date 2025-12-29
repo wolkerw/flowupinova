@@ -56,6 +56,7 @@ import {
   Send,
   Sparkles,
   Trash2,
+  History,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -436,59 +437,6 @@ function ConnectionStatus({
     );
 }
 
-function CalendarCard({
-  selectedDate,
-  onSelect,
-  month,
-  onMonthChange,
-  modifiers,
-}: {
-  selectedDate: Date | undefined;
-  onSelect: (date: Date | undefined) => void;
-  month: Date;
-  onMonthChange: (month: Date) => void;
-  modifiers: Record<string, Date[]>;
-}) {
-  return (
-    <Card className="shadow-lg border-none">
-      <CardHeader>
-        <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={onSelect}
-          month={month}
-          onMonthChange={onMonthChange}
-          className="p-0"
-          locale={ptBR}
-          modifiers={modifiers}
-          modifiersClassNames={{
-            published: "day-published",
-            scheduled: "day-scheduled",
-            failed: "day-failed",
-          }}
-        />
-
-        <div className="w-full border-t pt-4 mt-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" /> Publicado
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" /> Agendado
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" /> Falhou
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 /* -------------------------------------------------------------------------------------------------
  * Page
  * ------------------------------------------------------------------------------------------------- */
@@ -599,20 +547,20 @@ export default function Conteudo() {
       return;
     }
   
-    const code = searchParams.get("code");
-    if (!code) {
-      fetchPageData();
-      return;
-    }
-  
     // Evita loop de re-execução em dev mode
     if (effectRan.current && process.env.NODE_ENV === 'development') {
       return;
     }
-    effectRan.current = true;
-    setIsConnecting(true);
+    
+    const isFacebookAuth = searchParams.has('code');
+    const isInstagramAuth = searchParams.has('instagram_connection_success');
+
+    const runFacebookFlow = async () => {
+      const code = searchParams.get("code");
+      if (!code) return;
+      effectRan.current = true;
+      setIsConnecting(true);
   
-    const runConnectionFlow = async () => {
       try {
         const tokenResponse = await fetch("/api/meta/callback", {
           method: "POST",
@@ -651,9 +599,7 @@ export default function Conteudo() {
     };
 
     const handleInstagramCallback = async () => {
-        const instagramConnectionSuccess = searchParams.get("instagram_connection_success");
-        if (instagramConnectionSuccess !== "true") return;
-
+        effectRan.current = true;
         const accessToken = searchParams.get("instagram_accessToken");
         const instagramId = searchParams.get("instagram_id");
         const instagramUsername = searchParams.get("instagram_username");
@@ -661,6 +607,7 @@ export default function Conteudo() {
 
         if (uidFromState && uidFromState !== user.uid) {
             toast({ variant: "destructive", title: "Falha de Segurança", description: "Incompatibilidade de usuários na autenticação."});
+            router.replace('/dashboard/conteudo', undefined);
             return;
         }
 
@@ -679,14 +626,12 @@ export default function Conteudo() {
         router.replace('/dashboard/conteudo', undefined);
     };
   
-    // Decide qual fluxo executar
-    const isFacebookAuth = searchParams.get('state')?.length ?? 0 > 28; // Facebook state is usually long
-    const isInstagramAuth = searchParams.has('instagram_connection_success');
-
     if (isInstagramAuth) {
         handleInstagramCallback();
-    } else if (isFacebookAuth || searchParams.has('code')) {
-        runConnectionFlow();
+    } else if (isFacebookAuth) {
+        runFacebookFlow();
+    } else {
+        fetchPageData();
     }
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
 
@@ -912,20 +857,96 @@ export default function Conteudo() {
       />
       
       <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
-            <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
-          </div>
-          <div className="flex gap-4 pt-2">
-            <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
-            <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
-          </div>
-        </div>
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-8">
+             <div className="space-y-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
+                <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
+              </div>
+              <div className="flex gap-4 pt-2">
+                <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
+              </div>
+            </div>
+
+            <Card className="shadow-lg border-none">
+              <CardHeader><CardTitle className="text-xl flex items-center gap-2"><Clock className="w-5 h-5 text-blue-500"/>Publicações Agendadas</CardTitle></CardHeader>
+              <CardContent>
+                <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
+                  <AnimatePresence>
+                    {isLoadingInitial ? <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                      : scheduledPosts.length > 0 ? scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                      : <div className="text-center text-gray-500 py-6"><Clock className="w-8 h-8 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação agendada.</p></div>
+                    }
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-lg border-none">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl flex items-center gap-2"><History className="w-5 h-5 text-purple-500"/>Histórico de Publicações</CardTitle>
+                <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por período" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
+                    <SelectItem value="this-month">Este mês</SelectItem>
+                    <SelectItem value="this-year">Este ano</SelectItem>
+                    <SelectItem value="all-time">Todo o período</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
+                  <AnimatePresence>
+                    {isLoadingInitial ? <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                      : pastPosts.length > 0 ? pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
+                      : <div className="text-center text-gray-500 py-10"><Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação encontrada no histórico.</p></div>
+                    }
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          {/* Sidebar Area */}
           <div className="lg:col-span-1 space-y-8">
-            <CalendarCard selectedDate={selectedDate} onSelect={handleDateSelect} month={displayedMonth} onMonthChange={setDisplayedMonth} modifiers={calendarModifiers} />
+            <Card className="shadow-lg border-none">
+              <CardHeader>
+                <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  month={displayedMonth}
+                  onMonthChange={setDisplayedMonth}
+                  className="p-0"
+                  locale={ptBR}
+                  modifiers={calendarModifiers}
+                  modifiersClassNames={{
+                    published: "day-published",
+                    scheduled: "day-scheduled",
+                    failed: "day-failed",
+                  }}
+                />
+
+                <div className="w-full border-t pt-4 mt-6">
+                  <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500" /> Publicado
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" /> Agendado
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" /> Falhou
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <Card className="shadow-lg border-none">
               <CardHeader>
                   <CardTitle className="text-xl">Conexões</CardTitle>
@@ -951,48 +972,9 @@ export default function Conteudo() {
               </CardContent>
             </Card>
           </div>
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg border-none">
-              <CardHeader><CardTitle className="text-xl">Publicações Agendadas</CardTitle></CardHeader>
-              <CardContent>
-                <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
-                  <AnimatePresence>
-                    {isLoadingInitial ? <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                      : scheduledPosts.length > 0 ? scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
-                      : <div className="text-center text-gray-500 py-6"><Clock className="w-8 h-8 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação agendada.</p></div>
-                    }
-                  </AnimatePresence>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-lg border-none">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl">Histórico de Publicações</CardTitle>
-                <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por período" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
-                    <SelectItem value="this-month">Este mês</SelectItem>
-                    <SelectItem value="this-year">Este ano</SelectItem>
-                    <SelectItem value="all-time">Todo o período</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
-                  <AnimatePresence>
-                    {isLoadingInitial ? <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                      : pastPosts.length > 0 ? pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
-                      : <div className="text-center text-gray-500 py-10"><Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação encontrada no histórico.</p></div>
-                    }
-                  </AnimatePresence>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-        <Link href="#" className="hidden" aria-hidden="true">noop</Link>
       </div>
     </>
   );
 }
+
