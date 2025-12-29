@@ -149,7 +149,7 @@ function toDisplayPost(post: any): DisplayPost {
     return {
         id: post.id,
         text: post.text,
-        imageUrl: post.imageUrl,
+        imageUrl: post.imageUrl || (post.imageUrls && post.imageUrls[0]),
         imageUrls: post.imageUrls,
         isCarousel: post.isCarousel,
         status: post.status as PostStatus,
@@ -204,8 +204,7 @@ function PostItem({
 }) {
   const cfg = STATUS_CONFIG[post.status];
   const StatusIcon = cfg?.icon;
-  // Use the first image from the array for carousel previews, or the single imageUrl
-  const imageSrc = (post.imageUrls && post.imageUrls[0]) || post.imageUrl || PLACEHOLDER_IMAGE;
+  const imageSrc = post.imageUrl || PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -686,7 +685,7 @@ export default function Conteudo() {
     }
 
     const state = user?.uid;
-    const scope = "instagram_business_basic,instagram_business_content_publish";
+    const scope = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
     const responseType = "code";
 
     const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
