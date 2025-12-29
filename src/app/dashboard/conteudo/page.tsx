@@ -77,6 +77,8 @@ interface DisplayPost {
   id: string;
   text: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  isCarousel?: boolean;
   status: PostStatus;
   date: Date;
   formattedDate: string;
@@ -143,20 +145,28 @@ function getHistoryStartDate(filter: HistoryFilter) {
 }
 
 function toDisplayPost(post: any): DisplayPost {
-  const scheduledDate = new Date(post.scheduledAt);
-  return {
-    id: post.id,
-    text: post.text,
-    imageUrl: post.imageUrl,
-    status: post.status as PostStatus,
-    date: scheduledDate,
-    formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
-    formattedTime: format(scheduledDate, "HH:mm"),
-    platforms: post.platforms ?? [],
-    pageName: post.pageName,
-    instagramUsername: post.instagramUsername,
-  };
+    const scheduledDate = new Date(post.scheduledAt);
+    // Use the first image from the array for carousel previews
+    const displayImageUrl = post.isCarousel && Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+        ? post.imageUrls[0]
+        : post.imageUrl;
+
+    return {
+        id: post.id,
+        text: post.text,
+        imageUrl: displayImageUrl,
+        imageUrls: post.imageUrls,
+        isCarousel: post.isCarousel,
+        status: post.status as PostStatus,
+        date: scheduledDate,
+        formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
+        formattedTime: format(scheduledDate, "HH:mm"),
+        platforms: post.platforms ?? [],
+        pageName: post.pageName,
+        instagramUsername: post.instagramUsername,
+    };
 }
+
 
 const CALENDAR_DOT_STYLES = `
 .day-published::after, .day-scheduled::after, .day-failed::after {
@@ -764,7 +774,8 @@ export default function Conteudo() {
 
     const input: PostDataInput = {
       text: postToRepublish.text,
-      media: postToRepublish.imageUrl,
+      media: postToRepublish.imageUrls || [postToRepublish.imageUrl],
+      isCarousel: postToRepublish.isCarousel || false,
       platforms: postInputPlatforms,
       scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
     };
