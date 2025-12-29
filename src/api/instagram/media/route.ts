@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 
 interface MediaRequestBody {
   accessToken: string;
-  // O instagramId não é mais necessário, pois usamos o endpoint /me/media
 }
 
 export async function POST(request: NextRequest) {
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "O token de acesso do Instagram é obrigatório." }, { status: 400 });
         }
 
-        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,thumbnail_url';
+        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,thumbnail_url,like_count,comments_count';
         const url = `https://graph.instagram.com/me/media?fields=${fields}&access_token=${accessToken}&limit=24`;
 
         const response = await fetch(url);
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
         
         // A API de /me/media não retorna os insights diretamente.
         // Eles precisam ser buscados por post no modal.
-        // A estrutura dos likes e comments também não vem aqui.
+        // A estrutura dos likes e comments agora vem aqui.
         const media = data.data.map((item: any) => {
             return {
                 id: item.id,
@@ -45,10 +44,10 @@ export async function POST(request: NextRequest) {
                 permalink: item.permalink,
                 timestamp: item.timestamp,
                 username: item.username,
-                // Os insights e contagens virão de uma chamada separada no modal.
+                // Os insights mais detalhados virão de uma chamada separada no modal.
                 insights: { reach: 0, shares: 0 },
-                like_count: 0,
-                comments_count: 0,
+                like_count: item.like_count || 0,
+                comments_count: item.comments_count || 0,
             };
         });
 
