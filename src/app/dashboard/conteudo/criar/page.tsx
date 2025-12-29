@@ -87,7 +87,7 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
 
             {/* Image */}
             <div className="relative aspect-square bg-gray-200">
-                {currentMedia ? <Image src={currentMedia.publicUrl || currentMedia.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                {currentMedia ? <Image src={currentMedia.publicUrl || currentMedia.previewUrl} alt="Preview" layout="fill" objectFit="cover" unoptimized /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
                  {isCarousel && (
                     <>
                         <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
@@ -167,7 +167,7 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
                 <p className="whitespace-pre-wrap">{text}</p>
             </div>
             <div className="relative aspect-square bg-gray-200">
-                {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" unoptimized /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
             </div>
             <div className="flex items-center justify-between p-2">
                 <div className="flex items-center gap-1">
@@ -198,21 +198,65 @@ const FinalPreview = ({ mediaItems, user, text, metaConnection, instagramConnect
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const isCarousel = mediaItems.length > 1;
-    const currentMedia = mediaItems[currentSlide];
-
-    const getAvatarFallback = (platform: 'instagram' | 'facebook') => {
-        if (platform === 'instagram') {
-             if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
-        } else {
-             if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
-        }
-        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
-        return "U";
-    }
 
     const nextSlide = () => setCurrentSlide(prev => (prev + 1) % mediaItems.length);
     const prevSlide = () => setCurrentSlide(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
 
+    // Instagram Preview with navigation
+    const InstagramNavPreview = () => {
+        const currentMedia = mediaItems[currentSlide];
+        const getAvatarFallback = () => {
+            if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+            if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
+            return "U";
+        };
+
+        return (
+            <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+                {/* Header */}
+                <div className="p-3 flex items-center justify-between gap-2 border-b">
+                    <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user?.photoURL || undefined} />
+                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
+                    </div>
+                    <MoreVertical className="h-5 h-5 text-gray-600 cursor-pointer" />
+                </div>
+
+                {/* Image */}
+                <div className="relative aspect-square bg-gray-200">
+                    {currentMedia ? <Image src={currentMedia.publicUrl || currentMedia.previewUrl} alt="Preview" layout="fill" objectFit="cover" unoptimized /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                    {isCarousel && (
+                        <>
+                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                <Copy className="w-3 h-3" />
+                                <span>{currentSlide + 1}/{mediaItems.length}</span>
+                            </div>
+                            {currentSlide > 0 && (
+                                <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors">
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                            )}
+                            {currentSlide < mediaItems.length - 1 && (
+                                <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors">
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            )}
+                        </>
+                    )}
+                </div>
+                
+                {/* Action Icons & Caption */}
+                <div className="p-3 pt-2 text-sm min-h-[6rem] space-y-1">
+                    <p className="whitespace-pre-wrap">
+                        <span className="font-bold">{instagramConnection?.instagramUsername || 'seu_usuario'}</span> {text}
+                    </p>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="w-full max-w-sm">
@@ -228,7 +272,7 @@ const FinalPreview = ({ mediaItems, user, text, metaConnection, instagramConnect
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="instagram" className="mt-4">
-                    <InstagramPreview mediaItems={mediaItems} user={user} text={text} instagramConnection={instagramConnection} />
+                    <InstagramNavPreview />
                 </TabsContent>
                 <TabsContent value="facebook" className="mt-4">
                     <FacebookPreview mediaItems={mediaItems} user={user} text={text} metaConnection={metaConnection} />
@@ -624,7 +668,7 @@ export default function CriarConteudoPage() {
                                                 <div key={index} className="relative aspect-square group">
                                                     <Image src={item.previewUrl} alt={`Preview ${index}`} layout="fill" objectFit="cover" className="rounded-md" />
                                                      <button onClick={() => handleRemoveItem(index)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <X className="w-3 h-3" />
+                                                        <Trash2 className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                             ))}
