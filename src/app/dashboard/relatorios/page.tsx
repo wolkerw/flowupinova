@@ -54,6 +54,7 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import Image from "next/image";
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -263,7 +264,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
 };
 
 
-const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
+const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: InstagramConnectionData }) => {
     const [insights, setInsights] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -375,7 +376,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 };
 
 
-const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }) => {
+const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
     const [media, setMedia] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -390,7 +391,7 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
     useEffect(() => {
         const fetchMedia = async () => {
             if (!connection.isConnected || !connection.accessToken || !connection.instagramId) {
-                setError("A conta da Meta não está conectada ou o ID do Instagram não está disponível.");
+                setError("A conta do Instagram não está conectada ou o ID não está disponível.");
                 setIsLoading(false);
                 return;
             }
@@ -477,7 +478,8 @@ const InstagramMediaViewer = ({ connection }: { connection: MetaConnectionData }
                                     src={imageSrc} 
                                     alt="Imagem do post" 
                                     fill
-                                    objectFit="cover"
+                                    unoptimized
+                                    className="object-cover"
                                 />
                             </div>
                         </CardHeader>
@@ -629,7 +631,8 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
                                     src={post.full_picture || 'https://placehold.co/400'} 
                                     alt="Imagem do post" 
                                     fill
-                                    objectFit="cover"
+                                    unoptimized
+                                    className="object-cover"
                                 />
                             </div>
                         </CardHeader>
@@ -685,6 +688,7 @@ export default function Relatorios() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -692,10 +696,14 @@ export default function Relatorios() {
     async function fetchData() {
         setLoading(true);
         try {
-            const metaResult = await getMetaConnection(user.uid);
+            const [metaResult, instagramResult] = await Promise.all([
+              getMetaConnection(user.uid),
+              getInstagramConnection(user.uid),
+            ]);
             setMetaConnection(metaResult);
+            setInstagramConnection(instagramResult);
         } catch (error) {
-            console.error("Erro ao buscar conexão da Meta:", error);
+            console.error("Erro ao buscar conexões:", error);
         } finally {
             setLoading(false);
         }
@@ -758,31 +766,41 @@ export default function Relatorios() {
                          <div className="flex justify-center items-center h-48">
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
-                    ) : metaConnection?.isConnected ? (
+                    ) : (
                         <Tabs defaultValue="facebook" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-                                <TabsTrigger value="facebook">
+                                <TabsTrigger value="facebook" disabled={!metaConnection?.isConnected}>
                                     <Facebook className="w-4 h-4 mr-2" />
                                     Facebook
                                 </TabsTrigger>
-                                <TabsTrigger value="instagram">
+                                <TabsTrigger value="instagram" disabled={!instagramConnection?.isConnected}>
                                     <Instagram className="w-4 h-4 mr-2" />
                                     Instagram
                                 </TabsTrigger>
                             </TabsList>
                             <TabsContent value="facebook" className="mt-6">
-                                <MetaPagePostsViewer connection={metaConnection} />
+                                {metaConnection?.isConnected ? (
+                                    <MetaPagePostsViewer connection={metaConnection} />
+                                ) : (
+                                    <div className="text-center text-gray-500 py-10">
+                                      <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                                      <h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3>
+                                      <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+                                  </div>
+                                )}
                             </TabsContent>
                             <TabsContent value="instagram" className="mt-6">
-                                <InstagramMediaViewer connection={metaConnection} />
+                                {instagramConnection?.isConnected ? (
+                                    <InstagramMediaViewer connection={instagramConnection} />
+                                ) : (
+                                   <div className="text-center text-gray-500 py-10">
+                                      <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                                      <h3 className="font-semibold text-lg">Conta do Instagram não conectada</h3>
+                                      <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+                                  </div>
+                                )}
                             </TabsContent>
                         </Tabs>
-                    ) : (
-                         <div className="text-center text-gray-500 py-10">
-                            <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                            <h3 className="font-semibold text-lg">Conta da Meta não conectada</h3>
-                            <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
-                        </div>
                     )}
                 </CardContent>
              </Card>

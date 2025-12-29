@@ -1,3 +1,4 @@
+
 "use server";
 
 import { admin } from "@/lib/firebase-admin";
@@ -9,8 +10,6 @@ export interface MetaConnectionAdminData {
     accessToken?: string;
     pageId?: string;
     pageName?: string;
-    instagramId?: string;
-    instagramUsername?: string;
 }
 
 

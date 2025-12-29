@@ -12,8 +12,6 @@ export interface MetaConnectionData {
     accessToken?: string; // This is the Page Access Token
     pageId?: string;
     pageName?: string;
-    instagramId?: string;
-    instagramUsername?: string;
     // This is the main token used to fetch pages, etc.
     userAccessToken?: string; 
     // For pending state
@@ -84,8 +82,6 @@ export async function updateMetaConnection(userId: string, connectionData: Parti
                 accessToken: deleteField(),
                 pageId: deleteField(),
                 pageName: deleteField(),
-                instagramId: deleteField(),
-                instagramUsername: deleteField(),
                 connectedAt: deleteField(),
                 error: deleteField(),
                 pending: deleteField(),
