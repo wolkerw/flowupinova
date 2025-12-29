@@ -72,11 +72,6 @@ const allNavigationItems = [
     url: "/dashboard/conteudo",
     icon: FileText,
   },
-   {
-    title: "Conteúdo V2",
-    url: "/dashboard/conteudo-v2",
-    icon: FileText,
-  },
   {
     title: "Anúncios",
     url: "/dashboard/anuncios",
