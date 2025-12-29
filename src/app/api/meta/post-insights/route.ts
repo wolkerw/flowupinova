@@ -38,18 +38,14 @@ export async function POST(request: NextRequest) {
         const mediaType = mediaInfo.media_type; // e.g., IMAGE, VIDEO, CAROUSEL_ALBUM
 
         // Step 2: Build the metrics list based on the media type.
-        let metricsList = 'reach,saved,total_interactions'; // Base metrics for almost all types
+        let metricsList: string;
 
-        // Add metrics specific to Reels/Video
         if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
-            metricsList += ',plays,ig_reels_avg_watch_time,ig_reels_video_view_total_time,likes,comments,shares';
-        } 
-        // Add metrics specific to Feed/Carousel
-        else if (mediaProductType === 'FEED' || mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
-            metricsList += ',impressions,profile_activity,likes,comments,shares';
-        }
-        else { // Fallback for other types like STORY
-            metricsList += ',impressions,likes,comments,shares';
+            // Metrics for Reels and Videos
+            metricsList = 'plays,reach,saved,shares,likes,comments,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time';
+        } else {
+            // Metrics for Feed (Image/Carousel)
+            metricsList = 'impressions,reach,saved,shares,likes,comments,total_interactions,profile_activity';
         }
 
 
@@ -73,7 +69,7 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // The API already gives 'likes' and 'comments', so we just ensure they exist for consistency.
+        // The API already gives 'likes' and 'comments' for some types, so we just ensure they exist for consistency.
         insights['like_count'] = insights.likes ?? 0;
         insights['comments_count'] = insights.comments ?? 0;
         

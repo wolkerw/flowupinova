@@ -379,7 +379,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 };
 
 
-const InstagramMediaViewer = ({ connection, onUpdatePostInsights }: { connection: InstagramConnectionData, onUpdatePostInsights: (postId: string, insights: any) => void }) => {
+const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
     const [media, setMedia] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -418,10 +418,8 @@ const InstagramMediaViewer = ({ connection, onUpdatePostInsights }: { connection
                     throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
                 }
                 
-                setMedia(result.media);
-
-                // Sequentially fetch insights for each post
-                for (const item of result.media) {
+                // Fetch insights for each post sequentially after getting media
+                const mediaWithInsights = await Promise.all(result.media.map(async (item: any) => {
                     try {
                         const insightsResponse = await fetch('/api/meta/post-insights', {
                             method: 'POST',
@@ -430,12 +428,20 @@ const InstagramMediaViewer = ({ connection, onUpdatePostInsights }: { connection
                         });
                         const insightsResult = await insightsResponse.json();
                         if (insightsResult.success) {
-                            onUpdatePostInsights(item.id, insightsResult.insights);
+                           return {
+                                ...item,
+                                insights: insightsResult.insights,
+                                like_count: insightsResult.insights.like_count ?? 0,
+                                comments_count: insightsResult.insights.comments_count ?? 0,
+                            };
                         }
                     } catch (insightsError) {
                         console.error(`Failed to fetch insights for post ${item.id}`, insightsError);
                     }
-                }
+                    return item; // return original item if insights fetch fails
+                }));
+
+                setMedia(mediaWithInsights);
 
             } catch (err: any) {
                 setError(err.message);
@@ -445,7 +451,7 @@ const InstagramMediaViewer = ({ connection, onUpdatePostInsights }: { connection
         };
 
         fetchMediaAndInsights();
-    }, [connection, onUpdatePostInsights]);
+    }, [connection]);
 
     if (isLoading) {
         return (
@@ -707,20 +713,7 @@ export default function Relatorios() {
   const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
-  const [postInsights, setPostInsights] = useState<{ [key: string]: any }>({});
   
-  const handleUpdatePostInsights = (postId: string, insights: any) => {
-    setPostInsights(prev => ({ ...prev, [postId]: insights }));
-  };
-  
-   const enrichedMedia = (media: any[]) => media.map(item => ({
-    ...item,
-    insights: postInsights[item.id] || {},
-    like_count: postInsights[item.id]?.like_count ?? item.like_count ?? 0,
-    comments_count: postInsights[item.id]?.comments_count ?? item.comments_count ?? 0,
-  }));
-
-
   useEffect(() => {
     if (!user) return;
 
@@ -824,7 +817,6 @@ export default function Relatorios() {
                                 {instagramConnection?.isConnected ? (
                                     <InstagramMediaViewer 
                                       connection={instagramConnection}
-                                      onUpdatePostInsights={handleUpdatePostInsights}
                                     />
                                 ) : (
                                    <div className="text-center text-gray-500 py-10">
@@ -1042,3 +1034,4 @@ export default function Relatorios() {
     </div>
   );
 }
+
