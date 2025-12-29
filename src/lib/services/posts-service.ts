@@ -12,11 +12,12 @@ import type { InstagramConnectionData } from "./instagram-service";
 export interface PostData {
     id?: string;
     text: string;
-    imageUrl: string; // URL must be public from Firebase Storage or AI source
+    // Changed to array to support carousels
+    imageUrls: string[]; 
+    isCarousel: boolean;
     platforms: Array<'instagram' | 'facebook'>;
     status: 'scheduled' | 'publishing' | 'published' | 'failed';
     scheduledAt: Timestamp;
-    // Updated to handle separate tokens
     connections: {
         fbPageAccessToken?: string | null;
         igUserAccessToken?: string | null;
@@ -27,18 +28,25 @@ export interface PostData {
     };
     publishedMediaId?: string;
     failureReason?: string;
-    creationId?: string; // For Instagram container polling
+    // For Instagram carousel, this will be the ID of the parent carousel container
+    creationId?: string; 
 }
 
+export interface MediaFileInput {
+    file: File;
+    publicUrl?: string;
+}
 
 // Interface for data coming from the client
 export type PostDataInput = {
     text: string;
-    media: File | string; // Can be a File for upload or a string URL from AI gen/webhook
+    // Changed to array to support carousels
+    media: MediaFileInput[]; 
     platforms: Array<'instagram' | 'facebook'>;
+    isCarousel: boolean;
     scheduledAt: Date;
-    metaConnection?: MetaConnectionData; // For the original flow
-    instagramConnection?: InstagramConnectionData; // For the V2 flow
+    metaConnection?: MetaConnectionData;
+    instagramConnection?: InstagramConnectionData;
 };
 
 // Interface for data being sent to the client from the service
@@ -46,10 +54,10 @@ export type PostDataOutput = {
     success: boolean;
     error?: string;
     post?: Omit<PostData, 'scheduledAt' | 'connections'> & {
-        id: string; // Ensure ID is always present on output
-        scheduledAt: string; // Client receives an ISO string for serialization
-        text: string; // Include full text for republishing
-        instagramUsername?: string; // Send username to the client
+        id: string; 
+        scheduledAt: string;
+        text: string;
+        instagramUsername?: string;
         pageName?: string;
     }
 };
@@ -115,8 +123,9 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 payload = {
                     postData: {
                         text: postData.text,
-                        imageUrl: postData.imageUrl,
-                        accessToken: postData.connections.igUserAccessToken, // Use correct token
+                        imageUrls: postData.imageUrls, // Send array
+                        isCarousel: postData.isCarousel,
+                        accessToken: postData.connections.igUserAccessToken,
                         instagramId: postData.connections.instagramId,
                     }
                 };
@@ -125,9 +134,10 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
                 payload = {
                      postData: {
                         text: postData.text,
-                        imageUrl: postData.imageUrl,
-                        metaConnection: { // Facebook API expects this nested structure
-                            accessToken: postData.connections.fbPageAccessToken, // Use correct token
+                        // Facebook API only supports single image via /photos endpoint
+                        imageUrl: postData.imageUrls[0], 
+                        metaConnection: {
+                            accessToken: postData.connections.fbPageAccessToken,
                             pageId: postData.connections.pageId,
                         }
                     }
@@ -169,7 +179,7 @@ async function publishPostImmediately(userId: string, postId: string, postData: 
 }
 
 
-export async function schedulePost(userId: string, postData: Omit<PostDataInput, 'title'>): Promise<PostDataOutput> {
+export async function schedulePost(userId: string, postData: PostDataInput): Promise<PostDataOutput> {
     if (!userId) {
         return { success: false, error: "User ID is required to schedule a post." };
     }
@@ -184,14 +194,20 @@ export async function schedulePost(userId: string, postData: Omit<PostDataInput,
         return { success: false, error: "A conexão com o Instagram é necessária para publicar nesta plataforma."};
     }
     
-    let imageUrl: string;
+    let imageUrls: string[];
 
     try {
-        if (postData.media instanceof File) {
-            imageUrl = await uploadMediaAndGetURL(userId, postData.media);
-        } else {
-            imageUrl = postData.media;
-        }
+        const uploadPromises = postData.media.map(mediaItem => {
+            if (mediaItem.publicUrl) {
+                return Promise.resolve(mediaItem.publicUrl);
+            }
+            if (mediaItem.file) {
+                return uploadMediaAndGetURL(userId, mediaItem.file);
+            }
+            return Promise.reject(new Error("Item de mídia inválido."));
+        });
+        imageUrls = await Promise.all(uploadPromises);
+
         
         const isImmediate = postData.scheduledAt <= new Date();
 
@@ -207,7 +223,8 @@ export async function schedulePost(userId: string, postData: Omit<PostDataInput,
 
         const postToSave: Omit<PostData, 'id'> = {
             text: postData.text,
-            imageUrl: imageUrl,
+            imageUrls: imageUrls,
+            isCarousel: postData.isCarousel,
             platforms: postData.platforms,
             scheduledAt: Timestamp.fromDate(postData.scheduledAt),
             status: isImmediate ? 'publishing' : 'scheduled',
@@ -235,7 +252,7 @@ export async function schedulePost(userId: string, postData: Omit<PostDataInput,
             console.log(`Pending notification created for post ${docRef.id}`);
         }
 
-        return { success: true, post: { id: docRef.id, ...postToSave, scheduledAt: postData.scheduledAt.toISOString() }};
+        return { success: true, post: { id: docRef.id, ...postToSave, imageUrls: postToSave.imageUrls, scheduledAt: postData.scheduledAt.toISOString() }};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);
@@ -268,7 +285,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                 post: {
                     id: doc.id,
                     text: data.text,
-                    imageUrl: data.imageUrl,
+                    imageUrls: data.imageUrls,
+                    isCarousel: data.isCarousel,
                     platforms: data.platforms as Array<'instagram' | 'facebook'>,
                     status: data.status,
                     publishedMediaId: data.publishedMediaId,

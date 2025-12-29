@@ -16,17 +16,16 @@ async function publishToPlatform(
 ): Promise<string> {
   const isInstagram = platform === "instagram";
 
-  // Use SEMPRE o domínio atual da requisição do cron (evita bater em deploy antigo)
   const baseUrl =
     origin ||
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://studio--studio-7502195980-3983c.us-central1.hosted.app";
     
-  const apiPath = isInstagram ? "/api/instagram/publish" : "/api/facebook/publish";
+  const apiPath = isInstagram ? "/api/instagram/v2/publish" : "/api/facebook/publish";
   const requestUrl = new URL(apiPath, baseUrl);
   
   if (!post?.text) throw new Error(`Post sem texto (post.id=${post.id}).`);
-  if (!post?.imageUrl) throw new Error(`Post sem imageUrl (post.id=${post.id}).`);
+  if (!post?.imageUrls || post.imageUrls.length === 0) throw new Error(`Post sem imageUrls (post.id=${post.id}).`);
 
   let payload: any;
   
@@ -41,11 +40,10 @@ async function publishToPlatform(
     payload = {
       postData: {
         text: post.text,
-        imageUrl: post.imageUrl,
-        metaConnection: {
-          accessToken,
-          instagramId,
-        }
+        imageUrls: post.imageUrls,
+        isCarousel: post.isCarousel,
+        accessToken,
+        instagramId,
       }
     };
   } else { // Facebook
@@ -56,10 +54,15 @@ async function publishToPlatform(
       throw new Error(`Conexão do Facebook incompleta para o post ${post.id}.`);
     }
 
+    // Facebook API for /photos doesn't support carousels directly, so we post the first image
+    if (post.isCarousel) {
+        console.warn(`[CRON_V2_WARN] Publicação em carrossel para Facebook não é suportada diretamente. Publicando a primeira imagem do post ${post.id}.`);
+    }
+
     payload = {
       postData: {
         text: post.text,
-        imageUrl: post.imageUrl,
+        imageUrl: post.imageUrls[0],
         metaConnection: {
           accessToken,
           pageId,

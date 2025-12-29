@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -13,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { schedulePost, type PostDataInput } from "@/lib/services/posts-service";
+import { schedulePost, type PostDataInput, type MediaFileInput } from "@/lib/services/posts-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -50,13 +51,19 @@ const contentOptions = [
 ];
 
 const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, instagramConnection: InstagramConnectionData | null }) => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const isCarousel = mediaItems.length > 1;
+
     const getAvatarFallback = () => {
         if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
         if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
         return "U";
     }
+    
+    const nextSlide = () => setCurrentSlide(prev => (prev + 1) % mediaItems.length);
+    const prevSlide = () => setCurrentSlide(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
 
-    const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+    const currentMedia = mediaItems[currentSlide] || null;
 
     return (
         <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
@@ -69,12 +76,30 @@ const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { med
                     </Avatar>
                      <span className="font-bold text-sm">{instagramConnection?.instagramUsername || 'seu_usuario'}</span>
                 </div>
-                 <MoreVertical className="h-5 w-5 text-gray-600 cursor-pointer" />
+                 <MoreVertical className="h-5 h-5 text-gray-600 cursor-pointer" />
             </div>
 
             {/* Image */}
             <div className="relative aspect-square bg-gray-200">
-                {singleItem ? <Image src={singleItem.publicUrl || singleItem.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                {currentMedia ? <Image src={currentMedia.publicUrl || currentMedia.previewUrl} alt="Preview" layout="fill" objectFit="cover" /> : <ImageIcon className="w-16 h-16 text-gray-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                 {isCarousel && (
+                    <>
+                        <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Copy className="w-3 h-3" />
+                            <span>{currentSlide + 1}/{mediaItems.length}</span>
+                        </div>
+                        {currentSlide > 0 && (
+                             <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors">
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                        )}
+                        {currentSlide < mediaItems.length - 1 && (
+                            <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors">
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        )}
+                    </>
+                )}
             </div>
             
             {/* Action Icons */}
@@ -130,7 +155,7 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
                         </div>
                     </div>
                 </div>
-                <MoreHorizontal className="h-5 w-5 text-gray-600 cursor-pointer" />
+                <MoreHorizontal className="h-5 h-5 text-gray-600 cursor-pointer" />
             </div>
              <div className="px-3 pb-2 text-sm">
                 <p className="whitespace-pre-wrap">{text}</p>
@@ -218,6 +243,8 @@ export default function CriarConteudoPage() {
 
     const processSingleMediaItem = async (mediaItem: MediaItem): Promise<string> => {
         if (mediaItem.type === 'video') {
+            // Placeholder: Video processing might be different, for now just returning preview
+            // In a real scenario, this would upload the video and return a public URL.
             return mediaItem.previewUrl;
         }
 
@@ -290,6 +317,7 @@ export default function CriarConteudoPage() {
                         const url = await processSingleMediaItem(item);
                         processedUrls.push(url);
                     } else {
+                        // For now, let's just assume video is already a URL or doesn't need processing
                         processedUrls.push(item.previewUrl); 
                     }
                 }
@@ -404,9 +432,12 @@ export default function CriarConteudoPage() {
             return;
         }
         
-        const mediaToPublish = mediaItems[0].publicUrl || mediaItems[0].file;
+        const mediaToPublish: MediaFileInput[] = mediaItems.map(item => ({
+            file: item.file,
+            publicUrl: item.publicUrl
+        }));
 
-        if (!mediaToPublish) {
+        if (!mediaToPublish.every(m => m.file || m.publicUrl)) {
             toast({ variant: "destructive", title: "Mídia Inválida", description: "Não foi possível encontrar a imagem para publicar." });
             return;
         }
@@ -418,6 +449,7 @@ export default function CriarConteudoPage() {
             text: text,
             media: mediaToPublish,
             platforms: platforms,
+            isCarousel: selectedType === 'carousel',
             scheduledAt: scheduleType === 'schedule' && scheduleDate ? new Date(scheduleDate) : new Date(),
         };
 
@@ -780,4 +812,3 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
-
