@@ -336,12 +336,13 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Visualizações</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Atividade</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
-                                        <InsightStat label="Visualizações (Views)" value={insights.views || 0} />
+                                        <InsightStat label="Impressões" value={insights.impressions || 0} />
                                         <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
+                                        <InsightStat label="Cliques no Link do Site" value={insights.website_clicks || 0} />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-white shadow-sm">
@@ -357,12 +358,13 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                          <InsightStat label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
-                                {isReel && (
+                                {(isReel || insights.plays) && (
                                      <Card className="bg-white shadow-sm md:col-span-2">
                                         <CardHeader>
-                                            <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo (Reels)</CardTitle>
+                                            <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo</CardTitle>
                                         </CardHeader>
                                         <CardContent className="divide-y divide-gray-100">
+                                            <InsightStat label="Visualizações (Plays)" value={insights.plays || 0} />
                                             <InsightStat label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
                                         </CardContent>
                                     </Card>
@@ -533,12 +535,12 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                                         </div>
                                         <div className="flex items-center gap-1.5 text-gray-700">
                                             <Heart className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{currentInsights.likes || 0}</span>
+                                            <span className="font-semibold">{item.like_count + (currentInsights.likes || 0)}</span>
                                             <span className="text-xs text-gray-500">Curtidas</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-gray-700">
                                             <MessageCircle className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{currentInsights.comments || 0}</span>
+                                            <span className="font-semibold">{item.comments_count + (currentInsights.comments || 0)}</span>
                                             <span className="text-xs text-gray-500">Comentários</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-gray-700">

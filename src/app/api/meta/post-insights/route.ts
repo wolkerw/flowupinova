@@ -29,26 +29,34 @@ export async function POST(request: NextRequest) {
         }
 
         const host = "https://graph.instagram.com";
+        const apiVersion = "v24.0";
 
-        // Step 1: Get the media product type
-        const mediaInfoUrl = `${host}/v24.0/${postId}?fields=media_product_type&access_token=${accessToken}`;
+        // Step 1: Get the media product type to determine which metrics are available.
+        const mediaInfoUrl = `${host}/${apiVersion}/${postId}?fields=media_product_type,media_type&access_token=${accessToken}`;
         const mediaInfo = await fetchFromMeta(mediaInfoUrl);
         const mediaProductType = mediaInfo.media_product_type;
+        const mediaType = mediaInfo.media_type;
 
-        // Step 2: Build the metrics list based on the media type
-        let metricsList = 'reach,impressions,likes,comments,shares,saved,total_interactions';
+        // Step 2: Build the metrics list based on the media type.
+        // Base metrics available for all types.
+        let metricsList = 'reach,saved,total_interactions';
         
-        // profile_visits is only supported for IMAGE and CAROUSEL
-        if (mediaProductType === 'IMAGE' || mediaProductType === 'CAROUSEL_ALBUM') {
-            metricsList += ',profile_visits';
+        // Metrics for specific types
+        if (mediaProductType === 'FEED' || mediaProductType === 'CAROUSEL' || mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
+            metricsList += ',impressions,profile_activity,profile_visits';
         }
 
-        if (mediaProductType === 'REELS' || mediaProductType === 'VIDEO') {
-            metricsList += ',ig_reels_avg_watch_time,ig_reels_video_view_total_time';
+        if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
+            // For reels, use reel-specific metrics. 'plays' is a key metric.
+             metricsList += ',plays,ig_reels_avg_watch_time,ig_reels_video_view_total_time,likes,comments,shares';
+        } else {
+             // For non-reels, likes/comments/shares are separate.
+             metricsList += ',likes,comments,shares';
         }
 
-        // Step 3: Fetch the insights with the correct metrics
-        const insightsUrl = `${host}/v24.0/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
+
+        // Step 3: Fetch the insights with the dynamically built metrics list.
+        const insightsUrl = `${host}/${apiVersion}/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
         const insightsData = await fetchFromMeta(insightsUrl);
 
         const insights: { [key: string]: any } = {};
@@ -57,13 +65,17 @@ export async function POST(request: NextRequest) {
                 // Convert ms to seconds for watch time metrics
                 if (metric.name === 'ig_reels_avg_watch_time' || metric.name === 'ig_reels_video_view_total_time') {
                      insights[metric.name] = (metric.values[0].value || 0) / 1000;
+                } else if(metric.name === 'profile_activity') {
+                    // Profile activity is an object, so we merge its fields.
+                    const activityValue = metric.values[0].value || {};
+                    Object.assign(insights, activityValue);
                 } else {
                     insights[metric.name] = metric.values[0].value || 0;
                 }
             }
         });
 
-        // The API already gives 'likes' and 'comments', so we just ensure they exist.
+        // The API already gives 'likes' and 'comments', so we just ensure they exist for consistency.
         insights['like_count'] = insights.likes ?? 0;
         insights['comments_count'] = insights.comments ?? 0;
         
