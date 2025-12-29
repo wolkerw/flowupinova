@@ -304,7 +304,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
     }, [open, post, connection]);
 
     const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
-    const isReel = post?.media_product_type === 'REELS' || post?.media_type === 'VIDEO';
+    const isReel = post?.media_type === 'VIDEO';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -340,7 +340,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
-                                        <InsightStat label="Impressões" value={insights.impressions || 0} />
+                                        {insights.impressions !== undefined && <InsightStat label="Impressões" value={insights.impressions} />}
                                         <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
                                         <InsightStat label="Cliques no Link do Site" value={insights.website_clicks || 0} />
                                     </CardContent>
@@ -350,15 +350,15 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                         <InsightStat label="Curtidas" value={insights.likes || 0} />
-                                         <InsightStat label="Comentários" value={insights.comments || 0} />
+                                         <InsightStat label="Curtidas" value={insights.like_count || 0} />
+                                         <InsightStat label="Comentários" value={insights.comments_count || 0} />
                                          <InsightStat label="Compartilhamentos" value={insights.shares || 0} />
                                          <InsightStat label="Salvamentos" value={insights.saved || 0} />
                                          <InsightStat label="Total de Interações" value={insights.total_interactions || 0} />
                                          <InsightStat label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
-                                {(isReel || insights.plays) && (
+                                {isReel && (
                                      <Card className="bg-white shadow-sm md:col-span-2">
                                         <CardHeader>
                                             <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo</CardTitle>
@@ -379,46 +379,20 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 };
 
 
-const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
+const InstagramMediaViewer = ({ connection, onUpdatePostInsights }: { connection: InstagramConnectionData, onUpdatePostInsights: (postId: string, insights: any) => void }) => {
     const [media, setMedia] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedPost, setSelectedPost] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    
-    const [postInsights, setPostInsights] = useState<{ [key: string]: any }>({});
-    const [insightsLoading, setInsightsLoading] = useState<{ [key: string]: boolean }>({});
-
 
     const handleOpenModal = (post: any) => {
         setSelectedPost(post);
         setIsModalOpen(true);
     };
 
-    const fetchPostInsights = async (postId: string) => {
-        if (!connection.accessToken) return;
-
-        setInsightsLoading(prev => ({ ...prev, [postId]: true }));
-        try {
-            const response = await fetch('/api/meta/post-insights', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken: connection.accessToken, postId }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                setPostInsights(prev => ({ ...prev, [postId]: result.insights }));
-            }
-        } catch (error) {
-            console.error(`Failed to fetch insights for post ${postId}`, error);
-        } finally {
-            setInsightsLoading(prev => ({ ...prev, [postId]: false }));
-        }
-    };
-
-
     useEffect(() => {
-        const fetchMedia = async () => {
+        const fetchMediaAndInsights = async () => {
             if (!connection.isConnected || !connection.accessToken) {
                 setError("A conta do Instagram não está conectada.");
                 setIsLoading(false);
@@ -443,12 +417,25 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                     }
                     throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
                 }
-                setMedia(result.media);
                 
-                // Fetch insights for each post after media is loaded
-                result.media.forEach((item: any) => {
-                    fetchPostInsights(item.id);
-                });
+                setMedia(result.media);
+
+                // Sequentially fetch insights for each post
+                for (const item of result.media) {
+                    try {
+                        const insightsResponse = await fetch('/api/meta/post-insights', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ accessToken: connection.accessToken, postId: item.id }),
+                        });
+                        const insightsResult = await insightsResponse.json();
+                        if (insightsResult.success) {
+                            onUpdatePostInsights(item.id, insightsResult.insights);
+                        }
+                    } catch (insightsError) {
+                        console.error(`Failed to fetch insights for post ${item.id}`, insightsError);
+                    }
+                }
 
             } catch (err: any) {
                 setError(err.message);
@@ -457,8 +444,8 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
             }
         };
 
-        fetchMedia();
-    }, [connection]);
+        fetchMediaAndInsights();
+    }, [connection, onUpdatePostInsights]);
 
     if (isLoading) {
         return (
@@ -500,9 +487,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
                 const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
-                const currentInsights = postInsights[item.id] || {};
-                const isLoadingInsights = insightsLoading[item.id];
-
+                
                 return (
                     <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
                         <CardHeader className="p-4">
@@ -522,34 +507,26 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                                 Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
                             </p>
                             <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                                {isLoadingInsights ? (
-                                    <div className="col-span-2 flex justify-center items-center h-12">
-                                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <Eye className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{currentInsights.reach || 0}</span>
-                                            <span className="text-xs text-gray-500">Alcance</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <Heart className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{item.like_count + (currentInsights.likes || 0)}</span>
-                                            <span className="text-xs text-gray-500">Curtidas</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <MessageCircle className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{item.comments_count + (currentInsights.comments || 0)}</span>
-                                            <span className="text-xs text-gray-500">Comentários</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <Share2 className="w-3.5 h-3.5" />
-                                            <span className="font-semibold">{currentInsights.shares || 0}</span>
-                                            <span className="text-xs text-gray-500">Compart.</span>
-                                        </div>
-                                    </>
-                                )}
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.insights?.reach || 0}</span>
+                                    <span className="text-xs text-gray-500">Alcance</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Heart className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.like_count || 0}</span>
+                                    <span className="text-xs text-gray-500">Curtidas</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.comments_count || 0}</span>
+                                    <span className="text-xs text-gray-500">Comentários</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    <span className="font-semibold">{item.insights?.shares || 0}</span>
+                                    <span className="text-xs text-gray-500">Compart.</span>
+                                </div>
                             </div>
                         </CardContent>
                          <CardFooter className="p-4 pt-0">
@@ -730,6 +707,19 @@ export default function Relatorios() {
   const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [postInsights, setPostInsights] = useState<{ [key: string]: any }>({});
+  
+  const handleUpdatePostInsights = (postId: string, insights: any) => {
+    setPostInsights(prev => ({ ...prev, [postId]: insights }));
+  };
+  
+   const enrichedMedia = (media: any[]) => media.map(item => ({
+    ...item,
+    insights: postInsights[item.id] || {},
+    like_count: postInsights[item.id]?.like_count ?? item.like_count ?? 0,
+    comments_count: postInsights[item.id]?.comments_count ?? item.comments_count ?? 0,
+  }));
+
 
   useEffect(() => {
     if (!user) return;
@@ -832,7 +822,10 @@ export default function Relatorios() {
                             </TabsContent>
                             <TabsContent value="instagram" className="mt-6">
                                 {instagramConnection?.isConnected ? (
-                                    <InstagramMediaViewer connection={instagramConnection} />
+                                    <InstagramMediaViewer 
+                                      connection={instagramConnection}
+                                      onUpdatePostInsights={handleUpdatePostInsights}
+                                    />
                                 ) : (
                                    <div className="text-center text-gray-500 py-10">
                                       <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
