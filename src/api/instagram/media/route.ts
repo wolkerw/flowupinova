@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "O token de acesso do Instagram é obrigatório." }, { status: 400 });
         }
 
-        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username';
+        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,thumbnail_url';
         const url = `https://graph.instagram.com/me/media?fields=${fields}&access_token=${accessToken}&limit=24`;
 
         const response = await fetch(url);
