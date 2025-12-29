@@ -5,53 +5,50 @@ export const dynamic = 'force-dynamic';
 
 interface MediaRequestBody {
   accessToken: string;
-  instagramId: string;
+  // O instagramId não é mais necessário, pois usamos o endpoint /me/media
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: MediaRequestBody = await request.json();
-        const { accessToken, instagramId } = body;
+        const { accessToken } = body;
 
-        if (!accessToken || !instagramId) {
-            return NextResponse.json({ success: false, error: "Access token e Instagram ID são obrigatórios." }, { status: 400 });
+        if (!accessToken) {
+            return NextResponse.json({ success: false, error: "O token de acesso do Instagram é obrigatório." }, { status: 400 });
         }
 
-        // Adicionado 'thumbnail_url' para obter a capa de vídeos.
-        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,comments_count,like_count,thumbnail_url,insights.metric(reach,shares).period(lifetime)';
-        const url = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=${fields}&access_token=${accessToken}&limit=12`;
+        const fields = 'id,caption,media_type,media_url,permalink,timestamp,username,thumbnail_url';
+        const url = `https://graph.instagram.com/me/media?fields=${fields}&access_token=${accessToken}&limit=24`;
 
         const response = await fetch(url);
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("[META_API_ERROR] Falha ao buscar mídias do Instagram:", data.error);
-            const errorMessage = data.error?.message || `Falha na API da Meta com status ${response.status}`;
+            console.error("[INSTAGRAM_MEDIA_API_ERROR] Falha ao buscar mídias do Instagram:", data.error);
+            const errorMessage = data.error?.message || `Falha na API do Instagram com status ${response.status}`;
              if (data.error?.code === 190) { // OAuthException
-              return NextResponse.json({ success: false, error: "Sua sessão com a Meta expirou. Por favor, reconecte sua conta." }, { status: 401 });
+              return NextResponse.json({ success: false, error: "Sua sessão com o Instagram expirou. Por favor, reconecte sua conta." }, { status: 401 });
             }
             return NextResponse.json({ success: false, error: errorMessage }, { status: response.status });
         }
-
+        
+        // A API de /me/media não retorna os insights diretamente.
+        // Eles precisam ser buscados por post no modal.
+        // A estrutura dos likes e comments também não vem aqui.
         const media = data.data.map((item: any) => {
-            const insightsData = item.insights?.data || [];
-            const getInsightValue = (name: string) => insightsData.find((i: any) => i.name === name)?.values[0]?.value || 0;
-            
             return {
                 id: item.id,
                 caption: item.caption,
                 media_type: item.media_type,
                 media_url: item.media_url,
-                thumbnail_url: item.thumbnail_url, // Inclui o thumbnail na resposta
+                thumbnail_url: item.media_type === 'VIDEO' ? item.thumbnail_url : item.media_url,
                 permalink: item.permalink,
                 timestamp: item.timestamp,
                 username: item.username,
-                comments_count: item.comments_count || 0,
-                like_count: item.like_count || 0,
-                insights: {
-                    reach: getInsightValue('reach'),
-                    shares: getInsightValue('shares')
-                }
+                // Os insights e contagens virão de uma chamada separada no modal.
+                insights: { reach: 0, shares: 0 },
+                like_count: 0,
+                comments_count: 0,
             };
         });
 
