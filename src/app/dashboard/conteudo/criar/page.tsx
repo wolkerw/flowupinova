@@ -194,6 +194,49 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
     );
 };
 
+const FinalPreview = ({ mediaItems, user, text, metaConnection, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, metaConnection: MetaConnectionData | null, instagramConnection: InstagramConnectionData | null }) => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    const isCarousel = mediaItems.length > 1;
+    const currentMedia = mediaItems[currentSlide];
+
+    const getAvatarFallback = (platform: 'instagram' | 'facebook') => {
+        if (platform === 'instagram') {
+             if (instagramConnection?.instagramUsername) return instagramConnection.instagramUsername.charAt(0).toUpperCase();
+        } else {
+             if (metaConnection?.pageName) return metaConnection.pageName.charAt(0).toUpperCase();
+        }
+        if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+        return "U";
+    }
+
+    const nextSlide = () => setCurrentSlide(prev => (prev + 1) % mediaItems.length);
+    const prevSlide = () => setCurrentSlide(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
+
+
+    return (
+        <div className="w-full max-w-sm">
+            <Tabs defaultValue="instagram">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="instagram">
+                        <Instagram className="w-4 h-4 mr-2" />
+                        Instagram
+                    </TabsTrigger>
+                    <TabsTrigger value="facebook">
+                        <Facebook className="w-4 h-4 mr-2" />
+                        Facebook
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="instagram" className="mt-4">
+                    <InstagramPreview mediaItems={mediaItems} user={user} text={text} instagramConnection={instagramConnection} />
+                </TabsContent>
+                <TabsContent value="facebook" className="mt-4">
+                    <FacebookPreview mediaItems={mediaItems} user={user} text={text} metaConnection={metaConnection} />
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
+}
 
 export default function CriarConteudoPage() {
     const [step, setStep] = useState(1);
@@ -575,7 +618,20 @@ export default function CriarConteudoPage() {
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
                                     <Label className="font-semibold">Seu Acervo</Label>
-                                    <p className="text-xs text-gray-500">Faça o upload de vídeos e imagens.</p>
+                                    {mediaItems.length > 0 ? (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                            {mediaItems.map((item, index) => (
+                                                <div key={index} className="relative aspect-square group">
+                                                    <Image src={item.previewUrl} alt={`Preview ${index}`} layout="fill" objectFit="cover" className="rounded-md" />
+                                                     <button onClick={() => handleRemoveItem(index)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : null}
+
+                                    <p className="text-xs text-gray-500 pt-2">Faça o upload de vídeos e imagens.</p>
                                     <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple={selectedType === 'carousel'} />
                                     <input type="file" ref={videoInputRef} onChange={handleFileChange} accept="video/*" className="hidden" multiple={selectedType === 'carousel'}/>
 
@@ -720,26 +776,13 @@ export default function CriarConteudoPage() {
                                     <CardTitle className="text-lg">Preview Final</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex justify-center">
-                                    <div className="w-full max-w-sm">
-                                        <Tabs defaultValue="instagram">
-                                            <TabsList className="grid w-full grid-cols-2">
-                                                <TabsTrigger value="instagram">
-                                                    <Instagram className="w-4 h-4 mr-2" />
-                                                    Instagram
-                                                </TabsTrigger>
-                                                <TabsTrigger value="facebook">
-                                                    <Facebook className="w-4 h-4 mr-2" />
-                                                    Facebook
-                                                </TabsTrigger>
-                                            </TabsList>
-                                            <TabsContent value="instagram" className="mt-4">
-                                                <InstagramPreview mediaItems={mediaItems} user={user} text={text} instagramConnection={instagramConnection} />
-                                            </TabsContent>
-                                            <TabsContent value="facebook" className="mt-4">
-                                                <FacebookPreview mediaItems={mediaItems} user={user} text={text} metaConnection={metaConnection} />
-                                            </TabsContent>
-                                        </Tabs>
-                                    </div>
+                                    <FinalPreview 
+                                        mediaItems={mediaItems}
+                                        user={user}
+                                        text={text}
+                                        metaConnection={metaConnection}
+                                        instagramConnection={instagramConnection}
+                                    />
                                 </CardContent>
                             </Card>
                         </div>
@@ -821,3 +864,4 @@ export default function CriarConteudoPage() {
         </div>
     );
 }
+
