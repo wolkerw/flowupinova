@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreVertical, MoreHorizontal, Globe, Bookmark, Repeat, Heart } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Copy, Film, Sparkles, ArrowLeft, Video, FileImage, CheckCircle, ChevronLeft, ChevronRight, X, Loader2, Send, Calendar as CalendarIcon, Clock, AlertTriangle, Facebook, Instagram, UploadCloud, Trash2, ThumbsUp, MessageCircle, Share2, MoreVertical, MoreHorizontal, Globe, Bookmark, Repeat, Heart, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +53,6 @@ const contentOptions = [
 const InstagramPreview = ({ mediaItems, user, text, instagramConnection }: { mediaItems: MediaItem[], user: any, text: string, instagramConnection: InstagramConnectionData | null }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
-    // FIX: useEffect was outside and causing re-render issues. Moved inside the component.
     useEffect(() => {
         setCurrentSlide(0);
     }, [mediaItems]);
@@ -856,6 +855,12 @@ export default function CriarConteudoPage() {
                                         </Label>
                                     </div>
                                 </div>
+                                {platforms.includes('facebook') && selectedType === 'carousel' && (
+                                     <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+                                        <Info className="w-5 h-5 mt-0.5 shrink-0"/>
+                                        <span>A API do Facebook não permite postar carrosséis diretamente. Apenas a <strong>primeira imagem</strong> será publicada na página do Facebook.</span>
+                                     </div>
+                                )}
                             </div>
                             <div>
                                 <Label className="font-semibold">Quando publicar?</Label>
