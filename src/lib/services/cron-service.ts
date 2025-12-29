@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import type { NextRequest } from "next/server";
@@ -16,7 +15,7 @@ import { FieldValue } from "firebase-admin/firestore";
  */
 async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostData, origin: string): Promise<string> {
     const isInstagram = platform === 'instagram';
-    const apiPath = isInstagram ? '/api/instagram/v2/publish' : '/api/facebook/publish';
+    const apiPath = isInstagram ? '/api/instagram/publish' : '/api/facebook/publish';
     
     // A URL de produção da sua aplicação. Substitua se necessário.
     const productionUrl = "https://studio--studio-7502195980-3983c.us-central1.hosted.app";
@@ -27,10 +26,13 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     if (isInstagram) {
         payload = {
             postData: {
+                title: post.title,
                 text: post.text,
                 imageUrl: post.imageUrl,
-                accessToken: post.connections.igUserAccessToken,
-                instagramId: post.connections.instagramId,
+                metaConnection: { // Correção aqui
+                    accessToken: post.connections.igUserAccessToken,
+                    instagramId: post.connections.instagramId,
+                }
             }
         };
     } else { // Facebook
