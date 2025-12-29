@@ -391,8 +391,8 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
 
     useEffect(() => {
         const fetchMedia = async () => {
-            if (!connection.isConnected || !connection.accessToken || !connection.instagramId) {
-                setError("A conta do Instagram não está conectada ou o ID não está disponível.");
+            if (!connection.isConnected || !connection.accessToken) {
+                setError("A conta do Instagram não está conectada.");
                 setIsLoading(false);
                 return;
             }
@@ -404,10 +404,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                 const response = await fetch('/api/instagram/media', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        accessToken: connection.accessToken,
-                        instagramId: connection.instagramId 
-                    }),
+                    body: JSON.stringify({ accessToken: connection.accessToken }),
                 });
 
                 const result = await response.json();
