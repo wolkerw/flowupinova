@@ -26,11 +26,11 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
     if (isInstagram) {
         payload = {
             postData: {
-                title: post.title, // Title is not used but the API expects it.
+                title: post.title,
                 text: post.text,
                 imageUrl: post.imageUrl,
                 metaConnection: {
-                    accessToken: post.connections.igUserAccessToken, // Correct mapping
+                    accessToken: post.connections.igUserAccessToken,
                     instagramId: post.connections.instagramId,
                 }
             }
@@ -41,7 +41,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
                 text: post.text,
                 imageUrl: post.imageUrl,
                 metaConnection: {
-                    accessToken: post.connections.fbPageAccessToken, // Correct mapping
+                    accessToken: post.connections.fbPageAccessToken,
                     pageId: post.connections.pageId,
                 },
             }
