@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -471,8 +472,11 @@ export default function GerarConteudoPage() {
   const handleNextToStep3 = async () => {
     if(generatedImages.length === 0){
         await handleGenerateImages();
+    } else {
+        // If images already exist from a previous step (e.g., from initial text generation),
+        // ensure they are displayed in step 3 without re-generating.
+        setStep(3);
     }
-    setStep(3);
   };
 
   const handlePlatformChange = (platform: Platform) => {
@@ -502,9 +506,9 @@ export default function GerarConteudoPage() {
     const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
     
     const result = await schedulePost(user.uid, {
-        title: selectedContent.titulo,
         text: fullCaption,
-        media: finalImageUrl,
+        media: [{ file: new File([], ''), publicUrl: finalImageUrl }], // Wrap in MediaFileInput array
+        isCarousel: false, // In this flow, it's always single image
         platforms: platforms,
         scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
         metaConnection: metaConnection,
@@ -777,3 +781,4 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
