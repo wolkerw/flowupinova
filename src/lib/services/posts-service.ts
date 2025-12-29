@@ -12,6 +12,8 @@ import type { InstagramConnectionData } from "./instagram-service";
 export interface PostData {
     id?: string;
     text: string;
+    // For single image posts
+    imageUrl: string;
     // Changed to array to support carousels
     imageUrls: string[]; 
     isCarousel: boolean;
@@ -223,6 +225,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
 
         const postToSave: Omit<PostData, 'id'> = {
             text: postData.text,
+            imageUrl: imageUrls[0] || "", // Ensure imageUrl is always present
             imageUrls: imageUrls,
             isCarousel: postData.isCarousel,
             platforms: postData.platforms,
@@ -285,6 +288,7 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
                 post: {
                     id: doc.id,
                     text: data.text,
+                    imageUrl: data.imageUrl,
                     imageUrls: data.imageUrls,
                     isCarousel: data.isCarousel,
                     platforms: data.platforms as Array<'instagram' | 'facebook'>,
