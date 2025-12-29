@@ -28,25 +28,27 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
 
+        const host = "https://graph.instagram.com";
+
         // Step 1: Get the media product type
-        const mediaInfoUrl = `https://graph.facebook.com/v24.0/${postId}?fields=media_product_type&access_token=${accessToken}`;
+        const mediaInfoUrl = `${host}/v24.0/${postId}?fields=media_product_type&access_token=${accessToken}`;
         const mediaInfo = await fetchFromMeta(mediaInfoUrl);
         const mediaProductType = mediaInfo.media_product_type;
 
         // Step 2: Build the metrics list based on the media type
-        let metricsList = 'reach,views,likes,comments,shares,saved,total_interactions';
+        let metricsList = 'reach,impressions,likes,comments,shares,saved,total_interactions';
         
         // profile_visits is only supported for IMAGE and CAROUSEL
         if (mediaProductType === 'IMAGE' || mediaProductType === 'CAROUSEL_ALBUM') {
             metricsList += ',profile_visits';
         }
 
-        if (mediaProductType === 'REELS') {
+        if (mediaProductType === 'REELS' || mediaProductType === 'VIDEO') {
             metricsList += ',ig_reels_avg_watch_time,ig_reels_video_view_total_time';
         }
 
         // Step 3: Fetch the insights with the correct metrics
-        const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
+        const insightsUrl = `${host}/v24.0/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
         const insightsData = await fetchFromMeta(insightsUrl);
 
         const insights: { [key: string]: any } = {};
