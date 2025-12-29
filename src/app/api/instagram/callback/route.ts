@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   redirectUrl.protocol = 'https:';
   redirectUrl.host = request.nextUrl.host;
   redirectUrl.port = '9000'; // Garante a porta do cliente
-  redirectUrl.pathname = '/dashboard/conteudo-v2';
+  redirectUrl.pathname = '/dashboard/conteudo';
   redirectUrl.search = '';
 
   if (error) {
