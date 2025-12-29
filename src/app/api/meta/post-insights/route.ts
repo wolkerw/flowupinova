@@ -34,24 +34,22 @@ export async function POST(request: NextRequest) {
         // Step 1: Get the media product type to determine which metrics are available.
         const mediaInfoUrl = `${host}/${apiVersion}/${postId}?fields=media_product_type,media_type&access_token=${accessToken}`;
         const mediaInfo = await fetchFromMeta(mediaInfoUrl);
-        const mediaProductType = mediaInfo.media_product_type;
-        const mediaType = mediaInfo.media_type;
+        const mediaProductType = mediaInfo.media_product_type; // e.g., FEED, REELS, STORY
+        const mediaType = mediaInfo.media_type; // e.g., IMAGE, VIDEO, CAROUSEL_ALBUM
 
         // Step 2: Build the metrics list based on the media type.
-        // Base metrics available for all types.
-        let metricsList = 'reach,saved,total_interactions';
-        
-        // Metrics for specific types
-        if (mediaProductType === 'FEED' || mediaProductType === 'CAROUSEL' || mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
-            metricsList += ',impressions,profile_activity,profile_visits';
-        }
+        let metricsList = 'reach,saved,total_interactions'; // Base metrics for almost all types
 
+        // Add metrics specific to Reels/Video
         if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
-            // For reels, use reel-specific metrics. 'plays' is a key metric.
-             metricsList += ',plays,ig_reels_avg_watch_time,ig_reels_video_view_total_time,likes,comments,shares';
-        } else {
-             // For non-reels, likes/comments/shares are separate.
-             metricsList += ',likes,comments,shares';
+            metricsList += ',plays,ig_reels_avg_watch_time,ig_reels_video_view_total_time,likes,comments,shares';
+        } 
+        // Add metrics specific to Feed/Carousel
+        else if (mediaProductType === 'FEED' || mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
+            metricsList += ',impressions,profile_activity,likes,comments,shares';
+        }
+        else { // Fallback for other types like STORY
+            metricsList += ',impressions,likes,comments,shares';
         }
 
 
