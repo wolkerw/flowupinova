@@ -142,9 +142,16 @@ const FacebookPreview = ({ mediaItems, user, text, metaConnection }: { mediaItem
     }
 
     const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+    const isCarousel = mediaItems.length > 1;
 
     return (
         <div className="w-full bg-white rounded-md shadow-lg border flex flex-col">
+            {isCarousel && (
+                <div className="p-3 border-b flex items-start gap-2 bg-yellow-50 text-yellow-800 text-sm">
+                    <Info className="w-5 h-5 mt-0.5 shrink-0"/>
+                    <span>Apenas a primeira imagem será postada no Facebook, pois a plataforma não permite publicar carrosséis diretamente. No Instagram, o carrossel será publicado normalmente.</span>
+                </div>
+            )}
             <div className="p-3 flex items-start justify-between">
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
@@ -858,7 +865,7 @@ export default function CriarConteudoPage() {
                                 {platforms.includes('facebook') && selectedType === 'carousel' && (
                                      <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
                                         <Info className="w-5 h-5 mt-0.5 shrink-0"/>
-                                        <span>A API do Facebook não permite postar carrosséis diretamente. Apenas a <strong>primeira imagem</strong> será publicada na página do Facebook.</span>
+                                        <span>Apenas a primeira imagem será postada no Facebook, pois a plataforma não permite publicar carrosséis diretamente. No Instagram, o carrossel será publicado normalmente.</span>
                                      </div>
                                 )}
                             </div>
