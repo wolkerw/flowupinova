@@ -383,11 +383,37 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     const [error, setError] = useState<string | null>(null);
     const [selectedPost, setSelectedPost] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    const [postInsights, setPostInsights] = useState<{ [key: string]: any }>({});
+    const [insightsLoading, setInsightsLoading] = useState<{ [key: string]: boolean }>({});
+
 
     const handleOpenModal = (post: any) => {
         setSelectedPost(post);
         setIsModalOpen(true);
     };
+
+    const fetchPostInsights = async (postId: string) => {
+        if (!connection.accessToken) return;
+
+        setInsightsLoading(prev => ({ ...prev, [postId]: true }));
+        try {
+            const response = await fetch('/api/meta/post-insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessToken: connection.accessToken, postId }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setPostInsights(prev => ({ ...prev, [postId]: result.insights }));
+            }
+        } catch (error) {
+            console.error(`Failed to fetch insights for post ${postId}`, error);
+        } finally {
+            setInsightsLoading(prev => ({ ...prev, [postId]: false }));
+        }
+    };
+
 
     useEffect(() => {
         const fetchMedia = async () => {
@@ -415,8 +441,13 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                     }
                     throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
                 }
-
                 setMedia(result.media);
+                
+                // Fetch insights for each post after media is loaded
+                result.media.forEach((item: any) => {
+                    fetchPostInsights(item.id);
+                });
+
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -467,6 +498,8 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((item) => {
                 const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
+                const currentInsights = postInsights[item.id] || {};
+                const isLoadingInsights = insightsLoading[item.id];
 
                 return (
                     <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
@@ -487,26 +520,34 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                                 Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
                             </p>
                             <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights.reach || 0}</span>
-                                    <span className="text-xs text-gray-500">Alcance</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Heart className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.like_count || 0}</span>
-                                    <span className="text-xs text-gray-500">Curtidas</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <MessageCircle className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.comments_count || 0}</span>
-                                    <span className="text-xs text-gray-500">Comentários</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Share2 className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights.shares || 0}</span>
-                                    <span className="text-xs text-gray-500">Compart.</span>
-                                </div>
+                                {isLoadingInsights ? (
+                                    <div className="col-span-2 flex justify-center items-center h-12">
+                                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <Eye className="w-3.5 h-3.5" />
+                                            <span className="font-semibold">{currentInsights.reach || 0}</span>
+                                            <span className="text-xs text-gray-500">Alcance</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <Heart className="w-3.5 h-3.5" />
+                                            <span className="font-semibold">{currentInsights.likes || 0}</span>
+                                            <span className="text-xs text-gray-500">Curtidas</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <MessageCircle className="w-3.5 h-3.5" />
+                                            <span className="font-semibold">{currentInsights.comments || 0}</span>
+                                            <span className="text-xs text-gray-500">Comentários</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-700">
+                                            <Share2 className="w-3.5 h-3.5" />
+                                            <span className="font-semibold">{currentInsights.shares || 0}</span>
+                                            <span className="text-xs text-gray-500">Compart.</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </CardContent>
                          <CardFooter className="p-4 pt-0">
