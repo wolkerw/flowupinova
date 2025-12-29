@@ -29,7 +29,7 @@ async function publishToPlatform(platform: 'instagram' | 'facebook', post: PostD
                 title: post.title,
                 text: post.text,
                 imageUrl: post.imageUrl,
-                metaConnection: { // Correção aqui
+                metaConnection: {
                     accessToken: post.connections.igUserAccessToken,
                     instagramId: post.connections.instagramId,
                 }
