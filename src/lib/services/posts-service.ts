@@ -223,9 +223,8 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             instagramUsername: postData.instagramConnection?.instagramUsername || null,
         };
 
-        const postToSave: Omit<PostData, 'id'> = {
+        const postToSave: Omit<PostData, 'id' | 'imageUrl'> = {
             text: postData.text,
-            imageUrl: imageUrls[0], // Always populate imageUrl for preview and single posts
             imageUrls: imageUrls,
             isCarousel: postData.isCarousel,
             platforms: postData.platforms,
@@ -238,7 +237,9 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
         console.log(`Post ${docRef.id} document created with status: ${postToSave.status}.`);
 
         if (isImmediate) {
-            const result = await publishPostImmediately(userId, docRef.id, postToSave);
+            // Re-add imageUrls for immediate publishing logic, which expects it.
+            const fullPostForPublish = { ...postToSave, imageUrl: imageUrls[0] };
+            const result = await publishPostImmediately(userId, docRef.id, fullPostForPublish as any);
             if (!result.success) {
                 return { success: false, error: result.error };
             }
@@ -255,7 +256,7 @@ export async function schedulePost(userId: string, postData: PostDataInput): Pro
             console.log(`Pending notification created for post ${docRef.id}`);
         }
 
-        return { success: true, post: { id: docRef.id, ...postToSave, imageUrls: postToSave.imageUrls, scheduledAt: postData.scheduledAt.toISOString() }};
+        return { success: true, post: { id: docRef.id, ...postToSave, imageUrl: imageUrls[0], scheduledAt: postData.scheduledAt.toISOString() } as any};
         
     } catch(error: any) {
         console.error(`Error in schedulePost for user ${userId}:`, error);

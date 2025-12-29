@@ -205,7 +205,7 @@ function PostItem({
   const cfg = STATUS_CONFIG[post.status];
   const StatusIcon = cfg?.icon;
   // Use the first image from the array for carousel previews, or the single imageUrl
-  const imageSrc = post.imageUrl || (post.imageUrls && post.imageUrls[0]) || PLACEHOLDER_IMAGE;
+  const imageSrc = (post.imageUrls && post.imageUrls[0]) || post.imageUrl || PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
