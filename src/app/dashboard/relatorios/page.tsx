@@ -59,6 +59,7 @@ import Image from "next/image";
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 const performanceData = [
     { month: 'Jan', impressions: 15000, clicks: 890, conversions: 45 },
@@ -738,9 +739,10 @@ export default function Relatorios() {
                 <Newspaper className="w-4 h-4 mr-2" />
                 Orgânico
             </TabsTrigger>
-            <TabsTrigger value="campaigns">
+            <TabsTrigger value="campaigns" disabled className="relative">
                  <BarChart3 className="w-4 h-4 mr-2" />
                 Campanhas
+                <Badge variant="secondary" className="absolute -top-2 -right-2 text-xs px-1.5 py-0.5">Em breve</Badge>
             </TabsTrigger>
         </TabsList>
         
@@ -989,7 +991,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
-    
-
-    

@@ -14,7 +14,7 @@ interface PublishRequestBody {
 }
 
 // 1. Create a media container for a single item (image or video)
-async function createMediaItemContainer(instagramId: string, accessToken: string, imageUrl: string, isCarouselItem: boolean): Promise<string> {
+async function createMediaItemContainer(instagramId: string, accessToken: string, imageUrl: string, isCarouselItem: boolean, caption?: string): Promise<string> {
   const host = "https://graph.instagram.com";
   const url = `${host}/v20.0/${instagramId}/media`;
   
@@ -25,6 +25,11 @@ async function createMediaItemContainer(instagramId: string, accessToken: string
 
   if (isCarouselItem) {
     params.append('is_carousel_item', 'true');
+  }
+
+  // Caption is only allowed for single media items, not for carousel children.
+  if (!isCarouselItem && caption) {
+    params.append('caption', caption);
   }
 
   const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });
@@ -121,32 +126,18 @@ export async function POST(request: NextRequest) {
             // Carousel Flow
             if (postData.imageUrls.length > 10) throw new Error("Carrosséis são limitados a 10 mídias.");
             
-            // 1. Create individual item containers
+            // 1. Create individual item containers without caption
             const childContainerPromises = postData.imageUrls.map(url => 
                 createMediaItemContainer(postData.instagramId, postData.accessToken, url, true)
             );
             const childContainerIds = await Promise.all(childContainerPromises);
             
-            // 2. Create carousel parent container (this is where caption goes)
+            // 2. Create carousel parent container with caption
             creationId = await createCarouselContainer(postData.instagramId, postData.accessToken, childContainerIds, caption);
 
         } else {
-            // Single Media Flow
-            const singleImageUrl = postData.imageUrls[0];
-            // 1. Create single item container (NO CAPTION HERE)
-            const url = `https://graph.instagram.com/v20.0/${postData.instagramId}/media`;
-            const params = new URLSearchParams({
-                image_url: singleImageUrl,
-                caption: caption,
-                access_token: postData.accessToken,
-            });
-            const response = await fetch(`${url}?${params.toString()}`, { method: 'POST' });
-            const data = await response.json();
-             if (!response.ok || !data.id) {
-                console.error("[INSTAGRAM_V2_API_ERROR] Falha ao criar container de item único:", data.error);
-                throw new Error(data.error?.message || "Falha ao criar o container de item único no Instagram.");
-            }
-            creationId = data.id;
+            // Single Media Flow - create container with caption
+            creationId = await createMediaItemContainer(postData.instagramId, postData.accessToken, postData.imageUrls[0], false, caption);
         }
 
         // 3. Check status of the final container (single or carousel)
