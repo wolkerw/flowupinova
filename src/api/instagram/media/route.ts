@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "O token de acesso do Instagram é obrigatório." }, { status: 400 });
     }
 
-    // ✅ inclui like_count e comments_count
+    // ✅ Campos validados pelo usuário, incluindo like_count e comments_count
     const fields =
       "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
     const url = `https://graph.instagram.com/me/media?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Os dados agora vêm com as contagens básicas, e os insights detalhados serão buscados separadamente.
     const media = (data.data || []).map((item: any) => ({
       id: item.id,
       caption: item.caption,
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       // ✅ agora vem de verdade (ou undefined se oculto)
       like_count: item.like_count ?? 0,
       comments_count: item.comments_count ?? 0,
-      // Insights não vêm aqui — virão por endpoint separado
+      // Insights detalhados (como reach) virão por endpoint separado
       insights: null,
     }));
 

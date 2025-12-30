@@ -302,13 +302,23 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
         fetchInsights();
     }, [open, post, connection]);
-
-    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.total_interactions ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
+    
+    // As métricas de curtidas e comentários agora vêm do post principal.
+    // Usamos os insights apenas para as métricas que não vêm na listagem.
+    const finalInsights = {
+        like_count: post?.like_count ?? 0,
+        comments_count: post?.comments_count ?? 0,
+        reach: insights?.reach ?? 0,
+        saved: insights?.saved ?? 0,
+        shares: insights?.shares ?? 0,
+    };
+    
+    const engagementRate = (finalInsights.reach ?? 0) > 0 ? (((finalInsights.like_count + finalInsights.comments_count + finalInsights.saved) / finalInsights.reach) * 100).toFixed(2) + '%' : '0.00%';
     const isReel = post?.media_type === 'VIDEO';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-gray-50">
+            <DialogContent className="max-w-lg bg-gray-50">
                 <DialogHeader className="border-b pb-4">
                      <DialogTitle className="text-base font-bold text-gray-900">Insights da Publicação</DialogTitle>
                 </DialogHeader>
@@ -316,12 +326,12 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
-                    {insights && post && (
+                    {post && (
                          <div className="space-y-6">
                             
                             <Card className="bg-white overflow-hidden shadow-sm">
                                 <CardContent className="p-4 flex gap-4 items-start">
-                                    <Image src={post.thumbnail_url || post.media_url || 'https://placehold.co/100'} alt="Post" width={120} height={120} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={post.thumbnail_url || post.media_url || 'https://placehold.co/100'} alt="Post" width={100} height={100} className="rounded-md object-cover aspect-square"/>
                                     <div className="flex-grow">
                                         <p className="text-sm text-gray-600 line-clamp-3 mb-1" title={post.caption}>{post.caption || "Post sem legenda."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.timestamp), "dd/MM/yyyy 'às' HH:mm")}</p>
@@ -333,39 +343,20 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                 </CardContent>
                             </Card>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Card className="bg-white shadow-sm">
-                                     <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
-                                        <InsightStat label="Impressões" value={insights.impressions || 0} />
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-white shadow-sm">
+                            <div className="space-y-4">
+                               <Card className="bg-white shadow-sm">
                                     <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento e Alcance</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                         <InsightStat label="Curtidas" value={insights.like_count || 0} />
-                                         <InsightStat label="Comentários" value={insights.comments_count || 0} />
-                                         <InsightStat label="Compartilhamentos" value={insights.shares || 0} />
-                                         <InsightStat label="Salvamentos" value={insights.saved || 0} />
-                                         <InsightStat label="Total de Interações" value={insights.total_interactions || 0} />
+                                         <InsightStat label="Contas alcançadas" value={finalInsights.reach} />
+                                         <InsightStat label="Curtidas" value={finalInsights.like_count} />
+                                         <InsightStat label="Comentários" value={finalInsights.comments_count} />
+                                         <InsightStat label="Compartilhamentos" value={finalInsights.shares} />
+                                         <InsightStat label="Salvamentos" value={finalInsights.saved} />
                                          <InsightStat label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
-                                {isReel && (
-                                     <Card className="bg-white shadow-sm md:col-span-2">
-                                        <CardHeader>
-                                            <CardTitle className="text-base font-bold flex items-center gap-2"><PlayCircle className="w-5 h-5 text-purple-500" /> Desempenho de Vídeo</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="divide-y divide-gray-100">
-                                            <InsightStat label="Visualizações (Plays)" value={insights.plays || 0} />
-                                        </CardContent>
-                                    </Card>
-                                )}
                             </div>
                         </div>
                     )}
@@ -376,12 +367,15 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 };
 
 
+
 const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
   const [media, setMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Cache para os insights buscados
   const [insightsCache, setInsightsCache] = useState<Record<string, any>>({});
   const [loadingInsights, setLoadingInsights] = useState<Record<string, boolean>>({});
 
@@ -403,6 +397,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         });
         const result = await response.json();
         if (result.success) {
+          // Atualiza o cache com os novos insights
           setInsightsCache((prev) => ({ ...prev, [postId]: result.insights }));
         }
       } catch (err) {
@@ -442,7 +437,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         }
 
         setMedia(result.media);
-        // fetch insights for the first few posts
+        // Inicia a busca de insights para os posts visíveis
         result.media.slice(0, 6).forEach((item: any) => fetchPostInsights(item.id));
       } catch (err: any) {
         setError(err.message);
@@ -511,34 +506,29 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                 <p className="text-xs text-gray-500 mb-3">
                   Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
                 </p>
-                {isLoadingCard ? (
-                  <div className="flex justify-center items-center h-20">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                
+                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
                     <div className="flex items-center gap-1.5 text-gray-700">
-                      <Eye className="w-3.5 h-3.5" />
-                      <span className="font-semibold">{postInsights?.reach || item.insights?.reach || 0}</span>
-                      <span className="text-xs text-gray-500">Alcance</span>
+                        <Eye className="w-3.5 h-3.5" />
+                        {isLoadingCard ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="font-semibold">{postInsights?.reach || 0}</span>}
+                        <span className="text-xs text-gray-500">Alcance</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-700">
-                      <Heart className="w-3.5 h-3.5" />
-                      <span className="font-semibold">{postInsights?.like_count ?? item.like_count}</span>
-                      <span className="text-xs text-gray-500">Curtidas</span>
+                        <Heart className="w-3.5 h-3.5" />
+                        <span className="font-semibold">{item.like_count}</span>
+                        <span className="text-xs text-gray-500">Curtidas</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-700">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span className="font-semibold">{postInsights?.comments_count ?? item.comments_count}</span>
-                      <span className="text-xs text-gray-500">Coment.</span>
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span className="font-semibold">{item.comments_count}</span>
+                        <span className="text-xs text-gray-500">Coment.</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-700">
-                      <Save className="w-3.5 h-3.5" />
-                      <span className="font-semibold">{postInsights?.saved || 0}</span>
-                      <span className="text-xs text-gray-500">Salvos</span>
+                        <Save className="w-3.5 h-3.5" />
+                        {isLoadingCard ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="font-semibold">{postInsights?.saved || 0}</span>}
+                        <span className="text-xs text-gray-500">Salvos</span>
                     </div>
-                  </div>
-                )}
+                </div>
               </CardContent>
               <CardFooter className="p-4 pt-0">
                 <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
