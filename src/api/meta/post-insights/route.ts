@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         }
 
         const host = "https://graph.instagram.com";
-        const apiVersion = "v24.0";
+        const apiVersion = "v20.0";
 
         // Step 1: Get the media product type to determine which metrics are available.
         const mediaInfoUrl = `${host}/${apiVersion}/${postId}?fields=media_product_type,media_type&access_token=${accessToken}`;
@@ -38,18 +38,14 @@ export async function POST(request: NextRequest) {
         const mediaType = mediaInfo.media_type; // e.g., IMAGE, VIDEO, CAROUSEL_ALBUM
 
         // Step 2: Build the metrics list based on the media type.
-        let metricsList = 'reach,saved,total_interactions'; // Base metrics for almost all types
+        let metricsList: string;
 
-        // Add metrics specific to Reels/Video
         if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
-            metricsList += ',plays,ig_reels_avg_watch_time,ig_reels_video_view_total_time,likes,comments,shares';
-        } 
-        // Add metrics specific to Feed/Carousel
-        else if (mediaProductType === 'FEED' || mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
-            metricsList += ',impressions,profile_activity,likes,comments,shares';
-        }
-        else { // Fallback for other types like STORY
-            metricsList += ',impressions,likes,comments,shares';
+            // Metrics for Reels and Videos
+            metricsList = 'plays,reach,saved,shares,likes,comments,total_interactions,ig_reels_avg_watch_time';
+        } else {
+            // Metrics for Feed (Image/Carousel)
+            metricsList = 'impressions,reach,saved,shares,likes,comments,total_interactions,profile_activity';
         }
 
 
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
         insightsData.data?.forEach((metric: any) => {
              if (metric.values && metric.values.length > 0) {
                 // Convert ms to seconds for watch time metrics
-                if (metric.name === 'ig_reels_avg_watch_time' || metric.name === 'ig_reels_video_view_total_time') {
+                if (metric.name === 'ig_reels_avg_watch_time') {
                      insights[metric.name] = (metric.values[0].value || 0) / 1000;
                 } else if(metric.name === 'profile_activity') {
                     // Profile activity is an object, so we merge its fields.

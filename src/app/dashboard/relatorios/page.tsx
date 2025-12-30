@@ -392,13 +392,13 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     };
 
     useEffect(() => {
-        const fetchMediaAndInsights = async () => {
-            if (!connection.isConnected || !connection.accessToken) {
-                setError("A conta do Instagram não está conectada.");
-                setIsLoading(false);
-                return;
-            }
-
+        if (!connection.isConnected || !connection.accessToken) {
+            setError("A conta do Instagram não está conectada.");
+            setIsLoading(false);
+            return;
+        }
+    
+        const fetchMedia = async () => {
             setIsLoading(true);
             setError(null);
             
@@ -408,49 +408,26 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ accessToken: connection.accessToken }),
                 });
-
+    
                 const result = await response.json();
                 
                 if (!response.ok || !result.success) {
-                     if (response.status === 401) {
-                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+                    if (response.status === 401) {
+                        throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
                     }
                     throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
                 }
-                
-                // Fetch insights for each post sequentially after getting media
-                const mediaWithInsights = await Promise.all(result.media.map(async (item: any) => {
-                    try {
-                        const insightsResponse = await fetch('/api/meta/post-insights', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ accessToken: connection.accessToken, postId: item.id }),
-                        });
-                        const insightsResult = await insightsResponse.json();
-                        if (insightsResult.success) {
-                           return {
-                                ...item,
-                                insights: insightsResult.insights,
-                                like_count: insightsResult.insights.like_count ?? 0,
-                                comments_count: insightsResult.insights.comments_count ?? 0,
-                            };
-                        }
-                    } catch (insightsError) {
-                        console.error(`Failed to fetch insights for post ${item.id}`, insightsError);
-                    }
-                    return item; // return original item if insights fetch fails
-                }));
-
-                setMedia(mediaWithInsights);
-
+    
+                setMedia(result.media);
+    
             } catch (err: any) {
                 setError(err.message);
             } finally {
                 setIsLoading(false);
             }
         };
-
-        fetchMediaAndInsights();
+    
+        fetchMedia();
     }, [connection]);
 
     if (isLoading) {
@@ -791,7 +768,7 @@ export default function Relatorios() {
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <Tabs defaultValue="facebook" className="w-full">
+                        <Tabs defaultValue="instagram" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
                                 <TabsTrigger value="facebook" disabled={!metaConnection?.isConnected}>
                                     <Facebook className="w-4 h-4 mr-2" />
