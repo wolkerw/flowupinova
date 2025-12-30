@@ -303,18 +303,14 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
         fetchInsights();
     }, [open, post, connection]);
     
-    // As métricas de curtidas e comentários agora vêm do post principal.
-    // Usamos os insights apenas para as métricas que não vêm na listagem.
-    const finalInsights = {
-        like_count: post?.like_count ?? 0,
-        comments_count: post?.comments_count ?? 0,
-        reach: insights?.reach ?? 0,
-        saved: insights?.saved ?? 0,
-        shares: insights?.shares ?? 0,
-    };
+    // Use like_count/comments_count from main post object, but override with insights if available
+    const finalLikes = insights?.likes ?? post?.like_count ?? 0;
+    const finalComments = insights?.comments ?? post?.comments_count ?? 0;
+    const finalReach = insights?.reach ?? 0;
+    const finalSaved = insights?.saved ?? 0;
+    const finalShares = insights?.shares ?? 0;
     
-    const engagementRate = (finalInsights.reach ?? 0) > 0 ? (((finalInsights.like_count + finalInsights.comments_count + finalInsights.saved) / finalInsights.reach) * 100).toFixed(2) + '%' : '0.00%';
-    const isReel = post?.media_type === 'VIDEO';
+    const engagementRate = (finalReach > 0) ? (((finalLikes + finalComments + finalSaved) / finalReach) * 100).toFixed(2) + '%' : '0.00%';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -349,11 +345,11 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Engajamento e Alcance</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                         <InsightStat label="Contas alcançadas" value={finalInsights.reach} />
-                                         <InsightStat label="Curtidas" value={finalInsights.like_count} />
-                                         <InsightStat label="Comentários" value={finalInsights.comments_count} />
-                                         <InsightStat label="Compartilhamentos" value={finalInsights.shares} />
-                                         <InsightStat label="Salvamentos" value={finalInsights.saved} />
+                                         <InsightStat label="Contas alcançadas" value={finalReach} />
+                                         <InsightStat label="Curtidas" value={finalLikes} />
+                                         <InsightStat label="Comentários" value={finalComments} />
+                                         <InsightStat label="Compartilhamentos" value={finalShares} />
+                                         <InsightStat label="Salvamentos" value={finalSaved} />
                                          <InsightStat label="Taxa de Engajamento" value={engagementRate} />
                                     </CardContent>
                                 </Card>
@@ -395,13 +391,28 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: connection.accessToken, postId }),
         });
-        const result = await response.json();
-        if (result.success) {
-          // Atualiza o cache com os novos insights
-          setInsightsCache((prev) => ({ ...prev, [postId]: result.insights }));
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorJson = {};
+            try {
+              errorJson = JSON.parse(errorText);
+            } catch (e) {
+              // Not a JSON error response
+            }
+            // @ts-ignore
+            throw new Error(errorJson?.error || `Falha na requisição de insights (${response.status})`);
         }
-      } catch (err) {
-        console.error(`Failed to fetch insights for post ${postId}:`, err);
+
+        const result = await response.json();
+        
+        if (result.success) {
+          setInsightsCache((prev) => ({ ...prev, [postId]: result.insights }));
+        } else {
+           throw new Error(result.error);
+        }
+      } catch (err: any) {
+        console.error(`Failed to fetch insights for post ${postId}:`, err.message);
       } finally {
         setLoadingInsights((prev) => ({ ...prev, [postId]: false }));
       }
@@ -437,7 +448,6 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         }
 
         setMedia(result.media);
-        // Inicia a busca de insights para os posts visíveis
         result.media.slice(0, 6).forEach((item: any) => fetchPostInsights(item.id));
       } catch (err: any) {
         setError(err.message);
