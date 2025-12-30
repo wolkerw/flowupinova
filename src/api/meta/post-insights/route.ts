@@ -1,82 +1,95 @@
 
+// src/app/api/meta/post-insights/route.ts
 import { NextResponse, type NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface InsightsRequestBody {
   accessToken: string;
-  postId: string;
+  postId: string; // mediaId
 }
 
-// Helper to fetch data from Meta API
-async function fetchFromMeta(url: string) {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.error) {
-        console.error("[POST_INSIGHTS_ERROR] API Error:", data.error);
-        throw new Error(`Erro na API (${data.error.code}): ${data.error.message}`);
-    }
-    return data;
+async function fetchJson(url: string) {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) {
+    const msg = json?.error?.message || `HTTP ${res.status}`;
+    const code = json?.error?.code;
+    throw new Error(code ? `Erro na API (${code}): ${msg}` : msg);
+  }
+  return json;
+}
+
+function pickInsights(insightsData: any) {
+  const out: Record<string, number> = {};
+  for (const metric of insightsData?.data || []) {
+    const v = metric?.values?.[0]?.value;
+    if (typeof v === "number") out[metric.name] = v;
+  }
+  return out;
 }
 
 export async function POST(request: NextRequest) {
-    try {
-        const body: InsightsRequestBody = await request.json();
-        const { accessToken, postId } = body;
+  try {
+    const body: InsightsRequestBody = await request.json();
+    const { accessToken, postId } = body;
 
-        if (!accessToken || !postId) {
-            return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
-        }
-
-        const host = "https://graph.instagram.com";
-        const apiVersion = "v20.0";
-
-        // Step 1: Get the media product type to determine which metrics are available.
-        const mediaInfoUrl = `${host}/${apiVersion}/${postId}?fields=media_product_type,media_type&access_token=${accessToken}`;
-        const mediaInfo = await fetchFromMeta(mediaInfoUrl);
-        const mediaProductType = mediaInfo.media_product_type; // e.g., FEED, REELS, STORY
-        const mediaType = mediaInfo.media_type; // e.g., IMAGE, VIDEO, CAROUSEL_ALBUM
-
-        // Step 2: Build the metrics list based on the media type.
-        let metricsList: string;
-
-        if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
-            // Metrics for Reels and Videos
-            metricsList = 'plays,reach,saved,shares,likes,comments,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time';
-        } else {
-            // Metrics for Feed (Image/Carousel)
-            metricsList = 'impressions,reach,saved,shares,likes,comments,total_interactions,profile_activity';
-        }
-
-
-        // Step 3: Fetch the insights with the dynamically built metrics list.
-        const insightsUrl = `${host}/${apiVersion}/${postId}/insights?metric=${metricsList}&access_token=${accessToken}`;
-        const insightsData = await fetchFromMeta(insightsUrl);
-
-        const insights: { [key: string]: any } = {};
-        insightsData.data?.forEach((metric: any) => {
-             if (metric.values && metric.values.length > 0) {
-                // Convert ms to seconds for watch time metrics
-                if (metric.name === 'ig_reels_avg_watch_time' || metric.name === 'ig_reels_video_view_total_time') {
-                     insights[metric.name] = (metric.values[0].value || 0) / 1000;
-                } else if(metric.name === 'profile_activity') {
-                    // Profile activity is an object, so we merge its fields.
-                    const activityValue = metric.values[0].value || {};
-                    Object.assign(insights, activityValue);
-                } else {
-                    insights[metric.name] = metric.values[0].value || 0;
-                }
-            }
-        });
-
-        // The API already gives 'likes' and 'comments' for some types, so we just ensure they exist for consistency.
-        insights['like_count'] = insights.likes ?? 0;
-        insights['comments_count'] = insights.comments ?? 0;
-        
-        return NextResponse.json({ success: true, insights });
-
-    } catch (error: any) {
-        console.error("[POST_INSIGHTS_ERROR] Internal error:", error.message);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (!accessToken || !postId) {
+      return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
     }
+
+    const host = "https://graph.instagram.com";
+    const apiVersion = "v24.0";
+
+    // 1) campos reais do media (curtidas/comentários)
+    const mediaInfoUrl = `${host}/${apiVersion}/${postId}?fields=media_type,like_count,comments_count&access_token=${encodeURIComponent(accessToken)}`;
+    const mediaInfo = await fetchJson(mediaInfoUrl);
+
+    // 2) insights “seguros” (Instagram Login)
+    // ⚠️ requer scope instagram_business_manage_insights
+    const baseMetrics = ["reach", "impressions", "engagement", "saved"];
+    const insightsUrl = `${host}/${apiVersion}/${postId}/insights?metric=${baseMetrics.join(",")}&access_token=${encodeURIComponent(accessToken)}`;
+
+    let insightsMap: Record<string, number> = {};
+    try {
+      const insightsData = await fetchJson(insightsUrl);
+      insightsMap = pickInsights(insightsData);
+    } catch (e: any) {
+      // se não tiver permissão de insights, não quebra tudo — só volta sem reach etc.
+      // (o front mostra 0/—)
+      insightsMap = {};
+    }
+
+    // 3) opcional: plays para vídeo (se suportar)
+    if (mediaInfo?.media_type === "VIDEO") {
+      const playsUrl = `${host}/${apiVersion}/${postId}/insights?metric=plays&access_token=${encodeURIComponent(accessToken)}`;
+      try {
+        const playsData = await fetchJson(playsUrl);
+        Object.assign(insightsMap, pickInsights(playsData));
+      } catch {}
+    }
+
+    const likeCount = mediaInfo?.like_count ?? 0;
+    const commentsCount = mediaInfo?.comments_count ?? 0;
+    const saved = insightsMap.saved ?? 0;
+
+    const insights = {
+      reach: insightsMap.reach ?? 0,
+      impressions: insightsMap.impressions ?? 0,
+      engagement: insightsMap.engagement ?? 0,
+      saved,
+      plays: insightsMap.plays ?? 0,
+      like_count: likeCount,
+      comments_count: commentsCount,
+      // “total_interactions” pra tua UI:
+      total_interactions: (likeCount + commentsCount + saved),
+      // shares não é garantido no Instagram Login:
+      shares: 0,
+    };
+
+    return NextResponse.json({ success: true, insights });
+  } catch (error: any) {
+    console.error("[POST_INSIGHTS_ERROR] Internal error:", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

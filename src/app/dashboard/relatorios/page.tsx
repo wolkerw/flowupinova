@@ -336,13 +336,11 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Atividade</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat label="Contas alcançadas" value={insights.reach || 0} />
-                                        {insights.impressions !== undefined && <InsightStat label="Impressões" value={insights.impressions} />}
-                                        <InsightStat label="Visitas ao Perfil" value={insights.profile_visits || 0} />
-                                        <InsightStat label="Cliques no Link do Site" value={insights.website_clicks || 0} />
+                                        <InsightStat label="Impressões" value={insights.impressions || 0} />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-white shadow-sm">
@@ -365,7 +363,6 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                                         </CardHeader>
                                         <CardContent className="divide-y divide-gray-100">
                                             <InsightStat label="Visualizações (Plays)" value={insights.plays || 0} />
-                                            <InsightStat label="Tempo médio de visualização" value={`${(insights.ig_reels_avg_watch_time || 0).toFixed(2)}s`} />
                                         </CardContent>
                                     </Card>
                                 )}
@@ -380,157 +377,184 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
 
 const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
-    const [media, setMedia] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedPost, setSelectedPost] = useState<any | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+  const [media, setMedia] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [insightsCache, setInsightsCache] = useState<Record<string, any>>({});
+  const [loadingInsights, setLoadingInsights] = useState<Record<string, boolean>>({});
 
-    const handleOpenModal = (post: any) => {
-        setSelectedPost(post);
-        setIsModalOpen(true);
+  const handleOpenModal = (post: any) => {
+    setSelectedPost(post);
+    setIsModalOpen(true);
+  };
+
+  const fetchPostInsights = React.useCallback(
+    async (postId: string) => {
+      if (!connection.accessToken || insightsCache[postId]) return;
+
+      setLoadingInsights((prev) => ({ ...prev, [postId]: true }));
+      try {
+        const response = await fetch('/api/meta/post-insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: connection.accessToken, postId }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          setInsightsCache((prev) => ({ ...prev, [postId]: result.insights }));
+        }
+      } catch (err) {
+        console.error(`Failed to fetch insights for post ${postId}:`, err);
+      } finally {
+        setLoadingInsights((prev) => ({ ...prev, [postId]: false }));
+      }
+    },
+    [connection.accessToken, insightsCache]
+  );
+
+  useEffect(() => {
+    if (!connection.isConnected || !connection.accessToken) {
+      setError("A conta do Instagram não está conectada.");
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchMedia = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/instagram/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: connection.accessToken }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          if (response.status === 401) {
+            throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+          }
+          throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
+        }
+
+        setMedia(result.media);
+        // fetch insights for the first few posts
+        result.media.slice(0, 6).forEach((item: any) => fetchPostInsights(item.id));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    useEffect(() => {
-        if (!connection.isConnected || !connection.accessToken) {
-            setError("A conta do Instagram não está conectada.");
-            setIsLoading(false);
-            return;
-        }
-    
-        const fetchMedia = async () => {
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const response = await fetch('/api/instagram/media', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken: connection.accessToken }),
-                });
-    
-                const result = await response.json();
-                
-                if (!response.ok || !result.success) {
-                    if (response.status === 401) {
-                        throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
-                    }
-                    throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
-                }
-    
-                setMedia(result.media);
-    
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-    
-        fetchMedia();
-    }, [connection]);
+    fetchMedia();
+  }, [connection, fetchPostInsights]);
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-40">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-                <p className="ml-4 text-gray-600">Buscando posts do Instagram...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-         return (
-            <div className="border-l-4 border-red-400 bg-red-50 p-4">
-                <div className="flex">
-                    <div className="flex-shrink-0">
-                        <AlertTriangle className="h-5 w-5 text-red-400" />
-                    </div>
-                    <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
-                        <p className="mt-2 text-sm text-red-700">{error}</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-    
-    if (media.length === 0) {
-        return (
-            <div className="text-center text-gray-500 py-10">
-                <Instagram className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
-                <p className="text-sm">Não há posts no seu perfil do Instagram para analisar.</p>
-            </div>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {media.map((item) => {
-                const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
-                
-                return (
-                    <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
-                        <CardHeader className="p-4">
-                            <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
-                                 <Image 
-                                    src={imageSrc} 
-                                    alt="Imagem do post" 
-                                    fill
-                                    unoptimized
-                                    className="object-cover"
-                                />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 flex-grow">
-                            <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p>
-                            <p className="text-xs text-gray-500 mb-3">
-                                Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
-                            </p>
-                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights?.reach || 0}</span>
-                                    <span className="text-xs text-gray-500">Alcance</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Heart className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.like_count || 0}</span>
-                                    <span className="text-xs text-gray-500">Curtidas</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <MessageCircle className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.comments_count || 0}</span>
-                                    <span className="text-xs text-gray-500">Comentários</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Share2 className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{item.insights?.shares || 0}</span>
-                                    <span className="text-xs text-gray-500">Compart.</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                         <CardFooter className="p-4 pt-0">
-                             <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
-                                <BarChart className="w-4 h-4 mr-2" />
-                                Ver mais Insights
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                );
-            })}
-        </div>
-         <InstagramPostInsightsModal 
-            post={selectedPost}
-            open={isModalOpen}
-            onOpenChange={setIsModalOpen}
-            connection={connection}
-        />
-        </>
+      <div className="flex items-center justify-center h-40">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+        <p className="ml-4 text-gray-600">Buscando posts do Instagram...</p>
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="border-l-4 border-red-400 bg-red-50 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <AlertTriangle className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
+            <p className="mt-2 text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (media.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-10">
+        <Instagram className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
+        <p className="text-sm">Não há posts no seu perfil do Instagram para analisar.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {media.map((item) => {
+          const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
+          const postInsights = insightsCache[item.id];
+          const isLoadingCard = loadingInsights[item.id];
+
+          return (
+            <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
+              <CardHeader className="p-4">
+                <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
+                  <Image src={imageSrc} alt="Imagem do post" fill unoptimized className="object-cover" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 flex-grow">
+                <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>
+                  {item.caption || "Post sem legenda."}
+                </p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
+                </p>
+                {isLoadingCard ? (
+                  <div className="flex justify-center items-center h-20">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{postInsights?.reach || item.insights?.reach || 0}</span>
+                      <span className="text-xs text-gray-500">Alcance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Heart className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{postInsights?.like_count ?? item.like_count}</span>
+                      <span className="text-xs text-gray-500">Curtidas</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{postInsights?.comments_count ?? item.comments_count}</span>
+                      <span className="text-xs text-gray-500">Coment.</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-700">
+                      <Save className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{postInsights?.saved || 0}</span>
+                      <span className="text-xs text-gray-500">Salvos</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="p-4 pt-0">
+                <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
+                  <BarChart className="w-4 h-4 mr-2" />
+                  Ver mais Insights
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+      <InstagramPostInsightsModal post={selectedPost} open={isModalOpen} onOpenChange={setIsModalOpen} connection={connection} />
+    </>
+  );
 };
+
 
 
 const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
@@ -1011,4 +1035,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
