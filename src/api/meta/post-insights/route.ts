@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
         if (mediaProductType === 'REELS' || mediaType === 'VIDEO') {
             // Metrics for Reels and Videos
-            metricsList = 'plays,reach,saved,shares,likes,comments,total_interactions,ig_reels_avg_watch_time';
+            metricsList = 'plays,reach,saved,shares,likes,comments,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time';
         } else {
             // Metrics for Feed (Image/Carousel)
             metricsList = 'impressions,reach,saved,shares,likes,comments,total_interactions,profile_activity';
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         insightsData.data?.forEach((metric: any) => {
              if (metric.values && metric.values.length > 0) {
                 // Convert ms to seconds for watch time metrics
-                if (metric.name === 'ig_reels_avg_watch_time') {
+                if (metric.name === 'ig_reels_avg_watch_time' || metric.name === 'ig_reels_video_view_total_time') {
                      insights[metric.name] = (metric.values[0].value || 0) / 1000;
                 } else if(metric.name === 'profile_activity') {
                     // Profile activity is an object, so we merge its fields.
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // The API already gives 'likes' and 'comments', so we just ensure they exist for consistency.
+        // The API already gives 'likes' and 'comments' for some types, so we just ensure they exist for consistency.
         insights['like_count'] = insights.likes ?? 0;
         insights['comments_count'] = insights.comments ?? 0;
         
