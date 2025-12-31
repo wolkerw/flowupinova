@@ -7,6 +7,36 @@ interface MediaRequestBody {
   accessToken: string;
 }
 
+// Helper para buscar insights de um post específico
+async function getPostInsights(postId: string, accessToken: string) {
+  const metrics = "reach,saved"; // Pedimos apenas o que não vem na chamada principal
+  const insightsUrl = `https://graph.instagram.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
+  
+  try {
+    const response = await fetch(insightsUrl, { cache: 'no-store' });
+    const data = await response.json();
+    
+    if (data.error) {
+      // É comum a API retornar erro para métricas específicas (ex: posts antigos), então não tratamos como erro fatal.
+      console.warn(`[INSIGHTS_WARN] Could not fetch insights for post ${postId}: ${data.error.message}`);
+      return { reach: 0, saved: 0 };
+    }
+    
+    const getMetricValue = (metricName: string) => {
+      const metric = data.data.find((m: any) => m.name === metricName);
+      return metric?.values?.[0]?.value ?? 0;
+    };
+
+    return {
+      reach: getMetricValue('reach'),
+      saved: getMetricValue('saved'),
+    };
+  } catch (e) {
+    console.error(`[INSIGHTS_FETCH_ERROR] for post ${postId}:`, e);
+    return { reach: 0, saved: 0 };
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: MediaRequestBody = await request.json();
@@ -44,20 +74,31 @@ export async function POST(request: NextRequest) {
         { status: response.status }
       );
     }
+    
+    const mediaItems = data.data || [];
 
-    const media = (data.data || []).map((item: any) => ({
-      id: item.id,
-      caption: item.caption,
-      media_type: item.media_type,
-      media_url: item.media_url,
-      thumbnail_url: item.thumbnail_url || item.media_url,
-      permalink: item.permalink,
-      timestamp: item.timestamp,
-      like_count: item.like_count ?? 0,
-      comments_count: item.comments_count ?? 0,
-    }));
+    // Busca os insights para cada post em paralelo
+    const mediaWithInsights = await Promise.all(
+      mediaItems.map(async (item: any) => {
+        const insights = await getPostInsights(item.id, accessToken);
+        return {
+          id: item.id,
+          caption: item.caption,
+          media_type: item.media_type,
+          media_url: item.media_url,
+          thumbnail_url: item.thumbnail_url || item.media_url,
+          permalink: item.permalink,
+          timestamp: item.timestamp,
+          like_count: item.like_count ?? 0,
+          comments_count: item.comments_count ?? 0,
+          // Adiciona os insights ao objeto do post
+          insights: insights, 
+        };
+      })
+    );
 
-    return NextResponse.json({ success: true, media });
+    return NextResponse.json({ success: true, media: mediaWithInsights });
+
   } catch (error: any) {
     console.error("[INSTAGRAM_MEDIA_ERROR]", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

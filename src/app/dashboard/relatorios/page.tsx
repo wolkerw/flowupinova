@@ -370,56 +370,12 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Cache para os insights buscados
-  const [insightsCache, setInsightsCache] = useState<Record<string, any>>({});
-  const [loadingInsights, setLoadingInsights] = useState<Record<string, boolean>>({});
 
   const handleOpenModal = (post: any) => {
     setSelectedPost(post);
     setIsModalOpen(true);
   };
-
-  const fetchPostInsights = React.useCallback(
-    async (postId: string) => {
-      if (!connection.accessToken || insightsCache[postId]) return;
-
-      setLoadingInsights((prev) => ({ ...prev, [postId]: true }));
-      try {
-        const response = await fetch('/api/meta/post-insights', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: connection.accessToken, postId }),
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorJson = {};
-            try {
-              errorJson = JSON.parse(errorText);
-            } catch (e) {
-              // Not a JSON error response
-            }
-            // @ts-ignore
-            throw new Error(errorJson?.error || `Falha na requisição de insights (${response.status})`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-          setInsightsCache((prev) => ({ ...prev, [postId]: result.insights }));
-        } else {
-           throw new Error(result.error);
-        }
-      } catch (err: any) {
-        console.error(`Failed to fetch insights for post ${postId}:`, err.message);
-      } finally {
-        setLoadingInsights((prev) => ({ ...prev, [postId]: false }));
-      }
-    },
-    [connection.accessToken, insightsCache]
-  );
-
+  
   useEffect(() => {
     if (!connection.isConnected || !connection.accessToken) {
       setError("A conta do Instagram não está conectada.");
@@ -448,7 +404,6 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         }
 
         setMedia(result.media);
-        result.media.slice(0, 6).forEach((item: any) => fetchPostInsights(item.id));
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -457,7 +412,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     };
 
     fetchMedia();
-  }, [connection, fetchPostInsights]);
+  }, [connection]);
 
   if (isLoading) {
     return (
@@ -499,8 +454,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {media.map((item) => {
           const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
-          const postInsights = insightsCache[item.id];
-          const isLoadingCard = loadingInsights[item.id];
+          const postInsights = item.insights || {};
 
           return (
             <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
@@ -520,7 +474,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                 <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
                     <div className="flex items-center gap-1.5 text-gray-700">
                         <Eye className="w-3.5 h-3.5" />
-                        {isLoadingCard ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="font-semibold">{postInsights?.reach || 0}</span>}
+                        <span className="font-semibold">{postInsights.reach ?? 0}</span>
                         <span className="text-xs text-gray-500">Alcance</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-700">
@@ -535,7 +489,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-700">
                         <Save className="w-3.5 h-3.5" />
-                        {isLoadingCard ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="font-semibold">{postInsights?.saved || 0}</span>}
+                        <span className="font-semibold">{postInsights.saved ?? 0}</span>
                         <span className="text-xs text-gray-500">Salvos</span>
                     </div>
                 </div>
