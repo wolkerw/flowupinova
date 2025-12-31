@@ -169,6 +169,23 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
         fetchInsights();
     }, [open, post, connection]);
 
+    const ReactionDetail = ({ type, count }: { type: string, count: number }) => {
+        const reactionIcons: { [key: string]: React.ElementType } = {
+            like: ThumbsUp,
+            love: Heart,
+        };
+        const Icon = reactionIcons[type] || Heart;
+        return (
+            <div className="flex items-center justify-between text-sm py-1.5">
+                <div className="flex items-center gap-2 text-gray-600 capitalize">
+                    <Icon className="w-4 h-4" />
+                    {type}
+                </div>
+                <span className="font-medium">{count.toLocaleString()}</span>
+            </div>
+        );
+    };
+
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-xl bg-gray-50">
@@ -204,8 +221,22 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Desempenho Geral</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                            <InsightStat icon={TrendingUp} label="Impressões" value={insights.impressions || 0} description="Total de visualizações do post"/>
-                                            <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users || 0} description="Pessoas que curtiram, comentaram, etc."/>
+                                            <InsightStat icon={TrendingUp} label="Alcance do Post" value={insights.reach || 0} description="Pessoas únicas que viram o post."/>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-white shadow-sm">
+                                     <CardHeader>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Reações</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="divide-y divide-gray-100">
+                                        {insights.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
+                                             Object.entries(insights.reactions_by_type).map(([type, count]) => (
+                                                <ReactionDetail key={type} type={type} count={count as number} />
+                                             ))
+                                        ) : (
+                                            <div className="text-sm text-gray-500 text-center py-4">Nenhuma reação detalhada encontrada.</div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
@@ -329,8 +360,6 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [insightsCache, setInsightsCache] = useState<{ [key: string]: any }>({});
-  const [loadingInsights, setLoadingInsights] = useState<{ [key: string]: boolean }>({});
 
 
   const handleOpenModal = (post: any) => {
@@ -363,7 +392,8 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
           }
           throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
         }
-
+        
+        // Agora, o `reach` e `saved` vêm diretamente da API de mídia
         setMedia(result.media);
       } catch (err: any) {
         setError(err.message);

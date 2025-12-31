@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
         
-        // Usando um conjunto de métricas mais seguro e universalmente aceito para Page Posts
+        // Usando as métricas validadas no Explorer que funcionam para Page Posts
         const metricsList = [
-            'post_impressions',
-            'post_engaged_users',
+            'post_impressions_unique',
+            'post_reactions_by_type_total'
         ].join(',');
 
         // Única chamada para o endpoint de insights com as métricas necessárias
@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
         const rawInsights = insightsData.data || [];
 
         const insights = {
-            impressions: getMetricValue(rawInsights, 'post_impressions'),
-            engaged_users: getMetricValue(rawInsights, 'post_engaged_users'),
+            reach: getMetricValue(rawInsights, 'post_impressions_unique'),
+            reactions_by_type: getMetricValue(rawInsights, 'post_reactions_by_type_total'),
         };
         
         // Adiciona a busca pelo permalink_url para o link direto
