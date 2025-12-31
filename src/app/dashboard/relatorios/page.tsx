@@ -54,13 +54,17 @@ import { motion } from "framer-motion";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
-import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
+import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import Image from "next/image";
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { config } from "@/lib/config";
+
 
 const performanceData = [
     { month: 'Jan', impressions: 15000, clicks: 890, conversions: 45 },
@@ -279,7 +283,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             setInsights(null);
 
             try {
-                const response = await fetch('/api/instagram/v2/post-insights', {
+                const response = await fetch('/api/meta/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -299,6 +303,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                 }
                 setInsights(result.insights);
             } catch (err: any) {
+                console.error(`Failed to fetch insights for post ${post.id}:`, err.message);
                 setError(err.message);
             } finally {
                 setIsLoading(false);
@@ -369,7 +374,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
 
 
-const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData }) => {
+const InstagramMediaViewer = ({ connection, onConnect }: { connection: InstagramConnectionData; onConnect: () => void; }) => {
   const [media, setMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -383,7 +388,6 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   
   useEffect(() => {
     if (!connection.isConnected || !connection.accessToken) {
-      setError("A conta do Instagram não está conectada.");
       setIsLoading(false);
       return;
     }
@@ -418,6 +422,20 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
 
     fetchMedia();
   }, [connection]);
+
+  if (!connection.isConnected) {
+    return (
+      <div className="text-center text-gray-500 py-10">
+        <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="font-semibold text-lg">Conta do Instagram não conectada</h3>
+        <p className="text-sm mb-4">Conecte sua conta para ver as análises dos seus posts.</p>
+        <Button onClick={onConnect}>
+            <Instagram className="w-4 h-4 mr-2" />
+            Conectar Instagram
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -515,7 +533,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
 
 
 
-const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData }) => {
+const MetaPagePostsViewer = ({ connection, onConnect }: { connection: MetaConnectionData; onConnect: () => void; }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -528,13 +546,12 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
     };
 
     useEffect(() => {
-        const fetchPosts = async () => {
-            if (!connection.isConnected || !connection.accessToken || !connection.pageId) {
-                setError("A conta da Meta não está conectada ou o ID da página não está disponível.");
-                setIsLoading(false);
-                return;
-            }
+        if (!connection.isConnected || !connection.pageId) {
+            setIsLoading(false);
+            return;
+        }
 
+        const fetchPosts = async () => {
             setIsLoading(true);
             setError(null);
             
@@ -567,6 +584,20 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
 
         fetchPosts();
     }, [connection]);
+
+    if (!connection.isConnected) {
+        return (
+          <div className="text-center text-gray-500 py-10">
+            <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3>
+            <p className="text-sm mb-4">Conecte sua conta para ver as análises dos seus posts.</p>
+            <Button onClick={onConnect}>
+                <Facebook className="w-4 h-4 mr-2" />
+                Conectar Página
+            </Button>
+          </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -669,9 +700,33 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
 
 export default function Relatorios() {
   const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  
+  const handleConnectMeta = () => {
+    if (!user) return;
+    const redirectUri = new URL("/dashboard/conteudo", window.location.origin).toString();
+    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${"826418333144156"}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user.uid}&scope=pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management&response_type=code`;
+    router.push(authUrl);
+  };
+
+  const handleConnectInstagram = () => {
+    if (!user) return;
+    const clientId = config.instagram.appId;
+    const redirectUri = config.instagram.redirectUri;
+    if (!clientId || !redirectUri) {
+      toast({ variant: "destructive", title: "Erro de Configuração", description: "As credenciais do Instagram não estão configuradas." });
+      return;
+    }
+    const state = user.uid;
+    const scope = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=${state}`;
+    router.push(authUrl);
+  };
   
   useEffect(() => {
     if (!user) return;
@@ -756,32 +811,31 @@ export default function Relatorios() {
                                     <Facebook className="w-4 h-4 mr-2" />
                                     Facebook
                                 </TabsTrigger>
-                                <TabsTrigger value="instagram" disabled={!instagramConnection?.isConnected}>
+                                <TabsTrigger value="instagram">
                                     <Instagram className="w-4 h-4 mr-2" />
                                     Instagram
                                 </TabsTrigger>
                             </TabsList>
                             <TabsContent value="facebook" className="mt-6">
-                                {metaConnection?.isConnected ? (
-                                    <MetaPagePostsViewer connection={metaConnection} />
+                                {metaConnection ? (
+                                    <MetaPagePostsViewer connection={metaConnection} onConnect={handleConnectMeta}/>
                                 ) : (
                                     <div className="text-center text-gray-500 py-10">
-                                      <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                                      <h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3>
-                                      <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+                                      <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-4" />
+                                      <h3 className="font-semibold text-lg">Carregando dados da conexão...</h3>
                                   </div>
                                 )}
                             </TabsContent>
                             <TabsContent value="instagram" className="mt-6">
-                                {instagramConnection?.isConnected ? (
+                                {instagramConnection ? (
                                     <InstagramMediaViewer 
                                       connection={instagramConnection}
+                                      onConnect={handleConnectInstagram}
                                     />
                                 ) : (
                                    <div className="text-center text-gray-500 py-10">
-                                      <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                                      <h3 className="font-semibold text-lg">Conta do Instagram não conectada</h3>
-                                      <p className="text-sm">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+                                      <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-4" />
+                                      <h3 className="font-semibold text-lg">Carregando dados da conexão...</h3>
                                   </div>
                                 )}
                             </TabsContent>
