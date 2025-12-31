@@ -432,7 +432,7 @@ const InstagramMediaViewer = ({ connection, onConnect }: { connection: Instagram
         <Button asChild>
             <Link href="/dashboard/conteudo">
                 <Instagram className="w-4 h-4 mr-2" />
-                Ir para Conteúdo
+                Conectar Instagram
             </Link>
         </Button>
       </div>
@@ -596,7 +596,7 @@ const MetaPagePostsViewer = ({ connection, onConnect }: { connection: MetaConnec
             <Button asChild>
                 <Link href="/dashboard/conteudo">
                     <Facebook className="w-4 h-4 mr-2" />
-                    Ir para Conteúdo
+                    Conectar Página
                 </Link>
             </Button>
           </div>
@@ -1051,4 +1051,3 @@ export default function Relatorios() {
   );
 }
 
-    
