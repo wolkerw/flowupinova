@@ -135,15 +135,6 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     const [insights, setInsights] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
-    const reactionIcons: { [key: string]: React.ReactElement } = {
-        like: <ThumbsUp className="w-5 h-5 text-blue-500" />,
-        love: <Heart className="w-5 h-5 text-red-500 fill-current" />,
-        wow: <div className="text-lg">😮</div>,
-        haha: <div className="text-lg">😂</div>,
-        sorry: <div className="text-lg">😢</div>,
-        anger: <div className="text-lg">😡</div>,
-    };
 
     useEffect(() => {
         const fetchInsights = async () => {
@@ -177,16 +168,10 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
 
         fetchInsights();
     }, [open, post, connection]);
-    
-    // Calculated metrics
-    const ctr = (insights?.impressions ?? 0) > 0 ? (((insights?.clicks ?? 0) / insights.impressions) * 100).toFixed(2) + '%' : '0.00%';
-    const engagementRate = (insights?.reach ?? 0) > 0 ? (((insights?.engaged_users ?? 0) / insights.reach) * 100).toFixed(2) + '%' : '0.00%';
-    const reactions = insights?.reactions_detail || {};
-    const totalReactions = Object.values(reactions).reduce((acc: any, value: any) => acc + value, 0);
 
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-gray-50">
+            <DialogContent className="max-w-xl bg-gray-50">
                 <DialogHeader className="border-b pb-4">
                      <DialogTitle className="text-base font-bold text-gray-900">Insights da Publicação</DialogTitle>
                 </DialogHeader>
@@ -213,50 +198,14 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
                             
-                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <Card className="bg-white shadow-sm md:col-span-1">
+                           <div className="grid grid-cols-1 gap-6">
+                                <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Alcance e Impressões</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Desempenho Geral</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                            <InsightStat icon={Users} label="Alcance Total" value={insights.reach || 0} description="Pessoas únicas que viram"/>
-                                            <InsightStat icon={TrendingUp} label="Impressões Totais" value={insights.impressions || 0} description="Total de visualizações"/>
-                                            <div className="pt-3 space-y-2">
-                                                <Label className="text-xs text-gray-500">Alcance Orgânico ({insights.reach_organic || 0})</Label>
-                                                <Progress value={((insights.reach_organic || 0) / (insights.reach || 1)) * 100} className="h-2"/>
-                                            </div>
-                                             <div className="pt-3 space-y-2">
-                                                <Label className="text-xs text-gray-500">Impressões Orgânicas ({insights.impressions_organic || 0})</Label>
-                                                <Progress value={((insights.impressions_organic || 0) / (insights.impressions || 1)) * 100} className="h-2"/>
-                                            </div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="bg-white shadow-sm md:col-span-1">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><MousePointer className="w-5 h-5 text-green-500" /> Cliques e Engajamento</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="divide-y divide-gray-100">
-                                         <InsightStat icon={MousePointer} label="Cliques no post" value={insights.clicks || 0} />
-                                         <InsightStat icon={BarChart2} label="Taxa de Cliques (CTR)" value={ctr} />
-                                         <InsightStat icon={Users} label="Pessoas engajadas" value={insights.engaged_users || 0} />
-                                         <InsightStat icon={BarChart2} label="Taxa de Engajamento" value={engagementRate} />
-                                    </CardContent>
-                                </Card>
-                               <Card className="bg-white shadow-sm md:col-span-1">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Interações e Reações</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat icon={MessageCircle} label="Comentários" value={insights.comments || 0} />
-                                        <InsightStat icon={Share2} label="Compartilhamentos" value={insights.shares || 0} />
-                                        <div className="grid grid-cols-3 gap-y-2 gap-x-4 pt-3">
-                                            {Object.entries(reactionIcons).map(([key, icon]) => (
-                                                <div key={key} className="flex items-center gap-1.5">
-                                                    {icon}
-                                                    <span className="font-semibold text-sm text-gray-800">{reactions[key] || 0}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                            <InsightStat icon={TrendingUp} label="Impressões" value={insights.impressions || 0} description="Total de visualizações do post"/>
+                                            <InsightStat icon={Users} label="Pessoas Engajadas" value={insights.engaged_users || 0} description="Pessoas que curtiram, comentaram, etc."/>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -374,7 +323,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 
 
 
-const InstagramMediaViewer = ({ connection, onConnect }: { connection: InstagramConnectionData; onConnect: () => void; }) => {
+const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData; }) => {
   const [media, setMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -538,7 +487,7 @@ const InstagramMediaViewer = ({ connection, onConnect }: { connection: Instagram
 
 
 
-const MetaPagePostsViewer = ({ connection, onConnect }: { connection: MetaConnectionData; onConnect: () => void; }) => {
+const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData; }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -707,33 +656,9 @@ const MetaPagePostsViewer = ({ connection, onConnect }: { connection: MetaConnec
 
 export default function Relatorios() {
   const { user } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
-
   const [loading, setLoading] = useState(true);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
-  
-  const handleConnectMeta = () => {
-    if (!user) return;
-    const redirectUri = new URL("/dashboard/conteudo", window.location.origin).toString();
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${"826418333144156"}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user.uid}&scope=pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management&response_type=code`;
-    router.push(authUrl);
-  };
-
-  const handleConnectInstagram = () => {
-    if (!user) return;
-    const clientId = config.instagram.appId;
-    const redirectUri = config.instagram.redirectUri;
-    if (!clientId || !redirectUri) {
-      toast({ variant: "destructive", title: "Erro de Configuração", description: "As credenciais do Instagram não estão configuradas." });
-      return;
-    }
-    const state = user.uid;
-    const scope = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=${state}`;
-    router.push(authUrl);
-  };
   
   useEffect(() => {
     if (!user) return;
@@ -813,7 +738,7 @@ export default function Relatorios() {
                     ) : (
                         <Tabs defaultValue="instagram" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-                                <TabsTrigger value="facebook">
+                                <TabsTrigger value="facebook" >
                                     <Facebook className="w-4 h-4 mr-2" />
                                     Facebook
                                 </TabsTrigger>
@@ -824,7 +749,7 @@ export default function Relatorios() {
                             </TabsList>
                             <TabsContent value="facebook" className="mt-6">
                                 {metaConnection ? (
-                                    <MetaPagePostsViewer connection={metaConnection} onConnect={handleConnectMeta}/>
+                                    <MetaPagePostsViewer connection={metaConnection} />
                                 ) : (
                                     <div className="text-center text-gray-500 py-10">
                                       <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-4" />
@@ -836,7 +761,6 @@ export default function Relatorios() {
                                 {instagramConnection ? (
                                     <InstagramMediaViewer 
                                       connection={instagramConnection}
-                                      onConnect={handleConnectInstagram}
                                     />
                                 ) : (
                                    <div className="text-center text-gray-500 py-10">

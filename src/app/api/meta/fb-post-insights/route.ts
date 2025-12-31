@@ -19,7 +19,6 @@ function getMetricValue(data: any[], metricName: string): any {
     return metric?.values?.[0]?.value || 0;
 }
 
-
 export async function POST(request: NextRequest) {
     try {
         const body: InsightsRequestBody = await request.json();
@@ -29,18 +28,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
         }
         
-        // Lista de métricas validadas para a nova experiência de páginas
+        // Usando um conjunto de métricas mais seguro e universalmente aceito para Page Posts
         const metricsList = [
             'post_impressions',
-            'post_impressions_unique',
-            'post_impressions_organic',
-            'post_impressions_organic_unique',
-            'post_reactions_by_type_total',
-            'post_clicks',
-            'post_activity_by_action_type'
+            'post_engaged_users',
         ].join(',');
 
-        // Única chamada para o endpoint de insights com todas as métricas necessárias
+        // Única chamada para o endpoint de insights com as métricas necessárias
         const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&period=lifetime&access_token=${accessToken}`;
         const insightsResponse = await fetch(insightsUrl);
         const insightsData = await insightsResponse.json();
@@ -52,27 +46,9 @@ export async function POST(request: NextRequest) {
 
         const rawInsights = insightsData.data || [];
 
-        // Processa as atividades (comentários, compartilhamentos)
-        const activity = getMetricValue(rawInsights, 'post_activity_by_action_type');
-        const comments = activity.comment || 0;
-        const shares = activity.share || 0;
-        // Pessoas engajadas - A API do FB não tem um equivalente direto de post_engaged_users no nível do post como o IG
-        // A métrica mais próxima é o total de interações, que podemos calcular somando as interações conhecidas.
-        const reactionsDetail = getMetricValue(rawInsights, 'post_reactions_by_type_total');
-        const totalReactions = Object.values(reactionsDetail).reduce((a: any, b: any) => a + b, 0);
-        const engaged_users = (totalReactions || 0) + comments + shares + (getMetricValue(rawInsights, 'post_clicks') || 0);
-
-
         const insights = {
             impressions: getMetricValue(rawInsights, 'post_impressions'),
-            reach: getMetricValue(rawInsights, 'post_impressions_unique'),
-            impressions_organic: getMetricValue(rawInsights, 'post_impressions_organic'),
-            reach_organic: getMetricValue(rawInsights, 'post_impressions_organic_unique'),
-            clicks: getMetricValue(rawInsights, 'post_clicks'),
-            reactions_detail: reactionsDetail,
-            comments,
-            shares,
-            engaged_users: engaged_users, // Usando o valor calculado
+            engaged_users: getMetricValue(rawInsights, 'post_engaged_users'),
         };
         
         // Adiciona a busca pelo permalink_url para o link direto
