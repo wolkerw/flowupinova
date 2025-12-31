@@ -279,7 +279,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             setInsights(null);
 
             try {
-                const response = await fetch('/api/meta/post-insights', {
+                const response = await fetch('/api/instagram/v2/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -288,8 +288,13 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
                     }),
                 });
 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: "Falha ao ler a resposta de erro da API." }));
+                    throw new Error(errorData.error || `Erro de comunicação com a API: ${response.statusText}`);
+                }
+
                 const result = await response.json();
-                if (!response.ok || !result.success) {
+                if (!result.success) {
                     throw new Error(result.error || "Falha ao buscar insights detalhados.");
                 }
                 setInsights(result.insights);
@@ -418,7 +423,6 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
     return (
       <div className="flex items-center justify-center h-40">
         <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-        <p className="ml-4 text-gray-600">Buscando posts do Instagram...</p>
       </div>
     );
   }
@@ -748,7 +752,7 @@ export default function Relatorios() {
                     ) : (
                         <Tabs defaultValue="instagram" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-                                <TabsTrigger value="facebook" disabled={!metaConnection?.isConnected}>
+                                <TabsTrigger value="facebook">
                                     <Facebook className="w-4 h-4 mr-2" />
                                     Facebook
                                 </TabsTrigger>
