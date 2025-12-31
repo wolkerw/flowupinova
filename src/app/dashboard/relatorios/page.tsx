@@ -171,22 +171,23 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
     }, [open, post, connection]);
 
     const ReactionDetail = ({ type, count }: { type: string, count: number }) => {
-        const reactionIcons: { [key: string]: React.ElementType } = {
-            like: ThumbsUp,
-            love: Heart,
-            wow: () => <span className="text-lg">😮</span>,
-            haha: () => <span className="text-lg">😂</span>,
-            sorry: () => <span className="text-lg">😢</span>,
-            anger: () => <span className="text-lg">😡</span>,
+        const reactionIcons: { [key: string]: { emoji: string; name: string } } = {
+            like: { emoji: '👍', name: 'Curtir' },
+            love: { emoji: '❤️', name: 'Amei' },
+            care: { emoji: '🤗', name: 'Força' },
+            haha: { emoji: '😂', name: 'Haha' },
+            wow: { emoji: '😮', name: 'Uau' },
+            sorry: { emoji: '😢', name: 'Triste' },
+            anger: { emoji: '😡', name: 'Grr' },
         };
-        const Icon = reactionIcons[type] || Heart;
+        const reaction = reactionIcons[type];
+        if (!reaction) return null;
+
         return (
-            <div className="flex items-center justify-between text-sm py-1.5">
-                <div className="flex items-center gap-2 text-gray-600 capitalize">
-                    <Icon className="w-4 h-4" />
-                    {type === 'sorry' ? 'Sad' : type}
-                </div>
-                <span className="font-medium">{count.toLocaleString()}</span>
+             <div className="text-center">
+                <span className="text-2xl">{reaction.emoji}</span>
+                <p className="text-sm font-bold mt-1">{count}</p>
+                <p className="text-xs text-gray-500">{reaction.name}</p>
             </div>
         );
     };
@@ -242,18 +243,23 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         <InsightStat icon={TrendingUp} label="Alcance do Post" value={insights.reach || 0} description="Pessoas únicas que viram o post."/>
+                                        {insights.clicks && (
+                                            <InsightStat icon={MousePointer} label="Cliques no Post" value={insights.clicks} description="Total de cliques em qualquer lugar do post."/>
+                                        )}
                                     </CardContent>
                                 </Card>
 
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Detalhes das Reações</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Reação por tipo</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="divide-y divide-gray-100">
+                                    <CardContent>
                                         {insights.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
-                                             Object.entries(insights.reactions_by_type).map(([type, count]) => (
-                                                <ReactionDetail key={type} type={type} count={count as number} />
-                                             ))
+                                            <div className="grid grid-cols-4 lg:grid-cols-7 gap-4">
+                                                {Object.entries(insights.reactions_by_type).map(([type, count]) => (
+                                                    <ReactionDetail key={type} type={type} count={count as number} />
+                                                ))}
+                                            </div>
                                         ) : (
                                             <div className="text-sm text-gray-500 text-center py-4">Nenhuma reação detalhada encontrada.</div>
                                         )}
@@ -786,7 +792,7 @@ export default function Relatorios() {
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <Tabs defaultValue="instagram" className="w-full">
+                        <Tabs defaultValue="facebook" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
                                 <TabsTrigger value="facebook" >
                                     <Facebook className="w-4 h-4 mr-2" />
@@ -1027,4 +1033,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
