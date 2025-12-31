@@ -5,11 +5,12 @@ export const dynamic = "force-dynamic";
 
 interface MediaRequestBody {
   accessToken: string;
+  after?: string; // Cursor for pagination
 }
 
-// Helper para buscar insights de um post específico
+// Helper to fetch insights for a specific post
 async function getPostInsights(postId: string, accessToken: string) {
-  const metrics = "reach,saved"; // Pedimos apenas o que não vem na chamada principal
+  const metrics = "reach,saved";
   const insightsUrl = `https://graph.instagram.com/v20.0/${postId}/insights?metric=${metrics}&access_token=${accessToken}`;
   
   try {
@@ -17,7 +18,6 @@ async function getPostInsights(postId: string, accessToken: string) {
     const data = await response.json();
     
     if (data.error) {
-      // É comum a API retornar erro para métricas específicas (ex: posts antigos), então não tratamos como erro fatal.
       console.warn(`[INSIGHTS_WARN] Could not fetch insights for post ${postId}: ${data.error.message}`);
       return { reach: 0, saved: 0 };
     }
@@ -40,7 +40,7 @@ async function getPostInsights(postId: string, accessToken: string) {
 export async function POST(request: NextRequest) {
   try {
     const body: MediaRequestBody = await request.json();
-    const { accessToken } = body;
+    const { accessToken, after } = body;
 
     if (!accessToken) {
       return NextResponse.json(
@@ -49,16 +49,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const fields =
-      "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
+    const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
+    
+    const url = new URL(`https://graph.instagram.com/me/media`);
+    url.searchParams.append('fields', fields);
+    url.searchParams.append('access_token', accessToken);
+    url.searchParams.append('limit', '6'); // Fetch 6 posts at a time
 
-    const url =
-      `https://graph.instagram.com/me/media` +
-      `?fields=${encodeURIComponent(fields)}` +
-      `&access_token=${encodeURIComponent(accessToken)}` +
-      `&limit=24`;
+    if (after) {
+        url.searchParams.append('after', after);
+    }
 
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url.toString(), { cache: "no-store" });
     const data = await response.json();
 
     if (!response.ok) {
@@ -77,7 +79,6 @@ export async function POST(request: NextRequest) {
     
     const mediaItems = data.data || [];
 
-    // Busca os insights para cada post em paralelo
     const mediaWithInsights = await Promise.all(
       mediaItems.map(async (item: any) => {
         const insights = await getPostInsights(item.id, accessToken);
@@ -91,13 +92,15 @@ export async function POST(request: NextRequest) {
           timestamp: item.timestamp,
           like_count: item.like_count ?? 0,
           comments_count: item.comments_count ?? 0,
-          // Adiciona os insights ao objeto do post
           insights: insights, 
         };
       })
     );
 
-    return NextResponse.json({ success: true, media: mediaWithInsights });
+    // Extract the 'after' cursor for the next page
+    const nextCursor = data.paging?.cursors?.after || null;
+
+    return NextResponse.json({ success: true, media: mediaWithInsights, nextCursor });
 
   } catch (error: any) {
     console.error("[INSTAGRAM_MEDIA_ERROR]", error);

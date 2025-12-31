@@ -193,7 +193,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection, reach
         );
     };
 
-    const totalReactions = insights?.reactions_by_type ? Object.values<number>(insights.reactions_by_type).reduce((a, b) => a + b, 0) : 0;
+    const totalReactions = post?.insights?.likes || 0;
     const totalComments = post?.insights?.comments || 0;
     const totalShares = post?.insights?.shares || 0;
     
@@ -243,26 +243,26 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection, reach
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Desempenho Geral</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat icon={TrendingUp} label="Alcance do Post" value={reachFromCard || insights?.reach || 0} description="Pessoas únicas que viram o post."/>
-                                        {insights?.clicks && (
-                                            <InsightStat icon={MousePointer} label="Cliques no Post" value={insights.clicks} description="Total de cliques em qualquer lugar do post."/>
-                                        )}
+                                        <InsightStat icon={TrendingUp} label="Alcance do Post" value={reachFromCard || 0} description="Pessoas únicas que viram o post."/>
+                                        {insights?.clicks_by_type ? Object.entries(insights.clicks_by_type).map(([type, value]) => (
+                                          <InsightStat key={type} label={`Cliques (${type})`} value={value as number} subStat />
+                                        )) : (isLoading && <div className="text-sm text-center py-2">Carregando cliques...</div>)}
                                     </CardContent>
                                 </Card>
 
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Reação por tipo</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Atividade no post</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        {insights?.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
+                                        {insights?.activity_by_action_type && Object.keys(insights.activity_by_action_type).length > 0 ? (
                                             <div className="grid grid-cols-4 lg:grid-cols-7 gap-4">
-                                                {Object.entries(insights.reactions_by_type).map(([type, count]) => (
+                                                {Object.entries(insights.activity_by_action_type).map(([type, count]) => (
                                                     <ReactionDetail key={type} type={type} count={count as number} />
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-sm text-gray-500 text-center py-4">Nenhuma reação detalhada encontrada.</div>
+                                            <div className="text-sm text-gray-500 text-center py-4">Nenhuma atividade detalhada encontrada.</div>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -320,7 +320,6 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
         fetchInsights();
     }, [open, post, connection]);
     
-    // Use like_count/comments_count from main post object, but override with insights if available
     const finalLikes = insights?.likes ?? post?.like_count ?? 0;
     const finalComments = insights?.comments ?? post?.comments_count ?? 0;
     const finalReach = insights?.reach ?? 0;
@@ -384,55 +383,58 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
 const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionData; }) => {
   const [media, setMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
+  const fetchMedia = useCallback(async (cursor?: string) => {
+    if (!connection.isConnected || !connection.accessToken) {
+      setIsLoading(false);
+      return;
+    }
+    
+    if (cursor) {
+      setIsFetchingMore(true);
+    } else {
+      setIsLoading(true);
+    }
+    setError(null);
+
+    try {
+      const response = await fetch('/api/instagram/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: connection.accessToken, after: cursor }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        if (response.status === 401) throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+        throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
+      }
+      
+      setMedia(prev => cursor ? [...prev, ...result.media] : result.media);
+      setNextCursor(result.nextCursor || null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+      setIsFetchingMore(false);
+    }
+  }, [connection]);
+
+  useEffect(() => {
+    fetchMedia();
+  }, [fetchMedia]);
 
   const handleOpenModal = (post: any) => {
     setSelectedPost(post);
     setIsModalOpen(true);
   };
   
-  useEffect(() => {
-    if (!connection.isConnected || !connection.accessToken) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchMedia = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch('/api/instagram/media', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: connection.accessToken }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          if (response.status === 401) {
-            throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
-          }
-          throw new Error(result.error || "Falha ao buscar as mídias do Instagram.");
-        }
-        
-        // Agora, o `reach` e `saved` vêm diretamente da API de mídia
-        setMedia(result.media);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMedia();
-  }, [connection]);
-
   if (!connection.isConnected) {
     return (
       <div className="text-center text-gray-500 py-10">
@@ -450,100 +452,39 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-40"><Loader2 className="w-8 h-8 animate-spin text-gray-500" /></div>;
   }
 
   if (error) {
-    return (
-      <div className="border-l-4 border-red-400 bg-red-50 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
-            <p className="mt-2 text-sm text-red-700">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="border-l-4 border-red-400 bg-red-50 p-4"><div className="flex"><div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-400" /></div><div className="ml-3"><h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3><p className="mt-2 text-sm text-red-700">{error}</p></div></div></div>;
   }
 
   if (media.length === 0) {
-    return (
-      <div className="text-center text-gray-500 py-10">
-        <Instagram className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-        <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
-        <p className="text-sm">Não há posts no seu perfil do Instagram para analisar.</p>
-      </div>
-    );
+    return <div className="text-center text-gray-500 py-10"><Instagram className="w-12 h-12 mx-auto text-gray-400 mb-4" /><h3 className="font-semibold text-lg">Nenhum post encontrado</h3><p className="text-sm">Não há posts no seu perfil do Instagram para analisar.</p></div>;
   }
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {media.slice(0, visibleCount).map((item) => {
+        {media.map((item) => {
           const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
           const postInsights = item.insights || {};
-
           return (
             <Card key={item.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
-              <CardHeader className="p-4">
-                <div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100">
-                  <Image src={imageSrc} alt="Imagem do post" fill unoptimized className="object-cover" />
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 flex-grow">
-                <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>
-                  {item.caption || "Post sem legenda."}
-                </p>
-                <p className="text-xs text-gray-500 mb-3">
-                  Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}
-                </p>
-                
-                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                        <Eye className="w-3.5 h-3.5" />
-                        <span className="font-semibold">{postInsights.reach ?? 0}</span>
-                        <span className="text-xs text-gray-500">Alcance</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                        <Heart className="w-3.5 h-3.5" />
-                        <span className="font-semibold">{item.like_count}</span>
-                        <span className="text-xs text-gray-500">Curtidas</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span className="font-semibold">{item.comments_count}</span>
-                        <span className="text-xs text-gray-500">Coment.</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                        <Save className="w-3.5 h-3.5" />
-                        <span className="font-semibold">{postInsights.saved ?? 0}</span>
-                        <span className="text-xs text-gray-500">Salvos</span>
-                    </div>
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}>
-                  <BarChart className="w-4 h-4 mr-2" />
-                  Ver mais Insights
-                </Button>
-              </CardFooter>
+              <CardHeader className="p-4"><div className="aspect-square relative rounded-t-lg overflow-hidden bg-gray-100"><Image src={imageSrc} alt="Imagem do post" fill unoptimized className="object-cover" /></div></CardHeader>
+              <CardContent className="p-4 pt-0 flex-grow"><p className="text-sm text-gray-600 line-clamp-2 mb-2" title={item.caption}>{item.caption || "Post sem legenda."}</p><p className="text-xs text-gray-500 mb-3">Publicado em {format(new Date(item.timestamp), "dd/MM/yyyy HH:mm")}</p><div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left"><div className="flex items-center gap-1.5 text-gray-700"><Eye className="w-3.5 h-3.5" /><span className="font-semibold">{postInsights.reach ?? 0}</span><span className="text-xs text-gray-500">Alcance</span></div><div className="flex items-center gap-1.5 text-gray-700"><Heart className="w-3.5 h-3.5" /><span className="font-semibold">{item.like_count}</span><span className="text-xs text-gray-500">Curtidas</span></div><div className="flex items-center gap-1.5 text-gray-700"><MessageCircle className="w-3.5 h-3.5" /><span className="font-semibold">{item.comments_count}</span><span className="text-xs text-gray-500">Coment.</span></div><div className="flex items-center gap-1.5 text-gray-700"><Save className="w-3.5 h-3.5" /><span className="font-semibold">{postInsights.saved ?? 0}</span><span className="text-xs text-gray-500">Salvos</span></div></div></CardContent>
+              <CardFooter className="p-4 pt-0"><Button variant="outline" className="w-full" onClick={() => handleOpenModal(item)}><BarChart className="w-4 h-4 mr-2" />Ver mais Insights</Button></CardFooter>
             </Card>
           );
         })}
       </div>
-      {visibleCount < media.length && (
-          <div className="mt-8 flex justify-center">
-              <Button onClick={() => setVisibleCount(prev => prev + 6)}>
-                  Mostrar mais posts
-              </Button>
-          </div>
+      {nextCursor && (
+        <div className="mt-8 flex justify-center">
+            <Button onClick={() => fetchMedia(nextCursor)} disabled={isFetchingMore}>
+                {isFetchingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Mostrar mais posts
+            </Button>
+        </div>
       )}
       <InstagramPostInsightsModal post={selectedPost} open={isModalOpen} onOpenChange={setIsModalOpen} connection={connection} />
     </>
@@ -555,163 +496,93 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
 const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData; }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedPost, setSelectedPost] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [visibleCount, setVisibleCount] = useState(6);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-     const handleOpenModal = (post: any) => {
-        setSelectedPost(post);
-        setIsModalOpen(true);
-    };
-
-    useEffect(() => {
-        if (!connection.isConnected || !connection.pageId) {
+    const fetchPosts = useCallback(async (cursor?: string) => {
+        if (!connection.isConnected || !connection.pageId || !connection.accessToken) {
             setIsLoading(false);
             return;
         }
 
-        const fetchPosts = async () => {
+        if(cursor) {
+            setIsFetchingMore(true);
+        } else {
             setIsLoading(true);
-            setError(null);
+        }
+        setError(null);
+        
+        try {
+            const response = await fetch('/api/meta/page-posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    accessToken: connection.accessToken,
+                    pageId: connection.pageId,
+                    after: cursor,
+                }),
+            });
+
+            const result = await response.json();
             
-            try {
-                const response = await fetch('/api/meta/page-posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        accessToken: connection.accessToken,
-                        pageId: connection.pageId 
-                    }),
-                });
-
-                const result = await response.json();
-                
-                if (!response.ok || !result.success) {
-                    if (response.status === 401) {
-                         throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
-                    }
-                    throw new Error(result.error || "Falha ao buscar os posts da página.");
-                }
-
-                setPosts(result.posts);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
+            if (!response.ok || !result.success) {
+                if (response.status === 401) throw new Error("Sua sessão com a Meta expirou. Por favor, reconecte sua conta.");
+                throw new Error(result.error || "Falha ao buscar os posts da página.");
             }
-        };
 
-        fetchPosts();
+            setPosts(prev => cursor ? [...prev, ...result.posts] : result.posts);
+            setNextCursor(result.nextCursor || null);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+            setIsFetchingMore(false);
+        }
     }, [connection]);
+    
+    useEffect(() => {
+        fetchPosts();
+    }, [fetchPosts]);
+
+    const handleOpenModal = (post: any) => {
+        setSelectedPost(post);
+        setIsModalOpen(true);
+    };
 
     if (!connection.isConnected) {
-        return (
-          <div className="text-center text-gray-500 py-10">
-            <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3>
-            <p className="text-sm mb-4">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
-            <Button asChild>
-                <Link href="/dashboard/conteudo">
-                    <Facebook className="w-4 h-4 mr-2" />
-                    Conectar Página
-                </Link>
-            </Button>
-          </div>
-        );
+        return <div className="text-center text-gray-500 py-10"><AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" /><h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3><p className="text-sm mb-4">Conecte sua conta na página de "Conteúdo" para ver as análises.</p><Button asChild><Link href="/dashboard/conteudo"><Facebook className="w-4 h-4 mr-2" />Conectar Página</Link></Button></div>;
     }
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-40">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-                <p className="ml-4 text-gray-600">Buscando posts e métricas do Facebook...</p>
-            </div>
-        );
+        return <div className="flex items-center justify-center h-40"><Loader2 className="w-8 h-8 animate-spin text-gray-500" /><p className="ml-4 text-gray-600">Buscando posts e métricas do Facebook...</p></div>;
     }
 
     if (error) {
-         return (
-            <div className="border-l-4 border-red-400 bg-red-50 p-4">
-                <div className="flex">
-                    <div className="flex-shrink-0">
-                        <AlertTriangle className="h-5 w-5 text-red-400" />
-                    </div>
-                    <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3>
-                        <p className="mt-2 text-sm text-red-700">{error}</p>
-                    </div>
-                </div>
-            </div>
-        );
+         return <div className="border-l-4 border-red-400 bg-red-50 p-4"><div className="flex"><div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-red-400" /></div><div className="ml-3"><h3 className="text-sm font-medium text-red-800">Erro ao buscar posts</h3><p className="mt-2 text-sm text-red-700">{error}</p></div></div></div>;
     }
     
     if (posts.length === 0) {
-        return (
-            <div className="text-center text-gray-500 py-10">
-                <Facebook className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="font-semibold text-lg">Nenhum post encontrado</h3>
-                <p className="text-sm">Não há posts na sua página do Facebook para analisar.</p>
-            </div>
-        );
+        return <div className="text-center text-gray-500 py-10"><Facebook className="w-12 h-12 mx-auto text-gray-400 mb-4" /><h3 className="font-semibold text-lg">Nenhum post encontrado</h3><p className="text-sm">Não há posts na sua página do Facebook para analisar.</p></div>;
     }
 
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {posts.slice(0, visibleCount).map((post) => (
+                {posts.map((post) => (
                     <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
-                        <CardHeader className="p-4">
-                            <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
-                                <Image 
-                                    src={post.full_picture || 'https://placehold.co/400'} 
-                                    alt="Imagem do post" 
-                                    fill
-                                    unoptimized
-                                    className="object-cover"
-                                />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 flex-grow">
-                            <p className="text-sm text-gray-600 line-clamp-2 mb-2" title={post.message}>{post.message || "Post sem texto."}</p>
-                            <p className="text-xs text-gray-500 mb-3">
-                                Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}
-                            </p>
-                            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left">
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{post.insights.reach || 0}</span>
-                                    <span className="text-xs text-gray-500">Alcance</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Heart className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{post.insights.likes || 0}</span>
-                                    <span className="text-xs text-gray-500">Reações</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <MessageCircle className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{post.insights.comments || 0}</span>
-                                    <span className="text-xs text-gray-500">Comentários</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Share2 className="w-3.5 h-3.5" />
-                                    <span className="font-semibold">{post.insights.shares || 0}</span>
-                                    <span className="text-xs text-gray-500">Compart.</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                         <CardFooter className="p-4 pt-0">
-                            <Button variant="outline" className="w-full" onClick={() => handleOpenModal(post)}>
-                                <BarChart className="w-4 h-4 mr-2" />
-                                Ver mais Insights
-                            </Button>
-                        </CardFooter>
+                        <CardHeader className="p-4"><div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100"><Image src={post.full_picture || 'https://placehold.co/400'} alt="Imagem do post" fill unoptimized className="object-cover"/></div></CardHeader>
+                        <CardContent className="p-4 pt-0 flex-grow"><p className="text-sm text-gray-600 line-clamp-2 mb-2" title={post.message}>{post.message || "Post sem texto."}</p><p className="text-xs text-gray-500 mb-3">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy HH:mm")}</p><div className="grid grid-cols-2 gap-y-3 gap-x-2 text-left"><div className="flex items-center gap-1.5 text-gray-700"><Eye className="w-3.5 h-3.5" /><span className="font-semibold">{post.insights.reach || 0}</span><span className="text-xs text-gray-500">Alcance</span></div><div className="flex items-center gap-1.5 text-gray-700"><Heart className="w-3.5 h-3.5" /><span className="font-semibold">{post.insights.likes || 0}</span><span className="text-xs text-gray-500">Reações</span></div><div className="flex items-center gap-1.5 text-gray-700"><MessageCircle className="w-3.5 h-3.5" /><span className="font-semibold">{post.insights.comments || 0}</span><span className="text-xs text-gray-500">Comentários</span></div><div className="flex items-center gap-1.5 text-gray-700"><Share2 className="w-3.5 h-3.5" /><span className="font-semibold">{post.insights.shares || 0}</span><span className="text-xs text-gray-500">Compart.</span></div></div></CardContent>
+                         <CardFooter className="p-4 pt-0"><Button variant="outline" className="w-full" onClick={() => handleOpenModal(post)}><BarChart className="w-4 h-4 mr-2" />Ver mais Insights</Button></CardFooter>
                     </Card>
                 ))}
             </div>
-            {visibleCount < posts.length && (
+            {nextCursor && (
                 <div className="mt-8 flex justify-center">
-                    <Button onClick={() => setVisibleCount(prev => prev + 6)}>
+                    <Button onClick={() => fetchPosts(nextCursor)} disabled={isFetchingMore}>
+                        {isFetchingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Mostrar mais posts
                     </Button>
                 </div>

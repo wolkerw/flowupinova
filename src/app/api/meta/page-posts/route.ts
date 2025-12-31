@@ -6,23 +6,30 @@ export const dynamic = 'force-dynamic';
 interface PagePostsRequestBody {
   accessToken: string;
   pageId: string;
+  after?: string; // Cursor for pagination
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: PagePostsRequestBody = await request.json();
-        const { accessToken, pageId } = body;
+        const { accessToken, pageId, after } = body;
 
         if (!accessToken || !pageId) {
             return NextResponse.json({ success: false, error: "Access token e Page ID são obrigatórios." }, { status: 400 });
         }
 
-        // CORREÇÃO: Alterado period(day) para period(lifetime) para obter o alcance total.
         const fields = 'id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(lifetime),reactions.summary(total_count),comments.summary(total_count)';
+        
+        const url = new URL(`https://graph.facebook.com/v20.0/${pageId}/posts`);
+        url.searchParams.append('fields', fields);
+        url.searchParams.append('access_token', accessToken);
+        url.searchParams.append('limit', '6'); // Fetch 6 posts at a time
 
-        const url = `https://graph.facebook.com/v20.0/${pageId}/posts?fields=${fields}&access_token=${accessToken}&limit=10`;
+        if (after) {
+            url.searchParams.append('after', after);
+        }
 
-        const response = await fetch(url);
+        const response = await fetch(url.toString());
         const data = await response.json();
 
         if (!response.ok) {
@@ -34,10 +41,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: errorMessage }, { status: response.status });
         }
         
-        // Processa os dados para um formato mais amigável
         const posts = data.data.map((post: any) => {
             const insightsData = post.insights?.data || [];
-            // O insight de alcance agora é pego diretamente pelo nome.
             const reach = insightsData.find((m: any) => m.name === 'post_impressions_unique')?.values?.[0]?.value || 0;
             const likes = post.reactions?.summary?.total_count || 0;
             const comments = post.comments?.summary?.total_count || 0;
@@ -48,20 +53,17 @@ export async function POST(request: NextRequest) {
                 message: post.message,
                 created_time: post.created_time,
                 full_picture: post.full_picture,
-                insights: {
-                    reach,
-                    likes,
-                    comments,
-                    shares
-                }
+                insights: { reach, likes, comments, shares }
             };
         });
 
-        return NextResponse.json({ success: true, posts });
+        // Extract the 'after' cursor for the next page
+        const nextCursor = data.paging?.cursors?.after || null;
+
+        return NextResponse.json({ success: true, posts, nextCursor });
 
     } catch (error: any) {
         console.error("[PAGE_POSTS_ERROR]", error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-    
