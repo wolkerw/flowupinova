@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -173,19 +174,27 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
         const reactionIcons: { [key: string]: React.ElementType } = {
             like: ThumbsUp,
             love: Heart,
+            wow: () => <span className="text-lg">😮</span>,
+            haha: () => <span className="text-lg">😂</span>,
+            sorry: () => <span className="text-lg">😢</span>,
+            anger: () => <span className="text-lg">😡</span>,
         };
         const Icon = reactionIcons[type] || Heart;
         return (
             <div className="flex items-center justify-between text-sm py-1.5">
                 <div className="flex items-center gap-2 text-gray-600 capitalize">
                     <Icon className="w-4 h-4" />
-                    {type}
+                    {type === 'sorry' ? 'Sad' : type}
                 </div>
                 <span className="font-medium">{count.toLocaleString()}</span>
             </div>
         );
     };
 
+    const totalReactions = insights?.reactions_by_type ? Object.values<number>(insights.reactions_by_type).reduce((a, b) => a + b, 0) : 0;
+    const totalComments = post?.insights?.comments || 0;
+    const totalShares = post?.insights?.shares || 0;
+    
     return (
          <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-xl bg-gray-50">
@@ -214,6 +223,17 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <Card className="bg-white shadow-sm">
+                                <CardHeader>
+                                    <CardTitle className="text-base font-bold flex items-center gap-2"><BarChart2 className="w-5 h-5 text-gray-500" /> Resumo de Engajamento</CardTitle>
+                                </CardHeader>
+                                <CardContent className="divide-y divide-gray-100">
+                                    <InsightStat icon={ThumbsUp} label="Total de Reações" value={totalReactions} />
+                                    <InsightStat icon={MessageCircle} label="Comentários" value={totalComments} />
+                                    <InsightStat icon={Share2} label="Compartilhamentos" value={totalShares} />
+                                </CardContent>
+                            </Card>
                             
                            <div className="grid grid-cols-1 gap-6">
                                 <Card className="bg-white shadow-sm">
@@ -221,13 +241,13 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Desempenho Geral</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                            <InsightStat icon={TrendingUp} label="Alcance do Post" value={insights.reach || 0} description="Pessoas únicas que viram o post."/>
+                                        <InsightStat icon={TrendingUp} label="Alcance do Post" value={insights.reach || 0} description="Pessoas únicas que viram o post."/>
                                     </CardContent>
                                 </Card>
 
                                 <Card className="bg-white shadow-sm">
                                      <CardHeader>
-                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Reações</CardTitle>
+                                        <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Detalhes das Reações</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
                                         {insights.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
@@ -1007,3 +1027,4 @@ export default function Relatorios() {
     </div>
   );
 }
+
