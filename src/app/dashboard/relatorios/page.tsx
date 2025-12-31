@@ -1,8 +1,8 @@
 
-
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -283,7 +283,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             setInsights(null);
 
             try {
-                const response = await fetch('/api/meta/post-insights', {
+                const response = await fetch('/api/instagram/v2/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -428,10 +428,12 @@ const InstagramMediaViewer = ({ connection, onConnect }: { connection: Instagram
       <div className="text-center text-gray-500 py-10">
         <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <h3 className="font-semibold text-lg">Conta do Instagram não conectada</h3>
-        <p className="text-sm mb-4">Conecte sua conta para ver as análises dos seus posts.</p>
-        <Button onClick={onConnect}>
-            <Instagram className="w-4 h-4 mr-2" />
-            Conectar Instagram
+        <p className="text-sm mb-4">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+        <Button asChild>
+            <Link href="/dashboard/conteudo">
+                <Instagram className="w-4 h-4 mr-2" />
+                Ir para Conteúdo
+            </Link>
         </Button>
       </div>
     );
@@ -590,10 +592,12 @@ const MetaPagePostsViewer = ({ connection, onConnect }: { connection: MetaConnec
           <div className="text-center text-gray-500 py-10">
             <AlertTriangle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
             <h3 className="font-semibold text-lg">Conta do Facebook não conectada</h3>
-            <p className="text-sm mb-4">Conecte sua conta para ver as análises dos seus posts.</p>
-            <Button onClick={onConnect}>
-                <Facebook className="w-4 h-4 mr-2" />
-                Conectar Página
+            <p className="text-sm mb-4">Conecte sua conta na página de "Conteúdo" para ver as análises.</p>
+            <Button asChild>
+                <Link href="/dashboard/conteudo">
+                    <Facebook className="w-4 h-4 mr-2" />
+                    Ir para Conteúdo
+                </Link>
             </Button>
           </div>
         );
@@ -784,10 +788,9 @@ export default function Relatorios() {
                 <Newspaper className="w-4 h-4 mr-2" />
                 Orgânico
             </TabsTrigger>
-            <TabsTrigger value="campaigns" disabled className="relative">
+            <TabsTrigger value="campaigns" disabled>
                  <BarChart3 className="w-4 h-4 mr-2" />
                 Campanhas
-                <Badge variant="secondary" className="absolute -top-2 -right-2 text-xs px-1.5 py-0.5">Em breve</Badge>
             </TabsTrigger>
         </TabsList>
         
@@ -1047,3 +1050,5 @@ export default function Relatorios() {
     </div>
   );
 }
+
+    
