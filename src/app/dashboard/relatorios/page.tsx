@@ -132,7 +132,7 @@ const InsightStat = ({ icon, label, value, subStat = false, description }: { ico
 );
 
 
-const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData }) => {
+const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection, reachFromCard }: { post: any | null, open: boolean, onOpenChange: (open: boolean) => void, connection: MetaConnectionData, reachFromCard?: number }) => {
     const [insights, setInsights] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -170,16 +170,17 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
         fetchInsights();
     }, [open, post, connection]);
 
+     const reactionIcons: { [key: string]: { emoji: string; name: string } } = {
+        like: { emoji: '👍', name: 'Curtir' },
+        love: { emoji: '❤️', name: 'Amei' },
+        care: { emoji: '🤗', name: 'Força' },
+        haha: { emoji: '😂', name: 'Haha' },
+        wow: { emoji: '😮', name: 'Uau' },
+        sorry: { emoji: '😢', name: 'Triste' },
+        anger: { emoji: '😡', name: 'Grr' },
+    };
+    
     const ReactionDetail = ({ type, count }: { type: string, count: number }) => {
-        const reactionIcons: { [key: string]: { emoji: string; name: string } } = {
-            like: { emoji: '👍', name: 'Curtir' },
-            love: { emoji: '❤️', name: 'Amei' },
-            care: { emoji: '🤗', name: 'Força' },
-            haha: { emoji: '😂', name: 'Haha' },
-            wow: { emoji: '😮', name: 'Uau' },
-            sorry: { emoji: '😢', name: 'Triste' },
-            anger: { emoji: '😡', name: 'Grr' },
-        };
         const reaction = reactionIcons[type];
         if (!reaction) return null;
 
@@ -205,7 +206,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                 <div className="py-2 max-h-[80vh] overflow-y-auto pr-4">
                     {isLoading && <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                     {error && <div className="text-red-600 bg-red-50 p-4 rounded-md">{error}</div>}
-                    {insights && post && (
+                    {post && (
                         <div className="space-y-6">
                            
                             {/* Bloco de Contexto do Post */}
@@ -215,7 +216,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                     <div className="flex-grow">
                                         <p className="text-sm text-gray-600 line-clamp-3 mb-1" title={post.message}>{post.message || "Post sem texto."}</p>
                                         <p className="text-xs text-gray-500">Publicado em {format(new Date(post.created_time), "dd/MM/yyyy 'às' HH:mm")}</p>
-                                        {insights.permalink_url && (
+                                        {insights?.permalink_url && (
                                             <a href={insights.permalink_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2">
                                                 <ExternalLink className="w-3 h-3"/>
                                                 Ver no Facebook
@@ -225,7 +226,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                 </CardContent>
                             </Card>
 
-                            <Card className="bg-white shadow-sm">
+                             <Card className="bg-white shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="text-base font-bold flex items-center gap-2"><BarChart2 className="w-5 h-5 text-gray-500" /> Resumo de Engajamento</CardTitle>
                                 </CardHeader>
@@ -242,8 +243,8 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Desempenho Geral</CardTitle>
                                     </CardHeader>
                                     <CardContent className="divide-y divide-gray-100">
-                                        <InsightStat icon={TrendingUp} label="Alcance do Post" value={insights.reach || 0} description="Pessoas únicas que viram o post."/>
-                                        {insights.clicks && (
+                                        <InsightStat icon={TrendingUp} label="Alcance do Post" value={reachFromCard || insights?.reach || 0} description="Pessoas únicas que viram o post."/>
+                                        {insights?.clicks && (
                                             <InsightStat icon={MousePointer} label="Cliques no Post" value={insights.clicks} description="Total de cliques em qualquer lugar do post."/>
                                         )}
                                     </CardContent>
@@ -254,7 +255,7 @@ const FacebookPostInsightsModal = ({ post, open, onOpenChange, connection }: { p
                                         <CardTitle className="text-base font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500" /> Reação por tipo</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        {insights.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
+                                        {insights?.reactions_by_type && Object.keys(insights.reactions_by_type).length > 0 ? (
                                             <div className="grid grid-cols-4 lg:grid-cols-7 gap-4">
                                                 {Object.entries(insights.reactions_by_type).map(([type, count]) => (
                                                     <ReactionDetail key={type} type={type} count={count as number} />
@@ -386,6 +387,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(6);
 
 
   const handleOpenModal = (post: any) => {
@@ -484,7 +486,7 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {media.map((item) => {
+        {media.slice(0, visibleCount).map((item) => {
           const imageSrc = item.thumbnail_url || item.media_url || 'https://placehold.co/400x400';
           const postInsights = item.insights || {};
 
@@ -536,6 +538,13 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
           );
         })}
       </div>
+      {visibleCount < media.length && (
+          <div className="mt-8 flex justify-center">
+              <Button onClick={() => setVisibleCount(prev => prev + 6)}>
+                  Mostrar mais posts
+              </Button>
+          </div>
+      )}
       <InstagramPostInsightsModal post={selectedPost} open={isModalOpen} onOpenChange={setIsModalOpen} connection={connection} />
     </>
   );
@@ -549,6 +558,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData; }
     const [error, setError] = useState<string | null>(null);
     const [selectedPost, setSelectedPost] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(6);
 
      const handleOpenModal = (post: any) => {
         setSelectedPost(post);
@@ -649,7 +659,7 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData; }
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {posts.map((post) => (
+                {posts.slice(0, visibleCount).map((post) => (
                     <Card key={post.id} className="shadow-lg border-none hover:shadow-xl transition-shadow flex flex-col">
                         <CardHeader className="p-4">
                             <div className="aspect-video relative rounded-t-lg overflow-hidden bg-gray-100">
@@ -699,11 +709,19 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData; }
                     </Card>
                 ))}
             </div>
+            {visibleCount < posts.length && (
+                <div className="mt-8 flex justify-center">
+                    <Button onClick={() => setVisibleCount(prev => prev + 6)}>
+                        Mostrar mais posts
+                    </Button>
+                </div>
+            )}
             <FacebookPostInsightsModal
                 post={selectedPost}
                 open={isModalOpen}
                 onOpenChange={setIsModalOpen}
                 connection={connection}
+                reachFromCard={selectedPost?.insights?.reach}
             />
         </>
     );
