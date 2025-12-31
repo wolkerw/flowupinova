@@ -283,7 +283,7 @@ const InstagramPostInsightsModal = ({ post, open, onOpenChange, connection }: { 
             setInsights(null);
 
             try {
-                const response = await fetch('/api/instagram/v2/post-insights', {
+                const response = await fetch('/api/meta/post-insights', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -380,6 +380,9 @@ const InstagramMediaViewer = ({ connection, onConnect }: { connection: Instagram
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [insightsCache, setInsightsCache] = useState<{ [key: string]: any }>({});
+  const [loadingInsights, setLoadingInsights] = useState<{ [key: string]: boolean }>({});
+
 
   const handleOpenModal = (post: any) => {
     setSelectedPost(post);
@@ -1050,4 +1053,3 @@ export default function Relatorios() {
     </div>
   );
 }
-
