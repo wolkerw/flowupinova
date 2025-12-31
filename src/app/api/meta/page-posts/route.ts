@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access token e Page ID são obrigatórios." }, { status: 400 });
         }
 
-        // Busca os posts da página e, para cada post, busca suas métricas em uma única chamada usando a sintaxe de field expansion.
-        const fields = 'id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(day),reactions.summary(total_count),comments.summary(total_count)';
+        // CORREÇÃO: Alterado period(day) para period(lifetime) para obter o alcance total.
+        const fields = 'id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(lifetime),reactions.summary(total_count),comments.summary(total_count)';
 
         const url = `https://graph.facebook.com/v20.0/${pageId}/posts?fields=${fields}&access_token=${accessToken}&limit=10`;
 
