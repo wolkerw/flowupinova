@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
         // Usando as métricas validadas no Explorer que funcionam para Page Posts
         const metricsList = [
             'post_impressions_unique',
-            'post_reactions_by_type_total'
+            'post_clicks_by_type',
+            'post_activity_by_action_type'
         ].join(',');
 
         // Única chamada para o endpoint de insights com as métricas necessárias
@@ -48,7 +49,9 @@ export async function POST(request: NextRequest) {
 
         const insights = {
             reach: getMetricValue(rawInsights, 'post_impressions_unique'),
-            reactions_by_type: getMetricValue(rawInsights, 'post_reactions_by_type_total'),
+            clicks_by_type: getMetricValue(rawInsights, 'post_clicks_by_type'),
+            // O objeto de reações está dentro de 'post_activity_by_action_type'
+            activity_by_action_type: getMetricValue(rawInsights, 'post_activity_by_action_type'),
         };
         
         // Adiciona a busca pelo permalink_url para o link direto
