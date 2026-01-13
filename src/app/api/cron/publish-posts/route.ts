@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { runCronJob } from "@/lib/services/cron-service";
+import { runCronJob } from "@/lib/services/cron-service-v2";
 
 export const dynamic = 'force-dynamic';
 
