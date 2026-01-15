@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 
@@ -8,11 +9,8 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
 
-  // Constrói a URL de redirecionamento para a porta correta do dashboard
-  const redirectUrl = new URL(request.url);
-  redirectUrl.protocol = 'https:';
-  redirectUrl.host = request.nextUrl.host;
-  redirectUrl.port = '9000'; // Garante a porta do cliente
+  // Constrói a URL de redirecionamento usando a URL canônica do config
+  const redirectUrl = new URL(config.aplicationURL);
   redirectUrl.pathname = '/dashboard/conteudo';
   redirectUrl.search = '';
 

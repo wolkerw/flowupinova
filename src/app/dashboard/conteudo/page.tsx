@@ -570,7 +570,7 @@ export default function Conteudo() {
         const tokenResponse = await fetch("/api/meta/callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, redirectUri: window.location.origin + window.location.pathname }),
+          body: JSON.stringify({ code }),
         });
         const tokenResult = await tokenResponse.json();
         if (!tokenResult.success) throw new Error(tokenResult.error);
@@ -666,7 +666,7 @@ export default function Conteudo() {
   }, [allPosts]);
 
   const handleConnectMeta = useCallback(() => {
-    const redirectUri = new URL("/dashboard/conteudo", window.location.origin).toString();
+    const redirectUri = config.meta.redirectUri;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${META_OAUTH.scope}&response_type=code`;
     window.location.href = authUrl;
   }, [user?.uid]);

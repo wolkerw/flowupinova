@@ -1,18 +1,19 @@
 
 
-// Usamos NEXT_PUBLIC_ para acesso no lado do cliente, mas também lemos no lado do servidor.
-// O segredo é apenas do lado do servidor.
+// Define a URL canônica da aplicação para garantir consistência nos redirecionamentos.
+const aplicationURL = 'https://flowupinova.com.br';
+
 export const config = {
+  aplicationURL,
   instagram: {
     appId: process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID!,
     appSecret: process.env.INSTAGRAM_APP_SECRET!,
-    redirectUri: process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI!,
+    redirectUri: `${aplicationURL}/api/instagram/callback`, // Callback da API
   },
   meta: {
      appId: process.env.NEXT_PUBLIC_META_APP_ID!,
      appSecret: process.env.META_APP_SECRET!,
-     redirectUri: process.env.NEXT_PUBLIC_META_REDIRECT_URI!,
+     redirectUri: `${aplicationURL}/dashboard/conteudo`, // Onde o usuário inicia e termina
      configId: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
   }
 };
-

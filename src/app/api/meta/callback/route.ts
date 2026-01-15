@@ -1,5 +1,7 @@
 
+
 import { NextResponse, type NextRequest } from "next/server";
+import { config } from "@/lib/config";
 
 type PageData = {
   id: string;
@@ -30,12 +32,13 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, userAccessToken, redirectUri } = body;
+    const { code, userAccessToken } = body;
     
     // Se um 'code' for fornecido, trocamos por um token de usuário de longa duração.
     if (code) {
+        const redirectUri = config.meta.redirectUri;
         if (!redirectUri) {
-            return NextResponse.json({ success: false, error: "A 'redirect_uri' do cliente é necessária." }, { status: 400 });
+            return NextResponse.json({ success: false, error: "A 'redirect_uri' do servidor não está configurada." }, { status: 500 });
         }
 
         const clientId = "826418333144156";
@@ -95,5 +98,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message || "Ocorreu um erro desconhecido." }, { status: 500 });
   }
 }
-
-    
