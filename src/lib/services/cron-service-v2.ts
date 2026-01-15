@@ -5,21 +5,19 @@ import type { NextRequest } from "next/server";
 import { getDueScheduledPosts, updatePostStatus } from "@/lib/services/posts-service-admin";
 import type { PostData } from "@/lib/services/posts-service";
 import { FieldValue } from "firebase-admin/firestore";
+import { config } from "@/lib/config";
 
 /**
  * Tenta publicar um post em uma plataforma específica.
  */
 async function publishToPlatform(
   platform: "instagram" | "facebook",
-  post: PostData,
-  origin: string
+  post: PostData
 ): Promise<string> {
   const isInstagram = platform === "instagram";
 
-  const baseUrl =
-    origin ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://studio--studio-7502195980-3983c.us-central1.hosted.app";
+  // Usa a URL canônica definida no arquivo de configuração.
+  const baseUrl = config.aplicationURL;
     
   const apiPath = isInstagram ? "/api/instagram/v2/publish" : "/api/facebook/publish";
   const requestUrl = new URL(apiPath, baseUrl);
@@ -136,7 +134,7 @@ export async function runCronJob(request: NextRequest) {
         await updatePostStatus(userPath, postId, { status: "publishing" });
 
         const results = await Promise.all(
-          post.platforms.map((platform) => publishToPlatform(platform, post, request.nextUrl.origin))
+          post.platforms.map((platform) => publishToPlatform(platform, post))
         );
 
         await updatePostStatus(userPath, postId, {
