@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
+import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
 import { cn } from "@/lib/utils";
@@ -140,6 +141,7 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -163,6 +165,49 @@ export default function Dashboard() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const fetchPlatformMetrics = async (metaConn: MetaConnectionData | null, instaConn: InstagramConnectionData | null) => {
+        setMetricsLoading(true);
+
+        try {
+            if (instaConn?.isConnected && instaConn.accessToken) {
+                const igResponse = await fetch('/api/instagram/media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: instaConn.accessToken }),
+                });
+                const igResult = await igResponse.json();
+                if (igResult.success) {
+                    const totalReach = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
+                    const totalLikes = igResult.media.reduce((acc: number, item: any) => acc + (item.like_count || 0), 0);
+                    const totalComments = igResult.media.reduce((acc: number, item: any) => acc + (item.comments_count || 0), 0);
+                    const totalShares = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
+                    setInstagramMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+                }
+            }
+
+            if (metaConn?.isConnected && metaConn.pageId && metaConn.accessToken) {
+                const fbResponse = await fetch('/api/meta/page-posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: metaConn.accessToken, pageId: metaConn.pageId }),
+                });
+                const fbResult = await fbResponse.json();
+                if (fbResult.success) {
+                    const totalReach = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
+                    const totalLikes = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.likes || 0), 0);
+                    const totalComments = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.comments || 0), 0);
+                    const totalShares = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
+                    setFacebookMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch platform metrics:", error);
+        } finally {
+            setMetricsLoading(false);
+        }
+    };
+
 
   useEffect(() => {
     if (!user) return;
@@ -197,12 +242,17 @@ export default function Dashboard() {
     checkTrialStatus();
     
     const fetchInitialData = async () => {
-        const connection = await getMetaConnection(user.uid);
-        setMetaConnection(connection);
+        const [metaConn, instaConn] = await Promise.all([
+          getMetaConnection(user.uid),
+          getInstagramConnection(user.uid)
+        ]);
+        
+        setMetaConnection(metaConn);
+        setInstagramConnection(instaConn);
         fetchBusinessProfile();
 
-        if (connection.isConnected) {
-            fetchPlatformMetrics(connection);
+        if (metaConn.isConnected || instaConn.isConnected) {
+            fetchPlatformMetrics(metaConn, instaConn);
         } else {
             setMetricsLoading(false);
         }
@@ -234,48 +284,6 @@ export default function Dashboard() {
   }, [messages, user]);
 
   
-  const fetchPlatformMetrics = async (connection: MetaConnectionData) => {
-        setMetricsLoading(true);
-
-        try {
-            if (connection.instagramId && connection.accessToken) {
-                const igResponse = await fetch('/api/instagram/media', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken: connection.accessToken, instagramId: connection.instagramId }),
-                });
-                const igResult = await igResponse.json();
-                if (igResult.success) {
-                    const totalReach = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
-                    const totalLikes = igResult.media.reduce((acc: number, item: any) => acc + (item.like_count || 0), 0);
-                    const totalComments = igResult.media.reduce((acc: number, item: any) => acc + (item.comments_count || 0), 0);
-                    const totalShares = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
-                    setInstagramMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
-                }
-            }
-
-            if (connection.pageId && connection.accessToken) {
-                const fbResponse = await fetch('/api/meta/page-posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken: connection.accessToken, pageId: connection.pageId }),
-                });
-                const fbResult = await fbResponse.json();
-                if (fbResult.success) {
-                    const totalReach = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
-                    const totalLikes = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.likes || 0), 0);
-                    const totalComments = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.comments || 0), 0);
-                    const totalShares = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
-                    setFacebookMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch platform metrics:", error);
-        } finally {
-            setMetricsLoading(false);
-        }
-    };
-
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
 
@@ -431,7 +439,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
-            {metaConnection?.isConnected && (
+            {(metaConnection?.isConnected || instagramConnection?.isConnected) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -647,3 +655,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
