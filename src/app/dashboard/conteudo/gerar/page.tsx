@@ -96,7 +96,7 @@ const Preview = ({
                         <span className="font-bold">{getPageName()}</span>{' '}
                         {content && (
                             <>
-                                <span className="font-bold">{content.título}</span>
+                                {content.título}
                                 {`\n\n${content.subtitulo}`}
                                 {content.hashtags && `\n\n${content.hashtags.join(' ')}`}
                             </>
@@ -781,5 +781,6 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
 
 
