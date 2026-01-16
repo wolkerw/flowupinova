@@ -606,7 +606,7 @@ export default function GerarConteudoPage() {
             <CardHeader><CardTitle className="flex items-center gap-2 text-xl"><Sparkles className="w-6 h-6 text-purple-500" />Etapa 1: Sobre o que é o post?</CardTitle></CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-4">Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar. Quanto mais detalhes você fornecer, melhores serão os resultados.</p>
-              <Textarea placeholder="Ex: um post para o Instagram sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador." className="h-40 text-base" value={postSummary} onChange={(e) => setPostSummary(e.target.value)} />
+              <Textarea placeholder="Ex: Criar um post sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador." className="h-40 text-base" value={postSummary} onChange={(e) => setPostSummary(e.target.value)} />
             </CardContent>
             <CardFooter className="flex justify-end items-center">
               <Button onClick={() => handleGenerateText()} disabled={!postSummary.trim() || isLoading} className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
