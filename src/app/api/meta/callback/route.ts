@@ -1,5 +1,4 @@
 
-
 import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/config";
 
@@ -41,8 +40,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "A 'redirect_uri' do servidor não está configurada." }, { status: 500 });
         }
 
-        const clientId = "826418333144156";
-        const clientSecret = "944e053d34b162c13408cd00ad276aa2";
+        const clientId = config.meta.appId;
+        const clientSecret = config.meta.appSecret;
         
         // Etapa 1.1: Trocar o código por um token de acesso de CURTA duração.
         const shortLivedTokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${clientSecret}&code=${code}`;
