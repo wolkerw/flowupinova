@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive, Combine, Edit, Download } from "lucide-react";
+import { Sparkles, ArrowRight, Bot, Loader2, ArrowLeft, Image as ImageIcon, Send, Calendar, Clock, X, Check, AlertTriangle, Instagram, Facebook, History, Archive, Combine, Edit, Download, Heart, MessageCircle, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -661,7 +661,50 @@ export default function GerarConteudoPage() {
             </CardFooter>
           </Card>
            <div className="flex items-center justify-center">
-             <div className="w-[320px] aspect-square bg-gray-200 rounded-3xl shadow-2xl border flex flex-col overflow-hidden relative"><Image src="/mascote-flowy.svg" alt="Mascote robô da FlowUp" layout="fill" objectFit="contain" className="opacity-40" /><div className="absolute inset-0 flex flex-col justify-between p-4 bg-black/30"><div className="text-center">{selectedContent ? <h2 className="text-xl font-bold leading-tight text-white">{selectedContent.título}</h2> : <div className="h-7 bg-white/30 rounded w-3/4 mx-auto animate-pulse"></div>}</div><div className="text-center">{selectedContent ? <p className="text-base text-white">{selectedContent.subtitulo}</p> : <div className="h-4 bg-gray-400/50 rounded w-full animate-pulse"></div>}</div><div className="text-center">{selectedContent ? <p className="text-xs text-blue-300 break-words">{Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}</p> : <div className="h-3 bg-gray-400/50 rounded w-1/2 mx-auto animate-pulse"></div>}</div></div></div>
+             <div className="w-[320px] bg-white rounded-lg shadow-2xl border flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="p-3 flex items-center gap-2 border-b">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user?.photoURL || undefined} />
+                        <AvatarFallback>{(instagramConnection?.instagramUsername || user?.displayName || 'U').charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-bold text-sm">{instagramConnection?.instagramUsername || user?.displayName || 'seu_usuario'}</span>
+                </div>
+
+                {/* Image placeholder */}
+                <div className="w-full aspect-square bg-gray-100 flex items-center justify-center text-gray-400">
+                    <ImageIcon className="w-16 h-16" />
+                </div>
+
+                {/* Action Icons */}
+                <div className="px-3 pt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Heart className="w-6 h-6 text-gray-800 cursor-pointer"/>
+                        <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer transform -scale-x-100"/>
+                        <Send className="w-6 h-6 text-gray-800 cursor-pointer"/>
+                    </div>
+                    <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer"/>
+                </div>
+
+                {/* Caption */}
+                <div className="p-3 pt-2 text-sm">
+                    {selectedContent ? (
+                        <p className="whitespace-pre-wrap text-gray-800">
+                            <span className="font-bold">{instagramConnection?.instagramUsername || user?.displayName || 'seu_usuario'}</span>{' '}
+                            {selectedContent.título}
+                            {'\n\n'}
+                            {selectedContent.subtitulo}
+                            {selectedContent.hashtags && `\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`}
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded animate-pulse w-5/6"></div>
+                            <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                            <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                        </div>
+                    )}
+                </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -781,6 +824,7 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
 
 
 
