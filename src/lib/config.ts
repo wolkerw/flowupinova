@@ -1,5 +1,4 @@
 
-
 // Define a URL canônica da aplicação para garantir consistência nos redirecionamentos.
 const aplicationURL = 'https://flowupinova.com.br';
 
@@ -13,7 +12,12 @@ export const config = {
   meta: {
      appId: process.env.NEXT_PUBLIC_META_APP_ID!,
      appSecret: process.env.META_APP_SECRET!,
-     redirectUri: `${aplicationURL}/dashboard/conteudo`, // Onde o usuário inicia e termina
+     redirectUri: `${aplicationURL}/api/meta/callback`, 
      configId: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
+  },
+  google: {
+    clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    redirectUri: `${aplicationURL}/dashboard/meu-negocio`,
   }
 };
