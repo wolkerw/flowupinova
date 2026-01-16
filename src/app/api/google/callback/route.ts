@@ -1,22 +1,28 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { google } from "googleapis";
-import { config } from "@/lib/config";
 
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const { code, state } = body;
+    const { code, state, origin } = body;
 
     if (!code) {
         return NextResponse.json({ success: false, error: "Código de autorização não fornecido." }, { status: 400 });
     }
     
-    const { clientId, clientSecret, redirectUri } = config.google;
+    if (!origin) {
+         return NextResponse.json({ success: false, error: "Origem da requisição não fornecida." }, { status: 400 });
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
         console.error("[GOOGLE_CALLBACK_ERROR] Variáveis de ambiente GOOGLE_CLIENT_ID ou GOOGLE_CLIENT_SECRET não estão definidas.");
         return NextResponse.json({ success: false, error: "Erro de configuração no servidor. As credenciais do Google não foram encontradas." }, { status: 500 });
     }
+
+    const redirectUri = new URL('/dashboard/meu-negocio', origin).toString();
 
     try {
         const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -120,3 +126,5 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
     }
 }
+
+    

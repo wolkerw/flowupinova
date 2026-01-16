@@ -57,7 +57,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
-import { config } from "@/lib/config";
 
 
 interface MeuNegocioClientProps {
@@ -595,17 +594,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         return;
     }
     setAuthLoading(true);
-    
-    const { clientId, redirectUri } = config.google;
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const redirectUri = new URL('/dashboard/meu-negocio', window.location.origin).toString();
 
-    if (!clientId) {
+
+    if (!googleClientId) {
       toast({ title: "Erro de Configuração", description: "O ID de cliente do Google não está configurado.", variant: "destructive" });
       setAuthLoading(false);
       return;
     }
     
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    googleAuthUrl.searchParams.append('client_id', clientId);
+    googleAuthUrl.searchParams.append('client_id', googleClientId);
     googleAuthUrl.searchParams.append('redirect_uri', redirectUri);
     googleAuthUrl.searchParams.append('response_type', 'code');
     googleAuthUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/business.manage');
@@ -901,3 +901,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
