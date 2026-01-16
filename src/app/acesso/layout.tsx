@@ -138,7 +138,7 @@ export default function AcessoLayout({
                             <div className="h-9 w-36 animate-pulse rounded-md bg-gray-200" />
                         ) : user ? (
                             <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                                <Link href="/dashboard">Acessar Plataforma</Link>
+                                <Link href="/dashboard">Entrar</Link>
                             </Button>
                         ) : (
                             <>
