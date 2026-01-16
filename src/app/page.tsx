@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/components/auth/auth-provider';
 
 const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
@@ -181,6 +182,7 @@ export default function HomePage() {
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const [modalSubject, setModalSubject] = React.useState('');
   const [isAnnual, setIsAnnual] = React.useState(false);
+  const { user, loading } = useAuth();
 
   const openContactModal = (subject = '') => {
     setModalSubject(subject);
@@ -225,12 +227,22 @@ export default function HomePage() {
             <Link href="#pricing" className="text-sm font-medium text-gray-600 hover:text-primary">Preços</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-                <Link href="/acesso/login">Login</Link>
-            </Button>
-            <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
-                <Link href="/acesso/cadastro">Criar Conta</Link>
-            </Button>
+            {loading ? (
+                <div className="h-9 w-36 animate-pulse rounded-md bg-gray-200" />
+            ) : user ? (
+                <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                    <Link href="/dashboard">Acessar Plataforma</Link>
+                </Button>
+            ) : (
+                <>
+                    <Button variant="ghost" asChild>
+                        <Link href="/acesso/login">Login</Link>
+                    </Button>
+                    <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                        <Link href="/acesso/cadastro">Criar Conta</Link>
+                    </Button>
+                </>
+            )}
           </div>
         </div>
       </header>
@@ -485,3 +497,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
