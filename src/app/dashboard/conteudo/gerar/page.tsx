@@ -316,10 +316,11 @@ export default function GerarConteudoPage() {
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0]);
       
+      setStep(3);
+      
       if(publication) {
         setGeneratedContent(contentToUse);
         setSelectedContentId("0");
-        setStep(3);
       }
 
     } catch (error: any) {
@@ -824,6 +825,7 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
+
 
 
 
