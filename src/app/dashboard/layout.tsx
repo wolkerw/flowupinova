@@ -166,8 +166,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getAvatarFallback = () => {
-    if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
     return "U";
   }
 
@@ -304,7 +304,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                        <DropdownMenuLabel>
-                          <p className="font-bold">{businessProfile?.name || user.displayName}</p>
+                          <p className="font-bold">{user.displayName || businessProfile?.name}</p>
                           <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
                        </DropdownMenuLabel>
                        <DropdownMenuSeparator />
