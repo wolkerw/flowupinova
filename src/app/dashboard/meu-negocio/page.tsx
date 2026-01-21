@@ -35,6 +35,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Save,
 } from "lucide-react";
 import {
     Dialog,
@@ -344,8 +345,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [mediaLoading, setMediaLoading] = useState(true);
   const [keywordsLoading, setKeywordsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   
   const [profile, setProfile] = useState<BusinessProfileData>(initialProfile);
+  const [editableProfile, setEditableProfile] = useState<BusinessProfileData>(initialProfile);
   const [metrics, setMetrics] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
@@ -389,6 +394,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         ]);
         
         setProfile(fetchedProfile);
+        setEditableProfile(fetchedProfile); // Sync editable state
         setDataLoading(false);
 
         if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName && googleConn.accountId) {
@@ -630,6 +636,52 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
        setAuthLoading(false);
     }
   };
+
+  const handleSaveChanges = async () => {
+    if (!user || !profile.googleName) return;
+
+    setIsSaving(true);
+    try {
+        const updates: Partial<BusinessProfileData> = {};
+        if (editableProfile.website !== profile.website) {
+            updates.website = editableProfile.website;
+        }
+        // Futuramente, outras edições podem ser adicionadas aqui
+        
+        if (Object.keys(updates).length === 0) {
+            toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
+            setIsEditing(false);
+            return;
+        }
+
+        const response = await fetch('/api/google/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                locationName: profile.googleName, 
+                updates: { websiteUri: updates.website } // A API do google espera `websiteUri`
+            }),
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || "Falha ao atualizar o perfil.");
+        }
+
+        // Atualiza o perfil localmente no Firestore
+        await updateBusinessProfile(user.uid, updates);
+
+        toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
+        await fetchFullProfile(); // Recarrega os dados para garantir consistência
+        setIsEditing(false);
+
+    } catch (err: any) {
+        toast({ title: "Erro ao Salvar", description: err.message, variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
+};
+
   
   if (userLoading || (dataLoading && !profile?.isVerified)) {
     return (
@@ -666,7 +718,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           <h1 className="text-3xl font-bold text-gray-900">Meu Negócio</h1>
           <p className="text-gray-600 mt-1">Gerencie seu perfil no Google Meu Negócio</p>
         </div>
-        {profile?.isVerified && (
+        {profile?.isVerified && !isEditing && (
          <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -727,7 +779,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <div className="lg:col-span-2 space-y-8">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                     <Card className="shadow-lg border-none relative overflow-hidden">
-                        {(dataLoading || authLoading) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
+                        {(dataLoading || authLoading || isSaving) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
                         
                         <div className="h-48 bg-gray-100 rounded-t-lg relative">
                             {profile.isVerified && media?.coverPhoto?.url ? (
@@ -746,25 +798,54 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         </div>
 
-                        <div className="relative px-6 pb-6">
-                             <div className="pt-14 pb-2">
-                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                                {profile.isVerified && (
-                                    <div className="flex items-center gap-2 mt-1 text-sm">
-                                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                        <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                        <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
-                                    </div>
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div className="pt-12">
+                                     <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                     {profile.isVerified && (
+                                        <div className="flex items-center gap-2 mt-1 text-sm">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                            <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
+                                            <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {!isEditing && (
+                                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Editar
+                                    </Button>
                                 )}
                             </div>
-
-                            <div className="space-y-3 pt-6 border-t mt-4">
+                        </CardHeader>
+                        <CardContent>
+                             <div className="space-y-3 pt-6 border-t mt-4">
                                 <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
                                 <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
-                                <div className="flex items-center gap-3 text-gray-700"><Globe className="w-4 h-4 text-gray-500" /><a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website}</a></div>
+                                 <div className="flex items-start gap-3 text-gray-700">
+                                    <Globe className="w-4 h-4 text-gray-500 mt-1 shrink-0" />
+                                    {isEditing ? (
+                                        <Input 
+                                            value={editableProfile.website}
+                                            onChange={(e) => setEditableProfile(p => ({...p, website: e.target.value}))}
+                                            placeholder="https://seu-site.com"
+                                        />
+                                    ) : (
+                                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website || "Nenhum site informado"}</a>
+                                    )}
+                                 </div>
                                 <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
                             </div>
-                        </div>
+                        </CardContent>
+                        {isEditing && (
+                            <CardFooter className="flex justify-end gap-2">
+                                <Button variant="ghost" onClick={() => { setIsEditing(false); setEditableProfile(profile); }}>Cancelar</Button>
+                                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                    Salvar Alterações
+                                </Button>
+                            </CardFooter>
+                        )}
                     </Card>
                 </motion.div>
 
@@ -901,5 +982,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
