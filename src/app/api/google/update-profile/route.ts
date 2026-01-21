@@ -7,11 +7,11 @@ import { google } from "googleapis";
 export async function POST(request: NextRequest) {
   try {
     const uid = await getUidFromCookie();
-    const { locationName, updates } = await request.json();
+    const { locationName, updates, updateMask } = await request.json();
 
-    if (!locationName || !updates) {
+    if (!locationName || !updates || !updateMask) {
       return NextResponse.json(
-        { success: false, error: "Location name and updates are required." },
+        { success: false, error: "Location name, updates, and updateMask are required." },
         { status: 400 }
       );
     }
@@ -22,13 +22,9 @@ export async function POST(request: NextRequest) {
       auth: oauth2Client,
     });
 
-    const updateMask = Object.keys(updates)
-      .map(key => key === 'website' ? 'websiteUri' : key) // Mapeia 'website' para 'websiteUri' se necessário
-      .join(',');
-
     await mybusinessbusinessinformation.locations.patch({
       name: locationName,
-      updateMask: "websiteUri", // Hardcoded para o teste inicial
+      updateMask: updateMask,
       requestBody: updates,
     });
 

@@ -637,18 +637,32 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
 
-  const handleSaveChanges = async () => {
+ const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
 
     setIsSaving(true);
     try {
-        const updates: Partial<BusinessProfileData> = {};
-        if (editableProfile.website !== profile.website) {
-            updates.website = editableProfile.website;
+        const updates: { [key: string]: any } = {};
+        const updateMask: string[] = [];
+
+        if (editableProfile.name !== profile.name) {
+            updates.title = editableProfile.name;
+            updateMask.push("title");
         }
-        // Futuramente, outras edições podem ser adicionadas aqui
+        if (editableProfile.phone !== profile.phone) {
+            updates.phoneNumbers = { primaryPhone: editableProfile.phone };
+            updateMask.push("phoneNumbers");
+        }
+        if (editableProfile.website !== profile.website) {
+            updates.websiteUri = editableProfile.website;
+            updateMask.push("websiteUri");
+        }
+        if (editableProfile.description !== profile.description) {
+            updates.profile = { description: editableProfile.description };
+            updateMask.push("profile");
+        }
         
-        if (Object.keys(updates).length === 0) {
+        if (updateMask.length === 0) {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
             setIsEditing(false);
             return;
@@ -659,7 +673,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 locationName: profile.googleName, 
-                updates: { websiteUri: updates.website } // A API do google espera `websiteUri`
+                updates: updates,
+                updateMask: updateMask.join(',')
             }),
         });
 
@@ -668,11 +683,16 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             throw new Error(result.error || "Falha ao atualizar o perfil.");
         }
 
-        // Atualiza o perfil localmente no Firestore
-        await updateBusinessProfile(user.uid, updates);
+        const localUpdates: Partial<BusinessProfileData> = {};
+        if(editableProfile.name !== profile.name) localUpdates.name = editableProfile.name;
+        if(editableProfile.phone !== profile.phone) localUpdates.phone = editableProfile.phone;
+        if(editableProfile.website !== profile.website) localUpdates.website = editableProfile.website;
+        if(editableProfile.description !== profile.description) localUpdates.description = editableProfile.description;
+
+        await updateBusinessProfile(user.uid, localUpdates);
 
         toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
-        await fetchFullProfile(); // Recarrega os dados para garantir consistência
+        await fetchFullProfile();
         setIsEditing(false);
 
     } catch (err: any) {
@@ -800,8 +820,16 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
                         <CardHeader>
                             <div className="flex justify-between items-start">
-                                <div className="pt-12">
-                                     <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                <div className="pt-12 w-full">
+                                     {isEditing ? (
+                                        <Input 
+                                            value={editableProfile.name}
+                                            onChange={(e) => setEditableProfile(p => ({...p, name: e.target.value}))}
+                                            className="text-2xl font-bold h-auto p-0 border-0 shadow-none focus-visible:ring-0"
+                                        />
+                                    ) : (
+                                        <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                    )}
                                      {profile.isVerified && (
                                         <div className="flex items-center gap-2 mt-1 text-sm">
                                             <Star className="w-4 h-4 text-yellow-400 fill-current" />
@@ -820,21 +848,49 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-3 pt-6 border-t mt-4">
-                                <div className="flex items-start gap-3 text-gray-700"><MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" /><span className="text-sm">{profile.address}</span></div>
-                                <div className="flex items-center gap-3 text-gray-700"><Phone className="w-4 h-4 text-gray-500" /><span className="text-sm">{profile.phone}</span></div>
-                                 <div className="flex items-start gap-3 text-gray-700">
-                                    <Globe className="w-4 h-4 text-gray-500 mt-1 shrink-0" />
+                                <div className="flex items-start gap-3 text-gray-700">
+                                    <MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" />
+                                    <span className="text-sm">{profile.address}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-gray-700">
+                                    <Phone className="w-4 h-4 text-gray-500 shrink-0" />
+                                    {isEditing ? (
+                                        <Input
+                                            value={editableProfile.phone}
+                                            onChange={(e) => setEditableProfile(p => ({...p, phone: e.target.value}))}
+                                            placeholder="(00) 00000-0000"
+                                            className="h-8 text-sm"
+                                        />
+                                    ) : (
+                                        <span className="text-sm">{profile.phone}</span>
+                                    )}
+                                </div>
+                                 <div className="flex items-center gap-3 text-gray-700">
+                                    <Globe className="w-4 h-4 text-gray-500 shrink-0" />
                                     {isEditing ? (
                                         <Input 
                                             value={editableProfile.website}
                                             onChange={(e) => setEditableProfile(p => ({...p, website: e.target.value}))}
                                             placeholder="https://seu-site.com"
+                                            className="h-8 text-sm"
                                         />
                                     ) : (
                                         <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website || "Nenhum site informado"}</a>
                                     )}
                                  </div>
-                                <p className="text-sm text-gray-600 pt-2">{profile.description}</p>
+                                <div className="pt-2">
+                                     {isEditing ? (
+                                        <Textarea
+                                            value={editableProfile.description}
+                                            onChange={(e) => setEditableProfile(p => ({...p, description: e.target.value}))}
+                                            placeholder="Descreva sua empresa aqui..."
+                                            className="text-sm"
+                                            rows={5}
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-gray-600">{profile.description}</p>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                         {isEditing && (
