@@ -82,15 +82,15 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y5} className="w-16 h-16 text-gray-200/50 top-[10%] left-[5%] transform rotate-15" />
-            <Shape2 y={y2} className="w-16 h-16 text-gray-200/40 top-[20%] right-[10%]" />
-            <Shape1 y={y1} className="w-10 h-10 text-gray-200/60 top-[50%] right-[5%]" />
-            <Shape6 y={y5} className="w-12 h-12 text-gray-200/70 top-[5%] left-[40%]" />
-            <Shape7 y={y3} className="w-16 h-16 text-gray-200/40 top-[35%] left-[55%]" />
-            <Shape2 y={y2} className="w-14 h-14 text-gray-200/50 top-[75%] left-[60%]" />
-            <Shape5 y={y5} className="w-16 h-16 text-gray-200/40 top-[90%] left-[5%] transform rotate-15" />
-            <Shape6 y={y4} className="w-20 h-20 text-gray-200/40 bottom-[5%] left-[30%]" />
-            <Shape7 y={y3} className="w-8 h-8 text-gray-200/60 top-[85%] right-[5%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-border/50 top-[10%] left-[5%] transform rotate-15" />
+            <Shape2 y={y2} className="w-16 h-16 text-border/40 top-[20%] right-[10%]" />
+            <Shape1 y={y1} className="w-10 h-10 text-border/60 top-[50%] right-[5%]" />
+            <Shape6 y={y5} className="w-12 h-12 text-border/70 top-[5%] left-[40%]" />
+            <Shape7 y={y3} className="w-16 h-16 text-border/40 top-[35%] left-[55%]" />
+            <Shape2 y={y2} className="w-14 h-14 text-border/50 top-[75%] left-[60%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-border/40 top-[90%] left-[5%] transform rotate-15" />
+            <Shape6 y={y4} className="w-20 h-20 text-border/40 bottom-[5%] left-[30%]" />
+            <Shape7 y={y3} className="w-8 h-8 text-border/60 top-[85%] right-[5%]" />
         </div>
     );
 };
@@ -131,7 +131,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: -20 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl max-w-lg w-full"
+            className="bg-card rounded-xl shadow-2xl max-w-lg w-full"
         >
             <CardHeader className="flex flex-row items-center justify-between border-b">
                 <CardTitle className="text-xl">Entre em Contato</CardTitle>
@@ -166,7 +166,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
                         <Label htmlFor="message">Mensagem</Label>
                         <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                    <Button type="submit" size="lg" className="w-full text-white bg-flowup-gradient">
                         <Send className="w-5 h-5 mr-2" />
                         Enviar Mensagem
                     </Button>
@@ -208,29 +208,23 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="bg-white text-gray-800">
-      <style>{`
-          :root {
-              --flowup-gradient: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--primary)) 100%);
-          }
-      `}</style>
-      
+    <div className="bg-background text-foreground">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
+      <header className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm shadow-sm z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="#features" className="text-sm font-medium text-gray-600 hover:text-primary">Funcionalidades</Link>
-            <Link href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-primary">Como Funciona</Link>
-            <Link href="#pricing" className="text-sm font-medium text-gray-600 hover:text-primary">Preços</Link>
+            <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary">Funcionalidades</Link>
+            <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary">Como Funciona</Link>
+            <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary">Preços</Link>
           </nav>
           <div className="flex items-center gap-2">
             {loading ? (
-                <div className="h-9 w-36 animate-pulse rounded-md bg-gray-200" />
+                <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
             ) : user ? (
-                <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                <Button asChild className="text-white bg-flowup-gradient">
                     <Link href="/dashboard">Entrar</Link>
                 </Button>
             ) : (
@@ -238,7 +232,7 @@ export default function HomePage() {
                     <Button variant="ghost" asChild>
                         <Link href="/acesso/login">Login</Link>
                     </Button>
-                    <Button asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                    <Button asChild className="text-white bg-flowup-gradient">
                         <Link href="/acesso/cadastro">Criar Conta</Link>
                     </Button>
                 </>
@@ -249,7 +243,7 @@ export default function HomePage() {
 
       <main className="pt-24">
         {/* Hero Section */}
-        <section className="py-20 px-6 bg-gray-50 relative overflow-hidden">
+        <section className="py-20 px-6 bg-muted relative overflow-hidden">
              <ParallaxShapes />
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -259,13 +253,13 @@ export default function HomePage() {
           >
             <div className="grid md:grid-cols-2 items-center gap-12">
               <div className="text-center md:text-left">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4 leading-tight">
                   Sua plataforma de marketing com <span className="text-primary">Inteligência Artificial</span>
                 </h1>
-                <p className="text-lg text-gray-600 max-w-xl mx-auto md:mx-0 mb-8">
+                <p className="text-lg text-muted-foreground max-w-xl mx-auto md:mx-0 mb-8">
                   Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
                 </p>
-                <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+                <Button size="lg" asChild className="text-white bg-flowup-gradient">
                   <Link href="/acesso/cadastro">Começar Grátis</Link>
                 </Button>
               </div>
@@ -287,35 +281,35 @@ export default function HomePage() {
         <section id="how-it-works" className="py-20 px-6">
             <div className="container mx-auto text-center">
                 <h2 className="text-3xl font-bold mb-2">Como funciona? É simples.</h2>
-                <p className="text-gray-600 mb-12">Em apenas três passos, seu conteúdo está pronto para brilhar.</p>
+                <p className="text-muted-foreground mb-12">Em apenas três passos, seu conteúdo está pronto para brilhar.</p>
                 <div className="grid md:grid-cols-3 gap-10">
                     <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-blue-100 text-primary flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                             <Edit className="w-10 h-10"/>
                         </div>
                         <h3 className="text-xl font-bold mb-2">1. Descreva</h3>
-                        <p className="text-gray-600">Diga à nossa IA sobre o que você quer postar. Forneça um tema, uma ideia ou algumas palavras-chave.</p>
+                        <p className="text-muted-foreground">Diga à nossa IA sobre o que você quer postar. Forneça um tema, uma ideia ou algumas palavras-chave.</p>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-blue-100 text-primary flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                             <Bot className="w-10 h-10"/>
                         </div>
                         <h3 className="text-xl font-bold mb-2">2. Receba</h3>
-                        <p className="text-gray-600">A IA gera textos e sugere imagens. Escolha a opção que mais te agrada e personalize como quiser.</p>
+                        <p className="text-muted-foreground">A IA gera textos e sugere imagens. Escolha a opção que mais te agrada e personalize como quiser.</p>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-blue-100 text-primary flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                             <Send className="w-10 h-10"/>
                         </div>
                         <h3 className="text-xl font-bold mb-2">3. Publique</h3>
-                        <p className="text-gray-600">Agende suas publicações para as melhores horas e deixe nossa plataforma postar por você.</p>
+                        <p className="text-muted-foreground">Agende suas publicações para as melhores horas e deixe nossa plataforma postar por você.</p>
                     </div>
                 </div>
             </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 px-6 bg-gray-50 relative overflow-hidden">
+        <section id="features" className="py-20 px-6 bg-muted relative overflow-hidden">
           <ParallaxShapes />
           <div className="container mx-auto relative z-10">
             <h2 className="text-3xl font-bold text-center mb-12">Tudo que você precisa para decolar seu marketing</h2>
@@ -327,7 +321,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="shadow-lg hover:shadow-xl transition-shadow h-full">
+                  <Card className="shadow-lg hover:shadow-xl transition-shadow h-full bg-card">
                     <CardHeader>
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                         <feature.icon className="w-6 h-6 text-primary" />
@@ -335,7 +329,7 @@ export default function HomePage() {
                       <CardTitle>{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-600">{feature.description}</p>
+                      <p className="text-muted-foreground">{feature.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -348,9 +342,9 @@ export default function HomePage() {
         <section id="pricing" className="py-20 px-6">
             <div className="container mx-auto">
                 <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
-                <p className="text-center text-gray-600 mb-8">Escolha o plano perfeito para impulsionar seu negócio.</p>
+                <p className="text-center text-muted-foreground mb-8">Escolha o plano perfeito para impulsionar seu negócio.</p>
                 <div className="flex justify-center items-center gap-4 mb-12">
-                    <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary font-bold' : 'text-gray-500'}>
+                    <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary font-bold' : 'text-muted-foreground'}>
                         Mensal
                     </Label>
                     <Switch
@@ -358,7 +352,7 @@ export default function HomePage() {
                         checked={isAnnual}
                         onCheckedChange={setIsAnnual}
                     />
-                    <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary font-bold' : 'text-gray-500'}>
+                    <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary font-bold' : 'text-muted-foreground'}>
                         Anual
                     </Label>
                     <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
@@ -366,14 +360,14 @@ export default function HomePage() {
                     </div>
                 </div>
                 <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    <Card className="shadow-lg border-gray-200 flex flex-col">
+                    <Card className="shadow-lg border-border flex flex-col bg-card">
                          <CardHeader className="pb-4">
                             <CardTitle className="text-2xl font-bold">7 Dias Grátis</CardTitle>
-                             <p className="text-4xl font-bold text-gray-800 pt-2">R$0<span className="text-lg font-medium text-gray-500">/7 dias</span></p>
-                            <p className="text-gray-600 text-sm">Teste todas as funcionalidades do plano Standard.</p>
+                             <p className="text-4xl font-bold text-foreground pt-2">R$0<span className="text-lg font-medium text-muted-foreground">/7 dias</span></p>
+                            <p className="text-muted-foreground text-sm">Teste todas as funcionalidades do plano Standard.</p>
                         </CardHeader>
                         <CardContent className="space-y-4 flex-grow">
-                             <ul className="space-y-3 text-gray-700">
+                             <ul className="space-y-3 text-foreground">
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
@@ -383,12 +377,12 @@ export default function HomePage() {
                             </ul>
                         </CardContent>
                         <div className="p-6 pt-0">
-                           <Button asChild className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>
+                           <Button asChild className="w-full text-white mt-4 bg-flowup-gradient">
                                 <Link href="/acesso/cadastro">Iniciar Teste Grátis</Link>
                            </Button>
                         </div>
                     </Card>
-                    <Card className="shadow-lg border-primary border-2 flex flex-col relative">
+                    <Card className="shadow-lg border-primary border-2 flex flex-col relative bg-card">
                         <CardHeader className="pb-4 pt-8 text-center">
                             <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute -top-4 left-1/2 -translate-x-1/2">
                                 Mais Popular
@@ -396,12 +390,12 @@ export default function HomePage() {
                             <CardTitle className="text-2xl font-bold pt-8">Plano Standard</CardTitle>
                             <p className="text-4xl font-bold text-primary pt-2">
                                 {isAnnual ? 'R$400,00' : 'R$490,00'}
-                                <span className="text-lg font-medium text-gray-500">/mês</span>
+                                <span className="text-lg font-medium text-muted-foreground">/mês</span>
                             </p>
-                            <p className="text-gray-600 text-sm">{isAnnual ? 'Cobrado anualmente' : 'Cobrado mensalmente'}</p>
+                            <p className="text-muted-foreground text-sm">{isAnnual ? 'Cobrado anualmente' : 'Cobrado mensalmente'}</p>
                         </CardHeader>
                         <CardContent className="space-y-4 flex-grow">
-                            <ul className="space-y-3 text-gray-700">
+                            <ul className="space-y-3 text-foreground">
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
                                 <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
@@ -411,19 +405,19 @@ export default function HomePage() {
                             </ul>
                         </CardContent>
                         <div className="p-6 pt-0">
-                           <Button asChild className="w-full text-white mt-4" style={{ background: 'var(--flowup-gradient)' }}>
+                           <Button asChild className="w-full text-white mt-4 bg-flowup-gradient">
                                 <Link href="/acesso/cadastro">Assinar Agora</Link>
                            </Button>
                         </div>
                     </Card>
-                    <Card className="shadow-lg border-gray-200 flex flex-col">
+                    <Card className="shadow-lg border-border flex flex-col bg-card">
                         <CardHeader className="pb-4">
                             <CardTitle className="text-2xl font-bold">Plano Personal</CardTitle>
-                             <p className="text-4xl font-bold text-gray-800 pt-2">Personalizado</p>
-                            <p className="text-gray-600 text-sm">Tudo do Fundamental, e mais!</p>
+                             <p className="text-4xl font-bold text-foreground pt-2">Personalizado</p>
+                            <p className="text-muted-foreground text-sm">Tudo do Fundamental, e mais!</p>
                         </CardHeader>
                         <CardContent className="space-y-4 flex-grow">
-                            <ul className="space-y-3 text-gray-700">
+                            <ul className="space-y-3 text-foreground">
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Standard, e mais:</span></li>
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Consultoria digital de marketing</li>
                                 <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Desenvolvimento de soluções personalizadas adaptadas para o seu negócio</li>
@@ -440,9 +434,9 @@ export default function HomePage() {
         {/* CTA Section */}
         <section className="py-20 px-6">
           <div className="container mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Pronto para escalar seu conteúdo?</h2>
-            <p className="text-lg text-gray-600 mb-8">Junte-se a milhares de empresas que já estão economizando tempo e dinheiro.</p>
-            <Button size="lg" asChild className="text-white" style={{ background: 'var(--flowup-gradient)' }}>
+            <h2 className="text-3xl font-bold text-foreground mb-4">Pronto para escalar seu conteúdo?</h2>
+            <p className="text-lg text-muted-foreground mb-8">Junte-se a milhares de empresas que já estão economizando tempo e dinheiro.</p>
+            <Button size="lg" asChild className="text-white bg-flowup-gradient">
               <Link href="/acesso/cadastro">Criar minha conta agora</Link>
             </Button>
           </div>
@@ -450,22 +444,22 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-100 text-gray-800">
+      <footer className="bg-muted text-foreground">
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
                 <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
             </div>
             <div className="flex items-center gap-4 mt-4 md:mt-0">
-              <Link href="/termos" className="text-gray-600 hover:text-primary">Termos</Link>
-              <Link href="/privacidade" className="text-gray-600 hover:text-primary">Privacidade</Link>
-              <button onClick={() => openContactModal()} className="text-gray-600 hover:text-primary">Contato</button>
+              <Link href="/termos" className="text-muted-foreground hover:text-primary">Termos</Link>
+              <Link href="/privacidade" className="text-muted-foreground hover:text-primary">Privacidade</Link>
+              <button onClick={() => openContactModal()} className="text-muted-foreground hover:text-primary">Contato</button>
               <a href="https://www.instagram.com/flowup.inova" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
                 <Instagram className="w-5 h-5" />
               </a>
             </div>
           </div>
-          <div className="mt-8 border-t border-gray-200 pt-8 text-center text-gray-500 text-sm">
+          <div className="mt-8 border-t border-border pt-8 text-center text-muted-foreground text-sm">
             <p>&copy; 2025 Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
           </div>
         </div>

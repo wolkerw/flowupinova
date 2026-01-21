@@ -39,7 +39,7 @@ export default function LoginPage() {
                         <Input id="login-password" type="password" placeholder="Sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required className="pl-10" />
                     </div>
                 </div>
-                <Button type="submit" className="w-full !mt-6 text-white" style={{ background: 'var(--flowup-gradient)' }} disabled={isLoading}>
+                <Button type="submit" className="w-full !mt-6 text-white bg-flowup-gradient" disabled={isLoading}>
                      {isLoading ? <Loader2 className="animate-spin" /> : 'Entrar na Plataforma'}
                 </Button>
             </form>

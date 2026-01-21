@@ -92,21 +92,21 @@ const allNavigationItems = [
 
 const NotificationItem = ({ notification }: { notification: Notification }) => {
     const statusIcons = {
-        unread: <Sparkles className="w-4 h-4 text-blue-500" />,
+        unread: <Sparkles className="w-4 h-4 text-primary" />,
         published: <CheckCircle className="w-4 h-4 text-green-500" />, // Visual alternative
-        failed: <XCircle className="w-4 h-4 text-red-500" />,
+        failed: <XCircle className="w-4 h-4 text-destructive" />,
     };
 
     const isUnread = notification.status === 'unread';
 
     return (
-        <DropdownMenuItem className={cn("flex items-start gap-3 p-3 cursor-default focus:bg-gray-50", isUnread && "bg-blue-50")}>
+        <DropdownMenuItem className={cn("flex items-start gap-3 p-3 cursor-default focus:bg-accent", isUnread && "bg-primary/10")}>
             <div className="mt-1">
-                 {statusIcons[notification.status as keyof typeof statusIcons] || <Bell className="w-4 h-4 text-gray-500" />}
+                 {statusIcons[notification.status as keyof typeof statusIcons] || <Bell className="w-4 h-4 text-muted-foreground" />}
             </div>
             <div className="flex-1">
-                <p className="text-sm text-gray-800 leading-snug">{notification.message}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-foreground leading-snug">{notification.message}</p>
+                <p className="text-xs text-muted-foreground mt-1">
                     {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: ptBR })}
                 </p>
             </div>
@@ -166,25 +166,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getAvatarFallback = () => {
-    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     return "U";
   }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <style>{`
-          :root {
-            --flowup-cyan: #40E0D0;
-            --flowup-blue: #2D8EFF;
-            --flowup-blue-dark: #1B355E;
-            --flowup-gradient: linear-gradient(135deg, #40E0D0 0%, #2D8EFF 100%);
-          }
-        `}</style>
-
-        <Sidebar className="border-r border-gray-200/60 bg-white">
-          <SidebarHeader className="border-b border-gray-100 p-6">
+      <div className="min-h-screen flex w-full bg-muted/50">
+        <Sidebar className="border-r border-border/60 bg-background">
+          <SidebarHeader className="border-b border-border/60 p-6">
             <Link href="/" className="flex items-center gap-3">
               <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
             </Link>
@@ -192,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <SidebarContent className="p-4">
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">
                 Navegação
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -202,15 +193,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <SidebarMenuButton
                         asChild
                         disabled={item.disabled}
-                        className={`hover:bg-gray-50 transition-all duration-200 rounded-xl mb-1 ${
+                        className={`hover:bg-accent transition-all duration-200 rounded-xl mb-1 ${
                           pathname === item.url
-                            ? 'text-white border' 
-                            : 'hover:text-gray-700'
+                            ? 'text-primary-foreground border bg-flowup-gradient' 
+                            : 'hover:text-accent-foreground'
                         } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        style={pathname === item.url ? { 
-                          background: 'var(--flowup-gradient)',
-                          borderColor: 'var(--flowup-cyan)'
-                        } : {}}
                       >
                         <Link href={item.disabled ? "#" : item.url} className="flex items-center justify-between w-full gap-3 px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -227,21 +214,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-gray-100 p-4">
+          <SidebarFooter className="border-t border-border/60 p-4">
             <div className="text-center space-y-2">
-              <div className="flex justify-center gap-4 text-xs text-gray-400">
-                <a href="#" className="hover:text-gray-600 transition-colors">Suporte</a>
+              <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+                <a href="#" className="hover:text-foreground transition-colors">Suporte</a>
                 <span>•</span>
-                <Link href="/termos" className="hover:text-gray-600 transition-colors">Termos</Link>
+                <Link href="/termos" className="hover:text-foreground transition-colors">Termos</Link>
                 <span>•</span>
-                <Link href="/privacidade" className="hover:text-gray-600 transition-colors">Privacidade</Link>
+                <Link href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</Link>
               </div>
             </div>
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col bg-gray-50">
-          <header className="bg-white border-b border-gray-200/60 px-6 py-4">
+        <main className="flex-1 flex flex-col bg-muted/50">
+          <header className="bg-background border-b border-border/60 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 
@@ -250,10 +237,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex items-center gap-3">
                  <DropdownMenu onOpenChange={handleOpenNotifications}>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-full">
+                      <Button variant="ghost" size="icon" className="relative hover:bg-accent rounded-full">
                         <Bell className="w-5 h-5" />
                         {unreadCount > 0 && (
-                            <div className="absolute -top-0 -right-0 w-4 h-4 text-xs flex items-center justify-center rounded-full bg-red-500 text-white">
+                            <div className="absolute -top-0 -right-0 w-4 h-4 text-xs flex items-center justify-center rounded-full bg-destructive text-destructive-foreground">
                                 {unreadCount}
                             </div>
                         )}
@@ -270,10 +257,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <DropdownMenuGroup>
                             {loadingNotifications ? (
                                 <div className="flex items-center justify-center p-4">
-                                    <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                                 </div>
                             ) : notifications.length === 0 ? (
-                                <p className="text-sm text-center text-gray-500 p-4">Nenhuma notificação nova.</p>
+                                <p className="text-sm text-center text-muted-foreground p-4">Nenhuma notificação nova.</p>
                             ) : (
                                 notifications.map(n => <NotificationItem key={n.id} notification={n} />)
                             )}
@@ -285,26 +272,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="flex items-center gap-2 p-1 rounded-full h-auto">
-                       {businessProfile?.logo?.url ? (
-                            <Avatar className="w-24 h-9 rounded-md">
-                                <AvatarImage 
-                                    src={businessProfile.logo.url} 
-                                    alt={businessProfile.name}
-                                    className="object-contain"
-                                />
-                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                            </Avatar>
-                       ) : (
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.photoURL || undefined} />
-                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                            </Avatar>
-                       )}
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={businessProfile?.logo?.url || user.photoURL || undefined} alt={businessProfile?.name || user.displayName || ''} />
+                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                        </Avatar>
                      </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                        <DropdownMenuLabel>
-                          <p className="font-bold">{user.displayName || businessProfile?.name}</p>
+                          <p className="font-bold">{businessProfile?.name || user.displayName}</p>
                           <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
                        </DropdownMenuLabel>
                        <DropdownMenuSeparator />
