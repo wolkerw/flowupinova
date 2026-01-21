@@ -825,7 +825,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <Input 
                                             value={editableProfile.name}
                                             onChange={(e) => setEditableProfile(p => ({...p, name: e.target.value}))}
-                                            className="text-2xl font-bold h-auto p-0 border-0 shadow-none focus-visible:ring-0"
+                                            className="text-2xl font-bold h-auto"
                                         />
                                     ) : (
                                         <CardTitle className="text-2xl">{profile.name}</CardTitle>
