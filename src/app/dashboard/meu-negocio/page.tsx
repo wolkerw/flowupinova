@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -364,6 +364,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
   const [lightboxMediaItem, setLightboxMediaItem] = useState<GalleryItem | null>(null);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -638,6 +640,45 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploadingLogo(true);
+    toast({ title: "Enviando nova logomarca..." });
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/google/upload-logo', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || "Falha ao fazer upload da logo.");
+        }
+
+        toast({ variant: "success", title: "Sucesso!", description: "Sua nova logo foi enviada. Pode levar alguns minutos para ser atualizada pelo Google." });
+        
+        // Give Google a moment before refreshing
+        setTimeout(() => {
+            fetchFullProfile();
+        }, 3000);
+
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Erro no Upload", description: error.message });
+    } finally {
+        setIsUploadingLogo(false);
+        // Reset file input
+        if (event.target) {
+            event.target.value = "";
+        }
+    }
+  };
+
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
 
@@ -714,6 +755,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
+       <input
+        type="file"
+        ref={logoInputRef}
+        onChange={handleLogoUpload}
+        className="hidden"
+        accept="image/png, image/jpeg"
+       />
        <ProfileSelectionModal
         isOpen={isSelectionModalOpen}
         profiles={pendingProfiles}
@@ -809,11 +857,23 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             <div className="w-full h-full bg-muted rounded-t-lg"></div>
                             )}
                              <div className="absolute -bottom-12 left-6 z-10">
-                                <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
-                                    {profile.isVerified && media?.profilePhoto?.url ? (
-                                        <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
-                                    ) : (
-                                        <Building2 className="w-12 h-12 text-muted-foreground" />
+                                <div className="relative group">
+                                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                        {isUploadingLogo ? (
+                                            <Loader2 className="w-8 h-8 animate-spin text-primary"/>
+                                        ) : profile.isVerified && media?.profilePhoto?.url ? (
+                                            <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
+                                        ) : (
+                                            <Building2 className="w-12 h-12 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    {!isUploadingLogo && !isEditing && (
+                                        <button 
+                                            onClick={() => logoInputRef.current?.click()}
+                                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Edit className="w-6 h-6"/>
+                                        </button>
                                     )}
                                 </div>
                             </div>
