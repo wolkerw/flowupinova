@@ -396,19 +396,16 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setKeywordsLoading(true);
 
     try {
-        const [fetchedProfile, googleConn] = await Promise.all([
+        const [firestoreProfile, googleConn] = await Promise.all([
             getBusinessProfile(user.uid),
             getGoogleConnection(user.uid),
         ]);
         
-        setProfile(fetchedProfile);
-        setEditableProfile(fetchedProfile); // Sync editable state
-        setDataLoading(false);
+        let activeProfile = firestoreProfile;
 
-        if (googleConn.isConnected && googleConn.accessToken && fetchedProfile.googleName && googleConn.accountId) {
-            const locationId = fetchedProfile.googleName.split('/')[1];
+        if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
+            const locationId = activeProfile.googleName.split('/')[1];
 
-            // Fetch Insights
             const insightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -419,12 +416,24 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
                 })
             });
+
             if (insightsResponse.ok) {
                 const insightsData = await insightsResponse.json();
-                if (insightsData.success) setMetrics(insightsData.insights);
+                if (insightsData.success) {
+                    setMetrics(insightsData.insights);
+                    if (insightsData.profile) {
+                        const freshProfile = { ...activeProfile, ...insightsData.profile };
+                        await updateBusinessProfile(user.uid, freshProfile);
+                        activeProfile = freshProfile; // Use the freshest profile data
+                    }
+                }
             }
+
+            setProfile(activeProfile);
+            setEditableProfile(activeProfile);
+            setDataLoading(false);
             setMetricsLoading(false);
-            
+
             // Fetch Reviews
             const reviewsResponse = await fetch('/api/google/reviews', {
                 method: 'POST',
@@ -444,7 +453,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     }
                 }
             }
-             setReviewsLoading(false);
+            setReviewsLoading(false);
              
             // Fetch Media
             const mediaResponse = await fetch('/api/google/media', {
@@ -479,8 +488,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             }
             setKeywordsLoading(false);
 
-
         } else {
+            setProfile(activeProfile);
+            setEditableProfile(activeProfile);
+            setDataLoading(false);
             setMetricsLoading(false);
             setReviewsLoading(false);
             setMediaLoading(false);
@@ -1213,7 +1224,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
-
-    
