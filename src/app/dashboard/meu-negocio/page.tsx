@@ -37,6 +37,7 @@ import {
   ChevronUp,
   Save,
   PlayCircle,
+  Plus,
 } from "lucide-react";
 import {
     Dialog,
@@ -366,8 +367,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -718,6 +721,44 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
 
+    const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        setIsUploadingGallery(true);
+        toast({ title: "Enviando nova foto para a galeria..." });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/google/upload-gallery-photo', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || "Falha ao fazer upload da foto.");
+            }
+
+            toast({ variant: "success", title: "Sucesso!", description: "Sua nova foto foi adicionada à galeria." });
+            
+            setTimeout(() => {
+                fetchFullProfile();
+            }, 3000);
+
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Erro no Upload", description: error.message });
+        } finally {
+            setIsUploadingGallery(false);
+            if (event.target) {
+                event.target.value = "";
+            }
+        }
+    };
+
+
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
 
@@ -807,6 +848,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         onChange={handleCoverUpload}
         className="hidden"
         accept="image/png, image/jpeg"
+       />
+       <input
+        type="file"
+        ref={galleryInputRef}
+        onChange={handleGalleryUpload}
+        className="hidden"
+        accept="image/png, image/jpeg, image/webp"
        />
        <ProfileSelectionModal
         isOpen={isSelectionModalOpen}
@@ -1080,9 +1128,15 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Card className="shadow-lg border-none">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                        <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Mídia
-                        </CardTitle>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Mídia
+                            </CardTitle>
+                            <Button variant="outline" size="sm" onClick={() => galleryInputRef.current?.click()} disabled={isUploadingGallery}>
+                                {isUploadingGallery ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                                Adicionar
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {mediaLoading ? (
@@ -1159,5 +1213,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
 
     
