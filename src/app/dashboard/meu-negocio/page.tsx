@@ -365,7 +365,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [lightboxMediaItem, setLightboxMediaItem] = useState<GalleryItem | null>(null);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -679,6 +681,43 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     }
   };
 
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploadingCover(true);
+    toast({ title: "Enviando nova foto de capa..." });
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/google/upload-cover', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || "Falha ao fazer upload da capa.");
+        }
+
+        toast({ variant: "success", title: "Sucesso!", description: "Sua nova capa foi enviada. Pode levar alguns minutos para ser atualizada pelo Google." });
+        
+        setTimeout(() => {
+            fetchFullProfile();
+        }, 3000);
+
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Erro no Upload", description: error.message });
+    } finally {
+        setIsUploadingCover(false);
+        if (event.target) {
+            event.target.value = "";
+        }
+    }
+  };
+
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
 
@@ -759,6 +798,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         type="file"
         ref={logoInputRef}
         onChange={handleLogoUpload}
+        className="hidden"
+        accept="image/png, image/jpeg"
+       />
+       <input
+        type="file"
+        ref={coverInputRef}
+        onChange={handleCoverUpload}
         className="hidden"
         accept="image/png, image/jpeg"
        />
@@ -847,7 +893,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className="lg:col-span-2 space-y-8">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                    <Card className="shadow-lg border-none relative overflow-hidden">
+                    <Card className="shadow-lg border-none relative overflow-hidden group">
                         {(dataLoading || authLoading || isSaving) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                         
                         <div className="h-48 bg-muted rounded-t-lg relative">
@@ -856,8 +902,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             ) : (
                             <div className="w-full h-full bg-muted rounded-t-lg"></div>
                             )}
+                            {!isEditing && (
+                                <button
+                                  onClick={() => coverInputRef.current?.click()}
+                                  disabled={isUploadingCover}
+                                  className="absolute top-4 right-4 bg-black/50 text-white rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-sm"
+                                >
+                                  {isUploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                                  Alterar Capa
+                                </button>
+                            )}
                              <div className="absolute -bottom-12 left-6 z-10">
-                                <div className="relative group">
+                                <div className="relative group/logo">
                                     <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
                                         {isUploadingLogo ? (
                                             <Loader2 className="w-8 h-8 animate-spin text-primary"/>
@@ -870,7 +926,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                     {!isUploadingLogo && !isEditing && (
                                         <button 
                                             onClick={() => logoInputRef.current?.click()}
-                                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover/logo:opacity-100 transition-opacity"
                                         >
                                             <Edit className="w-6 h-6"/>
                                         </button>
@@ -1103,3 +1159,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
