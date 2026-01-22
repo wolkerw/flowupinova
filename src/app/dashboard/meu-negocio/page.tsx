@@ -36,6 +36,7 @@ import {
   ChevronDown,
   ChevronUp,
   Save,
+  PlayCircle,
 } from "lucide-react";
 import {
     Dialog,
@@ -85,16 +86,16 @@ const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, valu
             <CardContent className="p-4 flex items-start justify-start gap-4 w-full">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-[72px] w-full">
-                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
                     <>
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                           <Icon className="w-5 h-5 text-blue-600" />
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                           <Icon className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-600">{title}</p>
-                            <p className="text-lg font-bold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+                            <p className="text-xs text-muted-foreground">{title}</p>
+                            <p className="text-lg font-bold text-foreground">{typeof value === 'number' ? value.toLocaleString() : value}</p>
                         </div>
                     </>
                 )}
@@ -123,19 +124,19 @@ const ReviewCard = ({ review }: { review: any }) => {
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 border rounded-lg bg-white"
+            className="p-4 border rounded-lg bg-card"
         >
             <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                         {review.reviewer.profilePhotoUrl ? (
                             <Image src={review.reviewer.profilePhotoUrl} alt={review.reviewer.displayName} width={40} height={40} className="w-full h-full object-cover" />
                         ) : (
-                            <User className="w-5 h-5 text-gray-500"/>
+                            <User className="w-5 h-5 text-muted-foreground"/>
                         )}
                     </div>
                     <div>
-                        <h4 className="font-medium text-gray-900">{review.reviewer.displayName}</h4>
+                        <h4 className="font-medium text-foreground">{review.reviewer.displayName}</h4>
                         <div className="flex items-center gap-1 mt-1">
                             {[...Array(5)].map((_, i) => (
                                 <Star
@@ -148,9 +149,9 @@ const ReviewCard = ({ review }: { review: any }) => {
                         </div>
                     </div>
                 </div>
-                <span className="text-xs text-gray-500">{new Date(review.updateTime).toLocaleDateString('pt-BR')}</span>
+                <span className="text-xs text-muted-foreground">{new Date(review.updateTime).toLocaleDateString('pt-BR')}</span>
             </div>
-            <p className="text-sm text-gray-700">{comment}</p>
+            <p className="text-sm text-foreground/80">{comment}</p>
         </motion.div>
     );
 };
@@ -159,13 +160,13 @@ const ConnectGoogleCard = ({ onConnect, loading }: { onConnect: () => void, load
     <Card className="shadow-lg border-dashed border-2 max-w-2xl mx-auto">
         <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 text-xl">
-                <LinkIcon className="w-6 h-6 text-gray-700" />
+                <LinkIcon className="w-6 h-6 text-foreground" />
                 Conecte seu Perfil da Empresa no Google
             </CardTitle>
-            <p className="text-gray-600 text-sm pt-2">Para gerenciar seu negócio, ver métricas e interagir com clientes, você precisa conectar sua conta do Google.</p>
+            <p className="text-muted-foreground text-sm pt-2">Para gerenciar seu negócio, ver métricas e interagir com clientes, você precisa conectar sua conta do Google.</p>
         </CardHeader>
         <CardContent className="flex justify-center">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700" onClick={onConnect} disabled={loading}>
+            <Button size="lg" className="bg-primary hover:bg-primary/90" onClick={onConnect} disabled={loading}>
                 {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Globe className="w-5 h-5 mr-2" />}
                 Conectar ao Google
             </Button>
@@ -245,21 +246,21 @@ const ProfileSelectionModal = ({
               <Label
                 key={profile.googleName}
                 htmlFor={profile.googleName}
-                className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/10"
               >
                 <RadioGroupItem
                   value={profile.googleName || ''}
                   id={profile.googleName}
                 />
                 <div>
-                  <p className="font-semibold text-gray-800">{profile.name}</p>
-                  <p className="text-sm text-gray-500">{profile.address}</p>
+                  <p className="font-semibold text-foreground">{profile.name}</p>
+                  <p className="text-sm text-muted-foreground">{profile.address}</p>
                 </div>
               </Label>
             ))}
           </RadioGroup>
           {filteredProfiles.length === 0 && (
-            <p className="text-center text-sm text-gray-500 py-4">Nenhum perfil encontrado com sua busca.</p>
+            <p className="text-center text-sm text-muted-foreground py-4">Nenhum perfil encontrado com sua busca.</p>
           )}
         </div>
         
@@ -377,7 +378,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   
   const totalViews = (metrics?.viewsSearch || 0) + (metrics?.viewsMaps || 0);
   const INITIAL_PHOTO_LIMIT = 6;
-  const photosToShow = showAllPhotos ? media?.gallery : media?.gallery.slice(0, INITIAL_PHOTO_LIMIT);
+  const photosToShow = showAllPhotos ? media?.gallery : media?.gallery?.slice(0, INITIAL_PHOTO_LIMIT);
 
   const fetchFullProfile = useCallback(async () => {
     if (!user) return;
@@ -735,8 +736,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Meu Negócio</h1>
-          <p className="text-gray-600 mt-1">Gerencie seu perfil no Google Meu Negócio</p>
+          <h1 className="text-3xl font-bold text-foreground">Meu Negócio</h1>
+          <p className="text-muted-foreground mt-1">Gerencie seu perfil no Google Meu Negócio</p>
         </div>
         {profile?.isVerified && !isEditing && (
          <Popover>
@@ -799,20 +800,20 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <div className="lg:col-span-2 space-y-8">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                     <Card className="shadow-lg border-none relative overflow-hidden">
-                        {(dataLoading || authLoading || isSaving) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>}
+                        {(dataLoading || authLoading || isSaving) && <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-20"><Loader2 className="w-8 h-8 animate-spin text-primary"/></div>}
                         
-                        <div className="h-48 bg-gray-100 rounded-t-lg relative">
+                        <div className="h-48 bg-muted rounded-t-lg relative">
                             {profile.isVerified && media?.coverPhoto?.url ? (
                                 <Image src={media.coverPhoto.url} alt="Foto de capa" layout="fill" objectFit="cover" objectPosition="center" className="rounded-t-lg"/>
                             ) : (
-                            <div className="w-full h-full bg-gray-200 rounded-t-lg"></div>
+                            <div className="w-full h-full bg-muted rounded-t-lg"></div>
                             )}
                              <div className="absolute -bottom-12 left-6 z-10">
-                                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
+                                <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border-4 border-white shadow-md">
                                     {profile.isVerified && media?.profilePhoto?.url ? (
                                         <Image src={media.profilePhoto.url} alt="Logo" width={96} height={96} className="w-full h-full object-cover"/>
                                     ) : (
-                                        <Building2 className="w-12 h-12 text-gray-400" />
+                                        <Building2 className="w-12 h-12 text-muted-foreground" />
                                     )}
                                 </div>
                             </div>
@@ -834,7 +835,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2 mt-1 text-sm">
                                             <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                             <span className="font-semibold">{profile.rating ? profile.rating.toFixed(1) : 'N/A'}</span>
-                                            <span className="text-gray-600">({profile.totalReviews || 0} avaliações)</span>
+                                            <span className="text-muted-foreground">({profile.totalReviews || 0} avaliações)</span>
                                         </div>
                                     )}
                                 </div>
@@ -848,12 +849,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-3 pt-6 border-t mt-4">
-                                <div className="flex items-start gap-3 text-gray-700">
-                                    <MapPin className="w-4 h-4 text-gray-500 mt-1 shrink-0" />
+                                <div className="flex items-start gap-3 text-foreground/80">
+                                    <MapPin className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
                                     <span className="text-sm">{profile.address}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-gray-700">
-                                    <Phone className="w-4 h-4 text-gray-500 shrink-0" />
+                                <div className="flex items-center gap-3 text-foreground/80">
+                                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                                     {isEditing ? (
                                         <Input
                                             value={editableProfile.phone}
@@ -865,8 +866,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <span className="text-sm">{profile.phone}</span>
                                     )}
                                 </div>
-                                 <div className="flex items-center gap-3 text-gray-700">
-                                    <Globe className="w-4 h-4 text-gray-500 shrink-0" />
+                                 <div className="flex items-center gap-3 text-foreground/80">
+                                    <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                                     {isEditing ? (
                                         <Input 
                                             value={editableProfile.website}
@@ -875,7 +876,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             className="h-8 text-sm"
                                         />
                                     ) : (
-                                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{profile.website || "Nenhum site informado"}</a>
+                                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.website || "Nenhum site informado"}</a>
                                     )}
                                  </div>
                                 <div className="pt-2">
@@ -888,7 +889,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             rows={5}
                                         />
                                     ) : (
-                                        <p className="text-sm text-gray-600">{profile.description}</p>
+                                        <p className="text-sm text-muted-foreground">{profile.description}</p>
                                     )}
                                 </div>
                             </div>
@@ -917,18 +918,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                             {keywordsLoading ? (
                             <div className="flex justify-center items-center h-40">
-                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                             </div>
                             ) : keywords.length > 0 ? (
                             keywords.map((kw, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
-                                <span className="text-sm font-medium text-gray-800">{kw.keyword}</span>
+                                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 border rounded-lg">
+                                <span className="text-sm font-medium text-foreground">{kw.keyword}</span>
                                 <span className="text-sm font-bold text-green-600">{kw.exact ? kw.value : `${kw.value}+`}</span>
                                 </div>
                             ))
                             ) : (
-                            <div className="text-center text-gray-500 py-10">
-                                <Key className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                            <div className="text-center text-muted-foreground py-10">
+                                <Key className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
                                 <p>Nenhuma palavra-chave encontrada para o período.</p>
                             </div>
                             )}
@@ -946,12 +947,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <CardContent>
                         <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                         {reviewsLoading ? (
-                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                            <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
                         ) : reviews.length > 0 ? (
                             reviews.map((review) => <ReviewCard key={review.name} review={review} />)
                         ) : (
-                            <div className="text-center text-gray-500 py-10">
-                                <Star className="w-10 h-10 mx-auto text-gray-400 mb-2"/>
+                            <div className="text-center text-muted-foreground py-10">
+                                <Star className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2"/>
                                 <p>Nenhuma avaliação encontrada.</p>
                             </div>
                         )}
@@ -964,13 +965,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <Card className="shadow-lg border-none">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
-                        <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Fotos
+                        <ImageIcon className="w-5 h-5 text-purple-500" /> Galeria de Mídia
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {mediaLoading ? (
                             <div className="flex justify-center items-center h-40">
-                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : photosToShow && photosToShow.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
@@ -984,15 +985,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             className="group-hover:scale-105 transition-transform duration-300"
                                         />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Search className="w-6 h-6 text-white" />
+                                            {item.mediaFormat === 'VIDEO' ? (
+                                                <PlayCircle className="w-8 h-8 text-white" />
+                                            ) : (
+                                                <Search className="w-6 h-6 text-white" />
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center text-gray-500 py-10">
-                                <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                                <p className="text-sm">Nenhuma foto na galeria.</p>
+                            <div className="text-center text-muted-foreground py-10">
+                                <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+                                <p className="text-sm">Nenhuma mídia na galeria.</p>
                             </div>
                         )}
                     </CardContent>
@@ -1000,7 +1005,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <CardFooter className="pt-4 justify-center">
                              <Button variant="ghost" onClick={() => setShowAllPhotos(!showAllPhotos)} className="text-sm text-primary hover:text-primary">
                                 {showAllPhotos ? <ChevronUp className="w-4 h-4 mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
-                                {showAllPhotos ? 'Ver menos' : `Ver mais ${media.gallery.length - INITIAL_PHOTO_LIMIT} fotos`}
+                                {showAllPhotos ? 'Ver menos' : `Ver mais ${media.gallery.length - INITIAL_PHOTO_LIMIT} mídias`}
                             </Button>
                         </CardFooter>
                     )}
@@ -1011,7 +1016,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <Card className="shadow-lg border-none">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
-                            <LinkIcon className="w-5 h-5 text-gray-700" />
+                            <LinkIcon className="w-5 h-5 text-foreground" />
                             Integração Google
                             </CardTitle>
                         </CardHeader>
@@ -1021,7 +1026,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                                 <div>
                                     <h3 className="font-semibold text-green-900">Conectado</h3>
-                                    <p className="text-sm text-gray-700">{profile.name}</p>
+                                    <p className="text-sm text-muted-foreground">{profile.name}</p>
                                 </div>
                                 </div>
                                 <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleDisconnect} disabled={authLoading}>
