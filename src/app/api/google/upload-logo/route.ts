@@ -2,7 +2,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 import { getAuthenticatedGoogleClient, getGoogleBusinessProfile } from "@/lib/services/google-service-admin";
-import { google } from "googleapis";
 
 export async function POST(request: NextRequest) {
     try {
@@ -45,18 +44,29 @@ export async function POST(request: NextRequest) {
         }
 
         const oauth2Client = await getAuthenticatedGoogleClient(uid);
-        const mybusinessbusinessinformation = google.mybusinessbusinessinformation({
-            version: "v1",
-            auth: oauth2Client,
-        });
-
-        await mybusinessbusinessinformation.locations.media.create({
-            parent: locationName,
-            requestBody: {
+        const { token } = await oauth2Client.getAccessToken();
+        if (!token) {
+            throw new Error("Não foi possível obter o token de acesso do Google.");
+        }
+        
+        const googleApiUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}/media`;
+        
+        const apiResponse = await fetch(googleApiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
                 mediaUrl: publicUrl,
                 category: 'LOGO',
-            },
+            })
         });
+        
+        if (!apiResponse.ok) {
+            const errorData = await apiResponse.json();
+            throw new Error(errorData.error?.message || `A API do Google retornou um erro: ${apiResponse.statusText}`);
+        }
         
         return NextResponse.json({ success: true });
 
