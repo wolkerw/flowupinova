@@ -1,7 +1,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
-import { getUidFromCookie } from "@/lib/firebase-admin";
-import { getAuthenticatedGoogleClient, getGoogleBusinessProfile } from "@/lib/services/google-service-admin";
+import { getUidFromCookie, adminDb } from "@/lib/firebase-admin";
+import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -35,21 +36,33 @@ export async function POST(request: NextRequest) {
             throw new Error("A resposta do serviço de upload não continha uma URL válida.");
         }
 
-        // 2. Associate the new media URL with Google Business Profile
-        const profile = await getGoogleBusinessProfile(uid);
-        const locationName = profile.googleName;
+        // 2. Fetch connection and profile data to build the parent path
+        const connRef = adminDb.collection('users').doc(uid).collection('connections').doc('google');
+        const profileRef = adminDb.collection('users').doc(uid).collection('business').doc('profile');
 
-        if (!locationName) {
-            throw new Error("Perfil do Google (locationName) não encontrado para o usuário.");
+        const [connDoc, profileDoc] = await Promise.all([connRef.get(), profileRef.get()]);
+
+        if (!connDoc.exists) throw new Error("Conexão com Google não encontrada.");
+        if (!profileDoc.exists) throw new Error("Perfil de negócio não encontrado.");
+
+        const accountId = connDoc.data()?.accountId;
+        const locationName = profileDoc.data()?.googleName; // This should be "locations/{locationId}"
+
+        if (!accountId || !locationName) {
+            throw new Error("Dados de conta ou localização do Google incompletos no perfil.");
         }
 
+        // Correctly construct the parent path for the v4 API
+        const parent = `accounts/${accountId}/${locationName}`;
+
+        // 3. Associate the new media URL with Google Business Profile using v4 API
         const oauth2Client = await getAuthenticatedGoogleClient(uid);
         const { token } = await oauth2Client.getAccessToken();
         if (!token) {
             throw new Error("Não foi possível obter o token de acesso do Google.");
         }
         
-        const googleApiUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}/media`;
+        const googleApiUrl = `https://mybusiness.googleapis.com/v4/${parent}/media`;
         
         const apiResponse = await fetch(googleApiUrl, {
             method: 'POST',
@@ -58,8 +71,11 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                mediaUrl: publicUrl,
-                category: 'LOGO',
+                mediaFormat: "PHOTO",
+                locationAssociation: {
+                    category: 'LOGO'
+                },
+                sourceUrl: publicUrl
             })
         });
         
@@ -68,7 +84,10 @@ export async function POST(request: NextRequest) {
             throw new Error(errorData.error?.message || `A API do Google retornou um erro: ${apiResponse.statusText}`);
         }
         
-        return NextResponse.json({ success: true });
+        const resultData = await apiResponse.json();
+        console.log("Google API Success Response:", resultData);
+
+        return NextResponse.json({ success: true, data: resultData });
 
     } catch (error: any) {
         console.error("[GOOGLE_UPLOAD_LOGO_ERROR]", error);
