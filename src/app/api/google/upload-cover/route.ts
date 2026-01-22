@@ -80,17 +80,22 @@ export async function POST(request: NextRequest) {
         });
         
         if (!apiResponse.ok) {
-            let errorMessage = `A API do Google retornou um erro: ${apiResponse.statusText}`;
+            const errorText = await apiResponse.text();
+            let errorMessage = `A API do Google retornou um erro: ${apiResponse.statusText}`; // Fallback message
             try {
-                const errorData = await apiResponse.json();
-                // Try to find the most specific error message from Google's response
-                const specificError = errorData.error?.details?.[0]?.fieldViolations?.[0]?.description;
-                if (specificError) {
-                    errorMessage = specificError;
-                } else if (errorData.error?.message) {
-                    errorMessage = errorData.error.message;
+                const errorJson = JSON.parse(errorText);
+                // Prioritize the most specific validation error message from Google
+                const specificViolation = errorJson.error?.details?.[0]?.fieldViolations?.[0]?.description;
+                const generalMessage = errorJson.error?.message;
+                
+                if (specificViolation) {
+                    errorMessage = specificViolation; // E.g., "Image must be at least 250px tall."
+                } else if (generalMessage) {
+                    errorMessage = generalMessage; // E.g., "Request contains an invalid argument."
                 }
             } catch (e) {
+                // If parsing fails, the body might be HTML or plain text.
+                // The initial status text is a safe fallback.
                 console.error("Could not parse Google API error response as JSON.");
             }
             throw new Error(errorMessage);
