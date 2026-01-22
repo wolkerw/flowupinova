@@ -84,18 +84,19 @@ export async function POST(request: NextRequest) {
             let errorMessage = `A API do Google retornou um erro: ${apiResponse.statusText}`; // Fallback message
             try {
                 const errorJson = JSON.parse(errorText);
-                // Prioritize the most specific validation error message from Google
                 const specificViolation = errorJson.error?.details?.[0]?.fieldViolations?.[0]?.description;
                 const generalMessage = errorJson.error?.message;
                 
                 if (specificViolation) {
-                    errorMessage = specificViolation; // E.g., "Image must be at least 250px tall."
+                    errorMessage = specificViolation;
                 } else if (generalMessage) {
-                    errorMessage = generalMessage; // E.g., "Request contains an invalid argument."
+                    if (generalMessage.toLowerCase().includes("invalid argument")) {
+                        errorMessage = "Não foi possível enviar a imagem. Verifique se o arquivo atende aos requisitos de uma foto de capa: formato JPG ou PNG e dimensões adequadas (proporção 16:9, ex.: 1280x720).";
+                    } else {
+                        errorMessage = generalMessage;
+                    }
                 }
             } catch (e) {
-                // If parsing fails, the body might be HTML or plain text.
-                // The initial status text is a safe fallback.
                 console.error("Could not parse Google API error response as JSON.");
             }
             throw new Error(errorMessage);
