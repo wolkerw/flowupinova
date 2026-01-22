@@ -80,8 +80,20 @@ export async function POST(request: NextRequest) {
         });
         
         if (!apiResponse.ok) {
-            const errorData = await apiResponse.json();
-            throw new Error(errorData.error?.message || `A API do Google retornou um erro: ${apiResponse.statusText}`);
+            let errorMessage = `A API do Google retornou um erro: ${apiResponse.statusText}`;
+            try {
+                const errorData = await apiResponse.json();
+                // Try to find the most specific error message from Google's response
+                const specificError = errorData.error?.details?.[0]?.fieldViolations?.[0]?.description;
+                if (specificError) {
+                    errorMessage = specificError;
+                } else if (errorData.error?.message) {
+                    errorMessage = errorData.error.message;
+                }
+            } catch (e) {
+                console.error("Could not parse Google API error response as JSON.");
+            }
+            throw new Error(errorMessage);
         }
         
         const resultData = await apiResponse.json();
@@ -94,5 +106,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
-
-    
