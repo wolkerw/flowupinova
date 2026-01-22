@@ -17,7 +17,6 @@ export interface BusinessProfileData {
     phone: string;
     website: string;
     description: string;
-    brandSummary: string;
     logo: LogoData;
     rating: number;
     totalReviews: number;
@@ -39,7 +38,6 @@ const defaultProfile: BusinessProfileData = {
     phone: "(00) 00000-0000",
     website: "www.suaempresa.com.br",
     description: "Descreva sua empresa aqui.",
-    brandSummary: "",
     logo: defaultLogo,
     rating: 0,
     totalReviews: 0,
@@ -79,10 +77,6 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
                 needsUpdate = true;
             }
 
-            if (data.brandSummary === undefined) {
-                finalProfile.brandSummary = defaultProfile.brandSummary;
-                needsUpdate = true;
-            }
              if (!data.googleName) {
                 finalProfile.googleName = "";
              }

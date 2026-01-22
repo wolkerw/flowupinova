@@ -17,7 +17,6 @@ const defaultProfile: BusinessProfileData = {
   phone: "(00) 00000-0000",
   website: "www.suaempresa.com.br",
   description: "Descreva sua empresa aqui.",
-  brandSummary: "",
   logo: defaultLogo,
   rating: 0,
   totalReviews: 0,

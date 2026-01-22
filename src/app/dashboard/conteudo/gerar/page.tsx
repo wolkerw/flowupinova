@@ -221,7 +221,6 @@ export default function GerarConteudoPage() {
     try {
         const payload = {
             summary: textToGenerate,
-            brand_summary: businessProfile?.brandSummary || ""
         };
 
         const response = await fetch('/api/generate-text', {
@@ -825,8 +824,3 @@ export default function GerarConteudoPage() {
     </div>
   );
 }
-
-
-
-
-

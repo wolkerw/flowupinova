@@ -868,17 +868,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
            }
         }
         
-        // Always update local fields like brandSummary
-        const localUpdates: Partial<BusinessProfileData> = {};
-        if(editableProfile.brandSummary !== profile.brandSummary) {
-          localUpdates.brandSummary = editableProfile.brandSummary;
-        }
-
-        if (Object.keys(localUpdates).length > 0) {
-            await updateBusinessProfile(user.uid, localUpdates);
-        }
-        
-        if (updateMask.length === 0 && Object.keys(localUpdates).length === 0) {
+        if (updateMask.length === 0) {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         } else {
              toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
@@ -1145,20 +1135,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <p className="text-sm text-muted-foreground">{profile.description}</p>
                                     )}
                                 </div>
-                                 <div className="pt-2">
-                                     <Label className="font-semibold text-sm">Resumo da Marca (para IA)</Label>
-                                     {isEditing ? (
-                                        <Textarea
-                                            value={editableProfile.brandSummary}
-                                            onChange={(e) => setEditableProfile(p => ({...p, brandSummary: e.target.value}))}
-                                            placeholder="Resuma sua marca em poucas palavras para guiar a IA na criação de conteúdo..."
-                                            className="text-sm mt-1"
-                                            rows={3}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground mt-1 italic">{profile.brandSummary || "Nenhum resumo para a IA definido."}</p>
-                                    )}
-                                </div>
                             </div>
                         </CardContent>
                         {isEditing && (
@@ -1327,4 +1303,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
