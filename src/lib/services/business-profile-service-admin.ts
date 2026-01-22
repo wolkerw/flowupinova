@@ -33,7 +33,7 @@ const defaultProfile: BusinessProfileData = {
  */
 export async function getBusinessProfileAdmin(userId: string | null): Promise<BusinessProfileData> {
     if (!userId) {
-        console.error("getBusinessProfileAdmin called without userId.");
+        console.warn("getBusinessProfileAdmin called without userId. This is expected if the user is not logged in.");
         return defaultProfile;
     }
     try {
