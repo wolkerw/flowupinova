@@ -31,7 +31,7 @@ const defaultProfile: BusinessProfileData = {
  * @param userId - The UID of the user.
  * @returns The user's business profile data.
  */
-export async function getBusinessProfileAdmin(userId: string): Promise<BusinessProfileData> {
+export async function getBusinessProfileAdmin(userId: string | null): Promise<BusinessProfileData> {
     if (!userId) {
         console.error("getBusinessProfileAdmin called without userId.");
         return defaultProfile;
@@ -40,7 +40,7 @@ export async function getBusinessProfileAdmin(userId: string): Promise<BusinessP
         const profileDocRef = adminDb.collection('users').doc(userId).collection('business').doc('profile');
         const docSnap = await profileDocRef.get();
 
-        if (docSnap.exists) {
+        if (docSnap.exists()) {
             const data = docSnap.data();
             // Handle migration from old structure
             if (data?.logoUrl !== undefined) {
