@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Access Token, Account ID e Location ID são obrigatórios." }, { status: 400 });
         }
         
-        const url = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/media?pageSize=20`;
+        const url = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/media?pageSize=100`;
 
         const response = await fetch(url, {
             headers: {
@@ -46,13 +46,14 @@ export async function POST(request: NextRequest) {
         const gallery = items.filter((m: any) => !['COVER', 'PROFILE'].includes(m.locationAssociation?.category ?? ''));
         
         const formattedMedia = {
-            coverPhoto: cover ? { url: cover.googleUrl, thumbnailUrl: cover.thumbnailUrl } : null,
-            profilePhoto: profile ? { url: profile.googleUrl, thumbnailUrl: profile.thumbnailUrl } : null,
+            coverPhoto: cover ? { url: cover.googleUrl, thumbnailUrl: cover.thumbnailUrl, name: cover.name } : null,
+            profilePhoto: profile ? { url: profile.googleUrl, thumbnailUrl: profile.thumbnailUrl, name: profile.name } : null,
             gallery: gallery.map((m: any) => ({
                 url: m.googleUrl,
                 thumbnailUrl: m.thumbnailUrl,
+                name: m.name,
                 category: m.locationAssociation?.category,
-                mediaFormat: m.mediaFormat, // Inclui o formato da mídia (PHOTO ou VIDEO)
+                mediaFormat: m.mediaFormat,
             })),
         };
 

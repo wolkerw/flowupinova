@@ -38,6 +38,7 @@ import {
   Save,
   PlayCircle,
   Plus,
+  Trash2,
 } from "lucide-react";
 import {
     Dialog,
@@ -46,6 +47,16 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -70,11 +81,12 @@ interface GalleryItem {
     url: string;
     thumbnailUrl: string;
     mediaFormat: 'PHOTO' | 'VIDEO';
+    name: string;
 }
 
 interface GoogleMedia {
-    coverPhoto: { url: string; thumbnailUrl: string; } | null;
-    profilePhoto: { url: string; thumbnailUrl: string; } | null;
+    coverPhoto: { url: string; thumbnailUrl: string; name: string } | null;
+    profilePhoto: { url: string; thumbnailUrl: string; name: string } | null;
     gallery: GalleryItem[];
 }
 
@@ -368,6 +380,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState<GalleryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -769,6 +783,49 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         }
     };
 
+    const handleConfirmDelete = async () => {
+        if (!mediaToDelete || !user) return;
+
+        setIsDeleting(true);
+        try {
+            const response = await fetch('/api/google/delete-media', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mediaName: mediaToDelete.name }),
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || "Falha ao excluir a mídia.");
+            }
+
+            toast({
+                variant: "success",
+                title: "Sucesso!",
+                description: "A foto foi excluída da sua galeria."
+            });
+            
+            // Optimistically update UI
+            setMedia(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    gallery: prev.gallery.filter(item => item.name !== mediaToDelete.name)
+                };
+            });
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao Excluir",
+                description: error.message
+            });
+        } finally {
+            setIsDeleting(false);
+            setMediaToDelete(null);
+        }
+    };
+
 
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
@@ -884,6 +941,24 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             <Lightbox mediaItem={lightboxMediaItem} onClose={() => setLightboxMediaItem(null)} />
         )}
       </AnimatePresence>
+      
+        <AlertDialog open={!!mediaToDelete} onOpenChange={(open) => !open && setMediaToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. A foto será removida permanentemente do seu Perfil da Empresa no Google.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Excluir Foto
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
 
       {/* Cabeçalho */}
@@ -1166,6 +1241,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             className="group-hover:scale-105 transition-transform duration-300"
                                         />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                             <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setMediaToDelete(item);
+                                                }}
+                                                disabled={isEditing}
+                                                className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 z-20 hover:bg-red-500 disabled:cursor-not-allowed"
+                                                title="Excluir foto"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                             {item.mediaFormat === 'VIDEO' ? (
                                                 <PlayCircle className="w-8 h-8 text-white" />
                                             ) : (
