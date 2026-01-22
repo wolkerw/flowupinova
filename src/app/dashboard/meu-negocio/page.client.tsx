@@ -852,36 +852,38 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             updateMask.push("profile");
         }
         
-        if (updateMask.length === 0) {
-            toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
-            setIsEditing(false);
-            return;
+        if (updateMask.length > 0) {
+           const response = await fetch('/api/google/update-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  locationName: profile.googleName, 
+                  updates: updates,
+                  updateMask: updateMask.join(',')
+              }),
+           });
+           const result = await response.json();
+           if (!result.success) {
+              throw new Error(result.error || "Falha ao atualizar o perfil no Google.");
+           }
         }
-
-        const response = await fetch('/api/google/update-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                locationName: profile.googleName, 
-                updates: updates,
-                updateMask: updateMask.join(',')
-            }),
-        });
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || "Falha ao atualizar o perfil.");
-        }
-
+        
+        // Always update local fields like brandSummary
         const localUpdates: Partial<BusinessProfileData> = {};
-        if(editableProfile.name !== profile.name) localUpdates.name = editableProfile.name;
-        if(editableProfile.phone !== profile.phone) localUpdates.phone = editableProfile.phone;
-        if(editableProfile.website !== profile.website) localUpdates.website = editableProfile.website;
-        if(editableProfile.description !== profile.description) localUpdates.description = editableProfile.description;
+        if(editableProfile.brandSummary !== profile.brandSummary) {
+          localUpdates.brandSummary = editableProfile.brandSummary;
+        }
 
-        await updateBusinessProfile(user.uid, localUpdates);
+        if (Object.keys(localUpdates).length > 0) {
+            await updateBusinessProfile(user.uid, localUpdates);
+        }
+        
+        if (updateMask.length === 0 && Object.keys(localUpdates).length === 0) {
+            toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
+        } else {
+             toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
+        }
 
-        toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
         await fetchFullProfile();
         setIsEditing(false);
 
@@ -1036,11 +1038,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             ) : (
                             <div className="w-full h-full bg-muted rounded-t-lg"></div>
                             )}
-                            {!isEditing && (
+                            {isEditing && (
                                 <button
                                   onClick={() => coverInputRef.current?.click()}
                                   disabled={isUploadingCover}
-                                  className="absolute top-4 right-4 bg-black/50 text-white rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-sm"
+                                  className="absolute top-4 right-4 bg-black/50 text-white rounded-lg p-2 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2 text-sm"
                                 >
                                   {isUploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
                                   Alterar Capa
@@ -1057,12 +1059,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             <Building2 className="w-12 h-12 text-muted-foreground" />
                                         )}
                                     </div>
-                                    {!isUploadingLogo && !isEditing && (
+                                    {isEditing && (
                                         <button 
                                             onClick={() => logoInputRef.current?.click()}
-                                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover/logo:opacity-100 transition-opacity"
+                                            disabled={isUploadingLogo}
+                                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-80 hover:opacity-100 transition-opacity"
                                         >
-                                            <Edit className="w-6 h-6"/>
+                                           {isUploadingLogo ? <Loader2 className="w-6 h-6 animate-spin" /> : <Edit className="w-6 h-6"/>}
                                         </button>
                                     )}
                                 </div>
@@ -1092,15 +1095,15 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 {!isEditing && (
                                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                                         <Edit className="w-4 h-4 mr-2" />
-                                        Editar
+                                        Editar Perfil
                                     </Button>
                                 )}
                             </div>
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-3 pt-6 border-t mt-4">
-                                <div className="flex items-start gap-3 text-foreground/80">
-                                    <MapPin className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
+                                <div className="flex items-center gap-3 text-foreground/80">
+                                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                                     <span className="text-sm">{profile.address}</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-foreground/80">
@@ -1140,6 +1143,20 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         />
                                     ) : (
                                         <p className="text-sm text-muted-foreground">{profile.description}</p>
+                                    )}
+                                </div>
+                                 <div className="pt-2">
+                                     <Label className="font-semibold text-sm">Resumo da Marca (para IA)</Label>
+                                     {isEditing ? (
+                                        <Textarea
+                                            value={editableProfile.brandSummary}
+                                            onChange={(e) => setEditableProfile(p => ({...p, brandSummary: e.target.value}))}
+                                            placeholder="Resuma sua marca em poucas palavras para guiar a IA na criação de conteúdo..."
+                                            className="text-sm mt-1"
+                                            rows={3}
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground mt-1 italic">{profile.brandSummary || "Nenhum resumo para a IA definido."}</p>
                                     )}
                                 </div>
                             </div>
