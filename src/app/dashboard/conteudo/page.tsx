@@ -66,6 +66,7 @@ import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from
 import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { config } from "@/lib/config";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
  * Types
@@ -96,6 +97,7 @@ interface FacebookPage {
 
 type HistoryFilter = "last-7-days" | "this-month" | "this-year" | "all-time";
 type RepublishScheduleType = "now" | "schedule";
+type Platform = "instagram" | "facebook";
 
 /* -------------------------------------------------------------------------------------------------
  * Constants / Utils
@@ -484,6 +486,8 @@ export default function Conteudo() {
   const [republishScheduleDate, setRepublishScheduleDate] = useState(""); // datetime-local value
   const [isRepublishing, setIsRepublishing] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(true);
+  const [republishPlatforms, setRepublishPlatforms] = useState<Platform[]>([]);
+
 
   const isLoadingInitial = loading && allPosts.length === 0;
 
@@ -730,6 +734,7 @@ export default function Conteudo() {
   const handleRepublish = useCallback((post: DisplayPost) => {
     if (!user) return;
     setPostToRepublish(post);
+    setRepublishPlatforms(post.platforms as Platform[]); // Set initial platforms
     setRepublishScheduleType("now");
     setRepublishScheduleDate("");
     setIsRepublishModalOpen(true);
@@ -738,27 +743,20 @@ export default function Conteudo() {
  const handleConfirmRepublish = useCallback(async () => {
     if (!user || !postToRepublish || !(postToRepublish.imageUrl || (postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0))) return;
 
-    const useInstagram = postToRepublish.platforms.includes('instagram');
-    const useFacebook = postToRepublish.platforms.includes('facebook');
-    let postInputPlatforms: Array<'instagram' | 'facebook'> = [];
-
-    if (useInstagram) {
-        if (!instagramConnection.isConnected) {
-            toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
-            return;
-        }
-        postInputPlatforms.push('instagram');
-    } else if (useFacebook) {
-         if (!metaConnection.isConnected) {
-            toast({ variant: "destructive", title: "Facebook não conectado", description: "Conecte o Facebook para republicar."});
-            return;
-        }
-        postInputPlatforms.push('facebook');
-    } else {
-        toast({ variant: "destructive", title: "Nenhuma plataforma válida", description: "O post original não parece ser para Facebook ou Instagram."});
+    if (republishPlatforms.length === 0) {
+        toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para republicar."});
         return;
     }
     
+    if (republishPlatforms.includes('instagram') && !instagramConnection.isConnected) {
+        toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
+        return;
+    }
+    if (republishPlatforms.includes('facebook') && !metaConnection.isConnected) {
+        toast({ variant: "destructive", title: "Facebook não conectado", description: "Conecte o Facebook para republicar."});
+        return;
+    }
+
     if (republishScheduleType === 'schedule' && !republishScheduleDate) {
       toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento." });
       return;
@@ -773,15 +771,15 @@ export default function Conteudo() {
       text: postToRepublish.text,
       media: mediaUrls.map(url => ({ file: new File([], ''), publicUrl: url })),
       isCarousel: postToRepublish.isCarousel || false,
-      platforms: postInputPlatforms,
+      platforms: republishPlatforms,
       scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
     };
 
-    if (useInstagram) {
+    if (republishPlatforms.includes('instagram')) {
         input.instagramConnection = instagramConnection;
     }
     
-    if (useFacebook) {
+    if (republishPlatforms.includes('facebook')) {
         input.metaConnection = metaConnection;
     }
     
@@ -797,7 +795,15 @@ export default function Conteudo() {
     } else {
       toast({ variant: "destructive", title: "Erro ao Republicar", description: result.error });
     }
-  }, [fetchPageData, metaConnection, instagramConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user]);
+  }, [fetchPageData, metaConnection, instagramConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user, republishPlatforms]);
+
+  const handleRepublishPlatformChange = (platform: Platform) => {
+    setRepublishPlatforms(prev =>
+      prev.includes(platform)
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
 
 
   return (
@@ -825,18 +831,35 @@ export default function Conteudo() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Republicar Post</DialogTitle>
-            <DialogDescription>Escolha quando você quer republicar este conteúdo.</DialogDescription>
+            <DialogDescription>Escolha quando e onde você quer republicar este conteúdo.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
-              <div className="grid grid-cols-1 gap-4 mt-2">
-                 <div className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer peer-data-[state=checked]:border-primary" data-state="checked">
-                   <Checkbox id="republish-platform" checked disabled />
-                   <Label htmlFor="republish-platform" className="flex items-center gap-2 cursor-pointer">
-                     {postToRepublish?.platforms.includes('instagram') ? <Instagram className="w-5 h-5 text-pink-500" /> : <Facebook className="w-5 h-5 text-blue-600" />}
-                     {postToRepublish?.platforms.includes('instagram') ? 'Instagram' : 'Facebook'}
-                   </Label>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                 <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !instagramConnection?.isConnected && "bg-gray-100 opacity-60")}>
+                    <Checkbox
+                        id="republish-instagram"
+                        checked={republishPlatforms.includes('instagram')}
+                        onCheckedChange={() => handleRepublishPlatformChange('instagram')}
+                        disabled={!instagramConnection?.isConnected}
+                    />
+                    <Label htmlFor="republish-instagram" className="flex items-center gap-2 cursor-pointer">
+                        <Instagram className="w-5 h-5 text-pink-500" />
+                        Instagram
+                    </Label>
+                 </div>
+                 <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-60")}>
+                    <Checkbox
+                        id="republish-facebook"
+                        checked={republishPlatforms.includes('facebook')}
+                        onCheckedChange={() => handleRepublishPlatformChange('facebook')}
+                        disabled={!metaConnection?.isConnected}
+                    />
+                    <Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer">
+                        <Facebook className="w-5 h-5 text-blue-600" />
+                        Facebook
+                    </Label>
                  </div>
               </div>
             </div>
@@ -851,7 +874,7 @@ export default function Conteudo() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
+            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || republishPlatforms.length === 0 || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
