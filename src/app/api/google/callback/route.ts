@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             const accountId = account.name.split('/')[1];
             if(!primaryAccountId) primaryAccountId = accountId; // Salva o primeiro para o caso de ter múltiplos
 
-            const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile";
+            const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,attributes,regularHours";
             const locationsListResponse = await fetch(
                 `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
                 {
@@ -86,18 +86,23 @@ export async function POST(request: NextRequest) {
             const { locations } = await locationsListResponse.json();
 
             if (locations && locations.length > 0) {
-                const formattedLocations = locations.map((loc: any) => ({
-                    name: loc.title || 'Nome não encontrado',
-                    googleName: loc.name, // Ex: locations/12345
-                    category: loc.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
-                    address: loc.storefrontAddress ? 
-                             `${loc.storefrontAddress.addressLines?.join(', ')}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}` 
-                             : 'Endereço não encontrado',
-                    phone: loc.phoneNumbers?.primaryPhone || 'Telefone não encontrado',
-                    website: loc.websiteUri || 'Website não encontrado',
-                    description: loc.profile?.description || 'Descrição não disponível.',
-                    isVerified: true,
-                }));
+                const formattedLocations = locations.map((loc: any) => {
+                    const whatsappAttribute = loc.attributes?.find((attr: any) => attr.attributeId === 'url_whatsapp');
+                    return {
+                        name: loc.title || 'Nome não encontrado',
+                        googleName: loc.name, // Ex: locations/12345
+                        category: loc.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
+                        address: loc.storefrontAddress ? 
+                                 `${loc.storefrontAddress.addressLines?.join(', ')}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}` 
+                                 : 'Endereço não encontrado',
+                        phone: loc.phoneNumbers?.primaryPhone || 'Telefone não encontrado',
+                        website: loc.websiteUri || 'Website não encontrado',
+                        description: loc.profile?.description || 'Descrição não disponível.',
+                        isVerified: true,
+                        whatsappUrl: whatsappAttribute?.values?.[0] || '',
+                        regularHours: loc.regularHours || null,
+                    };
+                });
                 allBusinessProfiles.push(...formattedLocations);
             }
         }
@@ -126,5 +131,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
     }
 }
-
-    

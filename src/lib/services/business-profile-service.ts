@@ -23,6 +23,8 @@ export interface BusinessProfileData {
     isVerified: boolean;
     googleName?: string; // Formato: locations/{locationId}
     pendingFields?: { [key: string]: boolean };
+    whatsappUrl?: string;
+    regularHours?: any;
 }
 
 const defaultLogo: LogoData = {
@@ -45,6 +47,8 @@ const defaultProfile: BusinessProfileData = {
     isVerified: false,
     googleName: "",
     pendingFields: {},
+    whatsappUrl: "",
+    regularHours: null,
 };
 
 function getProfileDocRef(userId: string) {

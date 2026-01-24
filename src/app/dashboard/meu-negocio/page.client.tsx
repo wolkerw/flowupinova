@@ -39,6 +39,7 @@ import {
   PlayCircle,
   Plus,
   Trash2,
+  MessageCircle as MessageCircleIcon,
 } from "lucide-react";
 import {
     Dialog,
@@ -351,6 +352,90 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
     );
 };
 
+const BusinessHoursCard = ({ regularHours, loading }: { regularHours: any, loading: boolean }) => {
+    const dayMapping: { [key: string]: string } = {
+        MONDAY: "Segunda-feira",
+        TUESDAY: "Terça-feira",
+        WEDNESDAY: "Quarta-feira",
+        THURSDAY: "Quinta-feira",
+        FRIDAY: "Sexta-feira",
+        SATURDAY: "Sábado",
+        SUNDAY: "Domingo",
+    };
+
+    const dayOrder = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+
+    const formatTime = (time: { hours?: number, minutes?: number }) => {
+        if (time.hours === undefined || time.minutes === undefined) return "N/A";
+        const hours = String(time.hours).padStart(2, '0');
+        const minutes = String(time.minutes).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    };
+
+    const parsedHours = useMemo(() => {
+        if (!regularHours?.periods) {
+            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
+        }
+        
+        return dayOrder.map(dayKey => {
+            const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
+
+            if (periodsForDay.length === 0) {
+                return { day: dayMapping[dayKey], hours: "Fechado" };
+            }
+
+            const isOpen24h = periodsForDay.some((p: any) => 
+                p.openTime.hours === 0 && p.openTime.minutes === 0 &&
+                (p.closeTime.hours === 24 || (p.closeTime.hours === 23 && p.closeTime.minutes === 59))
+            );
+            if (isOpen24h) {
+                return { day: dayMapping[dayKey], hours: "Aberto 24 horas" };
+            }
+            
+            const hoursString = periodsForDay
+                .map((p: any) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
+                .join(", ");
+                
+            return { day: dayMapping[dayKey], hours: hoursString };
+        });
+    }, [regularHours]);
+
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <Card className="shadow-lg border-none">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-cyan-500" />
+                        Horários de Funcionamento
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                         <div className="flex justify-center items-center h-40">
+                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : regularHours ? (
+                        <div className="space-y-3">
+                            {parsedHours.map(({day, hours}) => (
+                                <div key={day} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                    <span className="text-foreground">{day}</span>
+                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-10">
+                            <Clock className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+                            <p>Nenhum horário de funcionamento informado.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+};
+
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
@@ -550,7 +635,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             setKeywordsLoading(false);
         }
     } catch (error: any) {
-        toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${'error'}.message}`, variant: "destructive" });
+        toast({ title: "Erro ao carregar dados", description: `Não foi possível buscar os dados completos: ${error.message}`, variant: "destructive" });
         setDataLoading(false);
         setMetricsLoading(false);
         setReviewsLoading(false);
@@ -1179,6 +1264,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     )}
                                 </div>
+                                 <div className="flex items-start gap-3 text-foreground/80">
+                                    <MessageCircleIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+                                    <div className="flex-1">
+                                    {isEditing ? (
+                                        <Input 
+                                            value={editableProfile.whatsappUrl}
+                                            onChange={(e) => setEditableProfile(p => ({...p, whatsappUrl: e.target.value}))}
+                                            placeholder="https://wa.me/55..."
+                                            className="h-8 text-sm"
+                                        />
+                                    ) : (
+                                        <a href={profile.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.whatsappUrl || "Nenhum chat informado"}</a>
+                                    )}
+                                    </div>
+                                 </div>
                                  <div className="flex items-center gap-3 text-foreground/80">
                                     <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                                     {isEditing ? (
@@ -1274,6 +1374,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             </div>
             
             <div className="lg:col-span-1 space-y-8">
+                 <BusinessHoursCard regularHours={profile.regularHours} loading={dataLoading} />
+
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                     <Card className="shadow-lg border-none h-full">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
