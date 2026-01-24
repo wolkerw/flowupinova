@@ -366,10 +366,16 @@ const BusinessHoursCard = ({ regularHours, openInfo, loading }: { regularHours: 
     const dayOrder = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 
     const formatTime = (time: { hours?: number, minutes?: number }) => {
-        if (time.hours === undefined || time.minutes === undefined) return "N/A";
-        const hours = String(time.hours).padStart(2, '0');
-        const minutes = String(time.minutes).padStart(2, '0');
-        return `${hours}:${minutes}`;
+        if (typeof time.hours !== 'number') return "N/A";
+        const minutes = typeof time.minutes === 'number' ? time.minutes : 0;
+        
+        if (time.hours === 24 && minutes === 0) {
+            return "00:00";
+        }
+
+        const hoursStr = String(time.hours).padStart(2, '0');
+        const minutesStr = String(minutes).padStart(2, '0');
+        return `${hoursStr}:${minutesStr}`;
     };
 
     const parsedHours = useMemo(() => {
@@ -388,7 +394,7 @@ const BusinessHoursCard = ({ regularHours, openInfo, loading }: { regularHours: 
             }
 
             const isOpen24h = periodsForDay.some((p: any) => 
-                p.openTime.hours === 0 && p.openTime.minutes === 0 &&
+                p.openTime.hours === 0 && (p.openTime.minutes || 0) === 0 &&
                 (p.closeTime.hours === 24 || (p.closeTime.hours === 23 && p.closeTime.minutes === 59))
             );
             if (isOpen24h) {
@@ -1279,12 +1285,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     )}
                                 </div>
-                                 <div className="flex items-start gap-3 text-foreground/80">
-                                    <MessageCircleIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-                                    <div className="flex-1">
-                                        <a href={profile.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.whatsappUrl || "Nenhum chat informado"}</a>
-                                    </div>
-                                 </div>
                                  <div className="flex items-center gap-3 text-foreground/80">
                                     <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                                     {isEditing ? (

@@ -23,7 +23,6 @@ const defaultProfile: BusinessProfileData = {
   isVerified: false,
   googleName: "",
   pendingFields: {},
-  whatsappUrl: "",
   regularHours: null,
   openInfo: null,
 };

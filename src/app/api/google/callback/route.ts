@@ -89,16 +89,6 @@ export async function POST(request: NextRequest) {
                  for (const loc of locations) {
                     if (!loc.name) continue;
 
-                    let whatsappUrl = '';
-                    const attributesUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${loc.name}/attributes`;
-                    const attrsRes = await fetch(attributesUrl, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
-                    if (attrsRes.ok) {
-                        const attrsJson = await attrsRes.json();
-                        const findAttr = (arr: any[], key: string) => arr?.find(a => a.name === key || a.attributeId === key);
-                        const whatsappAttribute = findAttr(attrsJson.attributes, "attributes/url_whatsapp");
-                        whatsappUrl = whatsappAttribute?.values?.[0]?.uriValue || whatsappAttribute?.values?.[0]?.stringValue || '';
-                    }
-
                     allBusinessProfiles.push({
                         name: loc.title || 'Nome não encontrado',
                         googleName: loc.name,
@@ -108,7 +98,6 @@ export async function POST(request: NextRequest) {
                         website: loc.websiteUri || 'Website não encontrado',
                         description: loc.profile?.description || 'Descrição não disponível.',
                         isVerified: true,
-                        whatsappUrl: whatsappUrl,
                         regularHours: loc.regularHours || null,
                         openInfo: loc.openInfo || null,
                     });
