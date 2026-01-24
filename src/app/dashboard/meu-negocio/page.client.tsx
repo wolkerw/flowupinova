@@ -73,6 +73,7 @@ import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 interface MeuNegocioClientProps {
@@ -352,99 +353,6 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
     );
 };
 
-const BusinessHoursCard = ({ regularHours, openInfo, loading }: { regularHours: any, openInfo: any, loading: boolean }) => {
-    const dayMapping: { [key: string]: string } = {
-        MONDAY: "Segunda-feira",
-        TUESDAY: "Terça-feira",
-        WEDNESDAY: "Quarta-feira",
-        THURSDAY: "Quinta-feira",
-        FRIDAY: "Sexta-feira",
-        SATURDAY: "Sábado",
-        SUNDAY: "Domingo",
-    };
-
-    const dayOrder = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-
-    const formatTime = (time: { hours?: number, minutes?: number }) => {
-        if (typeof time.hours !== 'number') return "N/A";
-        const minutes = typeof time.minutes === 'number' ? time.minutes : 0;
-        
-        if (time.hours === 24 && minutes === 0) {
-            return "00:00";
-        }
-
-        const hoursStr = String(time.hours).padStart(2, '0');
-        const minutesStr = String(minutes).padStart(2, '0');
-        return `${hoursStr}:${minutesStr}`;
-    };
-
-    const parsedHours = useMemo(() => {
-        if (!regularHours?.periods) {
-             if (openInfo?.status === "OPEN") {
-                return dayOrder.map(day => ({ day: dayMapping[day], hours: "Aberto" }));
-            }
-            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
-        }
-        
-        return dayOrder.map(dayKey => {
-            const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
-
-            if (periodsForDay.length === 0) {
-                return { day: dayMapping[dayKey], hours: "Fechado" };
-            }
-
-            const isOpen24h = periodsForDay.some((p: any) => 
-                p.openTime.hours === 0 && (p.openTime.minutes || 0) === 0 &&
-                (p.closeTime.hours === 24 || (p.closeTime.hours === 23 && p.closeTime.minutes === 59))
-            );
-            if (isOpen24h) {
-                return { day: dayMapping[dayKey], hours: "Aberto 24 horas" };
-            }
-            
-            const hoursString = periodsForDay
-                .map((p: any) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
-                .join(", ");
-                
-            return { day: dayMapping[dayKey], hours: hoursString };
-        });
-    }, [regularHours, openInfo]);
-
-
-    return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="shadow-lg border-none">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-cyan-500" />
-                        Horários de Funcionamento
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                         <div className="flex justify-center items-center h-40">
-                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : (regularHours || openInfo) ? (
-                        <div className="space-y-3">
-                            {parsedHours.map(({day, hours}) => (
-                                <div key={day} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
-                                    <span className="text-foreground">{day}</span>
-                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-10">
-                            <Clock className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
-                            <p>Nenhum horário de funcionamento informado.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </motion.div>
-    );
-};
-
 
 
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
@@ -464,6 +372,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
   const [keywords, setKeywords] = useState<any[]>([]);
+  const [editableHours, setEditableHours] = useState<Array<{day: string, open: string, close: string, enabled: boolean}>>([]);
+
 
   // State for profile selection modal
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
@@ -495,6 +405,66 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const totalViews = (metrics?.viewsSearch || 0) + (metrics?.viewsMaps || 0);
   const INITIAL_PHOTO_LIMIT = 6;
   const photosToShow = showAllPhotos ? media?.gallery : media?.gallery?.slice(0, INITIAL_PHOTO_LIMIT);
+
+  const dayOrder = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+  const dayMapping: { [key: string]: string } = {
+        MONDAY: "Segunda",
+        TUESDAY: "Terça",
+        WEDNESDAY: "Quarta",
+        THURSDAY: "Quinta",
+        FRIDAY: "Sexta",
+        SATURDAY: "Sábado",
+        SUNDAY: "Domingo",
+  };
+
+  const formatTime = (time: { hours?: number, minutes?: number }) => {
+        if (typeof time.hours !== 'number') return "N/A";
+        
+        let hours = time.hours;
+        let minutes = typeof time.minutes === 'number' ? time.minutes : 0;
+        
+        if (hours === 24 && minutes === 0) {
+            hours = 0;
+        }
+
+        const hoursStr = String(hours).padStart(2, '0');
+        const minutesStr = String(minutes).padStart(2, '0');
+        return `${hoursStr}:${minutesStr}`;
+    };
+
+    const parsedHours = useMemo(() => {
+        const { regularHours, openInfo } = profile;
+        if (!regularHours?.periods && openInfo?.status === "OPEN") {
+            return dayOrder.map(day => ({ day: dayMapping[day.substring(0, 3).toUpperCase() as keyof typeof dayMapping], hours: "Aberto" }));
+        }
+
+        if (!regularHours?.periods) {
+            return dayOrder.map(day => ({ day: dayMapping[day.substring(0, 3).toUpperCase() as keyof typeof dayMapping], hours: "Fechado" }));
+        }
+        
+        return dayOrder.map(dayKey => {
+            const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
+
+            if (periodsForDay.length === 0) {
+                return { day: dayMapping[dayKey], hours: "Fechado" };
+            }
+
+            const isOpen24h = periodsForDay.some((p: any) => 
+                p.openTime.hours === 0 && (p.openTime.minutes || 0) === 0 &&
+                (p.closeTime.hours === 0 && (p.closeTime.minutes || 0) === 0)
+            );
+            if (isOpen24h) {
+                return { day: dayMapping[dayKey], hours: "Aberto 24 horas" };
+            }
+            
+            const hoursString = periodsForDay
+                .map((p: any) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
+                .join(", ");
+                
+            return { day: dayMapping[dayKey], hours: hoursString };
+        });
+    }, [profile.regularHours, profile.openInfo]);
+
 
   const fetchFullProfile = useCallback(async () => {
     if (!user) return;
@@ -555,6 +525,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 }
                 if (newPendingFields.description && isSame(firestoreProfile.description, googleProfile.description)) {
                     delete newPendingFields.description;
+                    pendingFieldsChanged = true;
+                }
+                 if (newPendingFields.hours && JSON.stringify(firestoreProfile.regularHours) === JSON.stringify(googleProfile.regularHours)) {
+                    delete newPendingFields.hours;
                     pendingFieldsChanged = true;
                 }
 
@@ -960,6 +934,43 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         }
     };
 
+    const handleStartEditing = () => {
+        setEditableProfile(profile);
+        const initialHours = dayOrder.map(dayKey => {
+            const periodsForDay = profile.regularHours?.periods?.filter((p: any) => p.openDay === dayKey) || [];
+            const firstPeriod = periodsForDay[0];
+
+            return {
+                day: dayKey,
+                open: firstPeriod ? formatTime(firstPeriod.openTime) : "",
+                close: firstPeriod ? formatTime(firstPeriod.closeTime) : "",
+                enabled: !!firstPeriod,
+            };
+        });
+        setEditableHours(initialHours);
+        setIsEditing(true);
+    };
+    
+    const handleHourEnabledChange = (index: number, isEnabled: boolean) => {
+        setEditableHours(prev => {
+            const newHours = [...prev];
+            newHours[index].enabled = isEnabled;
+            // If disabling, clear the times
+            if (!isEnabled) {
+                newHours[index].open = "";
+                newHours[index].close = "";
+            }
+            return newHours;
+        });
+    };
+
+    const handleTimeChange = (index: number, type: 'open' | 'close', value: string) => {
+        setEditableHours(prev => {
+            const newHours = [...prev];
+            newHours[index][type] = value;
+            return newHours;
+        });
+    };
 
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
@@ -992,6 +1003,25 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             pendingUpdates.description = true;
         }
         
+        const initialHoursString = JSON.stringify(profile.regularHours?.periods || []);
+        const newPeriods = editableHours
+            .filter(h => h.enabled && h.open && h.close)
+            .map(h => {
+                const [openHours, openMinutes] = h.open.split(':').map(Number);
+                const [closeHours, closeMinutes] = h.close.split(':').map(Number);
+                return {
+                    openDay: h.day,
+                    openTime: { hours: openHours, minutes: openMinutes || 0 },
+                    closeTime: { hours: closeHours, minutes: closeMinutes || 0 },
+                };
+            });
+        
+        if (JSON.stringify(newPeriods) !== initialHoursString) {
+             updates.regularHours = { periods: newPeriods };
+             updateMask.push("regularHours");
+             pendingUpdates.hours = true;
+        }
+        
         if (updateMask.length > 0) {
            const response = await fetch('/api/google/update-profile', {
               method: 'POST',
@@ -1008,14 +1038,27 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
            }
         }
         
+        // Always save local profile changes
+        const localProfileUpdate = {
+            ...editableProfile,
+            regularHours: { periods: newPeriods }
+        };
+
         if (Object.keys(pendingUpdates).length > 0) {
             const newPendingFields = { ...(profile.pendingFields || {}), ...pendingUpdates };
-            await updateBusinessProfile(user.uid, { ...editableProfile, pendingFields: newPendingFields });
-            setProfile({ ...editableProfile, pendingFields: newPendingFields }); // Update UI immediately
+            await updateBusinessProfile(user.uid, { ...localProfileUpdate, pendingFields: newPendingFields });
+            setProfile({ ...localProfileUpdate, pendingFields: newPendingFields }); // Update UI immediately
+        } else {
+             await updateBusinessProfile(user.uid, localProfileUpdate);
+             setProfile(localProfileUpdate);
+        }
+        
+        if(updateMask.length > 0) {
             toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado. As mudanças podem levar algum tempo para aparecer no Google." });
         } else {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         }
+        
 
         setIsEditing(false);
 
@@ -1217,7 +1260,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2">
                                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
                                             {profile.pendingFields?.name && (
-                                                <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                                 <div className="flex items-center gap-1.5 text-sm text-amber-600">
                                                     <span className="font-medium">Edição pendente</span>
                                                     <TooltipProvider>
                                                         <Tooltip>
@@ -1242,7 +1285,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                     )}
                                 </div>
                                 {!isEditing && (
-                                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                    <Button variant="outline" size="sm" onClick={handleStartEditing}>
                                         <Edit className="w-4 h-4 mr-2" />
                                         Editar Perfil
                                     </Button>
@@ -1268,7 +1311,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm">{profile.phone}</span>
                                             {profile.pendingFields?.phone && (
-                                                <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                                 <div className="flex items-center gap-1.5 text-sm text-amber-600">
                                                     <span className="font-medium">Edição pendente</span>
                                                     <TooltipProvider>
                                                         <Tooltip>
@@ -1329,7 +1372,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             <p className="text-sm text-muted-foreground">{profile.description}</p>
                                             {profile.pendingFields?.description && (
                                                 <div className="flex items-center gap-1.5 text-sm text-amber-600 shrink-0">
-                                                    <span className="font-medium">Edição pendente</span>
+                                                     <span className="font-medium">Edição pendente</span>
                                                     <TooltipProvider>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
@@ -1345,6 +1388,78 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                            <div className="pt-4 mt-4 border-t">
+                                <div className="flex justify-between items-center mb-4">
+                                     <h4 className="font-semibold text-foreground flex items-center gap-2">
+                                        <Clock className="w-5 h-5 text-muted-foreground" />
+                                        Horários de Funcionamento
+                                    </h4>
+                                     {profile.pendingFields?.hours && !isEditing && (
+                                        <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                            <span className="font-medium">Edição pendente</span>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button className="p-0 h-auto bg-transparent hover:bg-transparent"><Info className="w-4 h-4 cursor-help" /></button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>A atualização dos horários está em revisão pelo Google.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                    )}
+                                </div>
+                                {isEditing ? (
+                                    <div className="space-y-3">
+                                        {editableHours.map((hour, index) => (
+                                            <div key={hour.day} className="grid grid-cols-[100px_1fr_1fr] items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Checkbox
+                                                        id={`day-${index}`}
+                                                        checked={hour.enabled}
+                                                        onCheckedChange={(checked) => handleHourEnabledChange(index, checked as boolean)}
+                                                    />
+                                                    <Label htmlFor={`day-${index}`} className="font-medium">{dayMapping[hour.day]}</Label>
+                                                </div>
+                                                 <Input 
+                                                    type="time"
+                                                    value={hour.open}
+                                                    onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
+                                                    disabled={!hour.enabled}
+                                                    className="h-8"
+                                                />
+                                                <Input 
+                                                    type="time"
+                                                    value={hour.close}
+                                                    onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
+                                                    disabled={!hour.enabled}
+                                                    className="h-8"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    dataLoading ? (
+                                        <div className="space-y-3">
+                                            {[...Array(7)].map((_, i) => <div key={i} className="h-8 bg-muted rounded-md animate-pulse"></div>)}
+                                        </div>
+                                    ) : (profile.regularHours || profile.openInfo) ? (
+                                        <div className="space-y-3">
+                                            {parsedHours.map(({day, hours}) => (
+                                                <div key={day} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                                    <span className="text-foreground">{day}</span>
+                                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center text-muted-foreground py-4">
+                                            <p>Nenhum horário de funcionamento informado.</p>
+                                        </div>
+                                    )
+                                )}
                             </div>
                         </CardContent>
                         {isEditing && (
@@ -1394,8 +1509,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             </div>
             
             <div className="lg:col-span-1 space-y-8">
-                 <BusinessHoursCard regularHours={profile.regularHours} openInfo={profile.openInfo} loading={dataLoading} />
-
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                     <Card className="shadow-lg border-none h-full">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" />Avaliações Recentes</CardTitle></CardHeader>
