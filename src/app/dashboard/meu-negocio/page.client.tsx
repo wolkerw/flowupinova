@@ -352,7 +352,7 @@ const Lightbox = ({ mediaItem, onClose }: { mediaItem: GalleryItem | null, onClo
     );
 };
 
-const BusinessHoursCard = ({ regularHours, loading }: { regularHours: any, loading: boolean }) => {
+const BusinessHoursCard = ({ regularHours, openInfo, loading }: { regularHours: any, openInfo: any, loading: boolean }) => {
     const dayMapping: { [key: string]: string } = {
         MONDAY: "Segunda-feira",
         TUESDAY: "Terça-feira",
@@ -374,6 +374,9 @@ const BusinessHoursCard = ({ regularHours, loading }: { regularHours: any, loadi
 
     const parsedHours = useMemo(() => {
         if (!regularHours?.periods) {
+             if (openInfo?.status === "OPEN") {
+                return dayOrder.map(day => ({ day: dayMapping[day], hours: "Aberto" }));
+            }
             return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
         }
         
@@ -398,7 +401,7 @@ const BusinessHoursCard = ({ regularHours, loading }: { regularHours: any, loadi
                 
             return { day: dayMapping[dayKey], hours: hoursString };
         });
-    }, [regularHours]);
+    }, [regularHours, openInfo]);
 
 
     return (
@@ -415,7 +418,7 @@ const BusinessHoursCard = ({ regularHours, loading }: { regularHours: any, loadi
                          <div className="flex justify-center items-center h-40">
                             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : regularHours ? (
+                    ) : (regularHours || openInfo) ? (
                         <div className="space-y-3">
                             {parsedHours.map(({day, hours}) => (
                                 <div key={day} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
@@ -504,7 +507,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         let activeProfile = firestoreProfile;
 
         if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
-            const locationId = activeProfile.googleName.split('/')[1];
+            const locationId = activeProfile.googleName;
 
             const profileAndInsightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
@@ -571,6 +574,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             setDataLoading(false);
             setMetricsLoading(false);
 
+            const locationIdOnly = locationId.split('/')[1];
+
             // Fetch Reviews
             const reviewsResponse = await fetch('/api/google/reviews', {
                 method: 'POST',
@@ -578,7 +583,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 body: JSON.stringify({ 
                     accessToken: googleConn.accessToken,
                     accountId: googleConn.accountId,
-                    locationId: locationId
+                    locationId: locationIdOnly
                 })
             });
             if (reviewsResponse.ok) {
@@ -599,7 +604,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 body: JSON.stringify({
                     accessToken: googleConn.accessToken,
                     accountId: googleConn.accountId,
-                    locationId: locationId
+                    locationId: locationIdOnly
                 })
             });
             if (mediaResponse.ok) {
@@ -1277,16 +1282,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                  <div className="flex items-start gap-3 text-foreground/80">
                                     <MessageCircleIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
                                     <div className="flex-1">
-                                    {isEditing ? (
-                                        <Input 
-                                            value={editableProfile.whatsappUrl}
-                                            onChange={(e) => setEditableProfile(p => ({...p, whatsappUrl: e.target.value}))}
-                                            placeholder="https://wa.me/55..."
-                                            className="h-8 text-sm"
-                                        />
-                                    ) : (
                                         <a href={profile.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.whatsappUrl || "Nenhum chat informado"}</a>
-                                    )}
                                     </div>
                                  </div>
                                  <div className="flex items-center gap-3 text-foreground/80">
@@ -1398,7 +1394,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             </div>
             
             <div className="lg:col-span-1 space-y-8">
-                 <BusinessHoursCard regularHours={profile.regularHours} loading={dataLoading} />
+                 <BusinessHoursCard regularHours={profile.regularHours} openInfo={profile.openInfo} loading={dataLoading} />
 
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                     <Card className="shadow-lg border-none h-full">

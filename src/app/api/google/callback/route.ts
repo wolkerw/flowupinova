@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             const accountId = account.name.split('/')[1];
             if(!primaryAccountId) primaryAccountId = accountId; // Salva o primeiro para o caso de ter múltiplos
 
-            const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,attributes,regularHours";
+            const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,openInfo,regularHours";
             const locationsListResponse = await fetch(
                 `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
                 {
@@ -86,24 +86,33 @@ export async function POST(request: NextRequest) {
             const { locations } = await locationsListResponse.json();
 
             if (locations && locations.length > 0) {
-                const formattedLocations = locations.map((loc: any) => {
-                    const whatsappAttribute = loc.attributes?.find((attr: any) => attr.attributeId === 'url_whatsapp');
-                    return {
+                 for (const loc of locations) {
+                    if (!loc.name) continue;
+
+                    let whatsappUrl = '';
+                    const attributesUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${loc.name}/attributes`;
+                    const attrsRes = await fetch(attributesUrl, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+                    if (attrsRes.ok) {
+                        const attrsJson = await attrsRes.json();
+                        const findAttr = (arr: any[], key: string) => arr?.find(a => a.name === key || a.attributeId === key);
+                        const whatsappAttribute = findAttr(attrsJson.attributes, "attributes/url_whatsapp");
+                        whatsappUrl = whatsappAttribute?.values?.[0]?.uriValue || whatsappAttribute?.values?.[0]?.stringValue || '';
+                    }
+
+                    allBusinessProfiles.push({
                         name: loc.title || 'Nome não encontrado',
-                        googleName: loc.name, // Ex: locations/12345
+                        googleName: loc.name,
                         category: loc.categories?.primaryCategory?.displayName || 'Categoria não encontrada',
-                        address: loc.storefrontAddress ? 
-                                 `${loc.storefrontAddress.addressLines?.join(', ')}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}` 
-                                 : 'Endereço não encontrado',
+                        address: loc.storefrontAddress ? `${loc.storefrontAddress.addressLines?.join(', ')}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}` : 'Endereço não encontrado',
                         phone: loc.phoneNumbers?.primaryPhone || 'Telefone não encontrado',
                         website: loc.websiteUri || 'Website não encontrado',
                         description: loc.profile?.description || 'Descrição não disponível.',
                         isVerified: true,
-                        whatsappUrl: whatsappAttribute?.values?.[0] || '',
+                        whatsappUrl: whatsappUrl,
                         regularHours: loc.regularHours || null,
-                    };
-                });
-                allBusinessProfiles.push(...formattedLocations);
+                        openInfo: loc.openInfo || null,
+                    });
+                }
             }
         }
         

@@ -25,6 +25,7 @@ export interface BusinessProfileData {
     pendingFields?: { [key: string]: boolean };
     whatsappUrl?: string;
     regularHours?: any;
+    openInfo?: any;
 }
 
 const defaultLogo: LogoData = {
@@ -49,6 +50,7 @@ const defaultProfile: BusinessProfileData = {
     pendingFields: {},
     whatsappUrl: "",
     regularHours: null,
+    openInfo: null,
 };
 
 function getProfileDocRef(userId: string) {

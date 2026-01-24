@@ -46,14 +46,16 @@ export async function POST(request: NextRequest) {
         if (!profileDoc.exists) throw new Error("Perfil de negócio não encontrado.");
 
         const accountId = connDoc.data()?.accountId;
-        const locationName = profileDoc.data()?.googleName; // This should be "locations/{locationId}"
+        const googleName = profileDoc.data()?.googleName; // This is "locations/{locationId}"
 
-        if (!accountId || !locationName) {
+        if (!accountId || !googleName) {
             throw new Error("Dados de conta ou localização do Google incompletos no perfil.");
         }
 
+        const locationId = googleName.split('/')[1];
+
         // Correctly construct the parent path for the v4 API
-        const parent = `accounts/${accountId}/${locationName}`;
+        const parent = `accounts/${accountId}/locations/${locationId}`;
 
         // 3. Associate the new media URL with Google Business Profile using v4 API
         const oauth2Client = await getAuthenticatedGoogleClient(uid);

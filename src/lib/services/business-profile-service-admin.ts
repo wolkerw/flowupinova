@@ -25,6 +25,7 @@ const defaultProfile: BusinessProfileData = {
   pendingFields: {},
   whatsappUrl: "",
   regularHours: null,
+  openInfo: null,
 };
 
 

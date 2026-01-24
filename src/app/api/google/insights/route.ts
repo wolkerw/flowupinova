@@ -37,15 +37,22 @@ export async function POST(request: NextRequest) {
             headers: { 'Authorization': `Bearer ${accessToken}` },
         });
 
-        // --- Profile Fetching Logic (New) ---
-        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,attributes,regularHours";
-        const profileUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/locations/${locationId}?readMask=${encodeURIComponent(readMask)}`;
+        // --- Profile Fetching Logic (Corrected) ---
+        const readMask = "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,openInfo,regularHours";
+        const profileUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${locationId}?readMask=${encodeURIComponent(readMask)}`;
         const profilePromise = fetch(profileUrl, {
             headers: { 'Authorization': `Bearer ${accessToken}` },
         });
 
+        // --- Attributes Fetching Logic (New) ---
+        const attributesUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${locationId}/attributes`;
+        const attributesPromise = fetch(attributesUrl, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+
         // --- Execute in parallel ---
-        const [insightsResponse, profileResponse] = await Promise.all([insightsPromise, profilePromise]);
+        const [insightsResponse, profileResponse, attributesResponse] = await Promise.all([insightsPromise, profilePromise, attributesPromise]);
 
         // --- Process Insights ---
         const insightsData = await insightsResponse.json();
@@ -73,7 +80,15 @@ export async function POST(request: NextRequest) {
         let formattedProfile = null;
         if (profileResponse.ok) {
             const loc = await profileResponse.json();
-            const whatsappAttribute = loc.attributes?.find((attr: any) => attr.attributeId === 'url_whatsapp');
+            
+            let whatsappUrl = '';
+            if (attributesResponse.ok) {
+                const attrsJson = await attributesResponse.json();
+                const findAttr = (arr: any[], key: string) => arr?.find(a => a.name === key || a.attributeId === key);
+                const whatsappAttribute = findAttr(attrsJson.attributes, "attributes/url_whatsapp");
+                whatsappUrl = whatsappAttribute?.values?.[0]?.uriValue || whatsappAttribute?.values?.[0]?.stringValue || '';
+            }
+            
             formattedProfile = {
                 name: loc.title || '',
                 googleName: loc.name,
@@ -85,8 +100,9 @@ export async function POST(request: NextRequest) {
                 website: loc.websiteUri || '',
                 description: loc.profile?.description || '',
                 isVerified: true,
-                whatsappUrl: whatsappAttribute?.values?.[0] || '',
+                whatsappUrl: whatsappUrl,
                 regularHours: loc.regularHours || null,
+                openInfo: loc.openInfo || null,
             };
         } else {
             console.warn(`[GOOGLE_INSIGHTS_WARN] Falha ao buscar dados de perfil para ${locationId}. Status: ${profileResponse.status}`);
