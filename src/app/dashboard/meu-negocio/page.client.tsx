@@ -1206,16 +1206,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2">
                                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
                                             {profile.pendingFields?.name && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger>
-                                                            <Hourglass className="w-5 h-5 text-amber-500" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>Esta informação está aguardando aprovação do Google.</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                                    <span className="font-medium">Edição pendente</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button className="p-0 h-auto bg-transparent hover:bg-transparent"><Info className="w-4 h-4 cursor-help" /></button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Normalmente, leva até 10 minutos para ser revisada.<br />Aguarde o aviso desaparecer antes de editar novamente.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -1254,12 +1257,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm">{profile.phone}</span>
                                             {profile.pendingFields?.phone && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500" /></TooltipTrigger>
-                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                                    <span className="font-medium">Edição pendente</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button className="p-0 h-auto bg-transparent hover:bg-transparent"><Info className="w-4 h-4 cursor-help" /></button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Normalmente, leva até 10 minutos para ser revisada.<br />Aguarde o aviso desaparecer antes de editar novamente.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -1292,12 +1302,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-center gap-2">
                                             <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.website || "Nenhum site informado"}</a>
                                             {profile.pendingFields?.website && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500" /></TooltipTrigger>
-                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <div className="flex items-center gap-1.5 text-sm text-amber-600">
+                                                    <span className="font-medium">Edição pendente</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button className="p-0 h-auto bg-transparent hover:bg-transparent"><Info className="w-4 h-4 cursor-help" /></button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Normalmente, leva até 10 minutos para ser revisada.<br />Aguarde o aviso desaparecer antes de editar novamente.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -1315,12 +1332,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         <div className="flex items-start gap-2">
                                             <p className="text-sm text-muted-foreground">{profile.description}</p>
                                             {profile.pendingFields?.description && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500 shrink-0" /></TooltipTrigger>
-                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <div className="flex items-center gap-1.5 text-sm text-amber-600 shrink-0">
+                                                    <span className="font-medium">Edição pendente</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button className="p-0 h-auto bg-transparent hover:bg-transparent"><Info className="w-4 h-4 cursor-help" /></button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Normalmente, leva até 10 minutos para ser revisada.<br />Aguarde o aviso desaparecer antes de editar novamente.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
                                             )}
                                         </div>
                                     )}
