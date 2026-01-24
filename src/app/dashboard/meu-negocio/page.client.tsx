@@ -871,10 +871,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         if (updateMask.length === 0) {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         } else {
-             toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado." });
+            // Update Firestore right after successful Google API call
+            await updateBusinessProfile(user.uid, editableProfile);
+            setProfile(editableProfile); // Update UI immediately
+            toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado. As mudanças podem levar algum tempo para aparecer no Google." });
         }
 
-        await fetchFullProfile();
         setIsEditing(false);
 
     } catch (err: any) {
