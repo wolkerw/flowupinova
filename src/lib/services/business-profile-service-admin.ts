@@ -22,6 +22,7 @@ const defaultProfile: BusinessProfileData = {
   totalReviews: 0,
   isVerified: false,
   googleName: "",
+  pendingFields: {},
 };
 
 
@@ -41,24 +42,6 @@ export async function getBusinessProfileAdmin(userId: string | null): Promise<Bu
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Handle migration from old structure
-            if (data?.logoUrl !== undefined) {
-                const migratedProfile: any = { // Use any to allow deletion
-                    ...defaultProfile,
-                    ...data,
-                    logo: {
-                        url: data.logoUrl || "",
-                        width: data.logoWidth || 0,
-                        height: data.logoHeight || 0
-                    }
-                };
-                delete migratedProfile.logoUrl;
-                delete migratedProfile.logoWidth;
-                delete migratedProfile.logoHeight;
-                // Save the migrated structure back
-                await profileDocRef.set(migratedProfile);
-                return migratedProfile;
-            }
             return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
         } else {
             // Document doesn't exist, create it.

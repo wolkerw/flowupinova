@@ -71,6 +71,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface MeuNegocioClientProps {
@@ -420,7 +421,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
             const locationId = activeProfile.googleName.split('/')[1];
 
-            const insightsResponse = await fetch('/api/google/insights', {
+            const profileAndInsightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -431,15 +432,52 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 })
             });
 
-            if (insightsResponse.ok) {
-                const insightsData = await insightsResponse.json();
-                if (insightsData.success) {
-                    setMetrics(insightsData.insights);
-                    if (insightsData.profile) {
-                        const freshProfile = { ...activeProfile, ...insightsData.profile };
-                        await updateBusinessProfile(user.uid, freshProfile);
-                        activeProfile = freshProfile; // Use the freshest profile data
-                    }
+            let googleProfile: Partial<BusinessProfileData> | null = null;
+            if (profileAndInsightsResponse.ok) {
+                const resultData = await profileAndInsightsResponse.json();
+                if (resultData.success) {
+                    setMetrics(resultData.insights);
+                    googleProfile = resultData.profile;
+                }
+            }
+
+            if (googleProfile) {
+                const newPendingFields: { [key: string]: boolean } = { ...(firestoreProfile.pendingFields || {}) };
+                let pendingFieldsChanged = false;
+                
+                const isSame = (a: any, b: any) => (a || "") === (b || "");
+
+                if (newPendingFields.name && isSame(firestoreProfile.name, googleProfile.name)) {
+                    delete newPendingFields.name;
+                    pendingFieldsChanged = true;
+                }
+                if (newPendingFields.phone && isSame(firestoreProfile.phone, googleProfile.phone)) {
+                    delete newPendingFields.phone;
+                    pendingFieldsChanged = true;
+                }
+                if (newPendingFields.website && isSame(firestoreProfile.website, googleProfile.website)) {
+                    delete newPendingFields.website;
+                    pendingFieldsChanged = true;
+                }
+                if (newPendingFields.description && isSame(firestoreProfile.description, googleProfile.description)) {
+                    delete newPendingFields.description;
+                    pendingFieldsChanged = true;
+                }
+
+                const reconciledProfile = {
+                    ...firestoreProfile,
+                    ...googleProfile,
+                    name: firestoreProfile.name,
+                    phone: firestoreProfile.phone,
+                    website: firestoreProfile.website,
+                    description: firestoreProfile.description,
+                    pendingFields: newPendingFields,
+                };
+
+                activeProfile = reconciledProfile;
+                
+                if (pendingFieldsChanged) {
+                    await updateBusinessProfile(user.uid, { pendingFields: newPendingFields });
                 }
             }
 
@@ -834,22 +872,28 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     try {
         const updates: { [key: string]: any } = {};
         const updateMask: string[] = [];
+        const pendingUpdates: { [key:string]: boolean } = {};
+
 
         if (editableProfile.name !== profile.name) {
             updates.title = editableProfile.name;
             updateMask.push("title");
+            pendingUpdates.name = true;
         }
         if (editableProfile.phone !== profile.phone) {
             updates.phoneNumbers = { primaryPhone: editableProfile.phone };
             updateMask.push("phoneNumbers");
+            pendingUpdates.phone = true;
         }
         if (editableProfile.website !== profile.website) {
             updates.websiteUri = editableProfile.website;
             updateMask.push("websiteUri");
+            pendingUpdates.website = true;
         }
         if (editableProfile.description !== profile.description) {
             updates.profile = { description: editableProfile.description };
-            updateMask.push("profile");
+            updateMask.push("profile.description");
+            pendingUpdates.description = true;
         }
         
         if (updateMask.length > 0) {
@@ -868,13 +912,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
            }
         }
         
-        if (updateMask.length === 0) {
-            toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
-        } else {
-            // Update Firestore right after successful Google API call
-            await updateBusinessProfile(user.uid, editableProfile);
-            setProfile(editableProfile); // Update UI immediately
+        if (Object.keys(pendingUpdates).length > 0) {
+            const newPendingFields = { ...(profile.pendingFields || {}), ...pendingUpdates };
+            await updateBusinessProfile(user.uid, { ...editableProfile, pendingFields: newPendingFields });
+            setProfile({ ...editableProfile, pendingFields: newPendingFields }); // Update UI immediately
             toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado. As mudanças podem levar algum tempo para aparecer no Google." });
+        } else {
+            toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         }
 
         setIsEditing(false);
@@ -1067,14 +1111,28 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <div className="pt-12 w-full">
-                                     {isEditing ? (
+                                    {isEditing ? (
                                         <Input 
                                             value={editableProfile.name}
                                             onChange={(e) => setEditableProfile(p => ({...p, name: e.target.value}))}
                                             className="text-2xl font-bold h-auto p-2 border rounded-md"
                                         />
                                     ) : (
-                                        <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                        <div className="flex items-center gap-2">
+                                            <CardTitle className="text-2xl">{profile.name}</CardTitle>
+                                            {profile.pendingFields?.name && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <Hourglass className="w-5 h-5 text-amber-500" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Esta informação está aguardando aprovação do Google.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
                                     )}
                                      {profile.isVerified && (
                                         <div className="flex items-center gap-2 mt-1 text-sm">
@@ -1093,7 +1151,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                             </div>
                         </CardHeader>
                         <CardContent>
-                             <div className="space-y-3 pt-6 border-t mt-4">
+                            <div className="space-y-4 pt-6 border-t mt-4">
                                 <div className="flex items-center gap-3 text-foreground/80">
                                     <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                                     <span className="text-sm">{profile.address}</span>
@@ -1108,7 +1166,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             className="h-8 text-sm"
                                         />
                                     ) : (
-                                        <span className="text-sm">{profile.phone}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm">{profile.phone}</span>
+                                            {profile.pendingFields?.phone && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500" /></TooltipTrigger>
+                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                  <div className="flex items-center gap-3 text-foreground/80">
@@ -1121,7 +1189,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             className="h-8 text-sm"
                                         />
                                     ) : (
-                                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.website || "Nenhum site informado"}</a>
+                                        <div className="flex items-center gap-2">
+                                            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">{profile.website || "Nenhum site informado"}</a>
+                                            {profile.pendingFields?.website && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500" /></TooltipTrigger>
+                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
                                     )}
                                  </div>
                                 <div className="pt-2">
@@ -1134,7 +1212,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                             rows={5}
                                         />
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">{profile.description}</p>
+                                        <div className="flex items-start gap-2">
+                                            <p className="text-sm text-muted-foreground">{profile.description}</p>
+                                            {profile.pendingFields?.description && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger><Hourglass className="w-4 h-4 text-amber-500 shrink-0" /></TooltipTrigger>
+                                                        <TooltipContent><p>Esta informação está aguardando aprovação do Google.</p></TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>

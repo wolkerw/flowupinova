@@ -22,6 +22,7 @@ export interface BusinessProfileData {
     totalReviews: number;
     isVerified: boolean;
     googleName?: string; // Formato: locations/{locationId}
+    pendingFields?: { [key: string]: boolean };
 }
 
 const defaultLogo: LogoData = {
@@ -43,6 +44,7 @@ const defaultProfile: BusinessProfileData = {
     totalReviews: 0,
     isVerified: false,
     googleName: "",
+    pendingFields: {},
 };
 
 function getProfileDocRef(userId: string) {
@@ -59,35 +61,8 @@ export async function getBusinessProfile(userId: string): Promise<BusinessProfil
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
-            const data = docSnap.data() as any; // Read as 'any' to handle migration
-            let needsUpdate = false;
-            const finalProfile: BusinessProfileData = { ...defaultProfile, ...data };
-            
-            // Migration from old structure (logoUrl, logoWidth) to new (logo object)
-            if (data.logoUrl !== undefined || data.logoWidth !== undefined) {
-                finalProfile.logo = {
-                    url: data.logoUrl || "",
-                    width: data.logoWidth || 0,
-                    height: data.logoHeight || 0,
-                };
-                // Unset the old fields
-                delete (finalProfile as any).logoUrl;
-                delete (finalProfile as any).logoWidth;
-                delete (finalProfile as any).logoHeight;
-                needsUpdate = true;
-            }
-
-             if (!data.googleName) {
-                finalProfile.googleName = "";
-             }
-
-
-            if (needsUpdate) {
-                await setDoc(profileDocRef, finalProfile);
-                return finalProfile;
-            }
-            
-            return finalProfile;
+            const data = docSnap.data();
+            return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
         } else {
             await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
             await setDoc(profileDocRef, defaultProfile);
