@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { motion, AnimatePresence } from "framer-motion";
-import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getBusinessProfile, updateBusinessProfile, resetBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getGoogleConnection, updateGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -660,8 +660,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     setAuthLoading(true);
     try {
         await updateGoogleConnection(user.uid, { isConnected: false });
-        await updateBusinessProfile(user.uid, { isVerified: false, googleName: "" });
-        toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
+        await resetBusinessProfile(user.uid);
+        toast({ title: "Desconectado", description: "A conexão com o Google foi removida e o perfil local zerado." });
         await fetchFullProfile();
     } catch(err: any) {
         toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });

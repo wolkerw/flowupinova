@@ -113,3 +113,17 @@ export async function updateBusinessProfile(userId: string, data: Partial<Busine
         console.error(`Error updating business profile for user ${userId}:`, error);
     }
 }
+
+export async function resetBusinessProfile(userId: string): Promise<void> {
+    if (!userId) {
+        throw new Error("UserID é necessário para resetar o perfil de negócio.");
+    }
+    try {
+        const profileDocRef = getProfileDocRef(userId);
+        await setDoc(profileDocRef, defaultProfile);
+        console.log(`Business profile reset for user ${userId}.`);
+    } catch (error: any) {
+        console.error(`Error resetting business profile for user ${userId}:`, error);
+        throw new Error("Não foi possível resetar o perfil de negócio.");
+    }
+}
