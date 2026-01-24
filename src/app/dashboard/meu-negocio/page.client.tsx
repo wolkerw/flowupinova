@@ -435,11 +435,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     const parsedHours = useMemo(() => {
         const { regularHours, openInfo } = profile;
         if (!regularHours?.periods && openInfo?.status === "OPEN") {
-            return dayOrder.map(day => ({ day: dayMapping[day.substring(0, 3).toUpperCase() as keyof typeof dayMapping], hours: "Aberto" }));
+            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Aberto" }));
         }
 
         if (!regularHours?.periods) {
-            return dayOrder.map(day => ({ day: dayMapping[day.substring(0, 3).toUpperCase() as keyof typeof dayMapping], hours: "Fechado" }));
+            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
         }
         
         return dayOrder.map(dayKey => {
@@ -1447,8 +1447,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     ) : (profile.regularHours || profile.openInfo) ? (
                                         <div className="space-y-3">
-                                            {parsedHours.map(({day, hours}) => (
-                                                <div key={day} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                            {parsedHours.map(({day, hours}, index) => (
+                                                <div key={day || index} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
                                                     <span className="text-foreground">{day}</span>
                                                     <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
                                                 </div>
