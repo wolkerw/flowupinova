@@ -362,7 +362,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [mediaLoading, setMediaLoading] = useState(true);
   const [keywordsLoading, setKeywordsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(isFalse);
+  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   
@@ -435,11 +435,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     const parsedHours = useMemo(() => {
         const { regularHours, openInfo } = profile;
         if (!regularHours?.periods && openInfo?.status === "OPEN") {
-            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Aberto" }));
+            return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Aberto" }));
         }
 
         if (!regularHours?.periods) {
-            return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
+            return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Fechado" }));
         }
         
         return dayOrder.map((dayKey, index) => {
@@ -582,8 +582,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             setDataLoading(false);
             setMetricsLoading(false);
 
-            const locationIdOnly = locationId.split('/')[1];
-
             // Fetch Reviews
             const reviewsResponse = await fetch('/api/google/reviews', {
                 method: 'POST',
@@ -591,7 +589,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 body: JSON.stringify({ 
                     accessToken: googleConn.accessToken,
                     accountId: googleConn.accountId,
-                    locationId: locationIdOnly
+                    locationId: locationId.split('/')[1]
                 })
             });
             if (reviewsResponse.ok) {
@@ -612,7 +610,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 body: JSON.stringify({
                     accessToken: googleConn.accessToken,
                     accountId: googleConn.accountId,
-                    locationId: locationIdOnly
+                    locationId: locationId.split('/')[1]
                 })
             });
             if (mediaResponse.ok) {
