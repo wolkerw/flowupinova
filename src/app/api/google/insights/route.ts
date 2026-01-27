@@ -48,11 +48,17 @@ export async function POST(request: NextRequest) {
         const [insightsResponse, profileResponse] = await Promise.all([insightsPromise, profilePromise]);
 
         // --- Process Insights ---
-        const insightsData = await insightsResponse.json();
         if (!insightsResponse.ok) {
-            console.error("[GOOGLE_INSIGHTS_ERROR] API Response:", insightsData);
-            throw new Error(insightsData.error?.message || "Falha ao buscar dados de performance do Google.");
+            const errorData = await insightsResponse.json();
+            if (insightsResponse.status === 401 || insightsResponse.status === 403) {
+                console.warn(`[GOOGLE_INSIGHTS_AUTH_ERROR] Token inválido ou expirado. Status: ${insightsResponse.status}`);
+                return NextResponse.json({ success: false, error: "Token de acesso do Google inválido ou expirado." }, { status: 401 });
+            }
+            console.error("[GOOGLE_INSIGHTS_ERROR] API Response:", errorData);
+            throw new Error(errorData.error?.message || "Falha ao buscar dados de performance do Google.");
         }
+
+        const insightsData = await insightsResponse.json();
         const aggregatedMetrics: { [key: string]: number } = {};
         insightsData.multiDailyMetricTimeSeries?.forEach((series: any) => {
             series.dailyMetricTimeSeries?.forEach((metricSeries: any) => {
@@ -90,6 +96,9 @@ export async function POST(request: NextRequest) {
             };
         } else {
             console.warn(`[GOOGLE_INSIGHTS_WARN] Falha ao buscar dados de perfil para ${locationId}. Status: ${profileResponse.status}`);
+             if (profileResponse.status === 401 || profileResponse.status === 403) {
+                return NextResponse.json({ success: false, error: "Token de acesso do Google inválido ou expirado." }, { status: 401 });
+            }
         }
 
         // --- Return combined data ---

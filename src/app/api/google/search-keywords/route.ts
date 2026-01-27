@@ -53,13 +53,17 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            console.error("[GOOGLE_KEYWORDS_ERROR] API Response:", data);
-            throw new Error(data.error?.message || "Falha ao buscar palavras-chave do Google.");
+            const errorData = await response.json();
+            if (response.status === 401 || response.status === 403) {
+                 console.warn(`[GOOGLE_KEYWORDS_AUTH_ERROR] Token inválido ou expirado. Status: ${response.status}`);
+                return NextResponse.json({ success: false, error: "Token de acesso do Google inválido ou expirado." }, { status: 401 });
+            }
+            console.error("[GOOGLE_KEYWORDS_ERROR] API Response:", errorData);
+            throw new Error(errorData.error?.message || "Falha ao buscar palavras-chave do Google.");
         }
         
+        const data = await response.json();
         const keywords = data.searchKeywordsCounts?.map((item: any) => {
             const parsedValue = parseInsightsValue(item.insightsValue || {});
             return {

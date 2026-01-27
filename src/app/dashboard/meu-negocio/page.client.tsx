@@ -362,7 +362,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [mediaLoading, setMediaLoading] = useState(true);
   const [keywordsLoading, setKeywordsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(isFalse);
   const [isSaving, setIsSaving] = useState(false);
 
   
@@ -442,11 +442,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             return dayOrder.map(day => ({ day: dayMapping[day], hours: "Fechado" }));
         }
         
-        return dayOrder.map(dayKey => {
+        return dayOrder.map((dayKey, index) => {
             const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
 
             if (periodsForDay.length === 0) {
-                return { day: dayMapping[dayKey], hours: "Fechado" };
+                return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: "Fechado" };
             }
 
             const isOpen24h = periodsForDay.some((p: any) => 
@@ -454,16 +454,32 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 (p.closeTime.hours === 0 && (p.closeTime.minutes || 0) === 0)
             );
             if (isOpen24h) {
-                return { day: dayMapping[dayKey], hours: "Aberto 24 horas" };
+                return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: "Aberto 24 horas" };
             }
             
             const hoursString = periodsForDay
                 .map((p: any) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
                 .join(", ");
                 
-            return { day: dayMapping[dayKey], hours: hoursString };
+            return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: hoursString };
         });
     }, [profile.regularHours, profile.openInfo]);
+
+
+  const handleDisconnect = useCallback(async () => {
+    if (!user) return;
+    setAuthLoading(true);
+    try {
+        await updateGoogleConnection(user.uid, { isConnected: false });
+        await resetBusinessProfile(user.uid);
+        toast({ title: "Desconectado", description: "A conexão com o Google foi removida." });
+        await fetchFullProfile(); // Refetch to update the UI to show the connect card
+    } catch(err: any) {
+        toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });
+    } finally {
+       setAuthLoading(false);
+    }
+  }, [user, toast]);
 
 
   const fetchFullProfile = useCallback(async () => {
@@ -484,7 +500,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
         if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
             const locationId = activeProfile.googleName;
-
+            
+            // --- Primary Data Fetch ---
             const profileAndInsightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -495,6 +512,17 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
                 })
             });
+            
+            // If token is expired, disconnect and stop
+            if (profileAndInsightsResponse.status === 401) {
+                toast({
+                    title: "Sessão com o Google expirada",
+                    description: "Por favor, conecte sua conta novamente para ver os dados atualizados.",
+                    variant: "destructive",
+                });
+                await handleDisconnect();
+                return;
+            }
 
             let googleProfile: Partial<BusinessProfileData> | null = null;
             if (profileAndInsightsResponse.ok) {
@@ -574,7 +602,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         setProfile(prev => ({...prev, rating: reviewsData.averageRating, totalReviews: reviewsData.reviews.length}));
                     }
                 }
-            }
+            } else if (reviewsResponse.status === 401) { await handleDisconnect(); return; }
             setReviewsLoading(false);
              
             // Fetch Media
@@ -590,7 +618,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             if (mediaResponse.ok) {
                 const mediaData = await mediaResponse.json();
                 if (mediaData.success) setMedia(mediaData.media);
-            }
+            } else if (mediaResponse.status === 401) { await handleDisconnect(); return; }
             setMediaLoading(false);
 
             // Fetch Search Keywords
@@ -607,7 +635,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             if (keywordsResponse.ok) {
                 const keywordsData = await keywordsResponse.json();
                 if (keywordsData.success) setKeywords(keywordsData.keywords);
-            }
+            } else if (keywordsResponse.status === 401) { await handleDisconnect(); return; }
             setKeywordsLoading(false);
 
         } else {
@@ -627,7 +655,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         setMediaLoading(false);
         setKeywordsLoading(false);
     }
-  }, [user, toast, dateRange]);
+  }, [user, toast, dateRange, handleDisconnect]);
 
 
   useEffect(() => {
@@ -761,21 +789,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     googleAuthUrl.searchParams.append('state', user.uid);
     
     window.location.href = googleAuthUrl.toString();
-  };
-  
-  const handleDisconnect = async () => {
-    if (!user) return;
-    setAuthLoading(true);
-    try {
-        await updateGoogleConnection(user.uid, { isConnected: false });
-        await resetBusinessProfile(user.uid);
-        toast({ title: "Desconectado", description: "A conexão com o Google foi removida e o perfil local zerado." });
-        await fetchFullProfile();
-    } catch(err: any) {
-        toast({ title: "Erro ao Desconectar", description: err.message, variant: "destructive" });
-    } finally {
-       setAuthLoading(false);
-    }
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1447,8 +1460,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     ) : (profile.regularHours || profile.openInfo) ? (
                                         <div className="space-y-3">
-                                            {parsedHours.map(({day, hours}, index) => (
-                                                <div key={day || index} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                            {parsedHours.map(({key, day, hours}) => (
+                                                <div key={key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
                                                     <span className="text-foreground">{day}</span>
                                                     <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
                                                 </div>

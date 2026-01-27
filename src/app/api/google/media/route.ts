@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
         
         if (!response.ok) {
             const errorText = await response.text();
+            if (response.status === 401 || response.status === 403) {
+                console.warn(`[GOOGLE_MEDIA_AUTH_ERROR] Token inválido ou expirado. Status: ${response.status}`);
+                return NextResponse.json({ success: false, error: "Token de acesso do Google inválido ou expirado." }, { status: 401 });
+            }
             console.error(`[GOOGLE_MEDIA_ERROR] API retornou status ${response.status}. Resposta:`, errorText);
             let errorMessage = `Falha ao buscar imagens do Google (status: ${response.status}).`;
             try {
