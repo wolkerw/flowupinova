@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -1461,17 +1460,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 </div>
                                 
                                 {isEditing && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="!mt-3 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
-                                    >
-                                        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                                        <p>
-                                            A alteração de endereço deve ser feita diretamente no painel do{' '}
-                                            <strong>Google Meu Negócio</strong>, pois aciona um novo processo de verificação.
-                                        </p>
-                                    </motion.div>
+                                    <div className="!mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Info className="h-3 w-3 shrink-0" />
+                                        <span>
+                                            A alteração de endereço deve ser feita no painel do Google Meu Negócio.
+                                        </span>
+                                    </div>
                                 )}
 
                                 <div className="flex items-center gap-3 text-foreground/80">
