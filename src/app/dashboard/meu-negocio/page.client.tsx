@@ -466,6 +466,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [media, setMedia] = useState<GoogleMedia | null>(null);
   const [keywords, setKeywords] = useState<any[]>([]);
   const [editableHours, setEditableHours] = useState<Array<{day: string, open: string, close: string, enabled: boolean, is24h: boolean}>>([]);
+  const [hoursMode, setHoursMode] = useState<'normal' | 'no_hours'>('normal');
 
 
   // State for profile selection modal
@@ -544,7 +545,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
             const isOpen24h = periodsForDay.some((p: any) => 
                 p.openTime.hours === 0 && (p.openTime.minutes || 0) === 0 &&
-                (p.closeTime.hours === 0 && (p.closeTime.minutes || 0) === 0)
+                (p.closeTime.hours === 23 && (p.closeTime.minutes || 0) === 59)
             );
             if (isOpen24h) {
                 return { key: `${dayKey}-24h`, day: dayMapping[dayKey], hours: "Aberto 24 horas" };
@@ -1044,6 +1045,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
     const handleStartEditing = () => {
         setEditableProfile(profile);
+        const hasPeriods = profile.regularHours?.periods && profile.regularHours.periods.length > 0;
+        setHoursMode(hasPeriods ? 'normal' : 'no_hours');
         const initialHours = dayOrder.map(dayKey => {
             const periodsForDay = profile.regularHours?.periods?.filter((p: any) => p.openDay === dayKey) || [];
             const firstPeriod = periodsForDay[0];
@@ -1060,7 +1063,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 const isOpen24h =
                     firstPeriod.openTime.hours === 0 &&
                     (firstPeriod.openTime.minutes || 0) === 0 &&
-                    (firstPeriod.closeTime.hours === 0 && (firstPeriod.closeTime.minutes || 0) === 0);
+                    firstPeriod.closeTime.hours === 23 &&
+                    (firstPeriod.closeTime.minutes || 0) === 59;
 
                 dayConfig.enabled = true;
                 dayConfig.is24h = isOpen24h;
@@ -1156,30 +1160,46 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             pendingUpdates.description = true;
         }
         
-        const initialHoursString = JSON.stringify(profile.regularHours?.periods || []);
-        const newPeriods = editableHours
-            .filter(h => h.enabled)
-            .map(h => {
-                if (h.is24h) {
-                     return {
+        const initialPeriods = profile.regularHours?.periods || [];
+        let newPeriods: any[] = [];
+        let periodsChanged = false;
+
+        if (hoursMode === 'no_hours') {
+            if (initialPeriods.length > 0) {
+                periodsChanged = true;
+            }
+            // newPeriods is already an empty array
+        } else { // 'normal' mode
+            newPeriods = editableHours
+                .filter(h => h.enabled)
+                .map(h => {
+                    if (h.is24h) {
+                        return {
+                            openDay: h.day,
+                            openTime: { hours: 0, minutes: 0 },
+                            closeDay: h.day,
+                            closeTime: { hours: 23, minutes: 59 },
+                        };
+                    }
+                    const [openHours, openMinutes] = h.open.split(':').map(Number);
+                    const [closeHours, closeMinutes] = h.close.split(':').map(Number);
+                    return {
                         openDay: h.day,
-                        openTime: { hours: 0, minutes: 0 },
-                        closeTime: { hours: 0, minutes: 0 },
+                        openTime: { hours: openHours, minutes: openMinutes || 0 },
+                        closeDay: h.day,
+                        closeTime: { hours: closeHours, minutes: closeMinutes || 0 },
                     };
-                }
-                const [openHours, openMinutes] = h.open.split(':').map(Number);
-                const [closeHours, closeMinutes] = h.close.split(':').map(Number);
-                return {
-                    openDay: h.day,
-                    openTime: { hours: openHours, minutes: openMinutes || 0 },
-                    closeTime: { hours: closeHours, minutes: closeMinutes || 0 },
-                };
-            });
+                });
+            
+            if (JSON.stringify(newPeriods) !== JSON.stringify(initialPeriods)) {
+                periodsChanged = true;
+            }
+        }
         
-        if (JSON.stringify(newPeriods) !== initialHoursString) {
-             updates.regularHours = { periods: newPeriods };
-             updateMask.push("regularHours");
-             pendingUpdates.hours = true;
+        if (periodsChanged) {
+            updates.regularHours = { periods: newPeriods };
+            updateMask.push("regularHours");
+            pendingUpdates.hours = true;
         }
         
         if (updateMask.length > 0) {
@@ -1198,19 +1218,20 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
            }
         }
         
-        // Always save local profile changes
-        const localProfileUpdate = {
+        // Always save local profile changes, including hours
+        const localProfileUpdate: Partial<BusinessProfileData> = {
             ...editableProfile,
             regularHours: { periods: newPeriods }
         };
 
         if (Object.keys(pendingUpdates).length > 0) {
             const newPendingFields = { ...(profile.pendingFields || {}), ...pendingUpdates };
-            await updateBusinessProfile(user.uid, { ...localProfileUpdate, pendingFields: newPendingFields });
-            setProfile({ ...localProfileUpdate, pendingFields: newPendingFields }); // Update UI immediately
+            localProfileUpdate.pendingFields = newPendingFields;
+            await updateBusinessProfile(user.uid, localProfileUpdate);
+            setProfile(prev => ({...prev, ...localProfileUpdate})); // Update UI immediately
         } else {
              await updateBusinessProfile(user.uid, localProfileUpdate);
-             setProfile(localProfileUpdate);
+             setProfile(prev => ({...prev, ...localProfileUpdate}));
         }
         
         if(updateMask.length > 0) {
@@ -1219,7 +1240,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         }
         
-
         setIsEditing(false);
 
     } catch (err: any) {
@@ -1583,78 +1603,106 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 </div>
                                 {isEditing ? (
                                     <div className="space-y-4">
-                                        {editableHours.map((hour, index) => (
-                                            <div key={hour.day} className="p-4 border rounded-lg bg-muted/30">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <Switch
-                                                            id={`day-switch-${index}`}
-                                                            checked={hour.enabled}
-                                                            onCheckedChange={(checked) => handleDayToggle(index, checked)}
-                                                        />
-                                                        <Label htmlFor={`day-switch-${index}`} className="text-base font-semibold">{dayMapping[hour.day]}</Label>
-                                                    </div>
-                                                    {hour.enabled && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Checkbox
-                                                                id={`day-24h-${index}`}
-                                                                checked={hour.is24h}
-                                                                onCheckedChange={(checked) => handle24hToggle(index, checked as boolean)}
-                                                            />
-                                                            <Label htmlFor={`day-24h-${index}`} className="text-sm">Aberto 24 horas</Label>
-                                                        </div>
-                                                    )}
+                                        <RadioGroup value={hoursMode} onValueChange={(v) => setHoursMode(v as 'normal' | 'no_hours')} className="space-y-3">
+                                            <div className="p-4 border rounded-lg has-[:checked]:border-primary">
+                                                <div className="flex items-center space-x-3">
+                                                    <RadioGroupItem value="normal" id="hours-normal" />
+                                                    <Label htmlFor="hours-normal" className="font-semibold cursor-pointer flex-1">Aberto com horário normal</Label>
                                                 </div>
-                                
-                                                <AnimatePresence>
-                                                    {hour.enabled && !hour.is24h && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: -10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -10 }}
-                                                            className="mt-4"
-                                                        >
-                                                          <div className="flex items-end gap-4">
-                                                                <div className="flex-1 space-y-1.5">
-                                                                    <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
-                                                                    <TimeInput
-                                                                        value={hour.open}
-                                                                        onChange={(value) => handleTimeChange(index, 'open', value)}
-                                                                    />
-                                                                </div>
-                                                                <div className="flex-1 space-y-1.5">
-                                                                    <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
-                                                                    <TimeInput
-                                                                        value={hour.close}
-                                                                        onChange={(value) => handleTimeChange(index, 'close', value)}
-                                                                    />
-                                                                </div>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                onClick={() => handleApplyToAll(index)}
-                                                                                className="h-10 w-10 shrink-0"
-                                                                            >
-                                                                                <Copy className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Copiar este horário para todos os dias</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                 {!hour.enabled && (
-                                                     <div className="text-sm text-center text-muted-foreground pt-4">Fechado</div>
-                                                 )}
+                                                <p className="text-sm text-muted-foreground ml-7 mt-1">Mostrar quando sua empresa está aberta</p>
                                             </div>
-                                        ))}
+                                            <div className="p-4 border rounded-lg has-[:checked]:border-primary">
+                                                <div className="flex items-center space-x-3">
+                                                    <RadioGroupItem value="no_hours" id="hours-no_hours" />
+                                                    <Label htmlFor="hours-no_hours" className="font-semibold cursor-pointer flex-1">Aberto sem horário normal</Label>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground ml-7 mt-1">Não mostrar o horário de funcionamento</p>
+                                            </div>
+                                        </RadioGroup>
+
+                                        <AnimatePresence>
+                                        {hoursMode === 'normal' && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: "auto" }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="space-y-4 pt-4 overflow-hidden"
+                                            >
+                                                {editableHours.map((hour, index) => (
+                                                    <div key={hour.day} className="p-4 border rounded-lg bg-muted/30">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <Switch
+                                                                    id={`day-switch-${index}`}
+                                                                    checked={hour.enabled}
+                                                                    onCheckedChange={(checked) => handleDayToggle(index, checked)}
+                                                                />
+                                                                <Label htmlFor={`day-switch-${index}`} className="text-base font-semibold">{dayMapping[hour.day]}</Label>
+                                                            </div>
+                                                            {hour.enabled && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        id={`day-24h-${index}`}
+                                                                        checked={hour.is24h}
+                                                                        onCheckedChange={(checked) => handle24hToggle(index, checked as boolean)}
+                                                                    />
+                                                                    <Label htmlFor={`day-24h-${index}`} className="text-sm">Aberto 24 horas</Label>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                
+                                                        <AnimatePresence>
+                                                            {hour.enabled && !hour.is24h && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, y: -10 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, y: -10 }}
+                                                                    className="mt-4"
+                                                                >
+                                                                  <div className="flex items-end gap-4">
+                                                                        <div className="flex-1 space-y-1.5">
+                                                                            <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
+                                                                            <TimeInput
+                                                                                value={hour.open}
+                                                                                onChange={(value) => handleTimeChange(index, 'open', value)}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex-1 space-y-1.5">
+                                                                            <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
+                                                                            <TimeInput
+                                                                                value={hour.close}
+                                                                                onChange={(value) => handleTimeChange(index, 'close', value)}
+                                                                            />
+                                                                        </div>
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="icon"
+                                                                                        onClick={() => handleApplyToAll(index)}
+                                                                                        className="h-10 w-10 shrink-0"
+                                                                                    >
+                                                                                        <Copy className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p>Copiar este horário para todos os dias</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                         {!hour.enabled && (
+                                                             <div className="text-sm text-center text-muted-foreground pt-4">Fechado</div>
+                                                         )}
+                                                    </div>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                        </AnimatePresence>
                                     </div>
                                 ) : (
                                     dataLoading ? (
