@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -8,21 +7,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-// Function to set a cookie
-function setCookie(name: string, value: string, days: number) {
-  let expires = "";
-  if (days) {
-    const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    expires = "; expires=" + date.toUTCString();
-  }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/";
-}
-
-function eraseCookie(name: string) {
-    document.cookie = name+'=; Max-Age=-99999999; path=/;';
-}
+import { setCookie, eraseCookie } from '@/lib/cookie';
 
 
 interface AuthContextType {
