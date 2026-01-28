@@ -111,21 +111,21 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
     }, []);
 
     return (
-        <div className="relative">
-             <Popover open={open} onOpenChange={setOpen}>
-                <Input
-                    type="text"
-                    placeholder="HH:MM"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="h-10 pr-10"
-                />
+        <div className="flex items-center gap-2">
+            <Input
+                type="text"
+                placeholder="HH:MM"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="h-10"
+            />
+            <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                     <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+                     <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                      </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <PopoverContent className="w-auto p-0">
                     <ScrollArea className="h-60">
                         <div className="p-1">
                             {timeSlots.map(time => (
