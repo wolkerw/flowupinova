@@ -111,28 +111,28 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
     }, []);
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="relative">
             <Input
                 type="text"
                 placeholder="HH:MM"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="h-10"
+                className="h-10 pr-10"
             />
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                     <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
+                     <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                      </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <ScrollArea className="h-60">
                         <div className="p-1">
                             {timeSlots.map(time => (
                                 <Button
                                     key={time}
                                     variant="ghost"
-                                    className="justify-start h-9"
+                                    className="w-full justify-start h-9"
                                     onClick={() => {
                                         onChange(time);
                                         setOpen(false);
@@ -1563,10 +1563,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                 <AnimatePresence>
                                                     {hour.enabled && !hour.is24h && (
                                                         <motion.div
-                                                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                                                            animate={{ opacity: 1, height: 'auto', marginTop: '1rem' }}
-                                                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                                                            className="overflow-hidden"
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            exit={{ opacity: 0 }}
+                                                            className="mt-4"
                                                         >
                                                           <div className="flex items-end gap-4">
                                                                 <div className="flex-1 space-y-1.5">
