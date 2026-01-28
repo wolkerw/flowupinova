@@ -420,12 +420,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   };
 
   const formatTime = (time: { hours?: number, minutes?: number }) => {
-        if (typeof time.hours !== 'number') return "N/A";
+        if (typeof time.hours !== 'number') return "00:00";
         
         let hours = time.hours;
         let minutes = typeof time.minutes === 'number' ? time.minutes : 0;
         
-        // Google's API might return 24:00 for midnight. Standard time format uses 00:00.
         if (hours === 24 && minutes === 0) {
             hours = 0;
         }
@@ -504,7 +503,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
             const locationId = activeProfile.googleName;
             
-            // --- Primary Data Fetch ---
             const profileAndInsightsResponse = await fetch('/api/google/insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -516,7 +514,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 })
             });
             
-            // If token is expired, disconnect and stop
             if (profileAndInsightsResponse.status === 401) {
                 toast({
                     title: "Sessão com o Google expirada",
@@ -534,6 +531,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     setMetrics(resultData.insights);
                     googleProfile = resultData.profile;
                 }
+            } else {
+                 toast({
+                    title: "Erro ao buscar dados",
+                    description: "Não foi possível carregar as métricas do Google. Tente reconectar sua conta.",
+                    variant: "destructive",
+                });
             }
 
             if (googleProfile) {
@@ -1516,12 +1519,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                                     <div className="relative">
                                                                         <Input
                                                                             id={`open-time-${index}`}
-                                                                            type="time"
+                                                                            type="text"
+                                                                            placeholder="HH:MM"
                                                                             value={hour.open}
                                                                             onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
                                                                             className="h-10 pr-10"
                                                                         />
-                                                                        <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex-1 space-y-1.5">
@@ -1529,7 +1533,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                                     <div className="relative">
                                                                         <Input
                                                                             id={`close-time-${index}`}
-                                                                            type="time"
+                                                                            type="text"
+                                                                            placeholder="HH:MM"
                                                                             value={hour.close}
                                                                             onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
                                                                             className="h-10 pr-10"
@@ -1571,10 +1576,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     ) : (profile.regularHours || profile.openInfo) ? (
                                         <div className="space-y-3">
-                                            {parsedHours.map(({key, day, hours}) => (
-                                                <div key={key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
-                                                    <span className="text-foreground">{day}</span>
-                                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
+                                            {parsedHours.map((item, index) => (
+                                                <div key={item.key || index} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                                    <span className="text-foreground">{item.day}</span>
+                                                    <span className={`font-semibold ${item.hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{item.hours}</span>
                                                 </div>
                                             ))}
                                         </div>
