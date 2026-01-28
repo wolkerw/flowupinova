@@ -110,14 +110,51 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
         return slots;
     }, []);
 
+    const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        // Remove everything that's not a digit
+        let digits = rawValue.replace(/\D/g, '');
+
+        if (digits.length > 4) {
+            digits = digits.slice(0, 4);
+        }
+
+        let hours = digits.substring(0, 2);
+        let minutes = digits.substring(2, 4);
+
+        if (hours.length === 2) {
+            const numHours = parseInt(hours, 10);
+            if (numHours > 23) {
+                hours = '23';
+            }
+        }
+        
+        if (minutes.length === 2) {
+            const numMinutes = parseInt(minutes, 10);
+            if (numMinutes > 59) {
+                minutes = '59';
+            }
+        }
+
+        let finalValue = hours;
+        // Auto-add colon
+        if (digits.length > 2) {
+            finalValue = `${hours}:${minutes}`;
+        }
+        
+        onChange(finalValue);
+    };
+
+
     return (
         <div className="relative">
             <Input
                 type="text"
                 placeholder="HH:MM"
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="h-10 pr-10"
+                onChange={handleTimeInputChange}
+                className="h-10"
+                maxLength={5}
             />
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
@@ -125,14 +162,14 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                      </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-24 p-0">
+                <PopoverContent className="w-28 p-0">
                     <ScrollArea className="h-60">
                         <div className="p-1">
                             {timeSlots.map(time => (
                                 <Button
                                     key={time}
                                     variant="ghost"
-                                    className="w-full justify-start h-9"
+                                    className="justify-start h-9 w-full"
                                     onClick={() => {
                                         onChange(time);
                                         setOpen(false);
