@@ -962,18 +962,31 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         const initialHours = dayOrder.map(dayKey => {
             const periodsForDay = profile.regularHours?.periods?.filter((p: any) => p.openDay === dayKey) || [];
             const firstPeriod = periodsForDay[0];
-            
-            const isOpen24h = firstPeriod &&
-                firstPeriod.openTime.hours === 0 && (firstPeriod.openTime.minutes || 0) === 0 &&
-                (firstPeriod.closeTime.hours === 0 && (firstPeriod.closeTime.minutes || 0) === 0);
 
-            return {
+            let dayConfig = {
                 day: dayKey,
-                open: firstPeriod && !isOpen24h ? formatTime(firstPeriod.openTime) : "09:00",
-                close: firstPeriod && !isOpen24h ? formatTime(firstPeriod.closeTime) : "18:00",
-                enabled: !!firstPeriod,
-                is24h: !!isOpen24h,
+                open: "09:00",
+                close: "18:00",
+                enabled: false,
+                is24h: false,
             };
+
+            if (firstPeriod) {
+                const isOpen24h =
+                    firstPeriod.openTime.hours === 0 &&
+                    (firstPeriod.openTime.minutes || 0) === 0 &&
+                    (firstPeriod.closeTime.hours === 0 && (firstPeriod.closeTime.minutes || 0) === 0);
+
+                dayConfig.enabled = true;
+                dayConfig.is24h = isOpen24h;
+
+                if (!isOpen24h) {
+                    dayConfig.open = formatTime(firstPeriod.openTime);
+                    dayConfig.close = formatTime(firstPeriod.closeTime);
+                }
+            }
+
+            return dayConfig;
         });
         setEditableHours(initialHours);
         setIsEditing(true);
