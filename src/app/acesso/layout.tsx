@@ -202,7 +202,7 @@ export default function AcessoLayout({
                     </div>
                 </div>
                 <div className="mt-8 border-t border-border pt-8 text-center text-muted-foreground text-sm">
-                    <p>&copy; 2025 Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
+                    <p>&copy; 2026 Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
                 </div>
                 </div>
             </footer>
