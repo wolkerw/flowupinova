@@ -103,6 +103,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         paymentStatus: 'active',
       }, { merge: true });
 
+      // Send welcome email via our API route (fire-and-forget)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email })
+      }).catch(error => {
+        // Log error but don't show a toast or block user flow
+        console.error("Failed to trigger welcome email:", error);
+      });
+
       const token = await userCredential.user.getIdToken();
       setCookie('firebase-id-token', token, 1);
       setUser(auth.currentUser); 
