@@ -1459,6 +1459,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                     <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                                     <span className="text-sm">{profile.address}</span>
                                 </div>
+                                
+                                {isEditing && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="!mt-3 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                                    >
+                                        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                                        <p>
+                                            A alteração de endereço deve ser feita diretamente no painel do{' '}
+                                            <strong>Google Meu Negócio</strong>, pois aciona um novo processo de verificação.
+                                        </p>
+                                    </motion.div>
+                                )}
+
                                 <div className="flex items-center gap-3 text-foreground/80">
                                     <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                                     {isEditing ? (
@@ -1600,9 +1615,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                 <AnimatePresence>
                                                     {hour.enabled && !hour.is24h && (
                                                         <motion.div
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
+                                                            initial={{ opacity: 0, y: -10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -10 }}
                                                             className="mt-4"
                                                         >
                                                           <div className="flex items-end gap-4">
@@ -1835,5 +1850,3 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
-
-    
