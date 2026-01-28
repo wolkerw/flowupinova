@@ -485,6 +485,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
 
   const { user, loading: userLoading } = useAuth();
@@ -1238,18 +1239,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
              setProfile(prev => ({...prev, ...localProfileUpdate}));
         }
         
+        setIsEditing(false);
+        
         if(updateMask.length > 0) {
-            toast({ variant: "success", title: "Alterações enviadas para revisão!", description: "O Google pode levar alguns minutos para processar suas mudanças. Recomendamos aguardar um pouco antes de realizar novas edições." });
+            toast({ variant: "success", title: "Alterações salvas!", description: "Suas alterações foram enviadas para revisão pelo Google." });
         } else {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         }
         
-        setIsEditing(false);
-
     } catch (err: any) {
         toast({ title: "Erro ao Salvar", description: err.message, variant: "destructive" });
     } finally {
         setIsSaving(false);
+        setIsConfirmingSave(false);
     }
 };
 
@@ -1320,6 +1322,24 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+      <AlertDialog open={isConfirmingSave} onOpenChange={setIsConfirmingSave}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Aguarde a revisão do Google</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      As alterações serão enviadas para revisão. Este processo pode levar alguns minutos. Para evitar conflitos, recomendamos aguardar a atualização do Google antes de fazer novas edições no perfil.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isSaving}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSaveChanges} disabled={isSaving}>
+                      {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Confirmar e Salvar
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
 
 
       {/* Cabeçalho */}
@@ -1733,7 +1753,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         {isEditing && (
                             <CardFooter className="flex justify-end gap-2">
                                 <Button variant="ghost" onClick={() => { setIsEditing(false); setEditableProfile(profile); }}>Cancelar</Button>
-                                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                                <Button onClick={() => setIsConfirmingSave(true)} disabled={isSaving}>
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                     Salvar Alterações
                                 </Button>
