@@ -530,14 +530,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     const parsedHours = useMemo(() => {
         const { regularHours, openInfo } = profile;
         
-        // This specifically handles "Aberto sem horário normal".
-        // Google indicates this by returning an `openInfo` with status OPEN,
-        // and an empty or non-existent `regularHours.periods`.
+        // This handles "Aberto sem horário normal".
         if ((!regularHours?.periods || regularHours.periods.length === 0) && openInfo?.status === "OPEN") {
             return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Aberto" }));
         }
 
-        // If there are no periods and the status is not explicitly OPEN, we assume it's closed.
         if (!regularHours?.periods || regularHours.periods.length === 0) {
             return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Fechado" }));
         }
@@ -1242,7 +1239,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         }
         
         if(updateMask.length > 0) {
-            toast({ variant: "success", title: "Sucesso!", description: "Seu perfil foi atualizado. As mudanças podem levar algum tempo para aparecer no Google." });
+            toast({ variant: "success", title: "Alterações enviadas para revisão!", description: "O Google pode levar alguns minutos para processar suas mudanças. Recomendamos aguardar um pouco antes de realizar novas edições." });
         } else {
             toast({ title: "Nenhuma alteração", description: "Nenhum campo foi modificado." });
         }
