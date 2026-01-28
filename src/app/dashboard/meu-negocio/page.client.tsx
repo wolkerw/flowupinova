@@ -76,6 +76,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 interface MeuNegocioClientProps {
@@ -94,6 +95,60 @@ interface GoogleMedia {
     profilePhoto: { url: string; thumbnailUrl: string; name: string } | null;
     gallery: GalleryItem[];
 }
+
+const TimeInput = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+    const [open, setOpen] = React.useState(false);
+    const timeSlots = React.useMemo(() => {
+        const slots = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 30) {
+                const hour = h.toString().padStart(2, '0');
+                const minute = m.toString().padStart(2, '0');
+                slots.push(`${hour}:${minute}`);
+            }
+        }
+        return slots;
+    }, []);
+
+    return (
+        <div className="relative">
+             <Popover open={open} onOpenChange={setOpen}>
+                <Input
+                    type="text"
+                    placeholder="HH:MM"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="h-10 pr-10"
+                />
+                <PopoverTrigger asChild>
+                     <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                     </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <ScrollArea className="h-60">
+                        <div className="p-1">
+                            {timeSlots.map(time => (
+                                <Button
+                                    key={time}
+                                    variant="ghost"
+                                    className="w-full justify-start h-9"
+                                    onClick={() => {
+                                        onChange(time);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    {time}
+                                </Button>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+};
+
 
 const MetricCard = ({ title, value, icon: Icon, loading }: { title: string, value: string | number, icon: React.ElementType, loading: boolean }) => (
     <motion.div
@@ -1513,34 +1568,20 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                             exit={{ opacity: 0, height: 0, marginTop: 0 }}
                                                             className="overflow-hidden"
                                                         >
-                                                            <div className="flex items-end gap-4">
+                                                          <div className="flex items-end gap-4">
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
-                                                                    <div className="relative">
-                                                                        <Input
-                                                                            id={`open-time-${index}`}
-                                                                            type="text"
-                                                                            placeholder="HH:MM"
-                                                                            value={hour.open}
-                                                                            onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
-                                                                            className="h-10 pr-10"
-                                                                        />
-                                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                                                    </div>
+                                                                    <TimeInput
+                                                                        value={hour.open}
+                                                                        onChange={(value) => handleTimeChange(index, 'open', value)}
+                                                                    />
                                                                 </div>
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
-                                                                    <div className="relative">
-                                                                        <Input
-                                                                            id={`close-time-${index}`}
-                                                                            type="text"
-                                                                            placeholder="HH:MM"
-                                                                            value={hour.close}
-                                                                            onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
-                                                                            className="h-10 pr-10"
-                                                                        />
-                                                                        <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                                                    </div>
+                                                                    <TimeInput
+                                                                        value={hour.close}
+                                                                        onChange={(value) => handleTimeChange(index, 'close', value)}
+                                                                    />
                                                                 </div>
                                                                 <TooltipProvider>
                                                                     <Tooltip>
