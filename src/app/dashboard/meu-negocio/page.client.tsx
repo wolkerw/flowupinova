@@ -1513,23 +1513,29 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                             <div className="flex items-end gap-4">
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
-                                                                    <Input
-                                                                        id={`open-time-${index}`}
-                                                                        type="time"
-                                                                        value={hour.open}
-                                                                        onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
-                                                                        className="h-10"
-                                                                    />
+                                                                    <div className="relative">
+                                                                        <Input
+                                                                            id={`open-time-${index}`}
+                                                                            type="time"
+                                                                            value={hour.open}
+                                                                            onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
+                                                                            className="h-10 pr-10"
+                                                                        />
+                                                                        <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
-                                                                    <Input
-                                                                        id={`close-time-${index}`}
-                                                                        type="time"
-                                                                        value={hour.close}
-                                                                        onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
-                                                                        className="h-10"
-                                                                    />
+                                                                    <div className="relative">
+                                                                        <Input
+                                                                            id={`close-time-${index}`}
+                                                                            type="time"
+                                                                            value={hour.close}
+                                                                            onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
+                                                                            className="h-10 pr-10"
+                                                                        />
+                                                                        <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                                                    </div>
                                                                 </div>
                                                                 <TooltipProvider>
                                                                     <Tooltip>
@@ -1565,10 +1571,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     ) : (profile.regularHours || profile.openInfo) ? (
                                         <div className="space-y-3">
-                                            {parsedHours.map((hour) => (
-                                                <div key={hour.key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
-                                                    <span className="text-foreground">{hour.day}</span>
-                                                    <span className={`font-semibold ${hour.hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hour.hours}</span>
+                                            {parsedHours.map(({key, day, hours}) => (
+                                                <div key={key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                                    <span className="text-foreground">{day}</span>
+                                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
                                                 </div>
                                             ))}
                                         </div>
