@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -528,14 +529,20 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
     const parsedHours = useMemo(() => {
         const { regularHours, openInfo } = profile;
-        if (!regularHours?.periods && openInfo?.status === "OPEN") {
+        
+        // This specifically handles "Aberto sem horário normal".
+        // Google indicates this by returning an `openInfo` with status OPEN,
+        // and an empty or non-existent `regularHours.periods`.
+        if ((!regularHours?.periods || regularHours.periods.length === 0) && openInfo?.status === "OPEN") {
             return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Aberto" }));
         }
 
-        if (!regularHours?.periods) {
+        // If there are no periods and the status is not explicitly OPEN, we assume it's closed.
+        if (!regularHours?.periods || regularHours.periods.length === 0) {
             return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Fechado" }));
         }
         
+        // If we have periods, process them day by day.
         return dayOrder.map((dayKey) => {
             const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
 
