@@ -132,7 +132,7 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
                                 <Button
                                     key={time}
                                     variant="ghost"
-                                    className="w-full justify-start h-9"
+                                    className="justify-start h-9"
                                     onClick={() => {
                                         onChange(time);
                                         setOpen(false);
@@ -1798,3 +1798,5 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
     </div>
   );
 }
+
+    
