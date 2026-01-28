@@ -125,7 +125,7 @@ const TimeInput = ({ value, onChange }: { value: string; onChange: (value: strin
                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                      </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <PopoverContent className="w-24 p-0">
                     <ScrollArea className="h-60">
                         <div className="p-1">
                             {timeSlots.map(time => (
