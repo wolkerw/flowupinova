@@ -76,7 +76,6 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 interface MeuNegocioClientProps {
@@ -420,14 +419,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         SUNDAY: "Domingo",
   };
 
-    const timeSlots = useMemo(() => Array.from({ length: 48 }, (_, i) => {
-        const hours = Math.floor(i / 2);
-        const minutes = (i % 2) * 30;
-        const formattedHours = String(hours).padStart(2, '0');
-        const formattedMinutes = String(minutes).padStart(2, '0');
-        return `${formattedHours}:${formattedMinutes}`;
-    }), []);
-
   const formatTime = (time: { hours?: number, minutes?: number }) => {
         if (typeof time.hours !== 'number') return "N/A";
         
@@ -454,11 +445,11 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             return dayOrder.map(day => ({ key: day, day: dayMapping[day], hours: "Fechado" }));
         }
         
-        return dayOrder.map((dayKey, index) => {
+        return dayOrder.map((dayKey) => {
             const periodsForDay = regularHours.periods.filter((p: any) => p.openDay === dayKey);
 
             if (periodsForDay.length === 0) {
-                return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: "Fechado" };
+                return { key: `${dayKey}-closed`, day: dayMapping[dayKey], hours: "Fechado" };
             }
 
             const isOpen24h = periodsForDay.some((p: any) => 
@@ -466,14 +457,14 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 (p.closeTime.hours === 0 && (p.closeTime.minutes || 0) === 0)
             );
             if (isOpen24h) {
-                return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: "Aberto 24 horas" };
+                return { key: `${dayKey}-24h`, day: dayMapping[dayKey], hours: "Aberto 24 horas" };
             }
             
             const hoursString = periodsForDay
-                .map((p: any) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
+                .map((p: any, index: number) => `${formatTime(p.openTime)} - ${formatTime(p.closeTime)}`)
                 .join(", ");
                 
-            return { key: `${dayKey}-${index}`, day: dayMapping[dayKey], hours: hoursString };
+            return { key: `${dayKey}-specific`, day: dayMapping[dayKey], hours: hoursString };
         });
     }, [profile.regularHours, profile.openInfo]);
 
@@ -1522,25 +1513,23 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                                             <div className="flex items-end gap-4">
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
-                                                                    <Select value={hour.open} onValueChange={(value) => handleTimeChange(index, 'open', value)}>
-                                                                        <SelectTrigger id={`open-time-${index}`}>
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {timeSlots.map(slot => <SelectItem key={`open-${slot}`} value={slot}>{slot}</SelectItem>)}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                    <Input
+                                                                        id={`open-time-${index}`}
+                                                                        type="time"
+                                                                        value={hour.open}
+                                                                        onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
+                                                                        className="h-10"
+                                                                    />
                                                                 </div>
                                                                 <div className="flex-1 space-y-1.5">
                                                                     <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
-                                                                    <Select value={hour.close} onValueChange={(value) => handleTimeChange(index, 'close', value)}>
-                                                                        <SelectTrigger id={`close-time-${index}`}>
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {timeSlots.map(slot => <SelectItem key={`close-${slot}`} value={slot}>{slot}</SelectItem>)}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                    <Input
+                                                                        id={`close-time-${index}`}
+                                                                        type="time"
+                                                                        value={hour.close}
+                                                                        onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
+                                                                        className="h-10"
+                                                                    />
                                                                 </div>
                                                                 <TooltipProvider>
                                                                     <Tooltip>
