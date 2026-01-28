@@ -40,6 +40,7 @@ import {
   Plus,
   Trash2,
   MessageCircle as MessageCircleIcon,
+  Copy,
 } from "lucide-react";
 import {
     Dialog,
@@ -74,6 +75,8 @@ import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 interface MeuNegocioClientProps {
@@ -372,7 +375,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
   const [reviews, setReviews] = useState<any[]>([]);
   const [media, setMedia] = useState<GoogleMedia | null>(null);
   const [keywords, setKeywords] = useState<any[]>([]);
-  const [editableHours, setEditableHours] = useState<Array<{day: string, open: string, close: string, enabled: boolean}>>([]);
+  const [editableHours, setEditableHours] = useState<Array<{day: string, open: string, close: string, enabled: boolean, is24h: boolean}>>([]);
 
 
   // State for profile selection modal
@@ -417,12 +420,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         SUNDAY: "Domingo",
   };
 
+    const timeSlots = useMemo(() => Array.from({ length: 48 }, (_, i) => {
+        const hours = Math.floor(i / 2);
+        const minutes = (i % 2) * 30;
+        const formattedHours = String(hours).padStart(2, '0');
+        const formattedMinutes = String(minutes).padStart(2, '0');
+        return `${formattedHours}:${formattedMinutes}`;
+    }), []);
+
   const formatTime = (time: { hours?: number, minutes?: number }) => {
         if (typeof time.hours !== 'number') return "N/A";
         
         let hours = time.hours;
         let minutes = typeof time.minutes === 'number' ? time.minutes : 0;
         
+        // Google's API might return 24:00 for midnight. Standard time format uses 00:00.
         if (hours === 24 && minutes === 0) {
             hours = 0;
         }
@@ -950,26 +962,29 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         const initialHours = dayOrder.map(dayKey => {
             const periodsForDay = profile.regularHours?.periods?.filter((p: any) => p.openDay === dayKey) || [];
             const firstPeriod = periodsForDay[0];
+            
+            const isOpen24h = firstPeriod &&
+                firstPeriod.openTime.hours === 0 && (firstPeriod.openTime.minutes || 0) === 0 &&
+                (firstPeriod.closeTime.hours === 0 && (firstPeriod.closeTime.minutes || 0) === 0);
 
             return {
                 day: dayKey,
-                open: firstPeriod ? formatTime(firstPeriod.openTime) : "",
-                close: firstPeriod ? formatTime(firstPeriod.closeTime) : "",
+                open: firstPeriod && !isOpen24h ? formatTime(firstPeriod.openTime) : "09:00",
+                close: firstPeriod && !isOpen24h ? formatTime(firstPeriod.closeTime) : "18:00",
                 enabled: !!firstPeriod,
+                is24h: !!isOpen24h,
             };
         });
         setEditableHours(initialHours);
         setIsEditing(true);
     };
     
-    const handleHourEnabledChange = (index: number, isEnabled: boolean) => {
+    const handleDayToggle = (index: number, isEnabled: boolean) => {
         setEditableHours(prev => {
             const newHours = [...prev];
             newHours[index].enabled = isEnabled;
-            // If disabling, clear the times
             if (!isEnabled) {
-                newHours[index].open = "";
-                newHours[index].close = "";
+                newHours[index].is24h = false;
             }
             return newHours;
         });
@@ -982,6 +997,35 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             return newHours;
         });
     };
+
+    const handle24hToggle = (index: number, is24h: boolean) => {
+        setEditableHours(prev => {
+            const newHours = [...prev];
+            newHours[index].is24h = is24h;
+            return newHours;
+        });
+    };
+
+    const handleApplyToAll = (indexToCopy: number) => {
+        const sourceDay = editableHours[indexToCopy];
+        setEditableHours(prev => {
+            return prev.map((day, index) => {
+                if (index === indexToCopy) return day;
+                return {
+                    ...day,
+                    enabled: sourceDay.enabled,
+                    is24h: sourceDay.is24h,
+                    open: sourceDay.open,
+                    close: sourceDay.close,
+                };
+            });
+        });
+        toast({
+            title: "Horários aplicados",
+            description: `O horário de ${dayMapping[sourceDay.day]} foi copiado para todos os outros dias.`
+        });
+    };
+
 
  const handleSaveChanges = async () => {
     if (!user || !profile.googleName) return;
@@ -1016,8 +1060,15 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         
         const initialHoursString = JSON.stringify(profile.regularHours?.periods || []);
         const newPeriods = editableHours
-            .filter(h => h.enabled && h.open && h.close)
+            .filter(h => h.enabled)
             .map(h => {
+                if (h.is24h) {
+                     return {
+                        openDay: h.day,
+                        openTime: { hours: 0, minutes: 0 },
+                        closeTime: { hours: 0, minutes: 0 },
+                    };
+                }
                 const [openHours, openMinutes] = h.open.split(':').map(Number);
                 const [closeHours, closeMinutes] = h.close.split(':').map(Number);
                 return {
@@ -1423,31 +1474,85 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                     )}
                                 </div>
                                 {isEditing ? (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {editableHours.map((hour, index) => (
-                                            <div key={hour.day} className="grid grid-cols-[100px_1fr_1fr] items-center gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <Checkbox
-                                                        id={`day-${index}`}
-                                                        checked={hour.enabled}
-                                                        onCheckedChange={(checked) => handleHourEnabledChange(index, checked as boolean)}
-                                                    />
-                                                    <Label htmlFor={`day-${index}`} className="font-medium">{dayMapping[hour.day]}</Label>
+                                            <div key={hour.day} className="p-4 border rounded-lg bg-muted/30">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Switch
+                                                            id={`day-switch-${index}`}
+                                                            checked={hour.enabled}
+                                                            onCheckedChange={(checked) => handleDayToggle(index, checked)}
+                                                        />
+                                                        <Label htmlFor={`day-switch-${index}`} className="text-base font-semibold">{dayMapping[hour.day]}</Label>
+                                                    </div>
+                                                    {hour.enabled && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Checkbox
+                                                                id={`day-24h-${index}`}
+                                                                checked={hour.is24h}
+                                                                onCheckedChange={(checked) => handle24hToggle(index, checked as boolean)}
+                                                            />
+                                                            <Label htmlFor={`day-24h-${index}`} className="text-sm">Aberto 24 horas</Label>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                 <Input 
-                                                    type="time"
-                                                    value={hour.open}
-                                                    onChange={(e) => handleTimeChange(index, 'open', e.target.value)}
-                                                    disabled={!hour.enabled}
-                                                    className="h-8"
-                                                />
-                                                <Input 
-                                                    type="time"
-                                                    value={hour.close}
-                                                    onChange={(e) => handleTimeChange(index, 'close', e.target.value)}
-                                                    disabled={!hour.enabled}
-                                                    className="h-8"
-                                                />
+                                
+                                                <AnimatePresence>
+                                                    {hour.enabled && !hour.is24h && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto', marginTop: '1rem' }}
+                                                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="flex items-end gap-4">
+                                                                <div className="flex-1 space-y-1.5">
+                                                                    <Label htmlFor={`open-time-${index}`} className="text-xs">Abre às</Label>
+                                                                    <Select value={hour.open} onValueChange={(value) => handleTimeChange(index, 'open', value)}>
+                                                                        <SelectTrigger id={`open-time-${index}`}>
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {timeSlots.map(slot => <SelectItem key={`open-${slot}`} value={slot}>{slot}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <div className="flex-1 space-y-1.5">
+                                                                    <Label htmlFor={`close-time-${index}`} className="text-xs">Fecha às</Label>
+                                                                    <Select value={hour.close} onValueChange={(value) => handleTimeChange(index, 'close', value)}>
+                                                                        <SelectTrigger id={`close-time-${index}`}>
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {timeSlots.map(slot => <SelectItem key={`close-${slot}`} value={slot}>{slot}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                onClick={() => handleApplyToAll(index)}
+                                                                                className="h-10 w-10 shrink-0"
+                                                                            >
+                                                                                <Copy className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Copiar este horário para todos os dias</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                                 {!hour.enabled && (
+                                                     <div className="text-sm text-center text-muted-foreground pt-4">Fechado</div>
+                                                 )}
                                             </div>
                                         ))}
                                     </div>
@@ -1458,10 +1563,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                         </div>
                                     ) : (profile.regularHours || profile.openInfo) ? (
                                         <div className="space-y-3">
-                                            {parsedHours.map(({key, day, hours}) => (
-                                                <div key={key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
-                                                    <span className="text-foreground">{day}</span>
-                                                    <span className={`font-semibold ${hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hours}</span>
+                                            {parsedHours.map((hour) => (
+                                                <div key={hour.key} className="flex justify-between items-center text-sm p-2 rounded-md hover:bg-muted/50">
+                                                    <span className="text-foreground">{hour.day}</span>
+                                                    <span className={`font-semibold ${hour.hours === 'Fechado' ? 'text-red-500' : 'text-green-600'}`}>{hour.hours}</span>
                                                 </div>
                                             ))}
                                         </div>
