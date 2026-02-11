@@ -329,7 +329,7 @@ export default function GerarConteudoPage() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
         <p className="text-gray-600 mt-1">
-          {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
+          {step === 1 && "Detalhe à nossa IA uma ideia e ela criará um post incríveis para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
           {step === 3 && "Etapa 3: Selecione a melhor imagem para o seu post."}
           {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
