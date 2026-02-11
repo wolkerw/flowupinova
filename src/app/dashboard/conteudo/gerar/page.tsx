@@ -54,6 +54,10 @@ export default function GerarConteudoPage() {
   const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent | null>(null);
   const [selectedUnusedImage, setSelectedUnusedImage] = useState<string | null>(null);
 
+  // Estados para imagem de referência
+  const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
@@ -119,8 +123,24 @@ export default function GerarConteudoPage() {
       if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(logoPreviewUrl);
       }
+      if (referenceImagePreview && referenceImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(referenceImagePreview);
+      }
     };
-  }, [generatedImages, user, logoPreviewUrl]);
+  }, [generatedImages, user, logoPreviewUrl, referenceImagePreview]);
+
+  const handleReferenceImageChange = (file: File | null) => {
+    if (referenceImagePreview) {
+      URL.revokeObjectURL(referenceImagePreview);
+    }
+    if (file) {
+      setReferenceImageFile(file);
+      setReferenceImagePreview(URL.createObjectURL(file));
+    } else {
+      setReferenceImageFile(null);
+      setReferenceImagePreview(null);
+    }
+  };
 
   const handleGenerateText = async (summary?: string) => {
     const textToGenerate = summary || postSummary;
@@ -370,6 +390,8 @@ export default function GerarConteudoPage() {
             }
           }}
           isGeneratingImages={isGeneratingImages}
+          referenceImagePreview={referenceImagePreview}
+          onReferenceImageChange={handleReferenceImageChange}
         />
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { motion } from "framer-motion";
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Sparkles, ArrowRight, History, Archive, Loader2, ImageIcon, Send, Combine } from "lucide-react";
+import { Sparkles, ArrowRight, History, Archive, Loader2, ImageIcon, Send, Combine, UploadCloud, X, Box } from "lucide-react";
 import { GeneratedContent } from "../types";
 
 interface Step1IdeaProps {
@@ -27,6 +27,9 @@ interface Step1IdeaProps {
   onUseUnusedImage: () => void;
   onReuseBoth: () => void;
   isGeneratingImages: boolean;
+  // Novos campos para imagem de referência
+  referenceImagePreview: string | null;
+  onReferenceImageChange: (file: File | null) => void;
 }
 
 export const Step1Idea = ({
@@ -43,8 +46,19 @@ export const Step1Idea = ({
   onGenerateImagesForHistory,
   onUseUnusedImage,
   onReuseBoth,
-  isGeneratingImages
+  isGeneratingImages,
+  referenceImagePreview,
+  onReferenceImageChange
 }: Step1IdeaProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onReferenceImageChange(file);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-8">
       <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
@@ -54,16 +68,63 @@ export const Step1Idea = ({
             Etapa 1: Sobre o que é o post?
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 mb-4">
-            Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar. Quanto mais detalhes você fornecer, melhores serão os resultados.
-          </p>
-          <Textarea 
-            placeholder="Ex: Criar um post sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador." 
-            className="h-40 text-base" 
-            value={postSummary} 
-            onChange={(e) => onPostSummaryChange(e.target.value)} 
-          />
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">Ideia do Conteúdo</Label>
+            <p className="text-sm text-gray-600 mb-2">
+              Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar. Quanto mais detalhes você fornecer, melhores serão os resultados.
+            </p>
+            <Textarea 
+              placeholder="Ex: Criar um post sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador." 
+              className="h-32 text-base" 
+              value={postSummary} 
+              onChange={(e) => onPostSummaryChange(e.target.value)} 
+            />
+          </div>
+
+          <div className="pt-4 border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <Box className="w-5 h-5 text-blue-500" />
+              <Label className="text-base font-semibold">Imagem de Referência (Opcional)</Label>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Deseja destacar um produto real? Envie uma foto dele para que a IA tente usá-la como base para criar a imagem do post. 
+              <span className="block mt-1 text-xs italic">Exemplos: Foto do seu produto físico, uma embalagem específica ou um ambiente da sua loja.</span>
+            </p>
+
+            {!referenceImagePreview ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 transition-all"
+              >
+                <UploadCloud className="w-10 h-10 text-gray-400 mb-2" />
+                <p className="text-sm font-medium text-gray-700">Clique para enviar uma imagem</p>
+                <p className="text-xs text-gray-500">PNG, JPG ou JPEG (Máx. 5MB)</p>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
+            ) : (
+              <div className="relative w-40 h-40 rounded-lg overflow-hidden border shadow-sm group">
+                <Image 
+                  src={referenceImagePreview} 
+                  alt="Referência" 
+                  layout="fill" 
+                  objectFit="cover" 
+                />
+                <button 
+                  onClick={() => onReferenceImageChange(null)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="flex justify-end items-center">
           <Button 
