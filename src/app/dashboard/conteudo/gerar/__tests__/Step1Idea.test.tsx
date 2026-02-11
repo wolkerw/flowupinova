@@ -35,13 +35,13 @@ describe('Step1Idea', () => {
 
   it('disables generate button when summary is empty', () => {
     render(<Step1Idea {...mockProps} />);
-    const button = screen.getByRole('button', { name: /Gerar Conteúdo com IA/i });
+    const button = screen.getByRole('button', { name: /Avançar/i });
     expect(button).toBeDisabled();
   });
 
   it('calls onGenerate when button is clicked', () => {
     render(<Step1Idea {...mockProps} postSummary="Uma ideia" />);
-    const button = screen.getByRole('button', { name: /Gerar Conteúdo com IA/i });
+    const button = screen.getByRole('button', { name: /Avançar/i });
     fireEvent.click(button);
     expect(mockProps.onGenerate).toHaveBeenCalled();
   });

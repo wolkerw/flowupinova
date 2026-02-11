@@ -74,7 +74,7 @@ export const Step1Idea = ({
             {isLoading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando...</>
             ) : (
-              <>Gerar Conteúdo com IA <ArrowRight className="w-4 h-4 ml-2" /></>
+              <>Avançar <ArrowRight className="w-4 h-4 ml-2" /></>
             )}
           </Button>
         </CardFooter>
