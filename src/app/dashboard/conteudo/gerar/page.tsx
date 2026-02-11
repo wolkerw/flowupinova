@@ -327,7 +327,7 @@ export default function GerarConteudoPage() {
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
         <p className="text-gray-600 mt-1">
           {step === 1 && "Dê à nossa IA uma ideia e ela criará posts incríveis para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
