@@ -57,6 +57,7 @@ export default function GerarConteudoPage() {
   // Estados para imagem de referência
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const [referenceDescription, setReferenceDescription] = useState("");
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -139,6 +140,7 @@ export default function GerarConteudoPage() {
     } else {
       setReferenceImageFile(null);
       setReferenceImagePreview(null);
+      setReferenceDescription("");
     }
   };
 
@@ -392,6 +394,8 @@ export default function GerarConteudoPage() {
           isGeneratingImages={isGeneratingImages}
           referenceImagePreview={referenceImagePreview}
           onReferenceImageChange={handleReferenceImageChange}
+          referenceDescription={referenceDescription}
+          onReferenceDescriptionChange={setReferenceDescription}
         />
       )}
 
