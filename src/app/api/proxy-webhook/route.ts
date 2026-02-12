@@ -1,20 +1,34 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+  // Este endpoint agora é um proxy genérico que suporta múltiplos destinos via parâmetro 'target'
+  const target = request.nextUrl.searchParams.get('target');
+  let webhookUrl = "";
+
+  if (target === 'post_manual') {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+  } else if (target === 'imagem_sem_logo') {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+  } else if (target === 'gerador_imagem_referencia') {
+    webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_imagem_referencia";
+  } else {
+    // Fallback para manter compatibilidade com chamadas sem target
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+  }
 
   try {
     const formData = await request.formData();
     
     // Recria o FormData para enviar ao webhook externo.
-    // Isso garante que todos os campos sejam repassados.
     const webhookFormData = new FormData();
     for (const [key, value] of formData.entries()) {
-      webhookFormData.append(key, value);
+      if (value instanceof File) {
+        webhookFormData.append(key, value, value.name);
+      } else {
+        webhookFormData.append(key, value);
+      }
     }
     
-    // Deixa o `fetch` definir o Content-Type para `multipart/form-data` com a boundary correta.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       body: webhookFormData,
@@ -28,7 +42,6 @@ export async function POST(request: NextRequest) {
 
     const data = await webhookResponse.json();
     
-    // Retorna a resposta do webhook para o cliente.
     return NextResponse.json(data);
 
   } catch (error: any) {

@@ -1,24 +1,20 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  // Este endpoint agora é um proxy genérico. A URL real do webhook é determinada
-  // pelo cliente que chama esta API, através de um header customizado ou parâmetro.
-  // Por simplicidade, vamos manter a lógica de repasse, mas ela precisa ser robusta.
-
-  // A URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
+  // O URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
   const targetWebhookName = request.nextUrl.searchParams.get('target');
   
   let webhookUrl = "";
 
   if (targetWebhookName === 'post_manual') {
-      webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/URL_imagem_sem_logo";
+      webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
   } else if (targetWebhookName === 'imagem_sem_logo') {
       webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+  } else if (targetWebhookName === 'gerador_imagem_referencia') {
+      webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_imagem_referencia";
   } else {
       return NextResponse.json({ error: "Webhook de destino não especificado ou inválido." }, { status: 400 });
   }
-
 
   try {
     const formData = await request.formData();
@@ -51,7 +47,7 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         // Se a resposta de erro não for JSON, usa o texto puro.
       }
-      return NextResponse.json({ error: "Falha ao comunicar com o webhook de upload.", details: errorDetails }, { status: webhookResponse.status });
+      return NextResponse.json({ error: "Falha ao comunicar com o webhook externo.", details: errorDetails }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
@@ -61,10 +57,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error.message);
-    // Se o erro for sobre Content-Type, é porque o cliente não enviou FormData
-    if (error.message && typeof error.message === 'string' && error.message.includes("Content-Type")) {
-         return NextResponse.json({ error: "Erro de formato da requisição.", details: "A requisição deve ser do tipo 'multipart/form-data'." }, { status: 415 });
-    }
     return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
   }
 }

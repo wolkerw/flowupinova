@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Check, X, Loader2, Calendar as CalendarIcon } from "lucide-react";
@@ -180,6 +180,26 @@ export default function GerarConteudoPage() {
     }
   };
 
+  /**
+   * Auxiliar para normalizar a resposta dos diferentes webhooks de imagem.
+   * Lida com: { success: true, data: [...] }, [...] (array direto) ou {...} (objeto direto).
+   */
+  const normalizeImageResponse = useCallback((result: any): string[] => {
+    // Alguns endpoints retornam um wrapper 'data', outros retornam o conteúdo diretamente
+    const baseData = result.data !== undefined ? result.data : result;
+    
+    // Se for um único objeto, transforma em array para processamento uniforme
+    const items = Array.isArray(baseData) ? baseData : [baseData];
+    
+    return items
+      .map((item: any) => {
+        if (typeof item === 'string') return item;
+        // Tenta extrair a URL de chaves comuns usadas pelos webhooks (n8n, internos, etc)
+        return item?.url_da_imagem || item?.url || item?.image_url || item?.url_post;
+      })
+      .filter(Boolean);
+  }, []);
+
   const handleGenerateImages = async (publication?: GeneratedContent | null) => {
     if (!user) return;
     const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
@@ -199,16 +219,46 @@ export default function GerarConteudoPage() {
     setProcessedImageUrl(null);
     
     try {
-      const response = await fetch('/api/generate-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publicacoes: contentToUse }),
-      });
+      let imageUrls: string[] = [];
 
-      const result = await response.json();
-      if (!result.success) throw new Error(result.details || result.error || "Erro HTTP");
-      
-      const imageUrls = result.data.map((item: any) => item.url_da_imagem).filter(Boolean);
+      if (referenceImageFile) {
+        // FLUXO COM IMAGEM DE PRODUTO (REFERÊNCIA)
+        const formData = new FormData();
+        formData.append('file', referenceImageFile);
+        formData.append('description', referenceDescription);
+        
+        const selected = contentToUse[0];
+        formData.append('title', selected.título);
+        formData.append('subtitle', selected.subtitulo);
+        formData.append('hashtags', Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : '');
+
+        // Usa o proxy para chamar o webhook do n8n que suporta referência
+        const response = await fetch('/api/proxy-webhook?target=gerador_imagem_referencia', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || "Falha na geração com imagem de referência");
+        }
+
+        const result = await response.json();
+        imageUrls = normalizeImageResponse(result);
+      } else {
+        // FLUXO PADRÃO (IA DIRETA SEM REFERÊNCIA)
+        const response = await fetch('/api/generate-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ publicacoes: contentToUse }),
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.details || result.error || "Erro ao gerar imagens");
+        
+        imageUrls = normalizeImageResponse(result);
+      }
+
       if (imageUrls.length === 0) throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
 
       setGeneratedImages(imageUrls);
