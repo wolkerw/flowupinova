@@ -20,6 +20,10 @@ describe('Step1Idea', () => {
     onUseUnusedImage: jest.fn(),
     onReuseBoth: jest.fn(),
     isGeneratingImages: false,
+    referenceImagePreview: null,
+    onReferenceImageChange: jest.fn(),
+    referenceDescription: '',
+    onReferenceDescriptionChange: jest.fn(),
   };
 
   it('renders correctly and handles input change', () => {
@@ -37,6 +41,25 @@ describe('Step1Idea', () => {
     render(<Step1Idea {...mockProps} />);
     const button = screen.getByRole('button', { name: /Avançar/i });
     expect(button).toBeDisabled();
+  });
+
+  it('disables generate button when reference image is present but description is empty', () => {
+    render(<Step1Idea {...mockProps} postSummary="Uma ideia" referenceImagePreview="blob:preview" />);
+    const button = screen.getByRole('button', { name: /Avançar/i });
+    expect(button).toBeDisabled();
+  });
+
+  it('enables generate button when summary and required description are present', () => {
+    render(
+      <Step1Idea 
+        {...mockProps} 
+        postSummary="Uma ideia" 
+        referenceImagePreview="blob:preview" 
+        referenceDescription="Uma descrição do produto" 
+      />
+    );
+    const button = screen.getByRole('button', { name: /Avançar/i });
+    expect(button).not.toBeDisabled();
   });
 
   it('calls onGenerate when button is clicked', () => {

@@ -6,10 +6,8 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Sparkles, ArrowRight, History, Archive, Loader2, ImageIcon, Send, Combine, UploadCloud, X, Box, MessageSquare } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, UploadCloud, X, Box, MessageSquare } from "lucide-react";
 import { GeneratedContent } from "../types";
 
 interface Step1IdeaProps {
@@ -38,16 +36,6 @@ export const Step1Idea = ({
   onPostSummaryChange,
   onGenerate,
   isLoading,
-  contentHistory,
-  unusedImagesHistory,
-  selectedHistoryContent,
-  selectedUnusedImage,
-  onHistoryContentSelect,
-  onUnusedImageSelect,
-  onGenerateImagesForHistory,
-  onUseUnusedImage,
-  onReuseBoth,
-  isGeneratingImages,
   referenceImagePreview,
   onReferenceImageChange,
   referenceDescription,
@@ -61,6 +49,11 @@ export const Step1Idea = ({
       onReferenceImageChange(file);
     }
   };
+
+  const isButtonDisabled = 
+    !postSummary.trim() || 
+    isLoading || 
+    (!!referenceImagePreview && !referenceDescription.trim());
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-8">
@@ -137,7 +130,9 @@ export const Step1Idea = ({
                     >
                       <div className="flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-primary" />
-                        <Label className="text-sm font-bold">Descreva a imagem enviada</Label>
+                        <Label className="text-sm font-bold">
+                          Descreva a imagem enviada <span className="text-red-500">*</span>
+                        </Label>
                       </div>
                       <p className="text-xs text-gray-500">
                         Explique o que é o produto/objeto na foto e como você gostaria que ele fosse integrado à imagem final (ex: "coloque este frasco de perfume sobre uma mesa de mármore com flores brancas ao fundo").
@@ -146,7 +141,8 @@ export const Step1Idea = ({
                         placeholder="Descreva detalhes como cor, material e o cenário desejado para este item..." 
                         className="h-24 text-sm" 
                         value={referenceDescription} 
-                        onChange={(e) => onReferenceDescriptionChange(e.target.value)} 
+                        onChange={(e) => onReferenceDescriptionChange(e.target.value)}
+                        required
                       />
                     </motion.div>
                   </AnimatePresence>
@@ -158,7 +154,7 @@ export const Step1Idea = ({
         <CardFooter className="flex justify-end items-center">
           <Button 
             onClick={onGenerate} 
-            disabled={!postSummary.trim() || isLoading} 
+            disabled={isButtonDisabled} 
             className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
           >
             {isLoading ? (
@@ -169,10 +165,6 @@ export const Step1Idea = ({
           </Button>
         </CardFooter>
       </Card>
-
-      <div className="hidden">
-        {/* Histórico omitido conforme lógica original */}
-      </div>
     </motion.div>
   );
 };
