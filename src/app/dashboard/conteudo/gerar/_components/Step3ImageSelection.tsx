@@ -5,14 +5,13 @@ import { motion } from "framer-motion";
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Sparkles, Loader2, ArrowLeft, ArrowRight, Check, Download, AlertTriangle } from "lucide-react";
+import { ImageIcon, Loader2, ArrowLeft, ArrowRight, Check, Download, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Step3ImageSelectionProps {
   generatedImages: string[];
   selectedImage: string | null;
   onSelectedImageChange: (url: string) => void;
-  onRegenerate: () => void;
   onBack: () => void;
   onNext: () => void;
   isGeneratingImages: boolean;
@@ -23,7 +22,6 @@ export const Step3ImageSelection = ({
   generatedImages,
   selectedImage,
   onSelectedImageChange,
-  onRegenerate,
   onBack,
   onNext,
   isGeneratingImages,
@@ -39,10 +37,6 @@ export const Step3ImageSelection = ({
           </CardTitle>
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-600 pt-1">Selecione uma das imagens geradas pela IA para usar em seu post.</p>
-            <Button variant="outline" onClick={onRegenerate} disabled={isGeneratingImages}>
-              {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-              Gerar Novas Imagens
-            </Button>
           </div>
         </CardHeader>
         <CardContent>

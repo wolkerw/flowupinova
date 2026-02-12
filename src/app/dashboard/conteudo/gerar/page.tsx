@@ -417,7 +417,6 @@ export default function GerarConteudoPage() {
           generatedImages={generatedImages}
           selectedImage={selectedImage}
           onSelectedImageChange={setSelectedImage}
-          onRegenerate={() => handleGenerateImages()}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
           isGeneratingImages={isGeneratingImages}

@@ -11,7 +11,6 @@ describe('Step3ImageSelection', () => {
     generatedImages: mockImages,
     selectedImage: null,
     onSelectedImageChange: jest.fn(),
-    onRegenerate: jest.fn(),
     onBack: jest.fn(),
     onNext: jest.fn(),
     isGeneratingImages: false,
