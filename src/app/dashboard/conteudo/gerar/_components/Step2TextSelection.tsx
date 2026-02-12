@@ -69,7 +69,7 @@ export const Step2TextSelection = ({
             disabled={!selectedContentId || isGeneratingImages} 
             className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
           >
-            {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Gerar Imagens e Avançar'}
+            {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
             {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
         </CardFooter>

@@ -39,7 +39,7 @@ describe('Step2TextSelection', () => {
     fireEvent.click(screen.getByText(/Voltar/i));
     expect(mockProps.onBack).toHaveBeenCalled();
     
-    fireEvent.click(screen.getByText(/Gerar Imagens e Avançar/i));
+    fireEvent.click(screen.getByText(/Avançar/i));
     expect(mockProps.onNext).toHaveBeenCalled();
   });
 });
