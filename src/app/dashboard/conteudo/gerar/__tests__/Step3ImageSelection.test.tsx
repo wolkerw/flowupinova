@@ -31,4 +31,14 @@ describe('Step3ImageSelection', () => {
     render(<Step3ImageSelection {...mockProps} isGeneratingImages={true} />);
     expect(screen.getByText(/Criando imagens incríveis/i)).toBeInTheDocument();
   });
+
+  it('calls onBack and onNext', () => {
+    render(<Step3ImageSelection {...mockProps} />);
+    
+    fireEvent.click(screen.getByText(/Voltar/i));
+    expect(mockProps.onBack).toHaveBeenCalled();
+    
+    fireEvent.click(screen.getByText(/Avançar/i));
+    expect(mockProps.onNext).toHaveBeenCalled();
+  });
 });
