@@ -31,14 +31,13 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, userAccessToken } = body;
+    const { code, userAccessToken, origin: clientOrigin } = body;
     
     // Se um 'code' for fornecido, trocamos por um token de usuário de longa duração.
     if (code) {
-        const redirectUri = config.meta.redirectUri;
-        if (!redirectUri) {
-            return NextResponse.json({ success: false, error: "A 'redirect_uri' do servidor não está configurada." }, { status: 500 });
-        }
+        // Usa a origem enviada pelo cliente ou a origem da requisição atual como fallback
+        const origin = clientOrigin || request.nextUrl.origin;
+        const redirectUri = `${origin}/dashboard/conteudo`;
 
         const clientId = config.meta.appId;
         const clientSecret = config.meta.appSecret;

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -574,7 +573,7 @@ export default function Conteudo() {
         const tokenResponse = await fetch("/api/meta/callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, origin: window.location.origin }),
         });
         const tokenResult = await tokenResponse.json();
         if (!tokenResult.success) throw new Error(tokenResult.error);
@@ -670,16 +669,18 @@ export default function Conteudo() {
   }, [allPosts]);
 
   const handleConnectMeta = useCallback(() => {
-    const redirectUri = config.meta.redirectUri;
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/dashboard/conteudo`;
     const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${META_OAUTH.scope}&response_type=code`;
     window.location.href = authUrl;
   }, [user?.uid]);
 
   const handleConnectInstagram = () => {
     const clientId = config.instagram.appId;
-    const redirectUri = config.instagram.redirectUri;
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/api/instagram/callback`;
 
-    if (!clientId || !redirectUri) {
+    if (!clientId) {
       toast({
         variant: "destructive",
         title: "Erro de Configuração",
@@ -692,7 +693,7 @@ export default function Conteudo() {
     const scope = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
     const responseType = "code";
 
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&state=${state}`;
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=${responseType}&state=${state}`;
     window.location.href = authUrl;
   };
 

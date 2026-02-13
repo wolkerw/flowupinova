@@ -1,10 +1,11 @@
 
 // Define a URL canônica da aplicação para garantir consistência nos redirecionamentos.
-const aplicationURL = process.env.NODE_ENV === 'production' 
+// Prioriza a variável de ambiente NEXT_PUBLIC_APP_URL para facilitar a troca de domínios.
+const aplicationURL = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' 
     ? 'https://flowupinova.com.br' 
     : process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : 'https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev';
+      : 'https://9000-firebase-studio-1757951248950.cluster-57i2ylwve5fskth4xb2kui2ow2.cloudworkstations.dev');
 
 
 export const config = {
@@ -12,12 +13,12 @@ export const config = {
   instagram: {
     appId: process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID!,
     appSecret: process.env.INSTAGRAM_APP_SECRET!,
-    redirectUri: `${aplicationURL}/api/instagram/callback`, // Callback da API
+    redirectUri: `${aplicationURL}/api/instagram/callback`, // Callback da API (padrão)
   },
   meta: {
      appId: process.env.NEXT_PUBLIC_META_APP_ID!,
      appSecret: process.env.META_APP_SECRET!,
-     redirectUri: `${aplicationURL}/dashboard/conteudo`, 
+     redirectUri: `${aplicationURL}/dashboard/conteudo`, // Redirect padrão
      configId: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
   },
   google: {

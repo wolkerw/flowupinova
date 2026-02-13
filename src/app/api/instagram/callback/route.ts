@@ -1,5 +1,4 @@
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 
@@ -8,10 +7,10 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
+  const origin = request.nextUrl.origin;
 
-  // Constrói a URL de redirecionamento usando a URL canônica do config
-  const redirectUrl = new URL(config.aplicationURL);
-  redirectUrl.pathname = '/dashboard/conteudo';
+  // Constrói a URL de redirecionamento dinamicamente com base no domínio da requisição
+  const redirectUrl = new URL('/dashboard/conteudo', origin);
   redirectUrl.search = '';
 
   if (error) {
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
      return NextResponse.redirect(redirectUrl);
   }
 
-  if (!config.instagram.appId || !config.instagram.appSecret || !config.instagram.redirectUri) {
+  if (!config.instagram.appId || !config.instagram.appSecret) {
     console.error('Instagram app credentials are not configured on the server.');
     redirectUrl.searchParams.set('instagram_error', 'server_config_missing');
     redirectUrl.searchParams.set('instagram_error_description', 'Server configuration for Instagram is incomplete.');
@@ -41,11 +40,14 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Trocar o código por um token de curta duração
+    // Usamos a URL de callback dinâmica para coincidir com a enviada no passo de autorização
+    const currentCallbackUri = `${origin}/api/instagram/callback`;
+    
     const tokenFormData = new FormData();
     tokenFormData.append('client_id', config.instagram.appId);
     tokenFormData.append('client_secret', config.instagram.appSecret);
     tokenFormData.append('grant_type', 'authorization_code');
-    tokenFormData.append('redirect_uri', config.instagram.redirectUri);
+    tokenFormData.append('redirect_uri', currentCallbackUri);
     tokenFormData.append('code', code.replace(/#_$/, ''));
 
     const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
