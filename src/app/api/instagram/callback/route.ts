@@ -7,9 +7,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
   const userId = searchParams.get('state');
-  const origin = request.nextUrl.origin;
+  
+  // Detecta a origem real através dos headers (útil para proxies e múltiplos domínios)
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const protocol = request.headers.get('x-forwarded-proto') || 'https';
+  const origin = `${protocol}://${host}`;
 
-  // Constrói a URL de redirecionamento dinamicamente com base no domínio da requisição
+  // Constrói a URL de redirecionamento final para o dashboard
   const redirectUrl = new URL('/dashboard/conteudo', origin);
   redirectUrl.search = '';
 
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Trocar o código por um token de curta duração
-    // Usamos a URL de callback dinâmica para coincidir com a enviada no passo de autorização
+    // Usamos a URL de callback que coincida exatamente com a enviada no passo de autorização (front-end)
     const currentCallbackUri = `${origin}/api/instagram/callback`;
     
     const tokenFormData = new FormData();

@@ -33,10 +33,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, userAccessToken, origin: clientOrigin } = body;
     
+    // Detecta a origem real através dos headers caso não venha no body
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const serverOrigin = `${protocol}://${host}`;
+
     // Se um 'code' for fornecido, trocamos por um token de usuário de longa duração.
     if (code) {
-        // Usa a origem enviada pelo cliente ou a origem da requisição atual como fallback
-        const origin = clientOrigin || request.nextUrl.origin;
+        // Usa a origem enviada pelo cliente (front-end) ou a detectada pelo servidor
+        const origin = clientOrigin || serverOrigin;
         const redirectUri = `${origin}/dashboard/conteudo`;
 
         const clientId = config.meta.appId;
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // Se nenhum 'code' ou 'userAccessToken' for fornecido.
+    // Se nenhum 'code' or 'userAccessToken' for fornecido.
     return NextResponse.json({ success: false, error: "Código de autorização ou token de acesso do usuário não fornecido." }, { status: 400 });
 
   } catch (error: any) {
