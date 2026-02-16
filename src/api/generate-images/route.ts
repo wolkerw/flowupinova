@@ -1,6 +1,9 @@
 
 import { NextResponse } from 'next/server';
 
+// Aumenta o tempo máximo de execução desta rota para 300 segundos (5 minutos).
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
@@ -51,7 +54,7 @@ export async function POST(request: Request) {
     
     // Verifica se a resposta é um array
     if (!Array.isArray(data)) {
-        console.error("Formato de resposta do webhook de imagem inesperado (não é um array):", data);
+        console.error("Formato de resposta do webhook de imagem inesperado (não é un array):", data);
         return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é um array).", details: JSON.stringify(data, null, 2) }, { status: 500 });
     }
     
