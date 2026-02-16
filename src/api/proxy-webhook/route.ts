@@ -1,8 +1,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Aumenta o tempo máximo de execução desta rota para 120 segundos (2 minutos).
-export const maxDuration = 120;
+// Aumenta o tempo máximo de execução desta rota para 180 segundos (3 minutos).
+export const maxDuration = 180;
 
 export async function POST(request: NextRequest) {
   // O URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const data = await webhookResponse.json();
     
-    // Retorna a resposta do webhook para o cliente.
+    // Retorna a resposta do webhook para the cliente.
     return NextResponse.json(data);
 
   } catch (error: any) {
