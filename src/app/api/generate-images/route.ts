@@ -1,8 +1,8 @@
 
 import { NextResponse } from 'next/server';
 
-// Aumenta o tempo máximo de execução desta rota para 90 segundos.
-export const maxDuration = 90;
+// Aumenta o tempo máximo de execução desta rota para 120 segundos (2 minutos).
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";

@@ -1,4 +1,8 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
+
+// Aumenta o tempo máximo de execução desta rota para 120 segundos (2 minutos).
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   // O URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
-      console.error("Erro no webhook externo:", webhookResponse.status, errorText);
+      console.error("Erro no webhook externo:", errorText);
       let errorDetails = errorText;
       try {
         // Tenta extrair a mensagem de erro se a resposta for um JSON de erro.

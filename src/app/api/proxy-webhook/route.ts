@@ -1,4 +1,8 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
+
+// Aumenta o tempo máximo de execução desta rota para 120 segundos (2 minutos).
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   // Este endpoint agora é um proxy genérico que suporta múltiplos destinos via parâmetro 'target'
