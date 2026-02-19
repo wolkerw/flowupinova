@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
+  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem-conceito-fal-ai";
 
   try {
     const payload = await request.json();
