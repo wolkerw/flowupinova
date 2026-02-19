@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   } else if (target === 'imagem_sem_logo') {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
   } else if (target === 'gerador_imagem_referencia') {
-    webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_imagem_referencia";
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/refeencia-fal-ai";
   } else {
     // Fallback para manter compatibilidade com chamadas sem target
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
