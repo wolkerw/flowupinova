@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   } else if (targetWebhookName === 'imagem_sem_logo') {
       webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
   } else if (targetWebhookName === 'gerador_imagem_referencia') {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/referencia-fal-ai";
+      webhookUrl = "https://n8n.flowupinova.com.br/webhook-test/gerador_imagem_referencia";
   } else {
       return NextResponse.json({ error: "Webhook de destino não especificado ou inválido." }, { status: 400 });
   }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         const errorJson = JSON.parse(errorText);
         errorDetails = errorJson.message || errorJson.error || errorText;
       } catch (e) {
-        // Se a resposta de erro não for JSON, usa o texto puro.
+        // O corpo da resposta de erro não era JSON, usa o texto puro.
       }
       return NextResponse.json({ error: "Falha ao comunicar com o webhook externo.", details: errorDetails }, { status: webhookResponse.status });
     }
