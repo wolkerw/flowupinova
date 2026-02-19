@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  // Este endpoint agora é um proxy genérico que suporta múltiplos destinos via parâmetro 'target'
+  // Este endpoint agora é un proxy genérico que suporta múltiplos destinos via parâmetro 'target'
   const target = request.nextUrl.searchParams.get('target');
   let webhookUrl = "";
 
@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
     
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
+      headers: {
+        "X-Server-Timeout": "300",
+      },
       body: webhookFormData,
     });
 

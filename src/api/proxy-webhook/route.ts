@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
     // O `fetch` nativo definirá o Content-Type para `multipart/form-data` com o boundary correto.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
+      headers: {
+        "X-Server-Timeout": "300",
+      },
       body: webhookFormData,
     });
 
