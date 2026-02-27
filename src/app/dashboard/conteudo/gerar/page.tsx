@@ -23,7 +23,7 @@ import {
   saveContentHistory 
 } from "@/lib/services/user-data-service";
 
-import { GeneratedContent, Platform, LogoPosition } from "./types";
+import { GeneratedContent, Platform, LogoPosition, TextOverlay } from "./types";
 import { Step1Idea } from "./_components/Step1Idea";
 import { Step2TextSelection } from "./_components/Step2TextSelection";
 import { Step3ImageSelection } from "./_components/Step3ImageSelection";
@@ -59,11 +59,14 @@ export default function GerarConteudoPage() {
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const [referenceDescription, setReferenceDescription] = useState("");
 
+  // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
   const [logoScale, setLogoScale] = useState(30);
   const [logoOpacity, setLogoOpacity] = useState(80);
+  const [overlayTexts, setOverlayTexts] = useState<TextOverlay[]>([]);
+  
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,21 +183,12 @@ export default function GerarConteudoPage() {
     }
   };
 
-  /**
-   * Auxiliar para normalizar a resposta dos diferentes webhooks de imagem.
-   * Lida com: { success: true, data: [...] }, [...] (array direto) ou {...} (objeto direto).
-   */
   const normalizeImageResponse = useCallback((result: any): string[] => {
-    // Alguns endpoints retornam um wrapper 'data', outros retornam o conteúdo diretamente
     const baseData = result.data !== undefined ? result.data : result;
-    
-    // Se for um único objeto, transforma em array para processamento uniforme
     const items = Array.isArray(baseData) ? baseData : [baseData];
-    
     return items
       .map((item: any) => {
         if (typeof item === 'string') return item;
-        // Tenta extrair a URL de chaves comuns usadas pelos webhooks (n8n, internos, etc)
         return item?.url_da_imagem || item?.url || item?.image_url || item?.url_post;
       })
       .filter(Boolean);
@@ -222,7 +216,6 @@ export default function GerarConteudoPage() {
       let imageUrls: string[] = [];
 
       if (referenceImageFile) {
-        // FLUXO COM IMAGEM DE PRODUTO (REFERÊNCIA)
         const formData = new FormData();
         formData.append('file', referenceImageFile);
         formData.append('description', referenceDescription);
@@ -232,7 +225,6 @@ export default function GerarConteudoPage() {
         formData.append('subtitle', selected.subtitulo);
         formData.append('hashtags', Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : '');
 
-        // Usa o proxy para chamar o webhook do n8n que suporta referência
         const response = await fetch('/api/proxy-webhook?target=gerador_imagem_referencia', {
           method: 'POST',
           body: formData,
@@ -246,10 +238,12 @@ export default function GerarConteudoPage() {
         const result = await response.json();
         imageUrls = normalizeImageResponse(result);
       } else {
-        // FLUXO PADRÃO (IA DIRETA SEM REFERÊNCIA)
         const response = await fetch('/api/generate-images', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Server-Timeout': '300'
+          },
           body: JSON.stringify({ publicacoes: contentToUse }),
         });
 
@@ -277,11 +271,6 @@ export default function GerarConteudoPage() {
 
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
-    if (!logoFile) {
-      setProcessedImageUrl(null);
-      setStep(5);
-      return;
-    }
     
     setIsUploading(true);
     toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
@@ -294,30 +283,41 @@ export default function GerarConteudoPage() {
       const formData = new FormData();
       const imageBlob = await fetch(selectedImage).then(r => r.blob());
       formData.append('file', new File([imageBlob], "generated-image.jpg", { type: imageBlob.type }));
-      formData.append('logo', logoFile);
-      formData.append('logoScale', logoScale.toString());
-      formData.append('logoOpacity', logoOpacity.toString());
-
-      const logoPixelWidth = img.width * (visualLogoScale / 100);
-      let posX = 0, posY = 0;
-      const margin = 10;
-
-      switch (logoPosition) {
-        case 'top-left':    posX = margin; posY = margin; break;
-        case 'top-center':  posX = (img.width / 2) - (logoPixelWidth / 2); posY = margin; break;
-        case 'top-right':   posX = img.width - logoPixelWidth - margin; posY = margin; break;
-        case 'left-center': posX = margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'center':      posX = (img.width / 2) - (logoPixelWidth / 2); posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
-        case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
-        case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
-      }
       
-      formData.append('positionX', Math.round(posX).toString());
-      formData.append('positionY', Math.round(posY).toString());
+      if (logoFile) {
+        formData.append('logo', logoFile);
+        formData.append('logoScale', logoScale.toString());
+        formData.append('logoOpacity', logoOpacity.toString());
 
-      const response = await fetch("/api/proxy-webhook?target=post_manual", { method: 'POST', body: formData });
+        const logoPixelWidth = img.width * (visualLogoScale / 100);
+        let posX = 0, posY = 0;
+        const margin = 10;
+
+        switch (logoPosition) {
+          case 'top-left':    posX = margin; posY = margin; break;
+          case 'top-center':  posX = (img.width / 2) - (logoPixelWidth / 2); posY = margin; break;
+          case 'top-right':   posX = img.width - logoPixelWidth - margin; posY = margin; break;
+          case 'left-center': posX = margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
+          case 'center':      posX = (img.width / 2) - (logoPixelWidth / 2); posY = (img.height / 2) - (logoPixelWidth / 2); break;
+          case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
+          case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
+          case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
+          case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
+        }
+        
+        formData.append('positionX', Math.round(posX).toString());
+        formData.append('positionY', Math.round(posY).toString());
+      }
+
+      if (overlayTexts.length > 0) {
+        formData.append('overlayTexts', JSON.stringify(overlayTexts));
+      }
+
+      const response = await fetch("/api/proxy-webhook?target=post_manual", { 
+        method: 'POST', 
+        body: formData,
+        headers: { 'X-Server-Timeout': '300' }
+      });
       const result = await response.json();
       if (!response.ok) throw new Error(result.details || "Falha no webhook");
 
@@ -404,7 +404,7 @@ export default function GerarConteudoPage() {
           {step === 1 && "Detalhe à nossa IA uma ideia e ela criará um post incríveis para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
           {step === 3 && "Etapa 3: Selecione a melhor imagem para o seu post."}
-          {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
+          {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca e textos."}
           {step === 5 && "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
       </div>
@@ -482,11 +482,13 @@ export default function GerarConteudoPage() {
           logoPosition={logoPosition}
           logoScale={logoScale}
           logoOpacity={logoOpacity}
+          overlayTexts={overlayTexts}
           onLogoUpload={handleLogoFileChange}
           onLogoRemove={() => { setLogoFile(null); setLogoPreviewUrl(null); }}
           onPositionChange={setLogoPosition}
           onScaleChange={setLogoScale}
           onOpacityChange={setLogoOpacity}
+          onOverlayTextsChange={setOverlayTexts}
           onBack={() => setStep(3)}
           onNext={handleLogoProcessing}
           isUploading={isUploading}
@@ -513,7 +515,7 @@ export default function GerarConteudoPage() {
 
       {showSchedulerModal && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSchedulerModal(false)}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-2xl max-md w-full">
             <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold flex items-center gap-2"><CalendarIcon className="w-5 h-5"/> Agendar Publicação</h3><Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}><X className="w-5 h-5" /></Button></div>
             <div className="p-6 space-y-4"><Label htmlFor="schedule-datetime">Data e Hora</Label><Input id="schedule-datetime" type="datetime-local" value={scheduleDateTime} onChange={(e) => setScheduleDateTime(e.target.value)} /></div>
             <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
