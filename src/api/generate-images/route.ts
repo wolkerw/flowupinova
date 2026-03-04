@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem-conceito-fal-ai";
+  const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_imagem";
 
   try {
     const payload = await request.json();
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é JSON).", details: responseText }, { status: 500 });
     }
     
-    // Verifica se a resposta é um array
+    // Verifica se a resposta é un array
     if (!Array.isArray(data)) {
         console.error("Formato de resposta do webhook de imagem inesperado (não é un array):", data);
         return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é um array).", details: JSON.stringify(data, null, 2) }, { status: 500 });
