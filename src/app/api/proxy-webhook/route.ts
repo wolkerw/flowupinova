@@ -1,29 +1,27 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
+import { getGlobalSettings } from '@/lib/services/settings-service-admin';
 
-// Aumenta o tempo máximo de execução desta rota para 300 segundos (5 minutos).
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  // Este endpoint agora é un proxy genérico que suporta múltiplos destinos via parâmetro 'target'
+  const settings = await getGlobalSettings();
   const target = request.nextUrl.searchParams.get('target');
   let webhookUrl = "";
 
   if (target === 'post_manual') {
-    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+    webhookUrl = settings.postManualWebhook;
   } else if (target === 'imagem_sem_logo') {
-    webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+    webhookUrl = settings.imgNoLogoWebhook;
   } else if (target === 'gerador_imagem_referencia') {
-    webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia";
+    webhookUrl = settings.imgRefWebhook;
   } else {
-    // Fallback para manter compatibilidade com chamadas sem target
-    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+    webhookUrl = settings.postManualWebhook;
   }
 
   try {
     const formData = await request.formData();
     
-    // Recria o FormData para enviar ao webhook externo.
     const webhookFormData = new FormData();
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
-        "X-Server-Timeout": "300",
+        "X-Server-Timeout": settings.serverTimeout,
       },
       body: webhookFormData,
     });

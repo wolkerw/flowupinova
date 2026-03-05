@@ -1,10 +1,15 @@
 
 import { NextResponse } from 'next/server';
+import { getGlobalSettings } from '@/lib/services/settings-service-admin';
+
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  const settings = await getGlobalSettings();
+  const webhookUrl = settings.generateTextWebhook;
+
   try {
     const { summary } = await request.json();
-    const webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
 
     const webhookPayload = {
       summary,
@@ -14,6 +19,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Server-Timeout": settings.serverTimeout,
       },
       body: JSON.stringify(webhookPayload),
     });
@@ -21,7 +27,6 @@ export async function POST(request: Request) {
     if (!webhookResponse.ok) {
         const errorText = await webhookResponse.text();
         console.error("Webhook error:", errorText);
-        // Garante que a resposta de erro seja um JSON válido
         return NextResponse.json({ error: "Falha ao comunicar com o webhook de geração de texto.", details: errorText }, { status: webhookResponse.status });
     }
 
@@ -32,9 +37,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Formato de resposta do webhook inesperado.", details: JSON.stringify(data, null, 2) }, { status: 500 });
     }
 
-    // Process data to match the expected structure, handling potential inconsistencies.
     const processedData = data.map((item: any) => {
-        // The webhook might return 'título' or 'titulo'. We normalize to 'titulo' with accent.
         const title = item.título || item.titulo;
 
         if (!item || !title) {
@@ -48,19 +51,17 @@ export async function POST(request: Request) {
 
         let hashtags = item.hashtags;
         if (typeof hashtags === 'string') {
-          // If hashtags are a single string, split them.
           hashtags = hashtags.split(/[ ,]+/).filter(Boolean).map((h: string) => h.startsWith('#') ? h : `#${h}`);
         } else if (Array.isArray(hashtags)) {
-          // If it's already an array, just ensure formatting.
           hashtags = hashtags.map((h: any) => String(h)).filter(Boolean).map((h: string) => h.startsWith('#') ? h : `#${h}`);
         } else {
           hashtags = [];
         }
 
         return { 
-            id: item.id || crypto.randomUUID(), // Ensure an ID exists
+            id: item.id || crypto.randomUUID(),
             created_at: item.created_at || new Date().toISOString(),
-            título: title, // Use the normalized title
+            título: title,
             subtitulo: item.subtitulo || "Subtítulo não gerado", 
             hashtags: hashtags,
             url_da_imagem: item.url_da_imagem || null,
