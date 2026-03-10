@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -202,16 +203,22 @@ export default function GerarConteudoPage() {
       return;
     }
     
-    // CHAMADA AO GERADOR DE PROMPTS DO N8N (CONFORME SOLICITADO)
+    // CHAMADA AO GERADOR DE PROMPTS DO N8N (VIA PROXY)
     console.log("Iniciando avanço para Etapa 3: Gerando prompts...");
     try {
-      const promptResponse = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-prompts', {
+      const promptResponse = await fetch('/api/generate-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: contentToUse[0] })
       });
       const promptResult = await promptResponse.json();
-      console.log("Resultado do Gerador de Prompts (n8n):", promptResult);
+      console.log("Resultado do Gerador de Prompts (Proxy):", promptResult);
+      
+      // Log específico do array de prompts [ { "output": { "prompt": [...] } } ]
+      const prompts = promptResult?.[0]?.output?.prompt;
+      if (prompts && Array.isArray(prompts)) {
+        console.log("Prompts capturados no avanço:", prompts);
+      }
     } catch (e) {
       console.warn("Falha ao registrar prompts no log (não interrompendo fluxo):", e);
     }
@@ -290,7 +297,6 @@ export default function GerarConteudoPage() {
     toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
     try {
-      // Use the global Image constructor from the browser
       const img = new window.Image();
       img.src = selectedImage;
       await new Promise((resolve) => img.onload = resolve);

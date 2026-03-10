@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -35,9 +36,9 @@ export const Step2TextSelection = ({
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
   const handleTestWebhook = async () => {
-    console.log("Iniciando chamada do webhook de prompts (n8n)...");
+    console.log("Iniciando chamada do webhook de prompts (Gerar texto)...");
     try {
-      const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-prompts', {
+      const response = await fetch('/api/generate-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,7 +46,16 @@ export const Step2TextSelection = ({
         }),
       });
       const data = await response.json();
-      console.log("Resultado do Webhook:", data);
+      console.log("Resposta bruta do Webhook:", data);
+      
+      // Extração de prompts conforme formato solicitado: [ { "output": { "prompt": [...] } } ]
+      const prompts = data?.[0]?.output?.prompt;
+      if (prompts && Array.isArray(prompts)) {
+        console.log("Prompts gerados com sucesso:", prompts);
+        prompts.forEach((p, i) => console.log(`Prompt ${i + 1}: ${p}`));
+      } else {
+        console.warn("O formato da resposta não contém o array de prompts esperado:", data);
+      }
     } catch (error) {
       console.error("Erro ao chamar o webhook:", error);
     }
@@ -115,7 +125,7 @@ export const Step2TextSelection = ({
             </span>
           </div>
           <div className="w-full aspect-square bg-gray-100 flex items-center justify-center text-gray-400">
-            <ImageIcon className="w-16 h-16" />
+            <Bot className="w-16 h-16 opacity-20" />
           </div>
           <div className="px-3 pt-3 flex items-center justify-between">
             <div className="flex items-center gap-4">

@@ -10,6 +10,7 @@ export interface GlobalSettings {
   postManualWebhook: string;
   imgNoLogoWebhook: string;
   imgRefWebhook: string;
+  generatePromptsWebhook: string;
   serverTimeout: string;
 }
 
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   postManualWebhook: "https://webhook.flowupinova.com.br/webhook/post_manual",
   imgNoLogoWebhook: "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo",
   imgRefWebhook: "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia",
+  generatePromptsWebhook: "https://n8n.flowupinova.com.br/webhook-test/gerador-prompts",
   serverTimeout: "300",
 };
 
@@ -44,6 +46,7 @@ export async function getGlobalSettings(): Promise<GlobalSettings> {
       postManualWebhook: data.postManualWebhook || DEFAULT_SETTINGS.postManualWebhook,
       imgNoLogoWebhook: data.imgNoLogoWebhook || DEFAULT_SETTINGS.imgNoLogoWebhook,
       imgRefWebhook: data.imgRefWebhook || DEFAULT_SETTINGS.imgRefWebhook,
+      generatePromptsWebhook: data.generatePromptsWebhook || DEFAULT_SETTINGS.generatePromptsWebhook,
       serverTimeout: data.serverTimeout || DEFAULT_SETTINGS.serverTimeout,
     };
   } catch (error) {
