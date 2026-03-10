@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   postManualWebhook: "https://webhook.flowupinova.com.br/webhook/post_manual",
   imgNoLogoWebhook: "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo",
   imgRefWebhook: "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia",
-  generatePromptsWebhook: "https://n8n.flowupinova.com.br/webhook-test/gerador-prompts",
+  generatePromptsWebhook: "https://webhook.flowupinova.com.br/webhook/gerador-prompts",
   generateImagesFalaiWebhook: "https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai",
   serverTimeout: "300",
 };
