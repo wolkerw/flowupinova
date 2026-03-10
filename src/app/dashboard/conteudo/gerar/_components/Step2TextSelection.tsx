@@ -46,18 +46,32 @@ export const Step2TextSelection = ({
         }),
       });
       const data = await response.json();
-      console.log("Resposta bruta do Webhook:", data);
+      console.log("Resposta bruta do Gerador de Prompts:", data);
       
-      // Extração de prompts conforme formato solicitado: [ { "output": { "prompt": [...] } } ]
       const prompts = data?.[0]?.output?.prompt;
       if (prompts && Array.isArray(prompts)) {
         console.log("Prompts gerados com sucesso:", prompts);
-        prompts.forEach((p, i) => console.log(`Prompt ${i + 1}: ${p}`));
+        
+        // Chamada sequencial para o Falai para cada prompt
+        for (const promptText of prompts) {
+          console.log(`Enviando prompt para Falai: ${promptText}`);
+          try {
+            const imgResponse = await fetch('/api/generate-falai-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: promptText }),
+            });
+            const imgData = await imgResponse.json();
+            console.log(`Retorno do Falai para o prompt [${promptText.substring(0, 30)}...]:`, imgData);
+          } catch (err) {
+            console.error(`Falha ao gerar imagem para o prompt: ${promptText}`, err);
+          }
+        }
       } else {
         console.warn("O formato da resposta não contém o array de prompts esperado:", data);
       }
     } catch (error) {
-      console.error("Erro ao chamar o webhook:", error);
+      console.error("Erro ao chamar o webhook de prompts:", error);
     }
   };
 

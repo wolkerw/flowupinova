@@ -11,6 +11,7 @@ export interface GlobalSettings {
   imgNoLogoWebhook: string;
   imgRefWebhook: string;
   generatePromptsWebhook: string;
+  generateImagesFalaiWebhook: string;
   serverTimeout: string;
 }
 
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   imgNoLogoWebhook: "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo",
   imgRefWebhook: "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia",
   generatePromptsWebhook: "https://n8n.flowupinova.com.br/webhook-test/gerador-prompts",
+  generateImagesFalaiWebhook: "https://n8n.flowupupinova.com.br/webhook-test/gerador-imagem-falai",
   serverTimeout: "300",
 };
 
@@ -47,6 +49,7 @@ export async function getGlobalSettings(): Promise<GlobalSettings> {
       imgNoLogoWebhook: data.imgNoLogoWebhook || DEFAULT_SETTINGS.imgNoLogoWebhook,
       imgRefWebhook: data.imgRefWebhook || DEFAULT_SETTINGS.imgRefWebhook,
       generatePromptsWebhook: data.generatePromptsWebhook || DEFAULT_SETTINGS.generatePromptsWebhook,
+      generateImagesFalaiWebhook: data.generateImagesFalaiWebhook || DEFAULT_SETTINGS.generateImagesFalaiWebhook,
       serverTimeout: data.serverTimeout || DEFAULT_SETTINGS.serverTimeout,
     };
   } catch (error) {
