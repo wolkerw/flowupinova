@@ -35,20 +35,19 @@ export const Step2TextSelection = ({
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
   const handleTestWebhook = async () => {
-    console.log("Iniciando teste do webhook de prompts (n8n)...");
+    console.log("Iniciando chamada do webhook de prompts (n8n)...");
     try {
       const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          test: true,
           content: selectedContent || generatedContent[0]
         }),
       });
       const data = await response.json();
-      console.log("Resultado do Webhook de Teste:", data);
+      console.log("Resultado do Webhook:", data);
     } catch (error) {
-      console.error("Erro ao chamar o webhook de teste:", error);
+      console.error("Erro ao chamar o webhook:", error);
     }
   };
 
@@ -90,7 +89,7 @@ export const Step2TextSelection = ({
               onClick={handleTestWebhook}
               className="text-xs text-muted-foreground border-dashed"
             >
-              Teste
+              Gerar texto
             </Button>
             <Button 
               onClick={onNext} 
