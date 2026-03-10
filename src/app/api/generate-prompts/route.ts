@@ -8,6 +8,8 @@ export async function POST(request: Request) {
   const settings = await getGlobalSettings();
   const webhookUrl = settings.generatePromptsWebhook;
 
+  console.log(`[API_GENERATE_PROMPTS] Chamando webhook: ${webhookUrl}`);
+
   try {
     const payload = await request.json();
 
@@ -22,15 +24,27 @@ export async function POST(request: Request) {
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
-      console.error("[API_GENERATE_PROMPTS] Webhook error:", webhookResponse.status, errorText);
-      return NextResponse.json({ success: false, error: "Falha ao gerar prompts.", details: errorText }, { status: webhookResponse.status });
+      console.error(`[API_GENERATE_PROMPTS] Erro no webhook externo (${webhookResponse.status}):`, errorText);
+      
+      // Repassa o erro do webhook externo para o frontend com contexto
+      return NextResponse.json({ 
+        success: false, 
+        error: `O webhook externo retornou erro ${webhookResponse.status}`, 
+        source: "external-webhook",
+        details: errorText 
+      }, { status: webhookResponse.status });
     }
 
     const data = await webhookResponse.json();
+    console.log("[API_GENERATE_PROMPTS] Sucesso ao receber prompts.");
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error("[API_GENERATE_PROMPTS] Internal error:", error);
-    return NextResponse.json({ success: false, error: "Erro interno ao gerar prompts.", details: error.message }, { status: 500 });
+    console.error("[API_GENERATE_PROMPTS] Erro interno na API Route:", error);
+    return NextResponse.json({ 
+      success: false, 
+      error: "Erro interno ao processar a geração de prompts.", 
+      details: error.message 
+    }, { status: 500 });
   }
 }
