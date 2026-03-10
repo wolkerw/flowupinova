@@ -34,6 +34,24 @@ export const Step2TextSelection = ({
 }: Step2TextSelectionProps) => {
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
+  const handleTestWebhook = async () => {
+    console.log("Iniciando teste do webhook de prompts (n8n)...");
+    try {
+      const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test: true,
+          content: selectedContent || generatedContent[0]
+        }),
+      });
+      const data = await response.json();
+      console.log("Resultado do Webhook de Teste:", data);
+    } catch (error) {
+      console.error("Erro ao chamar o webhook de teste:", error);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <Card className="shadow-lg border-none">
@@ -60,18 +78,29 @@ export const Step2TextSelection = ({
             ))}
           </RadioGroup>
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between items-end">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />Voltar
           </Button>
-          <Button 
-            onClick={onNext} 
-            disabled={!selectedContentId || isGeneratingImages} 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-          >
-            {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
-            {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button 
+              type="button"
+              variant="outline" 
+              size="sm"
+              onClick={handleTestWebhook}
+              className="text-xs text-muted-foreground border-dashed"
+            >
+              Teste
+            </Button>
+            <Button 
+              onClick={onNext} 
+              disabled={!selectedContentId || isGeneratingImages} 
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            >
+              {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
+              {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
 

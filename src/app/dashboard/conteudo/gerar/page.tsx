@@ -202,6 +202,20 @@ export default function GerarConteudoPage() {
       return;
     }
     
+    // CHAMADA AO GERADOR DE PROMPTS DO N8N (CONFORME SOLICITADO)
+    console.log("Iniciando avanço para Etapa 3: Gerando prompts...");
+    try {
+      const promptResponse = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: contentToUse[0] })
+      });
+      const promptResult = await promptResponse.json();
+      console.log("Resultado do Gerador de Prompts (n8n):", promptResult);
+    } catch (e) {
+      console.warn("Falha ao registrar prompts no log (não interrompendo fluxo):", e);
+    }
+
     if(generatedImages.length > 0) {
       await saveUnusedImages(user.uid, generatedImages);
       await fetchUnusedImages();
@@ -276,7 +290,8 @@ export default function GerarConteudoPage() {
     toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
     try {
-      const img = new Image();
+      // Use the global Image constructor from the browser
+      const img = new window.Image();
       img.src = selectedImage;
       await new Promise((resolve) => img.onload = resolve);
 
