@@ -203,35 +203,6 @@ export default function GerarConteudoPage() {
       return;
     }
     
-    // CHAMADA AO GERADOR DE PROMPTS E FALA-AI
-    console.log("Iniciando avanço para Etapa 3: Gerando prompts...");
-    try {
-      const promptResponse = await fetch('/api/generate-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: contentToUse[0] })
-      });
-      const promptResult = await promptResponse.json();
-      
-      const prompts = promptResult?.[0]?.output?.prompt;
-      if (prompts && Array.isArray(prompts)) {
-        console.log("Prompts capturados no avanço:", prompts);
-        
-        // Chamada para cada prompt no Falai (Log apenas para acompanhamento)
-        for (const promptText of prompts) {
-          fetch('/api/generate-falai-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: promptText }),
-          }).then(r => r.json())
-            .then(data => console.log(`Log Falai Sequencial (Avançar):`, data))
-            .catch(err => console.error("Erro log Falai:", err));
-        }
-      }
-    } catch (e) {
-      console.warn("Falha no rastro de prompts (não interrompendo fluxo principal):", e);
-    }
-
     if(generatedImages.length > 0) {
       await saveUnusedImages(user.uid, generatedImages);
       await fetchUnusedImages();
