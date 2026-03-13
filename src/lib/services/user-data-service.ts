@@ -11,15 +11,16 @@ interface GeneratedContent {
   url_da_imagem?: string;
 }
 
-// Interface for the user-specific application data
+// Interface for the user-specific application data (system state and history cache)
 interface UserAppData {
     unusedImageUrls?: string[];
     contentHistory?: GeneratedContent[];
 }
 
-// Helper to get the document reference for a user's app data
+// Helper to get the document reference for a user's app history and state
 function getUserAppDataDocRef(userId: string) {
-    return doc(db, `users/${userId}/appData/main`);
+    // We use 'history' instead of 'main' to clearly indicate this stores cached AI results and logs
+    return doc(db, `users/${userId}/appData/history`);
 }
 
 /**

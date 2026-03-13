@@ -12,15 +12,16 @@ export interface StoredMessage {
     createdAt: Date; // Use JS Date for input, it will be converted to Timestamp
 }
 
-// Type for data structure in the 'main' document
+// Type for data structure in the 'history' document
 interface UserAppData {
     chatHistory?: StoredMessage[];
     // other app data fields can go here...
 }
 
-// Helper to get the document reference for a user's app data
+// Helper to get the document reference for a user's app state/history
 function getUserAppDataDocRef(userId: string) {
-    return doc(db, `users/${userId}/appData/main`);
+    // Changed from 'main' to 'history' to be more descriptive
+    return doc(db, `users/${userId}/appData/history`);
 }
 
 /**
