@@ -18,6 +18,7 @@ interface Step2TextSelectionProps {
   onSelectedContentIdChange: (id: string) => void;
   onBack: () => void;
   onNext: () => void;
+  onSaveDraft: () => void;
   isGeneratingImages: boolean;
   user: any;
   instagramConnection: InstagramConnectionData | null;
@@ -29,6 +30,7 @@ export const Step2TextSelection = ({
   onSelectedContentIdChange,
   onBack,
   onNext,
+  onSaveDraft,
   isGeneratingImages,
   user,
   instagramConnection
@@ -117,7 +119,7 @@ export const Step2TextSelection = ({
             </Button>
             <Button
               type="button"
-              onClick={() => {}}
+              onClick={onSaveDraft}
               className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
             >
               Gerar 3 imagens assíncronas
@@ -152,7 +154,8 @@ export const Step2TextSelection = ({
             <div className="flex items-center gap-4">
               <Heart className="w-6 h-6 text-gray-800 cursor-pointer"/>
               <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer transform -scale-x-100"/>
-              <Send className="w-6 h-6 text-gray-800 cursor-pointer"/>
+              <Send className="w-6 h-6 text-gray-800 cursor-pointer -ml-1"/>
+              <Repeat className="w-6 h-6 text-gray-800 cursor-pointer"/>
             </div>
             <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer"/>
           </div>
@@ -178,3 +181,23 @@ export const Step2TextSelection = ({
     </motion.div>
   );
 };
+
+const Repeat = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="m17 2 4 4-4 4"/>
+    <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+    <path d="m7 22-4-4 4-4"/>
+    <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+  </svg>
+);

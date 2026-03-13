@@ -30,6 +30,8 @@ import { Step2TextSelection } from "./_components/Step2TextSelection";
 import { Step3ImageSelection } from "./_components/Step3ImageSelection";
 import { Step4BrandCustomization } from "./_components/Step4BrandCustomization";
 import { Step5ReviewPublish } from "./_components/Step5ReviewPublish";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -270,6 +272,38 @@ export default function GerarConteudoPage() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
+    if (!selectedContent || !user) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione uma opção de texto primeiro." });
+      return;
+    }
+
+    const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
+
+    try {
+      const postsRef = collection(db, "users", user.uid, "posts");
+      const docRef = await addDoc(postsRef, {
+        text: fullCaption,
+        status: 'draft',
+        createdAt: serverTimestamp(),
+        scheduledAt: serverTimestamp(),
+        imageUrls: [],
+        platforms: [],
+        isCarousel: false,
+        connections: {
+          instagramUsername: instagramConnection?.instagramUsername || null,
+          pageName: metaConnection?.pageName || null,
+        }
+      });
+      console.log("Post salvo com ID:", docRef.id);
+      toast({ variant: "success", title: "Sucesso!", description: `Post salvo como rascunho. ID: ${docRef.id}` });
+    } catch (error: any) {
+      console.error("Erro ao salvar rascunho:", error);
+      toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
+    }
+  };
+
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
     
@@ -457,6 +491,7 @@ export default function GerarConteudoPage() {
           onSelectedContentIdChange={setSelectedContentId}
           onBack={() => setStep(1)}
           onNext={() => handleGenerateImages()}
+          onSaveDraft={handleSaveDraft}
           isGeneratingImages={isGeneratingImages}
           user={user}
           instagramConnection={instagramConnection}
