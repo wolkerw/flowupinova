@@ -365,7 +365,7 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       console.log("Post salvo com ID:", postId);
 
-      // Chamada assíncrona para o webhook Falai (Fire and forget para o redirecionamento imediato)
+      // Chamada assíncrona para o webhook Falai
       console.log("Iniciando chamada para o webhook Falai (Assíncrono)...");
       fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai', {
           method: 'POST',
@@ -375,9 +375,39 @@ export default function GerarConteudoPage() {
               postId: postId,
               fileName: "1"
           })
-      }).then(res => res.json())
-        .then(result => console.log("Resultado do webhook Falai (Gerar 3 imagens):", result))
-        .catch(err => console.error("Erro no webhook Falai:", err));
+      }).then(async (res) => {
+          if (!res.ok) throw new Error(`Erro Falai: ${res.status}`);
+          const result = await res.json();
+          console.log("Resultado do webhook Falai (Gerar 3 imagens):", result);
+          
+          const imageUrls = normalizeImageResponse(result);
+          if (imageUrls.length > 0) {
+              setGeneratedImages(imageUrls);
+              setIsGeneratingImages(false);
+          } else {
+              throw new Error("Falai não retornou imagens válidas.");
+          }
+      }).catch(async (err) => {
+          console.error("Erro no Falai, iniciando fallback Supabase:", err.message);
+          try {
+              const fallbackResponse = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ postId }),
+              });
+              const fallbackResult = await fallbackResponse.json();
+              console.log("Resultado do fallback Supabase:", fallbackResult);
+              
+              const imageUrls = normalizeImageResponse(fallbackResult);
+              if (imageUrls.length > 0) {
+                  setGeneratedImages(imageUrls);
+              }
+          } catch (fallbackErr: any) {
+              console.error("Erro fatal no fallback Supabase:", fallbackErr.message);
+          } finally {
+              setIsGeneratingImages(false);
+          }
+      });
 
       // Redireciona imediatamente para a etapa 3 com o loading ativado
       setGeneratedImages([]); // Limpa imagens anteriores
