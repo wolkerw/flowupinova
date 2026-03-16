@@ -41,9 +41,16 @@ export const Step3ImageSelection = ({
         </CardHeader>
         <CardContent>
           {isGeneratingImages ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Loader2 className="w-12 h-12 mr-2 animate-spin text-purple-500" />
-              <span className="text-lg text-gray-600 mt-4">Criando imagens incríveis...</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="relative aspect-square rounded-lg bg-muted animate-pulse flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20"
+                >
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-500/40" />
+                  <span className="text-xs text-muted-foreground mt-2 font-medium">Gerando imagem {i + 1}...</span>
+                </div>
+              ))}
             </div>
           ) : generatedImages.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
