@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, Loader2, ArrowLeft, ArrowRight, ImageIcon, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
+import { Bot, Loader2, ArrowLeft, ArrowRight, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { GeneratedContent } from "../types";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
@@ -19,6 +19,7 @@ interface Step2TextSelectionProps {
   onBack: () => void;
   onNext: () => void;
   onSaveDraft: () => void;
+  onGeneratePrompts: () => void;
   isGeneratingImages: boolean;
   user: any;
   instagramConnection: InstagramConnectionData | null;
@@ -31,51 +32,12 @@ export const Step2TextSelection = ({
   onBack,
   onNext,
   onSaveDraft,
+  onGeneratePrompts,
   isGeneratingImages,
   user,
   instagramConnection
 }: Step2TextSelectionProps) => {
   const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
-
-  const handleTestWebhook = async () => {
-    console.log("Iniciando chamada do webhook de prompts (Gerar texto)...");
-    try {
-      const response = await fetch('/api/generate-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: selectedContent || generatedContent[0]
-        }),
-      });
-      const data = await response.json();
-      console.log("Resposta bruta do Gerador de Prompts:", data);
-      
-      const prompts = data?.[0]?.output?.prompt;
-      if (prompts && Array.isArray(prompts)) {
-        console.log("Prompts gerados com sucesso:", prompts);
-        
-        // Chamada sequencial para o Falai para cada prompt
-        for (const promptText of prompts) {
-          console.log(`Enviando prompt para Falai: ${promptText}`);
-          try {
-            const imgResponse = await fetch('/api/generate-falai-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: promptText }),
-            });
-            const imgData = await imgResponse.json();
-            console.log(`Retorno do Falai para o prompt [${promptText.substring(0, 30)}...]:`, imgData);
-          } catch (err) {
-            console.error(`Falha ao gerar imagem para o prompt: ${promptText}`, err);
-          }
-        }
-      } else {
-        console.warn("O formato da resposta não contém o array de prompts esperado:", data);
-      }
-    } catch (error) {
-      console.error("Erro ao chamar o webhook de prompts:", error);
-    }
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -112,7 +74,7 @@ export const Step2TextSelection = ({
               type="button"
               variant="outline" 
               size="sm"
-              onClick={handleTestWebhook}
+              onClick={onGeneratePrompts}
               className="text-xs text-muted-foreground border-dashed"
             >
               Gerar texto
