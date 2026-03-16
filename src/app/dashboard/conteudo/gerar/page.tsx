@@ -365,9 +365,9 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       console.log("Post salvo com ID:", postId);
 
-      // Chamada para o webhook de geração assíncrona
+      // Chamada assíncrona para o webhook Falai (Fire and forget para o redirecionamento imediato)
       console.log("Iniciando chamada para o webhook Falai (Assíncrono)...");
-      const falaiResponse = await fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai', {
+      fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -375,9 +375,14 @@ export default function GerarConteudoPage() {
               postId: postId,
               fileName: "1"
           })
-      });
-      const falaiResult = await falaiResponse.json();
-      console.log("Resultado do webhook Falai (Gerar 3 imagens):", falaiResult);
+      }).then(res => res.json())
+        .then(result => console.log("Resultado do webhook Falai (Gerar 3 imagens):", result))
+        .catch(err => console.error("Erro no webhook Falai:", err));
+
+      // Redireciona imediatamente para a etapa 3 com o loading ativado
+      setGeneratedImages([]); // Limpa imagens anteriores
+      setIsGeneratingImages(true); // Ativa o spinner na etapa 3
+      setStep(3);
 
       toast({ variant: "success", title: "Sucesso!", description: `Rascunho salvo e geração de imagem iniciada. ID: ${postId}` });
     } catch (error: any) {
