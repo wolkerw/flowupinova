@@ -277,45 +277,62 @@ export default function GerarConteudoPage() {
 
   const handleGeneratePrompts = async () => {
     const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : generatedContent[0];
-    if (!selectedContent) return;
+    if (!selectedContent || !user) return;
 
-    console.log("Iniciando chamada do webhook de prompts (Gerar texto)...");
     try {
+      // 1. Obter Prompts da IA
       const response = await fetch('/api/generate-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: selectedContent
-        }),
+        body: JSON.stringify({ content: selectedContent }),
       });
       const data = await response.json();
-      console.log("Resposta bruta do Gerador de Prompts:", data);
-      
       const generatedPrompts = data?.[0]?.output?.prompt;
-      if (generatedPrompts && Array.isArray(generatedPrompts)) {
-        setPrompts(generatedPrompts);
-        console.log("Prompts gerados com sucesso:", generatedPrompts);
-        
-        // Chamada sequencial para o Falai para cada prompt (comportamento de depuração)
-        for (const promptText of generatedPrompts) {
-          console.log(`Enviando prompt para Falai: ${promptText}`);
-          try {
-            const imgResponse = await fetch('/api/generate-falai-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: promptText }),
-            });
-            const imgData = await imgResponse.json();
-            console.log(`Retorno do Falai para o prompt [${promptText.substring(0, 30)}...]:`, imgData);
-          } catch (err) {
-            console.error(`Falha ao gerar imagem para o prompt: ${promptText}`, err);
-          }
-        }
-      } else {
-        console.warn("O formato da resposta não contém o array de prompts esperado:", data);
+      
+      if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
+          throw new Error("Não foi possível gerar os prompts para a imagem.");
       }
-    } catch (error) {
-      console.error("Erro ao chamar o webhook de prompts:", error);
+
+      setPrompts(generatedPrompts);
+
+      // 2. Salvar rascunho no Firestore para obter o postId
+      const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
+      const postsRef = collection(db, "users", user.uid, "posts");
+      const docRef = await addDoc(postsRef, {
+        text: fullCaption,
+        status: 'draft',
+        createdAt: serverTimestamp(),
+        scheduledAt: serverTimestamp(),
+        imageUrls: [],
+        platforms: [],
+        isCarousel: false,
+        connections: {
+          instagramUsername: instagramConnection?.instagramUsername || null,
+          pageName: metaConnection?.pageName || null,
+        }
+      });
+      const postId = docRef.id;
+
+      // 3. Chamada ASSÍNCRONA para o webhook (sem await)
+      fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              prompt: generatedPrompts[0],
+              postId: postId,
+              fileName: "1",
+              content: selectedContent
+          })
+      }).catch(err => console.error("Async webhook call failed:", err));
+
+      // 4. Redirecionar para a próxima etapa imediatamente
+      setGeneratedImages([]); // Limpa imagens anteriores para forçar o loading
+      setIsGeneratingImages(true); // Ativa o spinner na Etapa 3
+      setStep(3);
+
+    } catch (error: any) {
+      console.error("Erro no fluxo de geração:", error);
+      toast({ variant: 'destructive', title: "Erro", description: error.message });
     }
   };
 
