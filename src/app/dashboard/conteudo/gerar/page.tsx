@@ -73,7 +73,8 @@ export default function GerarConteudoPage() {
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // Estado para armazenar os prompts gerados pela IA
+  // Estado para rastrear o post atual e os prompts
+  const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [prompts, setPrompts] = useState<string[]>([]);
 
   const router = useRouter();
@@ -139,6 +140,81 @@ export default function GerarConteudoPage() {
     };
   }, [generatedImages, user, logoPreviewUrl, referenceImagePreview]);
 
+  const normalizeImageResponse = useCallback((result: any): string[] => {
+    const baseData = result.data !== undefined ? result.data : result;
+    const items = Array.isArray(baseData) ? baseData : [baseData];
+    return items
+      .map((item: any) => {
+        if (typeof item === 'string') return item;
+        return item?.url_da_imagem || item?.url || item?.image_url || item?.url_post;
+      })
+      .filter(Boolean);
+  }, []);
+
+  // Monitoramento assíncrono para a Etapa 3
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    if (step === 3 && currentPostId && isGeneratingImages && generatedImages.length === 0) {
+      const poll = async () => {
+        attempts++;
+        console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
+
+        try {
+          const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/buscar-imagens-supabase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              postId: currentPostId, 
+              filename: 1 
+            }),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            const imageUrls = normalizeImageResponse(result);
+
+            if (imageUrls && imageUrls.length > 0) {
+              console.log("[POLLING] Sucesso no retorno do webhook buscar-imagens-supabase:", result);
+              setGeneratedImages(imageUrls);
+              setSelectedImage(imageUrls[0]);
+              setIsGeneratingImages(false);
+              return true; // Sucesso, parar polling
+            }
+          }
+        } catch (error) {
+          console.error("[POLLING] Erro na requisição de busca:", error);
+        }
+
+        if (attempts >= maxAttempts) {
+          toast({
+            variant: "destructive",
+            title: "Aguardando geração...",
+            description: "A IA ainda está processando suas imagens. Você poderá encontrá-las em seu histórico em instantes."
+          });
+          setIsGeneratingImages(false);
+          return true; // Limite atingido, parar polling
+        }
+        
+        return false; // Continuar tentando
+      };
+
+      // Executa a cada 10 segundos
+      interval = setInterval(async () => {
+        const shouldStop = await poll();
+        if (shouldStop) {
+          clearInterval(interval);
+        }
+      }, 10000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [step, currentPostId, isGeneratingImages, generatedImages.length, toast, normalizeImageResponse]);
+
   const handleReferenceImageChange = (file: File | null) => {
     if (referenceImagePreview) {
       URL.revokeObjectURL(referenceImagePreview);
@@ -188,17 +264,6 @@ export default function GerarConteudoPage() {
       setIsLoading(false);
     }
   };
-
-  const normalizeImageResponse = useCallback((result: any): string[] => {
-    const baseData = result.data !== undefined ? result.data : result;
-    const items = Array.isArray(baseData) ? baseData : [baseData];
-    return items
-      .map((item: any) => {
-        if (typeof item === 'string') return item;
-        return item?.url_da_imagem || item?.url || item?.image_url || item?.url_post;
-      })
-      .filter(Boolean);
-  }, []);
 
   const handleGenerateImages = async (publication?: GeneratedContent | null) => {
     if (!user) return;
@@ -312,6 +377,7 @@ export default function GerarConteudoPage() {
         }
       });
       const postId = docRef.id;
+      setCurrentPostId(postId);
 
       // 3. Chamada ASSÍNCRONA para o webhook (sem await)
       fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem', {
@@ -380,10 +446,10 @@ export default function GerarConteudoPage() {
       });
       
       const postId = docRef.id;
+      setCurrentPostId(postId);
       console.log("Post salvo com ID:", postId);
 
       // Chamada assíncrona para o webhook Falai
-      console.log("Iniciando chamada para o webhook Falai (Assíncrono)...");
       fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -392,39 +458,7 @@ export default function GerarConteudoPage() {
               postId: postId,
               fileName: "1"
           })
-      }).then(async (res) => {
-          if (!res.ok) throw new Error(`Erro Falai: ${res.status}`);
-          const result = await res.json();
-          console.log("Resultado do webhook Falai (Gerar 3 imagens):", result);
-          
-          const imageUrls = normalizeImageResponse(result);
-          if (imageUrls.length > 0) {
-              setGeneratedImages(imageUrls);
-              setIsGeneratingImages(false);
-          } else {
-              throw new Error("Falai não retornou imagens válidas.");
-          }
-      }).catch(async (err) => {
-          console.error("Erro no Falai, iniciando fallback Supabase:", err.message);
-          try {
-              const fallbackResponse = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ postId }),
-              });
-              const fallbackResult = await fallbackResponse.json();
-              console.log("Resultado do fallback Supabase:", fallbackResult);
-              
-              const imageUrls = normalizeImageResponse(fallbackResult);
-              if (imageUrls.length > 0) {
-                  setGeneratedImages(imageUrls);
-              }
-          } catch (fallbackErr: any) {
-              console.error("Erro fatal no fallback Supabase:", fallbackErr.message);
-          } finally {
-              setIsGeneratingImages(false);
-          }
-      });
+      }).catch(err => console.error("Falai generation start error:", err));
 
       // Redireciona imediatamente para a etapa 3 com o loading ativado
       setGeneratedImages([]); // Limpa imagens anteriores
