@@ -125,12 +125,10 @@ export default function GerarConteudoPage() {
   useEffect(() => {
     return () => {
       if (user && generatedImages.length > 0) {
-        // Apenas salva URLs remotas no histórico, não os blobs temporários
         const remoteUrls = generatedImages.filter(url => !url.startsWith('blob:'));
         if (remoteUrls.length > 0) {
           saveUnusedImages(user.uid, remoteUrls).catch(console.error);
         }
-        // Cleanup blobs locais para liberar memória
         generatedImages.forEach(url => {
           if (url.startsWith('blob:')) URL.revokeObjectURL(url);
         });
@@ -144,63 +142,79 @@ export default function GerarConteudoPage() {
     };
   }, [generatedImages, user, logoPreviewUrl, referenceImagePreview]);
 
-  // Monitoramento assíncrono para a Etapa 3
+  // Monitoramento assíncrono para a Etapa 3 (agora para 3 imagens)
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 12; // Aumentado um pouco para dar tempo das 3 gerarem
+    const foundFiles = new Set<string>();
 
-    if (step === 3 && currentPostId && isGeneratingImages && generatedImages.length === 0) {
+    if (step === 3 && currentPostId && isGeneratingImages) {
       const poll = async () => {
         attempts++;
         console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
 
-        try {
-          const response = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              postId: currentPostId, 
-              filename: "1",
-              fileExtension: "png"
-            }),
-          });
+        const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFiles.has(f));
+        
+        if (filenamesToCheck.length === 0) {
+          setIsGeneratingImages(false);
+          return true;
+        }
 
-          if (response.ok) {
-            // Obtém a resposta como blob (binário) conforme solicitado
-            const blob = await response.blob();
-            
-            // Verifica se o blob é uma imagem válida (tamanho mínimo para evitar retornos vazios)
-            if (blob.size > 100 && blob.type.startsWith('image/')) {
-              const imageUrl = URL.createObjectURL(blob);
-              console.log("[POLLING] Sucesso no retorno do webhook buscar-imagens-supabase: Imagem binária recebida");
-              
-              setGeneratedImages([imageUrl]);
-              setSelectedImage(imageUrl);
-              setIsGeneratingImages(false);
-              return true; // Indica sucesso para parar o polling
-            } else {
-              console.log("[POLLING] Resposta recebida, mas não contém uma imagem válida ainda.");
+        const fetchPromises = filenamesToCheck.map(async (filename) => {
+          try {
+            const response = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                postId: currentPostId, 
+                filename: filename,
+                fileExtension: "png"
+              }),
+            });
+
+            if (response.ok) {
+              const blob = await response.blob();
+              if (blob.size > 100 && blob.type.startsWith('image/')) {
+                const imageUrl = URL.createObjectURL(blob);
+                console.log(`[POLLING] Sucesso: Imagem ${filename} recebida`);
+                foundFiles.add(filename);
+                setGeneratedImages(prev => [...prev, imageUrl]);
+                if (!selectedImage) setSelectedImage(imageUrl);
+              }
             }
+          } catch (error) {
+            console.error(`[POLLING] Erro ao buscar imagem ${filename}:`, error);
           }
-        } catch (error) {
-          console.error("[POLLING] Erro na requisição de busca:", error);
+        });
+
+        await Promise.all(fetchPromises);
+
+        if (foundFiles.size === 3) {
+          setIsGeneratingImages(false);
+          return true;
         }
 
         if (attempts >= maxAttempts) {
-          toast({
-            variant: "destructive",
-            title: "Aguardando geração...",
-            description: "A IA ainda está processando suas imagens. Você poderá encontrá-las em seu histórico em instantes."
-          });
+          if (foundFiles.size > 0) {
+            toast({
+              title: "Algumas imagens carregadas",
+              description: `Conseguimos carregar ${foundFiles.size} de 3 imagens.`
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Erro ao carregar imagens",
+              description: "Não foi possível carregar as imagens geradas. Tente gerar novamente."
+            });
+          }
           setIsGeneratingImages(false);
-          return true; // Limite atingido, parar polling
+          return true;
         }
         
-        return false; // Continuar tentando
+        return false;
       };
 
-      // Inicia o polling imediatamente
       poll().then(stopped => {
         if (!stopped) {
           interval = setInterval(async () => {
@@ -216,7 +230,7 @@ export default function GerarConteudoPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step, currentPostId, isGeneratingImages, generatedImages.length, toast]);
+  }, [step, currentPostId, isGeneratingImages, toast, selectedImage]);
 
   const handleReferenceImageChange = (file: File | null) => {
     if (referenceImagePreview) {
@@ -275,7 +289,6 @@ export default function GerarConteudoPage() {
     setIsGeneratingImages(true);
 
     try {
-      // 1. Obter Prompts da IA
       const response = await fetch('/api/generate-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,7 +303,6 @@ export default function GerarConteudoPage() {
 
       setPrompts(generatedPrompts);
 
-      // 2. Salvar rascunho no Firestore para obter o postId
       const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
@@ -309,23 +321,27 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       setCurrentPostId(postId);
 
-      // 3. Chamada para o webhook
-      const webhookRes = await fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              prompt: generatedPrompts[0],
-              postId: postId,
-              fileName: "1",
-              content: selectedContent
-          })
+      // Chamar o webhook 3 vezes para filenames 1, 2 e 3
+      const filenames = ["1", "2", "3"];
+      const webhookPromises = filenames.map((fname, index) => {
+          const promptToUse = generatedPrompts[index] || generatedPrompts[0];
+          return fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  prompt: promptToUse,
+                  postId: postId,
+                  fileName: fname,
+                  content: selectedContent
+              })
+          });
       });
 
-      if (!webhookRes.ok) {
-          throw new Error("O serviço de geração de imagem retornou um erro.");
+      const webhookResponses = await Promise.all(webhookPromises);
+      if (!webhookResponses.every(res => res.ok)) {
+          throw new Error("O serviço de geração de imagem retornou um erro em uma ou mais solicitações.");
       }
 
-      // 4. Redirecionar para a próxima etapa APÓS sucesso no disparo do webhook
       setGeneratedImages([]); 
       setStep(3);
 
