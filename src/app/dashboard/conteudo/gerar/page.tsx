@@ -282,84 +282,11 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleGenerateImages = async (publication?: GeneratedContent | null) => {
-    if (!user) return;
-    const contentToUse = publication ? [publication] : (selectedContentId ? [generatedContent[parseInt(selectedContentId, 10)]] : []);
-    if (contentToUse.length === 0) {
-      toast({ variant: 'destructive', title: "Nenhum conteúdo", description: "Selecione um texto para gerar imagens." });
-      return;
-    }
-    
-    if(generatedImages.length > 0) {
-      await saveUnusedImages(user.uid, generatedImages);
-      await fetchUnusedImages();
-    }
-  
-    setIsGeneratingImages(true);
-    setGeneratedImages([]);
-    setSelectedImage(null);
-    setProcessedImageUrl(null);
-    
-    try {
-      let imageUrls: string[] = [];
-
-      if (referenceImageFile) {
-        const formData = new FormData();
-        formData.append('file', referenceImageFile);
-        formData.append('description', referenceDescription);
-        
-        const selected = contentToUse[0];
-        formData.append('title', selected.título);
-        formData.append('subtitle', selected.subtitulo);
-        formData.append('hashtags', Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : '');
-
-        const response = await fetch('/api/proxy-webhook?target=gerador_imagem_referencia', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.details || errorData.error || "Falha na geração com imagem de referência");
-        }
-
-        const result = await response.json();
-        imageUrls = normalizeImageResponse(result);
-      } else {
-        const response = await fetch('/api/generate-images', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Server-Timeout': '300'
-          },
-          body: JSON.stringify({ publicacoes: contentToUse }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.details || result.error || "Erro ao gerar imagens");
-        
-        imageUrls = normalizeImageResponse(result);
-      }
-
-      if (imageUrls.length === 0) throw new Error("A resposta do serviço não continha URLs de imagem válidas.");
-
-      setGeneratedImages(imageUrls);
-      setSelectedImage(imageUrls[0]);
-      setStep(3);
-      if(publication) {
-        setGeneratedContent(contentToUse);
-        setSelectedContentId("0");
-      }
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: "Erro ao Gerar Imagens", description: error.message });
-    } finally {
-      setIsGeneratingImages(false);
-    }
-  };
-
   const handleGeneratePrompts = async () => {
     const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : generatedContent[0];
     if (!selectedContent || !user) return;
+
+    setIsGeneratingImages(true);
 
     try {
       // 1. Obter Prompts da IA
@@ -396,8 +323,8 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       setCurrentPostId(postId);
 
-      // 3. Chamada ASSÍNCRONA para o webhook (sem await)
-      fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
+      // 3. Chamada para o webhook (AGORA COM AWAIT)
+      const webhookRes = await fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -406,16 +333,20 @@ export default function GerarConteudoPage() {
               fileName: "1",
               content: selectedContent
           })
-      }).catch(err => console.error("Async webhook call failed:", err));
+      });
 
-      // 4. Redirecionar para a próxima etapa imediatamente
-      setGeneratedImages([]); // Limpa imagens anteriores para forçar o loading
-      setIsGeneratingImages(true); // Ativa o spinner na Etapa 3
+      if (!webhookRes.ok) {
+          throw new Error("O serviço de geração de imagem retornou um erro.");
+      }
+
+      // 4. Redirecionar para a próxima etapa APÓS sucesso no disparo do webhook
+      setGeneratedImages([]); 
       setStep(3);
 
     } catch (error: any) {
       console.error("Erro no fluxo de geração:", error);
       toast({ variant: 'destructive', title: "Erro", description: error.message });
+      setIsGeneratingImages(false);
     }
   };
 
