@@ -8,23 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Sparkles, ArrowRight, Loader2, UploadCloud, X, Box, MessageSquare } from "lucide-react";
-import { GeneratedContent } from "../types";
 
 interface Step1IdeaProps {
   postSummary: string;
   onPostSummaryChange: (value: string) => void;
   onGenerate: () => void;
   isLoading: boolean;
-  contentHistory: GeneratedContent[];
-  unusedImagesHistory: string[];
-  selectedHistoryContent: GeneratedContent | null;
-  selectedUnusedImage: string | null;
-  onHistoryContentSelect: (index: string) => void;
-  onUnusedImageSelect: (url: string) => void;
-  onGenerateImagesForHistory: (content: GeneratedContent) => void;
-  onUseUnusedImage: () => void;
-  onReuseBoth: () => void;
-  isGeneratingImages: boolean;
   referenceImagePreview: string | null;
   onReferenceImageChange: (file: File | null) => void;
   referenceDescription: string;

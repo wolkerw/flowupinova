@@ -18,7 +18,6 @@ import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/bus
 import { 
   getUnusedImages, 
   saveUnusedImages, 
-  removeUnusedImage, 
   getContentHistory, 
   saveContentHistory 
 } from "@/lib/services/user-data-service";
@@ -53,8 +52,6 @@ export default function GerarConteudoPage() {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
-  const [selectedHistoryContent, setSelectedHistoryContent] = useState<GeneratedContent | null>(null);
-  const [selectedUnusedImage, setSelectedUnusedImage] = useState<string | null>(null);
 
   // Estados para imagem de referência
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
@@ -146,17 +143,6 @@ export default function GerarConteudoPage() {
       }
     };
   }, [generatedImages, user, logoPreviewUrl, referenceImagePreview]);
-
-  const normalizeImageResponse = useCallback((result: any): string[] => {
-    const baseData = result.data !== undefined ? result.data : result;
-    const items = Array.isArray(baseData) ? baseData : [baseData];
-    return items
-      .map((item: any) => {
-        if (typeof item === 'string') return item;
-        return item?.url_da_imagem || item?.url || item?.image_url || item?.url_post;
-      })
-      .filter(Boolean);
-  }, []);
 
   // Monitoramento assíncrono para a Etapa 3
   useEffect(() => {
@@ -323,7 +309,7 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       setCurrentPostId(postId);
 
-      // 3. Chamada para o webhook (AGORA COM AWAIT)
+      // 3. Chamada para o webhook
       const webhookRes = await fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -496,33 +482,6 @@ export default function GerarConteudoPage() {
           onPostSummaryChange={setPostSummary}
           onGenerate={() => handleGenerateText()}
           isLoading={isLoading}
-          contentHistory={contentHistory}
-          unusedImagesHistory={unusedImagesHistory}
-          selectedHistoryContent={selectedHistoryContent}
-          selectedUnusedImage={selectedUnusedImage}
-          onHistoryContentSelect={(idx) => setSelectedHistoryContent(contentHistory[parseInt(idx)])}
-          onUnusedImageSelect={setSelectedUnusedImage}
-          onGenerateImagesForHistory={handleGenerateImages}
-          onUseUnusedImage={async () => {
-            const res = await handleGenerateText("Gerar texto para imagem existente");
-            if(res && selectedUnusedImage) {
-              setSelectedImage(selectedUnusedImage);
-              setGeneratedImages([selectedUnusedImage]);
-              await removeUnusedImage(user!.uid, selectedUnusedImage);
-              setStep(4);
-            }
-          }}
-          onReuseBoth={async () => {
-            if(selectedHistoryContent && selectedUnusedImage) {
-              setGeneratedContent([selectedHistoryContent]);
-              setSelectedContentId("0");
-              setSelectedImage(selectedUnusedImage);
-              setGeneratedImages([selectedUnusedImage]);
-              await removeUnusedImage(user!.uid, selectedUnusedImage);
-              setStep(4);
-            }
-          }}
-          isGeneratingImages={isGeneratingImages}
           referenceImagePreview={referenceImagePreview}
           onReferenceImageChange={handleReferenceImageChange}
           referenceDescription={referenceDescription}
