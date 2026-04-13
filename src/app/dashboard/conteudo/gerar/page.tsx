@@ -168,7 +168,8 @@ export default function GerarConteudoPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               postId: currentPostId, 
-              filename: 1 
+              filename: "1",
+              fileExtension: "png" // Adicionada a extensão do arquivo conforme solicitado
             }),
           });
 
@@ -201,7 +202,10 @@ export default function GerarConteudoPage() {
         return false; // Continuar tentando
       };
 
-      // Executa a cada 10 segundos
+      // Inicia o polling imediatamente
+      poll();
+      
+      // Agenda as próximas tentativas
       interval = setInterval(async () => {
         const shouldStop = await poll();
         if (shouldStop) {
