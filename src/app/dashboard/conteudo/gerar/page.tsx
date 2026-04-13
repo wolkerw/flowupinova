@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -73,6 +74,9 @@ export default function GerarConteudoPage() {
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [prompts, setPrompts] = useState<string[]>([]);
 
+  // Ref para rastrear quais arquivos já foram encontrados no Supabase
+  const foundFilesRef = useRef<Set<string>>(new Set());
+
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -146,17 +150,21 @@ export default function GerarConteudoPage() {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let attempts = 0;
-    const maxAttempts = 12; // Aumentado um pouco para dar tempo das 3 gerarem
-    const foundFiles = new Set<string>();
+    const maxAttempts = 15; // Aumentado um pouco para dar tempo das 3 gerarem
 
     if (step === 3 && currentPostId && isGeneratingImages) {
+      // Limpa a lista de encontrados ao iniciar o polling para um novo post
+      foundFilesRef.current.clear();
+
       const poll = async () => {
         attempts++;
         console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
 
-        const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFiles.has(f));
+        // Filtra apenas os nomes que ainda não encontramos
+        const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFilesRef.current.has(f));
         
         if (filenamesToCheck.length === 0) {
+          console.log("[POLLING] Todos os arquivos encontrados. Parando polling.");
           setIsGeneratingImages(false);
           return true;
         }
@@ -175,12 +183,18 @@ export default function GerarConteudoPage() {
 
             if (response.ok) {
               const blob = await response.blob();
+              // Verifica se recebemos uma imagem válida
               if (blob.size > 100 && blob.type.startsWith('image/')) {
                 const imageUrl = URL.createObjectURL(blob);
                 console.log(`[POLLING] Sucesso: Imagem ${filename} recebida`);
-                foundFiles.add(filename);
+                
+                // Marca como encontrado ANTES de atualizar o estado para evitar disparos duplicados
+                foundFilesRef.current.add(filename);
+                
                 setGeneratedImages(prev => [...prev, imageUrl]);
-                if (!selectedImage) setSelectedImage(imageUrl);
+                
+                // Seleciona a primeira imagem automaticamente se nada estiver selecionado
+                setSelectedImage(prev => prev || imageUrl);
               }
             }
           } catch (error) {
@@ -190,16 +204,17 @@ export default function GerarConteudoPage() {
 
         await Promise.all(fetchPromises);
 
-        if (foundFiles.size === 3) {
+        // Se todos os arquivos foram encontrados após as requisições acima
+        if (foundFilesRef.current.size === 3) {
           setIsGeneratingImages(false);
           return true;
         }
 
         if (attempts >= maxAttempts) {
-          if (foundFiles.size > 0) {
+          if (foundFilesRef.current.size > 0) {
             toast({
-              title: "Algumas imagens carregadas",
-              description: `Conseguimos carregar ${foundFiles.size} de 3 imagens.`
+              title: "Imagens carregadas",
+              description: `Conseguimos carregar ${foundFilesRef.current.size} de 3 imagens.`
             });
           } else {
             toast({
@@ -215,6 +230,7 @@ export default function GerarConteudoPage() {
         return false;
       };
 
+      // Executa a primeira vez e agenda o intervalo
       poll().then(stopped => {
         if (!stopped) {
           interval = setInterval(async () => {
@@ -230,7 +246,7 @@ export default function GerarConteudoPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step, currentPostId, isGeneratingImages, toast, selectedImage]);
+  }, [step, currentPostId, isGeneratingImages, toast]);
 
   const handleReferenceImageChange = (file: File | null) => {
     if (referenceImagePreview) {
