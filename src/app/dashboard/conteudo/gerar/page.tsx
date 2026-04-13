@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -128,7 +129,15 @@ export default function GerarConteudoPage() {
   useEffect(() => {
     return () => {
       if (user && generatedImages.length > 0) {
-        saveUnusedImages(user.uid, generatedImages).catch(console.error);
+        // Apenas salva URLs remotas no histórico, não os blobs temporários
+        const remoteUrls = generatedImages.filter(url => !url.startsWith('blob:'));
+        if (remoteUrls.length > 0) {
+          saveUnusedImages(user.uid, remoteUrls).catch(console.error);
+        }
+        // Cleanup blobs locais para liberar memória
+        generatedImages.forEach(url => {
+          if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+        });
       }
       if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(logoPreviewUrl);
@@ -173,15 +182,20 @@ export default function GerarConteudoPage() {
           });
 
           if (response.ok) {
-            const result = await response.json();
-            const imageUrls = normalizeImageResponse(result);
-
-            if (imageUrls && imageUrls.length > 0) {
-              console.log("[POLLING] Sucesso no retorno do webhook buscar-imagens-supabase:", result);
-              setGeneratedImages(imageUrls);
-              setSelectedImage(imageUrls[0]);
+            // Obtém a resposta como blob (binário) conforme solicitado
+            const blob = await response.blob();
+            
+            // Verifica se o blob é uma imagem válida (tamanho mínimo para evitar retornos vazios)
+            if (blob.size > 100 && blob.type.startsWith('image/')) {
+              const imageUrl = URL.createObjectURL(blob);
+              console.log("[POLLING] Sucesso no retorno do webhook buscar-imagens-supabase: Imagem binária recebida");
+              
+              setGeneratedImages([imageUrl]);
+              setSelectedImage(imageUrl);
               setIsGeneratingImages(false);
-              return true; // Sucesso, parar polling
+              return true; // Indica sucesso para parar o polling
+            } else {
+              console.log("[POLLING] Resposta recebida, mas não contém uma imagem válida ainda.");
             }
           }
         } catch (error) {
@@ -202,21 +216,22 @@ export default function GerarConteudoPage() {
       };
 
       // Inicia o polling imediatamente
-      poll();
-      
-      // Agenda as próximas tentativas
-      interval = setInterval(async () => {
-        const shouldStop = await poll();
-        if (shouldStop) {
-          clearInterval(interval);
+      poll().then(stopped => {
+        if (!stopped) {
+          interval = setInterval(async () => {
+            const shouldStop = await poll();
+            if (shouldStop) {
+              clearInterval(interval);
+            }
+          }, 10000);
         }
-      }, 10000);
+      });
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step, currentPostId, isGeneratingImages, generatedImages.length, toast, normalizeImageResponse]);
+  }, [step, currentPostId, isGeneratingImages, generatedImages.length, toast]);
 
   const handleReferenceImageChange = (file: File | null) => {
     if (referenceImagePreview) {
