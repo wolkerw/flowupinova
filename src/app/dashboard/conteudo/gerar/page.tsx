@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -606,7 +605,6 @@ export default function GerarConteudoPage() {
           selectedContentId={selectedContentId}
           onSelectedContentIdChange={setSelectedContentId}
           onBack={() => setStep(1)}
-          onNext={() => handleGenerateImages()}
           onGeneratePrompts={handleGeneratePrompts}
           isGeneratingImages={isGeneratingImages}
           user={user}

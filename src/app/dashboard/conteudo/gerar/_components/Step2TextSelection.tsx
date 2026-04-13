@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -17,7 +16,6 @@ interface Step2TextSelectionProps {
   selectedContentId: string | undefined;
   onSelectedContentIdChange: (id: string) => void;
   onBack: () => void;
-  onNext: () => void;
   onGeneratePrompts: () => void;
   isGeneratingImages: boolean;
   user: any;
@@ -29,7 +27,6 @@ export const Step2TextSelection = ({
   selectedContentId,
   onSelectedContentIdChange,
   onBack,
-  onNext,
   onGeneratePrompts,
   isGeneratingImages,
   user,
@@ -67,25 +64,14 @@ export const Step2TextSelection = ({
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />Voltar
           </Button>
-          <div className="flex flex-col gap-2">
-            <Button 
-              type="button"
-              variant="outline" 
-              size="sm"
-              onClick={onGeneratePrompts}
-              className="text-xs text-muted-foreground border-dashed"
-            >
-              Gerar texto
-            </Button>
-            <Button 
-              onClick={onNext} 
-              disabled={!selectedContentId || isGeneratingImages} 
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
-              {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
-            </Button>
-          </div>
+          <Button 
+            onClick={onGeneratePrompts} 
+            disabled={!selectedContentId || isGeneratingImages} 
+            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+          >
+            {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
+            {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
+          </Button>
         </CardFooter>
       </Card>
 
@@ -108,7 +94,7 @@ export const Step2TextSelection = ({
               <Heart className="w-6 h-6 text-gray-800 cursor-pointer"/>
               <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer transform -scale-x-100"/>
               <Send className="w-6 h-6 text-gray-800 cursor-pointer -ml-1"/>
-              <Repeat className="w-6 h-6 text-gray-800 cursor-pointer"/>
+              <RepeatIcon className="w-6 h-6 text-gray-800 cursor-pointer"/>
             </div>
             <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer"/>
           </div>
@@ -135,7 +121,7 @@ export const Step2TextSelection = ({
   );
 };
 
-const Repeat = ({ className }: { className?: string }) => (
+const RepeatIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     width="24" 
