@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -163,13 +162,13 @@ export default function GerarConteudoPage() {
         console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
 
         try {
-          const response = await fetch('https://n8n.flowupinova.com.br/webhook-test/buscar-imagens-supabase', {
+          const response = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               postId: currentPostId, 
               filename: "1",
-              fileExtension: "png" // Adicionada a extensão do arquivo conforme solicitado
+              fileExtension: "png"
             }),
           });
 
@@ -384,7 +383,7 @@ export default function GerarConteudoPage() {
       setCurrentPostId(postId);
 
       // 3. Chamada ASSÍNCRONA para o webhook (sem await)
-      fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem', {
+      fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
