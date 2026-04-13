@@ -420,76 +420,6 @@ export default function GerarConteudoPage() {
     }
   };
 
-  const handleSaveDraft = async () => {
-    const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : null;
-    if (!selectedContent || !user) {
-      toast({ variant: "destructive", title: "Erro", description: "Selecione uma opção de texto primeiro." });
-      return;
-    }
-
-    const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
-
-    try {
-      // Garante que temos os prompts antes de prosseguir
-      let currentPrompts = prompts;
-      if (currentPrompts.length === 0) {
-          const response = await fetch('/api/generate-prompts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: selectedContent }),
-          });
-          const data = await response.json();
-          currentPrompts = data?.[0]?.output?.prompt || [];
-          if (currentPrompts.length > 0) setPrompts(currentPrompts);
-      }
-
-      if (currentPrompts.length === 0) {
-          toast({ variant: "destructive", title: "Erro", description: "Não foi possível obter os prompts para gerar as imagens." });
-          return;
-      }
-
-      const postsRef = collection(db, "users", user.uid, "posts");
-      const docRef = await addDoc(postsRef, {
-        text: fullCaption,
-        status: 'draft',
-        createdAt: serverTimestamp(),
-        scheduledAt: serverTimestamp(),
-        imageUrls: [],
-        platforms: [],
-        isCarousel: false,
-        connections: {
-          instagramUsername: instagramConnection?.instagramUsername || null,
-          pageName: metaConnection?.pageName || null,
-        }
-      });
-      
-      const postId = docRef.id;
-      setCurrentPostId(postId);
-      console.log("Post salvo com ID:", postId);
-
-      // Chamada assíncrona para o webhook Falai
-      fetch('https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              prompt: currentPrompts[0],
-              postId: postId,
-              fileName: "1"
-          })
-      }).catch(err => console.error("Falai generation start error:", err));
-
-      // Redireciona imediatamente para a etapa 3 com o loading ativado
-      setGeneratedImages([]); // Limpa imagens anteriores
-      setIsGeneratingImages(true); // Ativa o spinner na etapa 3
-      setStep(3);
-
-      toast({ variant: "success", title: "Sucesso!", description: `Rascunho salvo e geração de imagem iniciada. ID: ${postId}` });
-    } catch (error: any) {
-      console.error("Erro ao salvar rascunho ou iniciar geração:", error);
-      toast({ variant: "destructive", title: "Erro no processo", description: error.message });
-    }
-  };
-
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
     
@@ -677,7 +607,6 @@ export default function GerarConteudoPage() {
           onSelectedContentIdChange={setSelectedContentId}
           onBack={() => setStep(1)}
           onNext={() => handleGenerateImages()}
-          onSaveDraft={handleSaveDraft}
           onGeneratePrompts={handleGeneratePrompts}
           isGeneratingImages={isGeneratingImages}
           user={user}

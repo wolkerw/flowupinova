@@ -18,7 +18,6 @@ interface Step2TextSelectionProps {
   onSelectedContentIdChange: (id: string) => void;
   onBack: () => void;
   onNext: () => void;
-  onSaveDraft: () => void;
   onGeneratePrompts: () => void;
   isGeneratingImages: boolean;
   user: any;
@@ -31,7 +30,6 @@ export const Step2TextSelection = ({
   onSelectedContentIdChange,
   onBack,
   onNext,
-  onSaveDraft,
   onGeneratePrompts,
   isGeneratingImages,
   user,
@@ -78,13 +76,6 @@ export const Step2TextSelection = ({
               className="text-xs text-muted-foreground border-dashed"
             >
               Gerar texto
-            </Button>
-            <Button
-              type="button"
-              onClick={onSaveDraft}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              Gerar 3 imagens assíncronas
             </Button>
             <Button 
               onClick={onNext} 
