@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -46,10 +47,10 @@ export default function Marketplace() {
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* FlowUp CSS Variables */}
+      {/* NumVapt CSS Variables */}
       <style>{`
         :root {
-          --flowup-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
+          --numvapt-gradient: linear-gradient(135deg, #7DD3FC 0%, #3B82F6 50%, #1E40AF 100%);
         }
       `}</style>
 
@@ -57,7 +58,7 @@ export default function Marketplace() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Marketplace de Módulos</h1>
-          <p className="text-gray-600 mt-1">Expanda as funcionalidades da sua plataforma FlowUp</p>
+          <p className="text-gray-600 mt-1">Expanda as funcionalidades da sua plataforma NumVapt</p>
         </div>
       </div>
 
@@ -83,7 +84,7 @@ export default function Marketplace() {
                 <div>
                     <div className="text-2xl font-bold mb-4" style={{ color: '#3B82F6' }}>{module.price}</div>
                     <Button className="w-full text-white shadow-md"
-                           style={{ background: 'var(--flowup-gradient)' }}>
+                           style={{ background: 'var(--numvapt-gradient)' }}>
                       <Plus className="w-4 h-4 mr-2" />
                       Adicionar Módulo
                     </Button>

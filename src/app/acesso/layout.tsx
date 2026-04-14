@@ -86,7 +86,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
                         <Label htmlFor="message">Mensagem</Label>
                         <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full text-white bg-flowup-gradient">
+                    <Button type="submit" size="lg" className="w-full text-white bg-numvapt-gradient">
                         <Send className="w-5 h-5 mr-2" />
                         Enviar Mensagem
                     </Button>
@@ -120,7 +120,7 @@ export default function AcessoLayout({
             <header className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm shadow-sm z-50">
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
                     <Link href="/" className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
+                        <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
                     </Link>
                     <nav className="hidden md:flex items-center gap-6">
                         <Link href="/#features" className="text-sm font-medium text-muted-foreground hover:text-primary">Funcionalidades</Link>
@@ -131,7 +131,7 @@ export default function AcessoLayout({
                         {loading ? (
                             <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
                         ) : user ? (
-                            <Button asChild className="text-white bg-flowup-gradient">
+                            <Button asChild className="text-white bg-numvapt-gradient">
                                 <Link href="/dashboard">Entrar</Link>
                             </Button>
                         ) : (
@@ -139,7 +139,7 @@ export default function AcessoLayout({
                                 <Button variant="ghost" asChild>
                                     <Link href="/acesso/login">Login</Link>
                                 </Button>
-                                <Button asChild className="text-white bg-flowup-gradient">
+                                <Button asChild className="text-white bg-numvapt-gradient">
                                     <Link href="/acesso/cadastro">Criar Conta</Link>
                                 </Button>
                             </>
@@ -156,7 +156,7 @@ export default function AcessoLayout({
                     className="w-full"
                 >
                     <Card className="w-full max-w-sm mx-auto shadow-xl border-none overflow-hidden bg-card">
-                        <div className="p-8 pb-6 bg-flowup-gradient">
+                        <div className="p-8 pb-6 bg-numvapt-gradient">
                             <CardHeader className="text-center space-y-2 p-0">
                                 <CardDescription className="text-primary-foreground/80 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
                             </CardHeader>
@@ -190,19 +190,19 @@ export default function AcessoLayout({
                 <div className="container mx-auto px-6 py-8">
                 <div className="flex flex-col md:flex-row justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
+                        <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
                     </div>
                     <div className="flex items-center gap-4 mt-4 md:mt-0">
                     <Link href="/termos" className="text-muted-foreground hover:text-primary">Termos</Link>
                     <Link href="/privacidade" className="text-muted-foreground hover:text-primary">Privacidade</Link>
                     <button onClick={() => openContactModal()} className="text-muted-foreground hover:text-primary">Contato</button>
-                    <a href="https://www.instagram.com/flowup.inova" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
+                    <a href="https://www.instagram.com/numvapt.oficial" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
                         <Instagram className="w-5 h-5" />
                     </a>
                     </div>
                 </div>
                 <div className="mt-8 border-t border-border pt-8 text-center text-muted-foreground text-sm">
-                    <p>&copy; 2026 Flowup Soluções e Inovações I.S. Todos os direitos reservados.</p>
+                    <p>&copy; 2026 NumVapt Soluções e Inovações I.S. Todos os direitos reservados.</p>
                 </div>
                 </div>
             </footer>
@@ -213,7 +213,7 @@ export default function AcessoLayout({
             />
             {/* WhatsApp Button */}
             <a
-                href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20FlowUp."
+                href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="fixed bottom-6 right-6 z-50"
@@ -233,5 +233,3 @@ export default function AcessoLayout({
         </div>
     );
 }
-
-    

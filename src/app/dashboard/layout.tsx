@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -177,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar className="border-r border-border/60 bg-background">
           <SidebarHeader className="border-b border-border/60 p-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/logo.png" alt="FlowUp Logo" width={120} height={25} />
+              <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
             </Link>
           </SidebarHeader>
 
@@ -195,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         disabled={item.disabled}
                         className={`hover:bg-accent transition-all duration-200 rounded-xl mb-1 ${
                           pathname === item.url
-                            ? 'text-primary-foreground border bg-flowup-gradient' 
+                            ? 'text-primary-foreground border bg-numvapt-gradient' 
                             : 'hover:text-accent-foreground'
                         } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
@@ -301,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
        <a
-        href="https://wa.me/555199922177?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20FlowUp."
+        href="https://wa.me/555199922177?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20NumVapt."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50"
@@ -321,5 +320,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    

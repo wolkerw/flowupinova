@@ -1,13 +1,13 @@
 
-# FlowUp - Plataforma de Marketing com Inteligência Artificial
+# NumVapt - Plataforma de Marketing com Inteligência Artificial
 
-Bem-vindo à documentação técnica da plataforma FlowUp. Este documento fornece uma visão geral da arquitetura, tecnologias utilizadas e diretrizes para contribuir com o projeto.
+Bem-vindo à documentação técnica da plataforma NumVapt. Este documento fornece uma visão geral da arquitetura, tecnologias utilizadas e diretrizes para contribuir com o projeto.
 
 ---
 
 ## 🚀 Visão Geral do Projeto
 
-A FlowUp é uma plataforma SaaS (Software as a Service) projetada para empoderar pequenas e médias empresas, automatizando e otimizando suas estratégias de marketing digital através de Inteligência Artificial. A aplicação centraliza a criação de conteúdo, gestão de anúncios, análise de performance e relacionamento com o cliente em um único lugar.
+A NumVapt é uma plataforma SaaS (Software as a Service) projetada para empoderar pequenas e médias empresas, automatizando e otimizando suas estratégias de marketing digital através de Inteligência Artificial. A aplicação centraliza a criação de conteúdo, gestão de anúncios, análise de performance e relacionamento com o cliente em um único lugar.
 
 ## 🛠️ Tecnologias e Stacks
 
@@ -82,4 +82,3 @@ Os seguintes scripts estão disponíveis no `package.json`:
 - `npm run start`: Inicia o servidor de produção após o build.
 - `npm run lint`: Executa o linter para analisar o código em busca de problemas.
 - `npm run test`: Executa os testes unitários e de integração.
-

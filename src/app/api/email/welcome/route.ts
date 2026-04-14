@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
 
         const emailPayload = {
             to: email,
-            subject: "Bem-vindo à FlowUp! ✨",
+            subject: "Bem-vindo à NumVapt! ✨",
             html: `
               <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                 <h1 style="color: #1E40AF;">Olá ${name},</h1>
-                <p>Seja muito bem-vindo(a) à FlowUp! Estamos empolgados em ter você a bordo.</p>
-                <p>A FlowUp é sua nova plataforma de marketing com inteligência artificial, projetada para simplificar e automatizar suas tarefas. Aqui está um resumo do que você pode começar a fazer agora mesmo:</p>
+                <p>Seja muito bem-vindo(a) à NumVapt! Estamos empolgados em ter você a bordo.</p>
+                <p>A NumVapt é sua nova plataforma de marketing com inteligência artificial, projetada para simplificar e automatizar suas tarefas. Aqui está um resumo do que você pode começar a fazer agora mesmo:</p>
                 <ul style="padding-left: 20px;">
                   <li><strong>Gerar Conteúdo com IA:</strong> Crie legendas, ideias para posts e textos para anúncios em segundos.</li>
                   <li><strong>Agendar Publicações:</strong> Conecte suas redes sociais (Instagram e Facebook) e agende seus posts para serem publicados nos melhores horários.</li>
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
                 <p style="text-align: center; margin: 30px 0;">
                     <a href="${dashboardUrl}" style="background-color: #3B82F6; color: white; padding: 12px 25px; text-align: center; text-decoration: none; display: inline-block; border-radius: 8px; font-size: 16px;">Acessar a Plataforma</a>
                 </p>
-                <p style="margin-top: 20px;">Atenciosamente,<br>Equipe FlowUp</p>
+                <p style="margin-top: 20px;">Atenciosamente,<br>Equipe NumVapt</p>
               </div>
             `
         };

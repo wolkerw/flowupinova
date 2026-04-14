@@ -4,7 +4,7 @@ import { Providers } from '@/components/auth/providers';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  title: 'FlowUp Chat',
+  title: 'NumVapt Chat',
   description: 'Seu assistente de marketing com IA',
 };
 
