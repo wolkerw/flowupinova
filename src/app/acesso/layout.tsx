@@ -120,7 +120,7 @@ export default function AcessoLayout({
             <header className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm shadow-sm z-50">
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
                     <Link href="/" className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
+                        <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
                     </Link>
                     <nav className="hidden md:flex items-center gap-6">
                         <Link href="/#features" className="text-sm font-medium text-muted-foreground hover:text-primary">Funcionalidades</Link>
@@ -190,7 +190,7 @@ export default function AcessoLayout({
                 <div className="container mx-auto px-6 py-8">
                 <div className="flex flex-col md:flex-row justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
+                        <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
                     </div>
                     <div className="flex items-center gap-4 mt-4 md:mt-0">
                     <Link href="/termos" className="text-muted-foreground hover:text-primary">Termos</Link>

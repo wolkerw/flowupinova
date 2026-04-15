@@ -176,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar className="border-r border-border/60 bg-background">
           <SidebarHeader className="border-b border-border/60 p-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/logo.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
+              <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
             </Link>
           </SidebarHeader>
 
