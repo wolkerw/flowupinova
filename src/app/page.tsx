@@ -1,11 +1,26 @@
-
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Megaphone, BarChart3, Edit, Send, CheckCircle, Mail, MessageCircle, X, User, AtSign, Type, Sparkles as SparklesIcon, Star, Instagram } from 'lucide-react';
+import { 
+  Bot, 
+  Megaphone, 
+  BarChart3, 
+  Edit, 
+  Send, 
+  CheckCircle, 
+  Mail, 
+  MessageCircle, 
+  X, 
+  User, 
+  AtSign, 
+  Type, 
+  Sparkles as SparklesIcon, 
+  Star, 
+  Instagram 
+} from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -13,11 +28,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/components/auth/auth-provider';
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const ParallaxShapes = () => {
     const { scrollYProgress } = useScroll();
 
-    // Different transforms for variety
     const y1 = useTransform(scrollYProgress, [0, 1], [0, -450]);
     const y2 = useTransform(scrollYProgress, [0, 1], [0, -580]);
     const y3 = useTransform(scrollYProgress, [0, 1], [0, 560]);
@@ -81,16 +97,16 @@ const ParallaxShapes = () => {
 
 
     return (
-        <div className="absolute inset-0 overflow-hidden z-0">
-            <Shape5 y={y5} className="w-16 h-16 text-border/50 top-[10%] left-[5%] transform rotate-15" />
-            <Shape2 y={y2} className="w-16 h-16 text-border/40 top-[20%] right-[10%]" />
-            <Shape1 y={y1} className="w-10 h-10 text-border/60 top-[50%] right-[5%]" />
-            <Shape6 y={y5} className="w-12 h-12 text-border/70 top-[5%] left-[40%]" />
-            <Shape7 y={y3} className="w-16 h-16 text-border/40 top-[35%] left-[55%]" />
-            <Shape2 y={y2} className="w-14 h-14 text-border/50 top-[75%] left-[60%]" />
-            <Shape5 y={y5} className="w-16 h-16 text-border/40 top-[90%] left-[5%] transform rotate-15" />
-            <Shape6 y={y4} className="w-20 h-20 text-border/40 bottom-[5%] left-[30%]" />
-            <Shape7 y={y3} className="w-8 h-8 text-border/60 top-[85%] right-[5%]" />
+        <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+            <Shape5 y={y5} className="w-16 h-16 text-primary/10 top-[10%] left-[5%] transform rotate-15" />
+            <Shape2 y={y2} className="w-16 h-16 text-accent/10 top-[20%] right-[10%]" />
+            <Shape1 y={y1} className="w-10 h-10 text-primary/20 top-[50%] right-[5%]" />
+            <Shape6 y={y5} className="w-12 h-12 text-accent/20 top-[5%] left-[40%]" />
+            <Shape7 y={y3} className="w-16 h-16 text-primary/10 top-[35%] left-[55%]" />
+            <Shape2 y={y2} className="w-14 h-14 text-accent/10 top-[75%] left-[60%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-primary/10 top-[90%] left-[5%] transform rotate-15" />
+            <Shape6 y={y4} className="w-20 h-20 text-accent/10 bottom-[5%] left-[30%]" />
+            <Shape7 y={y3} className="w-8 h-8 text-primary/20 top-[85%] right-[5%]" />
         </div>
     );
 };
@@ -111,7 +127,6 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui iria a lógica de envio do formulário
     console.log({ name, email, subject, message });
     onClose();
   };
@@ -145,28 +160,28 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
                         <Label htmlFor="name">Nome</Label>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="name" placeholder="Seu nome completo" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10" />
+                            <Input id="name" placeholder="Seu nome completo" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10 focus-visible:ring-accent" />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">E-mail</Label>
                             <div className="relative">
                             <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10" />
+                            <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-10 focus-visible:ring-accent" />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="subject">Assunto</Label>
                             <div className="relative">
                             <Type className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="subject" placeholder="Sobre o que você gostaria de falar?" value={subject} onChange={(e) => setSubject(e.target.value)} required className="pl-10" />
+                            <Input id="subject" placeholder="Sobre o que você gostaria de falar?" value={subject} onChange={(e) => setSubject(e.target.value)} required className="pl-10 focus-visible:ring-accent" />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="message">Mensagem</Label>
-                        <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
+                        <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28 focus-visible:ring-accent" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full text-white bg-numvapt-gradient">
+                    <Button type="submit" size="lg" className="w-full text-white bg-numvapt-gradient hover:opacity-90 transition-opacity">
                         <Send className="w-5 h-5 mr-2" />
                         Enviar Mensagem
                     </Button>
@@ -193,46 +208,46 @@ export default function HomePage() {
     {
       icon: Bot,
       title: "Geração de Conteúdo com IA",
-      description: "Crie posts, legendas e ideias para suas redes sociais em segundos.",
+      description: "Crie posts, legendas e ideias para suas redes sociais em segundos com o poder do Vapti.",
     },
     {
       icon: Megaphone,
       title: "Gestão de Anúncios",
-      description: "Lance e gerencie campanhas de anúncios no Facebook e Instagram.",
+      description: "Lance e gerencie campanhas de anúncios no Facebook e Instagram de forma simplificada.",
     },
     {
       icon: BarChart3,
       title: "Relatórios Simplificados",
-      description: "Acompanhe suas métricas de marketing em um dashboard intuitivo.",
+      description: "Acompanhe suas métricas de marketing em um dashboard intuitivo e focado em resultados.",
     },
   ];
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="bg-background text-foreground selection:bg-accent/30">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm shadow-sm z-50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
+      <header className="fixed top-0 left-0 right-0 bg-background/90 backdrop-blur-md shadow-sm z-50 border-b border-primary/5">
+        <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105">
+            <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={140} height={50} className="h-auto" />
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary">Funcionalidades</Link>
-            <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary">Como Funciona</Link>
-            <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary">Preços</Link>
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="#features" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">Funcionalidades</Link>
+            <Link href="#how-it-works" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">Como Funciona</Link>
+            <Link href="#pricing" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">Preços</Link>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {loading ? (
-                <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
+                <div className="h-10 w-24 animate-pulse rounded-full bg-muted" />
             ) : user ? (
-                <Button asChild className="text-white bg-numvapt-gradient">
-                    <Link href="/dashboard">Entrar</Link>
+                <Button asChild className="text-white bg-numvapt-gradient rounded-full shadow-lg shadow-primary/20 px-6">
+                    <Link href="/dashboard">Ir para Painel</Link>
                 </Button>
             ) : (
                 <>
-                    <Button variant="ghost" asChild>
+                    <Button variant="ghost" asChild className="rounded-full hidden sm:inline-flex">
                         <Link href="/acesso/login">Login</Link>
                     </Button>
-                    <Button asChild className="text-white bg-numvapt-gradient">
+                    <Button asChild className="text-white bg-numvapt-gradient rounded-full shadow-lg shadow-primary/20 px-6">
                         <Link href="/acesso/cadastro">Criar Conta</Link>
                     </Button>
                 </>
@@ -241,9 +256,9 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="pt-24">
+      <main className="pt-20">
         {/* Hero Section */}
-        <section className="py-20 px-6 bg-muted relative overflow-hidden">
+        <section className="py-24 px-6 relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-transparent">
              <ParallaxShapes />
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -251,25 +266,34 @@ export default function HomePage() {
             transition={{ duration: 0.7 }}
             className="container mx-auto relative z-10"
           >
-            <div className="grid md:grid-cols-2 items-center gap-12">
-              <div className="text-center md:text-left">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4 leading-tight">
-                  Sua plataforma de marketing com <span className="text-primary">Inteligência Artificial</span>
+            <div className="grid lg:grid-cols-2 items-center gap-16">
+              <div className="text-center lg:text-left">
+                <Badge variant="outline" className="mb-6 border-primary/20 bg-primary/5 text-primary py-1 px-4 rounded-full animate-bounce">
+                  ✨ Nova Era do Marketing Digital
+                </Badge>
+                <h1 className="text-5xl md:text-6xl font-black text-foreground mb-6 leading-[1.1] tracking-tight">
+                  Seu marketing no modo <span className="text-transparent bg-clip-text bg-numvapt-gradient">Ultra Vapt</span>
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-xl mx-auto md:mx-0 mb-8">
-                  Automatize a criação de conteúdo, gerencie seus anúncios e analise seus resultados em um só lugar.
+                <p className="text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-10 font-medium">
+                  Deixe a Inteligência Artificial criar, agendar e analisar seu conteúdo. Economize horas de trabalho e foque no que importa: seu negócio.
                 </p>
-                <Button size="lg" asChild className="text-white bg-numvapt-gradient">
-                  <Link href="/acesso/cadastro">Começar Grátis</Link>
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                  <Button size="lg" asChild className="text-white bg-numvapt-gradient px-10 rounded-full h-14 text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+                    <Link href="/acesso/cadastro">Começar Grátis Agora</Link>
+                  </Button>
+                  <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-primary/20 hover:bg-primary/5" onClick={() => openContactModal()}>
+                    Falar com Especialista
+                  </Button>
+                </div>
               </div>
-              <div>
+              <div className="relative">
+                <div className="absolute inset-0 bg-numvapt-gradient opacity-10 blur-[100px] rounded-full"></div>
                  <Image
                     src="/mascote-flowy.gif"
                     alt="Mascote Vapti"
-                    width={500}
-                    height={500}
-                    className="rounded-lg mx-auto"
+                    width={600}
+                    height={600}
+                    className="rounded-3xl mx-auto relative z-10 drop-shadow-2xl"
                     unoptimized
                   />
               </div>
@@ -278,58 +302,60 @@ export default function HomePage() {
         </section>
 
         {/* How it Works Section */}
-        <section id="how-it-works" className="py-20 px-6">
+        <section id="how-it-works" className="py-24 px-6 bg-white border-y border-primary/5">
             <div className="container mx-auto text-center">
-                <h2 className="text-3xl font-bold mb-2">Como funciona? É simples.</h2>
-                <p className="text-muted-foreground mb-12">Em apenas três passos, seu conteúdo está pronto para brilhar.</p>
-                <div className="grid md:grid-cols-3 gap-10">
-                    <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                            <Edit className="w-10 h-10"/>
+                <h2 className="text-4xl font-black mb-4">Simples como <span className="text-accent italic">Vapt Vupt!</span></h2>
+                <p className="text-lg text-muted-foreground mb-16 max-w-2xl mx-auto">Nossa plataforma foi desenhada para que você gaste o menor tempo possível configurando e o máximo colhendo resultados.</p>
+                <div className="grid md:grid-cols-3 gap-12">
+                    <div className="group flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                            <Edit className="w-12 h-12"/>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">1. Descreva</h3>
-                        <p className="text-muted-foreground">Diga à nossa IA sobre o que você quer postar. Forneça um tema, uma ideia ou algumas palavras-chave.</p>
+                        <h3 className="text-2xl font-bold mb-3">1. Dê a Ideia</h3>
+                        <p className="text-muted-foreground leading-relaxed px-4">Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e seu tom de voz.</p>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                            <Bot className="w-10 h-10"/>
+                    <div className="group flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                            <Bot className="w-12 h-12"/>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">2. Receba</h3>
-                        <p className="text-muted-foreground">A IA gera textos e sugere imagens. Escolha a opção que mais te agrada e personalize como quiser.</p>
+                        <h3 className="text-2xl font-bold mb-3">2. Selecione e Personalize</h3>
+                        <p className="text-muted-foreground leading-relaxed px-4">Escolha entre as opções de texto e imagem geradas. Coloque sua marca e edite em segundos.</p>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                            <Send className="w-10 h-10"/>
+                    <div className="group flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                            <Send className="w-12 h-12"/>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">3. Publique</h3>
-                        <p className="text-muted-foreground">Agende suas publicações para as melhores horários e deixe nossa plataforma postar por você.</p>
+                        <h3 className="text-2xl font-bold mb-3">3. Publique ou Agende</h3>
+                        <p className="text-muted-foreground leading-relaxed px-4">Envie direto para suas redes ou deixe agendado para o melhor horário. O resto é com a gente.</p>
                     </div>
                 </div>
             </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 px-6 bg-muted relative overflow-hidden">
+        <section id="features" className="py-24 px-6 bg-muted/40 relative overflow-hidden">
           <ParallaxShapes />
           <div className="container mx-auto relative z-10">
-            <h2 className="text-3xl font-bold text-center mb-12">Tudo que você precisa para decolar seu marketing</h2>
+            <h2 className="text-4xl font-black text-center mb-16">Poderosa e Intuitiva</h2>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
                 <motion.div
                   key={feature.title}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="shadow-lg hover:shadow-xl transition-shadow h-full bg-card">
-                    <CardHeader>
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                        <feature.icon className="w-6 h-6 text-primary" />
+                  <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-300 h-full bg-white/80 backdrop-blur-sm group overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-numvapt-gradient"></div>
+                    <CardHeader className="pt-8">
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <feature.icon className="w-8 h-8 text-primary" />
                       </div>
-                      <CardTitle>{feature.title}</CardTitle>
+                      <CardTitle className="text-2xl">{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">{feature.description}</p>
+                      <p className="text-lg text-muted-foreground leading-relaxed">{feature.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -339,92 +365,102 @@ export default function HomePage() {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-20 px-6">
+        <section id="pricing" className="py-24 px-6 bg-white">
             <div className="container mx-auto">
-                <h2 className="text-3xl font-bold text-center mb-2">Planos que cabem no seu bolso</h2>
-                <p className="text-center text-muted-foreground mb-8">Escolha o plano perfeito para impulsionar seu negócio.</p>
-                <div className="flex justify-center items-center gap-4 mb-12">
-                    <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary font-bold' : 'text-muted-foreground'}>
-                        Mensal
-                    </Label>
-                    <Switch
-                        id="billing-cycle"
-                        checked={isAnnual}
-                        onCheckedChange={setIsAnnual}
-                    />
-                    <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary font-bold' : 'text-muted-foreground'}>
-                        Anual
-                    </Label>
-                    <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
-                        Economize 2 meses!
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-black mb-4">Escolha sua velocidade</h2>
+                    <p className="text-lg text-muted-foreground max-w-xl mx-auto">Planos transparentes para negócios que não podem perder tempo.</p>
+                    
+                    <div className="flex justify-center items-center gap-6 mt-10">
+                        <Label htmlFor="billing-cycle" className={cn("text-lg transition-all", !isAnnual ? 'text-primary font-black scale-110' : 'text-muted-foreground')}>
+                            Mensal
+                        </Label>
+                        <Switch
+                            id="billing-cycle"
+                            checked={isAnnual}
+                            onCheckedChange={setIsAnnual}
+                            className="data-[state=checked]:bg-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                             <Label htmlFor="billing-cycle" className={cn("text-lg transition-all", isAnnual ? 'text-primary font-black scale-110' : 'text-muted-foreground')}>
+                                Anual
+                            </Label>
+                            <Badge className="bg-accent text-white border-none px-2 py-0.5 animate-pulse">-20%</Badge>
+                        </div>
                     </div>
                 </div>
+
                 <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    <Card className="shadow-lg border-border flex flex-col bg-card">
-                         <CardHeader className="pb-4">
-                            <CardTitle className="text-2xl font-bold">7 Dias Grátis</CardTitle>
-                             <p className="text-4xl font-bold text-foreground pt-2">R$0<span className="text-lg font-medium text-muted-foreground">/7 dias</span></p>
-                            <p className="text-muted-foreground text-sm">Teste todas as funcionalidades do plano Standard.</p>
+                    {/* Trial */}
+                    <Card className="shadow-lg border-border border-2 flex flex-col bg-white hover:border-primary/20 transition-colors">
+                         <CardHeader className="pb-4 pt-10">
+                            <CardTitle className="text-2xl font-bold">Modo Start</CardTitle>
+                             <p className="text-5xl font-black text-foreground pt-4">R$0<span className="text-xl font-medium text-muted-foreground">/7 dias</span></p>
+                            <p className="text-muted-foreground text-sm mt-2">Experimente o poder da IA sem compromisso.</p>
                         </CardHeader>
-                        <CardContent className="space-y-4 flex-grow">
-                             <ul className="space-y-3 text-foreground">
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Integração com Google Meu Negócio</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Suporte Humano</li>
+                        <CardContent className="space-y-4 flex-grow pt-6">
+                             <ul className="space-y-4">
+                                <li className="flex items-center gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0" />Geração de Conteúdo</li>
+                                <li className="flex items-center gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0" />Agendamento (Feed)</li>
+                                <li className="flex items-center gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0" />Relatórios Básicos</li>
+                                <li className="flex items-center gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0" />Suporte por E-mail</li>
                             </ul>
                         </CardContent>
-                        <div className="p-6 pt-0">
-                           <Button asChild className="w-full text-white mt-4 bg-numvapt-gradient">
+                        <div className="p-8 pt-0">
+                           <Button asChild variant="outline" className="w-full rounded-full h-12 border-primary text-primary hover:bg-primary/5">
                                 <Link href="/acesso/cadastro">Iniciar Teste Grátis</Link>
                            </Button>
                         </div>
                     </Card>
-                    <Card className="shadow-lg border-primary border-2 flex flex-col relative bg-card">
-                        <CardHeader className="pb-4 pt-8 text-center">
-                            <div className="bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full absolute -top-4 left-1/2 -translate-x-1/2">
-                                Mais Popular
+
+                    {/* Standard */}
+                    <Card className="shadow-2xl border-primary border-[3px] flex flex-col relative bg-white transform scale-105 z-10">
+                        <div className="bg-numvapt-gradient text-white text-xs font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full absolute -top-5 left-1/2 -translate-x-1/2 shadow-lg">
+                            Mais Assinado
+                        </div>
+                        <CardHeader className="pb-4 pt-12 text-center">
+                            <CardTitle className="text-3xl font-black">Plano Standard</CardTitle>
+                            <div className="pt-6">
+                                <p className="text-6xl font-black text-primary">
+                                    {isAnnual ? 'R$400' : 'R$490'}
+                                    <span className="text-xl font-medium text-muted-foreground">/mês</span>
+                                </p>
+                                <p className="text-muted-foreground text-sm mt-3">{isAnnual ? 'Faturado anualmente' : 'Faturado mensalmente'}</p>
                             </div>
-                            <CardTitle className="text-2xl font-bold pt-8">Plano Standard</CardTitle>
-                            <p className="text-4xl font-bold text-primary pt-2">
-                                {isAnnual ? 'R$400,00' : 'R$490,00'}
-                                <span className="text-lg font-medium text-muted-foreground">/mês</span>
-                            </p>
-                            <p className="text-muted-foreground text-sm">{isAnnual ? 'Cobrado anualmente' : 'Cobrado mensalmente'}</p>
                         </CardHeader>
-                        <CardContent className="space-y-4 flex-grow">
-                            <ul className="space-y-3 text-foreground">
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Geração de Conteúdo com IA</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Agendamento de Posts</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Gestão de Anúncios (Meta)</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Integração com Google Meu Negócio</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Relatórios de Performance</li>
-                                <li className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-500" />Suporte Humano</li>
+                        <CardContent className="space-y-5 flex-grow pt-8">
+                            <ul className="space-y-4">
+                                <li className="flex items-center gap-3 font-bold"><CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />Vapti AI sem limites</li>
+                                <li className="flex items-center gap-3 font-bold"><CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />Agendamento Automático</li>
+                                <li className="flex items-center gap-3 font-bold"><CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />Gestão de Anúncios Meta</li>
+                                <li className="flex items-center gap-3 font-bold"><CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />Google Meu Negócio Pro</li>
+                                <li className="flex items-center gap-3 font-bold"><CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />Suporte Humanizado</li>
                             </ul>
                         </CardContent>
-                        <div className="p-6 pt-0">
-                           <Button asChild className="w-full text-white mt-4 bg-numvapt-gradient">
+                        <div className="p-8 pt-0">
+                           <Button asChild className="w-full text-white bg-numvapt-gradient rounded-full h-14 text-lg font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
                                 <Link href="/acesso/cadastro">Assinar Agora</Link>
                            </Button>
                         </div>
                     </Card>
-                    <Card className="shadow-lg border-border flex flex-col bg-card">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-2xl font-bold">Plano Personal</CardTitle>
-                             <p className="text-4xl font-bold text-foreground pt-2">Personalizado</p>
-                            <p className="text-muted-foreground text-sm">Tudo do Standard, e mais!</p>
+
+                    {/* Personal */}
+                    <Card className="shadow-lg border-border border-2 flex flex-col bg-white hover:border-primary/20 transition-colors">
+                        <CardHeader className="pb-4 pt-10">
+                            <CardTitle className="text-2xl font-bold">Plano Custom</CardTitle>
+                             <p className="text-5xl font-black text-foreground pt-4">Sob Medida</p>
+                            <p className="text-muted-foreground text-sm mt-2">Para agências e grandes empresas.</p>
                         </CardHeader>
-                        <CardContent className="space-y-4 flex-grow">
-                            <ul className="space-y-3 text-foreground">
-                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" /><span className="font-bold text-primary">Tudo do Plano Standard, e mais:</span></li>
-                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Consultoria digital de marketing</li>
-                                <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />Desenvolvimento de soluções personalizadas adaptadas para o seu negócio</li>
+                        <CardContent className="space-y-4 flex-grow pt-6">
+                            <ul className="space-y-4">
+                                <li className="flex items-start gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-1" />Multi-contas e Sub-usuários</li>
+                                <li className="flex items-start gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-1" />Consultoria Estratégica</li>
+                                <li className="flex items-start gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-1" />Integrações via API</li>
+                                <li className="flex items-start gap-3 font-medium"><CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-1" />Gerente de Sucesso Dedicado</li>
                             </ul>
                         </CardContent>
-                         <div className="p-6 pt-0">
-                            <Button variant="outline" className="w-full mt-4 border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={() => openContactModal('Interesse no Plano Personalizado')}>Quero saber mais</Button>
+                         <div className="p-8 pt-0">
+                            <Button variant="outline" className="w-full rounded-full h-12 border-primary text-primary hover:bg-primary/5" onClick={() => openContactModal('Interesse no Plano Custom')}>Quero uma Proposta</Button>
                         </div>
                     </Card>
                 </div>
@@ -432,35 +468,53 @@ export default function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 px-6">
-          <div className="container mx-auto text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Pronto para escalar seu conteúdo?</h2>
-            <p className="text-lg text-muted-foreground mb-8">Junte-se a milhares de empresas que já estão economizando tempo e dinheiro.</p>
-            <Button size="lg" asChild className="text-white bg-numvapt-gradient">
-              <Link href="/acesso/cadastro">Criar minha conta agora</Link>
-            </Button>
-          </div>
+        <section className="py-32 px-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-numvapt-gradient opacity-10"></div>
+            <div className="container mx-auto text-center relative z-10">
+                <h2 className="text-5xl font-black text-foreground mb-8">Pare de postar, comece a <span className="text-primary">crescer</span>.</h2>
+                <p className="text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-medium">O Vapti está pronto para impulsionar seu marketing. E você?</p>
+                <Button size="lg" asChild className="text-white bg-numvapt-gradient px-12 rounded-full h-16 text-xl font-black shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
+                <Link href="/acesso/cadastro">Criar minha conta grátis</Link>
+                </Button>
+            </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="bg-muted text-foreground">
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2">
-                <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={120} height={60} className="h-auto" />
+      <footer className="bg-gray-900 text-white pt-20 pb-12">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-12 mb-16">
+            <div className="col-span-1 md:col-span-2">
+                <Image src="/logo-numvapt.png" alt="NumVapt Logo" width={180} height={70} className="h-auto mb-8 brightness-0 invert" />
+                <p className="text-gray-400 text-lg max-w-sm leading-relaxed">
+                    A primeira plataforma de marketing com IA focada em velocidade e resultados reais para pequenos e médios negócios.
+                </p>
             </div>
-            <div className="flex items-center gap-4 mt-4 md:mt-0">
-              <Link href="/termos" className="text-muted-foreground hover:text-primary">Termos</Link>
-              <Link href="/privacidade" className="text-muted-foreground hover:text-primary">Privacidade</Link>
-              <button onClick={() => openContactModal()} className="text-muted-foreground hover:text-primary">Contato</button>
-              <a href="https://www.instagram.com/numvapt.oficial" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 text-white hover:opacity-90 transition-opacity">
-                <Instagram className="w-5 h-5" />
-              </a>
+            <div>
+                <h4 className="font-bold text-xl mb-6">Plataforma</h4>
+                <ul className="space-y-4 text-gray-400">
+                    <li><Link href="#features" className="hover:text-primary transition-colors">Funcionalidades</Link></li>
+                    <li><Link href="#pricing" className="hover:text-primary transition-colors">Preços</Link></li>
+                    <li><Link href="/acesso/login" className="hover:text-primary transition-colors">Login</Link></li>
+                    <li><Link href="/acesso/cadastro" className="hover:text-primary transition-colors">Criar Conta</Link></li>
+                </ul>
+            </div>
+            <div>
+                <h4 className="font-bold text-xl mb-6">Legal</h4>
+                <ul className="space-y-4 text-gray-400">
+                    <li><Link href="/termos" className="hover:text-primary transition-colors">Termos de Uso</Link></li>
+                    <li><Link href="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link></li>
+                    <li><button onClick={() => openContactModal()} className="hover:text-primary transition-colors">Contato</button></li>
+                    <li className="pt-4 flex gap-4">
+                        <a href="https://www.instagram.com/numvapt.oficial" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white hover:bg-numvapt-gradient transition-all">
+                            <Instagram className="w-6 h-6" />
+                        </a>
+                    </li>
+                </ul>
             </div>
           </div>
-          <div className="mt-8 border-t border-border pt-8 text-center text-muted-foreground text-sm">
-            <p>&copy; 2026 NumVapt Soluções e Inovações I.S. Todos os direitos reservados.</p>
+          <div className="border-t border-white/10 pt-8 text-center text-gray-500 text-sm">
+            <p>&copy; {new Date().getFullYear()} NumVapt Soluções e Inovações I.S. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
@@ -474,15 +528,16 @@ export default function HomePage() {
         href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt."
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50"
+        className="fixed bottom-8 right-8 z-50 group"
         aria-label="Entre em contato pelo WhatsApp"
       >
-        <Button size="icon" className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg transition-transform hover:scale-110">
+        <div className="absolute -inset-4 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/30 transition-colors"></div>
+        <Button size="icon" className="w-16 h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white shadow-2xl transition-all hover:scale-110 relative">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                className="w-8 h-8"
+                className="w-10 h-10"
             >
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z"/>
             </svg>
