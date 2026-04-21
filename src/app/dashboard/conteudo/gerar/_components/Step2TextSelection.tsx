@@ -39,7 +39,7 @@ export const Step2TextSelection = ({
       <Card className="shadow-lg border-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Bot className="w-6 h-6 text-purple-500" />
+            <Bot className="w-6 h-6 text-accent" />
             Etapa 2: Sugestões da IA
           </CardTitle>
         </CardHeader>
@@ -67,7 +67,7 @@ export const Step2TextSelection = ({
           <Button 
             onClick={onGeneratePrompts} 
             disabled={!selectedContentId || isGeneratingImages} 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            className="bg-accent hover:bg-accent/90 text-white shadow-md"
           >
             {isGeneratingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : 'Avançar'}
             {!isGeneratingImages && <ArrowRight className="w-4 h-4 ml-2" />}
@@ -80,7 +80,7 @@ export const Step2TextSelection = ({
           <div className="p-3 flex items-center gap-2 border-b">
             <Avatar className="h-8 w-8">
               <AvatarImage src={user?.photoURL || undefined} />
-              <AvatarFallback>{(instagramConnection?.instagramUsername || user?.displayName || 'U').charAt(0)}</AvatarFallback>
+              <AvatarFallback>{(instagramConnection?.instagramUsername || user?.displayName || 'U').charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <span className="font-bold text-sm">
               {instagramConnection?.instagramUsername || user?.displayName || 'seu_usuario'}

@@ -49,7 +49,7 @@ export const Step1Idea = ({
       <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="w-6 h-6 text-purple-500" />
+            <Sparkles className="w-6 h-6 text-accent" />
             Etapa 1: Sobre o que é o post?
           </CardTitle>
         </CardHeader>
@@ -144,7 +144,7 @@ export const Step1Idea = ({
           <Button 
             onClick={onGenerate} 
             disabled={isButtonDisabled} 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            className="bg-accent hover:bg-accent/90 text-white shadow-md"
           >
             {isLoading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando...</>

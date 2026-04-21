@@ -32,7 +32,7 @@ export const Step3ImageSelection = ({
       <Card className="shadow-lg border-none w-full max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <ImageIcon className="w-6 h-6 text-purple-500" />
+            <ImageIcon className="w-6 h-6 text-accent" />
             Etapa 3: Escolha a melhor imagem
           </CardTitle>
           <div className="flex justify-between items-center">
@@ -47,7 +47,7 @@ export const Step3ImageSelection = ({
                   key={i} 
                   className="relative aspect-square rounded-lg bg-muted animate-pulse flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20"
                 >
-                  <Loader2 className="w-8 h-8 animate-spin text-purple-500/40" />
+                  <Loader2 className="w-8 h-8 animate-spin text-accent/40" />
                   <span className="text-xs text-muted-foreground mt-2 font-medium">Gerando imagem {i + 1}...</span>
                 </div>
               ))}
@@ -61,7 +61,7 @@ export const Step3ImageSelection = ({
                   className={cn(
                     "relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300 group",
                     "ring-4 ring-offset-2",
-                    selectedImage === imgSrc ? "ring-purple-500" : "ring-transparent"
+                    selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
                   )}
                 >
                   <Image 
@@ -103,7 +103,7 @@ export const Step3ImageSelection = ({
           <Button 
             onClick={onNext} 
             disabled={!selectedImage || isGeneratingImages} 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            className="bg-accent hover:bg-accent/90 text-white shadow-md"
           >
             Avançar<ArrowRight className="w-4 h-4 ml-2" />
           </Button>
