@@ -74,8 +74,11 @@ export default function GerarConteudoPage() {
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [prompts, setPrompts] = useState<string[]>([]);
 
-  // Ref para rastrear quais arquivos já foram encontrados no Supabase
+  // Refs para gerenciamento de memória e estado persistente
   const foundFilesRef = useRef<Set<string>>(new Set());
+  const blobURLsRef = useRef<Set<string>>(new Set());
+  const generatedImagesRef = useRef<string[]>([]);
+  const userRef = useRef<any>(null);
 
   const router = useRouter();
   const { user } = useAuth();
@@ -105,6 +108,7 @@ export default function GerarConteudoPage() {
 
   useEffect(() => {
     if (!user) return;
+    userRef.current = user;
     
     async function loadInitialData() {
       try {
@@ -126,41 +130,48 @@ export default function GerarConteudoPage() {
     loadInitialData();
   }, [user]);
 
+  // Sincroniza a ref de imagens para o cleanup
+  useEffect(() => {
+    generatedImagesRef.current = generatedImages;
+  }, [generatedImages]);
+
+  // Efeito de limpeza centralizado para ObjectURLs (Executa apenas ao desmontar)
   useEffect(() => {
     return () => {
-      if (user && generatedImages.length > 0) {
-        const remoteUrls = generatedImages.filter(url => !url.startsWith('blob:'));
-        if (remoteUrls.length > 0) {
-          saveUnusedImages(user.uid, remoteUrls).catch(console.error);
-        }
-        generatedImages.forEach(url => {
-          if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-        });
-      }
-      if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(logoPreviewUrl);
-      }
-      if (referenceImagePreview && referenceImagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(referenceImagePreview);
-      }
-    };
-  }, [generatedImages, user, logoPreviewUrl, referenceImagePreview]);
+      const currentImages = generatedImagesRef.current;
+      const currentUser = userRef.current;
 
-  // Monitoramento assíncrono para a Etapa 3 (agora para 3 imagens)
+      // Salva imagens remotas não utilizadas antes de sair
+      if (currentUser && currentImages.length > 0) {
+        const remoteUrls = currentImages.filter(url => !url.startsWith('blob:'));
+        if (remoteUrls.length > 0) {
+          saveUnusedImages(currentUser.uid, remoteUrls).catch(console.error);
+        }
+      }
+
+      // Revoga todas as URLs de blob criadas para evitar vazamento de memória
+      blobURLsRef.current.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.warn("Falha ao revogar URL:", url, e);
+        }
+      });
+      blobURLsRef.current.clear();
+    };
+  }, []);
+
+  // Monitoramento assíncrono para a Etapa 3
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let attempts = 0;
-    const maxAttempts = 15; // Aumentado um pouco para dar tempo das 3 gerarem
+    const maxAttempts = 15;
 
     if (step === 3 && currentPostId && isGeneratingImages) {
-      // Limpa a lista de encontrados ao iniciar o polling para um novo post
-      foundFilesRef.current.clear();
-
       const poll = async () => {
         attempts++;
         console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
 
-        // Filtra apenas os nomes que ainda não encontramos
         const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFilesRef.current.has(f));
         
         if (filenamesToCheck.length === 0) {
@@ -183,17 +194,15 @@ export default function GerarConteudoPage() {
 
             if (response.ok) {
               const blob = await response.blob();
-              // Verifica se recebemos uma imagem válida
               if (blob.size > 100 && blob.type.startsWith('image/')) {
                 const imageUrl = URL.createObjectURL(blob);
                 console.log(`[POLLING] Sucesso: Imagem ${filename} recebida`);
                 
-                // Marca como encontrado ANTES de atualizar o estado para evitar disparos duplicados
+                // Registra a URL para limpeza posterior
+                blobURLsRef.current.add(imageUrl);
                 foundFilesRef.current.add(filename);
                 
                 setGeneratedImages(prev => [...prev, imageUrl]);
-                
-                // Seleciona a primeira imagem automaticamente se nada estiver selecionado
                 setSelectedImage(prev => prev || imageUrl);
               }
             }
@@ -204,7 +213,6 @@ export default function GerarConteudoPage() {
 
         await Promise.all(fetchPromises);
 
-        // Se todos os arquivos foram encontrados após as requisições acima
         if (foundFilesRef.current.size === 3) {
           setIsGeneratingImages(false);
           return true;
@@ -230,7 +238,6 @@ export default function GerarConteudoPage() {
         return false;
       };
 
-      // Executa a primeira vez e agenda o intervalo
       poll().then(stopped => {
         if (!stopped) {
           interval = setInterval(async () => {
@@ -249,12 +256,11 @@ export default function GerarConteudoPage() {
   }, [step, currentPostId, isGeneratingImages, toast]);
 
   const handleReferenceImageChange = (file: File | null) => {
-    if (referenceImagePreview) {
-      URL.revokeObjectURL(referenceImagePreview);
-    }
     if (file) {
+      const url = URL.createObjectURL(file);
+      blobURLsRef.current.add(url);
       setReferenceImageFile(file);
-      setReferenceImagePreview(URL.createObjectURL(file));
+      setReferenceImagePreview(url);
     } else {
       setReferenceImageFile(null);
       setReferenceImagePreview(null);
@@ -337,7 +343,6 @@ export default function GerarConteudoPage() {
       const postId = docRef.id;
       setCurrentPostId(postId);
 
-      // Chamar o webhook 3 vezes para filenames 1, 2 e 3
       const filenames = ["1", "2", "3"];
       const webhookPromises = filenames.map((fname, index) => {
           const promptToUse = generatedPrompts[index] || generatedPrompts[0];
@@ -355,10 +360,11 @@ export default function GerarConteudoPage() {
 
       const webhookResponses = await Promise.all(webhookPromises);
       if (!webhookResponses.every(res => res.ok)) {
-          throw new Error("O serviço de geração de imagem retornou um erro em uma ou mais solicitações.");
+          throw new Error("O serviço de geração de imagem retornou um erro.");
       }
 
       setGeneratedImages([]); 
+      foundFilesRef.current.clear();
       setStep(3);
 
     } catch (error: any) {
@@ -476,7 +482,7 @@ export default function GerarConteudoPage() {
       const blob = await fetch(url).then(r => r.blob());
       const a = document.createElement('a');
       a.href = window.URL.createObjectURL(blob);
-      a.download = `flowup-${Date.now()}.jpg`;
+      a.download = `numvapt-${Date.now()}.jpg`;
       a.click();
     } catch (error) {
       toast({ variant: 'destructive', title: "Erro no Download" });
@@ -490,7 +496,9 @@ export default function GerarConteudoPage() {
         toast({ variant: "destructive", title: "Arquivo muito grande (Máx 2MB)" });
         return;
       }
-      setLogoPreviewUrl(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      blobURLsRef.current.add(url);
+      setLogoPreviewUrl(url);
       setLogoFile(file);
     }
   };
