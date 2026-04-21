@@ -70,7 +70,6 @@ export default function GerarConteudoPage() {
 
   // Estado para rastrear o post atual e os prompts
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
-  const [prompts, setPrompts] = useState<string[]>([]);
 
   // Refs para gerenciamento de memória e estado persistente
   const foundFilesRef = useRef<Set<string>>(new Set());
@@ -128,18 +127,15 @@ export default function GerarConteudoPage() {
     loadInitialData();
   }, [user]);
 
-  // Sincroniza a ref de imagens para o cleanup
   useEffect(() => {
     generatedImagesRef.current = generatedImages;
   }, [generatedImages]);
 
-  // Efeito de limpeza centralizado para ObjectURLs (Executa apenas ao desmontar)
   useEffect(() => {
     return () => {
       const currentImages = generatedImagesRef.current;
       const currentUser = userRef.current;
 
-      // Salva imagens remotas não utilizadas antes de sair
       if (currentUser && currentImages.length > 0) {
         const remoteUrls = currentImages.filter(url => !url.startsWith('blob:'));
         if (remoteUrls.length > 0) {
@@ -147,7 +143,6 @@ export default function GerarConteudoPage() {
         }
       }
 
-      // Revoga todas as URLs de blob criadas para evitar vazamento de memória
       blobURLsRef.current.forEach(url => {
         try {
           URL.revokeObjectURL(url);
@@ -159,21 +154,18 @@ export default function GerarConteudoPage() {
     };
   }, []);
 
-  // Monitoramento assíncrono para a Etapa 3
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let attempts = 0;
     const maxAttempts = 15;
 
-    if (step === 3 && currentPostId && isGeneratingImages) {
+    // Apenas inicia o polling se NÃO houver imagem de referência (que é gerada instantaneamente)
+    if (step === 3 && currentPostId && isGeneratingImages && !referenceImageFile) {
       const poll = async () => {
         attempts++;
-        console.log(`[POLLING] Tentativa ${attempts}/${maxAttempts} para o post ${currentPostId}`);
-
         const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFilesRef.current.has(f));
         
         if (filenamesToCheck.length === 0) {
-          console.log("[POLLING] Todos os arquivos encontrados. Parando polling.");
           setIsGeneratingImages(false);
           return true;
         }
@@ -194,9 +186,6 @@ export default function GerarConteudoPage() {
               const blob = await response.blob();
               if (blob.size > 100 && blob.type.startsWith('image/')) {
                 const imageUrl = URL.createObjectURL(blob);
-                console.log(`[POLLING] Sucesso: Imagem ${filename} recebida`);
-                
-                // Registra a URL para limpeza posterior
                 blobURLsRef.current.add(imageUrl);
                 foundFilesRef.current.add(filename);
                 
@@ -217,18 +206,6 @@ export default function GerarConteudoPage() {
         }
 
         if (attempts >= maxAttempts) {
-          if (foundFilesRef.current.size > 0) {
-            toast({
-              title: "Imagens carregadas",
-              description: `Conseguimos carregar ${foundFilesRef.current.size} de 3 imagens.`
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Erro ao carregar imagens",
-              description: "Não foi possível carregar as imagens geradas. Tente gerar novamente."
-            });
-          }
           setIsGeneratingImages(false);
           return true;
         }
@@ -251,7 +228,7 @@ export default function GerarConteudoPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step, currentPostId, isGeneratingImages, toast]);
+  }, [step, currentPostId, isGeneratingImages, toast, referenceImageFile]);
 
   const handleReferenceImageChange = (file: File | null) => {
     if (file) {
@@ -292,7 +269,7 @@ export default function GerarConteudoPage() {
         setStep(2);
         return content;
       } else {
-        throw new Error("O formato da resposta da IA é inesperado ou está vazio.");
+        throw new Error("O formato da resposta da IA é inesperado.");
       }
     } catch (error: any) {
       toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
@@ -346,7 +323,8 @@ export default function GerarConteudoPage() {
         }
 
         const result = await response.json();
-        const imageUrl = result?.[0]?.url_post;
+        // O formato esperado é { url_post: "..." } ou array [{ url_post: "..." }]
+        const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
 
         if (!imageUrl) {
             throw new Error("Não foi possível obter a imagem gerada a partir da referência.");
@@ -359,7 +337,7 @@ export default function GerarConteudoPage() {
         return;
       }
 
-      // Fluxo Padrão (3 variações)
+      // Fluxo Padrão (3 variações paralelas)
       const response = await fetch('/api/generate-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -371,8 +349,6 @@ export default function GerarConteudoPage() {
       if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
           throw new Error("Não foi possível gerar os prompts para a imagem.");
       }
-
-      setPrompts(generatedPrompts);
 
       const filenames = ["1", "2", "3"];
       const webhookPromises = filenames.map((fname, index) => {
@@ -391,7 +367,7 @@ export default function GerarConteudoPage() {
 
       const webhookResponses = await Promise.all(webhookPromises);
       if (!webhookResponses.every(res => res.ok)) {
-          throw new Error("O serviço de geração de imagem retornou um erro.");
+          throw new Error("O serviço de geração de imagem retornou um erro em uma das chamadas.");
       }
 
       setGeneratedImages([]); 
@@ -427,7 +403,7 @@ export default function GerarConteudoPage() {
 
         const logoPixelWidth = img.width * (visualLogoScale / 100);
         let posX = 0, posY = 0;
-        const margin = 10;
+        const margin = 16;
 
         switch (logoPosition) {
           case 'top-left':    posX = margin; posY = margin; break;
@@ -438,7 +414,7 @@ export default function GerarConteudoPage() {
           case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
           case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
           case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
-          case 'bottom-right':posX = img.width - logoPixelWidth - margin; break;
+          case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
         }
         
         formData.append('positionX', Math.round(posX).toString());
@@ -451,7 +427,7 @@ export default function GerarConteudoPage() {
         headers: { 'X-Server-Timeout': '300' }
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.details || "Falha no webhook");
+      if (!response.ok) throw new Error(result.details || "Falha no webhook de personalização.");
 
       setProcessedImageUrl(result?.[0]?.url_post);
       setStep(5);
