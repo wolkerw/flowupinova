@@ -323,7 +323,7 @@ export default function GerarConteudoPage() {
         }
 
         const result = await response.json();
-        // O formato esperado é { url_post: "..." } ou array [{ url_post: "..." }]
+        // Suporta tanto objeto único quanto array
         const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
 
         if (!imageUrl) {
@@ -384,6 +384,13 @@ export default function GerarConteudoPage() {
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
     
+    // Se não houver logomarca, pula o processamento e vai direto para o passo 5
+    if (!logoFile) {
+      setProcessedImageUrl(null); // Garante que usaremos a imagem selecionada original
+      setStep(5);
+      return;
+    }
+
     setIsUploading(true);
     toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
 
@@ -396,30 +403,28 @@ export default function GerarConteudoPage() {
       const imageBlob = await fetch(selectedImage).then(r => r.blob());
       formData.append('file', new File([imageBlob], "generated-image.jpg", { type: imageBlob.type }));
       
-      if (logoFile) {
-        formData.append('logo', logoFile);
-        formData.append('logoScale', logoScale.toString());
-        formData.append('logoOpacity', logoOpacity.toString());
+      formData.append('logo', logoFile);
+      formData.append('logoScale', logoScale.toString());
+      formData.append('logoOpacity', logoOpacity.toString());
 
-        const logoPixelWidth = img.width * (visualLogoScale / 100);
-        let posX = 0, posY = 0;
-        const margin = 16;
+      const logoPixelWidth = img.width * (visualLogoScale / 100);
+      let posX = 0, posY = 0;
+      const margin = 16;
 
-        switch (logoPosition) {
-          case 'top-left':    posX = margin; posY = margin; break;
-          case 'top-center':  posX = (img.width / 2) - (logoPixelWidth / 2); posY = margin; break;
-          case 'top-right':   posX = img.width - logoPixelWidth - margin; posY = margin; break;
-          case 'left-center': posX = margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-          case 'center':      posX = (img.width / 2) - (logoPixelWidth / 2); posY = (img.height / 2) - (logoPixelWidth / 2); break;
-          case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-          case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
-          case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
-          case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
-        }
-        
-        formData.append('positionX', Math.round(posX).toString());
-        formData.append('positionY', Math.round(posY).toString());
+      switch (logoPosition) {
+        case 'top-left':    posX = margin; posY = margin; break;
+        case 'top-center':  posX = (img.width / 2) - (logoPixelWidth / 2); posY = margin; break;
+        case 'top-right':   posX = img.width - logoPixelWidth - margin; posY = margin; break;
+        case 'left-center': posX = margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
+        case 'center':      posX = (img.width / 2) - (logoPixelWidth / 2); posY = (img.height / 2) - (logoPixelWidth / 2); break;
+        case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
+        case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
+        case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
+        case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
       }
+      
+      formData.append('positionX', Math.round(posX).toString());
+      formData.append('positionY', Math.round(posY).toString());
 
       const response = await fetch("/api/proxy-webhook?target=post_manual", { 
         method: 'POST', 
