@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from "react"
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { format, isFuture, isSameDay, startOfDay, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -334,7 +334,7 @@ function PageSelectionModal({
         <DialogHeader>
           <DialogTitle>Selecione uma Página do Facebook</DialogTitle>
           <DialogDescription>
-            Encontramos {pages.length} página(s). Por favor, escolha a que você deseja conectar à FlowUp.
+            Encontramos {pages.length} página(s). Por favor, escolha a que você deseja conectar à NumVapt.
           </DialogDescription>
         </DialogHeader>
 
@@ -900,8 +900,8 @@ export default function Conteudo() {
                 <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
               </div>
               <div className="flex gap-4 pt-2">
-                <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
+                <Button className="bg-accent hover:bg-accent/90 text-white shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
+                <Button className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
               </div>
             </div>
 
