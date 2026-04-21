@@ -309,20 +309,6 @@ export default function GerarConteudoPage() {
     setIsGeneratingImages(true);
 
     try {
-      const response = await fetch('/api/generate-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: selectedContent }),
-      });
-      const data = await response.json();
-      const generatedPrompts = data?.[0]?.output?.prompt;
-      
-      if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
-          throw new Error("Não foi possível gerar os prompts para a imagem.");
-      }
-
-      setPrompts(generatedPrompts);
-
       const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
@@ -340,6 +326,53 @@ export default function GerarConteudoPage() {
       });
       const postId = docRef.id;
       setCurrentPostId(postId);
+
+      if (referenceImageFile) {
+        // Fluxo de Imagem de Referência
+        const formData = new FormData();
+        formData.append('file', referenceImageFile);
+        formData.append('description', referenceDescription);
+        formData.append('postId', postId);
+        formData.append('content', JSON.stringify(selectedContent));
+
+        const response = await fetch('/api/proxy-webhook?target=gerador_imagem_referencia', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.details || "Erro ao processar imagem de referência.");
+        }
+
+        const result = await response.json();
+        const imageUrl = result?.[0]?.url_post;
+
+        if (!imageUrl) {
+            throw new Error("Não foi possível obter a imagem gerada a partir da referência.");
+        }
+
+        setGeneratedImages([imageUrl]);
+        setSelectedImage(imageUrl);
+        setIsGeneratingImages(false);
+        setStep(3);
+        return;
+      }
+
+      // Fluxo Padrão (3 variações)
+      const response = await fetch('/api/generate-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: selectedContent }),
+      });
+      const data = await response.json();
+      const generatedPrompts = data?.[0]?.output?.prompt;
+      
+      if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
+          throw new Error("Não foi possível gerar os prompts para a imagem.");
+      }
+
+      setPrompts(generatedPrompts);
 
       const filenames = ["1", "2", "3"];
       const webhookPromises = filenames.map((fname, index) => {
