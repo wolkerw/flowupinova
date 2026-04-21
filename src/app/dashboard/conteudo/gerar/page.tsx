@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -23,7 +22,7 @@ import {
   saveContentHistory 
 } from "@/lib/services/user-data-service";
 
-import { GeneratedContent, Platform, LogoPosition, TextOverlay } from "./types";
+import { GeneratedContent, Platform, LogoPosition } from "./types";
 import { Step1Idea } from "./_components/Step1Idea";
 import { Step2TextSelection } from "./_components/Step2TextSelection";
 import { Step3ImageSelection } from "./_components/Step3ImageSelection";
@@ -65,7 +64,6 @@ export default function GerarConteudoPage() {
   const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
   const [logoScale, setLogoScale] = useState(30);
   const [logoOpacity, setLogoOpacity] = useState(80);
-  const [overlayTexts, setOverlayTexts] = useState<TextOverlay[]>([]);
   
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -414,10 +412,6 @@ export default function GerarConteudoPage() {
         formData.append('positionY', Math.round(posY).toString());
       }
 
-      if (overlayTexts.length > 0) {
-        formData.append('overlayTexts', JSON.stringify(overlayTexts));
-      }
-
       const response = await fetch("/api/proxy-webhook?target=post_manual", { 
         method: 'POST', 
         body: formData,
@@ -511,7 +505,7 @@ export default function GerarConteudoPage() {
           {step === 1 && "Detalhe à nossa IA uma ideia e ela criará um post incríveis para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
           {step === 3 && "Etapa 3: Selecione a melhor imagem para o seu post."}
-          {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca e textos."}
+          {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
           {step === 5 && "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
       </div>
@@ -562,13 +556,11 @@ export default function GerarConteudoPage() {
           logoPosition={logoPosition}
           logoScale={logoScale}
           logoOpacity={logoOpacity}
-          overlayTexts={overlayTexts}
           onLogoUpload={handleLogoFileChange}
           onLogoRemove={() => { setLogoFile(null); setLogoPreviewUrl(null); }}
           onPositionChange={setLogoPosition}
           onScaleChange={setLogoScale}
           onOpacityChange={setLogoOpacity}
-          onOverlayTextsChange={setOverlayTexts}
           onBack={() => setStep(3)}
           onNext={handleLogoProcessing}
           isUploading={isUploading}

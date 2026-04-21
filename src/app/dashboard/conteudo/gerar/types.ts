@@ -17,11 +17,3 @@ export type LogoPosition =
   | 'bottom-left' 
   | 'bottom-center' 
   | 'bottom-right';
-
-export interface TextOverlay {
-  id: string;
-  text: string;
-  position: LogoPosition;
-  color: string;
-  size: number;
-}
