@@ -106,7 +106,7 @@ const TrialEndedOverlay = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-white rounded-2xl shadow-2xl max-w-lg w-full text-center p-8"
             >
-                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center mb-6">
+                <div className="w-20 h-20 mx-auto rounded-full bg-primary flex items-center justify-center mb-6">
                     <Clock className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Seu período de teste terminou</h2>
@@ -445,7 +445,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
-                <Card className="border-none shadow-lg" style={{ background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)' }}>
+                <Card className="border-border shadow-md bg-white">
                   <CardHeader>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                       <TrendingUp className="w-6 h-6 text-primary" />
@@ -537,7 +537,7 @@ export default function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-4 flex items-start justify-start gap-3"
                       >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
                           <Bot className="h-4 w-4 text-primary-foreground" />
                         </div>
                         <div className="mr-12 rounded-2xl rounded-bl-none border bg-card px-4 py-3 text-card-foreground shadow-sm">
@@ -565,8 +565,7 @@ export default function Dashboard() {
                     />
                     <Button
                       size="icon"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-                      style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)))' }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-primary hover:bg-primary/90 shadow-sm"
                       onClick={handleSendMessage}
                       disabled={loading || !prompt.trim()}
                       aria-label="Enviar mensagem"

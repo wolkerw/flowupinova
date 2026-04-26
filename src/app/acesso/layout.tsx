@@ -86,7 +86,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
                         <Label htmlFor="message">Mensagem</Label>
                         <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full text-white bg-numvapt-gradient">
+                    <Button type="submit" size="lg" className="w-full text-white bg-primary hover:bg-primary/90 transition-all">
                         <Send className="w-5 h-5 mr-2" />
                         Enviar Mensagem
                     </Button>
@@ -131,7 +131,7 @@ export default function AcessoLayout({
                         {loading ? (
                             <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
                         ) : user ? (
-                            <Button asChild className="text-white bg-numvapt-gradient">
+                            <Button asChild className="text-white bg-primary">
                                 <Link href="/dashboard">Entrar</Link>
                             </Button>
                         ) : (
@@ -139,7 +139,7 @@ export default function AcessoLayout({
                                 <Button variant="ghost" asChild>
                                     <Link href="/acesso/login">Login</Link>
                                 </Button>
-                                <Button asChild className="text-white bg-numvapt-gradient">
+                                <Button asChild className="text-white bg-primary">
                                     <Link href="/acesso/cadastro">Criar Conta</Link>
                                 </Button>
                             </>
@@ -156,9 +156,9 @@ export default function AcessoLayout({
                     className="w-full"
                 >
                     <Card className="w-full max-w-sm mx-auto shadow-xl border-none overflow-hidden bg-card">
-                        <div className="p-8 pb-6 bg-numvapt-gradient">
+                        <div className="p-8 pb-6 bg-primary text-primary-foreground">
                             <CardHeader className="text-center space-y-2 p-0">
-                                <CardDescription className="text-primary-foreground/80 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
+                                <CardDescription className="text-primary-foreground/90 !mt-4">Acesse sua conta ou cadastre-se para começar.</CardDescription>
                             </CardHeader>
                         </div>
 

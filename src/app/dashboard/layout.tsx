@@ -192,9 +192,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <SidebarMenuButton
                         asChild
                         disabled={item.disabled}
-                        className={`hover:bg-accent transition-all duration-200 rounded-xl mb-1 ${
+                        className={`hover:bg-accent transition-all duration-200 rounded-lg mb-1 ${
                           pathname === item.url
-                            ? 'text-primary-foreground border bg-numvapt-gradient' 
+                            ? 'text-primary-foreground border-primary bg-primary' 
                             : 'hover:text-accent-foreground'
                         } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >

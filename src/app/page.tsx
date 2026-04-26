@@ -98,15 +98,15 @@ const ParallaxShapes = () => {
 
     return (
         <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-            <Shape5 y={y5} className="w-16 h-16 text-primary/10 top-[10%] left-[5%] transform rotate-15" />
-            <Shape2 y={y2} className="w-16 h-16 text-accent/10 top-[20%] right-[10%]" />
-            <Shape1 y={y1} className="w-10 h-10 text-primary/20 top-[50%] right-[5%]" />
-            <Shape6 y={y5} className="w-12 h-12 text-accent/20 top-[5%] left-[40%]" />
-            <Shape7 y={y3} className="w-16 h-16 text-primary/10 top-[35%] left-[55%]" />
-            <Shape2 y={y2} className="w-14 h-14 text-accent/10 top-[75%] left-[60%]" />
-            <Shape5 y={y5} className="w-16 h-16 text-primary/10 top-[90%] left-[5%] transform rotate-15" />
-            <Shape6 y={y4} className="w-20 h-20 text-accent/10 bottom-[5%] left-[30%]" />
-            <Shape7 y={y3} className="w-8 h-8 text-primary/20 top-[85%] right-[5%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-primary/5 top-[10%] left-[5%] transform rotate-15" />
+            <Shape2 y={y2} className="w-16 h-16 text-primary/5 top-[20%] right-[10%]" />
+            <Shape1 y={y1} className="w-10 h-10 text-primary/10 top-[50%] right-[5%]" />
+            <Shape6 y={y5} className="w-12 h-12 text-primary/10 top-[5%] left-[40%]" />
+            <Shape7 y={y3} className="w-16 h-16 text-primary/5 top-[35%] left-[55%]" />
+            <Shape2 y={y2} className="w-14 h-14 text-primary/5 top-[75%] left-[60%]" />
+            <Shape5 y={y5} className="w-16 h-16 text-primary/5 top-[90%] left-[5%] transform rotate-15" />
+            <Shape6 y={y4} className="w-20 h-20 text-primary/5 bottom-[5%] left-[30%]" />
+            <Shape7 y={y3} className="w-8 h-8 text-primary/10 top-[85%] right-[5%]" />
         </div>
     );
 };
@@ -181,7 +181,7 @@ const ContactModal = ({ isOpen, onClose, initialSubject = '' }: { isOpen: boolea
                         <Label htmlFor="message">Mensagem</Label>
                         <Textarea id="message" placeholder="Escreva sua mensagem aqui..." value={message} onChange={(e) => setMessage(e.target.value)} required className="h-28 focus-visible:ring-accent" />
                     </div>
-                    <Button type="submit" size="lg" className="w-full text-white bg-numvapt-gradient hover:opacity-90 transition-opacity">
+                    <Button type="submit" size="lg" className="w-full text-white bg-primary hover:bg-primary/90 transition-all">
                         <Send className="w-5 h-5 mr-2" />
                         Enviar Mensagem
                     </Button>
@@ -239,7 +239,7 @@ export default function HomePage() {
             {loading ? (
                 <div className="h-10 w-24 animate-pulse rounded-full bg-muted" />
             ) : user ? (
-                <Button asChild className="text-white bg-numvapt-gradient rounded-full shadow-lg shadow-primary/20 px-6">
+                <Button asChild className="text-white bg-primary rounded-full shadow-md hover:shadow-lg transition-all px-6">
                     <Link href="/dashboard">Ir para Painel</Link>
                 </Button>
             ) : (
@@ -247,7 +247,7 @@ export default function HomePage() {
                     <Button variant="ghost" asChild className="rounded-full hidden sm:inline-flex">
                         <Link href="/acesso/login">Login</Link>
                     </Button>
-                    <Button asChild className="text-white bg-numvapt-gradient rounded-full shadow-lg shadow-primary/20 px-6">
+                    <Button asChild className="text-white bg-primary rounded-full shadow-md hover:shadow-lg transition-all px-6">
                         <Link href="/acesso/cadastro">Criar Conta</Link>
                     </Button>
                 </>
@@ -272,13 +272,13 @@ export default function HomePage() {
                   ✨ Nova Era do Marketing Digital
                 </Badge>
                 <h1 className="text-5xl md:text-6xl font-black text-foreground mb-6 leading-[1.1] tracking-tight">
-                  Seu marketing no modo <span className="text-transparent bg-clip-text bg-numvapt-gradient">Ultra Vapt</span>
+                  Seu marketing no modo <span className="text-primary">Ultra Vapt</span>
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-10 font-medium">
                   Deixe a Inteligência Artificial criar, agendar e analisar seu conteúdo. Economize horas de trabalho e foque no que importa: seu negócio.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                  <Button size="lg" asChild className="text-white bg-numvapt-gradient px-10 rounded-full h-14 text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+                  <Button size="lg" asChild className="text-white bg-primary px-10 rounded-full h-14 text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all">
                     <Link href="/acesso/cadastro">Começar Grátis Agora</Link>
                   </Button>
                   <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-primary/20 hover:bg-primary/5" onClick={() => openContactModal()}>
@@ -287,7 +287,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="relative">
-                <div className="absolute inset-0 bg-numvapt-gradient opacity-10 blur-[100px] rounded-full"></div>
+                <div className="absolute inset-0 bg-primary opacity-5 blur-[100px] rounded-full"></div>
                  <Image
                     src="/mascote-flowy.gif"
                     alt="Mascote Vapti"
@@ -308,21 +308,21 @@ export default function HomePage() {
                 <p className="text-lg text-muted-foreground mb-16 max-w-2xl mx-auto">Nossa plataforma foi desenhada para que você gaste o menor tempo possível configurando e o máximo colhendo resultados.</p>
                 <div className="grid md:grid-cols-3 gap-12">
                     <div className="group flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm">
                             <Edit className="w-12 h-12"/>
                         </div>
                         <h3 className="text-2xl font-bold mb-3">1. Dê a Ideia</h3>
                         <p className="text-muted-foreground leading-relaxed px-4">Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e seu tom de voz.</p>
                     </div>
                     <div className="group flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm">
                             <Bot className="w-12 h-12"/>
                         </div>
                         <h3 className="text-2xl font-bold mb-3">2. Selecione e Personalize</h3>
                         <p className="text-muted-foreground leading-relaxed px-4">Escolha entre as opções de texto e imagem geradas. Coloque sua marca e edite em segundos.</p>
                     </div>
                     <div className="group flex flex-col items-center">
-                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-numvapt-gradient group-hover:text-white transition-all duration-500 shadow-inner">
+                        <div className="w-24 h-24 rounded-[2rem] bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm">
                             <Send className="w-12 h-12"/>
                         </div>
                         <h3 className="text-2xl font-bold mb-3">3. Publique ou Agende</h3>
@@ -346,8 +346,8 @@ export default function HomePage() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-300 h-full bg-white/80 backdrop-blur-sm group overflow-hidden">
-                    <div className="absolute top-0 left-0 w-2 h-full bg-numvapt-gradient"></div>
+                  <Card className="border-border shadow-md hover:shadow-lg transition-all duration-300 h-full bg-white group overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-primary"></div>
                     <CardHeader className="pt-8">
                       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <feature.icon className="w-8 h-8 text-primary" />
@@ -414,8 +414,8 @@ export default function HomePage() {
                     </Card>
 
                     {/* Standard */}
-                    <Card className="shadow-2xl border-primary border-[3px] flex flex-col relative bg-white transform scale-105 z-10">
-                        <div className="bg-numvapt-gradient text-white text-xs font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full absolute -top-5 left-1/2 -translate-x-1/2 shadow-lg">
+                    <Card className="shadow-xl border-primary border-[3px] flex flex-col relative bg-white transform scale-105 z-10">
+                        <div className="bg-primary text-white text-xs font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full absolute -top-5 left-1/2 -translate-x-1/2 shadow-md">
                             Mais Assinado
                         </div>
                         <CardHeader className="pb-4 pt-12 text-center">
@@ -438,7 +438,7 @@ export default function HomePage() {
                             </ul>
                         </CardContent>
                         <div className="p-8 pt-0">
-                           <Button asChild className="w-full text-white bg-numvapt-gradient rounded-full h-14 text-lg font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+                           <Button asChild className="w-full text-white bg-primary rounded-full h-14 text-lg font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all">
                                 <Link href="/acesso/cadastro">Assinar Agora</Link>
                            </Button>
                         </div>
@@ -469,11 +469,11 @@ export default function HomePage() {
 
         {/* CTA Section */}
         <section className="py-32 px-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-numvapt-gradient opacity-10"></div>
+            <div className="absolute inset-0 bg-primary opacity-5"></div>
             <div className="container mx-auto text-center relative z-10">
                 <h2 className="text-5xl font-black text-foreground mb-8">Pare de postar, comece a <span className="text-primary">crescer</span>.</h2>
                 <p className="text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-medium">O Vapti está pronto para impulsionar seu marketing. E você?</p>
-                <Button size="lg" asChild className="text-white bg-numvapt-gradient px-12 rounded-full h-16 text-xl font-black shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
+                <Button size="lg" asChild className="text-white bg-primary px-12 rounded-full h-16 text-xl font-black shadow-lg hover:shadow-xl hover:scale-105 transition-all">
                 <Link href="/acesso/cadastro">Criar minha conta grátis</Link>
                 </Button>
             </div>
@@ -506,7 +506,7 @@ export default function HomePage() {
                     <li><Link href="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link></li>
                     <li><button onClick={() => openContactModal()} className="hover:text-primary transition-colors">Contato</button></li>
                     <li className="pt-4 flex gap-4">
-                        <a href="https://www.instagram.com/numvapt.oficial" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white hover:bg-numvapt-gradient transition-all">
+                        <a href="https://www.instagram.com/numvapt.oficial" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white hover:bg-primary transition-all">
                             <Instagram className="w-6 h-6" />
                         </a>
                     </li>

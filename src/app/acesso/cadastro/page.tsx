@@ -94,7 +94,7 @@ export default function CadastroPage() {
                     </div>
                 )}
 
-                <Button type="submit" className="w-full !mt-6 text-white bg-numvapt-gradient" disabled={isLoading}>
+                <Button type="submit" className="w-full !mt-6 text-white bg-primary" disabled={isLoading}>
                     {isLoading ? <Loader2 className="animate-spin" /> : 'Criar Minha Conta'}
                 </Button>
             </form>
