@@ -294,7 +294,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           <div className="flex-1 overflow-auto">
-            {children}
+            <React.Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+              {children}
+            </React.Suspense>
           </div>
         </main>
       </div>

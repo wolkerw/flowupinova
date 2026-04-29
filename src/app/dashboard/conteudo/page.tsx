@@ -146,17 +146,20 @@ function getHistoryStartDate(filter: HistoryFilter) {
 }
 
 function toDisplayPost(post: any): DisplayPost {
-    const scheduledDate = new Date(post.scheduledAt);
+    const scheduledAt = post.scheduledAt?.toDate?.() || post.scheduledAt;
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : new Date();
+    const isValidDate = !isNaN(scheduledDate.getTime());
+    
     return {
         id: post.id,
-        text: post.text,
+        text: post.text || "",
         imageUrl: post.imageUrl || (post.imageUrls && post.imageUrls[0]),
-        imageUrls: post.imageUrls,
-        isCarousel: post.isCarousel,
-        status: post.status as PostStatus,
-        date: scheduledDate,
-        formattedDate: format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }),
-        formattedTime: format(scheduledDate, "HH:mm"),
+        imageUrls: post.imageUrls || [],
+        isCarousel: post.isCarousel || false,
+        status: (post.status as PostStatus) || "scheduled",
+        date: isValidDate ? scheduledDate : new Date(),
+        formattedDate: isValidDate ? format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }) : "Data pendente",
+        formattedTime: isValidDate ? format(scheduledDate, "HH:mm") : "--:--",
         platforms: post.platforms ?? [],
         pageName: post.pageName,
         instagramUsername: post.instagramUsername,
