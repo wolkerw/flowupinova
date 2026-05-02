@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
 import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
@@ -29,10 +28,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, message: "Profile updated successfully." });
-
   } catch (error: any) {
     console.error("[GOOGLE_UPDATE_PROFILE_ERROR]", error);
-    const errorMessage = error.response?.data?.error?.message || error.message || "An unknown error occurred.";
+    const errorMessage =
+      error.response?.data?.error?.message || error.message || "An unknown error occurred.";
     return NextResponse.json(
       { success: false, error: `Failed to update profile: ${errorMessage}` },
       { status: 500 }

@@ -1,13 +1,12 @@
-
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
 import type { BusinessProfileData, LogoData } from "./business-profile-service";
 
 const defaultLogo: LogoData = {
-    url: "",
-    width: 0,
-    height: 0,
+  url: "",
+  width: 0,
+  height: 0,
 };
 
 const defaultProfile: BusinessProfileData = {
@@ -27,54 +26,65 @@ const defaultProfile: BusinessProfileData = {
   openInfo: null,
 };
 
-
 /**
  * Fetches the business profile using the admin SDK. Can be called from server components.
  * @param userId - The UID of the user.
  * @returns The user's business profile data.
  */
 export async function getBusinessProfileAdmin(userId: string | null): Promise<BusinessProfileData> {
-    if (!userId) {
-        console.warn("getBusinessProfileAdmin called without userId. This is expected if the user is not logged in.");
-        return defaultProfile;
-    }
-    try {
-        const profileDocRef = adminDb.collection('users').doc(userId).collection('business').doc('profile');
-        const docSnap = await profileDocRef.get();
+  if (!userId) {
+    console.warn(
+      "getBusinessProfileAdmin called without userId. This is expected if the user is not logged in."
+    );
+    return defaultProfile;
+  }
+  try {
+    const profileDocRef = adminDb
+      .collection("users")
+      .doc(userId)
+      .collection("business")
+      .doc("profile");
+    const docSnap = await profileDocRef.get();
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
-        } else {
-            // Document doesn't exist, create it.
-            const userDocRef = adminDb.collection('users').doc(userId);
-            // Ensure user document exists before creating subcollection.
-            await userDocRef.set({ createdAt: new Date() }, { merge: true });
-            await profileDocRef.set(defaultProfile);
-            return defaultProfile;
-        }
-    } catch (error) {
-        console.error(`Error getting business profile for user ${userId} in admin service:`, error);
-        return defaultProfile;
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
+    } else {
+      // Document doesn't exist, create it.
+      const userDocRef = adminDb.collection("users").doc(userId);
+      // Ensure user document exists before creating subcollection.
+      await userDocRef.set({ createdAt: new Date() }, { merge: true });
+      await profileDocRef.set(defaultProfile);
+      return defaultProfile;
     }
+  } catch (error) {
+    console.error(`Error getting business profile for user ${userId} in admin service:`, error);
+    return defaultProfile;
+  }
 }
-
 
 /**
  * Updates the business profile using the admin SDK. Can be called from server-side logic.
  * @param userId The UID of the user.
  * @param data The data to set for the profile.
  */
-export async function updateBusinessProfileAdmin(userId: string, data: Partial<BusinessProfileData>): Promise<void> {
-    if (!userId) {
-        throw new Error("User ID is required to update Business Profile.");
-    }
-    try {
-        const profileDocRef = adminDb.collection('users').doc(userId).collection('business').doc('profile');
-        await profileDocRef.set(data, { merge: true });
-        console.log(`Admin update for business profile of user ${userId} was successful.`);
-    } catch (error: any) {
-        console.error(`Error updating business profile for user ${userId} via admin:`, error);
-        throw new Error(`Failed to update business profile via admin. Reason: ${error.message}`);
-    }
+export async function updateBusinessProfileAdmin(
+  userId: string,
+  data: Partial<BusinessProfileData>
+): Promise<void> {
+  if (!userId) {
+    throw new Error("User ID is required to update Business Profile.");
+  }
+  try {
+    const profileDocRef = adminDb
+      .collection("users")
+      .doc(userId)
+      .collection("business")
+      .doc("profile");
+    await profileDocRef.set(data, { merge: true });
+    console.log(`Admin update for business profile of user ${userId} was successful.`);
+  } catch (error: any) {
+    console.error(`Error updating business profile for user ${userId} via admin:`, error);
+    throw new Error(`Failed to update business profile via admin. Reason: ${error.message}`);
+  }
 }

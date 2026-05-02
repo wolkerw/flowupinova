@@ -1,4 +1,4 @@
-# **App Name**: FlowUp Chat
+# **App Name**: NumVapt Chat
 
 ## Core Features:
 

@@ -1,5 +1,4 @@
-
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 // Aumenta o tempo máximo de execução desta rota para 300 segundos (5 minutos).
 export const maxDuration = 300;
@@ -36,35 +35,61 @@ export async function POST(request: Request) {
       } catch (e) {
         // O corpo da resposta de erro não era JSON, usa o texto puro.
       }
-      return NextResponse.json({ success: false, error: "Falha ao comunicar com o webhook de geração de imagem.", details: errorDetails }, { status: webhookResponse.status });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Falha ao comunicar com o webhook de geração de imagem.",
+          details: errorDetails,
+        },
+        { status: webhookResponse.status }
+      );
     }
-    
+
     // Se a resposta estiver vazia, retorna um erro claro.
     if (!responseText) {
-        return NextResponse.json({ success: false, error: "O webhook de imagem retornou uma resposta vazia." }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: "O webhook de imagem retornou uma resposta vazia." },
+        { status: 500 }
+      );
     }
 
     // Tenta parsear a resposta de sucesso como JSON
     let data;
     try {
-        data = JSON.parse(responseText);
+      data = JSON.parse(responseText);
     } catch (e) {
-        console.error("JSON.parse error on webhook response:", responseText);
-        return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é JSON).", details: responseText }, { status: 500 });
+      console.error("JSON.parse error on webhook response:", responseText);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Formato de resposta do webhook de imagem inesperado (não é JSON).",
+          details: responseText,
+        },
+        { status: 500 }
+      );
     }
-    
+
     // Verifica se a resposta é un array
     if (!Array.isArray(data)) {
-        console.error("Formato de resposta do webhook de imagem inesperado (não é un array):", data);
-        return NextResponse.json({ success: false, error: "Formato de resposta do webhook de imagem inesperado (não é um array).", details: JSON.stringify(data, null, 2) }, { status: 500 });
+      console.error("Formato de resposta do webhook de imagem inesperado (não é un array):", data);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Formato de resposta do webhook de imagem inesperado (não é um array).",
+          details: JSON.stringify(data, null, 2),
+        },
+        { status: 500 }
+      );
     }
-    
+
     // Repassa o array completo para o frontend dentro de uma estrutura padronizada
     return NextResponse.json({ success: true, data: data });
-
   } catch (error: any) {
     // Captura erros da requisição inicial (ex: body malformado) ou outros erros inesperados.
     console.error("Internal server error in /api/generate-images:", error);
-    return NextResponse.json({ success: false, error: "Erro interno do servidor.", details: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Erro interno do servidor.", details: error.message },
+      { status: 500 }
+    );
   }
 }

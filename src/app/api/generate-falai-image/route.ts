@@ -1,6 +1,5 @@
-
-import { NextResponse } from 'next/server';
-import { getGlobalSettings } from '@/lib/services/settings-service-admin';
+import { NextResponse } from "next/server";
+import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 
 export const maxDuration = 300;
 
@@ -25,13 +24,19 @@ export async function POST(request: Request) {
     const responseText = await webhookResponse.text();
 
     if (!webhookResponse.ok) {
-      console.error(`[API_FALAI_IMAGE] Erro no webhook Falai (${webhookResponse.status}):`, responseText);
-      return NextResponse.json({ 
-        success: false, 
-        error: `O serviço Falai retornou erro ${webhookResponse.status}`, 
-        source: "external-falai",
-        details: responseText 
-      }, { status: webhookResponse.status });
+      console.error(
+        `[API_FALAI_IMAGE] Erro no webhook Falai (${webhookResponse.status}):`,
+        responseText
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: `O serviço Falai retornou erro ${webhookResponse.status}`,
+          source: "external-falai",
+          details: responseText,
+        },
+        { status: webhookResponse.status }
+      );
     }
 
     try {
@@ -42,13 +47,15 @@ export async function POST(request: Request) {
       console.log("[API_FALAI_IMAGE] Sucesso ao gerar imagem (Raw).");
       return NextResponse.json({ success: true, data: responseText });
     }
-
   } catch (error: any) {
     console.error("[API_FALAI_IMAGE] Erro interno na API Route:", error);
-    return NextResponse.json({ 
-      success: false, 
-      error: "Erro interno ao gerar imagem.", 
-      details: error.message 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Erro interno ao gerar imagem.",
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

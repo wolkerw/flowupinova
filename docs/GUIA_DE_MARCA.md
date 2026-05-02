@@ -7,12 +7,14 @@ Este documento define os padrões visuais para a plataforma NumVapt, garantindo 
 A paleta de cores deve ser aplicada em tons **sólidos**, evitando gradientes complexos para manter uma estética limpa e profissional.
 
 ### 1.1 Cores Principais
+
 - **Azul NumVapt (Primária)**: `#0083C7`
-  - *Uso*: Botões principais, ícones de destaque, cabeçalhos e links ativos.
+  - _Uso_: Botões principais, ícones de destaque, cabeçalhos e links ativos.
 - **Laranja NumVapt (Acento)**: `#FA6305`
-  - *Uso*: Alertas, badges de destaque secundário e elementos de atenção pontual.
+  - _Uso_: Alertas, badges de destaque secundário e elementos de atenção pontual.
 
 ### 1.2 Cores de Suporte
+
 - **Fundo (Light)**: `#FFFFFF` (Branco) ou `#F8FAFC` (Cinza muito claro)
 - **Texto Principal**: `#0F172A` (Slate escuro)
 - **Texto Secundário**: `#64748B` (Slate médio)
@@ -42,5 +44,6 @@ Seguimos um padrão de design **Sólido e Minimalista**.
 ## 4. Logo e Ativos
 
 O logotipo oficial deve ser preservado em suas proporções originais.
+
 - **Localização**: `public/logo-numvapt.png`
 - **Variante Invertida**: Para fundos escuros, utilizar a versão com texto em branco.

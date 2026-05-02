@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -20,7 +19,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -35,7 +40,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   AlertTriangle,
@@ -60,9 +72,22 @@ import {
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { deletePost, getScheduledPosts, schedulePost, type PostDataInput } from "@/lib/services/posts-service";
-import { getMetaConnection, updateMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, updateInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
+import {
+  deletePost,
+  getScheduledPosts,
+  schedulePost,
+  type PostDataInput,
+} from "@/lib/services/posts-service";
+import {
+  getMetaConnection,
+  updateMetaConnection,
+  type MetaConnectionData,
+} from "@/lib/services/meta-service";
+import {
+  getInstagramConnection,
+  updateInstagramConnection,
+  type InstagramConnectionData,
+} from "@/lib/services/instagram-service";
 import { config } from "@/lib/config";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -146,26 +171,27 @@ function getHistoryStartDate(filter: HistoryFilter) {
 }
 
 function toDisplayPost(post: any): DisplayPost {
-    const scheduledAt = post.scheduledAt?.toDate?.() || post.scheduledAt;
-    const scheduledDate = scheduledAt ? new Date(scheduledAt) : new Date();
-    const isValidDate = !isNaN(scheduledDate.getTime());
-    
-    return {
-        id: post.id,
-        text: post.text || "",
-        imageUrl: post.imageUrl || (post.imageUrls && post.imageUrls[0]),
-        imageUrls: post.imageUrls || [],
-        isCarousel: post.isCarousel || false,
-        status: (post.status as PostStatus) || "scheduled",
-        date: isValidDate ? scheduledDate : new Date(),
-        formattedDate: isValidDate ? format(scheduledDate, "dd 'de' LLLL", { locale: ptBR }) : "Data pendente",
-        formattedTime: isValidDate ? format(scheduledDate, "HH:mm") : "--:--",
-        platforms: post.platforms ?? [],
-        pageName: post.pageName,
-        instagramUsername: post.instagramUsername,
-    };
-}
+  const scheduledAt = post.scheduledAt?.toDate?.() || post.scheduledAt;
+  const scheduledDate = scheduledAt ? new Date(scheduledAt) : new Date();
+  const isValidDate = !isNaN(scheduledDate.getTime());
 
+  return {
+    id: post.id,
+    text: post.text || "",
+    imageUrl: post.imageUrl || (post.imageUrls && post.imageUrls[0]),
+    imageUrls: post.imageUrls || [],
+    isCarousel: post.isCarousel || false,
+    status: (post.status as PostStatus) || "scheduled",
+    date: isValidDate ? scheduledDate : new Date(),
+    formattedDate: isValidDate
+      ? format(scheduledDate, "dd 'de' LLLL", { locale: ptBR })
+      : "Data pendente",
+    formattedTime: isValidDate ? format(scheduledDate, "HH:mm") : "--:--",
+    platforms: post.platforms ?? [],
+    pageName: post.pageName,
+    instagramUsername: post.instagramUsername,
+  };
+}
 
 const CALENDAR_DOT_STYLES = `
 .day-published::after, .day-scheduled::after, .day-failed::after {
@@ -217,48 +243,50 @@ function PostItem({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white"
+      className="flex items-center justify-between rounded-lg border bg-white p-4 transition-shadow hover:shadow-sm"
     >
       <div className="flex items-center gap-4 overflow-hidden">
         <Image
           src={imageSrc}
-          alt={post.text.substring(0, 50) || 'Imagem do post'}
+          alt={post.text.substring(0, 50) || "Imagem do post"}
           width={56}
           height={56}
-          className="w-14 h-14 object-cover rounded-md bg-gray-100"
+          className="h-14 w-14 rounded-md bg-gray-100 object-cover"
         />
         <div className="overflow-hidden">
-          <h4 className="font-medium text-gray-900 truncate text-base">{post.text.length > 50 ? post.text.substring(0, 50) + "..." : post.text}</h4>
+          <h4 className="truncate text-base font-medium text-gray-900">
+            {post.text.length > 50 ? post.text.substring(0, 50) + "..." : post.text}
+          </h4>
 
-          <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-            {StatusIcon ? <StatusIcon className="w-4 h-4" /> : null}
+          <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+            {StatusIcon ? <StatusIcon className="h-4 w-4" /> : null}
             <span>
               {post.formattedDate} às {post.formattedTime}
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-gray-500 mt-1.5">
+          <div className="mt-1.5 flex items-center gap-4 text-xs text-gray-500">
             {post.platforms?.includes("facebook") ? (
               <div className="flex items-center gap-1.5">
-                <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                <Facebook className="h-3.5 w-3.5 text-blue-600" />
                 {post.pageName ? <span className="font-medium">{post.pageName}</span> : null}
               </div>
             ) : null}
-             {post.platforms?.includes('instagram') && (
-                <div className="flex items-center gap-1.5">
-                    <Instagram className="w-3.5 h-3.5" />
-                    {post.instagramUsername ? (
-                    <span className="font-medium">@{post.instagramUsername}</span>
-                    ) : (
-                    <span className="font-medium">Instagram</span>
-                    )}
-                </div>
+            {post.platforms?.includes("instagram") && (
+              <div className="flex items-center gap-1.5">
+                <Instagram className="h-3.5 w-3.5" />
+                {post.instagramUsername ? (
+                  <span className="font-medium">@{post.instagramUsername}</span>
+                ) : (
+                  <span className="font-medium">Instagram</span>
+                )}
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex shrink-0 items-center gap-3">
         <Badge variant="outline" className={cfg?.badgeClassName}>
           {post.status}
         </Badge>
@@ -266,12 +294,12 @@ function PostItem({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled>
-              <Edit className="w-4 h-4 mr-2" />
+              <Edit className="mr-2 h-4 w-4" />
               Editar
             </DropdownMenuItem>
 
@@ -281,17 +309,20 @@ function PostItem({
               disabled={isRepublishing || post.status === "publishing"}
             >
               {isRepublishing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="mr-2 h-4 w-4" />
               )}
               Republicar
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => onDelete(post.id)}>
-              <Trash2 className="w-4 h-4 mr-2" />
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-700"
+              onClick={() => onDelete(post.id)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
               Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -312,7 +343,9 @@ function PageSelectionModal({
   onSelect: (page: FacebookPage) => void;
   onCancel: () => void;
 }) {
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(pages.length > 0 ? pages[0].id : null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(
+    pages.length > 0 ? pages[0].id : null
+  );
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -337,12 +370,13 @@ function PageSelectionModal({
         <DialogHeader>
           <DialogTitle>Selecione uma Página do Facebook</DialogTitle>
           <DialogDescription>
-            Encontramos {pages.length} página(s). Por favor, escolha a que você deseja conectar à NumVapt.
+            Encontramos {pages.length} página(s). Por favor, escolha a que você deseja conectar à
+            NumVapt.
           </DialogDescription>
         </DialogHeader>
 
         <div className="relative my-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Pesquisar por nome..."
             value={searchQuery}
@@ -352,12 +386,16 @@ function PageSelectionModal({
         </div>
 
         <div className="max-h-80 overflow-y-auto pr-2">
-          <RadioGroup value={selectedPageId ?? ""} onValueChange={setSelectedPageId} className="space-y-3">
+          <RadioGroup
+            value={selectedPageId ?? ""}
+            onValueChange={setSelectedPageId}
+            className="space-y-3"
+          >
             {filteredPages.map((page) => (
               <Label
                 key={page.id}
                 htmlFor={page.id}
-                className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50"
+                className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-blue-50"
               >
                 <RadioGroupItem value={page.id} id={page.id} />
                 <div>
@@ -368,7 +406,9 @@ function PageSelectionModal({
           </RadioGroup>
 
           {filteredPages.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 py-4">Nenhuma página encontrada com sua busca.</p>
+            <p className="py-4 text-center text-sm text-gray-500">
+              Nenhuma página encontrada com sua busca.
+            </p>
           ) : null}
         </div>
 
@@ -386,64 +426,71 @@ function PageSelectionModal({
 }
 
 function ConnectionStatus({
-    platform,
-    isConnected,
-    accountName,
-    onConnect,
-    onDisconnect,
-    isLoading,
+  platform,
+  isConnected,
+  accountName,
+  onConnect,
+  onDisconnect,
+  isLoading,
 }: {
-    platform: 'facebook' | 'instagram';
-    isConnected: boolean;
-    accountName?: string;
-    onConnect: () => void;
-    onDisconnect: () => void;
-    isLoading: boolean;
+  platform: "facebook" | "instagram";
+  isConnected: boolean;
+  accountName?: string;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  isLoading: boolean;
 }) {
-    const platformConfig = {
-        facebook: {
-            icon: Facebook,
-            name: "Facebook",
-            color: "text-blue-600",
-        },
-        instagram: {
-            icon: Instagram,
-            name: "Instagram",
-            color: "text-pink-600",
-        }
-    };
-    
-    const { icon: Icon, name, color } = platformConfig[platform];
+  const platformConfig = {
+    facebook: {
+      icon: Facebook,
+      name: "Facebook",
+      color: "text-blue-600",
+    },
+    instagram: {
+      icon: Instagram,
+      name: "Instagram",
+      color: "text-pink-600",
+    },
+  };
 
-    return (
-        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50/50">
-            <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-white shadow-sm shrink-0`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                </div>
-                <div>
-                    <h4 className="font-semibold text-sm text-gray-800">{name}</h4>
-                    {isConnected ? (
-                        <p className="text-xs text-green-700 font-medium truncate" title={accountName}>
-                           Conectado como {accountName}
-                        </p>
-                    ) : (
-                         <p className="text-xs text-red-600">Não conectado</p>
-                    )}
-                </div>
-            </div>
-            
-            {isConnected ? (
-                 <Button variant="ghost" size="sm" onClick={onDisconnect} className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                    <LogOut className="w-4 h-4" />
-                </Button>
-            ) : (
-                 <Button variant="outline" size="sm" onClick={onConnect} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : "Conectar"}
-                </Button>
-            )}
+  const { icon: Icon, name, color } = platformConfig[platform];
+
+  return (
+    <div className="flex items-center justify-between rounded-lg p-3 hover:bg-gray-50/50">
+      <div className="flex items-center gap-3">
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm`}
+        >
+          <Icon className={`h-5 w-5 ${color}`} />
         </div>
-    );
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800">{name}</h4>
+          {isConnected ? (
+            <p className="truncate text-xs font-medium text-green-700" title={accountName}>
+              Conectado como {accountName}
+            </p>
+          ) : (
+            <p className="text-xs text-red-600">Não conectado</p>
+          )}
+        </div>
+      </div>
+
+      {isConnected ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDisconnect}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={onConnect} disabled={isLoading}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conectar"}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -461,7 +508,9 @@ export default function Conteudo() {
   const [loading, setLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<DisplayPost[]>([]);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
-  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({ isConnected: false });
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({
+    isConnected: false,
+  });
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
@@ -490,7 +539,6 @@ export default function Conteudo() {
   const [checkingConnection, setCheckingConnection] = useState(true);
   const [republishPlatforms, setRepublishPlatforms] = useState<Platform[]>([]);
 
-
   const isLoadingInitial = loading && allPosts.length === 0;
 
   const fetchPageData = useCallback(async () => {
@@ -500,15 +548,24 @@ export default function Conteudo() {
 
     try {
       const [postsResults, metaResult, instagramResult] = await Promise.all([
-        getScheduledPosts(user.uid), 
+        getScheduledPosts(user.uid),
         getMetaConnection(user.uid),
-        getInstagramConnection(user.uid)
+        getInstagramConnection(user.uid),
       ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
-        setAllPosts(postsResults.filter(r => r.success && r.post).map(r => toDisplayPost(r.post!)).sort((a, b) => b.date.getTime() - a.date.getTime()));
+        setAllPosts(
+          postsResults
+            .filter((r) => r.success && r.post)
+            .map((r) => toDisplayPost(r.post!))
+            .sort((a, b) => b.date.getTime() - a.date.getTime())
+        );
       } else if (postsResults?.[0]?.error) {
-        toast({ variant: "destructive", title: "Erro ao Carregar Posts", description: postsResults[0].error });
+        toast({
+          variant: "destructive",
+          title: "Erro ao Carregar Posts",
+          description: postsResults[0].error,
+        });
       } else {
         setAllPosts([]);
       }
@@ -516,62 +573,77 @@ export default function Conteudo() {
       setInstagramConnection(instagramResult);
     } catch (err) {
       console.error("Failed to fetch page data:", err);
-      toast({ variant: "destructive", title: "Erro ao Carregar Dados", description: "Não foi possível carregar os dados da página." });
+      toast({
+        variant: "destructive",
+        title: "Erro ao Carregar Dados",
+        description: "Não foi possível carregar os dados da página.",
+      });
     } finally {
       setLoading(false);
       setCheckingConnection(false);
     }
   }, [toast, user]);
 
-  const handlePageSelection = useCallback(async (page: FacebookPage) => {
-    if (!user) return;
+  const handlePageSelection = useCallback(
+    async (page: FacebookPage) => {
+      if (!user) return;
 
-    setIsConnecting(true);
-    setIsSelectionModalOpen(false);
-    try {
+      setIsConnecting(true);
+      setIsSelectionModalOpen(false);
+      try {
         const currentConnection = await getMetaConnection(user.uid);
         if (!currentConnection.userAccessToken) {
-            throw new Error("Token de usuário pendente não encontrado. Tente reconectar.");
+          throw new Error("Token de usuário pendente não encontrado. Tente reconectar.");
         }
 
         await updateMetaConnection(user.uid, {
-            isConnected: true,
-            pageId: page.id,
-            pageName: page.name,
-            accessToken: page.access_token,
-            userAccessToken: currentConnection.userAccessToken,
+          isConnected: true,
+          pageId: page.id,
+          pageName: page.name,
+          accessToken: page.access_token,
+          userAccessToken: currentConnection.userAccessToken,
         });
 
-        toast({ variant: "success", title: "Conexão Estabelecida!", description: `Página "${page.name}" conectada com sucesso.` });
+        toast({
+          variant: "success",
+          title: "Conexão Estabelecida!",
+          description: `Página "${page.name}" conectada com sucesso.`,
+        });
         await fetchPageData();
-    } catch (err: any) {
-        toast({ variant: "destructive", title: "Falha ao Salvar Conexão", description: err?.message ?? "Erro" });
-    } finally {
+      } catch (err: any) {
+        toast({
+          variant: "destructive",
+          title: "Falha ao Salvar Conexão",
+          description: err?.message ?? "Erro",
+        });
+      } finally {
         setIsConnecting(false);
         setPendingPages([]);
-    }
-  }, [fetchPageData, toast, user]);
+      }
+    },
+    [fetchPageData, toast, user]
+  );
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
+    if (typeof window === "undefined" || !user) {
       fetchPageData();
       return;
     }
-  
+
     // Evita loop de re-execução em dev mode
-    if (effectRan.current && process.env.NODE_ENV === 'development') {
+    if (effectRan.current && process.env.NODE_ENV === "development") {
       return;
     }
-    
-    const isFacebookAuth = searchParams.has('code');
-    const isInstagramAuth = searchParams.has('instagram_connection_success');
+
+    const isFacebookAuth = searchParams.has("code");
+    const isInstagramAuth = searchParams.has("instagram_connection_success");
 
     const runFacebookFlow = async () => {
       const code = searchParams.get("code");
       if (!code) return;
       effectRan.current = true;
       setIsConnecting(true);
-  
+
       try {
         const tokenResponse = await fetch("/api/meta/callback", {
           method: "POST",
@@ -581,95 +653,125 @@ export default function Conteudo() {
         const tokenResult = await tokenResponse.json();
         if (!tokenResult.success) throw new Error(tokenResult.error);
         const { userAccessToken } = tokenResult;
-        
+
         await updateMetaConnection(user.uid, { userAccessToken, pending: true });
-        router.replace('/dashboard/conteudo', undefined);
-        
+        router.replace("/dashboard/conteudo", undefined);
+
         const pagesResponse = await fetch("/api/meta/callback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userAccessToken }),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userAccessToken }),
         });
         const pagesResult = await pagesResponse.json();
         if (!pagesResult.success) throw new Error(pagesResult.error);
 
         const pages: FacebookPage[] = pagesResult.pages || [];
         if (pages.length > 1) {
-            setPendingPages(pages);
-            setIsSelectionModalOpen(true);
+          setPendingPages(pages);
+          setIsSelectionModalOpen(true);
         } else if (pages.length === 1) {
-            await handlePageSelection(pages[0]);
+          await handlePageSelection(pages[0]);
         } else {
-            throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
+          throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
         }
       } catch (err: any) {
-        toast({ variant: "destructive", title: "Falha na Conexão", description: err.message, duration: 9000 });
+        toast({
+          variant: "destructive",
+          title: "Falha na Conexão",
+          description: err.message,
+          duration: 9000,
+        });
         setIsConnecting(false);
-        router.replace('/dashboard/conteudo', undefined);
+        router.replace("/dashboard/conteudo", undefined);
       }
     };
 
     const handleInstagramCallback = async () => {
-        effectRan.current = true;
-        const accessToken = searchParams.get("instagram_accessToken");
-        const instagramId = searchParams.get("instagram_id");
-        const instagramUsername = searchParams.get("instagram_username");
-        const uidFromState = searchParams.get("user_id_from_state");
+      effectRan.current = true;
+      const accessToken = searchParams.get("instagram_accessToken");
+      const instagramId = searchParams.get("instagram_id");
+      const instagramUsername = searchParams.get("instagram_username");
+      const uidFromState = searchParams.get("user_id_from_state");
 
-        if (uidFromState && uidFromState !== user.uid) {
-            toast({ variant: "destructive", title: "Falha de Segurança", description: "Incompatibilidade de usuários na autenticação."});
-            router.replace('/dashboard/conteudo', undefined);
-            return;
-        }
+      if (uidFromState && uidFromState !== user.uid) {
+        toast({
+          variant: "destructive",
+          title: "Falha de Segurança",
+          description: "Incompatibilidade de usuários na autenticação.",
+        });
+        router.replace("/dashboard/conteudo", undefined);
+        return;
+      }
 
-        if (accessToken && instagramId && instagramUsername) {
-            await updateInstagramConnection(user.uid, {
-                isConnected: true,
-                accessToken,
-                instagramId,
-                instagramUsername,
-            });
-            toast({ variant: "success", title: "Instagram Conectado!", description: `Conexão com @${instagramUsername} estabelecida.`});
-            await fetchPageData();
-        } else {
-            toast({ variant: "destructive", title: "Falha na Conexão", description: "Dados insuficientes retornados pelo Instagram."});
-        }
-        router.replace('/dashboard/conteudo', undefined);
+      if (accessToken && instagramId && instagramUsername) {
+        await updateInstagramConnection(user.uid, {
+          isConnected: true,
+          accessToken,
+          instagramId,
+          instagramUsername,
+        });
+        toast({
+          variant: "success",
+          title: "Instagram Conectado!",
+          description: `Conexão com @${instagramUsername} estabelecida.`,
+        });
+        await fetchPageData();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Falha na Conexão",
+          description: "Dados insuficientes retornados pelo Instagram.",
+        });
+      }
+      router.replace("/dashboard/conteudo", undefined);
     };
-  
+
     if (isInstagramAuth) {
-        handleInstagramCallback();
+      handleInstagramCallback();
     } else if (isFacebookAuth) {
-        runFacebookFlow();
+      runFacebookFlow();
     } else {
-        fetchPageData();
+      fetchPageData();
     }
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
 
-
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
     const scheduled = allPosts.filter((p) => p.status === "scheduled");
-    const historyBase = allPosts.filter((p) => p.status === "published" || p.status === "failed" || p.status === "publishing");
+    const historyBase = allPosts.filter(
+      (p) => p.status === "published" || p.status === "failed" || p.status === "publishing"
+    );
     const startDate = getHistoryStartDate(historyFilter);
-    const filteredHistory = startDate ? historyBase.filter((p) => p.date >= startDate) : historyBase;
+    const filteredHistory = startDate
+      ? historyBase.filter((p) => p.date >= startDate)
+      : historyBase;
     const modifiers = {
       published: allPosts.filter((p) => p.status === "published").map((p) => p.date),
-      scheduled: allPosts.filter((p) => p.status === "scheduled" && isFuture(p.date)).map((p) => p.date),
+      scheduled: allPosts
+        .filter((p) => p.status === "scheduled" && isFuture(p.date))
+        .map((p) => p.date),
       failed: allPosts.filter((p) => p.status === "failed").map((p) => p.date),
     };
     const postsOnDay = selectedDate ? allPosts.filter((p) => isSameDay(p.date, selectedDate)) : [];
-    return { scheduledPosts: scheduled, pastPosts: filteredHistory, calendarModifiers: modifiers, postsForSelectedDay: postsOnDay };
+    return {
+      scheduledPosts: scheduled,
+      pastPosts: filteredHistory,
+      calendarModifiers: modifiers,
+      postsForSelectedDay: postsOnDay,
+    };
   }, [allPosts, historyFilter, selectedDate]);
 
   useEffect(() => {
     if (selectedDate && postsForSelectedDay.length > 0) setIsDateModalOpen(true);
   }, [postsForSelectedDay.length, selectedDate]);
 
-  const handleDateSelect = useCallback((date: Date | undefined) => {
-    if (!date) return;
-    setSelectedDate(date);
-    if (allPosts.some((p) => isSameDay(p.date, date))) setIsDateModalOpen(true);
-  }, [allPosts]);
+  const handleDateSelect = useCallback(
+    (date: Date | undefined) => {
+      if (!date) return;
+      setSelectedDate(date);
+      if (allPosts.some((p) => isSameDay(p.date, date))) setIsDateModalOpen(true);
+    },
+    [allPosts]
+  );
 
   const handleConnectMeta = useCallback(() => {
     const origin = window.location.origin;
@@ -693,7 +795,8 @@ export default function Conteudo() {
     }
 
     const state = user?.uid;
-    const scope = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
+    const scope =
+      "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
     const responseType = "code";
 
     const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=${responseType}&state=${state}`;
@@ -727,7 +830,11 @@ export default function Conteudo() {
       toast({ title: "Sucesso!", description: "A publicação foi excluída." });
       await fetchPageData();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao Excluir", description: err?.message ?? "Erro" });
+      toast({
+        variant: "destructive",
+        title: "Erro ao Excluir",
+        description: err?.message ?? "Erro",
+      });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
@@ -735,58 +842,92 @@ export default function Conteudo() {
     }
   }, [fetchPageData, postToDelete, toast, user]);
 
-  const handleRepublish = useCallback((post: DisplayPost) => {
-    if (!user) return;
-    setPostToRepublish(post);
-    setRepublishPlatforms(post.platforms as Platform[]); // Set initial platforms
-    setRepublishScheduleType("now");
-    setRepublishScheduleDate("");
-    setIsRepublishModalOpen(true);
-  }, [user]);
+  const handleRepublish = useCallback(
+    (post: DisplayPost) => {
+      if (!user) return;
+      setPostToRepublish(post);
+      setRepublishPlatforms(post.platforms as Platform[]); // Set initial platforms
+      setRepublishScheduleType("now");
+      setRepublishScheduleDate("");
+      setIsRepublishModalOpen(true);
+    },
+    [user]
+  );
 
- const handleConfirmRepublish = useCallback(async () => {
-    if (!user || !postToRepublish || !(postToRepublish.imageUrl || (postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0))) return;
+  const handleConfirmRepublish = useCallback(async () => {
+    if (
+      !user ||
+      !postToRepublish ||
+      !(
+        postToRepublish.imageUrl ||
+        (postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0)
+      )
+    )
+      return;
 
     if (republishPlatforms.length === 0) {
-        toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para republicar."});
-        return;
-    }
-    
-    if (republishPlatforms.includes('instagram') && !instagramConnection.isConnected) {
-        toast({ variant: "destructive", title: "Instagram não conectado", description: "Conecte o Instagram para republicar."});
-        return;
-    }
-    if (republishPlatforms.includes('facebook') && !metaConnection.isConnected) {
-        toast({ variant: "destructive", title: "Facebook não conectado", description: "Conecte o Facebook para republicar."});
-        return;
-    }
-
-    if (republishScheduleType === 'schedule' && !republishScheduleDate) {
-      toast({ variant: "destructive", title: "Data inválida", description: "Por favor, selecione data e hora para o agendamento." });
+      toast({
+        variant: "destructive",
+        title: "Nenhuma plataforma",
+        description: "Selecione ao menos uma plataforma para republicar.",
+      });
       return;
     }
-    
-    setIsRepublishing(true);
-    toast({ title: "Republicando...", description: "Enviando seu post para ser publicado novamente." });
 
-    const mediaUrls = postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0 ? postToRepublish.imageUrls : [postToRepublish.imageUrl!];
+    if (republishPlatforms.includes("instagram") && !instagramConnection.isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Instagram não conectado",
+        description: "Conecte o Instagram para republicar.",
+      });
+      return;
+    }
+    if (republishPlatforms.includes("facebook") && !metaConnection.isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Facebook não conectado",
+        description: "Conecte o Facebook para republicar.",
+      });
+      return;
+    }
+
+    if (republishScheduleType === "schedule" && !republishScheduleDate) {
+      toast({
+        variant: "destructive",
+        title: "Data inválida",
+        description: "Por favor, selecione data e hora para o agendamento.",
+      });
+      return;
+    }
+
+    setIsRepublishing(true);
+    toast({
+      title: "Republicando...",
+      description: "Enviando seu post para ser publicado novamente.",
+    });
+
+    const mediaUrls =
+      postToRepublish.imageUrls && postToRepublish.imageUrls.length > 0
+        ? postToRepublish.imageUrls
+        : [postToRepublish.imageUrl!];
 
     const input: PostDataInput = {
       text: postToRepublish.text,
-      media: mediaUrls.map(url => ({ file: new File([], ''), publicUrl: url })),
+      media: mediaUrls.map((url) => ({ file: new File([], ""), publicUrl: url })),
       isCarousel: postToRepublish.isCarousel || false,
       platforms: republishPlatforms,
-      scheduledAt: republishScheduleType === 'schedule' ? new Date(republishScheduleDate) : new Date(),
+      scheduledAt:
+        republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
     };
 
-    if (republishPlatforms.includes('instagram')) {
-        input.instagramConnection = instagramConnection;
+    if (republishPlatforms.includes("instagram")) {
+      input.instagramConnection = instagramConnection;
     }
-    
-    if (republishPlatforms.includes('facebook')) {
-        input.metaConnection = metaConnection;
+
+    if (republishPlatforms.includes("facebook")) {
+      input.metaConnection = metaConnection;
     }
-    
+
     const result = await schedulePost(user.uid, input);
 
     setIsRepublishing(false);
@@ -795,20 +936,31 @@ export default function Conteudo() {
     await fetchPageData();
 
     if (result.success) {
-      toast({ variant: "success", title: "Sucesso!", description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!` });
+      toast({
+        variant: "success",
+        title: "Sucesso!",
+        description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!`,
+      });
     } else {
       toast({ variant: "destructive", title: "Erro ao Republicar", description: result.error });
     }
-  }, [fetchPageData, metaConnection, instagramConnection, postToRepublish, republishScheduleDate, republishScheduleType, toast, user, republishPlatforms]);
+  }, [
+    fetchPageData,
+    metaConnection,
+    instagramConnection,
+    postToRepublish,
+    republishScheduleDate,
+    republishScheduleType,
+    toast,
+    user,
+    republishPlatforms,
+  ]);
 
   const handleRepublishPlatformChange = (platform: Platform) => {
-    setRepublishPlatforms(prev =>
-      prev.includes(platform)
-        ? prev.filter(p => p !== platform)
-        : [...prev, platform]
+    setRepublishPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
   };
-
 
   return (
     <>
@@ -817,68 +969,168 @@ export default function Conteudo() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita. Isso excluirá permanentemente a publicação do seu histórico.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a publicação do seu
+              histórico.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}Excluir</AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={isDateModalOpen} onOpenChange={setIsDateModalOpen}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>Posts de {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ""}</DialogTitle></DialogHeader>
-          <div className="py-4 max-h-[60vh] overflow-y-auto space-y-3 pr-2">{postsForSelectedDay.length > 0 ? postsForSelectedDay.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />) : <p className="text-sm text-gray-500 text-center py-8">Nenhum post para este dia.</p>}</div>
+          <DialogHeader>
+            <DialogTitle>
+              Posts de{" "}
+              {selectedDate ? format(selectedDate, "dd 'de' LLLL 'de' yyyy", { locale: ptBR }) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto py-4 pr-2">
+            {postsForSelectedDay.length > 0 ? (
+              postsForSelectedDay.map((post) => (
+                <PostItem
+                  key={post.id}
+                  post={post}
+                  onRepublish={handleRepublish}
+                  isRepublishing={isRepublishing}
+                  onDelete={handleDeleteRequest}
+                />
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-500">Nenhum post para este dia.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
       <Dialog open={isRepublishModalOpen} onOpenChange={setIsRepublishModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Republicar Post</DialogTitle>
-            <DialogDescription>Escolha quando e onde você quer republicar este conteúdo.</DialogDescription>
+            <DialogDescription>
+              Escolha quando e onde você quer republicar este conteúdo.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-6">
+          <div className="space-y-6 py-4">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                 <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !instagramConnection?.isConnected && "bg-gray-100 opacity-60")}>
-                    <Checkbox
-                        id="republish-instagram"
-                        checked={republishPlatforms.includes('instagram')}
-                        onCheckedChange={() => handleRepublishPlatformChange('instagram')}
-                        disabled={!instagramConnection?.isConnected}
-                    />
-                    <Label htmlFor="republish-instagram" className="flex items-center gap-2 cursor-pointer">
-                        <Instagram className="w-5 h-5 text-pink-500" />
-                        Instagram
-                    </Label>
-                 </div>
-                 <div className={cn("flex items-center space-x-2 rounded-lg border p-4", !metaConnection?.isConnected && "bg-gray-100 opacity-60")}>
-                    <Checkbox
-                        id="republish-facebook"
-                        checked={republishPlatforms.includes('facebook')}
-                        onCheckedChange={() => handleRepublishPlatformChange('facebook')}
-                        disabled={!metaConnection?.isConnected}
-                    />
-                    <Label htmlFor="republish-facebook" className="flex items-center gap-2 cursor-pointer">
-                        <Facebook className="w-5 h-5 text-blue-600" />
-                        Facebook
-                    </Label>
-                 </div>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                <div
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4",
+                    !instagramConnection?.isConnected && "bg-gray-100 opacity-60"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-instagram"
+                    checked={republishPlatforms.includes("instagram")}
+                    onCheckedChange={() => handleRepublishPlatformChange("instagram")}
+                    disabled={!instagramConnection?.isConnected}
+                  />
+                  <Label
+                    htmlFor="republish-instagram"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Instagram className="h-5 w-5 text-pink-500" />
+                    Instagram
+                  </Label>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4",
+                    !metaConnection?.isConnected && "bg-gray-100 opacity-60"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-facebook"
+                    checked={republishPlatforms.includes("facebook")}
+                    onCheckedChange={() => handleRepublishPlatformChange("facebook")}
+                    disabled={!metaConnection?.isConnected}
+                  />
+                  <Label
+                    htmlFor="republish-facebook"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Facebook className="h-5 w-5 text-blue-600" />
+                    Facebook
+                  </Label>
+                </div>
               </div>
             </div>
             <div>
               <Label className="font-semibold">Quando publicar?</Label>
-              <RadioGroup value={republishScheduleType} onValueChange={(v) => setRepublishScheduleType(v as RepublishScheduleType)} className="grid grid-cols-2 gap-4 mt-2">
-                <div><RadioGroupItem value="now" id="republish-now" className="peer sr-only" /><Label htmlFor="republish-now" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"><Clock className="w-6 h-6 mb-2" />Publicar Agora</Label></div>
-                <div><RadioGroupItem value="schedule" id="republish-schedule" className="peer sr-only" /><Label htmlFor="republish-schedule" className="flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer peer-data-[state=checked]:border-primary"><CalendarIcon className="w-6 h-6 mb-2" />Agendar</Label></div>
+              <RadioGroup
+                value={republishScheduleType}
+                onValueChange={(v) => setRepublishScheduleType(v as RepublishScheduleType)}
+                className="mt-2 grid grid-cols-2 gap-4"
+              >
+                <div>
+                  <RadioGroupItem value="now" id="republish-now" className="peer sr-only" />
+                  <Label
+                    htmlFor="republish-now"
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 p-4 peer-data-[state=checked]:border-primary"
+                  >
+                    <Clock className="mb-2 h-6 w-6" />
+                    Publicar Agora
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem
+                    value="schedule"
+                    id="republish-schedule"
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor="republish-schedule"
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 p-4 peer-data-[state=checked]:border-primary"
+                  >
+                    <CalendarIcon className="mb-2 h-6 w-6" />
+                    Agendar
+                  </Label>
+                </div>
               </RadioGroup>
-              {republishScheduleType === "schedule" ? <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4"><Input type="datetime-local" value={republishScheduleDate} onChange={(e) => setRepublishScheduleDate(e.target.value)} /></motion.div> : null}
+              {republishScheduleType === "schedule" ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4"
+                >
+                  <Input
+                    type="datetime-local"
+                    value={republishScheduleDate}
+                    onChange={(e) => setRepublishScheduleDate(e.target.value)}
+                  />
+                </motion.div>
+              ) : null}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmRepublish} disabled={isRepublishing || republishPlatforms.length === 0 || (republishScheduleType === "schedule" && !republishScheduleDate)}>{isRepublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}{republishScheduleType === "now" ? "Republicar" : "Agendar"}</Button>
+            <Button variant="outline" onClick={() => setIsRepublishModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmRepublish}
+              disabled={
+                isRepublishing ||
+                republishPlatforms.length === 0 ||
+                (republishScheduleType === "schedule" && !republishScheduleDate)
+              }
+            >
+              {isRepublishing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {republishScheduleType === "now" ? "Republicar" : "Agendar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -892,40 +1144,85 @@ export default function Conteudo() {
           setIsConnecting(false);
         }}
       />
-      
-      <div className="p-6 space-y-8 max-w-7xl mx-auto bg-gray-50/50">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <div className="mx-auto max-w-7xl space-y-8 bg-gray-50/50 p-6">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-8">
-             <div className="space-y-4">
+          <div className="space-y-8 lg:col-span-2">
+            <div className="space-y-4">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
-                <p className="text-gray-600 mt-1">Crie, agende e analise o conteúdo para suas redes sociais.</p>
+                <p className="mt-1 text-gray-600">
+                  Crie, agende e analise o conteúdo para suas redes sociais.
+                </p>
               </div>
               <div className="flex gap-4 pt-2">
-                <Button className="bg-accent hover:bg-accent/90 text-white shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/gerar")} size="lg"><Sparkles className="w-5 h-5 mr-2" />Gerar Conteúdo com IA</Button>
-                <Button className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-shadow" onClick={() => router.push("/dashboard/conteudo/criar")} size="lg"><Plus className="w-5 h-5 mr-2" />Criar Conteúdo</Button>
+                <Button
+                  className="bg-accent text-white shadow-md transition-shadow hover:bg-accent/90 hover:shadow-lg"
+                  onClick={() => router.push("/dashboard/conteudo/gerar")}
+                  size="lg"
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Gerar Conteúdo com IA
+                </Button>
+                <Button
+                  className="bg-primary text-white shadow-md transition-shadow hover:bg-primary/90 hover:shadow-lg"
+                  onClick={() => router.push("/dashboard/conteudo/criar")}
+                  size="lg"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Criar Conteúdo
+                </Button>
               </div>
             </div>
 
-            <Card className="shadow-lg border-none">
-              <CardHeader><CardTitle className="text-xl flex items-center gap-2"><Clock className="w-5 h-5 text-blue-500"/>Publicações Agendadas</CardTitle></CardHeader>
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  Publicações Agendadas
+                </CardTitle>
+              </CardHeader>
               <CardContent>
-                <div className="max-h-60 overflow-y-auto space-y-4 pr-3">
+                <div className="max-h-60 space-y-4 overflow-y-auto pr-3">
                   <AnimatePresence>
-                    {isLoadingInitial ? <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                      : scheduledPosts.length > 0 ? scheduledPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
-                      : <div className="text-center text-gray-500 py-6"><Clock className="w-8 h-8 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação agendada.</p></div>
-                    }
+                    {isLoadingInitial ? (
+                      <div className="flex h-24 items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                      </div>
+                    ) : scheduledPosts.length > 0 ? (
+                      scheduledPosts.map((post) => (
+                        <PostItem
+                          key={post.id}
+                          post={post}
+                          onRepublish={handleRepublish}
+                          isRepublishing={isRepublishing}
+                          onDelete={handleDeleteRequest}
+                        />
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-gray-500">
+                        <Clock className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+                        <p>Nenhuma publicação agendada.</p>
+                      </div>
+                    )}
                   </AnimatePresence>
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-lg border-none">
+            <Card className="border-none shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl flex items-center gap-2"><History className="w-5 h-5 text-purple-500"/>Histórico de Publicações</CardTitle>
-                <Select value={historyFilter} onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por período" /></SelectTrigger>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <History className="h-5 w-5 text-purple-500" />
+                  Histórico de Publicações
+                </CardTitle>
+                <Select
+                  value={historyFilter}
+                  onValueChange={(v) => setHistoryFilter(v as HistoryFilter)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filtrar por período" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
                     <SelectItem value="this-month">Este mês</SelectItem>
@@ -935,20 +1232,36 @@ export default function Conteudo() {
                 </Select>
               </CardHeader>
               <CardContent>
-                <div className="max-h-96 overflow-y-auto space-y-4 pr-3">
+                <div className="max-h-96 space-y-4 overflow-y-auto pr-3">
                   <AnimatePresence>
-                    {isLoadingInitial ? <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-                      : pastPosts.length > 0 ? pastPosts.map((post) => <PostItem key={post.id} post={post} onRepublish={handleRepublish} isRepublishing={isRepublishing} onDelete={handleDeleteRequest} />)
-                      : <div className="text-center text-gray-500 py-10"><Facebook className="w-10 h-10 mx-auto text-gray-400 mb-2" /><p>Nenhuma publicação encontrada no histórico.</p></div>
-                    }
+                    {isLoadingInitial ? (
+                      <div className="flex h-40 items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                      </div>
+                    ) : pastPosts.length > 0 ? (
+                      pastPosts.map((post) => (
+                        <PostItem
+                          key={post.id}
+                          post={post}
+                          onRepublish={handleRepublish}
+                          isRepublishing={isRepublishing}
+                          onDelete={handleDeleteRequest}
+                        />
+                      ))
+                    ) : (
+                      <div className="py-10 text-center text-gray-500">
+                        <Facebook className="mx-auto mb-2 h-10 w-10 text-gray-400" />
+                        <p>Nenhuma publicação encontrada no histórico.</p>
+                      </div>
+                    )}
                   </AnimatePresence>
                 </div>
               </CardContent>
             </Card>
           </div>
           {/* Sidebar Area */}
-          <div className="lg:col-span-1 space-y-8">
-            <Card className="shadow-lg border-none">
+          <div className="space-y-8 lg:col-span-1">
+            <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl">Calendário de Conteúdo</CardTitle>
               </CardHeader>
@@ -969,43 +1282,47 @@ export default function Conteudo() {
                   }}
                 />
 
-                <div className="w-full border-t pt-4 mt-6">
+                <div className="mt-6 w-full border-t pt-4">
                   <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-500" /> Publicado
+                      <div className="h-3 w-3 rounded-full bg-green-500" /> Publicado
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" /> Agendado
+                      <div className="h-3 w-3 rounded-full bg-blue-500" /> Agendado
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500" /> Falhou
+                      <div className="h-3 w-3 rounded-full bg-red-500" /> Falhou
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-lg border-none">
+            <Card className="border-none shadow-lg">
               <CardHeader>
-                  <CardTitle className="text-xl">Conexões</CardTitle>
+                <CardTitle className="text-xl">Conexões</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                  <ConnectionStatus 
-                      platform="facebook"
-                      isConnected={metaConnection.isConnected}
-                      accountName={metaConnection.pageName}
-                      onConnect={handleConnectMeta}
-                      onDisconnect={handleDisconnectMeta}
-                      isLoading={isConnecting}
-                  />
-                  <Separator />
-                  <ConnectionStatus 
-                      platform="instagram"
-                      isConnected={instagramConnection.isConnected}
-                      accountName={instagramConnection.instagramUsername ? `@${instagramConnection.instagramUsername}`: undefined}
-                      onConnect={handleConnectInstagram}
-                      onDisconnect={handleDisconnectInstagram}
-                      isLoading={checkingConnection}
-                  />
+                <ConnectionStatus
+                  platform="facebook"
+                  isConnected={metaConnection.isConnected}
+                  accountName={metaConnection.pageName}
+                  onConnect={handleConnectMeta}
+                  onDisconnect={handleDisconnectMeta}
+                  isLoading={isConnecting}
+                />
+                <Separator />
+                <ConnectionStatus
+                  platform="instagram"
+                  isConnected={instagramConnection.isConnected}
+                  accountName={
+                    instagramConnection.instagramUsername
+                      ? `@${instagramConnection.instagramUsername}`
+                      : undefined
+                  }
+                  onConnect={handleConnectInstagram}
+                  onDisconnect={handleDisconnectInstagram}
+                  isLoading={checkingConnection}
+                />
               </CardContent>
             </Card>
           </div>

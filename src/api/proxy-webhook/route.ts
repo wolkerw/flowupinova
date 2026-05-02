@@ -1,28 +1,30 @@
-
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from "next/server";
 
 // Aumenta o tempo máximo de execução desta rota para 300 segundos (5 minutos).
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   // O URL do webhook agora vem de um parâmetro de busca, ex: /api/proxy-webhook?target=post_manual
-  const targetWebhookName = request.nextUrl.searchParams.get('target');
-  
+  const targetWebhookName = request.nextUrl.searchParams.get("target");
+
   let webhookUrl = "";
 
-  if (targetWebhookName === 'post_manual') {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
-  } else if (targetWebhookName === 'imagem_sem_logo') {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
-  } else if (targetWebhookName === 'gerador_imagem_referencia') {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia";
+  if (targetWebhookName === "post_manual") {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+  } else if (targetWebhookName === "imagem_sem_logo") {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+  } else if (targetWebhookName === "gerador_imagem_referencia") {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia";
   } else {
-      return NextResponse.json({ error: "Webhook de destino não especificado ou inválido." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Webhook de destino não especificado ou inválido." },
+      { status: 400 }
+    );
   }
 
   try {
     const formData = await request.formData();
-    
+
     // Recria o FormData no servidor para enviar ao webhook externo.
     const webhookFormData = new FormData();
     for (const [key, value] of formData.entries()) {
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
         webhookFormData.append(key, value);
       }
     }
-    
+
     // O `fetch` nativo definirá o Content-Type para `multipart/form-data` com o boundary correto.
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
@@ -54,16 +56,21 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         // O corpo da resposta de erro não era JSON, usa o texto puro.
       }
-      return NextResponse.json({ error: "Falha ao comunicar com o webhook externo.", details: errorDetails }, { status: webhookResponse.status });
+      return NextResponse.json(
+        { error: "Falha ao comunicar com o webhook externo.", details: errorDetails },
+        { status: webhookResponse.status }
+      );
     }
 
     const data = await webhookResponse.json();
-    
+
     // Retorna a resposta do webhook para the cliente.
     return NextResponse.json(data);
-
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error.message);
-    return NextResponse.json({ error: "Erro interno do servidor no proxy.", details: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor no proxy.", details: error.message },
+      { status: 500 }
+    );
   }
 }

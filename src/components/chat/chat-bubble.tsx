@@ -7,7 +7,7 @@ import { AlertCircle, Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Message = {
-  sender: 'user' | 'ai';
+  sender: "user" | "ai";
   text: string;
   isError?: boolean;
 };
@@ -16,9 +16,9 @@ interface ChatBubbleProps {
   message: Message;
 }
 
-const Avatar = ({ sender, isError }: { sender: 'user' | 'ai', isError?: boolean }) => {
-  const isUser = sender === 'user';
-  
+const Avatar = ({ sender, isError }: { sender: "user" | "ai"; isError?: boolean }) => {
+  const isUser = sender === "user";
+
   const icon = isUser ? (
     <User className="h-4 w-4 text-primary-foreground" />
   ) : isError ? (
@@ -27,14 +27,16 @@ const Avatar = ({ sender, isError }: { sender: 'user' | 'ai', isError?: boolean 
     <Bot className="h-4 w-4 text-primary-foreground" />
   );
 
-  const background = isUser 
+  const background = isUser
     ? "bg-gradient-to-br from-accent to-primary"
-    : isError 
-    ? "bg-destructive" 
-    : "bg-gradient-to-br from-accent to-primary";
+    : isError
+      ? "bg-destructive"
+      : "bg-gradient-to-br from-accent to-primary";
 
   return (
-    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", background)}>
+    <div
+      className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", background)}
+    >
       {icon}
     </div>
   );
@@ -42,7 +44,7 @@ const Avatar = ({ sender, isError }: { sender: 'user' | 'ai', isError?: boolean 
 
 export const ChatBubble = ({ message }: ChatBubbleProps) => {
   const { sender, text, isError } = message;
-  const isUser = sender === 'user';
+  const isUser = sender === "user";
 
   return (
     <motion.div
@@ -66,7 +68,7 @@ export const ChatBubble = ({ message }: ChatBubbleProps) => {
           <p>{text}</p>
         ) : (
           <ReactMarkdown
-            className="prose prose-sm max-w-none prose-p:text-card-foreground prose-headings:text-card-foreground prose-strong:text-card-foreground prose-a:text-primary hover:prose-a:text-primary/80"
+            className="prose prose-sm max-w-none prose-headings:text-card-foreground prose-p:text-card-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-card-foreground"
             remarkPlugins={[remarkGfm]}
           >
             {text}

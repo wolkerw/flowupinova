@@ -10,11 +10,11 @@ export function setCookie(name: string, value: string, days: number) {
   let expires = "";
   if (days) {
     const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
     expires = "; expires=" + date.toUTCString();
   }
   // This check is important for Server-Side Rendering (SSR) environments
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     document.cookie = name + "=" + (value || "") + expires + "; path=/";
   }
 }
@@ -24,8 +24,8 @@ export function setCookie(name: string, value: string, days: number) {
  * @param name The name of the cookie to erase.
  */
 export function eraseCookie(name: string) {
-    // This check is important for SSR
-    if (typeof document !== 'undefined') {
-      document.cookie = name+'=; Max-Age=-99999999; path=/;';
-    }
+  // This check is important for SSR
+  if (typeof document !== "undefined") {
+    document.cookie = name + "=; Max-Age=-99999999; path=/;";
+  }
 }

@@ -1,7 +1,6 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface PagePostsRequestBody {
   accessToken: string;
@@ -10,60 +9,76 @@ interface PagePostsRequestBody {
 }
 
 export async function POST(request: NextRequest) {
-    try {
-        const body: PagePostsRequestBody = await request.json();
-        const { accessToken, pageId, after } = body;
+  try {
+    const body: PagePostsRequestBody = await request.json();
+    const { accessToken, pageId, after } = body;
 
-        if (!accessToken || !pageId) {
-            return NextResponse.json({ success: false, error: "Access token e Page ID são obrigatórios." }, { status: 400 });
-        }
-
-        const fields = 'id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(lifetime),reactions.summary(total_count),comments.summary(total_count)';
-        
-        const url = new URL(`https://graph.facebook.com/v20.0/${pageId}/posts`);
-        url.searchParams.append('fields', fields);
-        url.searchParams.append('access_token', accessToken);
-        url.searchParams.append('limit', '6'); // Fetch 6 posts at a time
-
-        if (after) {
-            url.searchParams.append('after', after);
-        }
-
-        const response = await fetch(url.toString());
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("[META_API_ERROR] Falha ao buscar posts da página:", data.error);
-            const errorMessage = data.error?.message || `Falha na API da Meta com status ${response.status}`;
-            if (data.error?.code === 190) { // OAuthException
-              return NextResponse.json({ success: false, error: "Sua sessão com a Meta expirou. Por favor, reconecte sua conta." }, { status: 401 });
-            }
-            return NextResponse.json({ success: false, error: errorMessage }, { status: response.status });
-        }
-        
-        const posts = data.data.map((post: any) => {
-            const insightsData = post.insights?.data || [];
-            const reach = insightsData.find((m: any) => m.name === 'post_impressions_unique')?.values?.[0]?.value || 0;
-            const likes = post.reactions?.summary?.total_count || 0;
-            const comments = post.comments?.summary?.total_count || 0;
-            const shares = post.shares?.count || 0;
-            
-            return {
-                id: post.id,
-                message: post.message,
-                created_time: post.created_time,
-                full_picture: post.full_picture,
-                insights: { reach, likes, comments, shares }
-            };
-        });
-
-        // Extract the 'after' cursor for the next page
-        const nextCursor = data.paging?.cursors?.after || null;
-
-        return NextResponse.json({ success: true, posts, nextCursor });
-
-    } catch (error: any) {
-        console.error("[PAGE_POSTS_ERROR]", error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (!accessToken || !pageId) {
+      return NextResponse.json(
+        { success: false, error: "Access token e Page ID são obrigatórios." },
+        { status: 400 }
+      );
     }
+
+    const fields =
+      "id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(lifetime),reactions.summary(total_count),comments.summary(total_count)";
+
+    const url = new URL(`https://graph.facebook.com/v20.0/${pageId}/posts`);
+    url.searchParams.append("fields", fields);
+    url.searchParams.append("access_token", accessToken);
+    url.searchParams.append("limit", "6"); // Fetch 6 posts at a time
+
+    if (after) {
+      url.searchParams.append("after", after);
+    }
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("[META_API_ERROR] Falha ao buscar posts da página:", data.error);
+      const errorMessage =
+        data.error?.message || `Falha na API da Meta com status ${response.status}`;
+      if (data.error?.code === 190) {
+        // OAuthException
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Sua sessão com a Meta expirou. Por favor, reconecte sua conta.",
+          },
+          { status: 401 }
+        );
+      }
+      return NextResponse.json(
+        { success: false, error: errorMessage },
+        { status: response.status }
+      );
+    }
+
+    const posts = data.data.map((post: any) => {
+      const insightsData = post.insights?.data || [];
+      const reach =
+        insightsData.find((m: any) => m.name === "post_impressions_unique")?.values?.[0]?.value ||
+        0;
+      const likes = post.reactions?.summary?.total_count || 0;
+      const comments = post.comments?.summary?.total_count || 0;
+      const shares = post.shares?.count || 0;
+
+      return {
+        id: post.id,
+        message: post.message,
+        created_time: post.created_time,
+        full_picture: post.full_picture,
+        insights: { reach, likes, comments, shares },
+      };
+    });
+
+    // Extract the 'after' cursor for the next page
+    const nextCursor = data.paging?.cursors?.after || null;
+
+    return NextResponse.json({ success: true, posts, nextCursor });
+  } catch (error: any) {
+    console.error("[PAGE_POSTS_ERROR]", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

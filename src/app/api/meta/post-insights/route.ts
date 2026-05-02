@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +39,10 @@ export async function POST(request: NextRequest) {
     const insightsData = await response.json();
 
     if (!response.ok || insightsData?.error) {
-      console.error("[POST_INSIGHTS_ERROR] Instagram API Error:", insightsData?.error || insightsData);
+      console.error(
+        "[POST_INSIGHTS_ERROR] Instagram API Error:",
+        insightsData?.error || insightsData
+      );
       const msg = insightsData?.error?.message || `Falha ao buscar insights (${response.status}).`;
       return NextResponse.json({ success: false, error: msg }, { status: 400 });
     }

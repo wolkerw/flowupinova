@@ -1,12 +1,11 @@
-
-import * as admin from 'firebase-admin';
-import { getApps } from 'firebase-admin/app';
-import { cookies } from 'next/headers';
+import * as admin from "firebase-admin";
+import { getApps } from "firebase-admin/app";
+import { cookies } from "next/headers";
 
 // This is the Singleton pattern for the Firebase Admin SDK.
 // It ensures that initialization happens only once across the server's lifecycle.
 if (!getApps().length) {
-    admin.initializeApp();
+  admin.initializeApp();
 }
 
 const adminAuth = admin.auth();
@@ -38,19 +37,19 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
  * @throws An error if the user is not authenticated or the token is invalid.
  */
 export async function getUidFromCookie(): Promise<string> {
-    const cookieStore = cookies();
-    const idTokenCookie = cookieStore.get('firebase-id-token');
+  const cookieStore = cookies();
+  const idTokenCookie = cookieStore.get("firebase-id-token");
 
-    if (!idTokenCookie?.value) {
-        throw new Error("Firebase user verification failed. Authentication cookie not found.");
-    }
+  if (!idTokenCookie?.value) {
+    throw new Error("Firebase user verification failed. Authentication cookie not found.");
+  }
 
-    try {
-        const decodedToken = await verifyIdToken(idTokenCookie.value);
-        return decodedToken.uid;
-    } catch (error: any) {
-        console.error("Error verifying ID token from cookie:", error.message);
-        // Propagate the detailed error from the verifyIdToken function to provide more context.
-        throw new Error(`Firebase user verification failed. ${error.message}`);
-    }
+  try {
+    const decodedToken = await verifyIdToken(idTokenCookie.value);
+    return decodedToken.uid;
+  } catch (error: any) {
+    console.error("Error verifying ID token from cookie:", error.message);
+    // Propagate the detailed error from the verifyIdToken function to provide more context.
+    throw new Error(`Firebase user verification failed. ${error.message}`);
+  }
 }

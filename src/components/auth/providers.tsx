@@ -7,9 +7,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Toaster />
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      <AuthProvider>{children}</AuthProvider>
     </>
   );
 }

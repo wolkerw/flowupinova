@@ -1,4 +1,3 @@
-
 "use server";
 
 import type { NextRequest } from "next/server";
@@ -18,15 +17,16 @@ async function publishToPlatform(
 
   // Usa a URL canônica definida no arquivo de configuração.
   const baseUrl = config.aplicationURL;
-    
+
   const apiPath = isInstagram ? "/api/instagram/v2/publish" : "/api/facebook/publish";
   const requestUrl = new URL(apiPath, baseUrl);
-  
+
   if (!post?.text) throw new Error(`Post sem texto (post.id=${post.id}).`);
-  if (!post?.imageUrls || post.imageUrls.length === 0) throw new Error(`Post sem imageUrls (post.id=${post.id}).`);
+  if (!post?.imageUrls || post.imageUrls.length === 0)
+    throw new Error(`Post sem imageUrls (post.id=${post.id}).`);
 
   let payload: any;
-  
+
   if (isInstagram) {
     const accessToken = post.connections.igUserAccessToken;
     const instagramId = post.connections.instagramId;
@@ -34,7 +34,7 @@ async function publishToPlatform(
     if (!accessToken || !instagramId) {
       throw new Error(`Conexão do Instagram incompleta para o post ${post.id}.`);
     }
-    
+
     payload = {
       postData: {
         text: post.text,
@@ -42,9 +42,10 @@ async function publishToPlatform(
         isCarousel: post.isCarousel,
         accessToken,
         instagramId,
-      }
+      },
     };
-  } else { // Facebook
+  } else {
+    // Facebook
     const accessToken = post.connections.fbPageAccessToken;
     const pageId = post.connections.pageId;
 
@@ -54,7 +55,9 @@ async function publishToPlatform(
 
     // Facebook API for /photos doesn't support carousels directly, so we post the first image
     if (post.isCarousel) {
-        console.warn(`[CRON_V2_WARN] Publicação em carrossel para Facebook não é suportada diretamente. Publicando a primeira imagem do post ${post.id}.`);
+      console.warn(
+        `[CRON_V2_WARN] Publicação em carrossel para Facebook não é suportada diretamente. Publicando a primeira imagem do post ${post.id}.`
+      );
     }
 
     payload = {
@@ -69,7 +72,9 @@ async function publishToPlatform(
     };
   }
 
-  console.log(`[CRON_V2] Iniciando fetch para ${platform.toUpperCase()} em ${requestUrl.toString()}`);
+  console.log(
+    `[CRON_V2] Iniciando fetch para ${platform.toUpperCase()} em ${requestUrl.toString()}`
+  );
 
   let response: Response;
   try {
@@ -80,14 +85,20 @@ async function publishToPlatform(
     });
   } catch (networkErr: any) {
     console.error(`[CRON_V2] ERRO DE REDE ao chamar a API de ${platform}:`, networkErr?.message);
-    throw new Error(`Falha de rede ao tentar publicar no ${platform}. Verifique se a API interna está acessível.`);
+    throw new Error(
+      `Falha de rede ao tentar publicar no ${platform}. Verifique se a API interna está acessível.`
+    );
   }
 
   const responseText = await response.text();
-  console.log(`[CRON_V2] Resposta da API de ${platform}: status ${response.status}, corpo: ${responseText}`);
+  console.log(
+    `[CRON_V2] Resposta da API de ${platform}: status ${response.status}, corpo: ${responseText}`
+  );
 
   if (!response.ok) {
-    throw new Error(`A API de publicação de ${platform} retornou um erro: HTTP ${response.status} - ${responseText}`);
+    throw new Error(
+      `A API de publicação de ${platform} retornou um erro: HTTP ${response.status} - ${responseText}`
+    );
   }
 
   try {
@@ -122,7 +133,10 @@ export async function runCronJob(request: NextRequest) {
       const { id: postId, _parentPath: userPath } = post;
 
       if (!postId || !userPath) {
-        console.error("[CRON_V2] ERRO CRÍTICO: Post encontrado sem ID ou caminho do usuário, pulando:", post);
+        console.error(
+          "[CRON_V2] ERRO CRÍTICO: Post encontrado sem ID ou caminho do usuário, pulando:",
+          post
+        );
         failedCount++;
         return;
       }
@@ -157,7 +171,10 @@ export async function runCronJob(request: NextRequest) {
 
     await Promise.all(publishPromises);
   } catch (error: any) {
-    console.error("[CRON_V2] Erro fatal e inesperado durante a execução do serviço de CRON:", error);
+    console.error(
+      "[CRON_V2] Erro fatal e inesperado durante a execução do serviço de CRON:",
+      error
+    );
     throw error;
   }
 

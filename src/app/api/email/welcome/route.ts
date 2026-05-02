@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/config";
 
@@ -6,19 +5,22 @@ import { config } from "@/lib/config";
 const WEBHOOK_URL = "https://webhook.flowupinova.com.br/webhook/send-email";
 
 export async function POST(request: NextRequest) {
-    try {
-        const { name, email } = await request.json();
+  try {
+    const { name, email } = await request.json();
 
-        if (!name || !email) {
-            return NextResponse.json({ success: false, error: "Nome e e-mail são obrigatórios." }, { status: 400 });
-        }
-        
-        const dashboardUrl = `${config.aplicationURL}/dashboard`;
+    if (!name || !email) {
+      return NextResponse.json(
+        { success: false, error: "Nome e e-mail são obrigatórios." },
+        { status: 400 }
+      );
+    }
 
-        const emailPayload = {
-            to: email,
-            subject: "Bem-vindo à NumVapt! ✨",
-            html: `
+    const dashboardUrl = `${config.aplicationURL}/dashboard`;
+
+    const emailPayload = {
+      to: email,
+      subject: "Bem-vindo à NumVapt! ✨",
+      html: `
               <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                 <h1 style="color: #1E40AF;">Olá ${name},</h1>
                 <p>Seja muito bem-vindo(a) à NumVapt! Estamos empolgados em ter você a bordo.</p>
@@ -33,25 +35,27 @@ export async function POST(request: NextRequest) {
                 </p>
                 <p style="margin-top: 20px;">Atenciosamente,<br>Equipe NumVapt</p>
               </div>
-            `
-        };
+            `,
+    };
 
-        // Fire-and-forget call to the webhook, no need to await
-        fetch(WEBHOOK_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(emailPayload),
-        }).catch(error => {
-            // Log error but don't block the main flow
-            console.error("[WELCOME_EMAIL_WEBHOOK_ERROR]", error);
-        });
+    // Fire-and-forget call to the webhook, no need to await
+    fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(emailPayload),
+    }).catch((error) => {
+      // Log error but don't block the main flow
+      console.error("[WELCOME_EMAIL_WEBHOOK_ERROR]", error);
+    });
 
-        // Immediately return success to not block the client-side registration flow
-        return NextResponse.json({ success: true, message: "Requisição de e-mail de boas-vindas enviada." });
-
-    } catch (error: any) {
-        console.error("[WELCOME_EMAIL_API_ERROR]", error);
-        // Even if the API route itself fails, don't block the user.
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
+    // Immediately return success to not block the client-side registration flow
+    return NextResponse.json({
+      success: true,
+      message: "Requisição de e-mail de boas-vindas enviada.",
+    });
+  } catch (error: any) {
+    console.error("[WELCOME_EMAIL_API_ERROR]", error);
+    // Even if the API route itself fails, don't block the user.
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

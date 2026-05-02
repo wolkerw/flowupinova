@@ -1,44 +1,49 @@
-
-import { NextRequest, NextResponse } from 'next/server';
-import { config } from '@/lib/config';
+import { NextRequest, NextResponse } from "next/server";
+import { config } from "@/lib/config";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
-  const userId = searchParams.get('state');
-  
+  const code = searchParams.get("code");
+  const error = searchParams.get("error");
+  const userId = searchParams.get("state");
+
   // Detecta a origem real através dos headers (útil para proxies e múltiplos domínios)
-  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
-  const protocol = request.headers.get('x-forwarded-proto') || 'https';
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || "https";
   const origin = `${protocol}://${host}`;
 
   // Constrói a URL de redirecionamento final para o dashboard
-  const redirectUrl = new URL('/dashboard/conteudo', origin);
-  redirectUrl.search = '';
+  const redirectUrl = new URL("/dashboard/conteudo", origin);
+  redirectUrl.search = "";
 
   if (error) {
-    redirectUrl.searchParams.set('instagram_error', error);
-    redirectUrl.searchParams.set('instagram_error_description', searchParams.get('error_description') || 'User denied access.');
+    redirectUrl.searchParams.set("instagram_error", error);
+    redirectUrl.searchParams.set(
+      "instagram_error_description",
+      searchParams.get("error_description") || "User denied access."
+    );
     return NextResponse.redirect(redirectUrl);
   }
 
   if (!code) {
-    redirectUrl.searchParams.set('instagram_error', 'missing_code');
-    redirectUrl.searchParams.set('instagram_error_description', 'Authorization code is missing.');
+    redirectUrl.searchParams.set("instagram_error", "missing_code");
+    redirectUrl.searchParams.set("instagram_error_description", "Authorization code is missing.");
     return NextResponse.redirect(redirectUrl);
   }
-  
+
   if (!userId) {
-     redirectUrl.searchParams.set('instagram_error', 'missing_state');
-     redirectUrl.searchParams.set('instagram_error_description', 'User ID (state) is missing.');
-     return NextResponse.redirect(redirectUrl);
+    redirectUrl.searchParams.set("instagram_error", "missing_state");
+    redirectUrl.searchParams.set("instagram_error_description", "User ID (state) is missing.");
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (!config.instagram.appId || !config.instagram.appSecret) {
-    console.error('Instagram app credentials are not configured on the server.');
-    redirectUrl.searchParams.set('instagram_error', 'server_config_missing');
-    redirectUrl.searchParams.set('instagram_error_description', 'Server configuration for Instagram is incomplete.');
+    console.error("Instagram app credentials are not configured on the server.");
+    redirectUrl.searchParams.set("instagram_error", "server_config_missing");
+    redirectUrl.searchParams.set(
+      "instagram_error_description",
+      "Server configuration for Instagram is incomplete."
+    );
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -46,16 +51,16 @@ export async function GET(request: NextRequest) {
     // 1. Trocar o código por um token de curta duração
     // Usamos a URL de callback que coincida exatamente com a enviada no passo de autorização (front-end)
     const currentCallbackUri = `${origin}/api/instagram/callback`;
-    
-    const tokenFormData = new FormData();
-    tokenFormData.append('client_id', config.instagram.appId);
-    tokenFormData.append('client_secret', config.instagram.appSecret);
-    tokenFormData.append('grant_type', 'authorization_code');
-    tokenFormData.append('redirect_uri', currentCallbackUri);
-    tokenFormData.append('code', code.replace(/#_$/, ''));
 
-    const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
-      method: 'POST',
+    const tokenFormData = new FormData();
+    tokenFormData.append("client_id", config.instagram.appId);
+    tokenFormData.append("client_secret", config.instagram.appSecret);
+    tokenFormData.append("grant_type", "authorization_code");
+    tokenFormData.append("redirect_uri", currentCallbackUri);
+    tokenFormData.append("code", code.replace(/#_$/, ""));
+
+    const tokenResponse = await fetch("https://api.instagram.com/oauth/access_token", {
+      method: "POST",
       body: tokenFormData,
     });
 
@@ -64,7 +69,7 @@ export async function GET(request: NextRequest) {
       throw new Error(tokenData.error_message);
     }
     const shortLivedToken = tokenData.access_token;
-    if (!shortLivedToken) throw new Error('Short-lived access token not found in response.');
+    if (!shortLivedToken) throw new Error("Short-lived access token not found in response.");
 
     // 2. Trocar o token de curta duração por um de longa duração
     const longLivedTokenUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${config.instagram.appSecret}&access_token=${shortLivedToken}`;
@@ -82,18 +87,17 @@ export async function GET(request: NextRequest) {
     if (profileData.error) throw new Error(`Failed to fetch profile: ${profileData.error.message}`);
 
     // 4. Redirecionar para o cliente com os dados na URL
-    redirectUrl.searchParams.set('instagram_connection_success', 'true');
-    redirectUrl.searchParams.set('instagram_accessToken', longLivedToken);
-    redirectUrl.searchParams.set('instagram_id', profileData.id);
-    redirectUrl.searchParams.set('instagram_username', profileData.username);
-    redirectUrl.searchParams.set('user_id_from_state', userId);
+    redirectUrl.searchParams.set("instagram_connection_success", "true");
+    redirectUrl.searchParams.set("instagram_accessToken", longLivedToken);
+    redirectUrl.searchParams.set("instagram_id", profileData.id);
+    redirectUrl.searchParams.set("instagram_username", profileData.username);
+    redirectUrl.searchParams.set("user_id_from_state", userId);
 
     return NextResponse.redirect(redirectUrl);
-
   } catch (err: any) {
-    console.error('[INSTAGRAM_CALLBACK_ERROR]', err);
-    redirectUrl.searchParams.set('instagram_error', 'token_exchange_failed');
-    redirectUrl.searchParams.set('instagram_error_description', encodeURIComponent(err.message));
+    console.error("[INSTAGRAM_CALLBACK_ERROR]", err);
+    redirectUrl.searchParams.set("instagram_error", "token_exchange_failed");
+    redirectUrl.searchParams.set("instagram_error_description", encodeURIComponent(err.message));
     return NextResponse.redirect(redirectUrl);
   }
 }

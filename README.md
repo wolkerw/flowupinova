@@ -1,4 +1,3 @@
-
 # NumVapt - Plataforma de Marketing com Inteligência Artificial
 
 Bem-vindo à documentação técnica da plataforma NumVapt. Este documento fornece uma visão geral da arquitetura, tecnologias utilizadas e diretrizes para contribuir com o projeto.
@@ -14,11 +13,13 @@ A NumVapt é uma plataforma SaaS (Software as a Service) projetada para empodera
 A plataforma é construída sobre uma stack moderna, robusta e escalável, utilizando as melhores práticas do ecossistema JavaScript/TypeScript.
 
 ### Core
+
 - **Framework:** [Next.js](https://nextjs.org/) (v15+) - Utilizando o App Router para renderização híbrida (Server e Client Components), otimização de performance e rotas baseadas em arquivos.
 - **Linguagem:** [TypeScript](https://www.typescriptlang.org/) - Para um código mais seguro, legível e manutenível.
 - **Backend (BaaS):** [Firebase](https://firebase.google.com/) - Solução completa para autenticação, banco de dados (Firestore), armazenamento de arquivos (Storage) e hospedagem.
 
 ### Frontend
+
 - **UI Library:** [React](https://react.dev/) (v18+) - Para a construção de interfaces de usuário dinâmicas e reativas.
 - **Componentes UI:** [ShadCN/UI](https://ui.shadcn.com/) - Uma coleção de componentes de UI reusáveis, acessíveis e customizáveis, construídos sobre Radix UI.
 - **Estilização:** [Tailwind CSS](https://tailwindcss.com/) - Framework CSS utility-first para um design rápido, consistente e responsivo.
@@ -27,6 +28,7 @@ A plataforma é construída sobre uma stack moderna, robusta e escalável, utili
 - **Formulários:** [React Hook Form](https://react-hook-form.com/) - Gerenciamento de formulários performático e eficiente.
 
 ### Backend & APIs
+
 - **Infraestrutura:** [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) - Hospedagem gerenciada e escalável para aplicações web.
 - **Banco de Dados:** [Cloud Firestore](https://firebase.google.com/docs/firestore) - Banco de dados NoSQL, flexível e escalável para armazenar dados da aplicação em tempo real.
 - **Autenticação:** [Firebase Authentication](https://firebase.google.com/docs/auth) - Gerenciamento de usuários com suporte a login por e-mail/senha e provedores sociais.
@@ -34,6 +36,7 @@ A plataforma é construída sobre uma stack moderna, robusta e escalável, utili
 - **APIs Externas:** Integração com as APIs Graph do Facebook/Instagram e Google My Business para publicação de conteúdo e análise de métricas.
 
 ### Testes
+
 - **Framework de Testes:** [Jest](https://jestjs.io/)
 - **Testes de Componentes:** [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
 

@@ -1,24 +1,24 @@
 "use client";
 
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import Relatorios from '../page';
-import { AuthProvider } from '@/components/auth/auth-provider';
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import Relatorios from "../page";
+import { AuthProvider } from "@/components/auth/auth-provider";
 
-jest.mock('@/components/auth/auth-provider', () => ({
-  ...jest.requireActual('@/components/auth/auth-provider'),
+jest.mock("@/components/auth/auth-provider", () => ({
+  ...jest.requireActual("@/components/auth/auth-provider"),
   useAuth: () => ({
-    user: { uid: 'test-user' },
+    user: { uid: "test-user" },
   }),
 }));
 
-jest.mock('@/lib/services/meta-service', () => ({
+jest.mock("@/lib/services/meta-service", () => ({
   getMetaConnection: jest.fn().mockResolvedValue({ isConnected: false }),
 }));
 
 // Mock Recharts to prevent errors during server-side rendering in tests
-jest.mock('recharts', () => ({
-  ...jest.requireActual('recharts'),
+jest.mock("recharts", () => ({
+  ...jest.requireActual("recharts"),
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Bar: () => null,
@@ -33,15 +33,14 @@ jest.mock('recharts', () => ({
   Cell: () => null,
 }));
 
-
-describe('Relatorios Page', () => {
-  it('renders the main title', () => {
+describe("Relatorios Page", () => {
+  it("renders the main title", () => {
     render(
-        <AuthProvider>
-            <Relatorios />
-        </AuthProvider>
+      <AuthProvider>
+        <Relatorios />
+      </AuthProvider>
     );
-    expect(screen.getByText('Relatórios')).toBeInTheDocument();
-    expect(screen.getByText('Análise detalhada de performance')).toBeInTheDocument();
+    expect(screen.getByText("Relatórios")).toBeInTheDocument();
+    expect(screen.getByText("Análise detalhada de performance")).toBeInTheDocument();
   });
 });

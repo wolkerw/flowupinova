@@ -1,7 +1,6 @@
-
 import { NextResponse, type NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface InsightsRequestBody {
   accessToken: string;
@@ -10,62 +9,64 @@ interface InsightsRequestBody {
 
 // Helper para extrair um valor de uma métrica específica do array de resultados da API
 function getMetricValue(data: any[], metricName: string): any {
-    const metric = data.find((m: any) => m.name === metricName);
-    // Para métricas com detalhamento (by_type), o valor está em um objeto
-    if (metric?.values?.[0]?.value && typeof metric.values[0].value === 'object') {
-        return metric.values[0].value;
-    }
-    // Para métricas simples, o valor é um número
-    return metric?.values?.[0]?.value || 0;
+  const metric = data.find((m: any) => m.name === metricName);
+  // Para métricas com detalhamento (by_type), o valor está em um objeto
+  if (metric?.values?.[0]?.value && typeof metric.values[0].value === "object") {
+    return metric.values[0].value;
+  }
+  // Para métricas simples, o valor é um número
+  return metric?.values?.[0]?.value || 0;
 }
 
 export async function POST(request: NextRequest) {
-    try {
-        const body: InsightsRequestBody = await request.json();
-        const { accessToken, postId } = body;
+  try {
+    const body: InsightsRequestBody = await request.json();
+    const { accessToken, postId } = body;
 
-        if (!accessToken || !postId) {
-            return NextResponse.json({ success: false, error: "Access token e Post ID são obrigatórios." }, { status: 400 });
-        }
-        
-        // Usando as métricas validadas no Explorer que funcionam para Page Posts
-        const metricsList = [
-            'post_impressions_unique',
-            'post_clicks_by_type',
-            'post_activity_by_action_type'
-        ].join(',');
-
-        // Única chamada para o endpoint de insights com as métricas necessárias
-        const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&period=lifetime&access_token=${accessToken}`;
-        const insightsResponse = await fetch(insightsUrl);
-        const insightsData = await insightsResponse.json();
-
-        if (!insightsResponse.ok || insightsData.error) {
-            console.error("[FB_POST_INSIGHTS_ERROR] API Error:", insightsData.error);
-            throw new Error(`Erro na API de Insights: ${insightsData.error.message}`);
-        }
-
-        const rawInsights = insightsData.data || [];
-
-        const insights = {
-            reach: getMetricValue(rawInsights, 'post_impressions_unique'),
-            clicks_by_type: getMetricValue(rawInsights, 'post_clicks_by_type'),
-            // O objeto de reações está dentro de 'post_activity_by_action_type'
-            activity_by_action_type: getMetricValue(rawInsights, 'post_activity_by_action_type'),
-        };
-        
-        // Adiciona a busca pelo permalink_url para o link direto
-        const fieldsUrl = `https://graph.facebook.com/v24.0/${postId}?fields=permalink_url&access_token=${accessToken}`;
-        const fieldsResponse = await fetch(fieldsUrl);
-        const fieldsData = await fieldsResponse.json();
-        if(fieldsData.permalink_url) {
-            (insights as any).permalink_url = fieldsData.permalink_url;
-        }
-
-        return NextResponse.json({ success: true, insights });
-
-    } catch (error: any) {
-        console.error("[FB_POST_INSIGHTS_ERROR] Internal Server Error:", error.message);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (!accessToken || !postId) {
+      return NextResponse.json(
+        { success: false, error: "Access token e Post ID são obrigatórios." },
+        { status: 400 }
+      );
     }
+
+    // Usando as métricas validadas no Explorer que funcionam para Page Posts
+    const metricsList = [
+      "post_impressions_unique",
+      "post_clicks_by_type",
+      "post_activity_by_action_type",
+    ].join(",");
+
+    // Única chamada para o endpoint de insights com as métricas necessárias
+    const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&period=lifetime&access_token=${accessToken}`;
+    const insightsResponse = await fetch(insightsUrl);
+    const insightsData = await insightsResponse.json();
+
+    if (!insightsResponse.ok || insightsData.error) {
+      console.error("[FB_POST_INSIGHTS_ERROR] API Error:", insightsData.error);
+      throw new Error(`Erro na API de Insights: ${insightsData.error.message}`);
+    }
+
+    const rawInsights = insightsData.data || [];
+
+    const insights = {
+      reach: getMetricValue(rawInsights, "post_impressions_unique"),
+      clicks_by_type: getMetricValue(rawInsights, "post_clicks_by_type"),
+      // O objeto de reações está dentro de 'post_activity_by_action_type'
+      activity_by_action_type: getMetricValue(rawInsights, "post_activity_by_action_type"),
+    };
+
+    // Adiciona a busca pelo permalink_url para o link direto
+    const fieldsUrl = `https://graph.facebook.com/v24.0/${postId}?fields=permalink_url&access_token=${accessToken}`;
+    const fieldsResponse = await fetch(fieldsUrl);
+    const fieldsData = await fieldsResponse.json();
+    if (fieldsData.permalink_url) {
+      (insights as any).permalink_url = fieldsData.permalink_url;
+    }
+
+    return NextResponse.json({ success: true, insights });
+  } catch (error: any) {
+    console.error("[FB_POST_INSIGHTS_ERROR] Internal Server Error:", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

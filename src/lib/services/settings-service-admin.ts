@@ -1,4 +1,3 @@
-
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
@@ -49,12 +48,17 @@ export async function getGlobalSettings(): Promise<GlobalSettings> {
       postManualWebhook: data.postManualWebhook || DEFAULT_SETTINGS.postManualWebhook,
       imgNoLogoWebhook: data.imgNoLogoWebhook || DEFAULT_SETTINGS.imgNoLogoWebhook,
       imgRefWebhook: data.imgRefWebhook || DEFAULT_SETTINGS.imgRefWebhook,
-      generatePromptsWebhook: data.generatePromptsWebhook || DEFAULT_SETTINGS.generatePromptsWebhook,
-      generateImagesFalaiWebhook: data.generateImagesFalaiWebhook || DEFAULT_SETTINGS.generateImagesFalaiWebhook,
+      generatePromptsWebhook:
+        data.generatePromptsWebhook || DEFAULT_SETTINGS.generatePromptsWebhook,
+      generateImagesFalaiWebhook:
+        data.generateImagesFalaiWebhook || DEFAULT_SETTINGS.generateImagesFalaiWebhook,
       serverTimeout: data.serverTimeout || DEFAULT_SETTINGS.serverTimeout,
     };
   } catch (error) {
-    console.warn("[SETTINGS_SERVICE] Falha ao ler configurações do Firestore, usando padrões.", error);
+    console.warn(
+      "[SETTINGS_SERVICE] Falha ao ler configurações do Firestore, usando padrões.",
+      error
+    );
     return DEFAULT_SETTINGS;
   }
 }

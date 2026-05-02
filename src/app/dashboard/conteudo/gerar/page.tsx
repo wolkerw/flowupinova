@@ -13,13 +13,19 @@ import { Button } from "@/components/ui/button";
 
 import { schedulePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
-import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
-import { 
-  getUnusedImages, 
-  saveUnusedImages, 
-  getContentHistory, 
-  saveContentHistory 
+import {
+  getInstagramConnection,
+  type InstagramConnectionData,
+} from "@/lib/services/instagram-service";
+import {
+  getBusinessProfile,
+  type BusinessProfileData,
+} from "@/lib/services/business-profile-service";
+import {
+  getUnusedImages,
+  saveUnusedImages,
+  getContentHistory,
+  saveContentHistory,
 } from "@/lib/services/user-data-service";
 
 import { GeneratedContent, Platform, LogoPosition } from "./types";
@@ -42,13 +48,15 @@ export default function GerarConteudoPage() {
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [scheduleDateTime, setScheduleDateTime] = useState('');
-  const [platforms, setPlatforms] = useState<Platform[]>(['facebook', 'instagram']);
-  
+  const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
+
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
-  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
+    null
+  );
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
-  
+
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
@@ -61,10 +69,10 @@ export default function GerarConteudoPage() {
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-  const [logoPosition, setLogoPosition] = useState<LogoPosition>('bottom-right');
+  const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
   const [logoScale, setLogoScale] = useState(30);
   const [logoOpacity, setLogoOpacity] = useState(80);
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +114,7 @@ export default function GerarConteudoPage() {
   useEffect(() => {
     if (!user) return;
     userRef.current = user;
-    
+
     async function loadInitialData() {
       try {
         const [metaConn, instaConn, busProfile] = await Promise.all([
@@ -114,7 +122,7 @@ export default function GerarConteudoPage() {
           getInstagramConnection(user.uid),
           getBusinessProfile(user.uid),
           fetchUnusedImages(),
-          fetchContentHistory()
+          fetchContentHistory(),
         ]);
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
@@ -137,13 +145,13 @@ export default function GerarConteudoPage() {
       const currentUser = userRef.current;
 
       if (currentUser && currentImages.length > 0) {
-        const remoteUrls = currentImages.filter(url => !url.startsWith('blob:'));
+        const remoteUrls = currentImages.filter((url) => !url.startsWith("blob:"));
         if (remoteUrls.length > 0) {
           saveUnusedImages(currentUser.uid, remoteUrls).catch(console.error);
         }
       }
 
-      blobURLsRef.current.forEach(url => {
+      blobURLsRef.current.forEach((url) => {
         try {
           URL.revokeObjectURL(url);
         } catch (e) {
@@ -163,8 +171,8 @@ export default function GerarConteudoPage() {
     if (step === 3 && currentPostId && isGeneratingImages && !referenceImageFile) {
       const poll = async () => {
         attempts++;
-        const filenamesToCheck = ["1", "2", "3"].filter(f => !foundFilesRef.current.has(f));
-        
+        const filenamesToCheck = ["1", "2", "3"].filter((f) => !foundFilesRef.current.has(f));
+
         if (filenamesToCheck.length === 0) {
           setIsGeneratingImages(false);
           return true;
@@ -172,25 +180,40 @@ export default function GerarConteudoPage() {
 
         const fetchPromises = filenamesToCheck.map(async (filename) => {
           try {
-            const response = await fetch('https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                postId: currentPostId, 
-                filename: filename,
-                fileExtension: "png"
-              }),
-            });
+            const response = await fetch(
+              "https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  postId: currentPostId,
+                  filename: filename,
+                  fileExtension: "png",
+                }),
+              }
+            );
 
             if (response.ok) {
-              const blob = await response.blob();
-              if (blob.size > 100 && blob.type.startsWith('image/')) {
-                const imageUrl = URL.createObjectURL(blob);
-                blobURLsRef.current.add(imageUrl);
-                foundFilesRef.current.add(filename);
-                
-                setGeneratedImages(prev => [...prev, imageUrl]);
-                setSelectedImage(prev => prev || imageUrl);
+              const contentType = response.headers.get("content-type");
+
+              if (contentType?.includes("application/json")) {
+                const data = await response.json();
+                const url = Array.isArray(data) ? data[0]?.url_post : data?.url_post;
+                if (url) {
+                  foundFilesRef.current.add(filename);
+                  setGeneratedImages((prev) => [...prev, url]);
+                  setSelectedImage((prev) => prev || url);
+                }
+              } else {
+                const blob = await response.blob();
+                if (blob.size > 100 && blob.type.startsWith("image/")) {
+                  const imageUrl = URL.createObjectURL(blob);
+                  blobURLsRef.current.add(imageUrl);
+                  foundFilesRef.current.add(filename);
+
+                  setGeneratedImages((prev) => [...prev, imageUrl]);
+                  setSelectedImage((prev) => prev || imageUrl);
+                }
               }
             }
           } catch (error) {
@@ -209,11 +232,11 @@ export default function GerarConteudoPage() {
           setIsGeneratingImages(false);
           return true;
         }
-        
+
         return false;
       };
 
-      poll().then(stopped => {
+      poll().then((stopped) => {
         if (!stopped) {
           interval = setInterval(async () => {
             const shouldStop = await poll();
@@ -249,20 +272,20 @@ export default function GerarConteudoPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/generate-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ summary: textToGenerate }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
-      
+
       if (Array.isArray(data) && data.length > 0) {
         const content = data as GeneratedContent[];
         setGeneratedContent(content);
         setSelectedContentId("0");
-        if(!summary) {
+        if (!summary) {
           await saveContentHistory(user.uid, content);
           await fetchContentHistory();
         }
@@ -272,7 +295,7 @@ export default function GerarConteudoPage() {
         throw new Error("O formato da resposta da IA é inesperado.");
       }
     } catch (error: any) {
-      toast({ variant: 'destructive', title: "Erro ao gerar texto", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao gerar texto", description: error.message });
       return null;
     } finally {
       setIsLoading(false);
@@ -280,17 +303,19 @@ export default function GerarConteudoPage() {
   };
 
   const handleGeneratePrompts = async () => {
-    const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId, 10)] : generatedContent[0];
+    const selectedContent = selectedContentId
+      ? generatedContent[parseInt(selectedContentId, 10)]
+      : generatedContent[0];
     if (!selectedContent || !user) return;
 
     setIsGeneratingImages(true);
 
     try {
-      const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(' ') : ''}`;
+      const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(" ") : ""}`;
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
         text: fullCaption,
-        status: 'draft',
+        status: "draft",
         createdAt: serverTimestamp(),
         scheduledAt: serverTimestamp(),
         imageUrls: [],
@@ -299,7 +324,7 @@ export default function GerarConteudoPage() {
         connections: {
           instagramUsername: instagramConnection?.instagramUsername || null,
           pageName: metaConnection?.pageName || null,
-        }
+        },
       });
       const postId = docRef.id;
       setCurrentPostId(postId);
@@ -307,19 +332,19 @@ export default function GerarConteudoPage() {
       if (referenceImageFile) {
         // Fluxo de Imagem de Referência
         const formData = new FormData();
-        formData.append('file', referenceImageFile);
-        formData.append('description', referenceDescription);
-        formData.append('postId', postId);
-        formData.append('content', JSON.stringify(selectedContent));
+        formData.append("file", referenceImageFile);
+        formData.append("description", referenceDescription);
+        formData.append("postId", postId);
+        formData.append("content", JSON.stringify(selectedContent));
 
-        const response = await fetch('/api/proxy-webhook?target=gerador_imagem_referencia', {
-            method: 'POST',
-            body: formData,
+        const response = await fetch("/api/proxy-webhook?target=gerador_imagem_referencia", {
+          method: "POST",
+          body: formData,
         });
 
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.details || "Erro ao processar imagem de referência.");
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.details || "Erro ao processar imagem de referência.");
         }
 
         const result = await response.json();
@@ -327,7 +352,7 @@ export default function GerarConteudoPage() {
         const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
 
         if (!imageUrl) {
-            throw new Error("Não foi possível obter a imagem gerada a partir da referência.");
+          throw new Error("Não foi possível obter a imagem gerada a partir da referência.");
         }
 
         setGeneratedImages([imageUrl]);
@@ -338,98 +363,162 @@ export default function GerarConteudoPage() {
       }
 
       // Fluxo Padrão (3 variações paralelas)
-      const response = await fetch('/api/generate-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/generate-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: selectedContent }),
       });
       const data = await response.json();
       const generatedPrompts = data?.[0]?.output?.prompt;
-      
+
       if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
-          throw new Error("Não foi possível gerar os prompts para a imagem.");
+        throw new Error("Não foi possível gerar os prompts para a imagem.");
       }
 
       const filenames = ["1", "2", "3"];
       const webhookPromises = filenames.map((fname, index) => {
-          const promptToUse = generatedPrompts[index] || generatedPrompts[0];
-          return fetch('https://webhook.flowupinova.com.br/webhook/gerador-imagem', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  prompt: promptToUse,
-                  postId: postId,
-                  fileName: fname,
-                  content: selectedContent
-              })
-          });
+        const promptToUse = generatedPrompts[index] || generatedPrompts[0];
+        return fetch("https://webhook.flowupinova.com.br/webhook/gerador-imagem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: promptToUse,
+            postId: postId,
+            fileName: fname,
+            content: selectedContent,
+          }),
+        });
       });
 
       const webhookResponses = await Promise.all(webhookPromises);
-      if (!webhookResponses.every(res => res.ok)) {
-          throw new Error("O serviço de geração de imagem retornou um erro em uma das chamadas.");
+      if (!webhookResponses.every((res) => res.ok)) {
+        throw new Error("O serviço de geração de imagem retornou um erro em uma das chamadas.");
       }
 
-      setGeneratedImages([]); 
+      setGeneratedImages([]);
       foundFilesRef.current.clear();
       setStep(3);
-
     } catch (error: any) {
       console.error("Erro no fluxo de geração:", error);
-      toast({ variant: 'destructive', title: "Erro", description: error.message });
+      toast({ variant: "destructive", title: "Erro", description: error.message });
       setIsGeneratingImages(false);
     }
   };
 
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
-    
-    // Se não houver logomarca, pula o processamento e vai direto para o passo 5
+
+    // Se não houver logomarca, tenta converter blob para URL pública do Supabase via webhook
     if (!logoFile) {
-      setProcessedImageUrl(null); // Garante que usaremos a imagem selecionada original
-      setStep(5);
+      if (!selectedImage.startsWith("blob:")) {
+        setProcessedImageUrl(null);
+        setStep(5);
+        return;
+      }
+
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+        formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
+
+        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
+          method: "POST",
+          body: formData,
+          headers: { "X-Server-Timeout": "300" },
+        });
+
+        const result = await response.json();
+        if (response.ok && result?.[0]?.url_post) {
+          setProcessedImageUrl(result[0].url_post);
+          setStep(5);
+        } else {
+          throw new Error("Não foi possível obter uma URL pública para a imagem.");
+        }
+      } catch (error: any) {
+        console.error("Erro ao converter blob para URL pública:", error);
+        // Fallback: vai para o passo 5 com o blob, o posts-service tentará o Firebase Storage
+        setProcessedImageUrl(null);
+        setStep(5);
+      } finally {
+        setIsUploading(false);
+      }
       return;
     }
 
     setIsUploading(true);
-    toast({ title: "Processando imagem...", description: "Aplicando edições e enviando para o webhook." });
+    toast({
+      title: "Processando imagem...",
+      description: "Aplicando edições e enviando para o webhook.",
+    });
 
     try {
       const img = new window.Image();
       img.src = selectedImage;
-      await new Promise((resolve) => img.onload = resolve);
+      await new Promise((resolve) => (img.onload = resolve));
 
       const formData = new FormData();
-      const imageBlob = await fetch(selectedImage).then(r => r.blob());
-      formData.append('file', new File([imageBlob], "generated-image.jpg", { type: imageBlob.type }));
-      
-      formData.append('logo', logoFile);
-      formData.append('logoScale', logoScale.toString());
-      formData.append('logoOpacity', logoOpacity.toString());
+      const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+      formData.append(
+        "file",
+        new File([imageBlob], "generated-image.jpg", { type: imageBlob.type })
+      );
+
+      formData.append("logo", logoFile);
+      formData.append("logoScale", logoScale.toString());
+      formData.append("logoOpacity", logoOpacity.toString());
 
       const logoPixelWidth = img.width * (visualLogoScale / 100);
-      let posX = 0, posY = 0;
+      let posX = 0,
+        posY = 0;
       const margin = 16;
 
       switch (logoPosition) {
-        case 'top-left':    posX = margin; posY = margin; break;
-        case 'top-center':  posX = (img.width / 2) - (logoPixelWidth / 2); posY = margin; break;
-        case 'top-right':   posX = img.width - logoPixelWidth - margin; posY = margin; break;
-        case 'left-center': posX = margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'center':      posX = (img.width / 2) - (logoPixelWidth / 2); posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'right-center':posX = img.width - logoPixelWidth - margin; posY = (img.height / 2) - (logoPixelWidth / 2); break;
-        case 'bottom-left': posX = margin; posY = img.height - logoPixelWidth - margin; break;
-        case 'bottom-center':posX = (img.width / 2) - (logoPixelWidth / 2); posY = img.height - logoPixelWidth - margin; break;
-        case 'bottom-right':posX = img.width - logoPixelWidth - margin; posY = img.height - logoPixelWidth - margin; break;
+        case "top-left":
+          posX = margin;
+          posY = margin;
+          break;
+        case "top-center":
+          posX = img.width / 2 - logoPixelWidth / 2;
+          posY = margin;
+          break;
+        case "top-right":
+          posX = img.width - logoPixelWidth - margin;
+          posY = margin;
+          break;
+        case "left-center":
+          posX = margin;
+          posY = img.height / 2 - logoPixelWidth / 2;
+          break;
+        case "center":
+          posX = img.width / 2 - logoPixelWidth / 2;
+          posY = img.height / 2 - logoPixelWidth / 2;
+          break;
+        case "right-center":
+          posX = img.width - logoPixelWidth - margin;
+          posY = img.height / 2 - logoPixelWidth / 2;
+          break;
+        case "bottom-left":
+          posX = margin;
+          posY = img.height - logoPixelWidth - margin;
+          break;
+        case "bottom-center":
+          posX = img.width / 2 - logoPixelWidth / 2;
+          posY = img.height - logoPixelWidth - margin;
+          break;
+        case "bottom-right":
+          posX = img.width - logoPixelWidth - margin;
+          posY = img.height - logoPixelWidth - margin;
+          break;
       }
-      
-      formData.append('positionX', Math.round(posX).toString());
-      formData.append('positionY', Math.round(posY).toString());
 
-      const response = await fetch("/api/proxy-webhook?target=post_manual", { 
-        method: 'POST', 
+      formData.append("positionX", Math.round(posX).toString());
+      formData.append("positionY", Math.round(posY).toString());
+
+      const response = await fetch("/api/proxy-webhook?target=post_manual", {
+        method: "POST",
         body: formData,
-        headers: { 'X-Server-Timeout': '300' }
+        headers: { "X-Server-Timeout": "300" },
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.details || "Falha no webhook de personalização.");
@@ -437,43 +526,89 @@ export default function GerarConteudoPage() {
       setProcessedImageUrl(result?.[0]?.url_post);
       setStep(5);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao Processar Imagem", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Erro ao Processar Imagem",
+        description: error.message,
+      });
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handlePublish = async (publishMode: 'now' | 'schedule') => {
-    const finalImageUrl = processedImageUrl || selectedImage;
+  const handlePublish = async (publishMode: "now" | "schedule") => {
+    let finalImageUrl = processedImageUrl || selectedImage;
     const selectedContent = selectedContentId ? generatedContent[parseInt(selectedContentId)] : null;
-    
+
     if (!selectedContent || !finalImageUrl || !user) return;
+
     if (platforms.length === 0) {
-      toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma para publicar."});
+      toast({
+        variant: "destructive",
+        title: "Nenhuma plataforma",
+        description: "Selecione ao menos uma plataforma para publicar.",
+      });
       return;
     }
-    if (publishMode === 'schedule' && !scheduleDateTime) {
-      toast({ variant: "destructive", title: "Data inválida", description: "Selecione data e hora."});
+
+    if (publishMode === "schedule" && !scheduleDateTime) {
+      toast({
+        variant: "destructive",
+        title: "Data inválida",
+        description: "Selecione data e hora.",
+      });
       return;
     }
 
     setIsPublishing(true);
-    const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(' ')}`;
-    
+
+    // Se for um blob, tenta converter para URL pública do Supabase via webhook ANTES de tudo
+    if (finalImageUrl.startsWith("blob:")) {
+      try {
+        const imageBlob = await fetch(finalImageUrl).then((r) => r.blob());
+        const formData = new FormData();
+        formData.append("file", new File([imageBlob], "post-image.jpg", { type: imageBlob.type }));
+
+        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
+          method: "POST",
+          body: formData,
+          headers: { "X-Server-Timeout": "300" },
+        });
+
+        const result = await response.json();
+        if (response.ok && result?.[0]?.url_post) {
+          finalImageUrl = result[0].url_post;
+          setProcessedImageUrl(finalImageUrl);
+        } else {
+          throw new Error("Não foi possível converter a imagem para uma URL pública do Supabase.");
+        }
+      } catch (error: any) {
+        console.error("Erro na conversão automática:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro de Mídia",
+          description:
+            "Não conseguimos gerar uma URL pública para esta imagem no Supabase. O serviço de publicação pode falhar.",
+        });
+        // Continua com o blob como fallback, mas o posts-service provavelmente falhará no Firebase Storage
+      }
+    }
+    const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(" ")}`;
+
     try {
       const result = await schedulePost(user.uid, {
         text: fullCaption,
-        media: [{ file: new File([], ''), publicUrl: finalImageUrl }],
+        media: [{ file: new File([], ""), publicUrl: finalImageUrl }],
         isCarousel: false,
         platforms: platforms,
-        scheduledAt: publishMode === 'schedule' ? new Date(scheduleDateTime) : new Date(),
+        scheduledAt: publishMode === "schedule" ? new Date(scheduleDateTime) : new Date(),
         metaConnection: metaConnection || undefined,
         instagramConnection: instagramConnection || undefined,
       });
-      
+
       if (result.success) {
         toast({ title: "Sucesso!", description: "Post processado com sucesso!" });
-        router.push('/dashboard/conteudo');
+        router.push("/dashboard/conteudo");
       } else {
         throw new Error(result.error);
       }
@@ -487,13 +622,13 @@ export default function GerarConteudoPage() {
 
   const handleDownloadImage = async (url: string) => {
     try {
-      const blob = await fetch(url).then(r => r.blob());
-      const a = document.createElement('a');
+      const blob = await fetch(url).then((r) => r.blob());
+      const a = document.createElement("a");
       a.href = window.URL.createObjectURL(blob);
       a.download = `numvapt-${Date.now()}.jpg`;
       a.click();
     } catch (error) {
-      toast({ variant: 'destructive', title: "Erro no Download" });
+      toast({ variant: "destructive", title: "Erro no Download" });
     }
   };
 
@@ -512,10 +647,10 @@ export default function GerarConteudoPage() {
   };
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-8 p-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="mt-1 text-gray-600">
           {step === 1 && "Detalhe à nossa IA uma ideia e ela criará um post incríveis para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
           {step === 3 && "Etapa 3: Selecione a melhor imagem para o seu post."}
@@ -525,7 +660,7 @@ export default function GerarConteudoPage() {
       </div>
 
       {step === 1 && (
-        <Step1Idea 
+        <Step1Idea
           postSummary={postSummary}
           onPostSummaryChange={setPostSummary}
           onGenerate={() => handleGenerateText()}
@@ -538,7 +673,7 @@ export default function GerarConteudoPage() {
       )}
 
       {step === 2 && (
-        <Step2TextSelection 
+        <Step2TextSelection
           generatedContent={generatedContent}
           selectedContentId={selectedContentId}
           onSelectedContentIdChange={setSelectedContentId}
@@ -551,7 +686,7 @@ export default function GerarConteudoPage() {
       )}
 
       {step === 3 && (
-        <Step3ImageSelection 
+        <Step3ImageSelection
           generatedImages={generatedImages}
           selectedImage={selectedImage}
           onSelectedImageChange={setSelectedImage}
@@ -563,7 +698,7 @@ export default function GerarConteudoPage() {
       )}
 
       {step === 4 && selectedImage && (
-        <Step4BrandCustomization 
+        <Step4BrandCustomization
           selectedImage={selectedImage}
           logoFile={logoFile}
           logoPreviewUrl={logoPreviewUrl}
@@ -571,7 +706,10 @@ export default function GerarConteudoPage() {
           logoScale={logoScale}
           logoOpacity={logoOpacity}
           onLogoUpload={handleLogoFileChange}
-          onLogoRemove={() => { setLogoFile(null); setLogoPreviewUrl(null); }}
+          onLogoRemove={() => {
+            setLogoFile(null);
+            setLogoPreviewUrl(null);
+          }}
           onPositionChange={setLogoPosition}
           onScaleChange={setLogoScale}
           onOpacityChange={setLogoOpacity}
@@ -584,7 +722,7 @@ export default function GerarConteudoPage() {
       )}
 
       {step === 5 && selectedContentId && selectedImage && (
-        <Step5ReviewPublish 
+        <Step5ReviewPublish
           processedImageUrl={processedImageUrl}
           selectedImage={selectedImage}
           selectedContent={generatedContent[parseInt(selectedContentId)]}
@@ -592,21 +730,67 @@ export default function GerarConteudoPage() {
           metaConnection={metaConnection}
           instagramConnection={instagramConnection}
           platforms={platforms}
-          onPlatformChange={(p) => setPlatforms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
-          onPublish={(mode) => mode === 'now' ? handlePublish('now') : setShowSchedulerModal(true)}
+          onPlatformChange={(p) =>
+            setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
+          }
+          onPublish={(mode) =>
+            mode === "now" ? handlePublish("now") : setShowSchedulerModal(true)
+          }
           onBack={() => setStep(4)}
           isPublishing={isPublishing}
         />
       )}
 
       {showSchedulerModal && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSchedulerModal(false)}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-2xl max-md w-full">
-            <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold flex items-center gap-2"><CalendarIcon className="w-5 h-5"/> Agendar Publicação</h3><Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}><X className="w-5 h-5" /></Button></div>
-            <div className="p-6 space-y-4"><Label htmlFor="schedule-datetime">Data e Hora</Label><Input id="schedule-datetime" type="datetime-local" value={scheduleDateTime} onChange={(e) => setScheduleDateTime(e.target.value)} /></div>
-            <div className="p-6 border-t flex justify-end gap-3 bg-gray-50">
-              <Button variant="outline" onClick={() => setShowSchedulerModal(false)} disabled={isPublishing}>Cancelar</Button>
-              <Button onClick={() => handlePublish('schedule')} disabled={isPublishing || !scheduleDateTime} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">{isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2"/>}Confirmar</Button>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowSchedulerModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="max-md w-full rounded-xl bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b p-6">
+              <h3 className="flex items-center gap-2 text-xl font-bold">
+                <CalendarIcon className="h-5 w-5" /> Agendar Publicação
+              </h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowSchedulerModal(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="space-y-4 p-6">
+              <Label htmlFor="schedule-datetime">Data e Hora</Label>
+              <Input
+                id="schedule-datetime"
+                type="datetime-local"
+                value={scheduleDateTime}
+                onChange={(e) => setScheduleDateTime(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-3 border-t bg-gray-50 p-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowSchedulerModal(false)}
+                disabled={isPublishing}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => handlePublish("schedule")}
+                disabled={isPublishing || !scheduleDateTime}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              >
+                {isPublishing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="mr-2 h-4 w-4" />
+                )}
+                Confirmar
+              </Button>
             </div>
           </motion.div>
         </motion.div>

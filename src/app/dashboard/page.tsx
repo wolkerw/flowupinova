@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import Link from 'next/link';
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,47 +30,70 @@ import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
-import { getBusinessProfile, updateBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import {
+  getInstagramConnection,
+  type InstagramConnectionData,
+} from "@/lib/services/instagram-service";
+import {
+  getBusinessProfile,
+  updateBusinessProfile,
+  type BusinessProfileData,
+} from "@/lib/services/business-profile-service";
 import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Image from 'next/image';
+import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const initialMessages: Message[] = [
   {
-    sender: 'ai',
-    text: 'Olá! Sou o **Vapti**, seu assistente de marketing. Como posso ajudar você a decolar hoje? ✨'
-  }
+    sender: "ai",
+    text: "Olá! Sou o **Vapti**, seu assistente de marketing. Como posso ajudar você a decolar hoje? ✨",
+  },
 ];
 
-const StepItem = ({ title, description, href, isCompleted, isCurrent, children }: { title: string; description: string; href?: string; isCompleted: boolean; isCurrent: boolean; children?: React.ReactNode }) => {
+const StepItem = ({
+  title,
+  description,
+  href,
+  isCompleted,
+  isCurrent,
+  children,
+}: {
+  title: string;
+  description: string;
+  href?: string;
+  isCompleted: boolean;
+  isCurrent: boolean;
+  children?: React.ReactNode;
+}) => {
   return (
-    <div className="flex items-start gap-4 relative pb-8">
-      <div className="absolute left-3 top-3 -bottom-5 w-px bg-gray-200"></div>
+    <div className="relative flex items-start gap-4 pb-8">
+      <div className="absolute -bottom-5 left-3 top-3 w-px bg-gray-200"></div>
       <div className="flex-shrink-0">
         {isCompleted ? (
-          <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
-            <CheckCircle className="w-4 h-4" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white">
+            <CheckCircle className="h-4 w-4" />
           </div>
         ) : isCurrent ? (
-          <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center ring-4 ring-primary/20">
-            <Circle className="w-2.5 h-2.5 fill-current" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white ring-4 ring-primary/20">
+            <Circle className="h-2.5 w-2.5 fill-current" />
           </div>
         ) : (
-          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-            <Circle className="w-2.5 h-2.5 text-gray-400 fill-current" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200">
+            <Circle className="h-2.5 w-2.5 fill-current text-gray-400" />
           </div>
         )}
       </div>
       <div className="pt-0.5">
-        <h4 className={cn("font-semibold", isCurrent ? "text-primary" : "text-gray-800")}>{title}</h4>
-        <p className="text-sm text-gray-500 mb-3 mt-1">{description}</p>
+        <h4 className={cn("font-semibold", isCurrent ? "text-primary" : "text-gray-800")}>
+          {title}
+        </h4>
+        <p className="mb-3 mt-1 text-sm text-gray-500">{description}</p>
         {!isCompleted && isCurrent && href && (
-          <Button asChild size="sm" variant={isCurrent ? 'default' : 'outline'}>
+          <Button asChild size="sm" variant={isCurrent ? "default" : "outline"}>
             <Link href={href}>Começar Agora</Link>
           </Button>
         )}
@@ -88,9 +110,17 @@ interface PlatformMetrics {
   shares: number;
 }
 
-const MetricDisplay = ({ icon, value, label }: { icon: React.ElementType, value: number, label: string }) => (
+const MetricDisplay = ({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ElementType;
+  value: number;
+  label: string;
+}) => (
   <div className="text-center">
-    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3">
+    <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
       {React.createElement(icon, { className: "w-6 h-6 text-primary" })}
     </div>
     <div className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</div>
@@ -100,24 +130,33 @@ const MetricDisplay = ({ icon, value, label }: { icon: React.ElementType, value:
 
 const TrialEndedOverlay = () => {
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full text-center p-8"
+        className="w-full max-w-lg rounded-2xl bg-white p-8 text-center shadow-2xl"
       >
-        <div className="w-20 h-20 mx-auto rounded-full bg-primary flex items-center justify-center mb-6">
-          <Clock className="w-10 h-10 text-white" />
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
+          <Clock className="h-10 w-10 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Seu período de teste terminou</h2>
-        <p className="text-gray-600 mb-6">
-          Esperamos que você tenha gostado de usar a NumVapt! Para continuar a impulsionar seu marketing,
-          por favor, entre em contato para escolher um plano.
+        <h2 className="mb-2 text-2xl font-bold text-gray-900">Seu período de teste terminou</h2>
+        <p className="mb-6 text-gray-600">
+          Esperamos que você tenha gostado de usar a NumVapt! Para continuar a impulsionar seu
+          marketing, por favor, entre em contato para escolher um plano.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600">
-            <a href="https://wa.me/555199922177?text=Olá!%20Meu%20período%20de%20teste%20na%20NumVapt%20terminou%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20planos." target="_blank" rel="noopener noreferrer">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2">
+        <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          <Button asChild size="lg" className="w-full bg-green-500 hover:bg-green-600 sm:w-auto">
+            <a
+              href="https://wa.me/555199922177?text=Olá!%20Meu%20período%20de%20teste%20na%20NumVapt%20terminou%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20planos."
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="mr-2 h-5 w-5"
+              >
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
               </svg>
               Falar no WhatsApp
@@ -125,7 +164,7 @@ const TrialEndedOverlay = () => {
           </Button>
           <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
             <a href="mailto:numvaptinova@gmail.com?subject=Interesse%20em%20Plano&body=Tenho%20interesse%20em%20contratar%20um%20plano.">
-              <Mail className="w-5 h-5 mr-2" />
+              <Mail className="mr-2 h-5 w-5" />
               Enviar E-mail
             </a>
           </Button>
@@ -135,13 +174,14 @@ const TrialEndedOverlay = () => {
   );
 };
 
-
 export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
-  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
+    null
+  );
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -166,39 +206,76 @@ export default function Dashboard() {
     }
   }, [messages]);
 
-  const fetchPlatformMetrics = async (metaConn: MetaConnectionData | null, instaConn: InstagramConnectionData | null) => {
+  const fetchPlatformMetrics = async (
+    metaConn: MetaConnectionData | null,
+    instaConn: InstagramConnectionData | null
+  ) => {
     setMetricsLoading(true);
 
     try {
       if (instaConn?.isConnected && instaConn.accessToken) {
-        const igResponse = await fetch('/api/instagram/media', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const igResponse = await fetch("/api/instagram/media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accessToken: instaConn.accessToken }),
         });
         const igResult = await igResponse.json();
         if (igResult.success) {
-          const totalReach = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
-          const totalLikes = igResult.media.reduce((acc: number, item: any) => acc + (item.like_count || 0), 0);
-          const totalComments = igResult.media.reduce((acc: number, item: any) => acc + (item.comments_count || 0), 0);
-          const totalShares = igResult.media.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
-          setInstagramMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+          const totalReach = igResult.media.reduce(
+            (acc: number, item: any) => acc + (item.insights?.reach || 0),
+            0
+          );
+          const totalLikes = igResult.media.reduce(
+            (acc: number, item: any) => acc + (item.like_count || 0),
+            0
+          );
+          const totalComments = igResult.media.reduce(
+            (acc: number, item: any) => acc + (item.comments_count || 0),
+            0
+          );
+          const totalShares = igResult.media.reduce(
+            (acc: number, item: any) => acc + (item.insights?.shares || 0),
+            0
+          );
+          setInstagramMetrics({
+            reach: totalReach,
+            likes: totalLikes,
+            comments: totalComments,
+            shares: totalShares,
+          });
         }
       }
 
       if (metaConn?.isConnected && metaConn.pageId && metaConn.accessToken) {
-        const fbResponse = await fetch('/api/meta/page-posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const fbResponse = await fetch("/api/meta/page-posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accessToken: metaConn.accessToken, pageId: metaConn.pageId }),
         });
         const fbResult = await fbResponse.json();
         if (fbResult.success) {
-          const totalReach = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.reach || 0), 0);
-          const totalLikes = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.likes || 0), 0);
-          const totalComments = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.comments || 0), 0);
-          const totalShares = fbResult.posts.reduce((acc: number, item: any) => acc + (item.insights?.shares || 0), 0);
-          setFacebookMetrics({ reach: totalReach, likes: totalLikes, comments: totalComments, shares: totalShares });
+          const totalReach = fbResult.posts.reduce(
+            (acc: number, item: any) => acc + (item.insights?.reach || 0),
+            0
+          );
+          const totalLikes = fbResult.posts.reduce(
+            (acc: number, item: any) => acc + (item.insights?.likes || 0),
+            0
+          );
+          const totalComments = fbResult.posts.reduce(
+            (acc: number, item: any) => acc + (item.insights?.comments || 0),
+            0
+          );
+          const totalShares = fbResult.posts.reduce(
+            (acc: number, item: any) => acc + (item.insights?.shares || 0),
+            0
+          );
+          setFacebookMetrics({
+            reach: totalReach,
+            likes: totalLikes,
+            comments: totalComments,
+            shares: totalShares,
+          });
         }
       }
     } catch (error) {
@@ -208,24 +285,23 @@ export default function Dashboard() {
     }
   };
 
-
   useEffect(() => {
     if (!user) return;
 
     const checkTrialStatus = async () => {
-      if (user.email === 'fernando.home@hotmail.com') {
+      if (user.email === "fernando.home@hotmail.com") {
         setTrialLoading(false);
         return;
       }
 
       setTrialLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         // A lógica de expiração só se aplica se o plano for 'trial'
-        if (userData.plan === 'trial') {
+        if (userData.plan === "trial") {
           const createdAt = userData.createdAt?.toDate(); // Firestore timestamp to Date
 
           if (createdAt) {
@@ -244,7 +320,7 @@ export default function Dashboard() {
     const fetchInitialData = async () => {
       const [metaConn, instaConn] = await Promise.all([
         getMetaConnection(user.uid),
-        getInstagramConnection(user.uid)
+        getInstagramConnection(user.uid),
       ]);
 
       setMetaConnection(metaConn);
@@ -259,7 +335,7 @@ export default function Dashboard() {
 
       const history = await getChatHistory(user.uid);
       if (history.length > 0) {
-        const historyMessages: Message[] = history.map(msg => ({
+        const historyMessages: Message[] = history.map((msg) => ({
           sender: msg.sender,
           text: msg.text,
           isError: msg.isError,
@@ -273,7 +349,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && messages.length > initialMessages.length) {
-      const storedMessages: StoredMessage[] = messages.map(msg => ({
+      const storedMessages: StoredMessage[] = messages.map((msg) => ({
         sender: msg.sender,
         text: msg.text,
         isError: msg.isError,
@@ -283,22 +359,22 @@ export default function Dashboard() {
     }
   }, [messages, user]);
 
-
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
 
-    const userMessage: Message = { sender: 'user', text: prompt };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage: Message = { sender: "user", text: prompt };
+    setMessages((prev) => [...prev, userMessage]);
     const currentPrompt = prompt;
     setPrompt("");
     setLoading(true);
 
     try {
-      const webhookUrl = process.env.NEXT_PUBLIC_N8N_CHAT_URL || "https://webhook.flowupinova.com.br/webhook/chat";
+      const webhookUrl =
+        process.env.NEXT_PUBLIC_N8N_CHAT_URL || "https://webhook.flowupinova.com.br/webhook/chat";
       const response = await fetch(webhookUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: currentPrompt }),
       });
@@ -312,25 +388,32 @@ export default function Dashboard() {
       const aiText = responseData?.[0]?.output;
 
       if (!aiText) {
-        throw new Error("Não recebi uma resposta válida do webhook. O formato esperado é: `[{\"output\":\"sua resposta\"}]`");
+        throw new Error(
+          'Não recebi uma resposta válida do webhook. O formato esperado é: `[{"output":"sua resposta"}]`'
+        );
       }
 
-      const aiMessage: Message = { sender: 'ai', text: aiText };
-      setMessages(prev => [...prev, aiMessage]);
-
+      const aiMessage: Message = { sender: "ai", text: aiText };
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
-      const errorMessage: Message = { sender: 'ai', text: `Ocorreu um erro: ${error.message}`, isError: true };
-      setMessages(prev => [...prev, errorMessage]);
+      const errorMessage: Message = {
+        sender: "ai",
+        text: `Ocorreu um erro: ${error.message}`,
+        isError: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getImageDimensions = (file: File): Promise<{ width: number, height: number, dataUrl: string }> => {
+  const getImageDimensions = (
+    file: File
+  ): Promise<{ width: number; height: number; dataUrl: string }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = document.createElement('img');
+        const img = document.createElement("img");
         img.onload = () => {
           resolve({
             width: img.width,
@@ -361,12 +444,11 @@ export default function Dashboard() {
           url: dataUrl,
           width: width,
           height: height,
-        }
+        },
       });
 
       await fetchBusinessProfile();
       toast({ title: "Sucesso!", description: "Logomarca salva no perfil.", variant: "success" });
-
     } catch (error: any) {
       console.error("Error processing logo:", error);
       toast({ title: "Erro ao Processar", description: error.message, variant: "destructive" });
@@ -378,7 +460,6 @@ export default function Dashboard() {
     }
   };
 
-
   const handleRemoveLogo = async () => {
     if (!user) return;
     setIsUploadingLogo(true); // Re-use the same loading state
@@ -389,8 +470,8 @@ export default function Dashboard() {
         logo: {
           url: "",
           width: 0,
-          height: 0
-        }
+          height: 0,
+        },
       });
       await fetchBusinessProfile();
       toast({ title: "Sucesso!", description: "Sua logomarca foi removida.", variant: "success" });
@@ -403,7 +484,7 @@ export default function Dashboard() {
 
   const allStepsCompleted = useMemo(() => {
     if (!metaConnection || !businessProfile) return false;
-    return !!(businessProfile.logo?.url) && metaConnection.isConnected && businessProfile.isVerified;
+    return !!businessProfile.logo?.url && metaConnection.isConnected && businessProfile.isVerified;
   }, [metaConnection, businessProfile]);
 
   if (trialLoading) {
@@ -419,50 +500,60 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+    <div className="mx-auto max-w-7xl space-y-8 p-6">
+      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Início</h1>
-          <p className="text-gray-600 mt-1">Visão geral do seu marketing digital</p>
+          <p className="mt-1 text-gray-600">Visão geral do seu marketing digital</p>
         </div>
         <Button
           asChild
-          className="text-white bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-shadow"
+          className="bg-primary text-white shadow-md transition-shadow hover:bg-primary/90 hover:shadow-lg"
           size="lg"
         >
           <Link href="/dashboard/conteudo">
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="mr-2 h-5 w-5" />
             Criar conteúdo
           </Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
           {(metaConnection?.isConnected || instagramConnection?.isConnected) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Card className="border-border shadow-md bg-white">
+              <Card className="border-border bg-white shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <TrendingUp className="w-6 h-6 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                    <TrendingUp className="h-6 w-6 text-primary" />
                     Resumo da Semana
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="instagram" className="w-full">
                     <TabsList className="grid w-full grid-cols-4">
-                      <TabsTrigger value="instagram"><Instagram className="w-4 h-4 mr-2" />Instagram</TabsTrigger>
-                      <TabsTrigger value="facebook"><Facebook className="w-4 h-4 mr-2" />Facebook</TabsTrigger>
-                      <TabsTrigger value="tiktok" disabled>TikTok</TabsTrigger>
-                      <TabsTrigger value="youtube" disabled>YouTube</TabsTrigger>
+                      <TabsTrigger value="instagram">
+                        <Instagram className="mr-2 h-4 w-4" />
+                        Instagram
+                      </TabsTrigger>
+                      <TabsTrigger value="facebook">
+                        <Facebook className="mr-2 h-4 w-4" />
+                        Facebook
+                      </TabsTrigger>
+                      <TabsTrigger value="tiktok" disabled>
+                        TikTok
+                      </TabsTrigger>
+                      <TabsTrigger value="youtube" disabled>
+                        YouTube
+                      </TabsTrigger>
                     </TabsList>
                     <AnimatePresence mode="wait">
                       <motion.div
-                        key={metricsLoading ? 'loading' : 'content'}
+                        key={metricsLoading ? "loading" : "content"}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
@@ -470,36 +561,80 @@ export default function Dashboard() {
                         className="pt-6"
                       >
                         {metricsLoading ? (
-                          <div className="flex justify-center items-center h-32">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          <div className="flex h-32 items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
                           </div>
                         ) : (
                           <>
                             <TabsContent value="instagram">
                               {instagramMetrics ? (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                  <MetricDisplay icon={Users} value={instagramMetrics.reach} label="Alcance" />
-                                  <MetricDisplay icon={Heart} value={instagramMetrics.likes} label="Curtidas" />
-                                  <MetricDisplay icon={MessageCircle} value={instagramMetrics.comments} label="Comentários" />
-                                  <MetricDisplay icon={Share2} value={instagramMetrics.shares} label="Compart." />
+                                <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                                  <MetricDisplay
+                                    icon={Users}
+                                    value={instagramMetrics.reach}
+                                    label="Alcance"
+                                  />
+                                  <MetricDisplay
+                                    icon={Heart}
+                                    value={instagramMetrics.likes}
+                                    label="Curtidas"
+                                  />
+                                  <MetricDisplay
+                                    icon={MessageCircle}
+                                    value={instagramMetrics.comments}
+                                    label="Comentários"
+                                  />
+                                  <MetricDisplay
+                                    icon={Share2}
+                                    value={instagramMetrics.shares}
+                                    label="Compart."
+                                  />
                                 </div>
-                              ) : <p className="text-center text-gray-500">Não foi possível carregar as métricas.</p>}
+                              ) : (
+                                <p className="text-center text-gray-500">
+                                  Não foi possível carregar as métricas.
+                                </p>
+                              )}
                             </TabsContent>
                             <TabsContent value="facebook">
                               {facebookMetrics ? (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                  <MetricDisplay icon={Users} value={facebookMetrics.reach} label="Alcance" />
-                                  <MetricDisplay icon={Heart} value={facebookMetrics.likes} label="Reações" />
-                                  <MetricDisplay icon={MessageCircle} value={facebookMetrics.comments} label="Comentários" />
-                                  <MetricDisplay icon={Share2} value={facebookMetrics.shares} label="Compart." />
+                                <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                                  <MetricDisplay
+                                    icon={Users}
+                                    value={facebookMetrics.reach}
+                                    label="Alcance"
+                                  />
+                                  <MetricDisplay
+                                    icon={Heart}
+                                    value={facebookMetrics.likes}
+                                    label="Reações"
+                                  />
+                                  <MetricDisplay
+                                    icon={MessageCircle}
+                                    value={facebookMetrics.comments}
+                                    label="Comentários"
+                                  />
+                                  <MetricDisplay
+                                    icon={Share2}
+                                    value={facebookMetrics.shares}
+                                    label="Compart."
+                                  />
                                 </div>
-                              ) : <p className="text-center text-gray-500">Não foi possível carregar as métricas.</p>}
+                              ) : (
+                                <p className="text-center text-gray-500">
+                                  Não foi possível carregar as métricas.
+                                </p>
+                              )}
                             </TabsContent>
                             <TabsContent value="tiktok">
-                              <p className="text-center text-gray-500 py-8">Integração com TikTok em breve.</p>
+                              <p className="py-8 text-center text-gray-500">
+                                Integração com TikTok em breve.
+                              </p>
                             </TabsContent>
                             <TabsContent value="youtube">
-                              <p className="text-center text-gray-500 py-8">Integração com YouTube em breve.</p>
+                              <p className="py-8 text-center text-gray-500">
+                                Integração com YouTube em breve.
+                              </p>
                             </TabsContent>
                           </>
                         )}
@@ -516,15 +651,18 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="shadow-lg border-none">
+            <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Bot className="w-6 h-6 text-primary" />
+                  <Bot className="h-6 w-6 text-primary" />
                   Converse com sua IA
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div ref={chatContainerRef} className="h-64 w-full overflow-y-auto rounded-lg bg-gray-50 p-4 border mb-4">
+                <div
+                  ref={chatContainerRef}
+                  className="mb-4 h-64 w-full overflow-y-auto rounded-lg border bg-gray-50 p-4"
+                >
                   <AnimatePresence>
                     {messages.map((message, index) => (
                       <ChatBubble key={index} message={message} />
@@ -565,7 +703,7 @@ export default function Dashboard() {
                   />
                   <Button
                     size="icon"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-primary hover:bg-primary/90 shadow-sm"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-primary shadow-sm hover:bg-primary/90"
                     onClick={handleSendMessage}
                     disabled={loading || !prompt.trim()}
                     aria-label="Enviar mensagem"
@@ -578,17 +716,17 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        <div className="lg:col-span-1 space-y-8">
-          {!allStepsCompleted && (metaConnection !== null && businessProfile !== null) && (
+        <div className="space-y-8 lg:col-span-1">
+          {!allStepsCompleted && metaConnection !== null && businessProfile !== null && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <Card className="shadow-lg border-none sticky top-24">
+              <Card className="sticky top-24 border-none shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <Rocket className="w-6 h-6 text-primary" />
+                    <Rocket className="h-6 w-6 text-primary" />
                     Primeiros Passos Para Decolar
                   </CardTitle>
                 </CardHeader>
@@ -597,28 +735,56 @@ export default function Dashboard() {
                     <StepItem
                       title="1. Adicione sua Logomarca"
                       description="Faça o upload da sua logomarca para personalizar seus conteúdos."
-                      isCompleted={!!(businessProfile?.logo?.url)}
-                      isCurrent={!(businessProfile?.logo?.url)}
+                      isCompleted={!!businessProfile?.logo?.url}
+                      isCurrent={!businessProfile?.logo?.url}
                     >
-                      {!(businessProfile?.logo?.url) ? (
+                      {!businessProfile?.logo?.url ? (
                         <div className="mt-2">
-                          <input type="file" accept="image/*" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" />
-                          <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploadingLogo}>
-                            {isUploadingLogo ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            onClick={() => fileInputRef.current?.click()}
+                            size="sm"
+                            variant="outline"
+                            disabled={isUploadingLogo}
+                          >
+                            {isUploadingLogo ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <UploadCloud className="mr-2 h-4 w-4" />
+                            )}
                             Enviar Logomarca
                           </Button>
                         </div>
                       ) : (
-                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-4">
+                        <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 p-3">
                           <div className="flex items-center gap-3">
-                            <ImageIcon className="w-8 h-8 text-green-600" />
+                            <ImageIcon className="h-8 w-8 text-green-600" />
                             <div>
                               <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
-                              <p className="text-xs text-green-700">Dimensões: {businessProfile.logo.width}x{businessProfile.logo.height}</p>
+                              <p className="text-xs text-green-700">
+                                Dimensões: {businessProfile.logo.width}x
+                                {businessProfile.logo.height}
+                              </p>
                             </div>
                           </div>
-                          <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-100 h-8 w-8" onClick={handleRemoveLogo} disabled={isUploadingLogo}>
-                            {isUploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-red-500 hover:bg-red-100"
+                            onClick={handleRemoveLogo}
+                            disabled={isUploadingLogo}
+                          >
+                            {isUploadingLogo ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
                       )}
@@ -628,14 +794,18 @@ export default function Dashboard() {
                       description="Integre seu Instagram e Facebook para começar a publicar e agendar."
                       href="/dashboard/conteudo"
                       isCompleted={metaConnection?.isConnected || false}
-                      isCurrent={!!(businessProfile?.logo?.url) && !metaConnection?.isConnected}
+                      isCurrent={!!businessProfile?.logo?.url && !metaConnection?.isConnected}
                     />
                     <StepItem
                       title="3. Conecte seu Perfil de Empresa"
                       description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
                       href="/dashboard/meu-negocio"
                       isCompleted={businessProfile?.isVerified || false}
-                      isCurrent={!!(businessProfile?.logo?.url) && !!metaConnection?.isConnected && !businessProfile?.isVerified}
+                      isCurrent={
+                        !!businessProfile?.logo?.url &&
+                        !!metaConnection?.isConnected &&
+                        !businessProfile?.isVerified
+                      }
                     />
                     <StepItem
                       title="4. Crie sua Primeira Publicação"
