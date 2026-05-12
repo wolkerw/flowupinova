@@ -327,10 +327,10 @@ export function OnboardingWizard({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px]">
-        <div className="flex flex-col md:flex-row h-full min-h-[600px]">
+      <DialogContent className="sm:max-w-[850px] w-[95vw] max-h-[95vh] md:h-[650px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px] flex flex-col">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Sidebar Left */}
-          <div className="w-full md:w-[280px] bg-[#030712] relative overflow-hidden p-10 flex flex-col justify-between border-r border-white/5">
+          <div className="w-full md:w-[280px] bg-[#030712] relative overflow-y-auto md:overflow-hidden p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 shrink-0">
             <div className="absolute inset-0 opacity-40">
               <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-blue-700 rounded-full blur-[120px]" />
               <div className="absolute bottom-[-10%] right-[-10%] w-[120%] h-[120%] bg-cyan-500 rounded-full blur-[120px]" />
@@ -394,7 +394,7 @@ export function OnboardingWizard({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 p-12 flex flex-col bg-slate-50/40 relative">
+          <div className="flex-1 p-6 md:p-12 flex flex-col bg-slate-50/40 relative overflow-hidden">
             {/* Analysis Overlay */}
             <AnimatePresence>
               {isAnalyzing && (
@@ -441,7 +441,7 @@ export function OnboardingWizard({
               </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div
