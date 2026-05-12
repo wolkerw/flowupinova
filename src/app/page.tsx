@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,305 +11,78 @@ import {
   Edit,
   Send,
   CheckCircle,
-  Mail,
   MessageCircle,
-  X,
-  User,
-  AtSign,
-  Type,
   Sparkles as SparklesIcon,
-  Star,
   Instagram,
+  Clock,
+  ShieldCheck,
+  TrendingUp,
+  X,
 } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const ParallaxShapes = () => {
-  const { scrollYProgress } = useScroll();
-
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, -450]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, -580]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, 560]);
-  const y4 = useTransform(scrollYProgress, [0, 1], [0, -620]);
-  const y5 = useTransform(scrollYProgress, [0, 1], [0, 600]);
-
-  const Shape1 = ({ y, className }: { y: any; className: string }) => (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2" />
-      </svg>
-    </motion.div>
-  );
-
-  const Shape2 = ({ y, className }: { y: any; className: string }) => (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="10" />
-      </svg>
-    </motion.div>
-  );
-
-  const Shape5 = ({ y, className }: { y: any; className: string }) => (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        version="1.1"
-        viewBox="0 0 69.1 133.3"
-        fill="currentColor"
-      >
-        <g>
-          <path d="M46.1,96.2h-23.6l-.5-.7c-5.6-7.6-14.7-23.6-13.8-45.2C8.9,32.1,17.4,14.6,32,.9l1-.9,1.2.8c2.5,1.8,24.6,18.9,26.6,49.5,1.5,22.6-9.4,39.2-14.2,45.2l-.5.6h0ZM24.2,92.9h20.3c4.7-6.2,14.3-21.6,13-42.3-1.7-26.4-19.1-42.2-24.1-46.2-13.4,12.9-21.1,29.3-21.8,46.2-.8,19.9,7.4,34.9,12.7,42.4h-.1Z" />
-          <path d="M5,107.8c-.3,0-.5,0-.8,0-5.1-1.3-4.4-13.7-3.7-18,1.2-7.5,4.6-14.5,10.2-20.9l2.1-2.4.8,3.1c1,3.9,2.3,7.7,4,11.4,2,4.4,4.4,8.6,7.2,12.5l1.4,1.9-2.3.6c-3.3.9-6.4,2.3-9.1,4.2-2.5,1.7-4.2,3.4-5.5,4.8-1.4,1.5-2.7,2.8-4.3,2.8h0ZM11.1,73.6c-4,5.2-6.5,10.8-7.4,16.7-1.1,7.2,0,13.5,1.2,14.2.4-.2,1.2-1,1.9-1.7,1.3-1.4,3.2-3.3,6-5.2,2.4-1.6,5-3,7.9-3.9-2.4-3.6-4.5-7.3-6.3-11.2-1.3-2.9-2.4-5.8-3.3-8.8h0Z" />
-          <path d="M64.1,107.8c-1.6,0-2.8-1.3-4.3-2.8-1.3-1.4-2.9-3-5.5-4.8-2.7-1.9-5.8-3.3-9.1-4.2l-2.3-.6,1.4-1.9c2.8-3.9,5.3-8.1,7.2-12.5,1.6-3.7,3-7.5,4-11.4l.8-3.1,2.1,2.4c5.6,6.3,9,13.4,10.2,20.9.7,4.2,1.4,16.6-3.7,18-.3,0-.5,0-.8,0h0ZM48.4,93.6c2.8,1,5.5,2.3,7.9,3.9,2.8,1.9,4.7,3.8,6,5.2.7.7,1.5,1.5,1.9,1.7,1.1-.7,2.3-6.9,1.2-14.2-.9-5.9-3.4-11.5-7.4-16.7-.9,3-2,6-3.3,8.8-1.8,3.9-3.9,7.7-6.3,11.2h0Z" />
-          <path d="M34.5,133.3l-1-.7c-.5-.3-11.5-8.1-10.6-20.9.5-6.8,4.1-11.6,6.2-13.9l.5-.5h10l.5.6c2,2.3,5.4,7.1,5.8,13.9.7,12.4-9.4,20-10.6,20.8l-1,.7h.2ZM31.1,100.7c-1.8,2.1-4.5,6-4.8,11.3-.6,8.9,5.7,15.1,8.2,17.1,2.5-2.1,8.7-8.3,8.2-17.2-.3-5.2-2.8-9.1-4.5-11.3h-7.1Z" />
-          <path d="M34.9,54.4c-6.7,0-12.1-5.4-12.1-12.1s5.4-12.1,12.1-12.1,12.1,5.4,12.1,12.1-5.4,12.1-12.1,12.1ZM34.9,33.6c-4.8,0-8.7,3.9-8.7,8.7s3.9,8.7,8.7,8.7,8.7-3.9,8.7,8.7-3.9-8.7-8.7-8.7Z" />
-        </g>
-      </svg>
-    </motion.div>
-  );
-
-  const Shape6 = ({ y, className }: { y: any; className: string }) => (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        version="1.1"
-        viewBox="0 0 75.3 94.1"
-        fill="currentColor"
-      >
-        <g>
-          <path d="M37.7,23.7c23.2-1.6,35.3,25.3,20.1,42.3-3,3.4-5.5,5.5-6,10.4s1,8.5-3.7,10.4c0,3-1.9,5.9-4.8,6.8s-6.5.5-8.1,0c-3-1-4.9-3.9-4.8-7.1-4.7-2-3.1-6.6-3.4-10.5-.5-7.1-6.3-10-9.2-15.9-7.7-15.6,2.2-35.2,19.9-36.5h0ZM44.7,76.6h3.4l.2-.2c.3-2.5,1.1-4.9,2.3-7.1,2.1-3.7,5.6-6,7.7-9.8,9.5-17.2-6.5-37.6-25.3-31.1-13.6,4.6-18.4,21.4-10.3,33,1.3,1.9,3,3.3,4.3,5.1,2.1,2.8,3.3,6.2,3.6,9.7l.2.3h3.4l.2-12.3h-2.6c-1.6,0-3.7-2.2-4.2-3.6-1.6-5.2,4.6-9.2,8.6-5.6s1.7,2.2,1.7,2.9v2.6c.6.4,2.2.4,3,.3s.4,0,.6-.2v-2.6c0-.7,1.2-2.4,1.8-2.9,4.1-3.6,10.4.8,8.3,6.1-2.1,5.3-2.7,3.3-4.2,3.2h-2.6l-.2,12.3h0ZM34.4,60.6c0-1,.3-2.4-.5-3.2s-2.9-.3-2.9,1.2,2,2,3.5,2h0ZM44.9,60.8c1.5,0,3.5,0,3.5-1.8s-1.8-2.2-2.9-1.3-.5,2.1-.6,3.1ZM41.4,64.2h-3.6l-.2,12.3h3.6l.2-12.3ZM48.1,80.1l-17.5-.3v2.4c0,.3.9,1.2,1.3,1.1,4.7-.3,9.9.6,14.5.2s1.6-.5,1.6-1.1v-2.4h.1ZM44.5,87.2l-10.6-.2c.2,3.8,4,3.8,7,3.6s3.4-1.3,3.6-3.4Z" />
-          <g>
-            <path d="M2.6,25.3l12.2,6.5c.8.4,1.1,1.5.7,2.3h0c-.4.8-1.5,1.1-2.3.7L1,28.3c-.8-.4-1.1-1.5-.7-2.3h0c.4-.8,1.5-1.1,2.3-.7Z" />
-            <rect
-              x="19.2"
-              y="5.9"
-              width="3.4"
-              height="17.2"
-              rx="1.7"
-              ry="1.7"
-              transform="translate(-4.5 15) rotate(-35.8)"
-            />
-            <path d="M39.8,1.6l.7,13.8c0,.9-.7,1.7-1.6,1.8h0c-.9,0-1.7-.7-1.8-1.6l-.7-13.8c0-.9.7-1.7,1.6-1.8h0c.9,0,1.7.7,1.8,1.6Z" />
-            <rect
-              x="46"
-              y="11.2"
-              width="17.2"
-              height="3.4"
-              rx="1.7"
-              ry="1.7"
-              transform="translate(18.2 55.7) rotate(-62.9)"
-            />
-            <path d="M74.6,21l-11.2,8.1c-.8.5-1.8.4-2.4-.4h0c-.5-.8-.4-1.8.4-2.4l11.2-8.1c.8-.5,1.8-.4,2.4.4h0c.5.8.4,1.8-.4,2.4Z" />
-          </g>
-        </g>
-      </svg>
-    </motion.div>
-  );
-
-  const Shape7 = ({ y, className }: { y: any; className: string }) => (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        version="1.1"
-        viewBox="0 0 32.2 26.6"
-        fill="currentColor"
-      >
-        <path d="M7.9,0c3.3-.3,6.2,1.4,8.2,4,.1,0,.5-.6.7-.7,6.2-6.7,16.1-2.3,15.5,6.7-.4,5.5-7.1,11.3-11.3,14.3s-1.8,1.3-2.7,1.8c-2.7,1.5-4.7-.3-6.8-1.8C7.3,21.3,1.7,16.5.3,11.5-1.1,6.1,2.3.5,7.9,0ZM8.1,1.9C3.9,2.2,1.5,6,1.9,10s6.9,10.1,10.6,12.7c3.7,2.6,2.6,2,3.6,2s3.1-1.5,4-2.2c3.6-2.6,10-8,10.3-12.7.6-7.5-7.9-10.8-12.5-4.9-.3.4-.9,1.5-1.3,1.7-1,.5-1.4-.7-1.9-1.3-1.6-2.1-3.8-3.5-6.6-3.3h0Z" />
-      </svg>
-    </motion.div>
-  );
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <Shape5 y={y5} className="rotate-15 left-[5%] top-[10%] h-16 w-16 transform text-primary/5" />
-      <Shape2 y={y2} className="right-[10%] top-[20%] h-16 w-16 text-primary/5" />
-      <Shape1 y={y1} className="right-[5%] top-[50%] h-10 w-10 text-primary/10" />
-      <Shape6 y={y5} className="left-[40%] top-[5%] h-12 w-12 text-primary/10" />
-      <Shape7 y={y3} className="left-[55%] top-[35%] h-16 w-16 text-primary/5" />
-      <Shape2 y={y2} className="left-[60%] top-[75%] h-14 w-14 text-primary/5" />
-      <Shape5 y={y5} className="rotate-15 left-[5%] top-[90%] h-16 w-16 transform text-primary/5" />
-      <Shape6 y={y4} className="bottom-[5%] left-[30%] h-20 w-20 text-primary/5" />
-      <Shape7 y={y3} className="right-[5%] top-[85%] h-8 w-8 text-primary/10" />
-    </div>
-  );
-};
-
-const ContactModal = ({
-  isOpen,
-  onClose,
-  initialSubject = "",
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  initialSubject?: string;
-}) => {
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [subject, setSubject] = React.useState(initialSubject);
-  const [message, setMessage] = React.useState("");
-
-  React.useEffect(() => {
-    if (isOpen) {
-      setSubject(initialSubject);
-    }
-  }, [isOpen, initialSubject]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log({ name, email, subject, message });
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: -20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: -20 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-xl bg-card shadow-2xl"
-      >
-        <CardHeader className="flex flex-row items-center justify-between border-b">
-          <CardTitle className="text-xl">Entre em Contato</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="name"
-                  placeholder="Seu nome completo"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="pl-10 focus-visible:ring-accent"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10 focus-visible:ring-accent"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subject">Assunto</Label>
-              <div className="relative">
-                <Type className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="subject"
-                  placeholder="Sobre o que você gostaria de falar?"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  required
-                  className="pl-10 focus-visible:ring-accent"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">Mensagem</Label>
-              <Textarea
-                id="message"
-                placeholder="Escreva sua mensagem aqui..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                className="h-28 focus-visible:ring-accent"
-              />
-            </div>
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full bg-primary text-white transition-all hover:bg-primary/90"
-            >
-              <Send className="mr-2 h-5 w-5" />
-              Enviar Mensagem
-            </Button>
-          </form>
-        </CardContent>
-      </motion.div>
-    </motion.div>
-  );
-};
+const WHATSAPP_LINK = "https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt.";
 
 export default function HomePage() {
-  const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
-  const [modalSubject, setModalSubject] = React.useState("");
-  const [isAnnual, setIsAnnual] = React.useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
   const { user, loading } = useAuth();
-
-  const openContactModal = (subject = "") => {
-    setModalSubject(subject);
-    setIsContactModalOpen(true);
-  };
 
   const features = [
     {
       icon: Bot,
-      title: "Geração de Conteúdo com IA",
+      title: "IA Treinada para o seu Negócio",
       description:
-        "Crie posts, legendas e ideias para suas redes sociais em segundos com o poder do Vapti.",
+        "Não é um ChatGPT genérico. O Vapti aprende sobre seu nicho, seu tom de voz e escreve exatamente o que seu público quer ler.",
     },
     {
-      icon: Megaphone,
-      title: "Gestão de Anúncios",
+      icon: Edit,
+      title: "Design Automático",
       description:
-        "Lance e gerencie campanhas de anúncios no Facebook e Instagram de forma simplificada.",
+        "Geramos imagens incríveis via IA e aplicamos sua logomarca automaticamente. Sem precisar abrir o Photoshop ou o Canva.",
+    },
+    {
+      icon: Send,
+      title: "Piloto Automático de Posts",
+      description:
+        "Integração oficial com Facebook e Instagram. Agende seus posts e deixe nossa plataforma trabalhar por você enquanto você dorme.",
     },
     {
       icon: BarChart3,
-      title: "Relatórios Simplificados",
+      title: "Inteligência de Dados",
       description:
-        "Acompanhe suas métricas de marketing em um dashboard intuitivo e focado em resultados.",
+        "Dashboard claro com métricas que realmente importam. Saiba exatamente o que está dando certo no seu marketing.",
+    },
+  ];
+
+  const benefits = [
+    {
+      icon: Clock,
+      title: "Ganhe Horas na Semana",
+      description: "Reduza o tempo gasto com marketing em 90%. De horas de sufoco para apenas 3 cliques.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Consistência Absoluta",
+      description: "Nunca mais deixe de postar por 'falta de tempo'. Mantenha sua marca viva e atraia mais clientes todos os dias.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Zero Curva de Aprendizado",
+      description: "Nossa interface é tão intuitiva que você cria seu primeiro post profissional em menos de 5 minutos.",
     },
   ];
 
   return (
-    <div className="bg-background text-foreground selection:bg-accent/30">
+    <div className="bg-background text-foreground selection:bg-primary/20">
       {/* Header */}
-      <header className="fixed left-0 right-0 top-0 z-50 border-b border-primary/5 bg-background/90 shadow-sm backdrop-blur-md">
-        <div className="container mx-auto flex items-center justify-between px-6 py-3">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-primary/10 bg-background/95 shadow-sm backdrop-blur-md">
+        <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105">
             <Image
               src="/logo-numvapt.png"
@@ -321,20 +94,20 @@ export default function HomePage() {
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             <Link
-              href="#features"
-              className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
-            >
-              Funcionalidades
-            </Link>
-            <Link
               href="#how-it-works"
-              className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+              className="text-sm font-bold text-muted-foreground transition-colors hover:text-primary"
             >
               Como Funciona
             </Link>
             <Link
+              href="#features"
+              className="text-sm font-bold text-muted-foreground transition-colors hover:text-primary"
+            >
+              Funcionalidades
+            </Link>
+            <Link
               href="#pricing"
-              className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary"
+              className="text-sm font-bold text-muted-foreground transition-colors hover:text-primary"
             >
               Preços
             </Link>
@@ -345,18 +118,18 @@ export default function HomePage() {
             ) : user ? (
               <Button
                 asChild
-                className="rounded-full bg-primary px-6 text-white shadow-md transition-all hover:shadow-lg"
+                className="rounded-full bg-primary px-6 font-bold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg"
               >
                 <Link href="/dashboard">Ir para Painel</Link>
               </Button>
             ) : (
               <>
-                <Button variant="ghost" asChild className="hidden rounded-full sm:inline-flex">
+                <Button variant="ghost" asChild className="hidden rounded-full font-bold sm:inline-flex">
                   <Link href="/acesso/login">Login</Link>
                 </Button>
                 <Button
                   asChild
-                  className="rounded-full bg-primary px-6 text-white shadow-md transition-all hover:shadow-lg"
+                  className="rounded-full bg-primary px-6 font-bold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg"
                 >
                   <Link href="/acesso/cadastro">Criar Conta</Link>
                 </Button>
@@ -366,90 +139,131 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="pt-20">
+      <main className="pt-24">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-transparent px-6 py-24">
-          <ParallaxShapes />
+        <section className="relative bg-white px-6 py-24 md:py-32">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="container relative z-10 mx-auto"
+            transition={{ duration: 0.6 }}
+            className="container relative z-10 mx-auto text-center"
           >
-            <div className="mx-auto max-w-4xl text-center">
+            <div className="mx-auto max-w-4xl">
               <Badge
                 variant="outline"
-                className="mb-6 animate-bounce rounded-full border-primary/20 bg-primary/5 px-4 py-1 text-primary"
+                className="mb-6 rounded-full border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-bold text-primary"
               >
-                ✨ Nova Era do Marketing Digital
+                <SparklesIcon className="mr-2 h-4 w-4" /> Nova Era do Marketing Digital
               </Badge>
-              <h1 className="mb-8 text-5xl font-black leading-[1.1] tracking-tight text-foreground md:text-7xl">
+              <h1 className="mb-6 text-5xl font-black leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
                 Seu marketing no modo <span className="text-primary">Ultra Vapt</span>
               </h1>
-              <p className="mx-auto mb-12 max-w-2xl text-xl font-medium text-muted-foreground md:text-2xl">
-                Deixe a Inteligência Artificial criar, agendar e analisar seu conteúdo. Economize
-                horas de trabalho e foque no que importa: seu negócio.
+              <p className="mx-auto mb-10 max-w-2xl text-xl font-medium leading-relaxed text-slate-600">
+                A primeira plataforma com IA que cria textos brilhantes, gera imagens com a sua marca e agenda seus posts automaticamente. Tudo em um só lugar.
               </p>
-              <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button
                   size="lg"
                   asChild
-                  className="h-16 rounded-full bg-primary px-12 text-lg text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                  className="h-16 w-full rounded-full bg-primary px-10 text-lg font-bold text-white shadow-xl transition-all hover:scale-105 hover:shadow-2xl sm:w-auto"
                 >
-                  <Link href="/acesso/cadastro">Começar Grátis Agora</Link>
+                  <Link href="/acesso/cadastro">Começar Teste Grátis de 7 Dias</Link>
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-16 rounded-full border-primary/20 px-10 text-lg hover:bg-primary/5"
-                  onClick={() => openContactModal()}
+                  asChild
+                  className="h-16 w-full rounded-full border-2 border-primary/20 px-10 text-lg font-bold text-primary hover:bg-primary/5 sm:w-auto"
                 >
-                  Falar com Especialista
+                  <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="mr-2 h-5 w-5" /> Falar no WhatsApp
+                  </a>
                 </Button>
               </div>
+              <p className="mt-6 text-sm font-medium text-slate-400">
+                Não exigimos cartão de crédito para testar.
+              </p>
             </div>
           </motion.div>
         </section>
 
+        {/* Problema vs Solução */}
+        <section className="bg-slate-50 px-6 py-24">
+          <div className="container mx-auto">
+            <div className="mb-16 text-center">
+              <h2 className="text-3xl font-black md:text-4xl text-slate-900">
+                Criar conteúdo não precisa ser um <span className="text-primary">segundo trabalho.</span>
+              </h2>
+            </div>
+            <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
+              <Card className="border-red-100 bg-red-50/50 shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-red-700 flex items-center gap-2">
+                    <X className="h-6 w-6" /> O Jeito Antigo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-slate-600 font-medium">
+                  <p>❌ Horas perdidas pensando em "o que postar hoje".</p>
+                  <p>❌ Luta constante com ferramentas de design complexas.</p>
+                  <p>❌ Pagando caro por agências que não entendem a sua voz.</p>
+                  <p>❌ Redes sociais abandonadas por falta de tempo.</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-primary/5 shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-primary flex items-center gap-2">
+                    <CheckCircle className="h-6 w-6" /> Com o NumVapt
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-slate-700 font-medium">
+                  <p>✅ Ideias de conteúdo geradas por IA em segundos.</p>
+                  <p>✅ Imagens lindas geradas e com sua logo aplicada automaticamente.</p>
+                  <p>✅ Publicação e agendamento diretos para Facebook e Instagram.</p>
+                  <p>✅ Consistência profissional que cabe no seu bolso.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
         {/* How it Works Section */}
-        <section id="how-it-works" className="border-y border-primary/5 bg-white px-6 py-24">
+        <section id="how-it-works" className="bg-white px-6 py-24 border-y border-slate-100">
           <div className="container mx-auto text-center">
-            <h2 className="mb-4 text-4xl font-black">
-              Simples como <span className="italic text-accent">Vapt Vupt!</span>
+            <h2 className="mb-4 text-4xl font-black text-slate-900">
+              Simples como <span className="italic text-primary">Vapt Vupt!</span>
             </h2>
-            <p className="mx-auto mb-16 max-w-2xl text-lg text-muted-foreground">
+            <p className="mx-auto mb-16 max-w-2xl text-lg text-slate-500 font-medium">
               Nossa plataforma foi desenhada para que você gaste o menor tempo possível configurando
               e o máximo colhendo resultados.
             </p>
-            <div className="grid gap-12 md:grid-cols-3">
+            <div className="grid gap-12 md:grid-cols-3 max-w-6xl mx-auto">
               <div className="group flex flex-col items-center">
-                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/5 text-primary shadow-sm transition-all duration-500 group-hover:bg-primary group-hover:text-white">
-                  <Edit className="h-12 w-12" />
+                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/10 text-primary transition-all duration-300 group-hover:-translate-y-2 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg">
+                  <Bot className="h-10 w-10" />
                 </div>
-                <h3 className="mb-3 text-2xl font-bold">1. Dê a Ideia</h3>
-                <p className="px-4 leading-relaxed text-muted-foreground">
-                  Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e seu tom
-                  de voz.
+                <h3 className="mb-3 text-2xl font-black text-slate-800">1. Dê a Ideia</h3>
+                <p className="px-4 text-slate-500 font-medium leading-relaxed">
+                  Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e cria opções prontas.
                 </p>
               </div>
               <div className="group flex flex-col items-center">
-                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/5 text-primary shadow-sm transition-all duration-500 group-hover:bg-primary group-hover:text-white">
-                  <Bot className="h-12 w-12" />
+                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/10 text-primary transition-all duration-300 group-hover:-translate-y-2 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg">
+                  <Edit className="h-10 w-10" />
                 </div>
-                <h3 className="mb-3 text-2xl font-bold">2. Selecione e Personalize</h3>
-                <p className="px-4 leading-relaxed text-muted-foreground">
-                  Escolha entre as opções de texto e imagem geradas. Coloque sua marca e edite em
-                  segundos.
+                <h3 className="mb-3 text-2xl font-black text-slate-800">2. Personalize</h3>
+                <p className="px-4 text-slate-500 font-medium leading-relaxed">
+                  Escolha entre as imagens geradas pela IA. Nossa ferramenta embute sua marca no post na hora.
                 </p>
               </div>
               <div className="group flex flex-col items-center">
-                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/5 text-primary shadow-sm transition-all duration-500 group-hover:bg-primary group-hover:text-white">
-                  <Send className="h-12 w-12" />
+                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/10 text-primary transition-all duration-300 group-hover:-translate-y-2 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg">
+                  <Send className="h-10 w-10" />
                 </div>
-                <h3 className="mb-3 text-2xl font-bold">3. Publique ou Agende</h3>
-                <p className="px-4 leading-relaxed text-muted-foreground">
-                  Envie direto para suas redes ou deixe agendado para o melhor horário. O resto é
-                  com a gente.
+                <h3 className="mb-3 text-2xl font-black text-slate-800">3. Publique</h3>
+                <p className="px-4 text-slate-500 font-medium leading-relaxed">
+                  Envie direto para suas redes ou deixe agendado para o melhor horário. O resto é com a gente.
                 </p>
               </div>
             </div>
@@ -457,11 +271,13 @@ export default function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="relative overflow-hidden bg-muted/40 px-6 py-24">
-          <ParallaxShapes />
-          <div className="container relative z-10 mx-auto">
-            <h2 className="mb-16 text-center text-4xl font-black">Poderosa e Intuitiva</h2>
-            <div className="grid gap-8 md:grid-cols-3">
+        <section id="features" className="bg-slate-50 px-6 py-24">
+          <div className="container mx-auto">
+            <div className="mb-16 text-center">
+              <h2 className="text-4xl font-black text-slate-900">A Plataforma Definitiva</h2>
+              <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500 font-medium">Tudo o que você precisa para dominar as redes sociais, reunido em uma interface elegante e poderosa.</p>
+            </div>
+            <div className="grid gap-8 md:grid-cols-2 max-w-6xl mx-auto">
               {features.map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -470,19 +286,18 @@ export default function HomePage() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="group h-full overflow-hidden border-border bg-white shadow-md transition-all duration-300 hover:shadow-lg">
-                    <div className="absolute left-0 top-0 h-full w-2 bg-primary"></div>
-                    <CardHeader className="pt-8">
-                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-110">
-                        <feature.icon className="h-8 w-8 text-primary" />
+                  <Card className="h-full border-none shadow-md hover:shadow-lg transition-shadow bg-white">
+                    <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <feature.icon className="h-7 w-7" />
                       </div>
-                      <CardTitle className="text-2xl">{feature.title}</CardTitle>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-slate-900 mb-2">{feature.title}</CardTitle>
+                        <p className="text-slate-500 font-medium leading-relaxed">
+                          {feature.description}
+                        </p>
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-lg leading-relaxed text-muted-foreground">
-                        {feature.description}
-                      </p>
-                    </CardContent>
                   </Card>
                 </motion.div>
               ))}
@@ -490,21 +305,48 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="bg-white px-6 py-24">
+        {/* Benefícios / Motivos Section */}
+        <section className="bg-primary px-6 py-24 text-white">
           <div className="container mx-auto">
             <div className="mb-16 text-center">
-              <h2 className="mb-4 text-4xl font-black">Escolha sua velocidade</h2>
-              <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-                Planos transparentes para negócios que não podem perder tempo.
+              <h2 className="text-4xl font-black">Por que escolher o NumVapt?</h2>
+            </div>
+            <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="text-center">
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+                    <benefit.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="mb-3 text-2xl font-bold">{benefit.title}</h3>
+                  <p className="text-primary-foreground/80 font-medium leading-relaxed">
+                    {benefit.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-16 text-center">
+              <Button asChild size="lg" className="rounded-full bg-white text-primary hover:bg-slate-100 font-bold px-10 h-14 text-lg">
+                <Link href="/acesso/cadastro">Quero começar a economizar tempo</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="bg-slate-50 px-6 py-24">
+          <div className="container mx-auto">
+            <div className="mb-16 text-center">
+              <h2 className="mb-4 text-4xl font-black text-slate-900">Planos sem pegadinhas</h2>
+              <p className="mx-auto max-w-xl text-lg text-slate-500 font-medium">
+                Escolha a velocidade ideal para o crescimento do seu negócio.
               </p>
 
               <div className="mt-10 flex items-center justify-center gap-6">
                 <Label
                   htmlFor="billing-cycle"
                   className={cn(
-                    "text-lg transition-all",
-                    !isAnnual ? "scale-110 font-black text-primary" : "text-muted-foreground"
+                    "text-lg font-bold transition-all",
+                    !isAnnual ? "text-primary scale-105" : "text-slate-400"
                   )}
                 >
                   Mensal
@@ -519,56 +361,46 @@ export default function HomePage() {
                   <Label
                     htmlFor="billing-cycle"
                     className={cn(
-                      "text-lg transition-all",
-                      isAnnual ? "scale-110 font-black text-primary" : "text-muted-foreground"
+                      "text-lg font-bold transition-all",
+                      isAnnual ? "text-primary scale-105" : "text-slate-400"
                     )}
                   >
                     Anual
                   </Label>
-                  <Badge className="animate-pulse border-none bg-accent px-2 py-0.5 text-white">
+                  <Badge className="bg-accent text-white border-none font-bold">
                     -20%
                   </Badge>
                 </div>
               </div>
             </div>
 
-            <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3">
+            <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-2">
               {/* Trial */}
-              <Card className="flex flex-col border-2 border-border bg-white shadow-lg transition-colors hover:border-primary/20">
+              <Card className="flex flex-col border-2 border-slate-200 bg-white shadow-sm transition-colors hover:border-primary/30">
                 <CardHeader className="pb-4 pt-10">
-                  <CardTitle className="text-2xl font-bold">Modo Start</CardTitle>
-                  <p className="pt-4 text-5xl font-black text-foreground">
-                    R$0<span className="text-xl font-medium text-muted-foreground">/7 dias</span>
+                  <CardTitle className="text-2xl font-black text-slate-900">Modo Start</CardTitle>
+                  <p className="pt-4 text-5xl font-black text-slate-900">
+                    R$0<span className="text-xl font-bold text-slate-400">/7 dias</span>
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm text-slate-500 font-medium">
                     Experimente o poder da IA sem compromisso.
                   </p>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4 pt-6">
                   <ul className="space-y-4">
-                    <li className="flex items-center gap-3 font-medium">
-                      <CheckCircle className="h-5 w-5 flex-shrink-0 text-accent" />
-                      Geração de Conteúdo
-                    </li>
-                    <li className="flex items-center gap-3 font-medium">
-                      <CheckCircle className="h-5 w-5 flex-shrink-0 text-accent" />
-                      Agendamento (Feed)
-                    </li>
-                    <li className="flex items-center gap-3 font-medium">
-                      <CheckCircle className="h-5 w-5 flex-shrink-0 text-accent" />
-                      Relatórios Básicos
-                    </li>
-                    <li className="flex items-center gap-3 font-medium">
-                      <CheckCircle className="h-5 w-5 flex-shrink-0 text-accent" />
-                      Suporte por E-mail
-                    </li>
+                    {["Geração de Conteúdo IA", "Criação Automática de Imagens", "Agendamento Facebook/Instagram", "Relatórios de Desempenho", "Suporte por E-mail"].map((item) => (
+                      <li key={item} className="flex items-center gap-3 font-bold text-slate-700">
+                        <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary" />
+                        {item}
+                      </li>
+                    ))}
                   </ul>
                 </CardContent>
                 <div className="p-8 pt-0">
                   <Button
                     asChild
                     variant="outline"
-                    className="h-12 w-full rounded-full border-primary text-primary hover:bg-primary/5"
+                    className="h-14 w-full rounded-full border-2 border-primary text-primary hover:bg-primary/5 font-bold text-lg"
                   >
                     <Link href="/acesso/cadastro">Iniciar Teste Grátis</Link>
                   </Button>
@@ -576,92 +408,52 @@ export default function HomePage() {
               </Card>
 
               {/* Standard */}
-              <Card className="relative z-10 flex scale-105 transform flex-col border-[3px] border-primary bg-white shadow-xl">
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-white shadow-md">
+              <Card className="relative flex flex-col border-[3px] border-primary bg-white shadow-xl lg:scale-105">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-6 py-1.5 text-sm font-black uppercase tracking-wider text-white shadow-md">
                   Mais Assinado
                 </div>
-                <CardHeader className="pb-4 pt-12 text-center">
-                  <CardTitle className="text-3xl font-black">Plano Standard</CardTitle>
+                <CardHeader className="pb-4 pt-10 text-center">
+                  <CardTitle className="text-3xl font-black text-slate-900">Plano Standard</CardTitle>
                   <div className="pt-6">
                     <p className="text-6xl font-black text-primary">
                       {isAnnual ? "R$400" : "R$490"}
-                      <span className="text-xl font-medium text-muted-foreground">/mês</span>
+                      <span className="text-xl font-bold text-slate-400">/mês</span>
                     </p>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      {isAnnual ? "Faturado anualmente" : "Faturado mensalmente"}
+                    <p className="mt-3 text-sm font-medium text-slate-500">
+                      {isAnnual ? "Faturado anualmente (economia de R$ 1.080)" : "Faturado mensalmente"}
                     </p>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-5 pt-8">
+                <CardContent className="flex-grow space-y-5 pt-8 px-10">
                   <ul className="space-y-4">
-                    <li className="flex items-center gap-3 font-bold">
-                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-accent" />
+                    <li className="flex items-center gap-3 font-bold text-slate-800">
+                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
+                      Tudo do modo Start
+                    </li>
+                    <li className="flex items-center gap-3 font-bold text-slate-800">
+                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
                       Vapti AI sem limites
                     </li>
-                    <li className="flex items-center gap-3 font-bold">
-                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-accent" />
-                      Agendamento Automático
-                    </li>
-                    <li className="flex items-center gap-3 font-bold">
-                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-accent" />
+                    <li className="flex items-center gap-3 font-bold text-slate-800">
+                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
                       Gestão de Anúncios Meta
                     </li>
-                    <li className="flex items-center gap-3 font-bold">
-                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-accent" />
+                    <li className="flex items-center gap-3 font-bold text-slate-800">
+                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
                       Google Meu Negócio Pro
                     </li>
-                    <li className="flex items-center gap-3 font-bold">
-                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-accent" />
-                      Suporte Humanizado
+                    <li className="flex items-center gap-3 font-bold text-slate-800">
+                      <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
+                      Suporte Humanizado Prioritário
                     </li>
                   </ul>
                 </CardContent>
                 <div className="p-8 pt-0">
                   <Button
                     asChild
-                    className="h-14 w-full rounded-full bg-primary text-lg font-bold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg"
+                    className="h-14 w-full rounded-full bg-primary text-lg font-black text-white shadow-lg transition-all hover:scale-105 hover:bg-primary/90"
                   >
                     <Link href="/acesso/cadastro">Assinar Agora</Link>
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Personal */}
-              <Card className="flex flex-col border-2 border-border bg-white shadow-lg transition-colors hover:border-primary/20">
-                <CardHeader className="pb-4 pt-10">
-                  <CardTitle className="text-2xl font-bold">Plano Custom</CardTitle>
-                  <p className="pt-4 text-5xl font-black text-foreground">Sob Medida</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Para agências e grandes empresas.
-                  </p>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-4 pt-6">
-                  <ul className="space-y-4">
-                    <li className="flex items-start gap-3 font-medium">
-                      <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-accent" />
-                      Multi-contas e Sub-usuários
-                    </li>
-                    <li className="flex items-start gap-3 font-medium">
-                      <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-accent" />
-                      Consultoria Estratégica
-                    </li>
-                    <li className="flex items-start gap-3 font-medium">
-                      <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-accent" />
-                      Integrações via API
-                    </li>
-                    <li className="flex items-start gap-3 font-medium">
-                      <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-accent" />
-                      Gerente de Sucesso Dedicado
-                    </li>
-                  </ul>
-                </CardContent>
-                <div className="p-8 pt-0">
-                  <Button
-                    variant="outline"
-                    className="h-12 w-full rounded-full border-primary text-primary hover:bg-primary/5"
-                    onClick={() => openContactModal("Interesse no Plano Custom")}
-                  >
-                    Quero uma Proposta
                   </Button>
                 </div>
               </Card>
@@ -670,137 +462,133 @@ export default function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <section className="relative overflow-hidden px-6 py-32">
-          <div className="absolute inset-0 bg-primary opacity-5"></div>
-          <div className="container relative z-10 mx-auto text-center">
-            <h2 className="mb-8 text-5xl font-black text-foreground">
-              Pare de postar, comece a <span className="text-primary">crescer</span>.
+        <section className="bg-white px-6 py-32 border-t border-slate-100">
+          <div className="container mx-auto text-center">
+            <h2 className="mb-6 text-4xl font-black text-slate-900 md:text-5xl">
+              Pare de postar por obrigação.<br/>Comece a postar para <span className="text-primary">crescer</span>.
             </h2>
-            <p className="mx-auto mb-12 max-w-2xl text-2xl font-medium text-muted-foreground">
+            <p className="mx-auto mb-10 max-w-2xl text-xl font-medium text-slate-500">
               O Vapti está pronto para impulsionar seu marketing. E você?
             </p>
             <Button
               size="lg"
               asChild
-              className="h-16 rounded-full bg-primary px-12 text-xl font-black text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              className="h-16 rounded-full bg-primary px-12 text-xl font-black text-white shadow-xl transition-all hover:scale-105"
             >
-              <Link href="/acesso/cadastro">Criar minha conta grátis</Link>
+              <Link href="/acesso/cadastro">Criar minha conta grátis agora</Link>
             </Button>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 pb-12 pt-20 text-white">
+      <footer className="bg-slate-900 pb-12 pt-20 text-white">
         <div className="container mx-auto px-6">
           <div className="mb-16 grid gap-12 md:grid-cols-4">
             <div className="col-span-1 md:col-span-2">
               <Image
                 src="/logo-numvapt.png"
                 alt="NumVapt Logo"
-                width={180}
-                height={70}
+                width={160}
+                height={60}
                 className="mb-8 h-auto brightness-0 invert"
               />
-              <p className="max-w-sm text-lg leading-relaxed text-gray-400">
-                A primeira plataforma de marketing com IA focada em velocidade e resultados reais
-                para pequenos e médios negócios.
+              <p className="max-w-sm text-lg font-medium leading-relaxed text-slate-400">
+                A plataforma de marketing inteligente focada em velocidade e resultados reais
+                para donos de negócios.
               </p>
             </div>
             <div>
               <h4 className="mb-6 text-xl font-bold">Plataforma</h4>
-              <ul className="space-y-4 text-gray-400">
+              <ul className="space-y-4 font-medium text-slate-400">
                 <li>
-                  <Link href="#features" className="transition-colors hover:text-primary">
+                  <Link href="#how-it-works" className="transition-colors hover:text-white">
+                    Como Funciona
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#features" className="transition-colors hover:text-white">
                     Funcionalidades
                   </Link>
                 </li>
                 <li>
-                  <Link href="#pricing" className="transition-colors hover:text-primary">
+                  <Link href="#pricing" className="transition-colors hover:text-white">
                     Preços
                   </Link>
                 </li>
                 <li>
-                  <Link href="/acesso/login" className="transition-colors hover:text-primary">
-                    Login
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/acesso/cadastro" className="transition-colors hover:text-primary">
-                    Criar Conta
+                  <Link href="/acesso/login" className="transition-colors hover:text-white">
+                    Acessar Painel
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="mb-6 text-xl font-bold">Legal</h4>
-              <ul className="space-y-4 text-gray-400">
+              <h4 className="mb-6 text-xl font-bold">Contato e Legal</h4>
+              <ul className="space-y-4 font-medium text-slate-400">
                 <li>
-                  <Link href="/termos" className="transition-colors hover:text-primary">
+                  <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" /> Suporte via WhatsApp
+                  </a>
+                </li>
+                <li>
+                  <Link href="/termos" className="transition-colors hover:text-white">
                     Termos de Uso
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacidade" className="transition-colors hover:text-primary">
-                    Privacidade
+                  <Link href="/privacidade" className="transition-colors hover:text-white">
+                    Política de Privacidade
                   </Link>
                 </li>
-                <li>
-                  <button
-                    onClick={() => openContactModal()}
-                    className="transition-colors hover:text-primary"
-                  >
-                    Contato
-                  </button>
-                </li>
-                <li className="flex gap-4 pt-4">
+                <li className="pt-4">
                   <a
                     href="https://www.instagram.com/numvapt.oficial"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition-all hover:bg-primary"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-primary"
                   >
-                    <Instagram className="h-6 w-6" />
+                    <Instagram className="h-5 w-5" />
                   </a>
                 </li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/10 pt-8 text-center text-sm text-gray-500">
+          <div className="border-t border-white/10 pt-8 text-center text-sm font-medium text-slate-500">
             <p>
-              &copy; {new Date().getFullYear()} NumVapt Soluções e Inovações I.S. Todos os direitos
-              reservados.
+              &copy; {new Date().getFullYear()} NumVapt Soluções e Inovações I.S. Todos os direitos reservados.
             </p>
           </div>
         </div>
       </footer>
-      <ContactModal
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-        initialSubject={modalSubject}
-      />
-      {/* WhatsApp Button */}
+
+      {/* WhatsApp Floating Button */}
       <a
-        href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt."
+        href={WHATSAPP_LINK}
         target="_blank"
         rel="noopener noreferrer"
-        className="group fixed bottom-8 right-8 z-50"
+        className="group fixed bottom-8 right-8 z-50 flex items-center gap-3"
         aria-label="Entre em contato pelo WhatsApp"
       >
-        <div className="absolute -inset-4 rounded-full bg-green-500/20 blur-xl transition-colors group-hover:bg-green-500/30"></div>
-        <Button
-          size="icon"
-          className="relative h-16 w-16 rounded-2xl bg-green-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-green-600"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="h-10 w-10"
+        <span className="hidden rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-lg md:block group-hover:bg-slate-50">
+          Precisa de ajuda?
+        </span>
+        <div className="relative">
+          <div className="absolute -inset-2 rounded-full bg-green-500/20 blur-lg transition-colors group-hover:bg-green-500/40"></div>
+          <Button
+            size="icon"
+            className="relative h-16 w-16 rounded-full bg-green-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-green-600"
           >
-            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
-          </svg>
-        </Button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-10 w-10"
+            >
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
+            </svg>
+          </Button>
+        </div>
       </a>
     </div>
   );

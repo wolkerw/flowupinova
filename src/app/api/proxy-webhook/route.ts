@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
 
   if (target === "post_manual") {
     webhookUrl = settings.postManualWebhook;
+  } else if (target === "analisar_presenca") {
+    webhookUrl = settings.analisarPresencaWebhook;
   } else if (target === "imagem_sem_logo") {
     webhookUrl = settings.imgNoLogoWebhook;
   } else if (target === "gerador_imagem_referencia") {

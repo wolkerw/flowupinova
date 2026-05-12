@@ -23,6 +23,7 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
+  Settings2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,7 @@ import {
   type BusinessProfileData,
 } from "@/lib/services/business-profile-service";
 import { Badge } from "@/components/ui/badge";
+import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 
 const allNavigationItems = [
   {
@@ -132,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
 
@@ -154,7 +157,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (user) {
       fetchAndProcessNotifications();
-      getBusinessProfile(user.uid).then(setBusinessProfile);
+      getBusinessProfile(user.uid).then((profile) => {
+        setBusinessProfile(profile);
+        // Se onboardingCompleted não for true, mostra o wizard automaticamente
+        if (profile && profile.onboardingCompleted !== true) {
+          setShowOnboarding(true);
+        }
+      });
     }
   }, [user, fetchAndProcessNotifications]);
 
@@ -186,8 +195,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-muted/50">
+    <div className="flex min-h-screen w-full bg-muted/50">
+      <OnboardingWizard
+        userId={user.uid}
+        initialData={businessProfile}
+        isOpen={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => {
+          console.log("Onboarding complete!");
+          setShowOnboarding(false);
+          if (user) {
+            getBusinessProfile(user.uid).then(setBusinessProfile);
+          }
+        }}
+      />
+      <SidebarProvider>
         <Sidebar className="border-r border-border/60 bg-background">
           <SidebarHeader className="border-b border-border/60 p-6">
             <Link href="/" className="flex items-center gap-3">
@@ -236,7 +258,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
-                </SidebarMenu>
+                  <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={() => setShowOnboarding(true)}
+                    className="hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    <span>Configurações</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
@@ -331,10 +362,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
-                      <p className="font-bold">{businessProfile?.name || user.displayName}</p>
-                      <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                      <div className="flex flex-col gap-1">
+                        <p className="font-bold">{businessProfile?.name || user.displayName}</p>
+                        <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                        {businessProfile?.primaryColor && (
+                          <div className="mt-2 flex gap-1">
+                            <div className="h-2 w-full rounded-full" style={{ backgroundColor: businessProfile.primaryColor }} />
+                            <div className="h-2 w-full rounded-full" style={{ backgroundColor: businessProfile.secondaryColor }} />
+                          </div>
+                        )}
+                      </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setShowOnboarding(true)}>
+                      <Settings2 className="mr-2 h-4 w-4" />
+                      Configurações do Negócio
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sair
@@ -357,7 +400,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </React.Suspense>
           </div>
         </main>
-      </div>
+      </SidebarProvider>
 
       <a
         href="https://wa.me/555199922177?text=Olá!%20Eu%20gostaria%20de%20tirar%20uma%20dúvida%20na%20NumVapt."
@@ -380,6 +423,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </svg>
         </Button>
       </a>
-    </SidebarProvider>
+    </div>
   );
 }

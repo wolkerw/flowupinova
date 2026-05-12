@@ -1335,6 +1335,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
         pendingUpdates.hours = true;
       }
 
+      // Local only updates (not sent to Google yet or not supported by Google API)
+      const localProfileUpdate: Partial<BusinessProfileData> = {
+        ...editableProfile,
+        regularHours: { periods: newPeriods },
+      };
+
       if (updateMask.length > 0) {
         const response = await fetch("/api/google/update-profile", {
           method: "POST",
@@ -1350,12 +1356,6 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           throw new Error(result.error || "Falha ao atualizar o perfil no Google.");
         }
       }
-
-      // Always save local profile changes, including hours
-      const localProfileUpdate: Partial<BusinessProfileData> = {
-        ...editableProfile,
-        regularHours: { periods: newPeriods },
-      };
 
       if (Object.keys(pendingUpdates).length > 0) {
         const newPendingFields = { ...(profile.pendingFields || {}), ...pendingUpdates };
