@@ -40,6 +40,7 @@ import {
   Trash2,
   MessageCircle as MessageCircleIcon,
   Copy,
+  Lock,
 } from "lucide-react";
 import {
   Dialog,
@@ -1577,7 +1578,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="group relative overflow-hidden border-none shadow-lg">
+                <Card className={cn("group relative overflow-hidden transition-all duration-200 shadow-lg", isEditing ? "ring-2 ring-primary border-transparent" : "border-none")}>
+                  {isEditing && (
+                    <div className="bg-primary/10 border-b border-primary/20 px-6 py-3 flex items-center gap-2 text-primary">
+                      <Edit className="h-4 w-4 shrink-0" />
+                      <span className="text-sm font-medium">Você está no modo de edição. Modifique os campos abaixo e clique em Salvar Alterações no final.</span>
+                    </div>
+                  )}
                   {(dataLoading || authLoading || isSaving) && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white/50">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1649,13 +1656,18 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <div className="flex items-start justify-between">
                       <div className="w-full pt-12">
                         {isEditing ? (
-                          <Input
-                            value={editableProfile.name}
-                            onChange={(e) =>
-                              setEditableProfile((p) => ({ ...p, name: e.target.value }))
-                            }
-                            className="h-auto rounded-md border p-2 text-2xl font-bold"
-                          />
+                          <div className="space-y-1.5 w-full">
+                            <Label htmlFor="company-name" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Nome da Empresa</Label>
+                            <Input
+                              id="company-name"
+                              value={editableProfile.name}
+                              onChange={(e) =>
+                                setEditableProfile((p) => ({ ...p, name: e.target.value }))
+                              }
+                              className="h-auto rounded-md border-primary/30 bg-primary/5 p-2 text-2xl font-bold shadow-sm focus-visible:ring-primary/50"
+                              placeholder="Nome do seu negócio"
+                            />
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-2xl">{profile.name}</CardTitle>
@@ -1704,31 +1716,41 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                   </CardHeader>
                   <CardContent>
                     <div className="mt-4 space-y-4 border-t pt-6">
-                      <div className="flex items-center gap-3 text-foreground/80">
-                        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="text-sm">{profile.address}</span>
+                      <div className="flex items-start gap-3 text-foreground/80">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        {isEditing ? (
+                          <div className="flex-1 space-y-1.5 opacity-80">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                              Endereço Físico <Lock className="h-3 w-3" />
+                            </Label>
+                            <div className="p-2 border rounded-md bg-muted/50 text-sm flex items-start gap-2 cursor-not-allowed">
+                              <span>{profile.address}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                              <Info className="h-3 w-3 shrink-0" />
+                              <span>A alteração de endereço deve ser feita diretamente no painel do Google.</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm mt-0.5">{profile.address}</span>
+                        )}
                       </div>
 
-                      {isEditing && (
-                        <div className="!mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                          <Info className="h-3 w-3 shrink-0" />
-                          <span>
-                            A alteração de endereço deve ser feita no painel do Google Meu Negócio.
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 text-foreground/80">
-                        <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="flex items-start gap-3 text-foreground/80">
+                        <Phone className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         {isEditing ? (
-                          <Input
-                            value={editableProfile.phone}
-                            onChange={(e) =>
-                              setEditableProfile((p) => ({ ...p, phone: e.target.value }))
-                            }
-                            placeholder="(00) 00000-0000"
-                            className="h-8 text-sm"
-                          />
+                          <div className="flex-1 space-y-1.5">
+                            <Label htmlFor="company-phone" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Telefone de Contato</Label>
+                            <Input
+                              id="company-phone"
+                              value={editableProfile.phone}
+                              onChange={(e) =>
+                                setEditableProfile((p) => ({ ...p, phone: e.target.value }))
+                              }
+                              placeholder="(00) 00000-0000"
+                              className="h-9 text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50"
+                            />
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="text-sm">{profile.phone}</span>
@@ -1756,17 +1778,21 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-foreground/80">
-                        <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="flex items-start gap-3 text-foreground/80">
+                        <Globe className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         {isEditing ? (
-                          <Input
-                            value={editableProfile.website}
-                            onChange={(e) =>
-                              setEditableProfile((p) => ({ ...p, website: e.target.value }))
-                            }
-                            placeholder="https://seu-site.com"
-                            className="h-8 text-sm"
-                          />
+                          <div className="flex-1 space-y-1.5">
+                            <Label htmlFor="company-website" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Website Oficial</Label>
+                            <Input
+                              id="company-website"
+                              value={editableProfile.website}
+                              onChange={(e) =>
+                                setEditableProfile((p) => ({ ...p, website: e.target.value }))
+                              }
+                              placeholder="https://seu-site.com.br"
+                              className="h-9 text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50"
+                            />
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <a
@@ -1803,15 +1829,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                       </div>
                       <div className="pt-2">
                         {isEditing ? (
-                          <Textarea
-                            value={editableProfile.description}
-                            onChange={(e) =>
-                              setEditableProfile((p) => ({ ...p, description: e.target.value }))
-                            }
-                            placeholder="Descreva sua empresa aqui..."
-                            className="text-sm"
-                            rows={5}
-                          />
+                          <div className="space-y-1.5">
+                            <Label htmlFor="company-desc" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Descrição do Negócio</Label>
+                            <Textarea
+                              id="company-desc"
+                              value={editableProfile.description}
+                              onChange={(e) =>
+                                setEditableProfile((p) => ({ ...p, description: e.target.value }))
+                              }
+                              placeholder="Descreva sua empresa aqui de forma clara e atrativa..."
+                              className="text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50 resize-y"
+                              rows={5}
+                            />
+                          </div>
                         ) : (
                           <div className="flex items-start gap-2">
                             <p className="text-sm text-muted-foreground">{profile.description}</p>
@@ -2042,17 +2072,23 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     </div>
                   </CardContent>
                   {isEditing && (
-                    <CardFooter className="flex justify-end gap-2">
+                    <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 border-t bg-muted/20 p-4 mt-4">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => {
                           setIsEditing(false);
                           setEditableProfile(profile);
                         }}
+                        disabled={isSaving}
+                        className="w-full sm:w-auto"
                       >
                         Cancelar
                       </Button>
-                      <Button onClick={() => setIsConfirmingSave(true)} disabled={isSaving}>
+                      <Button 
+                        onClick={() => setIsConfirmingSave(true)} 
+                        disabled={isSaving}
+                        className="w-full sm:w-auto shadow-md"
+                      >
                         {isSaving ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
