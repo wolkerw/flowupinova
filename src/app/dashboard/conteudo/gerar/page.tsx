@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { getFriendlyErrorMessage, isConnectionError } from "@/lib/utils";
 
 import { schedulePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -36,6 +37,7 @@ import { Step4BrandCustomization } from "./_components/Step4BrandCustomization";
 import { Step5ReviewPublish } from "./_components/Step5ReviewPublish";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { ToastAction } from "@/components/ui/toast";
 
 export default function GerarConteudoPage() {
   const [step, setStep] = useState(1);
@@ -295,7 +297,11 @@ export default function GerarConteudoPage() {
         throw new Error("O formato da resposta da IA é inesperado.");
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao gerar texto", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar texto",
+        description: getFriendlyErrorMessage(error.message),
+      });
       return null;
     } finally {
       setIsLoading(false);
@@ -400,7 +406,11 @@ export default function GerarConteudoPage() {
       setStep(3);
     } catch (error: any) {
       console.error("Erro no fluxo de geração:", error);
-      toast({ variant: "destructive", title: "Erro", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Erro na Geração",
+        description: getFriendlyErrorMessage(error.message),
+      });
       setIsGeneratingImages(false);
     }
   };
@@ -529,7 +539,7 @@ export default function GerarConteudoPage() {
       toast({
         variant: "destructive",
         title: "Erro ao Processar Imagem",
-        description: error.message,
+        description: getFriendlyErrorMessage(error.message),
       });
     } finally {
       setIsUploading(false);
@@ -613,7 +623,17 @@ export default function GerarConteudoPage() {
         throw new Error(result.error);
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro", description: error.message });
+      const isConnError = isConnectionError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Publicar",
+        description: getFriendlyErrorMessage(error.message),
+        action: isConnError ? (
+          <ToastAction altText="Reconectar" onClick={() => router.push("/dashboard/conteudo")}>
+            Ir para Conexões
+          </ToastAction>
+        ) : undefined,
+      });
     } finally {
       setIsPublishing(false);
       setShowSchedulerModal(false);

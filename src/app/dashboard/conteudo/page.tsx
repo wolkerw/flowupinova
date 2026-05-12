@@ -60,6 +60,7 @@ import {
   Link as LinkIcon,
   Loader2,
   LogOut,
+  Linkedin,
   MoreVertical,
   Plus,
   RefreshCw,
@@ -121,7 +122,7 @@ interface FacebookPage {
 
 type HistoryFilter = "last-7-days" | "this-month" | "this-year" | "all-time";
 type RepublishScheduleType = "now" | "schedule";
-type Platform = "instagram" | "facebook";
+type Platform = "instagram" | "facebook" | "linkedin";
 
 /* -------------------------------------------------------------------------------------------------
  * Constants / Utils
@@ -451,6 +452,11 @@ function ConnectionStatus({
       name: "Instagram",
       color: "text-pink-600",
     },
+    linkedin: {
+      icon: Linkedin,
+      name: "LinkedIn",
+      color: "text-blue-700",
+    },
   };
 
   const { icon: Icon, name, color } = platformConfig[platform];
@@ -510,6 +516,11 @@ export default function Conteudo() {
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData>({ isConnected: false });
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({
     isConnected: false,
+  });
+  const [linkedinConnection, setLinkedinConnection] = useState({
+    isConnected: false,
+    organizationName: "",
+    personName: "",
   });
 
   // Connection flow
@@ -816,6 +827,18 @@ export default function Conteudo() {
     await fetchPageData();
     toast({ title: "Desconectado", description: "A conexão com o Instagram foi removida." });
   }, [fetchPageData, toast, user]);
+
+  const handleConnectLinkedIn = useCallback(() => {
+    toast({
+      title: "LinkedIn",
+      description: "A conexão com o LinkedIn estará disponível em breve.",
+    });
+  }, [toast]);
+
+  const handleDisconnectLinkedIn = useCallback(() => {
+    setLinkedinConnection({ isConnected: false, organizationName: "", personName: "" });
+    toast({ title: "Desconectado", description: "A conexão com o LinkedIn foi removida." });
+  }, [toast]);
 
   const handleDeleteRequest = useCallback((postId: string) => {
     setPostToDelete(postId);
@@ -1322,6 +1345,17 @@ export default function Conteudo() {
                   onConnect={handleConnectInstagram}
                   onDisconnect={handleDisconnectInstagram}
                   isLoading={checkingConnection}
+                />
+                <Separator />
+                <ConnectionStatus
+                  platform="linkedin"
+                  isConnected={linkedinConnection.isConnected}
+                  accountName={
+                    linkedinConnection.organizationName || linkedinConnection.personName
+                  }
+                  onConnect={handleConnectLinkedIn}
+                  onDisconnect={handleDisconnectLinkedIn}
+                  isLoading={loading}
                 />
               </CardContent>
             </Card>

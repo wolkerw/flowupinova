@@ -15,6 +15,7 @@ export interface BusinessProfileData {
   address: string;
   phone: string;
   website: string;
+  instagram: string;
   description: string;
   logo: LogoData;
   rating: number;
@@ -24,6 +25,9 @@ export interface BusinessProfileData {
   pendingFields?: { [key: string]: boolean };
   regularHours?: any;
   openInfo?: any;
+  primaryColor?: string;
+  secondaryColor?: string;
+  onboardingCompleted?: boolean;
 }
 
 const defaultLogo: LogoData = {
@@ -38,6 +42,7 @@ const defaultProfile: BusinessProfileData = {
   address: "Seu Endereço",
   phone: "(00) 00000-0000",
   website: "www.suaempresa.com.br",
+  instagram: "@seuinsta",
   description: "Descreva sua empresa aqui.",
   logo: defaultLogo,
   rating: 0,
@@ -47,6 +52,9 @@ const defaultProfile: BusinessProfileData = {
   pendingFields: {},
   regularHours: null,
   openInfo: null,
+  primaryColor: "#000000",
+  secondaryColor: "#ffffff",
+  onboardingCompleted: false,
 };
 
 function getProfileDocRef(userId: string) {

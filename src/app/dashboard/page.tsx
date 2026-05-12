@@ -325,8 +325,9 @@ export default function Dashboard() {
 
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
-      fetchBusinessProfile();
-
+      const profile = await getBusinessProfile(user.uid);
+      setBusinessProfile(profile);
+      
       if (metaConn.isConnected || instaConn.isConnected) {
         fetchPlatformMetrics(metaConn, instaConn);
       } else {
