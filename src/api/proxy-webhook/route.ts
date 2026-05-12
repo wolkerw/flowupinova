@@ -15,6 +15,11 @@ export async function POST(request: NextRequest) {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
   } else if (targetWebhookName === "gerador_imagem_referencia") {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia";
+  } else if (targetWebhookName === "analisar_presenca" || targetWebhookName === "analisar-presenca") {
+    // Tenta primeiro a URL de teste se o usuário estiver em ambiente de desenvolvimento, 
+    // ou apenas a de produção se preferir. 
+    // Dica: Se o n8n não estiver "Ativo", ele só responde na URL /webhook-test/
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/analisar-presenca";
   } else {
     return NextResponse.json(
       { error: "Webhook de destino não especificado ou inválido." },
@@ -23,48 +28,65 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const formData = await request.formData();
+    const contentType = request.headers.get("content-type") || "";
+    let body: any;
 
-    // Recria o FormData no servidor para enviar ao webhook externo.
-    const webhookFormData = new FormData();
-    for (const [key, value] of formData.entries()) {
-      // Se o valor for um arquivo, precisamos garantir que ele seja tratado como tal
-      if (value instanceof File) {
-        webhookFormData.append(key, value, value.name);
-      } else {
-        webhookFormData.append(key, value);
+    if (contentType.includes("application/json")) {
+      body = JSON.stringify(await request.json());
+    } else {
+      const formData = await request.formData();
+      const webhookFormData = new FormData();
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          webhookFormData.append(key, value, value.name);
+        } else {
+          webhookFormData.append(key, value);
+        }
       }
+      body = webhookFormData;
     }
 
-    // O `fetch` nativo definirá o Content-Type para `multipart/form-data` com o boundary correto.
+    console.log(`Proxy: Chamando webhook ${webhookUrl}...`);
+
     const webhookResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "X-Server-Timeout": "300",
+        ...(contentType.includes("application/json") ? { "Content-Type": "application/json" } : {}),
       },
-      body: webhookFormData,
+      body: body,
     });
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
-      console.error("Erro no webhook externo:", errorText);
-      let errorDetails = errorText;
-      try {
-        // Tenta extrair a mensagem de erro se a resposta for um JSON de erro.
-        const errorJson = JSON.parse(errorText);
-        errorDetails = errorJson.message || errorJson.error || errorText;
-      } catch (e) {
-        // O corpo da resposta de erro não era JSON, usa o texto puro.
+      console.error(`Erro no webhook ${webhookUrl}:`, webhookResponse.status, errorText);
+      
+      // Se deu 404 na produção, pode ser que o usuário queira a de teste
+      if (webhookResponse.status === 404 && webhookUrl.includes("/webhook/")) {
+        const testUrl = webhookUrl.replace("/webhook/", "/webhook-test/");
+        console.log(`Tentando URL de teste: ${testUrl}`);
+        const testResponse = await fetch(testUrl, {
+          method: "POST",
+          headers: {
+            "X-Server-Timeout": "300",
+            ...(contentType.includes("application/json") ? { "Content-Type": "application/json" } : {}),
+          },
+          body: body,
+        });
+
+        if (testResponse.ok) {
+          const data = await testResponse.json();
+          return NextResponse.json(data);
+        }
       }
+
       return NextResponse.json(
-        { error: "Falha ao comunicar com o webhook externo.", details: errorDetails },
+        { error: "Falha ao comunicar com o webhook externo.", details: errorText },
         { status: webhookResponse.status }
       );
     }
 
     const data = await webhookResponse.json();
-
-    // Retorna a resposta do webhook para the cliente.
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error.message);
