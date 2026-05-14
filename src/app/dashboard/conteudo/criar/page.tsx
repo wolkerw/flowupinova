@@ -447,6 +447,9 @@ export default function CriarConteudoPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
 
+  const [collaboratorsInput, setCollaboratorsInput] = useState("");
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
@@ -581,6 +584,17 @@ export default function CriarConteudoPage() {
     }
 
     return publicUrl;
+  };
+
+  const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = collaboratorsInput.trim().replace('@', '');
+      if (val && collaborators.length < 3 && !collaborators.includes(val)) {
+        setCollaborators([...collaborators, val]);
+      }
+      setCollaboratorsInput("");
+    }
   };
 
   const handleNextStep = async () => {
@@ -769,6 +783,7 @@ export default function CriarConteudoPage() {
       isCarousel: selectedType === "carousel",
       scheduledAt:
         scheduleType === "schedule" && scheduleDate ? new Date(scheduleDate) : new Date(),
+      collaborators: collaborators.length > 0 ? collaborators : undefined,
     };
 
     if (platforms.includes("facebook") && metaConnection?.isConnected) {
@@ -1284,6 +1299,34 @@ export default function CriarConteudoPage() {
                   </motion.div>
                 )}
               </div>
+
+              {/* Collabs in Step 3 */}
+              {platforms.includes("instagram") && (
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-semibold">Colaboradores no Instagram (Opcional)</h4>
+                  <div>
+                    <Label className="text-sm">Convide até 3 perfis para dividir a postagem</Label>
+                    <p className="text-xs text-gray-500 mb-2">Digite o @usuario e aperte Enter.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {collaborators.map((username) => (
+                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                          @{username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => setCollaborators(collaborators.filter(c => c !== username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={collaboratorsInput}
+                      onChange={(e) => setCollaboratorsInput(e.target.value)}
+                      onKeyDown={handleAddCollaborator}
+                      placeholder="@colaborador"
+                      disabled={collaborators.length >= 3}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex-col items-stretch">
               <Button

@@ -15,6 +15,7 @@ import {
   Instagram,
   Facebook,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PostPreview } from "./PostPreview";
@@ -34,6 +35,10 @@ interface Step5ReviewPublishProps {
   onPublish: (mode: "now" | "schedule") => void;
   onBack: () => void;
   isPublishing: boolean;
+  collaborators: string[];
+  collaboratorsInput: string;
+  onCollaboratorsChange: (collaborators: string[]) => void;
+  onCollaboratorsInputChange: (input: string) => void;
 }
 
 export const Step5ReviewPublish = ({
@@ -48,7 +53,22 @@ export const Step5ReviewPublish = ({
   onPublish,
   onBack,
   isPublishing,
+  collaborators,
+  collaboratorsInput,
+  onCollaboratorsChange,
+  onCollaboratorsInputChange,
 }: Step5ReviewPublishProps) => {
+  const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = collaboratorsInput.trim().replace('@', '');
+      if (val && collaborators.length < 3 && !collaborators.includes(val)) {
+        onCollaboratorsChange([...collaborators, val]);
+      }
+      onCollaboratorsInputChange("");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -126,7 +146,36 @@ export const Step5ReviewPublish = ({
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
+
+              {/* Collabs in Step 5 (AI) */}
+              {platforms.includes("instagram") && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold">Colaboradores no Instagram (Opcional)</h3>
+                  <div>
+                    <Label className="text-sm">Convide até 3 perfis para dividir a postagem</Label>
+                    <p className="text-xs text-gray-500 mb-2">Digite o @usuario e aperte Enter.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {collaborators.map((username) => (
+                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                          @{username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => onCollaboratorsChange(collaborators.filter(c => c !== username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={collaboratorsInput}
+                      onChange={(e) => onCollaboratorsInputChange(e.target.value)}
+                      onKeyDown={handleAddCollaborator}
+                      placeholder="@colaborador"
+                      disabled={collaborators.length >= 3}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4 border-t pt-4">
                 <h3 className="text-lg font-bold">Publicar</h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Button

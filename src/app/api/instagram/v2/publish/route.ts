@@ -9,6 +9,7 @@ interface PublishRequestBody {
     isCarousel: boolean;
     accessToken: string;
     instagramId: string;
+    collaborators?: string[];
   };
 }
 
@@ -18,7 +19,8 @@ async function createMediaItemContainer(
   accessToken: string,
   imageUrl: string,
   isCarouselItem: boolean,
-  caption?: string
+  caption?: string,
+  collaborators?: string[]
 ): Promise<string> {
   const host = "https://graph.instagram.com";
   const url = `${host}/v20.0/${instagramId}/media`;
@@ -35,6 +37,13 @@ async function createMediaItemContainer(
   // Caption is only allowed for single media items, not for carousel children.
   if (!isCarouselItem && caption) {
     params.append("caption", caption);
+  }
+
+  // Collaborators can be added to the single media container
+  if (!isCarouselItem && collaborators && collaborators.length > 0) {
+    // The Graph API expects an array of strings representation with single quotes: ['user1','user2']
+    const formattedCollaborators = `[${collaborators.map(c => `'${c}'`).join(',')}]`;
+    params.append("collaborators", formattedCollaborators);
   }
 
   const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
@@ -57,7 +66,8 @@ async function createCarouselContainer(
   instagramId: string,
   accessToken: string,
   childrenIds: string[],
-  caption: string
+  caption: string,
+  collaborators?: string[]
 ): Promise<string> {
   const host = "https://graph.instagram.com";
   const url = `${host}/v20.0/${instagramId}/media`;
@@ -68,6 +78,11 @@ async function createCarouselContainer(
     caption: caption,
     access_token: accessToken,
   });
+
+  if (collaborators && collaborators.length > 0) {
+    const formattedCollaborators = `[${collaborators.map(c => `'${c}'`).join(',')}]`;
+    params.append("collaborators", formattedCollaborators);
+  }
 
   const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
   const data = await response.json();
@@ -163,7 +178,8 @@ export async function POST(request: NextRequest) {
         postData.instagramId,
         postData.accessToken,
         childContainerIds,
-        caption
+        caption,
+        postData.collaborators
       );
     } else {
       // Single Media Flow - create container with caption
@@ -172,7 +188,8 @@ export async function POST(request: NextRequest) {
         postData.accessToken,
         postData.imageUrls[0],
         false,
-        caption
+        caption,
+        postData.collaborators
       );
     }
 

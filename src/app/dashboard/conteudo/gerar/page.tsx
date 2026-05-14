@@ -53,6 +53,9 @@ export default function GerarConteudoPage() {
   const [scheduleDateTime, setScheduleDateTime] = useState("");
   const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
 
+  const [collaboratorsInput, setCollaboratorsInput] = useState("");
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
     null
@@ -612,6 +615,7 @@ export default function GerarConteudoPage() {
         isCarousel: false,
         platforms: platforms,
         scheduledAt: publishMode === "schedule" ? new Date(scheduleDateTime) : new Date(),
+        collaborators: collaborators.length > 0 ? collaborators : undefined,
         metaConnection: metaConnection || undefined,
         instagramConnection: instagramConnection || undefined,
       });
@@ -750,6 +754,10 @@ export default function GerarConteudoPage() {
           metaConnection={metaConnection}
           instagramConnection={instagramConnection}
           platforms={platforms}
+          collaborators={collaborators}
+          collaboratorsInput={collaboratorsInput}
+          onCollaboratorsChange={setCollaborators}
+          onCollaboratorsInputChange={setCollaboratorsInput}
           onPlatformChange={(p) =>
             setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
           }
