@@ -47,6 +47,7 @@ export interface PostData {
   // For Instagram carousel, this will be the ID of the parent carousel container
   creationId?: string;
   collaborators?: string[];
+  userTags?: { username: string; x: number; y: number }[];
 }
 
 export interface MediaFileInput {
@@ -65,6 +66,7 @@ export type PostDataInput = {
   metaConnection?: MetaConnectionData;
   instagramConnection?: InstagramConnectionData;
   collaborators?: string[];
+  userTags?: { username: string; x: number; y: number }[];
 };
 
 // Interface for data being sent to the client from the service
@@ -158,6 +160,7 @@ async function publishPostImmediately(
             accessToken: postData.connections.igUserAccessToken,
             instagramId: postData.connections.instagramId,
             collaborators: postData.collaborators,
+            userTags: postData.userTags,
           },
         };
       } else {
@@ -314,6 +317,7 @@ export async function schedulePost(
       status: isImmediate ? "publishing" : "scheduled",
       connections: connectionsToSave,
       ...(postData.collaborators ? { collaborators: postData.collaborators } : {}),
+      ...(postData.userTags ? { userTags: postData.userTags } : {}),
     };
 
     const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Sparkles,
   Send,
@@ -39,6 +40,10 @@ interface Step5ReviewPublishProps {
   collaboratorsInput: string;
   onCollaboratorsChange: (collaborators: string[]) => void;
   onCollaboratorsInputChange: (input: string) => void;
+  userTags: { username: string; x: number; y: number }[];
+  userTagsInput: string;
+  onUserTagsChange: (userTags: { username: string; x: number; y: number }[]) => void;
+  onUserTagsInputChange: (input: string) => void;
 }
 
 export const Step5ReviewPublish = ({
@@ -57,6 +62,10 @@ export const Step5ReviewPublish = ({
   collaboratorsInput,
   onCollaboratorsChange,
   onCollaboratorsInputChange,
+  userTags,
+  userTagsInput,
+  onUserTagsChange,
+  onUserTagsInputChange,
 }: Step5ReviewPublishProps) => {
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -66,6 +75,17 @@ export const Step5ReviewPublish = ({
         onCollaboratorsChange([...collaborators, val]);
       }
       onCollaboratorsInputChange("");
+    }
+  };
+
+  const handleAddUserTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = userTagsInput.trim().replace('@', '');
+      if (val && !userTags.some(t => t.username === val)) {
+        onUserTagsChange([...userTags, { username: val, x: 0.5, y: 0.5 }]);
+      }
+      onUserTagsInputChange("");
     }
   };
 
@@ -147,13 +167,13 @@ export const Step5ReviewPublish = ({
                 </div>
               </div>
 
-              {/* Collabs in Step 5 (AI) */}
+              {/* Instagram Specific Features */}
               {platforms.includes("instagram") && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold">Colaboradores no Instagram (Opcional)</h3>
-                  <div>
-                    <Label className="text-sm">Convide até 3 perfis para dividir a postagem</Label>
-                    <p className="text-xs text-gray-500 mb-2">Digite o @usuario e aperte Enter.</p>
+                <div className="space-y-6 pt-4 border-t">
+                  {/* Collabs */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Dividir postagem com parceiro (Collab)</h4>
+                    <p className="text-xs text-muted-foreground">A postagem também aparecerá no perfil desta pessoa se ela aceitar.</p>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {collaborators.map((username) => (
                         <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
@@ -167,8 +187,30 @@ export const Step5ReviewPublish = ({
                       value={collaboratorsInput}
                       onChange={(e) => onCollaboratorsInputChange(e.target.value)}
                       onKeyDown={handleAddCollaborator}
-                      placeholder="@colaborador"
+                      placeholder="@usuario"
                       disabled={collaborators.length >= 3}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+
+                  {/* User Tags */}
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="font-semibold text-sm">Marcar na foto</h4>
+                    <p className="text-xs text-muted-foreground">A pessoa apenas receberá uma notificação de que foi marcada.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {userTags.map((tag) => (
+                        <div key={tag.username} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs">
+                          @{tag.username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => onUserTagsChange(userTags.filter(t => t.username !== tag.username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={userTagsInput}
+                      onChange={(e) => onUserTagsInputChange(e.target.value)}
+                      onKeyDown={handleAddUserTag}
+                      placeholder="@usuario"
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
                     />
                   </div>

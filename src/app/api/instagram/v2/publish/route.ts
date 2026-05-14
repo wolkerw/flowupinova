@@ -10,7 +10,36 @@ interface PublishRequestBody {
     accessToken: string;
     instagramId: string;
     collaborators?: string[];
+    userTags?: { username: string; x: number; y: number }[];
   };
+}
+
+async function findInvalidProfile(
+  baseParams: URLSearchParams,
+  url: string,
+  profiles: string[],
+  type: "collaborators" | "user_tags"
+): Promise<string | null> {
+  for (const profile of profiles) {
+    const testParams = new URLSearchParams(baseParams.toString());
+    testParams.delete("collaborators");
+    testParams.delete("user_tags");
+
+    if (type === "collaborators") {
+      testParams.append("collaborators", `['${profile}']`);
+    } else {
+      testParams.append("user_tags", JSON.stringify([{ username: profile, x: 0.5, y: 0.5 }]));
+    }
+
+    const testRes = await fetch(`${url}?${testParams.toString()}`, { method: "POST" });
+    if (!testRes.ok) {
+      const data = await testRes.json();
+      if (data.error?.message?.toLowerCase().includes("invalid user id") || data.error?.message?.toLowerCase().includes("unknown error")) {
+        return profile;
+      }
+    }
+  }
+  return null;
 }
 
 // 1. Create a media container for a single item (image or video)
@@ -20,7 +49,8 @@ async function createMediaItemContainer(
   imageUrl: string,
   isCarouselItem: boolean,
   caption?: string,
-  collaborators?: string[]
+  collaborators?: string[],
+  userTags?: { username: string; x: number; y: number }[]
 ): Promise<string> {
   const host = "https://graph.instagram.com";
   const url = `${host}/v20.0/${instagramId}/media`;
@@ -46,6 +76,11 @@ async function createMediaItemContainer(
     params.append("collaborators", formattedCollaborators);
   }
 
+  // User tags can be applied to single media items or carousel children
+  if (userTags && userTags.length > 0) {
+    params.append("user_tags", JSON.stringify(userTags));
+  }
+
   const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
   const data = await response.json();
 
@@ -54,9 +89,36 @@ async function createMediaItemContainer(
       "[INSTAGRAM_V2_API_ERROR] Falha ao criar container de item de mídia:",
       data.error
     );
-    throw new Error(
-      data.error?.message || "Falha ao criar o container de item de mídia no Instagram."
-    );
+    let errorMessage = data.error?.message || "Falha ao criar o container de item de mídia no Instagram.";
+    if (errorMessage.toLowerCase().includes("invalid user id") || errorMessage.toLowerCase().includes("unknown error")) {
+      let exactInvalidProfile = null;
+      let errorSource = "";
+
+      if (collaborators?.length && (!userTags || userTags.length === 0)) {
+         exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
+         errorSource = "Colaboradores";
+      } 
+      else if (userTags?.length && (!collaborators || collaborators.length === 0)) {
+         exactInvalidProfile = await findInvalidProfile(params, url, userTags.map(t=>t.username), "user_tags");
+         errorSource = "Marcações";
+      } 
+      else if (collaborators?.length && userTags?.length) {
+         exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
+         if (exactInvalidProfile) {
+            errorSource = "Colaboradores";
+         } else {
+            exactInvalidProfile = await findInvalidProfile(params, url, userTags.map(t=>t.username), "user_tags");
+            errorSource = "Marcações";
+         }
+      }
+
+      if (exactInvalidProfile) {
+         errorMessage = `Erro nos ${errorSource}. O perfil @${exactInvalidProfile} não existe ou é privado.`;
+      } else {
+         errorMessage = "Erro de privacidade. Um dos perfis informados não existe ou é privado.";
+      }
+    }
+    throw new Error(errorMessage);
   }
   return data.id;
 }
@@ -89,7 +151,20 @@ async function createCarouselContainer(
 
   if (!response.ok || !data.id) {
     console.error("[INSTAGRAM_V2_API_ERROR] Falha ao criar o container do carrossel:", data.error);
-    throw new Error(data.error?.message || "Falha ao criar o container do carrossel.");
+    let errorMessage = data.error?.message || "Falha ao criar o container do carrossel no Instagram.";
+    if (errorMessage.toLowerCase().includes("invalid user id") || errorMessage.toLowerCase().includes("unknown error")) {
+      if (collaborators && collaborators.length > 0) {
+        const exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
+        if (exactInvalidProfile) {
+          errorMessage = `Erro nos Colaboradores. O perfil @${exactInvalidProfile} não existe ou é privado.`;
+        } else {
+          errorMessage = "Erro nos Colaboradores. Um dos perfis não existe ou é privado.";
+        }
+      } else {
+        errorMessage = "Erro de privacidade. Um dos perfis não existe ou é privado.";
+      }
+    }
+    throw new Error(errorMessage);
   }
   return data.id;
 }
@@ -168,8 +243,16 @@ export async function POST(request: NextRequest) {
       if (postData.imageUrls.length > 10) throw new Error("Carrosséis são limitados a 10 mídias.");
 
       // 1. Create individual item containers without caption
-      const childContainerPromises = postData.imageUrls.map((url) =>
-        createMediaItemContainer(postData.instagramId, postData.accessToken, url, true)
+      const childContainerPromises = postData.imageUrls.map((url, index) =>
+        createMediaItemContainer(
+          postData.instagramId, 
+          postData.accessToken, 
+          url, 
+          true,
+          undefined,
+          undefined,
+          index === 0 ? postData.userTags : undefined
+        )
       );
       const childContainerIds = await Promise.all(childContainerPromises);
 
@@ -189,7 +272,8 @@ export async function POST(request: NextRequest) {
         postData.imageUrls[0],
         false,
         caption,
-        postData.collaborators
+        postData.collaborators,
+        postData.userTags
       );
     }
 
