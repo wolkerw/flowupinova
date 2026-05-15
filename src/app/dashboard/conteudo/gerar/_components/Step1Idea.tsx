@@ -9,39 +9,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Sparkles, ArrowRight, Loader2, UploadCloud, X, Box, MessageSquare } from "lucide-react";
 
-interface Step1IdeaProps {
-  postSummary: string;
-  onPostSummaryChange: (value: string) => void;
-  onGenerate: () => void;
-  isLoading: boolean;
-  referenceImagePreview: string | null;
-  onReferenceImageChange: (file: File | null) => void;
-  referenceDescription: string;
-  onReferenceDescriptionChange: (value: string) => void;
-  hideImageOption?: boolean;
-  hideTextOption?: boolean;
-  referenceLink?: string;
-  onReferenceLinkChange?: (value: string) => void;
-  onInspirationFileChange?: (file: File | null) => void; // Novo
-  isLinkMode?: boolean;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step1Idea = ({
-  postSummary,
-  onPostSummaryChange,
-  onGenerate,
-  isLoading,
-  referenceImagePreview,
-  onReferenceImageChange,
-  referenceDescription,
-  onReferenceDescriptionChange,
-  hideImageOption = false,
-  hideTextOption = false,
-  referenceLink = "",
-  onReferenceLinkChange,
-  onInspirationFileChange,
-  isLinkMode = false,
-}: Step1IdeaProps) => {
+export const Step1Idea = () => {
+  const {
+    postSummary,
+    setPostSummary: onPostSummaryChange,
+    handleGenerateText: onGenerate,
+    isLoading,
+    referenceImagePreview,
+    handleReferenceImageChange: onReferenceImageChange,
+    referenceDescription,
+    setReferenceDescription: onReferenceDescriptionChange,
+    mode,
+    referenceLink,
+    setReferenceLink: onReferenceLinkChange,
+    setInspirationFile: onInspirationFileChange,
+  } = useWizard();
+
+  const hideImageOption = mode === "concept";
+  const hideTextOption = mode === "reference-photo";
+  const isLinkMode = mode === "reference-link";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,7 +294,7 @@ export const Step1Idea = ({
         </CardContent>
         <CardFooter className="flex items-center justify-end">
           <Button
-            onClick={onGenerate}
+            onClick={() => onGenerate()}
             disabled={isButtonDisabled}
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >

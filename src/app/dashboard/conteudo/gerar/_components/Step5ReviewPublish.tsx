@@ -25,49 +25,40 @@ import { GeneratedContent, Platform } from "../types";
 import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
-interface Step5ReviewPublishProps {
-  processedImageUrl: string | null;
-  selectedImage: string;
-  selectedContent: GeneratedContent;
-  user: any;
-  metaConnection: MetaConnectionData | null;
-  instagramConnection: InstagramConnectionData | null;
-  platforms: Platform[];
-  onPlatformChange: (platform: Platform) => void;
-  onPublish: (mode: "now" | "schedule") => void;
-  onBack: () => void;
-  isPublishing: boolean;
-  collaborators: string[];
-  collaboratorsInput: string;
-  onCollaboratorsChange: (collaborators: string[]) => void;
-  onCollaboratorsInputChange: (input: string) => void;
-  userTags: { username: string; x: number; y: number }[];
-  userTagsInput: string;
-  onUserTagsChange: (userTags: { username: string; x: number; y: number }[]) => void;
-  onUserTagsInputChange: (input: string) => void;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step5ReviewPublish = ({
-  processedImageUrl,
-  selectedImage,
-  selectedContent,
-  user,
-  metaConnection,
-  instagramConnection,
-  platforms,
-  onPlatformChange,
-  onPublish,
-  onBack,
-  isPublishing,
-  collaborators,
-  collaboratorsInput,
-  onCollaboratorsChange,
-  onCollaboratorsInputChange,
-  userTags,
-  userTagsInput,
-  onUserTagsChange,
-  onUserTagsInputChange,
-}: Step5ReviewPublishProps) => {
+export const Step5ReviewPublish = () => {
+  const {
+    processedImageUrl,
+    selectedImage,
+    selectedContent,
+    user,
+    metaConnection,
+    instagramConnection,
+    platforms,
+    setPlatforms,
+    setShowSchedulerModal,
+    handlePublish,
+    setStep,
+    isPublishing,
+    collaborators,
+    collaboratorsInput,
+    setCollaborators: onCollaboratorsChange,
+    setCollaboratorsInput: onCollaboratorsInputChange,
+    userTags,
+    userTagsInput,
+    setUserTags: onUserTagsChange,
+    setUserTagsInput: onUserTagsInputChange,
+  } = useWizard();
+
+  const onBack = () => setStep(4);
+  const onPlatformChange = (p: Platform) =>
+    setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  
+  const onPublish = (mode: "now" | "schedule") =>
+    mode === "now" ? handlePublish("now") : setShowSchedulerModal(true);
+
+  if (!selectedContent || !selectedImage) return null;
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();

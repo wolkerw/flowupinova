@@ -21,29 +21,27 @@ import {
 import { GeneratedContent } from "../types";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
-interface Step2TextSelectionProps {
-  generatedContent: GeneratedContent[];
-  selectedContentId: string | undefined;
-  onSelectedContentIdChange: (id: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-  user: any;
-  instagramConnection: InstagramConnectionData | null;
-  onGenerateContent?: () => void;
-  isLoadingContent?: boolean;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step2TextSelection = ({
-  generatedContent,
-  selectedContentId,
-  onSelectedContentIdChange,
-  onBack,
-  onNext,
-  user,
-  instagramConnection,
-  onGenerateContent,
-  isLoadingContent = false,
-}: Step2TextSelectionProps) => {
+export const Step2TextSelection = () => {
+  const {
+    generatedContent,
+    selectedContentId,
+    setSelectedContentId: onSelectedContentIdChange,
+    setStep,
+    user,
+    instagramConnection,
+    handleGeneratePostContent: onGenerateContent,
+    isLoading,
+    handleGeneratePrompts,
+  } = useWizard();
+
+  const onBack = () => setStep(1);
+  const onNext = () => {
+    handleGeneratePrompts();
+    setStep(3);
+  };
+  const isLoadingContent = isLoading;
   const selectedContent = selectedContentId
     ? generatedContent[parseInt(selectedContentId, 10)]
     : null;
@@ -71,7 +69,7 @@ export const Step2TextSelection = ({
               <p className="mb-6 text-gray-500">Ainda não há conteúdo de texto para esta imagem.</p>
               {onGenerateContent && (
                 <Button 
-                  onClick={onGenerateContent} 
+                  onClick={() => onGenerateContent()} 
                   disabled={isLoadingContent}
                   className="bg-primary text-white"
                 >
@@ -110,12 +108,12 @@ export const Step2TextSelection = ({
           )}
         </CardContent>
         <CardFooter className="flex items-end justify-between">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={() => onBack()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
           <Button
-            onClick={onNext}
+            onClick={() => onNext()}
             disabled={!selectedContentId}
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >

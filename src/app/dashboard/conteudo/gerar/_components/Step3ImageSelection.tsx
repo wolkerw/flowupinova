@@ -17,27 +17,21 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Step3ImageSelectionProps {
-  generatedImages: string[];
-  selectedImage: string | null;
-  onSelectedImageChange: (url: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-  onGenerate: () => void;
-  isGeneratingImages: boolean;
-  onDownload: (url: string) => void;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step3ImageSelection = ({
-  generatedImages,
-  selectedImage,
-  onSelectedImageChange,
-  onBack,
-  onNext,
-  onGenerate,
-  isGeneratingImages,
-  onDownload,
-}: Step3ImageSelectionProps) => {
+export const Step3ImageSelection = () => {
+  const {
+    generatedImages,
+    selectedImage,
+    setSelectedImage: onSelectedImageChange,
+    setStep,
+    handleGeneratePrompts: onGenerate,
+    isGeneratingImages,
+    handleDownloadImage: onDownload,
+  } = useWizard();
+
+  const onBack = () => setStep(2);
+  const onNext = () => setStep(4);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -59,75 +53,59 @@ export const Step3ImageSelection = ({
           </div>
         </CardHeader>
         <CardContent>
-          {isGeneratingImages ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Imagens já encontradas */}
+            {generatedImages.map((imgSrc, index) => (
+              <div
+                key={`img-${index}`}
+                onClick={() => onSelectedImageChange(imgSrc)}
+                className={cn(
+                  "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
+                  "ring-4 ring-offset-2",
+                  selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
+                )}
+              >
+                <Image
+                  src={imgSrc}
+                  alt={`Imagem gerada ${index + 1}`}
+                  layout="fill"
+                  objectFit="cover"
+                  className="transition-transform duration-300 group-hover:scale-105"
+                  unoptimized
+                />
+                {selectedImage === imgSrc && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                    <Check className="h-12 w-12 text-white" />
+                  </div>
+                )}
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(imgSrc);
+                  }}
+                  className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {/* Placeholders de carregamento para completar 3 slots */}
+            {generatedImages.length < 3 &&
+              [...Array(3 - generatedImages.length)].map((_, i) => (
                 <div
-                  key={i}
+                  key={`skeleton-${i}`}
                   className="relative flex aspect-square animate-pulse flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted"
                 >
                   <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
-                  <span className="mt-2 text-xs font-medium text-muted-foreground">
-                    Gerando imagem {i + 1}...
+                  <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+                    Buscando opção {generatedImages.length + i + 1}...
                   </span>
                 </div>
               ))}
-            </div>
-          ) : generatedImages.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              {generatedImages.map((imgSrc, index) => (
-                <div
-                  key={index}
-                  onClick={() => onSelectedImageChange(imgSrc)}
-                  className={cn(
-                    "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
-                    "ring-4 ring-offset-2",
-                    selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
-                  )}
-                >
-                  <Image
-                    src={imgSrc}
-                    alt={`Imagem gerada ${index + 1}`}
-                    layout="fill"
-                    objectFit="cover"
-                    className="transition-transform duration-300 group-hover:scale-105"
-                    unoptimized
-                  />
-                  {selectedImage === imgSrc && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <Check className="h-12 w-12 text-white" />
-                    </div>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDownload(imgSrc);
-                    }}
-                    className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-64 flex-col items-center justify-center text-center">
-              <Sparkles className="mb-4 h-12 w-12 text-accent animate-pulse" />
-              <p className="text-lg font-semibold text-gray-700">Pronto para gerar as imagens!</p>
-              <p className="mb-6 text-sm text-gray-500">
-                Usaremos o texto selecionado para criar 3 opções incríveis para você.
-              </p>
-              <Button 
-                onClick={onGenerate}
-                className="bg-accent text-white hover:bg-accent/90"
-              >
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Gerar Imagens Agora
-              </Button>
-            </div>
-          )}
+          </div>
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button variant="outline" onClick={onBack}>

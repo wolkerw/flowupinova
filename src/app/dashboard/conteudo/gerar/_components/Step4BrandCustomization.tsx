@@ -12,76 +12,51 @@ import { Edit, UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, MessageSquar
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 
-interface Step4BrandCustomizationProps {
-  selectedImage: string;
-  logoFile: File | null;
-  logoPreviewUrl: string | null;
-  logoPosition: LogoPosition;
-  logoScale: number;
-  logoOpacity: number;
-  onLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onLogoRemove: () => void;
-  onPositionChange: (pos: LogoPosition) => void;
-  onScaleChange: (value: number) => void;
-  onOpacityChange: (value: number) => void;
-  onBack: () => void;
-  onNext: () => void;
-  isUploading: boolean;
-  visualLogoScale: number;
-  logoInputRef: React.RefObject<HTMLInputElement>;
-  isGeneratingImages?: boolean;
-  // Text Overlay Props
-  selectedTitle?: string;
-  showTextOverlay: boolean;
-  textPosition: LogoPosition;
-  textScale: number;
-  textColor: string;
-  fontFamily: string;
-  fontWeight: string;
-  isItalic: boolean;
-  onTextToggle: (show: boolean) => void;
-  onTextPositionChange: (pos: LogoPosition) => void;
-  onTextScaleChange: (value: number) => void;
-  onTextColorChange: (color: string) => void;
-  onFontFamilyChange: (font: string) => void;
-  onFontWeightChange: (weight: string) => void;
-  onItalicToggle: (italic: boolean) => void;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step4BrandCustomization = ({
-  selectedImage,
-  logoFile,
-  logoPreviewUrl,
-  logoPosition,
-  logoScale,
-  logoOpacity,
-  onLogoUpload,
-  onLogoRemove,
-  onPositionChange,
-  onScaleChange,
-  onOpacityChange,
-  onBack,
-  onNext,
-  isUploading,
-  visualLogoScale,
-  logoInputRef,
-  isGeneratingImages = false,
-  selectedTitle = "",
-  showTextOverlay,
-  textPosition,
-  textScale,
-  textColor,
-  fontFamily,
-  fontWeight,
-  isItalic,
-  onTextToggle,
-  onTextPositionChange,
-  onTextScaleChange,
-  onTextColorChange,
-  onFontFamilyChange,
-  onFontWeightChange,
-  onItalicToggle,
-}: Step4BrandCustomizationProps) => {
+export const Step4BrandCustomization = () => {
+  const {
+    selectedImage,
+    logoFile,
+    logoPreviewUrl,
+    logoPosition,
+    logoScale,
+    logoOpacity,
+    handleLogoFileChange: onLogoUpload,
+    setLogoFile,
+    setLogoPreviewUrl,
+    setLogoPosition: onPositionChange,
+    setLogoScale: onScaleChange,
+    setLogoOpacity: onOpacityChange,
+    setStep,
+    handleLogoProcessing: onNext,
+    isUploading,
+    visualLogoScale,
+    logoInputRef,
+    isGeneratingImages,
+    selectedContent,
+    showTextOverlay,
+    setShowTextOverlay: onTextToggle,
+    textPosition,
+    setTextPosition: onTextPositionChange,
+    textScale,
+    setTextScale: onTextScaleChange,
+    textColor,
+    setTextColor: onTextColorChange,
+    fontFamily,
+    setFontFamily: onFontFamilyChange,
+    fontWeight,
+    setFontWeight: onFontWeightChange,
+    isItalic,
+    setIsItalic: onItalicToggle,
+  } = useWizard();
+
+  const onBack = () => setStep(3);
+  const onLogoRemove = () => {
+    setLogoFile(null);
+    setLogoPreviewUrl(null);
+  };
+  const selectedTitle = selectedContent?.título || "";
   const positions: LogoPosition[] = [
     "top-left",
     "top-center",
@@ -407,7 +382,7 @@ export const Step4BrandCustomization = ({
           Voltar
         </Button>
         <Button
-          onClick={onNext}
+          onClick={() => onNext()}
           disabled={isUploading}
           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
         >
