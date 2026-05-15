@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Check, X, Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { Check, X, Loader2, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,8 @@ import { db } from "@/lib/firebase";
 import { ToastAction } from "@/components/ui/toast";
 
 export default function GerarConteudoPage() {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
   const [step, setStep] = useState(1);
   const [postSummary, setPostSummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +69,9 @@ export default function GerarConteudoPage() {
   // Estados para imagem de referência
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const [inspirationFile, setInspirationFile] = useState<File | null>(null);
   const [referenceDescription, setReferenceDescription] = useState("");
+  const [referenceLink, setReferenceLink] = useState("");
 
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -74,6 +79,15 @@ export default function GerarConteudoPage() {
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
   const [logoScale, setLogoScale] = useState(30);
   const [logoOpacity, setLogoOpacity] = useState(80);
+  
+  // Text Overlay States
+  const [showTextOverlay, setShowTextOverlay] = useState(false);
+  const [textPosition, setTextPosition] = useState<LogoPosition>("top-center");
+  const [textScale, setTextScale] = useState(100);
+  const [textColor, setTextColor] = useState("#FFFFFF");
+  const [fontFamily, setFontFamily] = useState("Inter");
+  const [fontWeight, setFontWeight] = useState("bold");
+  const [isItalic, setIsItalic] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +106,9 @@ export default function GerarConteudoPage() {
   const { toast } = useToast();
 
   const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+  const selectedContent = selectedContentId
+    ? generatedContent[parseInt(selectedContentId, 10)]
+    : null;
 
   const fetchUnusedImages = async () => {
     if (!user) return;
@@ -170,7 +187,7 @@ export default function GerarConteudoPage() {
     const maxAttempts = 15;
 
     // Apenas inicia o polling se NÃO houver imagem de referência (que é gerada instantaneamente)
-    if (step === 3 && currentPostId && isGeneratingImages && !referenceImageFile) {
+    if ((step === 3 || step === 4) && currentPostId && isGeneratingImages && !referenceImageFile) {
       const poll = async () => {
         attempts++;
         const filenamesToCheck = ["1", "2", "3"].filter((f) => !foundFilesRef.current.has(f));
@@ -269,7 +286,79 @@ export default function GerarConteudoPage() {
   };
 
   const handleGenerateText = async (summary?: string) => {
-    const textToGenerate = summary || postSummary;
+    let textToGenerate = summary || postSummary;
+    
+    // Se estiver no modo de link de referência (agora Imagem de Referência)
+    if (mode === "reference-link" && !summary) {
+      if (!inspirationFile || !referenceDescription.trim()) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, envie uma imagem de inspiração e descreva o que deseja.",
+        });
+        return null;
+      }
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("inspiration_file", inspirationFile); // O print da inspiração
+        formData.append("description", referenceDescription);
+        formData.append("user_id", user?.uid || "");
+        
+        if (businessProfile) {
+          formData.append("business_name", businessProfile.name || "");
+          formData.append("business_category", businessProfile.category || "");
+          formData.append("business_description", businessProfile.description || "");
+        }
+
+        if (referenceImageFile) {
+          formData.append("product_file", referenceImageFile); // O produto real
+        }
+
+        const response = await fetch("/api/proxy-webhook?target=gerador_link_referencia", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.details || "Erro ao processar link de referência.");
+
+        // Novo formato: data[0].publicacoes ou data.publicacoes
+        const publicacoes = Array.isArray(data) 
+          ? (data[0]?.publicacoes || data) 
+          : (data.publicacoes || data);
+
+        if (Array.isArray(publicacoes)) {
+          // Mapeia "titulo" para "título" para manter compatibilidade com o componente UI
+          const mappedContent = publicacoes.map((item: any) => ({
+            título: item.titulo || item.título || "",
+            subtitulo: item.subtitulo || "",
+            hashtags: item.hashtags || [],
+            url_da_imagem: item.url_da_imagem
+          }));
+
+          setGeneratedContent(mappedContent);
+          setSelectedContentId("0");
+          setStep(2);
+          return mappedContent;
+        }
+        throw new Error("Formato de resposta inválido do webhook.");
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Erro no Link",
+          description: getFriendlyErrorMessage(error.message),
+        });
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    // Se estiver no modo de foto e não tiver resumo, usa a descrição da imagem
+    if (mode === "reference-photo" && !textToGenerate.trim() && referenceDescription.trim()) {
+      textToGenerate = referenceDescription;
+    }
+
     if (!textToGenerate.trim() || isLoading || !user) return null;
     setIsLoading(true);
 
@@ -283,16 +372,26 @@ export default function GerarConteudoPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
 
-      if (Array.isArray(data) && data.length > 0) {
-        const content = data as GeneratedContent[];
-        setGeneratedContent(content);
+      const publicacoes = Array.isArray(data) 
+        ? (data[0]?.publicacoes || data) 
+        : (data.publicacoes || data);
+
+      if (Array.isArray(publicacoes)) {
+        const mappedContent = publicacoes.map((item: any) => ({
+          título: item.titulo || item.título || "",
+          subtitulo: item.subtitulo || "",
+          hashtags: item.hashtags || [],
+          url_da_imagem: item.url_da_imagem
+        }));
+
+        setGeneratedContent(mappedContent);
         setSelectedContentId("0");
         if (!summary) {
-          await saveContentHistory(user.uid, content);
+          await saveContentHistory(user.uid, mappedContent);
           await fetchContentHistory();
         }
         setStep(2);
-        return content;
+        return mappedContent;
       } else {
         throw new Error("O formato da resposta da IA é inesperado.");
       }
@@ -303,6 +402,52 @@ export default function GerarConteudoPage() {
         description: getFriendlyErrorMessage(error.message),
       });
       return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGeneratePostContent = async () => {
+    if (!user || isLoading) return;
+    setIsLoading(true);
+    try {
+      const imageUrl = generatedContent[0]?.url_da_imagem;
+      const response = await fetch("/api/proxy-webhook?target=gerador_conteudo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl,
+          businessProfile,
+          referenceDescription,
+          postId: currentPostId,
+          userId: user.uid
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.details || "Erro ao gerar conteúdo.");
+
+      const publicacoes = Array.isArray(data) 
+        ? (data[0]?.publicacoes || data) 
+        : (data.publicacoes || [data]);
+
+      if (Array.isArray(publicacoes)) {
+        const mappedContent = publicacoes.map((item: any) => ({
+          título: item.titulo || item.título || "",
+          subtitulo: item.subtitulo || "",
+          hashtags: item.hashtags || [],
+          url_da_imagem: imageUrl || item.url_da_imagem
+        }));
+
+        setGeneratedContent(mappedContent);
+        setSelectedContentId("0");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro na Geração",
+        description: getFriendlyErrorMessage(error.message),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -364,7 +509,7 @@ export default function GerarConteudoPage() {
         setGeneratedImages([imageUrl]);
         setSelectedImage(imageUrl);
         setIsGeneratingImages(false);
-        setStep(3);
+        // Não avançamos automaticamente, deixamos o usuário ver a imagem na Etapa 3
         return;
       }
 
@@ -403,7 +548,7 @@ export default function GerarConteudoPage() {
 
       setGeneratedImages([]);
       foundFilesRef.current.clear();
-      setStep(3);
+      // Não avançamos para o step 4 aqui, permanecemos no step 3 para ver as imagens sendo geradas
     } catch (error: any) {
       console.error("Erro no fluxo de geração:", error);
       toast({
@@ -666,17 +811,47 @@ export default function GerarConteudoPage() {
     }
   };
 
+  const wizardSteps = [
+    { number: 1, label: "Ideia" },
+    { number: 2, label: "Texto" },
+    { number: 3, label: "Imagem" },
+    { number: 4, label: "Marca" },
+    { number: 5, label: "Revisão" },
+  ];
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
         <p className="mt-1 text-gray-600">
-          {step === 1 && "Detalhe à nossa IA uma ideia e ela criará um post incríveis para você."}
+          {step === 1 && "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
-          {step === 3 && "Etapa 3: Selecione a melhor imagem para o seu post."}
+          {step === 3 && "Etapa 3: Gere e selecione a melhor imagem para o seu post."}
           {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
           {step === 5 && "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
+      </div>
+
+      {/* Stepper Interativo */}
+      <div className="flex flex-wrap justify-center items-center gap-3 md:gap-6">
+        {wizardSteps.map((s) => (
+          <button
+            key={s.number}
+            onClick={() => setStep(s.number)}
+            className={`flex items-center gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-2xl transition-all duration-300 ${
+              step === s.number
+                ? "bg-accent text-white shadow-lg shadow-orange-100 scale-105 border-2 border-accent"
+                : "bg-white text-gray-400 border-2 border-gray-100 hover:border-gray-200 hover:text-gray-600"
+            }`}
+          >
+            <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+              step === s.number ? "bg-white text-accent" : "bg-gray-100 text-gray-400"
+            }`}>
+              {s.number}
+            </span>
+            <span className="text-sm font-bold hidden sm:inline">{s.label}</span>
+          </button>
+        ))}
       </div>
 
       {step === 1 && (
@@ -689,6 +864,12 @@ export default function GerarConteudoPage() {
           onReferenceImageChange={handleReferenceImageChange}
           referenceDescription={referenceDescription}
           onReferenceDescriptionChange={setReferenceDescription}
+          hideImageOption={mode === "concept"}
+          hideTextOption={mode === "reference-photo"}
+          referenceLink={referenceLink}
+          onReferenceLinkChange={setReferenceLink}
+          onInspirationFileChange={setInspirationFile}
+          isLinkMode={mode === "reference-link"}
         />
       )}
 
@@ -698,10 +879,11 @@ export default function GerarConteudoPage() {
           selectedContentId={selectedContentId}
           onSelectedContentIdChange={setSelectedContentId}
           onBack={() => setStep(1)}
-          onGeneratePrompts={handleGeneratePrompts}
-          isGeneratingImages={isGeneratingImages}
+          onNext={() => setStep(3)}
           user={user}
           instagramConnection={instagramConnection}
+          onGenerateContent={handleGeneratePostContent}
+          isLoadingContent={isLoading}
         />
       )}
 
@@ -712,6 +894,7 @@ export default function GerarConteudoPage() {
           onSelectedImageChange={setSelectedImage}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
+          onGenerate={handleGeneratePrompts}
           isGeneratingImages={isGeneratingImages}
           onDownload={handleDownloadImage}
         />
@@ -733,11 +916,27 @@ export default function GerarConteudoPage() {
           onPositionChange={setLogoPosition}
           onScaleChange={setLogoScale}
           onOpacityChange={setLogoOpacity}
-          onBack={() => setStep(3)}
+          onBack={() => setStep(2)}
           onNext={handleLogoProcessing}
           isUploading={isUploading}
           visualLogoScale={visualLogoScale}
           logoInputRef={logoInputRef}
+          isGeneratingImages={isGeneratingImages}
+          selectedTitle={selectedContent?.título}
+          showTextOverlay={showTextOverlay}
+          textPosition={textPosition}
+          textScale={textScale}
+          textColor={textColor}
+          onTextToggle={setShowTextOverlay}
+          onTextPositionChange={setTextPosition}
+          onTextScaleChange={setTextScale}
+          onTextColorChange={setTextColor}
+          fontFamily={fontFamily}
+          fontWeight={fontWeight}
+          isItalic={isItalic}
+          onFontFamilyChange={setFontFamily}
+          onFontWeightChange={setFontWeight}
+          onItalicToggle={setIsItalic}
         />
       )}
 

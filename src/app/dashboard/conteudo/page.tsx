@@ -69,6 +69,11 @@ import {
   Sparkles,
   Trash2,
   History,
+  Lightbulb,
+  Camera,
+  UploadCloud,
+  MousePointer2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -1179,23 +1184,79 @@ export default function Conteudo() {
                   Crie, agende e analise o conteúdo para suas redes sociais.
                 </p>
               </div>
-              <div className="flex gap-4 pt-2">
-                <Button
-                  className="bg-accent text-white shadow-md transition-shadow hover:bg-accent/90 hover:shadow-lg"
-                  onClick={() => router.push("/dashboard/conteudo/gerar")}
-                  size="lg"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                {/* Botão 1 - Conceito com IA */}
+                <button
+                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[24px] text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
                 >
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Gerar Conteúdo com IA
-                </Button>
-                <Button
-                  className="bg-primary text-white shadow-md transition-shadow hover:bg-primary/90 hover:shadow-lg"
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <Lightbulb size={120} />
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Conteúdo Conceito com IA</h3>
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Dê uma ideia e a IA cria artes únicas sobre o seu negócio.
+                  </p>
+                </button>
+
+                {/* Botão 2 - Referência Foto com IA */}
+                <button
+                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-photo")}
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-rose-500 to-pink-600 rounded-[24px] text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
+                >
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <Camera size={120} />
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
+                    <ImageIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar com Foto de Produto</h3>
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Mande uma foto do seu produto e a IA cria um post incrível.
+                  </p>
+                </button>
+
+                {/* Botão 3 - Referência Link */}
+                <button
+                  disabled
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500/50 to-orange-600/50 rounded-[24px] text-white/50 shadow-xl shadow-orange-100/20 transition-all cursor-not-allowed text-left overflow-hidden grayscale"
+                >
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-white/20 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white">
+                      Em breve
+                    </span>
+                  </div>
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                    <LinkIcon size={120} />
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-2xl mb-4">
+                    <MousePointer2 className="w-6 h-6 text-white/50" />
+                  </div>
+                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Conteúdo com Imagem de referência</h3>
+                  <p className="text-white/40 text-sm font-medium leading-relaxed">
+                    Cole o link de uma arte que gostou e criaremos algo similar.
+                  </p>
+                </button>
+
+                {/* Botão 4 - Conteúdo Manual */}
+                <button
                   onClick={() => router.push("/dashboard/conteudo/criar")}
-                  size="lg"
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[24px] text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
                 >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Criar Conteúdo
-                </Button>
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <UploadCloud size={120} />
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
+                    <Plus className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Conteúdo Manual</h3>
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Escolha fotos do seu arquivo e monte o seu post manualmente.
+                  </p>
+                </button>
               </div>
             </div>
 

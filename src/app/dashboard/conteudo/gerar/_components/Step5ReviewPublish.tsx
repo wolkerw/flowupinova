@@ -59,7 +59,7 @@ export const Step5ReviewPublish = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-6 w-6 text-accent" />
-            Etapa 5: Revise e publique seu post
+            Etapa 4: Revise e publique seu post
           </CardTitle>
           <p className="pt-1 text-sm text-gray-600">
             Revise o texto, a imagem e agende a publicação.

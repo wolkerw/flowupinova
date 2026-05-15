@@ -13,6 +13,7 @@ import {
   Check,
   Download,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ interface Step3ImageSelectionProps {
   onSelectedImageChange: (url: string) => void;
   onBack: () => void;
   onNext: () => void;
+  onGenerate: () => void;
   isGeneratingImages: boolean;
   onDownload: (url: string) => void;
 }
@@ -32,6 +34,7 @@ export const Step3ImageSelection = ({
   onSelectedImageChange,
   onBack,
   onNext,
+  onGenerate,
   isGeneratingImages,
   onDownload,
 }: Step3ImageSelectionProps) => {
@@ -49,7 +52,9 @@ export const Step3ImageSelection = ({
           </CardTitle>
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
-              Selecione uma das imagens geradas pela IA para usar em seu post.
+              {generatedImages.length > 0 
+                ? "Selecione uma das imagens geradas pela IA para usar em seu post."
+                : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
             </p>
           </div>
         </CardHeader>
@@ -109,11 +114,18 @@ export const Step3ImageSelection = ({
             </div>
           ) : (
             <div className="flex h-64 flex-col items-center justify-center text-center">
-              <AlertTriangle className="mb-4 h-12 w-12 text-destructive" />
-              <p className="text-lg font-semibold text-gray-700">Nenhuma imagem foi gerada.</p>
+              <Sparkles className="mb-4 h-12 w-12 text-accent animate-pulse" />
+              <p className="text-lg font-semibold text-gray-700">Pronto para gerar as imagens!</p>
               <p className="mb-6 text-sm text-gray-500">
-                Parece que houve um problema. Tente gerar novamente.
+                Usaremos o texto selecionado para criar 3 opções incríveis para você.
               </p>
+              <Button 
+                onClick={onGenerate}
+                className="bg-accent text-white hover:bg-accent/90"
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Gerar Imagens Agora
+              </Button>
             </div>
           )}
         </CardContent>

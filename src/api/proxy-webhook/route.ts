@@ -13,8 +13,12 @@ export async function POST(request: NextRequest) {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
   } else if (targetWebhookName === "imagem_sem_logo") {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+  } else if (targetWebhookName === "gerador_link_referencia") {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_link_referencia";
   } else if (targetWebhookName === "gerador_imagem_referencia") {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_imagem_referencia";
+  } else if (targetWebhookName === "gerador_conteudo") {
+    webhookUrl = "https://webhook.flowupinova.com.br/webhook/gerador_conteudo";
   } else if (targetWebhookName === "analisar_presenca" || targetWebhookName === "analisar-presenca") {
     // Tenta primeiro a URL de teste se o usuário estiver em ambiente de desenvolvimento, 
     // ou apenas a de produção se preferir. 
