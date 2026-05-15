@@ -826,8 +826,8 @@ export default function CriarConteudoPage() {
 
     if (result.success) {
       toast({
-        title: "Sucesso!",
-        description: `Post ${scheduleType === "now" ? "enviado para publicação" : "agendado"}!`,
+        title: "Publicação realizada com sucesso!",
+        description: scheduleType === "now" ? "Seu post foi enviado para as redes sociais." : "Seu post foi agendado com sucesso.",
       });
       router.push("/dashboard/conteudo");
     } else {

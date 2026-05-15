@@ -961,8 +961,8 @@ export default function Conteudo() {
     if (result.success) {
       toast({
         variant: "success",
-        title: "Sucesso!",
-        description: `Post ${republishScheduleType === "now" ? "publicado" : "agendado para republicação"}!`,
+        title: "Publicação realizada com sucesso!",
+        description: republishScheduleType === "now" ? "Seu post foi republicado com sucesso." : "Seu post foi agendado para republicação.",
       });
     } else {
       toast({ variant: "destructive", title: "Erro ao Republicar", description: result.error });

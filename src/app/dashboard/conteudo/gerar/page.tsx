@@ -630,7 +630,10 @@ export default function GerarConteudoPage() {
       });
 
       if (result.success) {
-        toast({ title: "Sucesso!", description: "Post processado com sucesso!" });
+        toast({ 
+          title: "Publicação realizada com sucesso!", 
+          description: publishMode === "now" ? "Seu post foi enviado para as redes sociais." : "Seu post foi agendado com sucesso." 
+        });
         router.push("/dashboard/conteudo");
       } else {
         throw new Error(result.error);
