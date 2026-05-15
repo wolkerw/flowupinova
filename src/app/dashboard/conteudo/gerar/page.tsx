@@ -54,7 +54,13 @@ export default function GerarConteudoPage() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+
+  const [collaboratorsInput, setCollaboratorsInput] = useState("");
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+
+  const [userTagsInput, setUserTagsInput] = useState("");
+  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
@@ -146,6 +152,11 @@ export default function GerarConteudoPage() {
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
         setBusinessProfile(busProfile);
+        
+        const initialPlatforms: Platform[] = [];
+        if (metaConn?.isConnected) initialPlatforms.push("facebook");
+        if (instaConn?.isConnected) initialPlatforms.push("instagram");
+        setPlatforms(initialPlatforms);
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
       }
@@ -757,12 +768,17 @@ export default function GerarConteudoPage() {
         isCarousel: false,
         platforms: platforms,
         scheduledAt: publishMode === "schedule" ? new Date(scheduleDateTime) : new Date(),
+        collaborators: collaborators.length > 0 ? collaborators : undefined,
+        userTags: userTags.length > 0 ? userTags : undefined,
         metaConnection: metaConnection || undefined,
         instagramConnection: instagramConnection || undefined,
       });
 
       if (result.success) {
-        toast({ title: "Sucesso!", description: "Post processado com sucesso!" });
+        toast({ 
+          title: "Publicação realizada com sucesso!", 
+          description: publishMode === "now" ? "Seu post foi enviado para as redes sociais." : "Seu post foi agendado com sucesso." 
+        });
         router.push("/dashboard/conteudo");
       } else {
         throw new Error(result.error);
@@ -949,6 +965,14 @@ export default function GerarConteudoPage() {
           metaConnection={metaConnection}
           instagramConnection={instagramConnection}
           platforms={platforms}
+          collaborators={collaborators}
+          collaboratorsInput={collaboratorsInput}
+          onCollaboratorsChange={setCollaborators}
+          onCollaboratorsInputChange={setCollaboratorsInput}
+          userTags={userTags}
+          userTagsInput={userTagsInput}
+          onUserTagsChange={setUserTags}
+          onUserTagsInputChange={setUserTagsInput}
           onPlatformChange={(p) =>
             setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
           }

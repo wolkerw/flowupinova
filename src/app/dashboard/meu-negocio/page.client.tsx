@@ -659,13 +659,54 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
       let activeProfile = firestoreProfile;
 
       if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
+        let currentAccessToken = googleConn.accessToken;
+        
+        if (googleConn.expiryDate && Date.now() >= googleConn.expiryDate - 300000) {
+          if (googleConn.refreshToken) {
+            try {
+              const refreshRes = await fetch("/api/google/refresh-token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refreshToken: googleConn.refreshToken }),
+              });
+              
+              if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                if (refreshData.success) {
+                  currentAccessToken = refreshData.accessToken;
+                  await updateGoogleConnection(user.uid, {
+                    accessToken: refreshData.accessToken,
+                    expiryDate: refreshData.expiryDate,
+                    refreshToken: refreshData.refreshToken,
+                  });
+                } else {
+                  console.warn("[GOOGLE_REFRESH] Falha ao renovar o token. Desconectando.");
+                  await handleDisconnect();
+                  return;
+                }
+              } else {
+                console.warn("[GOOGLE_REFRESH] Falha na requisição de renovação. Desconectando.");
+                await handleDisconnect();
+                return;
+              }
+            } catch (err) {
+              console.error("[GOOGLE_REFRESH_ERROR] Erro ao tentar renovar token", err);
+              await handleDisconnect();
+              return;
+            }
+          } else {
+             await handleDisconnect();
+             return;
+          }
+        }
+
         const locationId = activeProfile.googleName;
 
         const profileAndInsightsResponse = await fetch("/api/google/insights", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accessToken: googleConn.accessToken,
+            accessToken: currentAccessToken,
             locationId: locationId,
             startDate: dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
             endDate: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
@@ -761,7 +802,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accessToken: googleConn.accessToken,
+            accessToken: currentAccessToken,
             accountId: googleConn.accountId,
             locationId: locationId.split("/")[1],
           }),
@@ -789,7 +830,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accessToken: googleConn.accessToken,
+            accessToken: currentAccessToken,
             accountId: googleConn.accountId,
             locationId: locationId.split("/")[1],
           }),
@@ -808,7 +849,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accessToken: googleConn.accessToken,
+            accessToken: currentAccessToken,
             locationId: locationId,
             startDate: dateRange?.from
               ? {
