@@ -51,7 +51,7 @@ export default function GerarConteudoPage() {
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
 
   const [collaboratorsInput, setCollaboratorsInput] = useState("");
   const [collaborators, setCollaborators] = useState<string[]>([]);
@@ -135,6 +135,11 @@ export default function GerarConteudoPage() {
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
         setBusinessProfile(busProfile);
+        
+        const initialPlatforms: Platform[] = [];
+        if (metaConn?.isConnected) initialPlatforms.push("facebook");
+        if (instaConn?.isConnected) initialPlatforms.push("instagram");
+        setPlatforms(initialPlatforms);
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
       }

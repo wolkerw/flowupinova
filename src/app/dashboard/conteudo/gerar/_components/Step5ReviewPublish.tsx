@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sparkles,
   Send,
@@ -124,46 +125,69 @@ export const Step5ReviewPublish = ({
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
                 <div className="mt-2 grid grid-cols-2 gap-4">
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !instagramConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-instagram"
-                      checked={platforms.includes("instagram")}
-                      onCheckedChange={() => onPlatformChange("instagram")}
-                      disabled={!instagramConnection?.isConnected}
-                    />
-                    <Label
-                      htmlFor="platform-instagram"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Instagram className="h-5 w-5 text-pink-500" />
-                      Instagram
-                    </Label>
-                  </div>
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !metaConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-facebook"
-                      checked={platforms.includes("facebook")}
-                      onCheckedChange={() => onPlatformChange("facebook")}
-                      disabled={!metaConnection?.isConnected}
-                    />
-                    <Label
-                      htmlFor="platform-facebook"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Facebook className="h-5 w-5 text-blue-600" />
-                      Facebook
-                    </Label>
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !instagramConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-instagram"
+                            checked={platforms.includes("instagram") && !!instagramConnection?.isConnected}
+                            onCheckedChange={() => onPlatformChange("instagram")}
+                            disabled={!instagramConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-instagram"
+                            className={cn("flex cursor-pointer items-center gap-2", !instagramConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Instagram className="h-5 w-5 text-pink-500" />
+                            Instagram
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!instagramConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Instagram na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !metaConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-facebook"
+                            checked={platforms.includes("facebook") && !!metaConnection?.isConnected}
+                            onCheckedChange={() => onPlatformChange("facebook")}
+                            disabled={!metaConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-facebook"
+                            className={cn("flex cursor-pointer items-center gap-2", !metaConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Facebook className="h-5 w-5 text-blue-600" />
+                            Facebook
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!metaConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Facebook na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
 
