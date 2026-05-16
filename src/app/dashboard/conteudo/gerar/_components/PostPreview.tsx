@@ -70,7 +70,7 @@ export const PostPreview = ({
           </span>{" "}
           {content && (
             <>
-              {content.título}
+              {content.titulo}
               {`\n\n${content.subtitulo}`}
               {content.hashtags && `\n\n${content.hashtags.join(" ")}`}
             </>
@@ -98,7 +98,7 @@ export const PostPreview = ({
         <p className="whitespace-pre-wrap">
           {content && (
             <>
-              {content.título}
+              {content.titulo}
               {`\n\n${content.subtitulo}`}
               {content.hashtags && `\n\n${content.hashtags.join(" ")}`}
             </>

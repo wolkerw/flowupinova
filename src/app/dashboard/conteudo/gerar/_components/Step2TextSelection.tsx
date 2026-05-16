@@ -96,7 +96,7 @@ export const Step2TextSelection = () => {
                 >
                   <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
                   <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                    <h4 className="text-base font-bold text-gray-900">{content.título}</h4>
+                    <h4 className="text-base font-bold text-gray-900">{content.titulo}</h4>
                     <p className="mt-1 text-sm text-gray-600">{content.subtitulo}</p>
                     <p className="mt-2 break-words text-xs text-blue-500">
                       {Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}
@@ -164,7 +164,7 @@ export const Step2TextSelection = () => {
                 <span className="font-bold">
                   {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
                 </span>{" "}
-                {selectedContent.título}
+                {selectedContent.titulo}
                 {"\n\n"}
                 {selectedContent.subtitulo}
                 {selectedContent.hashtags &&

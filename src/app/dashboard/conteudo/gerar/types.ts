@@ -1,5 +1,5 @@
 export interface GeneratedContent {
-  título: string;
+  titulo: string;
   subtitulo: string;
   hashtags: string[];
   url_da_imagem?: string;

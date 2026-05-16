@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       return {
         id: item.id || crypto.randomUUID(),
         created_at: item.created_at || new Date().toISOString(),
-        título: title,
+        titulo: title,
         subtitulo: item.subtitulo || "Subtítulo não gerado",
         hashtags: hashtags,
         url_da_imagem: item.url_da_imagem || null,

@@ -439,7 +439,7 @@ function ConnectionStatus({
   onDisconnect,
   isLoading,
 }: {
-  platform: "facebook" | "instagram";
+  platform: "facebook" | "instagram" | "linkedin";
   isConnected: boolean;
   accountName?: string;
   onConnect: () => void;
@@ -943,7 +943,7 @@ export default function Conteudo() {
       text: postToRepublish.text,
       media: mediaUrls.map((url) => ({ file: new File([], ""), publicUrl: url })),
       isCarousel: postToRepublish.isCarousel || false,
-      platforms: republishPlatforms,
+      platforms: republishPlatforms as any,
       scheduledAt:
         republishScheduleType === "schedule" ? new Date(republishScheduleDate) : new Date(),
     };

@@ -27,7 +27,7 @@ export interface PostData {
   id?: string;
   text: string;
   // For single image posts
-  imageUrl: string;
+  imageUrl?: string;
   // Changed to array to support carousels
   imageUrls: string[];
   isCarousel: boolean;
@@ -390,8 +390,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
           publishedMediaId: data.publishedMediaId,
           failureReason: data.failureReason,
           scheduledAt: data.scheduledAt.toDate().toISOString(),
-          instagramUsername: data.connections?.instagramUsername,
-          pageName: data.connections?.pageName,
+          instagramUsername: data.connections?.instagramUsername || undefined,
+          pageName: data.connections?.pageName || undefined,
         },
       });
     });

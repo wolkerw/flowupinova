@@ -7,7 +7,7 @@ import { verifyIdToken } from "./firebase-admin";
  * @returns The user's UID string, or null if not authenticated.
  */
 export async function getUidFromIdToken(): Promise<string | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const idTokenCookie = cookieStore.get("fb-id-token");
 
   if (!idTokenCookie?.value) {

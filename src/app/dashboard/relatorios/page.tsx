@@ -904,6 +904,7 @@ export default function Relatorios() {
     if (!user) return;
 
     async function fetchData() {
+      if (!user) return;
       setLoading(true);
       try {
         const [metaResult, instagramResult] = await Promise.all([

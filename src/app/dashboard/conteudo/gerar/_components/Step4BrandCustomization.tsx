@@ -56,7 +56,7 @@ export const Step4BrandCustomization = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);
   };
-  const selectedTitle = selectedContent?.título || "";
+  const selectedTitle = selectedContent?.titulo || "";
   const positions: LogoPosition[] = [
     "top-left",
     "top-center",

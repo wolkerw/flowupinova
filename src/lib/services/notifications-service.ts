@@ -69,12 +69,12 @@ export async function processPendingNotifications(userId: string): Promise<void>
         if (post.status === "published") {
           notificationUpdate = {
             status: "unread",
-            message: `Sua publicação "${post.title}" foi publicada com sucesso.`,
+            message: `Sua publicação "${post.text.substring(0, 40)}..." foi publicada com sucesso.`,
           };
         } else if (post.status === "failed") {
           notificationUpdate = {
             status: "failed",
-            message: `Falha ao publicar "${post.title}". Motivo: ${post.failureReason || "desconhecido"}`,
+            message: `Falha ao publicar "${post.text.substring(0, 40)}...". Motivo: ${post.failureReason || "desconhecido"}`,
           };
         } else {
           // Post is still 'publishing' or 'scheduled', skip for now

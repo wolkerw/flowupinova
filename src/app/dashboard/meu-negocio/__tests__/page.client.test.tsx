@@ -32,6 +32,7 @@ const mockProfile = {
   website: "www.teste.com",
   description: "Descrição de teste.",
   brandSummary: "Resumo da marca.",
+  instagram: "",
   logo: { url: "", width: 0, height: 0 },
   rating: 4.5,
   totalReviews: 10,

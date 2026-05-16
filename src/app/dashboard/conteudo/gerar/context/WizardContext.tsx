@@ -214,6 +214,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     async function loadInitialData() {
       try {
+        if (!user) return;
         const [metaConn, instaConn, busProfile] = await Promise.all([
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
@@ -407,7 +408,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (Array.isArray(publicacoes)) {
           const mappedContent = publicacoes.map((item: any) => ({
-            título: item.titulo || item.título || "",
+            titulo: item.titulo || item.título || "",
             subtitulo: item.subtitulo || "",
             hashtags: item.hashtags || [],
             url_da_imagem: item.url_da_imagem
@@ -454,7 +455,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (Array.isArray(publicacoes)) {
         const mappedContent = publicacoes.map((item: any) => ({
-          título: item.titulo || item.título || "",
+          titulo: item.titulo || item.título || "",
           subtitulo: item.subtitulo || "",
           hashtags: item.hashtags || [],
           url_da_imagem: item.url_da_imagem
@@ -509,7 +510,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (Array.isArray(publicacoes)) {
         const mappedContent = publicacoes.map((item: any) => ({
-          título: item.titulo || item.título || "",
+          titulo: item.titulo || item.título || "",
           subtitulo: item.subtitulo || "",
           hashtags: item.hashtags || [],
           url_da_imagem: imageUrl || item.url_da_imagem
@@ -541,7 +542,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     foundFilesRef.current.clear();
 
     try {
-      const fullCaption = `${selContent.título}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
+      const fullCaption = `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
         text: fullCaption,
@@ -659,8 +660,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       formData.append("scale", logoScale.toString());
       formData.append("opacity", (logoOpacity / 100).toString());
 
-      if (showTextOverlay && selectedContent?.título) {
-        formData.append("text", selectedContent.título);
+      if (showTextOverlay && selectedContent?.titulo) {
+        formData.append("text", selectedContent.titulo);
         formData.append("text_position", textPosition);
         formData.append("text_scale", textScale.toString());
         formData.append("text_color", textColor);
@@ -710,11 +711,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    const fullCaption = `${selectedContent.título}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(" ")}`;
+    const fullCaption = `${selectedContent.titulo}\n\n${selectedContent.subtitulo}\n\n${selectedContent.hashtags.join(" ")}`;
     try {
       const result = await schedulePost(user.uid, {
         text: fullCaption,
-        media: [{ file: new File([], ""), publicUrl: finalImageUrl }],
+        media: [{ file: new File([], ""), publicUrl: finalImageUrl || undefined }],
         isCarousel: false,
         platforms: platforms,
         scheduledAt: publishMode === "schedule" ? new Date(scheduleDateTime) : new Date(),

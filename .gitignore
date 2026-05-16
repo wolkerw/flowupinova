@@ -29,3 +29,8 @@ credenciais.env
 
 # Service account files
 /src/service-account.json
+
+# Playwright
+playwright-report/
+test-results/
+.auth/
