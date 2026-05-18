@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -31,7 +33,6 @@ export const Step5ReviewPublish = () => {
   const {
     processedImageUrl,
     selectedImage,
-    selectedContent,
     user,
     metaConnection,
     instagramConnection,
@@ -49,7 +50,20 @@ export const Step5ReviewPublish = () => {
     userTagsInput,
     setUserTags: onUserTagsChange,
     setUserTagsInput: onUserTagsInputChange,
+    generatedContent,
+    setGeneratedContent,
+    selectedContentId,
   } = useWizard();
+
+  const selectedContent = selectedContentId !== undefined 
+    ? generatedContent[parseInt(selectedContentId, 10)] 
+    : null;
+
+  const handleEditContent = (field: keyof GeneratedContent, value: any) => {
+    if (selectedContentId === undefined) return;
+    const index = parseInt(selectedContentId, 10);
+    setGeneratedContent(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
+  };
 
   const onBack = () => setStep(4);
   const onPlatformChange = (p: Platform) =>
@@ -113,6 +127,48 @@ export const Step5ReviewPublish = () => {
               </div>
             </div>
             <div className="space-y-6">
+              <div className="space-y-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <Label className="font-bold text-base">Editar Conteúdo</Label>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-title" className="text-xs font-semibold uppercase text-gray-500">Título / Destaque</Label>
+                    <Input 
+                      id="edit-title"
+                      value={selectedContent.titulo}
+                      onChange={(e) => handleEditContent('titulo', e.target.value)}
+                      className="bg-white"
+                      placeholder="Título que aparece no post..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-subtitle" className="text-xs font-semibold uppercase text-gray-500">Legenda / Corpo do Post</Label>
+                    <Textarea 
+                      id="edit-subtitle"
+                      value={selectedContent.subtitulo}
+                      onChange={(e) => handleEditContent('subtitulo', e.target.value)}
+                      className="bg-white min-h-[120px] resize-none"
+                      placeholder="Escreva a legenda principal aqui..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-hashtags" className="text-xs font-semibold uppercase text-gray-500">Hashtags</Label>
+                    <Input 
+                      id="edit-hashtags"
+                      value={selectedContent.hashtags.join(' ')}
+                      onChange={(e) => handleEditContent('hashtags', e.target.value.split(' ').filter(h => h.trim() !== ''))}
+                      className="bg-white"
+                      placeholder="#hashtag1 #hashtag2..."
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
                 <div className="mt-2 grid grid-cols-2 gap-4">

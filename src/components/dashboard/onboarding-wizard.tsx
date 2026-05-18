@@ -68,6 +68,9 @@ export function OnboardingWizard({
     primaryColor: initialData?.primaryColor || "#3b82f6",
     secondaryColor: initialData?.secondaryColor || "#1e293b",
     logoUrl: initialData?.logo?.url || "",
+    slogan: initialData?.slogan || "",
+    targetAudience: initialData?.targetAudience || "",
+    toneOfVoice: initialData?.toneOfVoice || "",
   });
 
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo?.url || null);
@@ -85,6 +88,9 @@ export function OnboardingWizard({
         primaryColor: initialData.primaryColor || "#3b82f6",
         secondaryColor: initialData.secondaryColor || "#1e293b",
         logoUrl: initialData.logo?.url || "",
+        slogan: initialData.slogan || "",
+        targetAudience: initialData.targetAudience || "",
+        toneOfVoice: initialData.toneOfVoice || "",
       });
       setLogoPreview(initialData.logo?.url || null);
     }
@@ -163,6 +169,8 @@ export function OnboardingWizard({
             ...prev,
             name: extractedData.name || extractedData.nome || prev.name,
             category: extractedData.category || extractedData.categoria || prev.category,
+            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || prev.phone,
+            address: extractedData.address || extractedData.endereco || extractedData.localizacao || prev.address,
             description:
               extractedData.description ||
               extractedData.descricao ||
@@ -172,6 +180,9 @@ export function OnboardingWizard({
               extractedData.primaryColor || extractedData.cor_primaria || prev.primaryColor,
             secondaryColor:
               extractedData.secondaryColor || extractedData.cor_secundaria || prev.secondaryColor,
+            slogan: extractedData.slogan || prev.slogan,
+            targetAudience: extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
+            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
           }));
 
           toast({
@@ -223,6 +234,9 @@ export function OnboardingWizard({
         description: formData.description,
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
         onboardingCompleted: true,
         logo: {
           url: formData.logoUrl,
@@ -337,11 +351,15 @@ export function OnboardingWizard({
             </div>
 
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-14">
-                <div className="bg-cyan-500 p-1.5 rounded-lg shadow-lg shadow-cyan-500/20">
-                  <Zap className="w-5 h-5 text-white fill-white" />
-                </div>
-                <span className="text-white text-2xl font-black tracking-tighter">Num<span className="text-cyan-400">Vapt</span></span>
+              <div className="mb-14">
+                <Image 
+                  src="/logo-numvapt.png" 
+                  alt="NumVapt Logo" 
+                  width={160} 
+                  height={40} 
+                  priority
+                  className="brightness-0 invert h-auto w-auto max-w-[180px]" 
+                />
               </div>
 
               <div className="space-y-7">
@@ -525,6 +543,16 @@ export function OnboardingWizard({
                           className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="slogan" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Slogan da Marca (Opcional)</Label>
+                        <Input 
+                          id="slogan" 
+                          placeholder="Ex: O sabor que transforma o seu dia" 
+                          value={formData.slogan}
+                          onChange={(e) => setFormData({...formData, slogan: e.target.value})}
+                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -586,6 +614,28 @@ export function OnboardingWizard({
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                       className="min-h-[220px] text-lg p-7 border-slate-200 bg-white rounded-[32px] focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all resize-none leading-relaxed shadow-inner"
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="targetAudience" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Público-alvo</Label>
+                        <Input 
+                          id="targetAudience" 
+                          placeholder="Ex: Jovens profissionais" 
+                          value={formData.targetAudience}
+                          onChange={(e) => setFormData({...formData, targetAudience: e.target.value})}
+                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="toneOfVoice" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tom de Voz</Label>
+                        <Input 
+                          id="toneOfVoice" 
+                          placeholder="Ex: Casual e amigável" 
+                          value={formData.toneOfVoice}
+                          onChange={(e) => setFormData({...formData, toneOfVoice: e.target.value})}
+                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                        />
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 

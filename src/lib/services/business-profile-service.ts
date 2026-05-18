@@ -28,6 +28,10 @@ export interface BusinessProfileData {
   primaryColor?: string;
   secondaryColor?: string;
   onboardingCompleted?: boolean;
+  slogan?: string;
+  targetAudience?: string;
+  toneOfVoice?: string;
+  mainBenefits?: string[];
 }
 
 const defaultLogo: LogoData = {
@@ -55,6 +59,10 @@ const defaultProfile: BusinessProfileData = {
   primaryColor: "#000000",
   secondaryColor: "#ffffff",
   onboardingCompleted: false,
+  slogan: "",
+  targetAudience: "",
+  toneOfVoice: "",
+  mainBenefits: [],
 };
 
 function getProfileDocRef(userId: string) {

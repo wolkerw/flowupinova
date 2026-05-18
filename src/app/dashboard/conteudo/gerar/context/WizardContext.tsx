@@ -22,6 +22,7 @@ interface WizardContextType {
   setPostSummary: (summary: string) => void;
   isLoading: boolean;
   generatedContent: GeneratedContent[];
+  setGeneratedContent: React.Dispatch<React.SetStateAction<GeneratedContent[]>>;
   selectedContentId: string | undefined;
   setSelectedContentId: (id: string | undefined) => void;
   generatedImages: string[];
@@ -766,7 +767,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <WizardContext.Provider value={{
-      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, selectedContentId, setSelectedContentId,
+      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId,
       generatedImages, setGeneratedImages, selectedImage, setSelectedImage, processedImageUrl, setProcessedImageUrl,
       showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
       collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
