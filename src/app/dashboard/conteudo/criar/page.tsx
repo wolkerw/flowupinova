@@ -359,20 +359,12 @@ const FinalPreview = ({
   text,
   metaConnection,
   instagramConnection,
-  logoPreviewUrl,
-  logoPosition,
-  visualLogoScale,
-  logoOpacity,
 }: {
   mediaItems: MediaItem[];
   user: any;
   text: string;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
-  logoPreviewUrl?: string | null;
-  logoPosition?: LogoPosition;
-  visualLogoScale?: number;
-  logoOpacity?: number;
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -421,7 +413,6 @@ const FinalPreview = ({
           ) : (
             <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
           )}
-          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
           {isCarousel && (
             <>
               <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
@@ -485,10 +476,6 @@ const FinalPreview = ({
             user={user}
             text={text}
             metaConnection={metaConnection}
-            logoPreviewUrl={logoPreviewUrl}
-            logoPosition={logoPosition}
-            visualLogoScale={visualLogoScale}
-            logoOpacity={logoOpacity}
           />
         </TabsContent>
       </Tabs>
@@ -1283,10 +1270,6 @@ export default function CriarConteudoPage() {
                     text={text}
                     metaConnection={metaConnection}
                     instagramConnection={instagramConnection}
-                    logoPreviewUrl={logoPreviewUrl}
-                    logoPosition={logoPosition}
-                    visualLogoScale={visualLogoScale}
-                    logoOpacity={logoOpacity}
                   />
                 </CardContent>
               </Card>
