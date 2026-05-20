@@ -82,6 +82,34 @@ type MediaItem = {
   publicUrl?: string;
 };
 
+const LogoOverlay = ({ url, position, scale, opacity }: { url?: string | null, position?: LogoPosition, scale?: number, opacity?: number }) => {
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt="Logo Preview"
+      className={cn(
+        "absolute pointer-events-none z-10",
+        {
+          "top-4 left-4": position === "top-left",
+          "top-4 left-1/2 -translate-x-1/2": position === "top-center",
+          "top-4 right-4": position === "top-right",
+          "top-1/2 left-4 -translate-y-1/2": position === "left-center",
+          "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2": position === "center",
+          "top-1/2 right-4 -translate-y-1/2": position === "right-center",
+          "bottom-4 left-4": position === "bottom-left",
+          "bottom-4 left-1/2 -translate-x-1/2": position === "bottom-center",
+          "bottom-4 right-4": position === "bottom-right",
+        }
+      )}
+      style={{
+        width: `${scale || 30}%`,
+        opacity: (opacity || 100) / 100,
+      }}
+    />
+  );
+};
+
 const contentOptions = [
   {
     id: "single_post",
@@ -102,11 +130,19 @@ const InstagramPreview = ({
   user,
   text,
   instagramConnection,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
 }: {
   mediaItems: MediaItem[];
   user: any;
   text: string;
   instagramConnection: InstagramConnectionData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -157,6 +193,7 @@ const InstagramPreview = ({
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
+        <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
         {isCarousel && (
           <>
             <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
@@ -221,11 +258,19 @@ const FacebookPreview = ({
   user,
   text,
   metaConnection,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
 }: {
   mediaItems: MediaItem[];
   user: any;
   text: string;
   metaConnection: MetaConnectionData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
 }) => {
   const getAvatarFallback = () => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -281,6 +326,7 @@ const FacebookPreview = ({
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
+        <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
       </div>
       <div className="flex items-center justify-between p-2">
         <div className="flex items-center gap-1">
@@ -313,12 +359,20 @@ const FinalPreview = ({
   text,
   metaConnection,
   instagramConnection,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
 }: {
   mediaItems: MediaItem[];
   user: any;
   text: string;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -367,6 +421,7 @@ const FinalPreview = ({
           ) : (
             <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
           )}
+          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
           {isCarousel && (
             <>
               <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
@@ -430,6 +485,10 @@ const FinalPreview = ({
             user={user}
             text={text}
             metaConnection={metaConnection}
+            logoPreviewUrl={logoPreviewUrl}
+            logoPosition={logoPosition}
+            visualLogoScale={visualLogoScale}
+            logoOpacity={logoOpacity}
           />
         </TabsContent>
       </Tabs>
@@ -1162,6 +1221,10 @@ export default function CriarConteudoPage() {
                         user={user}
                         text={text}
                         instagramConnection={instagramConnection}
+                        logoPreviewUrl={logoPreviewUrl}
+                        logoPosition={logoPosition}
+                        visualLogoScale={visualLogoScale}
+                        logoOpacity={logoOpacity}
                       />
                     </TabsContent>
                     <TabsContent value="facebook" className="mt-4">
@@ -1170,6 +1233,10 @@ export default function CriarConteudoPage() {
                         user={user}
                         text={text}
                         metaConnection={metaConnection}
+                        logoPreviewUrl={logoPreviewUrl}
+                        logoPosition={logoPosition}
+                        visualLogoScale={visualLogoScale}
+                        logoOpacity={logoOpacity}
                       />
                     </TabsContent>
                   </Tabs>
@@ -1216,6 +1283,10 @@ export default function CriarConteudoPage() {
                     text={text}
                     metaConnection={metaConnection}
                     instagramConnection={instagramConnection}
+                    logoPreviewUrl={logoPreviewUrl}
+                    logoPosition={logoPosition}
+                    visualLogoScale={visualLogoScale}
+                    logoOpacity={logoOpacity}
                   />
                 </CardContent>
               </Card>
