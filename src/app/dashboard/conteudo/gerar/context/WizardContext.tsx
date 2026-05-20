@@ -653,30 +653,43 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     setIsUploading(true);
     try {
-      let positionX = 540;
-      let positionY = 540;
-      switch(logoPosition) {
-        case "top-left": positionX = 50; positionY = 50; break;
-        case "top-center": positionX = 400; positionY = 50; break;
-        case "top-right": positionX = 854; positionY = 50; break;
-        case "left-center": positionX = 50; positionY = 400; break;
-        case "center": positionX = 400; positionY = 400; break;
-        case "right-center": positionX = 854; positionY = 400; break;
-        case "bottom-left": positionX = 50; positionY = 854; break;
-        case "bottom-center": positionX = 400; positionY = 854; break;
-        case "bottom-right": positionX = 854; positionY = 854; break;
+      const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
+        return new Promise((resolve, reject) => {
+          const img = document.createElement("img");
+          img.onload = () => resolve({ width: img.width, height: img.height });
+          img.onerror = reject;
+          img.src = url;
+        });
+      };
+
+      const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+      const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(selectedImage);
+      const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+      let positionX = 0, positionY = 0;
+      const margin = 16;
+
+      switch (logoPosition) {
+        case "top-left": positionX = margin; positionY = margin; break;
+        case "top-center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = margin; break;
+        case "top-right": positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
+        case "left-center": positionX = margin; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
+        case "center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
+        case "right-center": positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
+        case "bottom-left": positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+        case "bottom-center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = mainImageHeight - logoPixelWidth - margin; break;
+        case "bottom-right": positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
       }
 
       const formData = new FormData();
-      formData.append("logo", logoFile);
       const imageBlob = await fetch(selectedImage).then((r) => r.blob());
-      formData.append("image", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
-      formData.append("positionX", positionX.toString());
-      formData.append("positionY", positionY.toString());
-      formData.append("scale", logoScale.toString());
-      formData.append("opacity", (logoOpacity / 100).toString());
+      formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
+      formData.append("logo", logoFile);
+      formData.append("logoScale", logoScale.toString());
+      formData.append("logoOpacity", logoOpacity.toString());
+      formData.append("positionX", Math.round(positionX).toString());
+      formData.append("positionY", Math.round(positionY).toString());
 
-      const response = await fetch("/api/proxy-webhook?target=personalizador_imagem", { method: "POST", body: formData });
+      const response = await fetch("/api/proxy-webhook?target=post_manual", { method: "POST", body: formData });
       const result = await response.json();
       if (!response.ok) throw new Error("Falha no webhook de personalização.");
       setProcessedImageUrl(result?.[0]?.url_post);
