@@ -1,0 +1,13 @@
+# TypeScript Integrity Rule
+
+You MUST run TypeScript type checking after every significant modification to the codebase.
+Ensure no new errors are introduced.
+
+Command:
+node node_modules\typescript\bin\tsc --noEmit
+
+# Language Rule
+Always respond in Portuguese (PT-BR).
+
+# Branding Rule
+Ensure layouts follow the brand guidelines in 'artefatos/marca.pdf'.

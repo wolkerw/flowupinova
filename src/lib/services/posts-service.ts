@@ -27,7 +27,7 @@ export interface PostData {
   id?: string;
   text: string;
   // For single image posts
-  imageUrl: string;
+  imageUrl?: string;
   // Changed to array to support carousels
   imageUrls: string[];
   isCarousel: boolean;
@@ -46,6 +46,8 @@ export interface PostData {
   failureReason?: string;
   // For Instagram carousel, this will be the ID of the parent carousel container
   creationId?: string;
+  collaborators?: string[];
+  userTags?: { username: string; x: number; y: number }[];
 }
 
 export interface MediaFileInput {
@@ -63,6 +65,8 @@ export type PostDataInput = {
   scheduledAt: Date;
   metaConnection?: MetaConnectionData;
   instagramConnection?: InstagramConnectionData;
+  collaborators?: string[];
+  userTags?: { username: string; x: number; y: number }[];
 };
 
 // Interface for data being sent to the client from the service
@@ -155,6 +159,8 @@ async function publishPostImmediately(
             isCarousel: postData.isCarousel,
             accessToken: postData.connections.igUserAccessToken,
             instagramId: postData.connections.instagramId,
+            collaborators: postData.collaborators,
+            userTags: postData.userTags,
           },
         };
       } else {
@@ -310,6 +316,8 @@ export async function schedulePost(
       scheduledAt: Timestamp.fromDate(postData.scheduledAt),
       status: isImmediate ? "publishing" : "scheduled",
       connections: connectionsToSave,
+      ...(postData.collaborators ? { collaborators: postData.collaborators } : {}),
+      ...(postData.userTags ? { userTags: postData.userTags } : {}),
     };
 
     const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);
@@ -382,8 +390,8 @@ export async function getScheduledPosts(userId: string): Promise<PostDataOutput[
           publishedMediaId: data.publishedMediaId,
           failureReason: data.failureReason,
           scheduledAt: data.scheduledAt.toDate().toISOString(),
-          instagramUsername: data.connections?.instagramUsername,
-          pageName: data.connections?.pageName,
+          instagramUsername: data.connections?.instagramUsername || undefined,
+          pageName: data.connections?.pageName || undefined,
         },
       });
     });

@@ -16,31 +16,32 @@ import {
   MessageCircle,
   Send,
   Bookmark,
+  Sparkles,
 } from "lucide-react";
 import { GeneratedContent } from "../types";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
-interface Step2TextSelectionProps {
-  generatedContent: GeneratedContent[];
-  selectedContentId: string | undefined;
-  onSelectedContentIdChange: (id: string) => void;
-  onBack: () => void;
-  onGeneratePrompts: () => void;
-  isGeneratingImages: boolean;
-  user: any;
-  instagramConnection: InstagramConnectionData | null;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step2TextSelection = ({
-  generatedContent,
-  selectedContentId,
-  onSelectedContentIdChange,
-  onBack,
-  onGeneratePrompts,
-  isGeneratingImages,
-  user,
-  instagramConnection,
-}: Step2TextSelectionProps) => {
+export const Step2TextSelection = () => {
+  const {
+    generatedContent,
+    selectedContentId,
+    setSelectedContentId: onSelectedContentIdChange,
+    setStep,
+    user,
+    instagramConnection,
+    handleGeneratePostContent: onGenerateContent,
+    isLoading,
+    handleGeneratePrompts,
+  } = useWizard();
+
+  const onBack = () => setStep(1);
+  const onNext = () => {
+    handleGeneratePrompts();
+    setStep(3);
+  };
+  const isLoadingContent = isLoading;
   const selectedContent = selectedContentId
     ? generatedContent[parseInt(selectedContentId, 10)]
     : null;
@@ -61,36 +62,63 @@ export const Step2TextSelection = ({
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-gray-600">Selecione uma das opções geradas para o seu post.</p>
-          <RadioGroup value={selectedContentId} onValueChange={onSelectedContentIdChange}>
-            {generatedContent.map((content, index) => (
-              <div
-                key={index}
-                className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-gray-50"
-              >
-                <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
-                <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                  <h4 className="text-base font-bold text-gray-900">{content.título}</h4>
-                  <p className="mt-1 text-sm text-gray-600">{content.subtitulo}</p>
-                  <p className="mt-2 break-words text-xs text-blue-500">
-                    {Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}
-                  </p>
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
+          
+          {generatedContent.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Bot className="mb-4 h-12 w-12 text-gray-300" />
+              <p className="mb-6 text-gray-500">Ainda não há conteúdo de texto para esta imagem.</p>
+              {onGenerateContent && (
+                <Button 
+                  onClick={() => onGenerateContent()} 
+                  disabled={isLoadingContent}
+                  className="bg-primary text-white"
+                >
+                  {isLoadingContent ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Gerando Texto...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Gerar Conteúdo de Texto
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <RadioGroup value={selectedContentId} onValueChange={onSelectedContentIdChange}>
+              {generatedContent.map((content, index) => (
+                <div
+                  key={index}
+                  className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-gray-50"
+                >
+                  <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
+                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                    <h4 className="text-base font-bold text-gray-900">{content.titulo}</h4>
+                    <p className="mt-1 text-sm text-gray-600">{content.subtitulo}</p>
+                    <p className="mt-2 break-words text-xs text-blue-500">
+                      {Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}
+                    </p>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
         </CardContent>
         <CardFooter className="flex items-end justify-between">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={() => onBack()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
           <Button
-            onClick={onGeneratePrompts}
-            disabled={!selectedContentId || isGeneratingImages}
+            onClick={() => onNext()}
+            disabled={!selectedContentId}
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >
-            {isGeneratingImages ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Avançar"}
-            {!isGeneratingImages && <ArrowRight className="ml-2 h-4 w-4" />}
+            Avançar
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>
@@ -110,8 +138,16 @@ export const Step2TextSelection = ({
               {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
             </span>
           </div>
-          <div className="flex aspect-square w-full items-center justify-center bg-gray-100 text-gray-400">
-            <Bot className="h-16 w-16 opacity-20" />
+          <div className="relative flex aspect-square w-full items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+            {generatedContent[0]?.url_da_imagem ? (
+              <img 
+                src={generatedContent[0].url_da_imagem} 
+                alt="Post" 
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Bot className="h-16 w-16 opacity-20" />
+            )}
           </div>
           <div className="flex items-center justify-between px-3 pt-3">
             <div className="flex items-center gap-4">
@@ -128,7 +164,7 @@ export const Step2TextSelection = ({
                 <span className="font-bold">
                   {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
                 </span>{" "}
-                {selectedContent.título}
+                {selectedContent.titulo}
                 {"\n\n"}
                 {selectedContent.subtitulo}
                 {selectedContent.hashtags &&

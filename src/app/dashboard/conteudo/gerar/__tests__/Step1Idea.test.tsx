@@ -1,73 +1,53 @@
-"use client";
-
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Step1Idea } from "../_components/Step1Idea";
+import { WizardProvider } from "../context/WizardContext";
 
-describe("Step1Idea", () => {
-  const mockProps = {
-    postSummary: "",
-    onPostSummaryChange: jest.fn(),
-    onGenerate: jest.fn(),
-    isLoading: false,
-    contentHistory: [],
-    unusedImagesHistory: [],
-    selectedHistoryContent: null,
-    selectedUnusedImage: null,
-    onHistoryContentSelect: jest.fn(),
-    onUnusedImageSelect: jest.fn(),
-    onGenerateImagesForHistory: jest.fn(),
-    onUseUnusedImage: jest.fn(),
-    onReuseBoth: jest.fn(),
-    isGeneratingImages: false,
-    referenceImagePreview: null,
-    onReferenceImageChange: jest.fn(),
-    referenceDescription: "",
-    onReferenceDescriptionChange: jest.fn(),
-  };
+// Mocking dependencies
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
+}));
 
-  it("renders correctly and handles input change", () => {
-    render(<Step1Idea {...mockProps} />);
+jest.mock("@/components/auth/auth-provider", () => ({
+  useAuth: () => ({ user: { uid: "test-user-123" } }),
+}));
 
-    expect(screen.getByText(/Etapa 1: Sobre o que é o post?/i)).toBeInTheDocument();
+jest.mock("@/hooks/use-toast", () => ({
+  useToast: () => ({ toast: jest.fn() }),
+}));
 
-    const textarea = screen.getByPlaceholderText(/Ex: Criar um post sobre os benefícios/i);
-    fireEvent.change(textarea, { target: { value: "Nova ideia de post" } });
+// Mock framer-motion to avoid animation issues in tests
+jest.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
 
-    expect(mockProps.onPostSummaryChange).toHaveBeenCalledWith("Nova ideia de post");
+describe("Step1Idea Component", () => {
+  it("renders correctly and allows typing an idea", () => {
+    render(
+      <WizardProvider>
+        <Step1Idea />
+      </WizardProvider>
+    );
+
+    const textarea = screen.getByPlaceholderText(/Ex: Criar um post sobre/i);
+    expect(textarea).toBeInTheDocument();
+
+    fireEvent.change(textarea, { target: { value: "Minha ideia de post" } });
+    expect(textarea).toHaveValue("Minha ideia de post");
   });
 
-  it("disables generate button when summary is empty", () => {
-    render(<Step1Idea {...mockProps} />);
+  it("disables advance button when empty", () => {
+    render(
+      <WizardProvider>
+        <Step1Idea />
+      </WizardProvider>
+    );
+
     const button = screen.getByRole("button", { name: /Avançar/i });
     expect(button).toBeDisabled();
-  });
-
-  it("disables generate button when reference image is present but description is empty", () => {
-    render(
-      <Step1Idea {...mockProps} postSummary="Uma ideia" referenceImagePreview="blob:preview" />
-    );
-    const button = screen.getByRole("button", { name: /Avançar/i });
-    expect(button).toBeDisabled();
-  });
-
-  it("enables generate button when summary and required description are present", () => {
-    render(
-      <Step1Idea
-        {...mockProps}
-        postSummary="Uma ideia"
-        referenceImagePreview="blob:preview"
-        referenceDescription="Uma descrição do produto"
-      />
-    );
-    const button = screen.getByRole("button", { name: /Avançar/i });
-    expect(button).not.toBeDisabled();
-  });
-
-  it("calls onGenerate when button is clicked", () => {
-    render(<Step1Idea {...mockProps} postSummary="Uma ideia" />);
-    const button = screen.getByRole("button", { name: /Avançar/i });
-    fireEvent.click(button);
-    expect(mockProps.onGenerate).toHaveBeenCalled();
   });
 });

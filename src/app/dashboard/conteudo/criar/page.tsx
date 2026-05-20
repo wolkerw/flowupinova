@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -57,6 +58,7 @@ import {
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -445,7 +447,13 @@ export default function CriarConteudoPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleType, setScheduleType] = useState<"now" | "schedule">("now");
   const [scheduleDate, setScheduleDate] = useState("");
-  const [platforms, setPlatforms] = useState<Platform[]>(["facebook", "instagram"]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+
+  const [collaboratorsInput, setCollaboratorsInput] = useState("");
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+
+  const [userTagsInput, setUserTagsInput] = useState("");
+  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -470,8 +478,18 @@ export default function CriarConteudoPage() {
 
   useEffect(() => {
     if (!user) return;
-    getMetaConnection(user.uid).then(setMetaConnection);
-    getInstagramConnection(user.uid).then(setInstagramConnection);
+    Promise.all([
+      getMetaConnection(user.uid),
+      getInstagramConnection(user.uid)
+    ]).then(([metaConn, instaConn]) => {
+      setMetaConnection(metaConn);
+      setInstagramConnection(instaConn);
+      
+      const initialPlatforms: Platform[] = [];
+      if (metaConn?.isConnected) initialPlatforms.push("facebook");
+      if (instaConn?.isConnected) initialPlatforms.push("instagram");
+      setPlatforms(initialPlatforms);
+    });
   }, [user]);
 
   const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
@@ -581,6 +599,28 @@ export default function CriarConteudoPage() {
     }
 
     return publicUrl;
+  };
+
+  const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = collaboratorsInput.trim().replace('@', '');
+      if (val && collaborators.length < 3 && !collaborators.includes(val)) {
+        setCollaborators([...collaborators, val]);
+      }
+      setCollaboratorsInput("");
+    }
+  };
+
+  const handleAddUserTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = userTagsInput.trim().replace('@', '');
+      if (val && !userTags.some(t => t.username === val)) {
+        setUserTags([...userTags, { username: val, x: 0.5, y: 0.5 }]);
+      }
+      setUserTagsInput("");
+    }
   };
 
   const handleNextStep = async () => {
@@ -769,6 +809,8 @@ export default function CriarConteudoPage() {
       isCarousel: selectedType === "carousel",
       scheduledAt:
         scheduleType === "schedule" && scheduleDate ? new Date(scheduleDate) : new Date(),
+      collaborators: collaborators.length > 0 ? collaborators : undefined,
+      userTags: userTags.length > 0 ? userTags : undefined,
     };
 
     if (platforms.includes("facebook") && metaConnection?.isConnected) {
@@ -784,8 +826,8 @@ export default function CriarConteudoPage() {
 
     if (result.success) {
       toast({
-        title: "Sucesso!",
-        description: `Post ${scheduleType === "now" ? "enviado para publicação" : "agendado"}!`,
+        title: "Publicação realizada com sucesso!",
+        description: scheduleType === "now" ? "Seu post foi enviado para as redes sociais." : "Seu post foi agendado com sucesso.",
       });
       router.push("/dashboard/conteudo");
     } else {
@@ -1189,46 +1231,69 @@ export default function CriarConteudoPage() {
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
                 <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !metaConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-facebook"
-                      checked={platforms.includes("facebook")}
-                      onCheckedChange={() => handlePlatformChange("facebook")}
-                      disabled={!metaConnection?.isConnected}
-                    />
-                    <Label
-                      htmlFor="platform-facebook"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Facebook className="h-5 w-5 text-blue-600" />
-                      Facebook
-                    </Label>
-                  </div>
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !instagramConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-instagram"
-                      checked={platforms.includes("instagram")}
-                      onCheckedChange={() => handlePlatformChange("instagram")}
-                      disabled={!instagramConnection?.isConnected}
-                    />
-                    <Label
-                      htmlFor="platform-instagram"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Instagram className="h-5 w-5 text-pink-500" />
-                      Instagram
-                    </Label>
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !metaConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-facebook"
+                            checked={platforms.includes("facebook") && !!metaConnection?.isConnected}
+                            onCheckedChange={() => handlePlatformChange("facebook")}
+                            disabled={!metaConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-facebook"
+                            className={cn("flex cursor-pointer items-center gap-2", !metaConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Facebook className="h-5 w-5 text-blue-600" />
+                            Facebook
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!metaConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Facebook na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !instagramConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-instagram"
+                            checked={platforms.includes("instagram") && !!instagramConnection?.isConnected}
+                            onCheckedChange={() => handlePlatformChange("instagram")}
+                            disabled={!instagramConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-instagram"
+                            className={cn("flex cursor-pointer items-center gap-2", !instagramConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Instagram className="h-5 w-5 text-pink-500" />
+                            Instagram
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!instagramConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Instagram na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 {platforms.includes("facebook") && selectedType === "carousel" && (
                   <div className="mt-4 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
@@ -1284,6 +1349,56 @@ export default function CriarConteudoPage() {
                   </motion.div>
                 )}
               </div>
+
+              {/* Instagram Specific Features */}
+              {platforms.includes("instagram") && (
+                <div className="space-y-6 border-t pt-4">
+                  {/* Collabs */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Dividir postagem com parceiro (Collab)</h4>
+                    <p className="text-xs text-muted-foreground">A postagem também aparecerá no perfil desta pessoa se ela aceitar.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {collaborators.map((username) => (
+                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                          @{username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => setCollaborators(collaborators.filter(c => c !== username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={collaboratorsInput}
+                      onChange={(e) => setCollaboratorsInput(e.target.value)}
+                      onKeyDown={handleAddCollaborator}
+                      placeholder="@usuario"
+                      disabled={collaborators.length >= 3}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+
+                  {/* User Tags */}
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="font-semibold text-sm">Marcar na foto</h4>
+                    <p className="text-xs text-muted-foreground">A pessoa apenas receberá uma notificação de que foi marcada.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {userTags.map((tag) => (
+                        <div key={tag.username} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs">
+                          @{tag.username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => setUserTags(userTags.filter(t => t.username !== tag.username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={userTagsInput}
+                      onChange={(e) => setUserTagsInput(e.target.value)}
+                      onKeyDown={handleAddUserTag}
+                      placeholder="@usuario"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex-col items-stretch">
               <Button

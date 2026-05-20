@@ -2,7 +2,7 @@
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import MeuNegocioPageClient from "./page";
+import MeuNegocioPageClient from "./page.client";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -32,6 +32,7 @@ const mockProfile = {
   website: "www.teste.com",
   description: "Descrição de teste.",
   brandSummary: "Resumo da marca.",
+  instagram: "",
   logo: { url: "", width: 0, height: 0 },
   rating: 4.5,
   totalReviews: 10,

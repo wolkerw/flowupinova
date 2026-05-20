@@ -28,6 +28,10 @@ export interface BusinessProfileData {
   primaryColor?: string;
   secondaryColor?: string;
   onboardingCompleted?: boolean;
+  slogan?: string;
+  targetAudience?: string;
+  toneOfVoice?: string;
+  mainBenefits?: string[];
 }
 
 const defaultLogo: LogoData = {
@@ -37,13 +41,13 @@ const defaultLogo: LogoData = {
 };
 
 const defaultProfile: BusinessProfileData = {
-  name: "Minha Empresa",
-  category: "Consultoria de Marketing",
-  address: "Seu Endereço",
-  phone: "(00) 00000-0000",
-  website: "www.suaempresa.com.br",
-  instagram: "@seuinsta",
-  description: "Descreva sua empresa aqui.",
+  name: "",
+  category: "",
+  address: "",
+  phone: "",
+  website: "",
+  instagram: "",
+  description: "",
   logo: defaultLogo,
   rating: 0,
   totalReviews: 0,
@@ -55,6 +59,10 @@ const defaultProfile: BusinessProfileData = {
   primaryColor: "#000000",
   secondaryColor: "#ffffff",
   onboardingCompleted: false,
+  slogan: "",
+  targetAudience: "",
+  toneOfVoice: "",
+  mainBenefits: [],
 };
 
 function getProfileDocRef(userId: string) {

@@ -10,12 +10,13 @@ const defaultLogo: LogoData = {
 };
 
 const defaultProfile: BusinessProfileData = {
-  name: "Minha Empresa",
-  category: "Consultoria de Marketing",
-  address: "Seu Endereço",
-  phone: "(00) 00000-0000",
-  website: "www.suaempresa.com.br",
-  description: "Descreva sua empresa aqui.",
+  name: "",
+  category: "",
+  address: "",
+  phone: "",
+  website: "",
+  instagram: "",
+  description: "",
   logo: defaultLogo,
   rating: 0,
   totalReviews: 0,
@@ -46,7 +47,7 @@ export async function getBusinessProfileAdmin(userId: string | null): Promise<Bu
       .doc("profile");
     const docSnap = await profileDocRef.get();
 
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       const data = docSnap.data();
       return { ...defaultProfile, ...data, logo: { ...defaultLogo, ...data?.logo } };
     } else {

@@ -1,0 +1,25 @@
+{
+  "gerador_imagem": {
+    "url": "https://webhook.flowupinova.com.br/webhook/gerador-imagem",
+    "method": "POST",
+    "body": {
+      "prompt": "Um post moderno para Instagram sobre um novo perfume, estilo minimalista",
+      "postId": "doc_id_123",
+      "fileName": "1",
+      "content": {
+        "título": "Novo Perfume",
+        "subtitulo": "Fragrância inesquecível",
+        "hashtags": ["#perfume", "#luxury"]
+      }
+    }
+  },
+  "buscar_imagens": {
+    "url": "https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase",
+    "method": "POST",
+    "body": {
+      "postId": "doc_id_123",
+      "filename": "1",
+      "fileExtension": "png"
+    }
+  }
+}

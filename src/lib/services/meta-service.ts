@@ -2,7 +2,6 @@
 
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, deleteField } from "firebase/firestore";
-import type { MetaConnectionData } from "./meta-service";
 
 export interface MetaConnectionData {
   isConnected: boolean;

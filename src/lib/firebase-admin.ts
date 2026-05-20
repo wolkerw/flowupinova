@@ -37,7 +37,7 @@ export async function verifyIdToken(idToken: string): Promise<admin.auth.Decoded
  * @throws An error if the user is not authenticated or the token is invalid.
  */
 export async function getUidFromCookie(): Promise<string> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const idTokenCookie = cookieStore.get("firebase-id-token");
 
   if (!idTokenCookie?.value) {

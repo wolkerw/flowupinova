@@ -57,16 +57,16 @@ export async function POST(request: NextRequest) {
     let nextPageToken: string | undefined | null = undefined;
 
     do {
-      const accountsResponse = await myBizAccount.accounts.list({
+      const currentResponse: any = await myBizAccount.accounts.list({
         pageSize: 20, // Pede mais contas por vez
         pageToken: nextPageToken || undefined,
       });
 
-      const accounts = accountsResponse.data.accounts;
+      const accounts = currentResponse.data.accounts;
       if (accounts) {
         allAccounts.push(...accounts);
       }
-      nextPageToken = accountsResponse.data.nextPageToken;
+      nextPageToken = currentResponse.data.nextPageToken;
     } while (nextPageToken);
 
     if (allAccounts.length === 0) {

@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sparkles,
   Send,
@@ -15,6 +19,7 @@ import {
   Instagram,
   Facebook,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PostPreview } from "./PostPreview";
@@ -22,33 +27,74 @@ import { GeneratedContent, Platform } from "../types";
 import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 
-interface Step5ReviewPublishProps {
-  processedImageUrl: string | null;
-  selectedImage: string;
-  selectedContent: GeneratedContent;
-  user: any;
-  metaConnection: MetaConnectionData | null;
-  instagramConnection: InstagramConnectionData | null;
-  platforms: Platform[];
-  onPlatformChange: (platform: Platform) => void;
-  onPublish: (mode: "now" | "schedule") => void;
-  onBack: () => void;
-  isPublishing: boolean;
-}
+import { useWizard } from "../context/WizardContext";
 
-export const Step5ReviewPublish = ({
-  processedImageUrl,
-  selectedImage,
-  selectedContent,
-  user,
-  metaConnection,
-  instagramConnection,
-  platforms,
-  onPlatformChange,
-  onPublish,
-  onBack,
-  isPublishing,
-}: Step5ReviewPublishProps) => {
+export const Step5ReviewPublish = () => {
+  const {
+    processedImageUrl,
+    selectedImage,
+    user,
+    metaConnection,
+    instagramConnection,
+    platforms,
+    setPlatforms,
+    setShowSchedulerModal,
+    handlePublish,
+    setStep,
+    isPublishing,
+    collaborators,
+    collaboratorsInput,
+    setCollaborators: onCollaboratorsChange,
+    setCollaboratorsInput: onCollaboratorsInputChange,
+    userTags,
+    userTagsInput,
+    setUserTags: onUserTagsChange,
+    setUserTagsInput: onUserTagsInputChange,
+    generatedContent,
+    setGeneratedContent,
+    selectedContentId,
+  } = useWizard();
+
+  const selectedContent = selectedContentId !== undefined 
+    ? generatedContent[parseInt(selectedContentId, 10)] 
+    : null;
+
+  const handleEditContent = (field: keyof GeneratedContent, value: any) => {
+    if (selectedContentId === undefined) return;
+    const index = parseInt(selectedContentId, 10);
+    setGeneratedContent(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
+  };
+
+  const onBack = () => setStep(4);
+  const onPlatformChange = (p: Platform) =>
+    setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  
+  const onPublish = (mode: "now" | "schedule") =>
+    mode === "now" ? handlePublish("now") : setShowSchedulerModal(true);
+
+  if (!selectedContent || !selectedImage) return null;
+  const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = collaboratorsInput.trim().replace('@', '');
+      if (val && collaborators.length < 3 && !collaborators.includes(val)) {
+        onCollaboratorsChange([...collaborators, val]);
+      }
+      onCollaboratorsInputChange("");
+    }
+  };
+
+  const handleAddUserTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = userTagsInput.trim().replace('@', '');
+      if (val && !userTags.some(t => t.username === val)) {
+        onUserTagsChange([...userTags, { username: val, x: 0.5, y: 0.5 }]);
+      }
+      onUserTagsInputChange("");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -59,7 +105,7 @@ export const Step5ReviewPublish = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-6 w-6 text-accent" />
-            Etapa 5: Revise e publique seu post
+            Etapa 4: Revise e publique seu post
           </CardTitle>
           <p className="pt-1 text-sm text-gray-600">
             Revise o texto, a imagem e agende a publicação.
@@ -81,52 +127,168 @@ export const Step5ReviewPublish = ({
               </div>
             </div>
             <div className="space-y-6">
-              <div>
-                <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !instagramConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-instagram"
-                      checked={platforms.includes("instagram")}
-                      onCheckedChange={() => onPlatformChange("instagram")}
-                      disabled={!instagramConnection?.isConnected}
+              <div className="space-y-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <Label className="font-bold text-base">Editar Conteúdo</Label>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-title" className="text-xs font-semibold uppercase text-gray-500">Título / Destaque</Label>
+                    <Input 
+                      id="edit-title"
+                      value={selectedContent.titulo}
+                      onChange={(e) => handleEditContent('titulo', e.target.value)}
+                      className="bg-white"
+                      placeholder="Título que aparece no post..."
                     />
-                    <Label
-                      htmlFor="platform-instagram"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Instagram className="h-5 w-5 text-pink-500" />
-                      Instagram
-                    </Label>
                   </div>
-                  <div
-                    className={cn(
-                      "flex items-center space-x-2 rounded-lg border p-4",
-                      !metaConnection?.isConnected && "bg-gray-100 opacity-60"
-                    )}
-                  >
-                    <Checkbox
-                      id="platform-facebook"
-                      checked={platforms.includes("facebook")}
-                      onCheckedChange={() => onPlatformChange("facebook")}
-                      disabled={!metaConnection?.isConnected}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-subtitle" className="text-xs font-semibold uppercase text-gray-500">Legenda / Corpo do Post</Label>
+                    <Textarea 
+                      id="edit-subtitle"
+                      value={selectedContent.subtitulo}
+                      onChange={(e) => handleEditContent('subtitulo', e.target.value)}
+                      className="bg-white min-h-[120px] resize-none"
+                      placeholder="Escreva a legenda principal aqui..."
                     />
-                    <Label
-                      htmlFor="platform-facebook"
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <Facebook className="h-5 w-5 text-blue-600" />
-                      Facebook
-                    </Label>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-hashtags" className="text-xs font-semibold uppercase text-gray-500">Hashtags</Label>
+                    <Input 
+                      id="edit-hashtags"
+                      value={selectedContent.hashtags.join(' ')}
+                      onChange={(e) => handleEditContent('hashtags', e.target.value.split(' ').filter(h => h.trim() !== ''))}
+                      className="bg-white"
+                      placeholder="#hashtag1 #hashtag2..."
+                    />
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
+
+              <div>
+                <Label className="font-semibold">Onde Publicar?</Label>
+                <div className="mt-2 grid grid-cols-2 gap-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !instagramConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-instagram"
+                            checked={platforms.includes("instagram") && !!instagramConnection?.isConnected}
+                            onCheckedChange={() => onPlatformChange("instagram")}
+                            disabled={!instagramConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-instagram"
+                            className={cn("flex cursor-pointer items-center gap-2", !instagramConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Instagram className="h-5 w-5 text-pink-500" />
+                            Instagram
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!instagramConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Instagram na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !metaConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-facebook"
+                            checked={platforms.includes("facebook") && !!metaConnection?.isConnected}
+                            onCheckedChange={() => onPlatformChange("facebook")}
+                            disabled={!metaConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-facebook"
+                            className={cn("flex cursor-pointer items-center gap-2", !metaConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Facebook className="h-5 w-5 text-blue-600" />
+                            Facebook
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!metaConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte o Facebook na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+
+              {/* Instagram Specific Features */}
+              {platforms.includes("instagram") && (
+                <div className="space-y-6 pt-4 border-t">
+                  {/* Collabs */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Dividir postagem com parceiro (Collab)</h4>
+                    <p className="text-xs text-muted-foreground">A postagem também aparecerá no perfil desta pessoa se ela aceitar.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {collaborators.map((username) => (
+                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                          @{username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => onCollaboratorsChange(collaborators.filter(c => c !== username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={collaboratorsInput}
+                      onChange={(e) => onCollaboratorsInputChange(e.target.value)}
+                      onKeyDown={handleAddCollaborator}
+                      placeholder="@usuario"
+                      disabled={collaborators.length >= 3}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+
+                  {/* User Tags */}
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="font-semibold text-sm">Marcar na foto</h4>
+                    <p className="text-xs text-muted-foreground">A pessoa apenas receberá uma notificação de que foi marcada.</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {userTags.map((tag) => (
+                        <div key={tag.username} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs">
+                          @{tag.username}
+                          <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => onUserTagsChange(userTags.filter(t => t.username !== tag.username))} />
+                        </div>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      value={userTagsInput}
+                      onChange={(e) => onUserTagsInputChange(e.target.value)}
+                      onKeyDown={handleAddUserTag}
+                      placeholder="@usuario"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4 border-t pt-4">
                 <h3 className="text-lg font-bold">Publicar</h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Button

@@ -68,6 +68,9 @@ export function OnboardingWizard({
     primaryColor: initialData?.primaryColor || "#3b82f6",
     secondaryColor: initialData?.secondaryColor || "#1e293b",
     logoUrl: initialData?.logo?.url || "",
+    slogan: initialData?.slogan || "",
+    targetAudience: initialData?.targetAudience || "",
+    toneOfVoice: initialData?.toneOfVoice || "",
   });
 
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo?.url || null);
@@ -85,6 +88,9 @@ export function OnboardingWizard({
         primaryColor: initialData.primaryColor || "#3b82f6",
         secondaryColor: initialData.secondaryColor || "#1e293b",
         logoUrl: initialData.logo?.url || "",
+        slogan: initialData.slogan || "",
+        targetAudience: initialData.targetAudience || "",
+        toneOfVoice: initialData.toneOfVoice || "",
       });
       setLogoPreview(initialData.logo?.url || null);
     }
@@ -163,6 +169,8 @@ export function OnboardingWizard({
             ...prev,
             name: extractedData.name || extractedData.nome || prev.name,
             category: extractedData.category || extractedData.categoria || prev.category,
+            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || prev.phone,
+            address: extractedData.address || extractedData.endereco || extractedData.localizacao || prev.address,
             description:
               extractedData.description ||
               extractedData.descricao ||
@@ -172,6 +180,9 @@ export function OnboardingWizard({
               extractedData.primaryColor || extractedData.cor_primaria || prev.primaryColor,
             secondaryColor:
               extractedData.secondaryColor || extractedData.cor_secundaria || prev.secondaryColor,
+            slogan: extractedData.slogan || prev.slogan,
+            targetAudience: extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
+            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
           }));
 
           toast({
@@ -223,6 +234,9 @@ export function OnboardingWizard({
         description: formData.description,
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
         onboardingCompleted: true,
         logo: {
           url: formData.logoUrl,
@@ -327,7 +341,7 @@ export function OnboardingWizard({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[850px] w-[95vw] max-h-[95vh] md:h-[650px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px] flex flex-col">
+      <DialogContent className="sm:max-w-[850px] w-[95vw] max-h-[95vh] md:h-auto md:min-h-[600px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px] flex flex-col">
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Sidebar Left */}
           <div className="w-full md:w-[280px] bg-[#030712] relative overflow-y-auto md:overflow-hidden p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 shrink-0">
@@ -337,11 +351,15 @@ export function OnboardingWizard({
             </div>
 
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-14">
-                <div className="bg-cyan-500 p-1.5 rounded-lg shadow-lg shadow-cyan-500/20">
-                  <Zap className="w-5 h-5 text-white fill-white" />
-                </div>
-                <span className="text-white text-2xl font-black tracking-tighter">Num<span className="text-cyan-400">Vapt</span></span>
+              <div className="mb-14">
+                <Image 
+                  src="/logo-numvapt.png" 
+                  alt="NumVapt Logo" 
+                  width={160} 
+                  height={40} 
+                  priority
+                  className="brightness-0 invert h-auto w-auto max-w-[180px]" 
+                />
               </div>
 
               <div className="space-y-7">
@@ -422,8 +440,8 @@ export function OnboardingWizard({
               )}
             </AnimatePresence>
 
-            <div className="flex justify-between items-start mb-10">
-              <div className="space-y-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="space-y-1 pr-8">
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
                   {stepsInfo[step-1].title}
                 </h2>
@@ -431,14 +449,6 @@ export function OnboardingWizard({
                   {stepsInfo[step-1].subtitle}
                 </p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full hover:bg-slate-200/50 text-slate-400"
-                onClick={onClose}
-              >
-                <X className="w-5 h-5" />
-              </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
@@ -450,19 +460,19 @@ export function OnboardingWizard({
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="space-y-10"
+                    className="space-y-6"
                   >
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="space-y-3">
                         <Label htmlFor="website" className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Website URL</Label>
                         <div className="relative group">
                           <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-cyan-500 transition-colors" />
                           <Input 
                             id="website" 
-                            placeholder="www.seusite.com.br" 
+                            placeholder="www.suaempresa.com.br" 
                             value={formData.website}
                             onChange={(e) => setFormData({...formData, website: e.target.value})}
-                            className="pl-14 h-16 text-lg border-slate-200 bg-white rounded-2xl focus:ring-4 focus:ring-cyan-500/10 transition-all shadow-sm"
+                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm"
                           />
                         </div>
                       </div>
@@ -472,24 +482,24 @@ export function OnboardingWizard({
                           <Instagram className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-cyan-500 transition-colors" />
                           <Input 
                             id="instagram" 
-                            placeholder="@seu.negocio" 
+                            placeholder="@seuinsta" 
                             value={formData.instagram}
                             onChange={(e) => setFormData({...formData, instagram: e.target.value})}
-                            className="pl-14 h-16 text-lg border-slate-200 bg-white rounded-2xl focus:ring-4 focus:ring-cyan-500/10 transition-all shadow-sm"
+                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-8 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-xl shadow-cyan-200/50 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                    <div className="p-6 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-xl shadow-cyan-200/50 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700">
                         <Sparkles className="w-20 h-20" />
                       </div>
                       <div className="relative z-10">
                         <h4 className="text-xl font-black mb-2 flex items-center gap-2">
                           Poupe tempo com IA
                         </h4>
-                        <p className="text-cyan-50 text-sm mb-6 leading-relaxed max-w-sm">
+                        <p className="text-cyan-50 text-sm mb-4 leading-relaxed max-w-sm">
                           Nossa IA analisará seu site ou Instagram para preencher automaticamente seu nome, categoria e descrição.
                         </p>
                         <Button 
@@ -517,10 +527,10 @@ export function OnboardingWizard({
                         <Label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Fantasia</Label>
                         <Input 
                           id="name" 
-                          placeholder="Ex: Café do Porto" 
+                          placeholder="Nome da sua empresa" 
                           value={formData.name}
                           onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
                         />
                       </div>
                       <div className="space-y-2">
@@ -530,6 +540,16 @@ export function OnboardingWizard({
                           placeholder="Ex: Restaurante, Consultoria Jurídica..." 
                           value={formData.category}
                           onChange={(e) => setFormData({...formData, category: e.target.value})}
+                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="slogan" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Slogan da Marca (Opcional)</Label>
+                        <Input 
+                          id="slogan" 
+                          placeholder="Ex: O sabor que transforma o seu dia" 
+                          value={formData.slogan}
+                          onChange={(e) => setFormData({...formData, slogan: e.target.value})}
                           className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
                         />
                       </div>
@@ -556,7 +576,7 @@ export function OnboardingWizard({
                             placeholder="(00) 00000-0000" 
                             value={formData.phone}
                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
                           />
                         </div>
                       </div>
@@ -569,7 +589,7 @@ export function OnboardingWizard({
                             placeholder="Rua, Número, Bairro, Cidade..." 
                             value={formData.address}
                             onChange={(e) => setFormData({...formData, address: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
                           />
                         </div>
                       </div>
@@ -592,8 +612,30 @@ export function OnboardingWizard({
                       placeholder="Descreva o que seu negócio oferece e qual seu diferencial..." 
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="min-h-[220px] text-lg p-7 border-slate-200 bg-white rounded-[32px] focus:ring-primary/20 resize-none leading-relaxed shadow-inner"
+                      className="min-h-[220px] text-lg p-7 border-slate-200 bg-white rounded-[32px] focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all resize-none leading-relaxed shadow-inner"
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="targetAudience" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Público-alvo</Label>
+                        <Input 
+                          id="targetAudience" 
+                          placeholder="Ex: Jovens profissionais" 
+                          value={formData.targetAudience}
+                          onChange={(e) => setFormData({...formData, targetAudience: e.target.value})}
+                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="toneOfVoice" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tom de Voz</Label>
+                        <Input 
+                          id="toneOfVoice" 
+                          placeholder="Ex: Casual e amigável" 
+                          value={formData.toneOfVoice}
+                          onChange={(e) => setFormData({...formData, toneOfVoice: e.target.value})}
+                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                        />
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 
@@ -666,7 +708,7 @@ export function OnboardingWizard({
             </div>
 
             {/* Navigation Footer */}
-            <div className="flex items-center justify-between mt-12 pt-8 border-t border-slate-200/60">
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200/60">
               <Button 
                 variant="ghost" 
                 onClick={step === 1 ? handleSkip : handleBack} 
