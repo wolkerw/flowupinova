@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Edit, UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, MessageSquare, Sparkles } from "lucide-react";
+import { UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 
@@ -35,20 +35,6 @@ export const Step4BrandCustomization = () => {
     logoInputRef,
     isGeneratingImages,
     selectedContent,
-    showTextOverlay,
-    setShowTextOverlay: onTextToggle,
-    textPosition,
-    setTextPosition: onTextPositionChange,
-    textScale,
-    setTextScale: onTextScaleChange,
-    textColor,
-    setTextColor: onTextColorChange,
-    fontFamily,
-    setFontFamily: onFontFamilyChange,
-    fontWeight,
-    setFontWeight: onFontWeightChange,
-    isItalic,
-    setIsItalic: onItalicToggle,
   } = useWizard();
 
   const onBack = () => setStep(3);
@@ -170,115 +156,7 @@ export const Step4BrandCustomization = () => {
                 )}
               </div>
 
-              {/* Text Section */}
-              <div className="border-t pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-blue-500" />
-                    <Label className="text-base font-semibold">Texto na Imagem</Label>
-                  </div>
-                  <Button
-                    variant={showTextOverlay ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onTextToggle(!showTextOverlay)}
-                  >
-                    {showTextOverlay ? "Ativado" : "Desativado"}
-                  </Button>
-                </div>
-                
-                {showTextOverlay && (
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <Label className="text-sm">Posição do Texto</Label>
-                      <RadioGroup
-                        value={textPosition}
-                        onValueChange={(v) => onTextPositionChange(v as LogoPosition)}
-                        className="mt-2 grid grid-cols-3 gap-2"
-                      >
-                        {positions.map((pos) => (
-                          <div key={`text-${pos}`}>
-                            <RadioGroupItem value={pos} id={`text-${pos}`} className="peer sr-only" />
-                            <Label
-                              htmlFor={`text-${pos}`}
-                              className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-xs capitalize hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
-                            >
-                              {pos.replace("-", " ")}
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm">Tamanho Texto</Label>
-                        <Slider
-                          min={50}
-                          max={200}
-                          step={1}
-                          value={[textScale]}
-                          onValueChange={([v]) => onTextScaleChange(v)}
-                          className="mt-2"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm">Fonte</Label>
-                        <select
-                          value={fontFamily}
-                          onChange={(e) => onFontFamilyChange(e.target.value)}
-                          className="mt-2 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                        >
-                          <option value="Inter">Padrão (Inter)</option>
-                          <option value="'Montserrat', sans-serif">Moderna (Montserrat)</option>
-                          <option value="'Bebas Neue', cursive">Impacto (Bebas Neue)</option>
-                          <option value="'Playfair Display', serif">Elegante (Playfair)</option>
-                          <option value="'Roboto', sans-serif">Limpa (Roboto)</option>
-                        </select>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm">Peso e Estilo</Label>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            variant={fontWeight === "bold" ? "default" : "outline"}
-                            size="sm"
-                            className="flex-1 font-bold"
-                            onClick={() => onFontWeightChange(fontWeight === "bold" ? "normal" : "bold")}
-                          >
-                            B
-                          </Button>
-                          <Button
-                            variant={isItalic ? "default" : "outline"}
-                            size="sm"
-                            className="flex-1 italic"
-                            onClick={() => onItalicToggle(!isItalic)}
-                          >
-                            I
-                          </Button>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-sm">Cor do Texto</Label>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {["#FFFFFF", "#000000", "#FFD700", "#3B82F6", "#EF4444", "#10B981"].map((c) => (
-                            <button
-                              key={c}
-                              onClick={() => onTextColorChange(c)}
-                              className={cn(
-                                "h-6 w-6 rounded-full border border-gray-300 transition-transform hover:scale-110",
-                                textColor === c && "ring-2 ring-primary ring-offset-2"
-                              )}
-                              style={{ backgroundColor: c }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -332,36 +210,7 @@ export const Step4BrandCustomization = () => {
                       </div>
                     )}
 
-                    {/* Text Overlay Preview */}
-                    {showTextOverlay && selectedTitle && (
-                      <div
-                        className={cn("absolute z-20 px-4 w-full flex pointer-events-none", {
-                          "top-4 items-start justify-start": textPosition === "top-left",
-                          "top-4 items-start justify-center text-center": textPosition === "top-center",
-                          "top-4 items-start justify-end text-right": textPosition === "top-right",
-                          "top-1/2 -translate-y-1/2 items-center justify-start": textPosition === "left-center",
-                          "top-1/2 -translate-y-1/2 items-center justify-center text-center": textPosition === "center",
-                          "top-1/2 -translate-y-1/2 items-center justify-end text-right": textPosition === "right-center",
-                          "bottom-4 items-end justify-start": textPosition === "bottom-left",
-                          "bottom-4 items-end justify-center text-center": textPosition === "bottom-center",
-                          "bottom-4 items-end justify-end text-right": textPosition === "bottom-right",
-                        })}
-                      >
-                        <span 
-                          className={cn("leading-tight break-words max-w-full drop-shadow-lg uppercase transition-all", {
-                            "font-bold": fontWeight === "bold",
-                            "italic": isItalic
-                          })}
-                          style={{ 
-                            fontSize: `${(textScale / 100) * 1.5}rem`,
-                            color: textColor,
-                            fontFamily: fontFamily
-                          }}
-                        >
-                          {selectedTitle}
-                        </span>
-                      </div>
-                    )}
+
                   </>
                 ) : (
                   <div className="text-gray-400 p-8 text-center">
