@@ -653,23 +653,28 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     setIsUploading(true);
     try {
+      let positionX = 540;
+      let positionY = 540;
+      switch(logoPosition) {
+        case "top-left": positionX = 50; positionY = 50; break;
+        case "top-center": positionX = 400; positionY = 50; break;
+        case "top-right": positionX = 854; positionY = 50; break;
+        case "left-center": positionX = 50; positionY = 400; break;
+        case "center": positionX = 400; positionY = 400; break;
+        case "right-center": positionX = 854; positionY = 400; break;
+        case "bottom-left": positionX = 50; positionY = 854; break;
+        case "bottom-center": positionX = 400; positionY = 854; break;
+        case "bottom-right": positionX = 854; positionY = 854; break;
+      }
+
       const formData = new FormData();
       formData.append("logo", logoFile);
       const imageBlob = await fetch(selectedImage).then((r) => r.blob());
       formData.append("image", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
-      formData.append("position", logoPosition);
+      formData.append("positionX", positionX.toString());
+      formData.append("positionY", positionY.toString());
       formData.append("scale", logoScale.toString());
       formData.append("opacity", (logoOpacity / 100).toString());
-
-      if (showTextOverlay && selectedContent?.titulo) {
-        formData.append("text", selectedContent.titulo);
-        formData.append("text_position", textPosition);
-        formData.append("text_scale", textScale.toString());
-        formData.append("text_color", textColor);
-        formData.append("text_font", fontFamily);
-        formData.append("text_weight", fontWeight);
-        formData.append("text_style", isItalic ? "italic" : "normal");
-      }
 
       const response = await fetch("/api/proxy-webhook?target=personalizador_imagem", { method: "POST", body: formData });
       const result = await response.json();
