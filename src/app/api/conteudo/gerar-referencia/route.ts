@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // 1. Iniciar o upload no Fal.ai CDN para obter uma URL assinada temporária (S3/CDN)
     console.log(`[GERAR_REFERENCIA] Iniciando upload do produto para o Fal.ai CDN...`);
     
-    const initiateResponse = await fetch("https://queue.fal.run/storage/upload/initiate", {
+    const initiateResponse = await fetch("https://rest.alpha.fal.ai/storage/upload/initiate", {
       method: "POST",
       headers: {
         Authorization: formattedFalKey,
