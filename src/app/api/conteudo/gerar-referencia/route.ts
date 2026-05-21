@@ -39,31 +39,50 @@ export async function POST(request: NextRequest) {
     // Nome do arquivo seguro
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     
-    // 1. Fazer upload do produto diretamente para o CDN do Fal.ai
-    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Fal.ai CDN...`);
+    // 1. Iniciar o upload no Fal.ai CDN para obter uma URL assinada temporária (S3/CDN)
+    console.log(`[GERAR_REFERENCIA] Iniciando upload do produto para o Fal.ai CDN...`);
     
-    const targetPath = `garments/${Date.now()}_${sanitizedFileName}`;
-    const falUploadFormData = new FormData();
-    const fileBlob = new Blob([fileBuffer], { type: file.type || "image/jpeg" });
-    // A API do Fal.ai exige que o campo do arquivo seja "file_upload"
-    falUploadFormData.append("file_upload", fileBlob, sanitizedFileName);
-
-    const falUploadResponse = await fetch(`https://api.fal.ai/v1/serverless/files/file/local/${targetPath}`, {
+    const initiateResponse = await fetch("https://queue.fal.run/storage/upload/initiate", {
       method: "POST",
       headers: {
         Authorization: formattedFalKey,
+        "Content-Type": "application/json",
       },
-      body: falUploadFormData,
+      body: JSON.stringify({
+        file_name: sanitizedFileName,
+        content_type: file.type || "image/jpeg",
+      }),
     });
 
-    if (!falUploadResponse.ok) {
-      const uploadErrorText = await falUploadResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Falha no upload para o Fal.ai CDN:", uploadErrorText);
-      throw new Error(`Falha no upload da imagem do produto para o Fal.ai CDN: ${uploadErrorText}`);
+    if (!initiateResponse.ok) {
+      const initiateErrorText = await initiateResponse.text();
+      console.error("[GERAR_REFERENCIA_ERROR] Falha ao iniciar upload no Fal.ai CDN:", initiateErrorText);
+      throw new Error(`Falha ao iniciar upload no Fal.ai CDN: ${initiateErrorText}`);
     }
 
-    const falUploadData = await falUploadResponse.json();
-    const garmentPublicUrl = falUploadData?.url;
+    const initiateData = await initiateResponse.json();
+    const { upload_url, file_url } = initiateData;
+
+    if (!upload_url || !file_url) {
+      throw new Error("Falha ao obter URL de upload do Fal.ai CDN.");
+    }
+
+    console.log(`[GERAR_REFERENCIA] Fazendo upload do binário para a URL assinada...`);
+    const uploadBinaryResponse = await fetch(upload_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "image/jpeg",
+      },
+      body: fileBuffer,
+    });
+
+    if (!uploadBinaryResponse.ok) {
+      const uploadBinaryErrorText = await uploadBinaryResponse.text();
+      console.error("[GERAR_REFERENCIA_ERROR] Falha no upload do binário para S3:", uploadBinaryErrorText);
+      throw new Error(`Falha no upload do binário para S3: ${uploadBinaryErrorText}`);
+    }
+
+    const garmentPublicUrl = file_url;
 
     if (!garmentPublicUrl) {
       throw new Error("Falha ao obter URL pública da imagem do produto do Fal.ai CDN.");
