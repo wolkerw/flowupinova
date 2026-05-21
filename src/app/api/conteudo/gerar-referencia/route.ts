@@ -1,0 +1,150 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { admin } from "@/lib/firebase-admin";
+
+export const maxDuration = 300; // Define timeout de até 5 minutos no Vercel
+
+export async function POST(request: NextRequest) {
+  try {
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
+
+    if (!falKey) {
+      console.error("[GERAR_REFERENCIA_ERROR] Chave FAL_KEY ou FAL_API_KEY não encontrada no .env.local");
+      return NextResponse.json(
+        { error: "Configuração do servidor ausente: Chave do Fal.ai não configurada." },
+        { status: 500 }
+      );
+    }
+
+    // Garante que o prefixo "Key " esteja presente se não estiver
+    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${falKey.trim()}`;
+
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const description = formData.get("description") as string;
+    const postId = formData.get("postId") as string;
+
+    if (!file) {
+      return NextResponse.json({ error: "Arquivo do produto (imagem) não fornecido." }, { status: 400 });
+    }
+
+    if (!description) {
+      return NextResponse.json({ error: "Descrição do cenário ou modelo não fornecida." }, { status: 400 });
+    }
+
+    console.log(`[GERAR_REFERENCIA] Iniciando processamento do post ${postId || "sem_id"}...`);
+
+    // 1. Prepara e inicializa o Firebase Storage
+    const bucket = admin.storage().bucket("studio-7502195980-3983c.appspot.com");
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    
+    // Nome do arquivo seguro
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+    const garmentPath = `garments/${Date.now()}_${sanitizedFileName}`;
+    const garmentFile = bucket.file(garmentPath);
+
+    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Firebase Storage: ${garmentPath}...`);
+
+    // Salva a imagem da roupa
+    await garmentFile.save(fileBuffer, {
+      metadata: { contentType: file.type || "image/jpeg" },
+    });
+
+    // Torna a imagem pública para o Fal.ai conseguir ler
+    await garmentFile.makePublic();
+    const garmentPublicUrl = `https://storage.googleapis.com/${bucket.name}/${garmentPath}`;
+    console.log("[GERAR_REFERENCIA] Imagem do produto pública em:", garmentPublicUrl);
+
+    // 2. Chamar o Flux Schnell para gerar a modelo base no cenário do usuário
+    console.log("[GERAR_REFERENCIA] Gerando modelo base no Fal.ai (Flux Schnell)...");
+    const fluxPrompt = `A professional fashion model, ${description}, wearing a simple solid grey t-shirt, high fidelity catalog shot, highly detailed skin texture, raw photo, UGC style, square format, optimized for Instagram feed`;
+    
+    const fluxResponse = await fetch("https://queue.fal.run/fal-ai/flux/schnell", {
+      method: "POST",
+      headers: {
+        Authorization: formattedFalKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: fluxPrompt,
+        image_size: "square_hd",
+        num_inference_steps: 4,
+        sync_mode: true,
+      }),
+    });
+
+    if (!fluxResponse.ok) {
+      const errorText = await fluxResponse.text();
+      console.error("[GERAR_REFERENCIA_ERROR] Erro no Flux Schnell:", errorText);
+      throw new Error(`Falha ao gerar modelo base: ${errorText}`);
+    }
+
+    const fluxData = await fluxResponse.json();
+    const modelImageUrl = fluxData?.images?.[0]?.url;
+
+    if (!modelImageUrl) {
+      throw new Error("Flux Schnell não retornou URL da imagem da modelo.");
+    }
+    console.log("[GERAR_REFERENCIA] Modelo base gerada com sucesso:", modelImageUrl);
+
+    // 3. Chamar a API de Virtual Try-On (IDM-VTON) para vestir a roupa na modelo
+    console.log("[GERAR_REFERENCIA] Iniciando Virtual Try-On no Fal.ai (IDM-VTON)...");
+    const vtonResponse = await fetch("https://queue.fal.run/fal-ai/idm-vton", {
+      method: "POST",
+      headers: {
+        Authorization: formattedFalKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        category: "upper_body", // "upper_body" é o padrão para camisas/casacos
+        garment_image_url: garmentPublicUrl,
+        human_image_url: modelImageUrl,
+        prompt: `A beautiful model, ${description}, wearing the garment perfectly, high fidelity, catalog photography`,
+      }),
+    });
+
+    if (!vtonResponse.ok) {
+      const errorText = await vtonResponse.text();
+      console.error("[GERAR_REFERENCIA_ERROR] Erro no IDM-VTON:", errorText);
+      throw new Error(`Falha no Virtual Try-On: ${errorText}`);
+    }
+
+    const vtonData = await vtonResponse.json();
+    const finalImageUrl = vtonData?.image?.url;
+
+    if (!finalImageUrl) {
+      throw new Error("IDM-VTON não retornou URL da imagem vestida.");
+    }
+    console.log("[GERAR_REFERENCIA] Virtual Try-On concluído com sucesso:", finalImageUrl);
+
+    // 4. Baixar a imagem final e salvar no Firebase Storage de forma definitiva
+    console.log("[GERAR_REFERENCIA] Baixando imagem final do Fal.ai...");
+    const downloadResponse = await fetch(finalImageUrl);
+    if (!downloadResponse.ok) throw new Error("Falha ao baixar imagem final do Fal.ai");
+    
+    const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
+    
+    const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
+    const finalFile = bucket.file(finalPath);
+
+    console.log(`[GERAR_REFERENCIA] Salvando imagem final no Firebase Storage em: ${finalPath}...`);
+    await finalFile.save(finalBuffer, {
+      metadata: { contentType: "image/jpeg" },
+    });
+
+    await finalFile.makePublic();
+    const finalStorageUrl = `https://storage.googleapis.com/${bucket.name}/${finalPath}`;
+    console.log("[GERAR_REFERENCIA] Imagem final pública disponível em:", finalStorageUrl);
+
+    // Retorna no mesmo padrão esperado pelo frontend
+    return NextResponse.json({
+      success: true,
+      url_post: finalStorageUrl,
+    });
+  } catch (error: any) {
+    console.error("[GERAR_REFERENCIA_ERROR] Erro crítico no processamento:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao processar a imagem por IA.", details: error.message },
+      { status: 500 }
+    );
+  }
+}
