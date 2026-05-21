@@ -17,12 +17,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Garante que o prefixo "Key " esteja presente se não estiver
-    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${falKey.trim()}`;
+    // Remove o prefixo "Key " se estiver presente, pois a SDK oficial adiciona-o automaticamente
+    const rawFalKey = falKey.trim().startsWith("Key ") 
+      ? falKey.trim().replace(/^Key\s+/i, "") 
+      : falKey.trim();
 
-    // Configura o cliente do fal.ai com a chave formatada
+    // Configura o cliente do fal.ai com a chave crua
     fal.config({
-      credentials: formattedFalKey,
+      credentials: rawFalKey,
     });
 
     const formData = await request.formData();
