@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { admin } from "@/lib/firebase-admin";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export const maxDuration = 300; // Define timeout de até 5 minutos no Vercel
 
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Garante que o prefixo "Key " esteja presente se não estiver
-    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${falKey.trim()}`;
+    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${formattedFalKeyPrefix(falKey.trim())}`;
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -33,25 +34,22 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GERAR_REFERENCIA] Iniciando processamento do post ${postId || "sem_id"}...`);
 
-    // 1. Prepara e inicializa o Firebase Storage
-    const bucket = admin.storage().bucket("studio-7502195980-3983c.appspot.com");
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     
     // Nome do arquivo seguro
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     const garmentPath = `garments/${Date.now()}_${sanitizedFileName}`;
-    const garmentFile = bucket.file(garmentPath);
+    
+    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto via Client SDK: ${garmentPath}...`);
 
-    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Firebase Storage: ${garmentPath}...`);
-
-    // Salva a imagem da roupa
-    await garmentFile.save(fileBuffer, {
-      metadata: { contentType: file.type || "image/jpeg" },
+    // Faz o upload usando o SDK cliente do Firebase (funciona localmente sem chaves do GCP!)
+    const garmentRef = ref(storage, garmentPath);
+    await uploadBytes(garmentRef, fileBuffer, {
+      contentType: file.type || "image/jpeg",
     });
 
-    // Torna a imagem pública para o Fal.ai conseguir ler
-    await garmentFile.makePublic();
-    const garmentPublicUrl = `https://storage.googleapis.com/${bucket.name}/${garmentPath}`;
+    // Pega a URL pública gerada
+    const garmentPublicUrl = await getDownloadURL(garmentRef);
     console.log("[GERAR_REFERENCIA] Imagem do produto pública em:", garmentPublicUrl);
 
     // 2. Chamar o Flux Schnell para gerar a modelo base no cenário do usuário
@@ -124,15 +122,14 @@ export async function POST(request: NextRequest) {
     const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
     
     const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
-    const finalFile = bucket.file(finalPath);
+    const finalRef = ref(storage, finalPath);
 
-    console.log(`[GERAR_REFERENCIA] Salvando imagem final no Firebase Storage em: ${finalPath}...`);
-    await finalFile.save(finalBuffer, {
-      metadata: { contentType: "image/jpeg" },
+    console.log(`[GERAR_REFERENCIA] Salvando imagem final no Firebase Storage via Client SDK em: ${finalPath}...`);
+    await uploadBytes(finalRef, finalBuffer, {
+      contentType: "image/jpeg",
     });
 
-    await finalFile.makePublic();
-    const finalStorageUrl = `https://storage.googleapis.com/${bucket.name}/${finalPath}`;
+    const finalStorageUrl = await getDownloadURL(finalRef);
     console.log("[GERAR_REFERENCIA] Imagem final pública disponível em:", finalStorageUrl);
 
     // Retorna no mesmo padrão esperado pelo frontend
@@ -147,4 +144,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Auxiliar para formatar a chave do Fal.ai
+function formattedFalKeyPrefix(key: string): string {
+  return key;
 }
