@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { fal } from "@fal-ai/client";
 
 export const maxDuration = 300; // Define timeout de até 5 minutos no Vercel
 
@@ -17,7 +18,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Garante que o prefixo "Key " esteja presente se não estiver
-    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${formattedFalKeyPrefix(falKey.trim())}`;
+    const formattedFalKey = falKey.trim().startsWith("Key ") ? falKey.trim() : `Key ${falKey.trim()}`;
+
+    // Configura o cliente do fal.ai com a chave formatada
+    fal.config({
+      credentials: formattedFalKey,
+    });
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -34,56 +40,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GERAR_REFERENCIA] Iniciando processamento do post ${postId || "sem_id"}...`);
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    // 1. Iniciar o upload no Fal.ai CDN usando a SDK oficial
+    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Fal.ai CDN...`);
+    const garmentPublicUrl = await fal.storage.upload(file);
     
-    // Nome do arquivo seguro
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    
-    // 1. Iniciar o upload no Fal.ai CDN para obter uma URL assinada temporária (S3/CDN)
-    console.log(`[GERAR_REFERENCIA] Iniciando upload do produto para o Fal.ai CDN...`);
-    
-    const initiateResponse = await fetch("https://rest.alpha.fal.ai/storage/upload/initiate", {
-      method: "POST",
-      headers: {
-        Authorization: formattedFalKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        file_name: sanitizedFileName,
-        content_type: file.type || "image/jpeg",
-      }),
-    });
-
-    if (!initiateResponse.ok) {
-      const initiateErrorText = await initiateResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Falha ao iniciar upload no Fal.ai CDN:", initiateErrorText);
-      throw new Error(`Falha ao iniciar upload no Fal.ai CDN: ${initiateErrorText}`);
-    }
-
-    const initiateData = await initiateResponse.json();
-    const { upload_url, file_url } = initiateData;
-
-    if (!upload_url || !file_url) {
-      throw new Error("Falha ao obter URL de upload do Fal.ai CDN.");
-    }
-
-    console.log(`[GERAR_REFERENCIA] Fazendo upload do binário para a URL assinada...`);
-    const uploadBinaryResponse = await fetch(upload_url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type || "image/jpeg",
-      },
-      body: fileBuffer,
-    });
-
-    if (!uploadBinaryResponse.ok) {
-      const uploadBinaryErrorText = await uploadBinaryResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Falha no upload do binário para S3:", uploadBinaryErrorText);
-      throw new Error(`Falha no upload do binário para S3: ${uploadBinaryErrorText}`);
-    }
-
-    const garmentPublicUrl = file_url;
-
     if (!garmentPublicUrl) {
       throw new Error("Falha ao obter URL pública da imagem do produto do Fal.ai CDN.");
     }
@@ -93,28 +53,15 @@ export async function POST(request: NextRequest) {
     console.log("[GERAR_REFERENCIA] Gerando modelo base no Fal.ai (Flux Schnell)...");
     const fluxPrompt = `A professional fashion model, ${description}, wearing a simple solid grey t-shirt, high fidelity catalog shot, highly detailed skin texture, raw photo, UGC style, square format, optimized for Instagram feed`;
     
-    const fluxResponse = await fetch("https://queue.fal.run/fal-ai/flux/schnell", {
-      method: "POST",
-      headers: {
-        Authorization: formattedFalKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const fluxResult: any = await fal.run("fal-ai/flux/schnell", {
+      input: {
         prompt: fluxPrompt,
         image_size: "square_hd",
         num_inference_steps: 4,
-        sync_mode: true,
-      }),
+      },
     });
 
-    if (!fluxResponse.ok) {
-      const errorText = await fluxResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Erro no Flux Schnell:", errorText);
-      throw new Error(`Falha ao gerar modelo base: ${errorText}`);
-    }
-
-    const fluxData = await fluxResponse.json();
-    const modelImageUrl = fluxData?.images?.[0]?.url;
+    const modelImageUrl = fluxResult?.images?.[0]?.url;
 
     if (!modelImageUrl) {
       throw new Error("Flux Schnell não retornou URL da imagem da modelo.");
@@ -123,28 +70,17 @@ export async function POST(request: NextRequest) {
 
     // 3. Chamar a API de Virtual Try-On (IDM-VTON) para vestir a roupa na modelo
     console.log("[GERAR_REFERENCIA] Iniciando Virtual Try-On no Fal.ai (IDM-VTON)...");
-    const vtonResponse = await fetch("https://queue.fal.run/fal-ai/idm-vton", {
-      method: "POST",
-      headers: {
-        Authorization: formattedFalKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    
+    const vtonResult: any = await fal.run("fal-ai/idm-vton", {
+      input: {
         category: "upper_body", // "upper_body" é o padrão para camisas/casacos
         garment_image_url: garmentPublicUrl,
         human_image_url: modelImageUrl,
         prompt: `A beautiful model, ${description}, wearing the garment perfectly, high fidelity, catalog photography`,
-      }),
+      },
     });
 
-    if (!vtonResponse.ok) {
-      const errorText = await vtonResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Erro no IDM-VTON:", errorText);
-      throw new Error(`Falha no Virtual Try-On: ${errorText}`);
-    }
-
-    const vtonData = await vtonResponse.json();
-    const finalImageUrl = vtonData?.image?.url;
+    const finalImageUrl = vtonResult?.image?.url;
 
     if (!finalImageUrl) {
       throw new Error("IDM-VTON não retornou URL da imagem vestida.");
@@ -192,9 +128,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Auxiliar para formatar a chave do Fal.ai
-function formattedFalKeyPrefix(key: string): string {
-  return key;
 }
