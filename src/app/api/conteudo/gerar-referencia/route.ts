@@ -63,10 +63,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const modelImageUrl = fluxResult?.images?.[0]?.url;
+    console.log("[GERAR_REFERENCIA] fluxResult completo:", JSON.stringify(fluxResult, null, 2));
+
+    const modelImageUrl = 
+      fluxResult?.data?.images?.[0]?.url || 
+      fluxResult?.images?.[0]?.url || 
+      fluxResult?.data?.image?.url || 
+      fluxResult?.image?.url || 
+      (fluxResult?.data?.images && fluxResult.data.images[0]) || 
+      (fluxResult?.images && fluxResult.images[0]);
 
     if (!modelImageUrl) {
-      throw new Error("Flux Schnell não retornou URL da imagem da modelo.");
+      throw new Error(`Flux Schnell não retornou URL da imagem da modelo. Retorno da API: ${JSON.stringify(fluxResult)}`);
     }
     console.log("[GERAR_REFERENCIA] Modelo base gerada com sucesso:", modelImageUrl);
 
@@ -75,17 +83,24 @@ export async function POST(request: NextRequest) {
     
     const vtonResult: any = await fal.run("fal-ai/idm-vton", {
       input: {
-        category: "upper_body", // "upper_body" é o padrão para camisas/casacos
-        garment_image_url: garmentPublicUrl,
         human_image_url: modelImageUrl,
-        prompt: `A beautiful model, ${description}, wearing the garment perfectly, high fidelity, catalog photography`,
+        garment_image_url: garmentPublicUrl,
+        description: "A high-fidelity fashion garment being worn by the model", // Descrição genérica/específica do produto para o provador virtual
       },
     });
 
-    const finalImageUrl = vtonResult?.image?.url;
+    console.log("[GERAR_REFERENCIA] vtonResult completo:", JSON.stringify(vtonResult, null, 2));
+
+    const finalImageUrl = 
+      vtonResult?.data?.image?.url || 
+      vtonResult?.image?.url || 
+      vtonResult?.data?.images?.[0]?.url || 
+      vtonResult?.images?.[0]?.url || 
+      (vtonResult?.data?.image && typeof vtonResult.data.image === 'string' ? vtonResult.data.image : undefined) ||
+      (vtonResult?.image && typeof vtonResult.image === 'string' ? vtonResult.image : undefined);
 
     if (!finalImageUrl) {
-      throw new Error("IDM-VTON não retornou URL da imagem vestida.");
+      throw new Error(`IDM-VTON não retornou URL da imagem vestida. Retorno da API: ${JSON.stringify(vtonResult)}`);
     }
     console.log("[GERAR_REFERENCIA] Virtual Try-On concluído com sucesso:", finalImageUrl);
 

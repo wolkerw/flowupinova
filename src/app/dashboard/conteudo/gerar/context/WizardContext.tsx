@@ -573,7 +573,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           body: formData,
         });
 
-        if (!response.ok) throw new Error("Erro ao processar imagem de referência.");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || "Erro ao processar imagem de referência.");
+        }
 
         const result = await response.json();
         const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
