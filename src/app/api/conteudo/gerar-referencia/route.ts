@@ -38,19 +38,35 @@ export async function POST(request: NextRequest) {
     
     // Nome do arquivo seguro
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    const garmentPath = `garments/${Date.now()}_${sanitizedFileName}`;
     
-    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto via Client SDK: ${garmentPath}...`);
+    // 1. Fazer upload do produto diretamente para o CDN do Fal.ai
+    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Fal.ai CDN...`);
+    
+    const falUploadFormData = new FormData();
+    const fileBlob = new Blob([fileBuffer], { type: file.type || "image/jpeg" });
+    falUploadFormData.append("file", fileBlob, sanitizedFileName);
 
-    // Faz o upload usando o SDK cliente do Firebase (funciona localmente sem chaves do GCP!)
-    const garmentRef = ref(storage, garmentPath);
-    await uploadBytes(garmentRef, fileBuffer, {
-      contentType: file.type || "image/jpeg",
+    const falUploadResponse = await fetch("https://queue.fal.run/files/upload", {
+      method: "POST",
+      headers: {
+        Authorization: formattedFalKey,
+      },
+      body: falUploadFormData,
     });
 
-    // Pega a URL pública gerada
-    const garmentPublicUrl = await getDownloadURL(garmentRef);
-    console.log("[GERAR_REFERENCIA] Imagem do produto pública em:", garmentPublicUrl);
+    if (!falUploadResponse.ok) {
+      const uploadErrorText = await falUploadResponse.text();
+      console.error("[GERAR_REFERENCIA_ERROR] Falha no upload para o Fal.ai CDN:", uploadErrorText);
+      throw new Error(`Falha no upload da imagem do produto para o Fal.ai CDN: ${uploadErrorText}`);
+    }
+
+    const falUploadData = await falUploadResponse.json();
+    const garmentPublicUrl = falUploadData?.url;
+
+    if (!garmentPublicUrl) {
+      throw new Error("Falha ao obter URL pública da imagem do produto do Fal.ai CDN.");
+    }
+    console.log("[GERAR_REFERENCIA] Imagem do produto pública no Fal.ai CDN em:", garmentPublicUrl);
 
     // 2. Chamar o Flux Schnell para gerar a modelo base no cenário do usuário
     console.log("[GERAR_REFERENCIA] Gerando modelo base no Fal.ai (Flux Schnell)...");
@@ -114,28 +130,39 @@ export async function POST(request: NextRequest) {
     }
     console.log("[GERAR_REFERENCIA] Virtual Try-On concluído com sucesso:", finalImageUrl);
 
-    // 4. Baixar a imagem final e salvar no Firebase Storage de forma definitiva
-    console.log("[GERAR_REFERENCIA] Baixando imagem final do Fal.ai...");
-    const downloadResponse = await fetch(finalImageUrl);
-    if (!downloadResponse.ok) throw new Error("Falha ao baixar imagem final do Fal.ai");
-    
-    const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
-    
-    const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
-    const finalRef = ref(storage, finalPath);
+    // 4. Salvar a imagem final de forma definitiva (Tenta no Firebase Storage, com fallback para a URL direta do Fal.ai)
+    let outputUrl = finalImageUrl;
 
-    console.log(`[GERAR_REFERENCIA] Salvando imagem final no Firebase Storage via Client SDK em: ${finalPath}...`);
-    await uploadBytes(finalRef, finalBuffer, {
-      contentType: "image/jpeg",
-    });
+    try {
+      console.log("[GERAR_REFERENCIA] Baixando imagem final do Fal.ai para persistência...");
+      const downloadResponse = await fetch(finalImageUrl);
+      if (downloadResponse.ok) {
+        const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
+        const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
+        const finalRef = ref(storage, finalPath);
 
-    const finalStorageUrl = await getDownloadURL(finalRef);
-    console.log("[GERAR_REFERENCIA] Imagem final pública disponível em:", finalStorageUrl);
+        console.log(`[GERAR_REFERENCIA] Tentando salvar imagem final no Firebase Storage em: ${finalPath}...`);
+        await uploadBytes(finalRef, finalBuffer, {
+          contentType: "image/jpeg",
+        });
+
+        const finalStorageUrl = await getDownloadURL(finalRef);
+        console.log("[GERAR_REFERENCIA] Imagem final salva com sucesso no Firebase Storage em:", finalStorageUrl);
+        outputUrl = finalStorageUrl;
+      } else {
+        console.warn("[GERAR_REFERENCIA_WARNING] Falha ao baixar imagem do Fal.ai, usando a URL original da API.");
+      }
+    } catch (storageError: any) {
+      console.warn(
+        "[GERAR_REFERENCIA_WARNING] Falha ao salvar a imagem no Firebase Storage. Usando URL pública do Fal.ai como fallback.",
+        storageError.message || storageError
+      );
+    }
 
     // Retorna no mesmo padrão esperado pelo frontend
     return NextResponse.json({
       success: true,
-      url_post: finalStorageUrl,
+      url_post: outputUrl,
     });
   } catch (error: any) {
     console.error("[GERAR_REFERENCIA_ERROR] Erro crítico no processamento:", error);
