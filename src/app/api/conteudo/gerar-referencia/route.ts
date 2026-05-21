@@ -42,11 +42,13 @@ export async function POST(request: NextRequest) {
     // 1. Fazer upload do produto diretamente para o CDN do Fal.ai
     console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Fal.ai CDN...`);
     
+    const targetPath = `garments/${Date.now()}_${sanitizedFileName}`;
     const falUploadFormData = new FormData();
     const fileBlob = new Blob([fileBuffer], { type: file.type || "image/jpeg" });
-    falUploadFormData.append("file", fileBlob, sanitizedFileName);
+    // A API do Fal.ai exige que o campo do arquivo seja "file_upload"
+    falUploadFormData.append("file_upload", fileBlob, sanitizedFileName);
 
-    const falUploadResponse = await fetch("https://queue.fal.run/files/upload", {
+    const falUploadResponse = await fetch(`https://api.fal.ai/v1/serverless/files/file/local/${targetPath}`, {
       method: "POST",
       headers: {
         Authorization: formattedFalKey,

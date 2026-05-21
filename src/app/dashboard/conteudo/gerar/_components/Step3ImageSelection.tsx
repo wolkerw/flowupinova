@@ -28,10 +28,14 @@ export const Step3ImageSelection = () => {
     handleGeneratePrompts: onGenerate,
     isGeneratingImages,
     handleDownloadImage: onDownload,
+    referenceImageFile,
   } = useWizard();
 
   const onBack = () => setStep(2);
   const onNext = () => setStep(4);
+
+  const maxImages = referenceImageFile ? 1 : 3;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -47,13 +51,16 @@ export const Step3ImageSelection = () => {
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
               {generatedImages.length > 0 
-                ? "Selecione uma das imagens geradas pela IA para usar em seu post."
+                ? "Selecione a imagem gerada pela IA para usar em seu post."
                 : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
             </p>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className={cn(
+            "grid grid-cols-1 gap-4",
+            maxImages === 1 ? "max-w-md mx-auto w-full md:grid-cols-1" : "md:grid-cols-3"
+          )}>
             {/* Imagens já encontradas */}
             {generatedImages.map((imgSrc, index) => (
               <div
@@ -78,30 +85,32 @@ export const Step3ImageSelection = () => {
                     <Check className="h-12 w-12 text-white" />
                   </div>
                 )}
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDownload(imgSrc);
-                  }}
-                  className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
+                {onDownload && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDownload(imgSrc);
+                    }}
+                    className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
 
-            {/* Placeholders de carregamento para completar 3 slots */}
-            {generatedImages.length < 3 &&
-              [...Array(3 - generatedImages.length)].map((_, i) => (
+            {/* Placeholders de carregamento para completar os slots necessários */}
+            {generatedImages.length < maxImages &&
+              [...Array(maxImages - generatedImages.length)].map((_, i) => (
                 <div
                   key={`skeleton-${i}`}
                   className="relative flex aspect-square animate-pulse flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted"
                 >
                   <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
                   <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                    Buscando opção {generatedImages.length + i + 1}...
+                    {maxImages === 1 ? "Buscando imagem..." : `Buscando opção ${generatedImages.length + i + 1}...`}
                   </span>
                 </div>
               ))}
