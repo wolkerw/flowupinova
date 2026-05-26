@@ -66,22 +66,30 @@ export async function getChatHistory(userId: string): Promise<StoredMessage[]> {
  */
 export async function saveChatHistory(userId: string, messages: StoredMessage[]): Promise<void> {
   if (!userId) {
-    throw new Error("UserID é necessário para salvar o histórico do chat.");
+    console.warn("UserID é necessário para salvar o histórico do chat.");
+    return;
   }
 
   try {
     const docRef = getUserAppDataDocRef(userId);
 
-    // Convert JS Dates to Firestore Timestamps before saving
-    const messagesToStore = messages.map((msg) => ({
-      ...msg,
-      createdAt: Timestamp.fromDate(msg.createdAt instanceof Date ? msg.createdAt : new Date()),
-    }));
+    // Convert JS Dates to Firestore Timestamps e remove campos undefined para evitar erros do Firestore
+    const messagesToStore = messages.map((msg) => {
+      const cleanMsg: any = {
+        sender: msg.sender,
+        text: msg.text,
+        createdAt: Timestamp.fromDate(msg.createdAt instanceof Date ? msg.createdAt : new Date()),
+      };
+      if (msg.isError !== undefined) {
+        cleanMsg.isError = msg.isError;
+      }
+      return cleanMsg;
+    });
 
     // Use setDoc with merge to create or update the chatHistory field
     await setDoc(docRef, { chatHistory: messagesToStore }, { merge: true });
   } catch (error: any) {
     console.error(`Erro ao salvar o histórico do chat para o usuário ${userId}:`, error);
-    throw new Error("Não foi possível salvar o histórico do chat.");
+    // Falha silenciosa para evitar travar a interface/UX do usuário com tela vermelha (Runtime Error)
   }
 }

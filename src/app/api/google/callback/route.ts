@@ -84,44 +84,54 @@ export async function POST(request: NextRequest) {
 
       const readMask =
         "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,openInfo,regularHours";
-      const locationsListResponse = await fetch(
-        `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations?readMask=${encodeURIComponent(readMask)}`,
-        {
+      let locationsNextPageToken = "";
+      do {
+        const locationsUrl = new URL(`https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations`);
+        locationsUrl.searchParams.append("readMask", readMask);
+        locationsUrl.searchParams.append("pageSize", "100");
+        if (locationsNextPageToken) {
+          locationsUrl.searchParams.append("pageToken", locationsNextPageToken);
+        }
+
+        const locationsListResponse = await fetch(locationsUrl.toString(), {
           headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+
+        if (!locationsListResponse.ok) {
+          const errorData = await locationsListResponse.json();
+          console.warn(
+            `[GOOGLE_CALLBACK_WARN] Falha ao buscar localizações para a conta ${accountId}:`,
+            errorData.error?.message
+          );
+          break; // Sai do loop para pular para a próxima conta
         }
-      );
 
-      if (!locationsListResponse.ok) {
-        const errorData = await locationsListResponse.json();
-        console.warn(
-          `[GOOGLE_CALLBACK_WARN] Falha ao buscar localizações para a conta ${accountId}:`,
-          errorData.error?.message
-        );
-        continue; // Pula para a próxima conta em caso de erro
-      }
+        const data = await locationsListResponse.json();
+        const locations = data.locations;
 
-      const { locations } = await locationsListResponse.json();
+        if (locations && locations.length > 0) {
+          for (const loc of locations) {
+            if (!loc.name) continue;
 
-      if (locations && locations.length > 0) {
-        for (const loc of locations) {
-          if (!loc.name) continue;
-
-          allBusinessProfiles.push({
-            name: loc.title || "Nome não encontrado",
-            googleName: loc.name,
-            category: loc.categories?.primaryCategory?.displayName || "Categoria não encontrada",
-            address: loc.storefrontAddress
-              ? `${loc.storefrontAddress.addressLines?.join(", ")}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}`
-              : "Endereço não encontrado",
-            phone: loc.phoneNumbers?.primaryPhone || "Telefone não encontrado",
-            website: loc.websiteUri || "Website não encontrado",
-            description: loc.profile?.description || "Descrição não disponível.",
-            isVerified: true,
-            regularHours: loc.regularHours || null,
-            openInfo: loc.openInfo || null,
-          });
+            allBusinessProfiles.push({
+              name: loc.title || "Nome não encontrado",
+              googleName: loc.name,
+              category: loc.categories?.primaryCategory?.displayName || "Categoria não encontrada",
+              address: loc.storefrontAddress
+                ? `${loc.storefrontAddress.addressLines?.join(", ")}, ${loc.storefrontAddress.locality}, ${loc.storefrontAddress.administrativeArea} - ${loc.storefrontAddress.postalCode}`
+                : "Endereço não encontrado",
+              phone: loc.phoneNumbers?.primaryPhone || "Telefone não encontrado",
+              website: loc.websiteUri || "Website não encontrado",
+              description: loc.profile?.description || "Descrição não disponível.",
+              isVerified: true,
+              regularHours: loc.regularHours || null,
+              openInfo: loc.openInfo || null,
+            });
+          }
         }
-      }
+        
+        locationsNextPageToken = data.nextPageToken || "";
+      } while (locationsNextPageToken);
     }
 
     if (allBusinessProfiles.length === 0) {

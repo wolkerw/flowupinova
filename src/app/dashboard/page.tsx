@@ -364,20 +364,24 @@ export default function Dashboard() {
     if (!prompt.trim() || loading) return;
 
     const userMessage: Message = { sender: "user", text: prompt };
+    const currentHistory = [...messages];
     setMessages((prev) => [...prev, userMessage]);
     const currentPrompt = prompt;
     setPrompt("");
     setLoading(true);
 
     try {
-      const webhookUrl =
-        process.env.NEXT_PUBLIC_N8N_CHAT_URL || "https://webhook.flowupinova.com.br/webhook/chat";
+      const webhookUrl = "/api/chat";
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: currentPrompt }),
+        body: JSON.stringify({ 
+          message: currentPrompt,
+          history: currentHistory,
+          userId: user?.uid
+        }),
       });
 
       if (!response.ok) {

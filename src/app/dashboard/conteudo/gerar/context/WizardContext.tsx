@@ -4,10 +4,10 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getFriendlyErrorMessage } from "@/lib/utils";
-import { schedulePost } from "@/lib/services/posts-service";
+import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
@@ -174,6 +174,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
+  const [lastGeneratedText, setLastGeneratedText] = useState<string>("");
+
+  const handleSelectedImageChange = (url: string | null) => {
+    setSelectedImage(url);
+    setProcessedImageUrl(null); // Limpa a imagem processada com logo antigo ao mudar de imagem conceito
+  };
 
   const foundFilesRef = useRef<Set<string>>(new Set());
   const blobURLsRef = useRef<Set<string>>(new Set());
@@ -537,12 +543,30 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       : generatedContent[0];
     if (!selContent || !user) return;
 
+    const fullCaption = `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
+
+    // Se a legenda selecionada for idêntica à última gerada com sucesso e já temos imagens prontas,
+    // apenas evitamos regerar as imagens para economizar tempo, banda e evitar bugs
+    if (fullCaption === lastGeneratedText && generatedImages.length > 0) {
+      console.log("[WIZARD] O conteúdo de texto selecionado não mudou. Mantendo as imagens geradas anteriormente.");
+      return;
+    }
+
     setIsGeneratingImages(true);
     setCanStartPolling(false);
     setGeneratedImages([]);
     foundFilesRef.current.clear();
 
     try {
+      // Deletar o rascunho de post anterior ("draft") no Firestore local se o lojista decidir regerar as imagens
+      if (currentPostId) {
+        try {
+          await deletePost(user.uid, currentPostId);
+          console.log("[WIZARD] Post de rascunho anterior abandonado foi deletado do Firestore com sucesso.");
+        } catch (deleteError) {
+          console.error("[WIZARD] Erro ao deletar rascunho anterior obsoleto:", deleteError);
+        }
+      }
       const fullCaption = `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
@@ -573,7 +597,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           body: formData,
         });
 
-        if (!response.ok) throw new Error("Erro ao processar imagem de referência.");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.details || errorData.error || "Erro ao processar imagem de referência.");
+        }
 
         const result = await response.json();
         const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
@@ -582,6 +609,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         setGeneratedImages([imageUrl]);
         setSelectedImage(imageUrl);
+        setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
         setIsGeneratingImages(false);
         return;
       }
@@ -598,25 +626,51 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error("Não foi possível gerar os prompts.");
       }
 
+      console.log("[WIZARD] Prompts gerados localmente! Iniciando geração das imagens em paralelo via Google Imagen...");
+
       const filenames = ["1", "2", "3"];
-      const webhookPromises = filenames.map((fname, index) => {
+      const imageGenerationPromises = filenames.map(async (fname, index) => {
         const promptToUse = generatedPrompts[index] || generatedPrompts[0];
-        return fetch("https://webhook.flowupinova.com.br/webhook/gerador-imagem", {
+        
+        const imgResponse = await fetch("/api/generate-images", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: promptToUse,
             postId: postId,
             fileName: fname,
+            userId: user.uid,
             content: selContent,
           }),
         });
+
+        if (!imgResponse.ok) {
+          const errData = await imgResponse.json().catch(() => ({}));
+          throw new Error(errData.error || `Erro ao gerar a imagem ${fname}`);
+        }
+
+        const imgData = await imgResponse.json();
+        return imgData.imageUrl;
       });
 
-      const webhookResponses = await Promise.all(webhookPromises);
-      if (!webhookResponses.every((res) => res.ok)) throw new Error("Erro na geração de imagem.");
+      const imageUrls = await Promise.all(imageGenerationPromises);
+      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Supabase:", imageUrls);
 
-      setTimeout(() => setCanStartPolling(true), 10000);
+      // Atualizar o post no Firestore local a partir do frontend autenticado do usuário (usando as URLs estáveis do Supabase)
+      try {
+        const postDocRef = doc(db, "users", user.uid, "posts", postId);
+        await updateDoc(postDocRef, {
+          imageUrls: imageUrls
+        });
+        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens geradas.");
+      } catch (firestoreError) {
+        console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
+      }
+
+      setGeneratedImages(imageUrls);
+      setSelectedImage(imageUrls[0] || null);
+      setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
+      setIsGeneratingImages(false);
     } catch (error: any) {
       console.error(error);
       toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
@@ -640,7 +694,22 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
         const result = await response.json();
         if (response.ok && result?.[0]?.url_post) {
-          setProcessedImageUrl(result[0].url_post);
+          const finalNoLogoUrl = result[0].url_post;
+          setProcessedImageUrl(finalNoLogoUrl);
+
+          // Atualizar o rascunho temporário no Firestore local com a URL convertida (caso exista rascunho)
+          if (currentPostId) {
+            try {
+              const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
+              await updateDoc(postDocRef, {
+                imageUrls: [finalNoLogoUrl]
+              });
+              console.log("[WIZARD] Rascunho temporário atualizado com a imagem sem logotipo.");
+            } catch (firestoreError) {
+              console.error("[WIZARD] Erro ao salvar a imagem sem logo no Firestore local:", firestoreError);
+            }
+          }
+
           setStep(5);
         }
       } catch (error) {
@@ -666,7 +735,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(selectedImage);
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
       let positionX = 0, positionY = 0;
-      const margin = 16;
+      
+      // Margem proporcional baseada em 16px em relação ao tamanho máximo de 384px (max-w-sm) do preview no front
+      const margin = mainImageWidth * 0.04167;
 
       switch (logoPosition) {
         case "top-left": positionX = margin; positionY = margin; break;
@@ -692,7 +763,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/proxy-webhook?target=post_manual", { method: "POST", body: formData });
       const result = await response.json();
       if (!response.ok) throw new Error("Falha no webhook de personalização.");
-      setProcessedImageUrl(result?.[0]?.url_post);
+      
+      const finalLogoUrl = result?.[0]?.url_post;
+      setProcessedImageUrl(finalLogoUrl);
+
+      // Atualizar o rascunho temporário no Firestore local com a URL final com o logotipo aplicado
+      if (currentPostId) {
+        try {
+          const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
+          await updateDoc(postDocRef, {
+            imageUrls: [finalLogoUrl]
+          });
+          console.log("[WIZARD] Rascunho temporário atualizado com a imagem com logotipo aplicado.");
+        } catch (firestoreError) {
+          console.error("[WIZARD] Erro ao salvar a imagem com logo no Firestore local:", firestoreError);
+        }
+      }
+
       setStep(5);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao Processar", description: getFriendlyErrorMessage(error.message) });
@@ -746,6 +833,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (result.success) {
         toast({ title: "Sucesso!", description: publishMode === "now" ? "Post enviado." : "Post agendado." });
+        
+        // Deletar o rascunho temporário obsoleto do Firestore se a publicação foi concluída
+        if (currentPostId) {
+          try {
+            await deletePost(user.uid, currentPostId);
+            console.log("[WIZARD] Rascunho temporário deletado com sucesso para evitar post duplicado.");
+          } catch (deleteError) {
+            console.error("[WIZARD] Erro ao deletar rascunho temporário obsoleto:", deleteError);
+          }
+        }
+
         router.push("/dashboard/conteudo");
       } else {
         throw new Error(result.error);
@@ -786,7 +884,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WizardContext.Provider value={{
       step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId,
-      generatedImages, setGeneratedImages, selectedImage, setSelectedImage, processedImageUrl, setProcessedImageUrl,
+      generatedImages, setGeneratedImages, selectedImage, setSelectedImage: handleSelectedImageChange, processedImageUrl, setProcessedImageUrl,
       showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
       collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
       isGeneratingImages, setIsGeneratingImages, canStartPolling, contentHistory, unusedImagesHistory,

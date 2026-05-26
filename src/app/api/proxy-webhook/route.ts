@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   } else if (target === "gerador_link_referencia") {
     webhookUrl = "https://webhook.flowupinova.com.br/webhook/link-referência";
   } else if (target === "gerador_imagem_referencia") {
-    webhookUrl = settings.imgRefWebhook;
+    webhookUrl = `${request.nextUrl.origin}/api/conteudo/gerar-referencia`;
   } else {
     webhookUrl = settings.postManualWebhook;
   }

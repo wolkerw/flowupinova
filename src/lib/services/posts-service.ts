@@ -256,21 +256,21 @@ export async function schedulePost(
         mediaItem.file ? "Tem arquivo" : "Sem arquivo"
       );
 
-      // Se já temos uma URL pública real (não blob), usamos ela
-      if (mediaItem.publicUrl && !mediaItem.publicUrl.startsWith("blob:")) {
+      // Se já temos uma URL pública real (não blob e não base64), usamos ela
+      if (mediaItem.publicUrl && !mediaItem.publicUrl.startsWith("blob:") && !mediaItem.publicUrl.startsWith("data:")) {
         console.log(`[POST_SERVICE] Item ${index}: Usando URL pública existente.`);
         return mediaItem.publicUrl;
       }
 
-      // Se for um link 'blob:', precisamos baixar os dados binários para fazer o upload real
-      if (mediaItem.publicUrl && mediaItem.publicUrl.startsWith("blob:")) {
-        console.log(`[POST_SERVICE] Item ${index}: Convertendo blob URL...`);
+      // Se for um link 'blob:' ou 'data:' (base64), precisamos baixar/converter os dados binários para fazer o upload real no Storage
+      if (mediaItem.publicUrl && (mediaItem.publicUrl.startsWith("blob:") || mediaItem.publicUrl.startsWith("data:"))) {
+        console.log(`[POST_SERVICE] Item ${index}: Convertendo URL temporária (blob/base64)...`);
         const response = await fetch(mediaItem.publicUrl);
         const blob = await response.blob();
         const file = new File([blob], `generated_${Date.now()}.jpg`, {
           type: blob.type,
         });
-        console.log(`[POST_SERVICE] Item ${index}: Blob convertido, fazendo upload...`);
+        console.log(`[POST_SERVICE] Item ${index}: Imagem convertida com sucesso, fazendo upload permanente no Firebase Storage...`);
         return await uploadMediaAndGetURL(userId, file);
       }
 

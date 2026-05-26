@@ -1,0 +1,239 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { message, history = [], userId } = await request.json();
+
+    if (!message) {
+      return NextResponse.json({ error: "Mensagem não enviada" }, { status: 400 });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("[CHAT_VAPTI_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente.");
+      return NextResponse.json(
+        [{ output: "Olá! Fico muito feliz em falar com você! 🌟 Para ativarmos o meu cérebro e começarmos nosso brainstorming de posts, por favor, adicione a sua chave **GEMINI_API_KEY** no arquivo **.env.local** do seu projeto!" }],
+        { status: 200 }
+      );
+    }
+
+    // 1. Calcular Sazonalidade Dinâmica com Algoritmo de Antecipação Comercial
+    const now = new Date();
+    const dataHoraSP = now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    const ano = now.getFullYear();
+    const mesNumero = String(now.getMonth() + 1).padStart(2, "0");
+    const mesNome = now.toLocaleString("pt-BR", { month: "long" });
+    const diaMes = String(now.getDate()).padStart(2, "0");
+    const semanaDia = now.toLocaleString("pt-BR", { weekday: "long" });
+
+    // Função para calcular datas móveis e fixas do varejo brasileiro
+    const obterCampanhasDoAno = (anoCampanha: number) => {
+      const obterSegundoDomingo = (mesIndex: number) => {
+        const d = new Date(anoCampanha, mesIndex, 1);
+        let domingos = 0;
+        while (domingos < 2) {
+          if (d.getDay() === 0) domingos++;
+          if (domingos < 2) d.setDate(d.getDate() + 1);
+        }
+        return d;
+      };
+
+      const obterBlackFriday = () => {
+        const d = new Date(anoCampanha, 10, 30); // 30 de novembro
+        while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
+        return d;
+      };
+
+      return [
+        { nome: "Ano Novo", data: new Date(anoCampanha, 0, 1), foco: "Celebração, recomeço, metas e planejamento anual." },
+        { nome: "Carnaval", data: new Date(anoCampanha, 1, 16), foco: "Folia, alegria, ofertas de verão, engajamento e energia de bloco." }, // aproximado
+        { nome: "Dia Internacional da Mulher", data: new Date(anoCampanha, 2, 8), foco: "Homenagem, empoderamento feminino, presentes afetivos e autocuidado." },
+        { nome: "Dia do Consumidor", data: new Date(anoCampanha, 2, 15), foco: "Promoções de relacionamento, descontos exclusivos, cupons e fidelização." },
+        { nome: "Páscoa", data: new Date(anoCampanha, 3, 5), foco: "Ganchos doces, ovos de chocolate, família, união e presentes." }, // aproximado 2026
+        { nome: "Dia do Frete Grátis", data: new Date(anoCampanha, 3, 28), foco: "Incentivo a compras online rápidas, e-commerce e gatilho de frete grátis." },
+        { nome: "Dia das Mães", data: obterSegundoDomingo(4), foco: "Emoção profunda, gratidão, presentes afetivos, combos para mães e conexões familiares." },
+        { nome: "Dia dos Namorados", data: new Date(anoCampanha, 5, 12), foco: "Romantismo, casais, ideias de presentes especiais, jantares e ofertas em dobro." },
+        { nome: "Festas Juninas / São João", data: new Date(anoCampanha, 5, 24), foco: "Comidas típicas, arraiá, alegria, engajamento temático, quadrilhas e roupas xadrez." },
+        { nome: "Dia do Amigo", data: new Date(anoCampanha, 6, 20), foco: "Parcerias, cupom de indicação de amigos, compre 1 leve 2 e afeto." },
+        { nome: "Dia dos Pais", data: obterSegundoDomingo(7), foco: "Estilo, ferramentas, utilidade prática, homenagens masculinas e combos especiais." },
+        { nome: "Dia do Cliente", data: new Date(anoCampanha, 8, 15), foco: "Cupons de agradecimento, descontos VIP, brindes e fidelização máxima." },
+        { nome: "Dia das Crianças", data: new Date(anoCampanha, 9, 12), foco: "Diversão, brinquedos, nostalgia infantil e campanhas de marketing lúdicas." },
+        { nome: "Halloween", data: new Date(anoCampanha, 9, 31), foco: "Doces ou travessuras, descontos assustadores, campanhas temáticas e criatividade misteriosa." },
+        { nome: "Black Friday", data: obterBlackFriday(), foco: "Ofertas bombásticas de escassez, gatilhos de urgência extrema e grandes descontos." },
+        { nome: "Natal", data: new Date(anoCampanha, 11, 25), foco: "Presentes de amigo secreto, confraternização, espírito natalino e campanhas afetivas." },
+        { nome: "Ano Novo (Véspera)", data: new Date(anoCampanha, 11, 31), foco: "Festas de réveillon, retrospectiva anual e renovação de ciclos." }
+      ];
+    };
+
+    const hojeZeroHora = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const campanhas = obterCampanhasDoAno(ano);
+    
+    // Filtrar campanhas futuras (ou que ocorrem hoje)
+    const campanhasFuturas = campanhas
+      .filter(c => c.data.getTime() >= hojeZeroHora.getTime())
+      .sort((a, b) => a.data.getTime() - b.data.getTime());
+
+    let proximaCampanhaInfo = "";
+    let nomeProximaCampanha = "";
+    if (campanhasFuturas.length > 0) {
+      const proxima = campanhasFuturas[0];
+      const diffTime = proxima.data.getTime() - hojeZeroHora.getTime();
+      const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      nomeProximaCampanha = proxima.nome;
+
+      if (diasRestantes === 0) {
+        proximaCampanhaInfo = `\nHOJE É O GRANDE DIA DA SEGUINTE CAMPANHA:\n- Nome da Campanha: **${proxima.nome}** (Ocorre HOJE!)\n- Foco Comercial da Campanha: ${proxima.foco}\nIncentive fortemente o usuário a criar e publicar postagens de última hora imediatamente!\n`;
+      } else {
+        proximaCampanhaInfo = `\nPRÓXIMO ALVO DE CAMPANHA SAZONAL COM ANTECEDÊNCIA:\n- Nome da Campanha: **${proxima.nome}**\n- Data do Evento: ${proxima.data.toLocaleDateString("pt-BR")}\n- Dias Restantes para o Planejamento: Faltam exatamente **${diasRestantes} dias**!\n- Foco Comercial da Campanha: ${proxima.foco}\nComo faltam ${diasRestantes} dias, sua missão é incentivar proativamente o planejamento antecipado desta campanha, sugerindo ideias com antecedência ideal para que o lojista crie e programe seus posts!\n`;
+      }
+    } else {
+      proximaCampanhaInfo = `\nFoco comercial genérico do mês de ${mesNome}.\n`;
+    }
+
+    // 2. Buscar informações do Perfil do Negócio no Firestore se houver userId
+    let businessContext = "";
+    if (userId) {
+      try {
+        console.log(`[CHAT_VAPTI] Buscando perfil do negócio para o usuário: ${userId}...`);
+        const profileDocRef = doc(db, `users/${userId}/business/profile`);
+        const docSnap = await getDoc(profileDocRef);
+        if (docSnap.exists()) {
+          const bizData = docSnap.data();
+          if (bizData) {
+            const parts = [];
+            if (bizData.name) parts.push(`- Nome da Marca: ${bizData.name}`);
+            if (bizData.category) parts.push(`- Nicho/Categoria: ${bizData.category}`);
+            if (bizData.description) parts.push(`- Descrição do Negócio: ${bizData.description}`);
+            if (bizData.slogan) parts.push(`- Slogan: ${bizData.slogan}`);
+            if (bizData.targetAudience) parts.push(`- Público-Alvo: ${bizData.targetAudience}`);
+            if (bizData.toneOfVoice) parts.push(`- Tom de Voz: ${bizData.toneOfVoice}`);
+            if (bizData.primaryColor || bizData.secondaryColor) {
+              parts.push(`- Cores da Marca: Primária (${bizData.primaryColor || "N/A"}), Secundária (${bizData.secondaryColor || "N/A"})`);
+            }
+            if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
+              parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);
+            }
+            
+            if (parts.length > 0) {
+              businessContext = `\nINFORMAÇÕES REAIS DO NEGÓCIO DO USUÁRIO (CADASTRADAS NA PLATAFORMA):\n${parts.join("\n")}\nUse estas informações reais acima para personalizar todas as suas respostas, ideias de campanhas e sugerões de cores para a marca do usuário. Demonstre de forma sutil que você conhece profundamente o negócio dele!\n`;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[CHAT_VAPTI] Erro ao buscar perfil do negócio no Firestore:", err);
+      }
+    }
+
+    // 3. Construir o System Instruction (Instrução do Sistema) para o Gemini
+    const systemInstructionText = `
+Você é o Vapti, especialista sênior em marketing digital, mídias sociais e inteligência artificial da FlowUp.
+Você é um consultor criativo de alta performance, parceiro de brainstorming estratégico, dinâmico e cheerleader dos seus usuários.
+Seu tom é entusiasmado, motivador, persuasivo e altamente focado em resultados rápidos e atrativos!
+${businessContext}
+CONTEXTO TEMPORAL E COMEMORATIVO REAL:
+- Data/Hora Atual: ${dataHoraSP}
+- Mês da Campanha Sazonal: ${mesNome} (Mês ${mesNumero} de ${ano})
+- Dia da Semana: ${semanaDia}, Dia ${diaMes}
+${proximaCampanhaInfo}
+PROATIVIDADE SAZONAL E MARKETING ESTILO "GROWTH HACKER" (CRÍTICO):
+1. Seja Ultra Proativo: Não espere o usuário pedir ideias genéricas. Se for o início do chat ou a primeira oportunidade, traga imediatamente o gancho do seu próximo alvo comercial sazonal detalhado acima e sugira 1 ideia de campanha cirúrgica e explosiva para o momento!
+2. Pense como Especialista: Ao sugerir posts ou legendas, utilize formatos estratégicos de redes sociais de alta performance (ex: "Carrossel de 3 slides (Gancho forte + Conteúdo prático + Chamada para Ação)", "Post com gatilho mental de urgência/exclusividade", "Ideia de Reels de bastidores com áudio em alta").
+3. Estruturação em Bloco de Resposta (Tamanho Conciso, Máx. 400 caracteres):
+   - Conexão e Elogio: "Que nicho fantástico! 🚀" ou "Amei essa ideia de campanha!"
+   - Ação Estratégica Sazonal: Proponha uma ideia de campanha super proativa baseada na data comemorativa comercial futura mais próxima.
+   - Exemplo Prático de Conteúdo: Forneça uma frase curta de legenda irresistível ou roteiro de Stories rápido de 1 linha.
+   - Chamada para a Ação: Lembre o usuário de ir à seção de "Criar Conteúdo" no menu lateral esquerdo do app da FlowUp para criar essa postagem em segundos.
+   - Pergunta de Fechamento Magnética: Faça uma pergunta rápida para engajar o brainstorm (ex: "Bora colocar esse carrossel para rodar? ✨").
+
+DIRETRIZES DE ESTILO:
+- Responda SEMPRE em Português do Brasil de forma extremamente dinâmica, magnética e concisa.
+- MÁXIMO absoluto de 3 a 4 frases curtas (cerca de 350-400 caracteres) por mensagem. Sem blocos densos ou textos longos!
+- Na PRIMEIRA interação do chat, se as INFORMAÇÕES REAIS DO NEGÓCIO acima estiverem vazias e você ainda não souber o nicho ou as cores da marca do usuário, elogie a entrada dele e pergunte sutilmente as cores e o nicho enquanto já propõe um gancho sazonal antecipado sobre a campanha de ${nomeProximaCampanha || mesNome}!
+`;
+
+    // 4. Formatar o histórico no padrão aceito pelo Gemini REST
+    const formattedContents = [];
+
+    if (history && history.length > 0) {
+      for (const msg of history) {
+        formattedContents.push({
+          role: msg.sender === "ai" ? "model" : "user",
+          parts: [{ text: msg.text }]
+        });
+      }
+    }
+
+    // Adiciona a mensagem atual do usuário
+    formattedContents.push({
+      role: "user",
+      parts: [{ text: message }]
+    });
+
+    // 4. Disparar chamada REST com Fallback Automático Resiliente
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+    let aiResponseText = "";
+    let lastError: any = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        console.log(`[CHAT_VAPTI] Enviando requisição para a API do Gemini usando modelo: ${model}...`);
+        
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [
+                { text: systemInstructionText }
+              ]
+            },
+            contents: formattedContents,
+            generationConfig: {
+              temperature: 0.7,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erro na API do Gemini (status ${response.status}): ${errorText}`);
+        }
+
+        const resData = await response.json();
+        const candidateText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!candidateText) {
+          throw new Error(`Resposta do Gemini vazia ou em formato inesperado`);
+        }
+
+        aiResponseText = candidateText.trim();
+        // Se conseguiu responder com sucesso, interrompe o loop!
+        break;
+      } catch (err: any) {
+        console.warn(`[CHAT_VAPTI_WARN] Falha ao chamar o modelo ${model}:`, err.message || err);
+        lastError = err;
+        // Continua para o próximo modelo no loop
+      }
+    }
+
+    if (!aiResponseText) {
+      throw new Error(`Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`);
+    }
+
+    console.log(`[CHAT_VAPTI] Resposta do assistente: "${aiResponseText}"`);
+
+    // Retorna no formato esperado pelo frontend da FlowUp
+    return NextResponse.json([{ output: aiResponseText }]);
+  } catch (error: any) {
+    console.error("[CHAT_VAPTI_ERROR] Erro no processamento da mensagem:", error);
+    return NextResponse.json(
+      [{ output: "Olá! Tive um breve soluço ao processar sua mensagem. Que tal tentarmos novamente?" }],
+      { status: 200 } // Retorna status 200 com mensagem amigável para não travar a UI
+    );
+  }
+}

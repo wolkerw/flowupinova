@@ -1,97 +1,94 @@
 import { NextResponse } from "next/server";
-import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const settings = await getGlobalSettings();
-  const webhookUrl = settings.generateImagesWebhook;
-
   try {
-    const payload = await request.json();
-    const webhookPayload = payload.publicacoes ? payload : { publicacoes: payload };
+    const { prompt, postId, fileName, userId, content } = await request.json();
 
-    const webhookResponse = await fetch(webhookUrl, {
+    if (!prompt || !postId || !fileName || !userId) {
+      return NextResponse.json(
+        { error: "Campos obrigatórios ausentes: prompt, postId, fileName, userId" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[GENERATE_IMAGES_NATIVE] Disparando geração via proxy n8n (Google Imagen) para o post ${postId} (Arquivo: ${fileName})...`);
+
+    // 1. Chamar o webhook de geração de imagem no n8n (que atua como proxy geográfico nos EUA para contornar o bloqueio 404 do AI Studio no Brasil)
+    const n8nResponse = await fetch("https://webhook.flowupinova.com.br/webhook/gerador-imagem", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Server-Timeout": settings.serverTimeout,
       },
-      body: JSON.stringify(webhookPayload),
+      body: JSON.stringify({
+        prompt: prompt,
+        postId: postId,
+        fileName: fileName,
+        content: content || {},
+      }),
     });
 
-    const responseText = await webhookResponse.text();
+    if (!n8nResponse.ok) {
+      const errorText = await n8nResponse.text();
+      console.error(`[GENERATE_IMAGES_NATIVE] Erro no proxy n8n (status ${n8nResponse.status}):`, errorText);
+      throw new Error(`Erro na geração de imagem via proxy n8n: ${errorText}`);
+    }
 
-    if (!webhookResponse.ok) {
-      console.error("[API_GENERATE_IMAGES] Webhook error:", webhookResponse.status, responseText);
-      let errorDetails = `O serviço de geração de imagens retornou um erro (HTTP ${webhookResponse.status}).`;
+    console.log(`[GENERATE_IMAGES_NATIVE] Imagem gerada com sucesso! Buscando o link público estável no Supabase...`);
+
+    // 2. Buscar a imagem gerada no Supabase (loop sutil de segurança para aguardar a sincronização)
+    let imageUrlFromSupabase = "";
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (attempts < maxAttempts) {
       try {
-        const errorJson = JSON.parse(responseText);
-        errorDetails = errorJson.detail || errorJson.error || JSON.stringify(errorJson);
-      } catch (e) {
-        if (responseText.toLowerCase().includes("<html>")) {
-          errorDetails =
-            "O serviço de geração de imagens demorou muito para responder (timeout). Tente novamente.";
-        } else {
-          errorDetails = responseText.substring(0, 200);
+        const seekResponse = await fetch("https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            postId: postId,
+            filename: fileName,
+            fileExtension: "png"
+          })
+        });
+
+        if (seekResponse.ok) {
+          const contentType = seekResponse.headers.get("content-type");
+          if (contentType?.includes("application/json")) {
+            const data = await seekResponse.json();
+            imageUrlFromSupabase = Array.isArray(data) ? data[0]?.url_post : data?.url_post;
+          } else {
+            imageUrlFromSupabase = `https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/posts/${postId}/${fileName}.png`;
+          }
+          if (imageUrlFromSupabase) break;
         }
+      } catch (err) {
+        console.warn(`[GENERATE_IMAGES_NATIVE] Tentativa ${attempts + 1} de busca falhou.`, err);
       }
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Falha ao comunicar com o webhook de geração de imagem.",
-          details: errorDetails,
-        },
-        { status: webhookResponse.status }
-      );
+      
+      attempts++;
+      await new Promise(r => setTimeout(r, 1000));
     }
 
-    if (!responseText) {
-      return NextResponse.json(
-        { success: false, error: "O webhook de imagem retornou uma resposta vazia." },
-        { status: 500 }
-      );
+    if (!imageUrlFromSupabase) {
+      imageUrlFromSupabase = `https://wlsmvzahqkilggnovxde.supabase.co/storage/v1/object/public/FlowUp/posts/${postId}/${fileName}.png`;
     }
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error("[API_GENERATE_IMAGES] JSON.parse error on webhook response:", responseText);
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Formato de resposta do webhook de imagem inesperado (não é JSON).",
-          details: responseText,
-        },
-        { status: 500 }
-      );
-    }
+    console.log(`[GENERATE_IMAGES_NATIVE] Sucesso absoluto! URL obtida do Supabase: ${imageUrlFromSupabase}`);
 
-    if (!Array.isArray(data)) {
-      console.error(
-        "[API_GENERATE_IMAGES] Formato de resposta do webhook de imagem inesperado (não é um array):",
-        data
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Formato de resposta do webhook de imagem inesperado (não é um array).",
-          details: JSON.stringify(data, null, 2),
-        },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: data });
+    // Ignoramos a gravação direta no Firestore pelo backend para evitar o erro de permissão (PERMISSION_DENIED).
+    // O frontend autenticado fará a gravação desse link público com sucesso.
+    return NextResponse.json({
+      success: true,
+      imageUrl: imageUrlFromSupabase,
+      fileName: fileName
+    });
   } catch (error: any) {
-    console.error("[API_GENERATE_IMAGES] Internal server error:", error);
+    console.error("[GENERATE_IMAGES_NATIVE_ERROR] Erro no processamento da imagem:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Erro interno do servidor ao processar a geração de imagens.",
-        details: error.message,
-      },
+      { success: false, error: "Erro interno ao processar a geração de imagem.", details: error.message },
       { status: 500 }
     );
   }
