@@ -670,7 +670,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setGeneratedImages(imageUrls);
       setSelectedImage(imageUrls[0] || null);
       setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
-      setIsGeneratingImages(false);
+      
+      // Ativa o polling assíncrono para carregar as imagens reais na tela conforme sobem no Supabase
+      setCanStartPolling(true);
+      // Mantemos o spinner rodando; o polling se encarregará de desativá-lo automaticamente quando as 3 imagens reais existirem
+
     } catch (error: any) {
       console.error(error);
       toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
