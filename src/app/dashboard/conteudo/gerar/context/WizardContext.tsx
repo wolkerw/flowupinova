@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, arrayUnion } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -691,24 +692,73 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                   throw new Error("URL da imagem final não fornecida pela IA.");
                 }
 
-                console.log("[WIZARD] Geração por referência concluída com sucesso:", finalImageUrl);
-
-                // Salvar a imagem no Firestore do cliente (Autenticado!)
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
-                  imageUrls: [finalImageUrl],
-                  status: "completed"
-                });
-
+                console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
+                
                 toast({
-                  title: "Sucesso!",
-                  description: "Sua imagem publicitária foi gerada perfeitamente!",
+                  title: "Salvando imagem no Firebase",
+                  description: "Fazendo upload permanente da imagem para o seu Firebase Storage...",
                 });
 
-                setGeneratedImages([finalImageUrl]);
-                setSelectedImage(finalImageUrl);
-                setLastGeneratedText(fullCaption);
-                setIsGeneratingImages(false);
+                // Executar o fluxo em background para não travar a UI
+                (async () => {
+                  try {
+                    // 1. Download do arquivo do Fal.ai
+                    const imgResponse = await fetch(finalImageUrl);
+                    const imgBlob = await imgResponse.blob();
+
+                    // 2. Upload para o Firebase Storage
+                    const storageRef = ref(storage, `users/${user.uid}/posts/${postId}/generated_image.jpg`);
+                    await uploadBytes(storageRef, imgBlob);
+                    const firebaseDownloadUrl = await getDownloadURL(storageRef);
+
+                    // 3. Upload da imagem de referência (se existir)
+                    let firebaseRefUrl = null;
+                    if (referenceImageFile) {
+                      const refStorageRef = ref(storage, `users/${user.uid}/posts/${postId}/reference_image.jpg`);
+                      await uploadBytes(refStorageRef, referenceImageFile);
+                      firebaseRefUrl = await getDownloadURL(refStorageRef);
+                    }
+
+                    // 4. Salvar as URLs permanentes no Firestore
+                    const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                    await updateDoc(postDocRef, {
+                      imageUrls: [firebaseDownloadUrl],
+                      referenceImageUrl: firebaseRefUrl,
+                      status: "completed"
+                    });
+
+                    toast({
+                      title: "Sucesso!",
+                      description: "Sua imagem publicitária foi gerada e armazenada de forma permanente no Firebase Storage!",
+                    });
+
+                    setGeneratedImages([firebaseDownloadUrl]);
+                    setSelectedImage(firebaseDownloadUrl);
+                    setLastGeneratedText(fullCaption);
+                    setIsGeneratingImages(false);
+                  } catch (storageErr: any) {
+                    console.error("[WIZARD] Erro ao gravar no Firebase Storage:", storageErr);
+                    
+                    // Em caso de erro do storage, salvamos o link temporário da Fal.ai como fallback
+                    const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                    await updateDoc(postDocRef, {
+                      imageUrls: [finalImageUrl],
+                      status: "completed",
+                      storageError: storageErr.message || "Erro de permissão no Firebase Storage"
+                    });
+
+                    toast({
+                      variant: "destructive",
+                      title: "Aviso de Armazenamento",
+                      description: "A imagem foi gerada, mas houve uma falha ao salvar permanentemente no Firebase Storage. Usando URL temporária.",
+                    });
+
+                    setGeneratedImages([finalImageUrl]);
+                    setSelectedImage(finalImageUrl);
+                    setLastGeneratedText(fullCaption);
+                    setIsGeneratingImages(false);
+                  }
+                })();
 
               } else if (statusData.status === "FAILED") {
                 clearInterval(pollInterval);
