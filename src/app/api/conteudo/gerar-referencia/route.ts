@@ -305,23 +305,43 @@ ${yamlAnalysis}`;
 
         // Ao final de tudo, gravamos o link gerado diretamente no post correspondente no Firestore local
         if (postId && userId) {
-          const postRef = doc(db, "users", userId, "posts", postId);
-          await updateDoc(postRef, {
-            imageUrls: [outputUrl]
-          });
-          console.log(`[GERAR_REFERENCIA_BG] Documento do post ${postId} atualizado com a imagem final gerada.`);
+          try {
+            const { adminDb } = await import("@/lib/firebase-admin");
+            const postRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+            await postRef.update({
+              imageUrls: [outputUrl]
+            });
+            console.log(`[GERAR_REFERENCIA_BG] Documento do post ${postId} atualizado com a imagem final gerada via adminDb.`);
+          } catch (dbAdminErr: any) {
+            console.error("[GERAR_REFERENCIA_BG_ERROR] Falha ao atualizar via adminDb, tentando fallback:", dbAdminErr);
+            const postRef = doc(db, "users", userId, "posts", postId);
+            await updateDoc(postRef, {
+              imageUrls: [outputUrl]
+            });
+          }
         }
       } catch (bgError: any) {
         console.error("[GERAR_REFERENCIA_BG_ERROR] Erro na geração em segundo plano:", bgError);
         if (postId && userId) {
           try {
-            const postRef = doc(db, "users", userId, "posts", postId);
-            await updateDoc(postRef, {
+            const { adminDb } = await import("@/lib/firebase-admin");
+            const postRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+            await postRef.update({
               status: "failed",
               failureReason: bgError.message || "Erro interno ao processar a geração de imagem por referência."
             });
+            console.log(`[GERAR_REFERENCIA_BG] Documento do post ${postId} atualizado com status failed via adminDb.`);
           } catch (dbErr) {
-            console.error("[GERAR_REFERENCIA_BG_ERROR] Falha ao gravar erro no Firestore:", dbErr);
+            console.error("[GERAR_REFERENCIA_BG_ERROR] Falha ao gravar erro no Firestore via adminDb, tentando fallback:", dbErr);
+            try {
+              const postRef = doc(db, "users", userId, "posts", postId);
+              await updateDoc(postRef, {
+                status: "failed",
+                failureReason: bgError.message || "Erro interno ao processar a geração de imagem por referência."
+              });
+            } catch (fallbackErr) {
+              console.error("[GERAR_REFERENCIA_BG_ERROR] Falha total no fallback Firestore:", fallbackErr);
+            }
           }
         }
       }
