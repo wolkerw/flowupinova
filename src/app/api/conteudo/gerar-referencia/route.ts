@@ -290,18 +290,39 @@ export async function GET(request: NextRequest) {
       }
 
       const checkData = await checkResponse.json();
+      console.log(`[GERAR_REFERENCIA] Dados obtidos no status de requests para ${requestId}:`, JSON.stringify(checkData));
 
       let imageUrl = null;
       if (checkData.status === "COMPLETED") {
+        // Tenta extrair diretamente da resposta principal
         imageUrl = 
-          checkData?.logs || 
-          checkData?.output?.image?.url || 
+          checkData?.images?.[0]?.url || 
+          checkData?.image?.url || 
           checkData?.output?.images?.[0]?.url || 
-          checkData?.image?.url ||
-          checkData?.images?.[0]?.url;
+          checkData?.output?.image?.url;
 
-        if (!imageUrl && checkData?.output) {
-          imageUrl = checkData.output.image?.url || checkData.output.images?.[0]?.url;
+        // Se não encontrar, tenta buscar no response_url
+        if (!imageUrl && checkData.response_url) {
+          const responseUrl = checkData.response_url;
+          console.log(`[GERAR_REFERENCIA] Buscando resultado no response_url secundário: ${responseUrl}`);
+          
+          const resultResponse = await fetch(responseUrl, {
+            method: "GET",
+            headers: {
+              "Authorization": `Key ${rawFalKey}`
+            }
+          });
+
+          if (resultResponse.ok) {
+            const resultData = await resultResponse.json();
+            imageUrl = 
+              resultData?.images?.[0]?.url || 
+              resultData?.image?.url || 
+              resultData?.output?.images?.[0]?.url || 
+              resultData?.output?.image?.url;
+          } else {
+            console.error("[GERAR_REFERENCIA] Falha ao ler response_url secundário:", await resultResponse.text());
+          }
         }
       }
 
