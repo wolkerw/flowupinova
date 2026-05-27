@@ -123,10 +123,20 @@ If the image depicts a CHARACTER:
     }
 
     if (action === "generate-prompt") {
-      const { yamlAnalysis, description } = await request.json();
+      const { yamlAnalysis, description, businessProfile } = await request.json();
 
       if (!yamlAnalysis || !description) {
         return NextResponse.json({ error: "Campos 'yamlAnalysis' ou 'description' ausentes." }, { status: 400 });
+      }
+
+      let brandingInstruction = "";
+      if (businessProfile) {
+        const { name, category, primaryColor, secondaryColor } = businessProfile;
+        brandingInstruction = `
+6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryColor || "#000000"} and Secondary: ${secondaryColor || "#FFFFFF"}).
+   - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
+   - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
+`;
       }
 
       const geminiSystemInstruction = `# ROLE
@@ -145,7 +155,7 @@ Given a reference image description (extracted features in YAML) and the user's 
    - You MUST include a phrase like: "framed in a balanced medium shot showing the model from the chest up, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
    - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
 5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
-
+${brandingInstruction}
 # UGC REALISM & CAMERAS (Include at least 2-3 in the prompt)
 - Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition with generous headroom", "medium shot with clear space above the head".
 - Lighting: "natural indoor morning light", "ambient daylight mixed with soft neon", "soft natural shadows".

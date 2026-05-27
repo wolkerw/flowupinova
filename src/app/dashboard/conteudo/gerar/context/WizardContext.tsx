@@ -624,6 +624,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               yamlAnalysis,
               description: referenceDescription,
+              businessProfile: businessProfile,
             }),
           });
 
@@ -836,7 +837,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/generate-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: selContent }),
+        body: JSON.stringify({ 
+          content: selContent, 
+          businessProfile: businessProfile 
+        }),
       });
       const data = await response.json();
       const generatedPrompts = data?.[0]?.output?.prompt;
