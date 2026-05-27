@@ -140,10 +140,11 @@ Given a reference image description (extracted features in YAML) and the user's 
 2. TEXT PRESERVATION: If there is any literal text to be rendered (e.g., brand names, shirt prints), specify it inside escaped double quotes exactly as it appears in the reference description. 
    - Example: "...wearing a shirt with the literal text \\"NOME DA MARCA\\" printed in clean typography..."
 3. DO NOT HALLUCINATE: Never invent certifications, stamps, or long subtitles to be rendered on the product. Prohibit rendering long subtitles inside the physical image.
-4. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
+4. HEAD AND HAIR FULLY IN FRAME (CRITICAL): If the image features a person, you MUST explicitly state that the person's entire head, hair, and face are completely visible and fully contained within the frame. There must be clear headroom (empty space) at the top of the image to ensure the top of their head and hair are never cut off. Avoid extreme close-ups or crops that cut off the head.
+5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
 
 # UGC REALISM & CAMERAS (Include at least 2-3 in the prompt)
-- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "slightly off-center composition".
+- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition", "medium shot with adequate headroom".
 - Lighting: "natural indoor morning light", "ambient daylight mixed with soft neon", "soft natural shadows".
 - Texture: "raw unpolished look", "subtle film grain", "realistic skin textures", "natural imperfections".
 - Strict ban: Never use artificial terms like "cinematic lighting", "photorealistic", "4k", "8k", or "masterpiece".
@@ -153,11 +154,12 @@ If the reference image is clothing/apparel, describe a real human model wearing 
 - Specify how the fabric falls, its texture (e.g., "textured linen", "soft cotton"), and details like buttons, prints, or specific cuts.
 - Describe the model interacting naturally with the environment (e.g., "walking casually", "sitting relaxed").
 - Ensure the model matches the user's requested scenario (e.g., "on a sunny beach during golden hour").
+- EXPLICITLY state: "The model's entire head, hair, and face are fully visible, beautifully framed with clear headroom at the top of the image, ensuring no part of the head or hair is cut off by the border".
 
 # OUTPUT FORMAT (Strict JSON)
 You must return exclusively a valid JSON object with the following single key. Do not include any explanations, introductory or concluding text:
 {
-  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, ending with the square format instruction."
+  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, explicitly detailing that the entire head and hair are fully visible inside the frame with headroom, and ending with the square format instruction."
 }`;
 
       const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
