@@ -244,7 +244,12 @@ ${yamlAnalysis}`;
       }
 
       const queueData = await queueResponse.json();
-      return NextResponse.json({ success: true, requestId: queueData.request_id });
+      return NextResponse.json({
+        success: true,
+        requestId: queueData.request_id,
+        statusUrl: queueData.status_url,
+        responseUrl: queueData.response_url
+      });
     }
 
     return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
@@ -271,14 +276,16 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    const requestId = searchParams.get("requestId");
+    const statusUrl = searchParams.get("statusUrl");
+    const responseUrl = searchParams.get("responseUrl");
 
     if (action === "check-status") {
-      if (!requestId) {
-        return NextResponse.json({ error: "requestId ausente." }, { status: 400 });
+      if (!statusUrl || !responseUrl) {
+        return NextResponse.json({ error: "statusUrl ou responseUrl ausentes." }, { status: 400 });
       }
 
-      const checkResponse = await fetch(`https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${requestId}`, {
+      console.log(`[GERAR_REFERENCIA] Consultando status via statusUrl dinâmico: ${statusUrl}`);
+      const checkResponse = await fetch(statusUrl, {
         method: "GET",
         headers: {
           "Authorization": `Key ${rawFalKey}`
@@ -286,43 +293,36 @@ export async function GET(request: NextRequest) {
       });
 
       if (!checkResponse.ok) {
-        throw new Error(await checkResponse.text());
+        const errorText = await checkResponse.text();
+        console.error(`[GERAR_REFERENCIA] Falha ao consultar status na Fal.ai (Status ${checkResponse.status}):`, errorText);
+        throw new Error(`Falha ao consultar status na Fal.ai (Status ${checkResponse.status}): ${errorText}`);
       }
 
       const checkData = await checkResponse.json();
-      console.log(`[GERAR_REFERENCIA] Dados obtidos no status de requests para ${requestId}:`, JSON.stringify(checkData));
+      console.log("[GERAR_REFERENCIA] Dados obtidos no status de requests:", JSON.stringify(checkData));
 
       let imageUrl = null;
       if (checkData.status === "COMPLETED") {
-        // Tenta extrair diretamente da resposta principal
-        imageUrl = 
-          checkData?.images?.[0]?.url || 
-          checkData?.image?.url || 
-          checkData?.output?.images?.[0]?.url || 
-          checkData?.output?.image?.url;
-
-        // Se não encontrar, tenta buscar no response_url
-        if (!imageUrl && checkData.response_url) {
-          const responseUrl = checkData.response_url;
-          console.log(`[GERAR_REFERENCIA] Buscando resultado no response_url secundário: ${responseUrl}`);
-          
-          const resultResponse = await fetch(responseUrl, {
-            method: "GET",
-            headers: {
-              "Authorization": `Key ${rawFalKey}`
-            }
-          });
-
-          if (resultResponse.ok) {
-            const resultData = await resultResponse.json();
-            imageUrl = 
-              resultData?.images?.[0]?.url || 
-              resultData?.image?.url || 
-              resultData?.output?.images?.[0]?.url || 
-              resultData?.output?.image?.url;
-          } else {
-            console.error("[GERAR_REFERENCIA] Falha ao ler response_url secundário:", await resultResponse.text());
+        console.log(`[GERAR_REFERENCIA] Status COMPLETED! Buscando resultado real no responseUrl: ${responseUrl}`);
+        
+        const resultResponse = await fetch(responseUrl, {
+          method: "GET",
+          headers: {
+            "Authorization": `Key ${rawFalKey}`
           }
+        });
+
+        if (resultResponse.ok) {
+          const resultData = await resultResponse.json();
+          console.log("[GERAR_REFERENCIA] Dados de resultado recebidos da Fal:", JSON.stringify(resultData));
+          
+          imageUrl = 
+            resultData?.images?.[0]?.url || 
+            resultData?.image?.url || 
+            resultData?.output?.images?.[0]?.url || 
+            resultData?.output?.image?.url;
+        } else {
+          console.error("[GERAR_REFERENCIA] Falha ao ler responseUrl secundário:", await resultResponse.text());
         }
       }
 

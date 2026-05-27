@@ -655,8 +655,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             throw new Error(errData.error || "Falha ao submeter imagem para a IA.");
           }
 
-          const { requestId } = await submitResponse.json();
-          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId);
+          const submitResult = await submitResponse.json();
+          const { requestId, statusUrl, responseUrl } = submitResult;
+          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl);
 
           // --- ETAPA 4: POLLING DA FILA ---
           toast({
@@ -671,7 +672,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             attempts++;
             try {
               console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
-              const statusResponse = await fetch(`/api/conteudo/gerar-referencia?action=check-status&requestId=${requestId}`);
+              const statusResponse = await fetch(
+                `/api/conteudo/gerar-referencia?action=check-status&statusUrl=${encodeURIComponent(statusUrl)}&responseUrl=${encodeURIComponent(responseUrl)}`
+              );
               
               if (!statusResponse.ok) {
                 console.warn("[WIZARD] Erro ao buscar status.");
