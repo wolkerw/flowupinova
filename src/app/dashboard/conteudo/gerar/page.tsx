@@ -21,8 +21,11 @@ function WizardContent() {
     isPublishing,
     selectedImage,
     selectedContentId,
-    referenceImageFile
+    referenceImageFile,
+    mode
   } = useWizard();
+
+  const isReferenceMode = mode === "reference-photo" || mode === "reference-link";
 
   const wizardSteps = [
     { number: 1, label: "Ideia" },
@@ -39,7 +42,7 @@ function WizardContent() {
         <p className="mt-1 text-gray-600">
           {step === 1 && "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
-          {step === 3 && (referenceImageFile 
+          {step === 3 && (isReferenceMode 
             ? "Etapa 3: Veja a imagem criada a partir do seu produto." 
             : "Etapa 3: Gere e selecione a melhor imagem para o seu post.")}
           {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}

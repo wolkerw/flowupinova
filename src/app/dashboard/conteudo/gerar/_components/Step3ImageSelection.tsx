@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
-
+ 
 export const Step3ImageSelection = () => {
   const {
     generatedImages,
@@ -29,12 +29,14 @@ export const Step3ImageSelection = () => {
     isGeneratingImages,
     handleDownloadImage: onDownload,
     referenceImageFile,
+    mode,
   } = useWizard();
 
   const onBack = () => setStep(2);
   const onNext = () => setStep(4);
 
-  const maxImages = referenceImageFile ? 1 : 3;
+  const isReferenceMode = mode === "reference-photo" || mode === "reference-link";
+  const maxImages = isReferenceMode ? 1 : 3;
 
   return (
     <motion.div
@@ -46,7 +48,7 @@ export const Step3ImageSelection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <ImageIcon className="h-6 w-6 text-accent" />
-            {maxImages === 1 ? "Etapa 3: Sua imagem gerada" : "Etapa 3: Escolha a melhor imagem"}
+            {maxImages === 1 ? "Etapa 3: Imagem gerada pela IA" : "Etapa 3: Escolha a melhor imagem"}
           </CardTitle>
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
@@ -55,7 +57,7 @@ export const Step3ImageSelection = () => {
                   ? "Sua imagem publicitária foi criada a partir do seu produto!" 
                   : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post.")
                 : (generatedImages.length > 0 
-                  ? "Selecione a imagem gerada pela IA para usar em seu post."
+                  ? "Selecione a imagem gerada pela IA para usar no seu post."
                   : "Clique no botão abaixo para gerar as opções de imagem para o seu post.")
               }
             </p>

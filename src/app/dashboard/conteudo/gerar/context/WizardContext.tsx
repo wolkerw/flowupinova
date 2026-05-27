@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, arrayUnion } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
@@ -672,6 +672,30 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           
           const pollInterval = setInterval(async () => {
             attempts++;
+            
+            // Verificação de timeout garantida no topo absoluto do intervalo
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
+              try {
+                const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                await setDoc(postDocRef, {
+                  status: "failed",
+                  failureReason: timeoutMsg
+                }, { merge: true });
+              } catch (fsErr) {
+                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
+              }
+
+              toast({
+                variant: "destructive",
+                title: "Tempo Esgotado",
+                description: "A IA demorou muito para responder. Por favor, tente novamente.",
+              });
+              setIsGeneratingImages(false);
+              return;
+            }
+
             try {
               console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
               const statusResponse = await fetch(
@@ -679,7 +703,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               );
               
               if (!statusResponse.ok) {
-                console.warn("[WIZARD] Erro ao buscar status.");
+                console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
                 return;
               }
 
@@ -732,14 +756,14 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                   } catch (err: any) {
                     console.warn("[WIZARD] Falha ao baixar imagem via proxy, usando fallback temporário:", err.message || err);
                   } finally {
-                    // Salvar as URLs da melhor forma disponível (permanentes ou temporárias) no Firestore local
+                    // Salvar as URLs da melhor forma disponível (permanentes ou temporárias) no Firestore local com setDoc e merge
                     try {
                       const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                      await updateDoc(postDocRef, {
+                      await setDoc(postDocRef, {
                         imageUrls: [firebaseDownloadUrl],
                         referenceImageUrl: firebaseRefUrl,
                         status: "completed"
-                      });
+                      }, { merge: true });
                     } catch (fsErr) {
                       console.error("[WIZARD] Erro ao gravar rascunho no Firestore:", fsErr);
                     }
@@ -769,10 +793,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               
               try {
                 const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
+                await setDoc(postDocRef, {
                   status: "failed",
                   failureReason: pollErr.message || "Erro durante o polling da IA."
-                });
+                }, { merge: true });
               } catch (fsErr) {
                 console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
               }
@@ -784,27 +808,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               });
               setIsGeneratingImages(false);
             }
-
-            if (attempts >= maxAttempts) {
-              clearInterval(pollInterval);
-              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
-              try {
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
-                  status: "failed",
-                  failureReason: timeoutMsg
-                });
-              } catch (fsErr) {
-                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
-              }
-
-              toast({
-                variant: "destructive",
-                title: "Tempo Esgotado",
-                description: "A IA demorou muito para responder. Por favor, tente novamente.",
-              });
-              setIsGeneratingImages(false);
-            }
           }, 2000);
 
         } catch (error: any) {
@@ -812,10 +815,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           
           try {
             const postDocRef = doc(db, "users", user.uid, "posts", postId);
-            await updateDoc(postDocRef, {
+            await setDoc(postDocRef, {
               status: "failed",
               failureReason: error.message || "Falha na orquestração do fluxo de referência."
-            });
+            }, { merge: true });
           } catch (fsErr) {
             console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
           }
@@ -922,12 +925,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           setProcessedImageUrl(finalNoLogoUrl);
 
           // Atualizar o rascunho temporário no Firestore local com a URL convertida (caso exista rascunho)
-          if (currentPostId) {
+          if (currentPostId && user) {
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-              await updateDoc(postDocRef, {
+              await setDoc(postDocRef, {
                 imageUrls: [finalNoLogoUrl]
-              });
+              }, { merge: true });
               console.log("[WIZARD] Rascunho temporário atualizado com a imagem sem logotipo.");
             } catch (firestoreError) {
               console.error("[WIZARD] Erro ao salvar a imagem sem logo no Firestore local:", firestoreError);
@@ -992,12 +995,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setProcessedImageUrl(finalLogoUrl);
 
       // Atualizar o rascunho temporário no Firestore local com a URL final com o logotipo aplicado
-      if (currentPostId) {
+      if (currentPostId && user) {
         try {
           const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-          await updateDoc(postDocRef, {
+          await setDoc(postDocRef, {
             imageUrls: [finalLogoUrl]
-          });
+          }, { merge: true });
           console.log("[WIZARD] Rascunho temporário atualizado com a imagem com logotipo aplicado.");
         } catch (firestoreError) {
           console.error("[WIZARD] Erro ao salvar a imagem com logo no Firestore local:", firestoreError);

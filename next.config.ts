@@ -61,6 +61,18 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.fal.media",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.fal.run",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
