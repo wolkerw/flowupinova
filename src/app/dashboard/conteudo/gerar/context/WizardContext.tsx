@@ -658,8 +658,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           const submitResult = await submitResponse.json();
-          const { requestId, statusUrl, responseUrl } = submitResult;
-          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl);
+          const { requestId, statusUrl, responseUrl, garmentPublicUrl } = submitResult;
+          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
 
           // --- ETAPA 4: POLLING DA FILA ---
           toast({
@@ -724,49 +724,26 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                   description: "Fazendo upload permanente da imagem para o seu Firebase Storage...",
                 });
 
-                // Executar o fluxo de download e upload com estratégia defensiva baseada em fallback
+                // Executar o download e upload no backend Next.js de forma 100% livre de CORS e ultra estável
                 (async () => {
-                  let firebaseDownloadUrl = finalImageUrl;
-                  let firebaseRefUrl = null;
-                  
                   try {
-                    // 1. Download do arquivo do Fal.ai através do Proxy para contornar problemas de CORS no navegador
-                    const imgResponse = await fetch(`/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(finalImageUrl)}`);
-                    if (imgResponse.ok) {
-                      const imgBlob = await imgResponse.blob();
+                    const uploadResponse = await fetch("/api/conteudo/gerar-referencia?action=upload-to-firebase", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        postId: postId,
+                        userId: user.uid,
+                        finalImageUrl: finalImageUrl,
+                        referenceImageUrl: garmentPublicUrl || null
+                      })
+                    });
 
-                      // 2. Tentar upload para o Firebase Storage se configurado
-                      if (storage) {
-                        try {
-                          const storageRef = ref(storage, `users/${user.uid}/posts/${postId}/generated_image.jpg`);
-                          await uploadBytes(storageRef, imgBlob);
-                          firebaseDownloadUrl = await getDownloadURL(storageRef);
+                    if (!uploadResponse.ok) {
+                      throw new Error("Falha ao salvar a imagem no Firebase via servidor.");
+                    }
 
-                          // Upload da imagem de referência (se existir)
-                          if (referenceImageFile) {
-                            const refStorageRef = ref(storage, `users/${user.uid}/posts/${postId}/reference_image.jpg`);
-                            await uploadBytes(refStorageRef, referenceImageFile);
-                            firebaseRefUrl = await getDownloadURL(refStorageRef);
-                          }
-                        } catch (sErr: any) {
-                          console.warn("[WIZARD] Firebase Storage falhou ao salvar imagem, usando fallback temporário:", sErr.message || sErr);
-                        }
-                      }
-                    }
-                  } catch (err: any) {
-                    console.warn("[WIZARD] Falha ao baixar imagem via proxy, usando fallback temporário:", err.message || err);
-                  } finally {
-                    // Salvar as URLs da melhor forma disponível (permanentes ou temporárias) no Firestore local com setDoc e merge
-                    try {
-                      const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                      await setDoc(postDocRef, {
-                        imageUrls: [firebaseDownloadUrl],
-                        referenceImageUrl: firebaseRefUrl,
-                        status: "completed"
-                      }, { merge: true });
-                    } catch (fsErr) {
-                      console.error("[WIZARD] Erro ao gravar rascunho no Firestore:", fsErr);
-                    }
+                    const uploadData = await uploadResponse.json();
+                    const firebaseDownloadUrl = uploadData.imageUrl || finalImageUrl;
 
                     // Garantir a exibição da imagem e liberação do carregamento no frontend de forma imediata
                     setGeneratedImages([firebaseDownloadUrl]);
@@ -780,6 +757,26 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                         ? "Sua imagem publicitária foi gerada e armazenada de forma permanente!" 
                         : "Sua imagem foi gerada com sucesso e carregada via URL temporária da IA.",
                     });
+                  } catch (err: any) {
+                    console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
+                    
+                    // Em caso de qualquer falha no servidor (ex: timeout), usamos a URL da Fal.ai de forma imediata na tela do lojista!
+                    setGeneratedImages([finalImageUrl]);
+                    setSelectedImage(finalImageUrl);
+                    setLastGeneratedText(fullCaption);
+                    setIsGeneratingImages(false);
+
+                    // Atualizar Firestore local do navegador de forma redundante e resiliente com setDoc e merge
+                    try {
+                      const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                      await setDoc(postDocRef, {
+                        imageUrls: [finalImageUrl],
+                        referenceImageUrl: garmentPublicUrl || null,
+                        status: "completed"
+                      }, { merge: true });
+                    } catch (fsErr) {
+                      console.error("[WIZARD] Erro ao gravar rascunho no Firestore local:", fsErr);
+                    }
                   }
                 })();
 

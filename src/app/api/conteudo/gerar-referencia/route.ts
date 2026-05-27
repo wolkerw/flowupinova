@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
+import { admin, adminDb } from "@/lib/firebase-admin";
+import crypto from "crypto";
 
 export const maxDuration = 300;
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -263,7 +266,99 @@ ${yamlAnalysis}`;
         success: true,
         requestId: queueData.request_id,
         statusUrl: queueData.status_url,
-        responseUrl: queueData.response_url
+        responseUrl: queueData.response_url,
+        garmentPublicUrl: garmentPublicUrl // Retornando a URL da foto de referência original
+      });
+    }
+
+    if (action === "upload-to-firebase") {
+      const { postId, userId, finalImageUrl, referenceImageUrl } = await request.json();
+
+      if (!postId || !userId || !finalImageUrl) {
+        return NextResponse.json({ error: "Campos obrigatórios ausentes." }, { status: 400 });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Iniciando upload no backend com Firebase Admin para o post ${postId}...`);
+      
+      let firebaseDownloadUrl = finalImageUrl;
+      let firebaseRefUrl = null;
+
+      try {
+        const bucket = admin.storage().bucket();
+
+        // 1. Download da imagem gerada da Fal.ai no servidor Next.js
+        const imgRes = await fetch(finalImageUrl);
+        if (imgRes.ok) {
+          const arrayBuffer = await imgRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const contentType = imgRes.headers.get("Content-Type") || "image/jpeg";
+
+          const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
+          const downloadToken = crypto.randomUUID();
+
+          // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
+          await fileRef.save(buffer, {
+            metadata: {
+              contentType: contentType,
+              metadata: {
+                firebaseStorageDownloadTokens: downloadToken
+              }
+            }
+          });
+
+          // Gerar URL de download compatível com a biblioteca cliente
+          firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+          console.log(`[GERAR_REFERENCIA] Imagem gerada salva no Firebase Storage via Admin: ${firebaseDownloadUrl}`);
+        } else {
+          console.warn("[GERAR_REFERENCIA] Falha ao baixar imagem gerada no servidor, usando original do Fal.ai.");
+        }
+
+        // 2. Download e upload da foto de referência original (se existir)
+        if (referenceImageUrl) {
+          const refRes = await fetch(referenceImageUrl);
+          if (refRes.ok) {
+            const arrayBuffer = await refRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const contentType = refRes.headers.get("Content-Type") || "image/jpeg";
+
+            const refFileRef = bucket.file(`users/${userId}/posts/${postId}/reference_image.jpg`);
+            const refDownloadToken = crypto.randomUUID();
+
+            await refFileRef.save(buffer, {
+              metadata: {
+                contentType: contentType,
+                metadata: {
+                  firebaseStorageDownloadTokens: refDownloadToken
+                }
+              }
+            });
+
+            firebaseRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef.name)}?alt=media&token=${refDownloadToken}`;
+            console.log(`[GERAR_REFERENCIA] Imagem de referência salva no Firebase Storage via Admin: ${firebaseRefUrl}`);
+          }
+        }
+      } catch (uploadError: any) {
+        console.error("[GERAR_REFERENCIA] Erro no upload para o Firebase Storage no backend via Admin:", uploadError);
+        // Não quebra o fluxo, retorna com a URL original como fallback
+      }
+
+      // 3. Atualizar Firestore de forma resiliente no backend usando Admin SDK (set com merge)
+      try {
+        const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+        await postDocRef.set({
+          imageUrls: [firebaseDownloadUrl],
+          referenceImageUrl: firebaseRefUrl || null,
+          status: "completed"
+        }, { merge: true });
+        console.log(`[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}!`);
+      } catch (fsError: any) {
+        console.error("[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:", fsError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        imageUrl: firebaseDownloadUrl,
+        referenceImageUrl: firebaseRefUrl
       });
     }
 
