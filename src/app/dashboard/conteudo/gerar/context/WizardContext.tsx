@@ -586,53 +586,196 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentPostId(postId);
 
       if (referenceImageFile) {
-        const formData = new FormData();
-        formData.append("file", referenceImageFile);
-        formData.append("description", referenceDescription);
-        formData.append("postId", postId);
-        formData.append("userId", user.uid);
-        formData.append("content", JSON.stringify(selContent));
+        try {
+          // --- ETAPA 1: ANALISAR IMAGEM ---
+          console.log("[WIZARD] Etapa 1: Analisando imagem de referência...");
+          toast({
+            title: "Etapa 1/4: Analisando produto",
+            description: "Nossa IA está examinando as características físicas e detalhes da sua foto...",
+          });
 
-        const response = await fetch("/api/proxy-webhook?target=gerador_imagem_referencia", {
-          method: "POST",
-          body: formData,
-        });
+          const analyzeFormData = new FormData();
+          analyzeFormData.append("file", referenceImageFile);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.details || errorData.error || "Erro ao processar imagem de referência.");
-        }
+          const analyzeResponse = await fetch("/api/conteudo/gerar-referencia?action=analyze", {
+            method: "POST",
+            body: analyzeFormData,
+          });
 
-        console.log("[WIZARD] Geração por referência iniciada de forma assíncrona. Escutando Firestore em tempo real...");
+          if (!analyzeResponse.ok) {
+            const errData = await analyzeResponse.json().catch(() => ({}));
+            throw new Error(errData.error || "Falha ao analisar a imagem de referência.");
+          }
 
-        // Iniciamos um escutador em tempo real (onSnapshot) no Firestore para obter a imagem assim que ela ficar pronta
-        const { onSnapshot } = await import("firebase/firestore");
-        const postDocRef = doc(db, "users", user.uid, "posts", postId);
-        
-        const unsubscribe = onSnapshot(postDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data?.imageUrls && data.imageUrls.length > 0) {
-              const finalUrl = data.imageUrls[0];
-              console.log("[WIZARD] Imagem por referência recebida via Firestore com sucesso:", finalUrl);
-              setGeneratedImages([finalUrl]);
-              setSelectedImage(finalUrl);
-              setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
-              setIsGeneratingImages(false);
-              unsubscribe();
-            } else if (data?.status === "failed") {
-              const errMsg = data.failureReason || "Falha desconhecida na geração por referência.";
+          const { yamlAnalysis } = await analyzeResponse.json();
+          console.log("[WIZARD] Análise YAML obtida:", yamlAnalysis);
+
+          // --- ETAPA 2: GERAR PROMPT ---
+          console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
+          toast({
+            title: "Etapa 2/4: Criando conceito",
+            description: "Criando o prompt publicitário ideal para ambientar seu produto...",
+          });
+
+          const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              yamlAnalysis,
+              description: referenceDescription,
+            }),
+          });
+
+          if (!promptResponse.ok) {
+            const errData = await promptResponse.json().catch(() => ({}));
+            throw new Error(errData.error || "Falha ao gerar o prompt de imagem.");
+          }
+
+          const { imagePrompt } = await promptResponse.json();
+          console.log("[WIZARD] Prompt UGC criado:", imagePrompt);
+
+          // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
+          console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
+          toast({
+            title: "Etapa 3/4: Enviando para a IA",
+            description: "Colocando seu post na fila de processamento prioritário da Fal.ai...",
+          });
+
+          const submitFormData = new FormData();
+          submitFormData.append("file", referenceImageFile);
+          submitFormData.append("prompt", imagePrompt);
+
+          const submitResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-kontext", {
+            method: "POST",
+            body: submitFormData,
+          });
+
+          if (!submitResponse.ok) {
+            const errData = await submitResponse.json().catch(() => ({}));
+            throw new Error(errData.error || "Falha ao submeter imagem para a IA.");
+          }
+
+          const { requestId } = await submitResponse.json();
+          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId);
+
+          // --- ETAPA 4: POLLING DA FILA ---
+          toast({
+            title: "Etapa 4/4: Gerando imagem",
+            description: "A IA está desenhando a sua nova foto publicitária. Aguarde...",
+          });
+
+          let attempts = 0;
+          const maxAttempts = 40; // 40 * 2s = 80s máximo
+          
+          const pollInterval = setInterval(async () => {
+            attempts++;
+            try {
+              console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
+              const statusResponse = await fetch(`/api/conteudo/gerar-referencia?action=check-status&requestId=${requestId}`);
+              
+              if (!statusResponse.ok) {
+                console.warn("[WIZARD] Erro ao buscar status.");
+                return;
+              }
+
+              const statusData = await statusResponse.json();
+              
+              if (statusData.status === "COMPLETED") {
+                clearInterval(pollInterval);
+                const finalImageUrl = statusData.imageUrl;
+
+                if (!finalImageUrl) {
+                  throw new Error("URL da imagem final não fornecida pela IA.");
+                }
+
+                console.log("[WIZARD] Geração por referência concluída com sucesso:", finalImageUrl);
+
+                // Salvar a imagem no Firestore do cliente (Autenticado!)
+                const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                await updateDoc(postDocRef, {
+                  imageUrls: [finalImageUrl],
+                  status: "completed"
+                });
+
+                toast({
+                  title: "Sucesso!",
+                  description: "Sua imagem publicitária foi gerada perfeitamente!",
+                });
+
+                setGeneratedImages([finalImageUrl]);
+                setSelectedImage(finalImageUrl);
+                setLastGeneratedText(fullCaption);
+                setIsGeneratingImages(false);
+
+              } else if (statusData.status === "FAILED") {
+                clearInterval(pollInterval);
+                throw new Error(statusData.error || "A geração da imagem falhou no servidor da IA.");
+              }
+            } catch (pollErr: any) {
+              clearInterval(pollInterval);
+              console.error("[WIZARD] Erro durante o polling:", pollErr);
+              
+              try {
+                const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                await updateDoc(postDocRef, {
+                  status: "failed",
+                  failureReason: pollErr.message || "Erro durante o polling da IA."
+                });
+              } catch (fsErr) {
+                console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
+              }
+
               toast({
                 variant: "destructive",
                 title: "Erro na Geração",
-                description: getFriendlyErrorMessage(errMsg),
+                description: getFriendlyErrorMessage(pollErr.message),
               });
               setIsGeneratingImages(false);
-              unsubscribe();
             }
+
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
+              try {
+                const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                await updateDoc(postDocRef, {
+                  status: "failed",
+                  failureReason: timeoutMsg
+                });
+              } catch (fsErr) {
+                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
+              }
+
+              toast({
+                variant: "destructive",
+                title: "Tempo Esgotado",
+                description: "A IA demorou muito para responder. Por favor, tente novamente.",
+              });
+              setIsGeneratingImages(false);
+            }
+          }, 2000);
+
+        } catch (error: any) {
+          console.error("[WIZARD] Erro crítico no fluxo de referência:", error);
+          
+          try {
+            const postDocRef = doc(db, "users", user.uid, "posts", postId);
+            await updateDoc(postDocRef, {
+              status: "failed",
+              failureReason: error.message || "Falha na orquestração do fluxo de referência."
+            });
+          } catch (fsErr) {
+            console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
           }
-        });
-        
+
+          toast({
+            variant: "destructive",
+            title: "Erro na Geração",
+            description: getFriendlyErrorMessage(error.message),
+          });
+          setIsGeneratingImages(false);
+        }
+
         return;
       }
 
