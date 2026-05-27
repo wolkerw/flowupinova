@@ -690,9 +690,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
       }
 
-      setGeneratedImages(imageUrls);
-      setSelectedImage(imageUrls[0] || null);
       setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
+
       
       // Ativa o polling assíncrono para carregar as imagens reais na tela conforme sobem no Supabase
       setCanStartPolling(true);
