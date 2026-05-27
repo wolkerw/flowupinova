@@ -451,7 +451,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: textToGenerate }),
+        body: JSON.stringify({ summary: textToGenerate, businessProfile }),
       });
 
       const data = await response.json();

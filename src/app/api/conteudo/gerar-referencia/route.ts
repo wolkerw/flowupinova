@@ -140,11 +140,14 @@ Given a reference image description (extracted features in YAML) and the user's 
 2. TEXT PRESERVATION: If there is any literal text to be rendered (e.g., brand names, shirt prints), specify it inside escaped double quotes exactly as it appears in the reference description. 
    - Example: "...wearing a shirt with the literal text \\"NOME DA MARCA\\" printed in clean typography..."
 3. DO NOT HALLUCINATE: Never invent certifications, stamps, or long subtitles to be rendered on the product. Prohibit rendering long subtitles inside the physical image.
-4. HEAD AND HAIR FULLY IN FRAME (CRITICAL): If the image features a person, you MUST explicitly state that the person's entire head, hair, and face are completely visible and fully contained within the frame. There must be clear headroom (empty space) at the top of the image to ensure the top of their head and hair are never cut off. Avoid extreme close-ups or crops that cut off the head.
+4. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the image features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+   - You MUST explicitly inject multiple strict spatial instructions into the generated prompt.
+   - You MUST include a phrase like: "framed in a balanced medium shot showing the model from the chest up, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
+   - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
 5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
 
 # UGC REALISM & CAMERAS (Include at least 2-3 in the prompt)
-- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition", "medium shot with adequate headroom".
+- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition with generous headroom", "medium shot with clear space above the head".
 - Lighting: "natural indoor morning light", "ambient daylight mixed with soft neon", "soft natural shadows".
 - Texture: "raw unpolished look", "subtle film grain", "realistic skin textures", "natural imperfections".
 - Strict ban: Never use artificial terms like "cinematic lighting", "photorealistic", "4k", "8k", or "masterpiece".
@@ -159,7 +162,7 @@ If the reference image is clothing/apparel, describe a real human model wearing 
 # OUTPUT FORMAT (Strict JSON)
 You must return exclusively a valid JSON object with the following single key. Do not include any explanations, introductory or concluding text:
 {
-  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, explicitly detailing that the entire head and hair are fully visible inside the frame with headroom, and ending with the square format instruction."
+  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, explicitly detailing with heavy emphasis that the entire head, skull, and hair are fully visible inside the frame with generous headroom, prohibiting tight crops or cutoffs of the head, and ending with the square format instruction."
 }`;
 
       const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.

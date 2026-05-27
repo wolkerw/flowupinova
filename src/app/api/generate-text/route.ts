@@ -4,7 +4,7 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { summary } = await request.json();
+    const { summary, businessProfile } = await request.json();
 
     if (!summary) {
       return NextResponse.json({ error: "Resumo/tema não enviado" }, { status: 400 });
@@ -19,10 +19,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // Contexto do Perfil de Negócio (se disponível)
+    let businessContext = "";
+    if (businessProfile) {
+      const parts = [];
+      if (businessProfile.name) parts.push(`- **Nome da Marca/Empresa**: ${businessProfile.name}`);
+      if (businessProfile.category) parts.push(`- **Nicho/Categoria**: ${businessProfile.category}`);
+      if (businessProfile.description) parts.push(`- **Descrição do Negócio**: ${businessProfile.description}`);
+      if (businessProfile.slogan) parts.push(`- **Slogan**: ${businessProfile.slogan}`);
+      if (businessProfile.targetAudience) parts.push(`- **Público-Alvo**: ${businessProfile.targetAudience}`);
+      if (businessProfile.toneOfVoice) parts.push(`- **Tom de Voz**: ${businessProfile.toneOfVoice}`);
+      if (businessProfile.mainBenefits && businessProfile.mainBenefits.length > 0) {
+        parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
+      }
+
+      if (parts.length > 0) {
+        businessContext = `
+# CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
+Você é o redator oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz correto:
+${parts.join("\n")}
+
+DIRETRIZES DE PERSONALIZAÇÃO:
+1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
+2. **Tom de Voz**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
+3. **Foco e Benefícios**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo e realce os Diferenciais/Benefícios da marca.
+4. **Hashtags do Nicho**: Suas sugestões de hashtags devem incluir de 2 a 3 hashtags exclusivas e relevantes ao nicho de atuação (${businessProfile.category || "negócios"}).
+`;
+      }
+    }
+
     // 1. Prompt do Copywriter Viral
     const systemInstructionText = `
 Você é um Copywriter Sênior e Especialista em Crescimento Viral no Instagram. Sua especialidade é extrair o máximo de potencial de qualquer tema de negócio e transformá-lo em postagens que geram salvamentos, compartilhamentos e engajamento orgânico.
-
+${businessContext}
 # OBJETIVO
 Gerar exatamente 3 ideias virais e estratégicas de posts para o Instagram a partir do tema fornecido como entrada. Cada postagem deve oferecer valor real e informativo ao leitor, com gancho comercial sutil.
 
