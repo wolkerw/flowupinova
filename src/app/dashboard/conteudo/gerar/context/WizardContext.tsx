@@ -590,6 +590,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         formData.append("file", referenceImageFile);
         formData.append("description", referenceDescription);
         formData.append("postId", postId);
+        formData.append("userId", user.uid);
         formData.append("content", JSON.stringify(selContent));
 
         const response = await fetch("/api/proxy-webhook?target=gerador_imagem_referencia", {
@@ -602,17 +603,39 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           throw new Error(errorData.details || errorData.error || "Erro ao processar imagem de referência.");
         }
 
-        const result = await response.json();
-        const imageUrl = Array.isArray(result) ? result[0]?.url_post : result?.url_post;
+        console.log("[WIZARD] Geração por referência iniciada de forma assíncrona. Escutando Firestore em tempo real...");
 
-        if (!imageUrl) throw new Error("Não foi possível obter a imagem.");
-
-        setGeneratedImages([imageUrl]);
-        setSelectedImage(imageUrl);
-        setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
-        setIsGeneratingImages(false);
+        // Iniciamos um escutador em tempo real (onSnapshot) no Firestore para obter a imagem assim que ela ficar pronta
+        const { onSnapshot } = await import("firebase/firestore");
+        const postDocRef = doc(db, "users", user.uid, "posts", postId);
+        
+        const unsubscribe = onSnapshot(postDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data?.imageUrls && data.imageUrls.length > 0) {
+              const finalUrl = data.imageUrls[0];
+              console.log("[WIZARD] Imagem por referência recebida via Firestore com sucesso:", finalUrl);
+              setGeneratedImages([finalUrl]);
+              setSelectedImage(finalUrl);
+              setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
+              setIsGeneratingImages(false);
+              unsubscribe();
+            } else if (data?.status === "failed") {
+              const errMsg = data.failureReason || "Falha desconhecida na geração por referência.";
+              toast({
+                variant: "destructive",
+                title: "Erro na Geração",
+                description: getFriendlyErrorMessage(errMsg),
+              });
+              setIsGeneratingImages(false);
+              unsubscribe();
+            }
+          }
+        });
+        
         return;
       }
+
 
       const response = await fetch("/api/generate-prompts", {
         method: "POST",

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { storage } from "@/lib/firebase";
+import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     const description = formData.get("description") as string;
     const postId = formData.get("postId") as string;
+    const userId = formData.get("userId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "Arquivo do produto (imagem) não fornecido." }, { status: 400 });
@@ -51,41 +53,45 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GERAR_REFERENCIA] Iniciando processamento local avançado do post ${postId || "sem_id"}...`);
 
-    // 1. Converter a imagem em Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    let buffer = Buffer.from(arrayBuffer);
-    const mimeType = file.type || "image/jpeg";
+    // Iniciamos o processamento de IA assíncrono em segundo plano (IIFE)
+    // para evitar o limite de 10s da Vercel Hobby e contornar erros de timeout
+    (async () => {
+      try {
+        // 1. Converter a imagem em Buffer
+        const arrayBuffer = await file.arrayBuffer();
+        let buffer = Buffer.from(arrayBuffer);
+        const mimeType = file.type || "image/jpeg";
 
-    // --- CORTAR IMAGEM PARA 1:1 ANTES DE SEGUIR ---
-    console.log(`[GERAR_REFERENCIA] Pré-processando imagem de referência para formato quadrado 1:1...`);
-    try {
-      const image = await Jimp.read(buffer);
-      const width = image.width;
-      const height = image.height;
-      
-      console.log(`[GERAR_REFERENCIA] Dimensões originais: ${width}x${height}`);
-      if (width !== height) {
-        const size = Math.min(width, height);
-        const x = Math.max(0, Math.floor((width - size) / 2));
-        const y = Math.max(0, Math.floor((height - size) / 2));
-        
-        console.log(`[GERAR_REFERENCIA] Recortando imagem: x=${x}, y=${y}, size=${size}px`);
-        image.crop({ x, y, w: size, h: size });
-        buffer = await image.getBuffer("image/jpeg");
-        console.log(`[GERAR_REFERENCIA] Imagem recortada com sucesso para 1:1.`);
-      } else {
-        console.log(`[GERAR_REFERENCIA] Imagem já é perfeitamente quadrada (1:1). Nenhuma alteração necessária.`);
-      }
-    } catch (jimpError: any) {
-      console.error("[GERAR_REFERENCIA_WARNING] Falha ao recortar imagem com Jimp, prosseguindo com a imagem original:", jimpError);
-    }
+        // --- CORTAR IMAGEM PARA 1:1 ANTES DE SEGUIR ---
+        console.log(`[GERAR_REFERENCIA_BG] Pré-processando imagem de referência para formato quadrado 1:1...`);
+        try {
+          const image = await Jimp.read(buffer);
+          const width = image.width;
+          const height = image.height;
+          
+          console.log(`[GERAR_REFERENCIA_BG] Dimensões originais: ${width}x${height}`);
+          if (width !== height) {
+            const size = Math.min(width, height);
+            const x = Math.max(0, Math.floor((width - size) / 2));
+            const y = Math.max(0, Math.floor((height - size) / 2));
+            
+            console.log(`[GERAR_REFERENCIA_BG] Recortando imagem: x=${x}, y=${y}, size=${size}px`);
+            image.crop({ x, y, w: size, h: size });
+            buffer = await image.getBuffer("image/jpeg");
+            console.log(`[GERAR_REFERENCIA_BG] Imagem recortada com sucesso para 1:1.`);
+          } else {
+            console.log(`[GERAR_REFERENCIA_BG] Imagem já é perfeitamente quadrada (1:1). Nenhuma alteração necessária.`);
+          }
+        } catch (jimpError: any) {
+          console.error("[GERAR_REFERENCIA_BG_WARNING] Falha ao recortar imagem com Jimp, prosseguindo com a imagem original:", jimpError);
+        }
 
-    const base64Image = buffer.toString("base64");
+        const base64Image = buffer.toString("base64");
 
-    console.log(`[GERAR_REFERENCIA] Analisando imagem de referência com o Google Gemini (2.5-flash)...`);
+        console.log(`[GERAR_REFERENCIA_BG] Analisando imagem de referência com o Google Gemini (2.5-flash)...`);
 
-    // 2. Chamar o Gemini para extrair características detalhadas da imagem (YAML)
-    const geminiAnalysisPrompt = `Analyze the given image with high precision to extract structural features for image conditioning. Determine if it depicts a product, a piece of clothing/apparel, a character, or a combination.
+        // 2. Chamar o Gemini para extrair características detalhadas da imagem (YAML)
+        const geminiAnalysisPrompt = `Analyze the given image with high precision to extract structural features for image conditioning. Determine if it depicts a product, a piece of clothing/apparel, a character, or a combination.
 
 Return the analysis strictly in YAML format with the following fields depending on the subject type (do not add conversational text or markdown code blocks, return ONLY raw YAML):
 
@@ -117,45 +123,45 @@ If the image depicts a CHARACTER:
   outfit_style: (Detailed description of clothing style, accessories, or notable features)
   visual_description: (A full sentence summarizing face, hair, expression, and overall styling)`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const analysisResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: geminiAnalysisPrompt },
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const analysisResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
               {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Image
-                }
+                parts: [
+                  { text: geminiAnalysisPrompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Image
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      })
-    });
+          })
+        });
 
-    if (!analysisResponse.ok) {
-      const errText = await analysisResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Erro na análise do Gemini:", errText);
-      throw new Error(`Erro na análise visual da imagem: ${errText}`);
-    }
+        if (!analysisResponse.ok) {
+          const errText = await analysisResponse.text();
+          console.error("[GERAR_REFERENCIA_BG_ERROR] Erro na análise do Gemini:", errText);
+          throw new Error(`Erro na análise visual da imagem: ${errText}`);
+        }
 
-    const analysisData = await analysisResponse.json();
-    const yamlAnalysis = analysisData.candidates?.[0]?.content?.parts?.[0]?.text;
+        const analysisData = await analysisResponse.json();
+        const yamlAnalysis = analysisData.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!yamlAnalysis) {
-      throw new Error("O Gemini não retornou resultado de análise da imagem.");
-    }
-    console.log("[GERAR_REFERENCIA] Análise YAML concluída com sucesso:\n", yamlAnalysis);
+        if (!yamlAnalysis) {
+          throw new Error("O Gemini não retornou resultado de análise da imagem.");
+        }
+        console.log("[GERAR_REFERENCIA_BG] Análise YAML concluída com sucesso:\n", yamlAnalysis);
 
-    // 3. Chamar o Gemini (Text) para gerar o Prompt UGC otimizado em Inglês (JSON estruturado)
-    console.log("[GERAR_REFERENCIA] Construindo prompt de imagem otimizado UGC com o Gemini...");
+        // 3. Chamar o Gemini (Text) para gerar o Prompt UGC otimizado em Inglês (JSON estruturado)
+        console.log("[GERAR_REFERENCIA_BG] Construindo prompt de imagem otimizado UGC com o Gemini...");
 
-    const geminiSystemInstruction = `# ROLE
+        const geminiSystemInstruction = `# ROLE
 You are an elite Creative Art Director and Prompt Engineer specialized in User-Generated Content (UGC) advertising and high-fidelity product placement for image generation models (specifically Flux Kontext).
 
 # GOAL
@@ -186,122 +192,148 @@ You must return exclusively a valid JSON object with the following single key. D
   "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, ending with the square format instruction."
 }`;
 
-    const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
-Certifique-se de que a imagem de referência seja representada com a maior precisão possível nas imagens geradas, especialmente em relação a todos os textos e detalhes físicos.
+        const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
+Certifique-se de que a imagem de referência seja representada com a maior precisão possível nas imagens geradas, especially em relação a todos os textos e detalhes físicos.
 
 Descrição desejada de cenário/modelo pelo usuário: "${description}"
 
 Descrição física da imagem de referência (YAML):
 ${yamlAnalysis}`;
 
-    const promptResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: geminiSystemInstruction }]
-        },
-        contents: [
-          {
-            parts: [{ text: geminiUserMessage }]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
-      })
-    });
-
-    if (!promptResponse.ok) {
-      const errText = await promptResponse.text();
-      console.error("[GERAR_REFERENCIA_ERROR] Erro na construção do prompt UGC pelo Gemini:", errText);
-      throw new Error(`Erro ao estruturar o prompt UGC: ${errText}`);
-    }
-
-    const promptData = await promptResponse.json();
-    const rawJsonText = promptData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawJsonText) {
-      throw new Error("O Gemini não retornou resultado de prompt UGC estruturado.");
-    }
-
-    const structuredOutput = JSON.parse(rawJsonText);
-    const optimizedImagePrompt = structuredOutput.imagePrompt;
-
-    if (!optimizedImagePrompt) {
-      throw new Error(`A saída do Gemini não continha a chave 'imagePrompt': ${rawJsonText}`);
-    }
-    console.log("[GERAR_REFERENCIA] Prompt UGC final estruturado em inglês:\n", optimizedImagePrompt);
-
-    // 4. Iniciar o upload no Fal.ai CDN usando a SDK oficial
-    console.log(`[GERAR_REFERENCIA] Fazendo upload do produto para o Fal.ai CDN...`);
-    const finalFileToUpload = new File([new Blob([buffer], { type: mimeType })], file.name, { type: mimeType });
-    const garmentPublicUrl = await fal.storage.upload(finalFileToUpload);
-    
-    if (!garmentPublicUrl) {
-      throw new Error("Falha ao obter URL pública da imagem do produto do Fal.ai CDN.");
-    }
-    console.log("[GERAR_REFERENCIA] Imagem de referência pública no Fal.ai CDN em:", garmentPublicUrl);
-
-    // 5. Chamar a API de condicionamento de imagem do Fal.ai (Flux Pro Kontext)
-    console.log("[GERAR_REFERENCIA] Chamando Flux Pro Kontext no Fal.ai...");
-    
-    const kontextResult: any = await fal.run("fal-ai/flux-pro/kontext", {
-      input: {
-        prompt: optimizedImagePrompt,
-        image_url: garmentPublicUrl,
-        aspect_ratio: "1:1"
-      },
-    });
-
-    console.log("[GERAR_REFERENCIA] kontextResult completo:", JSON.stringify(kontextResult, null, 2));
-
-    const finalImageUrl = 
-      kontextResult?.data?.image?.url || 
-      kontextResult?.image?.url || 
-      kontextResult?.data?.images?.[0]?.url || 
-      kontextResult?.images?.[0]?.url || 
-      (kontextResult?.data?.image && typeof kontextResult.data.image === 'string' ? kontextResult.data.image : undefined) ||
-      (kontextResult?.image && typeof kontextResult.image === 'string' ? kontextResult.image : undefined);
-
-    if (!finalImageUrl) {
-      throw new Error(`Flux Pro Kontext não retornou URL da imagem gerada. Retorno da API: ${JSON.stringify(kontextResult)}`);
-    }
-    console.log("[GERAR_REFERENCIA] Geração do Flux Pro Kontext concluída com sucesso:", finalImageUrl);
-
-    // 6. Salvar a imagem final de forma definitiva no Firebase Storage local
-    let outputUrl = finalImageUrl;
-
-    try {
-      console.log("[GERAR_REFERENCIA] Baixando imagem final do Fal.ai para persistência no Firebase...");
-      const downloadResponse = await fetch(finalImageUrl);
-      if (downloadResponse.ok) {
-        const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
-        const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
-        const finalRef = ref(storage, finalPath);
-
-        console.log(`[GERAR_REFERENCIA] Salvando imagem final no Firebase Storage em: ${finalPath}...`);
-        await uploadBytes(finalRef, finalBuffer, {
-          contentType: "image/jpeg",
+        const promptResponse = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: geminiSystemInstruction }]
+            },
+            contents: [
+              {
+                parts: [{ text: geminiUserMessage }]
+              }
+            ],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
         });
 
-        const finalStorageUrl = await getDownloadURL(finalRef);
-        console.log("[GERAR_REFERENCIA] Imagem final salva com sucesso no Firebase Storage em:", finalStorageUrl);
-        outputUrl = finalStorageUrl;
-      } else {
-        console.warn("[GERAR_REFERENCIA_WARNING] Falha ao baixar imagem do Fal.ai, usando a URL original de API.");
-      }
-    } catch (storageError: any) {
-      console.warn(
-        "[GERAR_REFERENCIA_WARNING] Falha ao salvar a imagem no Firebase Storage. Usando URL pública do Fal.ai como fallback.",
-        storageError.message || storageError
-      );
-    }
+        if (!promptResponse.ok) {
+          const errText = await promptResponse.text();
+          console.error("[GERAR_REFERENCIA_BG_ERROR] Erro na construção do prompt UGC pelo Gemini:", errText);
+          throw new Error(`Erro ao estruturar o prompt UGC: ${errText}`);
+        }
 
-    // Retorna no mesmo padrão esperado pelo frontend
+        const promptData = await promptResponse.json();
+        const rawJsonText = promptData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawJsonText) {
+          throw new Error("O Gemini não retornou resultado de prompt UGC estruturado.");
+        }
+
+        const structuredOutput = JSON.parse(rawJsonText);
+        const optimizedImagePrompt = structuredOutput.imagePrompt;
+
+        if (!optimizedImagePrompt) {
+          throw new Error(`A saída do Gemini não continha a chave 'imagePrompt': ${rawJsonText}`);
+        }
+        console.log("[GERAR_REFERENCIA_BG] Prompt UGC final estruturado em inglês:\n", optimizedImagePrompt);
+
+        // 4. Iniciar o upload no Fal.ai CDN usando a SDK oficial
+        console.log(`[GERAR_REFERENCIA_BG] Fazendo upload do produto para o Fal.ai CDN...`);
+        const finalFileToUpload = new File([new Blob([buffer], { type: mimeType })], file.name, { type: mimeType });
+        const garmentPublicUrl = await fal.storage.upload(finalFileToUpload);
+        
+        if (!garmentPublicUrl) {
+          throw new Error("Falha ao obter URL pública da imagem do produto do Fal.ai CDN.");
+        }
+        console.log("[GERAR_REFERENCIA_BG] Imagem de referência pública no Fal.ai CDN em:", garmentPublicUrl);
+
+        // 5. Chamar a API de condicionamento de imagem do Fal.ai (Flux Pro Kontext)
+        console.log("[GERAR_REFERENCIA_BG] Chamando Flux Pro Kontext no Fal.ai...");
+        
+        const kontextResult: any = await fal.run("fal-ai/flux-pro/kontext", {
+          input: {
+            prompt: optimizedImagePrompt,
+            image_url: garmentPublicUrl,
+            aspect_ratio: "1:1"
+          },
+        });
+
+        console.log("[GERAR_REFERENCIA_BG] kontextResult completo:", JSON.stringify(kontextResult, null, 2));
+
+        const finalImageUrl = 
+          kontextResult?.data?.image?.url || 
+          kontextResult?.image?.url || 
+          kontextResult?.data?.images?.[0]?.url || 
+          kontextResult?.images?.[0]?.url || 
+          (kontextResult?.data?.image && typeof kontextResult.data.image === 'string' ? kontextResult.data.image : undefined) ||
+          (kontextResult?.image && typeof kontextResult.image === 'string' ? kontextResult.image : undefined);
+
+        if (!finalImageUrl) {
+          throw new Error(`Flux Pro Kontext não retornou URL da imagem gerada. Retorno da API: ${JSON.stringify(kontextResult)}`);
+        }
+        console.log("[GERAR_REFERENCIA_BG] Geração do Flux Pro Kontext concluída com sucesso:", finalImageUrl);
+
+        // 6. Salvar a imagem final de forma definitiva no Firebase Storage local
+        let outputUrl = finalImageUrl;
+
+        try {
+          console.log("[GERAR_REFERENCIA_BG] Baixando imagem final do Fal.ai para persistência no Firebase...");
+          const downloadResponse = await fetch(finalImageUrl);
+          if (downloadResponse.ok) {
+            const finalBuffer = Buffer.from(await downloadResponse.arrayBuffer());
+            const finalPath = `posts/${postId || "geral"}/${Date.now()}_resultado.jpg`;
+            const finalRef = ref(storage, finalPath);
+
+            console.log(`[GERAR_REFERENCIA_BG] Salvando imagem final no Firebase Storage em: ${finalPath}...`);
+            await uploadBytes(finalRef, finalBuffer, {
+              contentType: "image/jpeg",
+            });
+
+            const finalStorageUrl = await getDownloadURL(finalRef);
+            console.log("[GERAR_REFERENCIA_BG] Imagem final salva com sucesso no Firebase Storage em:", finalStorageUrl);
+            outputUrl = finalStorageUrl;
+          } else {
+            console.warn("[GERAR_REFERENCIA_BG_WARNING] Falha ao baixar imagem do Fal.ai, usando a URL original de API.");
+          }
+        } catch (storageError: any) {
+          console.warn(
+            "[GERAR_REFERENCIA_BG_WARNING] Falha ao salvar a imagem no Firebase Storage. Usando URL pública do Fal.ai como fallback.",
+            storageError.message || storageError
+          );
+        }
+
+        // Ao final de tudo, gravamos o link gerado diretamente no post correspondente no Firestore local
+        if (postId && userId) {
+          const postRef = doc(db, "users", userId, "posts", postId);
+          await updateDoc(postRef, {
+            imageUrls: [outputUrl]
+          });
+          console.log(`[GERAR_REFERENCIA_BG] Documento do post ${postId} atualizado com a imagem final gerada.`);
+        }
+      } catch (bgError: any) {
+        console.error("[GERAR_REFERENCIA_BG_ERROR] Erro na geração em segundo plano:", bgError);
+        if (postId && userId) {
+          try {
+            const postRef = doc(db, "users", userId, "posts", postId);
+            await updateDoc(postRef, {
+              status: "failed",
+              failureReason: bgError.message || "Erro interno ao processar a geração de imagem por referência."
+            });
+          } catch (dbErr) {
+            console.error("[GERAR_REFERENCIA_BG_ERROR] Falha ao gravar erro no Firestore:", dbErr);
+          }
+        }
+      }
+    })();
+
+    // Retorna imediatamente sucesso de inicialização assíncrona para o frontend
     return NextResponse.json({
       success: true,
-      url_post: outputUrl,
+      message: "Geração por referência iniciada em segundo plano.",
+      postId: postId
     });
+
   } catch (error: any) {
     console.error("[GERAR_REFERENCIA_ERROR] Erro crítico no processamento local:", error);
     return NextResponse.json(
