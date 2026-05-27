@@ -99,8 +99,32 @@ export function OnboardingWizard({
   }, [initialData]);
 
   const handleNext = () => {
-    if (step < totalSteps) setStep(step + 1);
-    else handleFinish();
+    if (step < totalSteps) {
+      // Salva o progresso parcial no Firestore de forma assíncrona para garantir persistência robusta
+      updateBusinessProfile(userId, {
+        name: formData.name,
+        category: formData.category,
+        phone: formData.phone,
+        address: formData.address,
+        website: formData.website,
+        instagram: formData.instagram,
+        description: formData.description,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
+        logo: {
+          url: formData.logoUrl,
+          width: 0,
+          height: 0,
+        },
+      }).catch((err) => console.error("Erro ao salvar progresso parcial:", err));
+
+      setStep(step + 1);
+    } else {
+      handleFinish();
+    }
   };
 
   const handleBack = () => {
@@ -187,6 +211,30 @@ export function OnboardingWizard({
             toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
           }));
 
+          // Salvar de imediato no Firestore para garantir persistência à prova de falhas após análise de IA bem sucedida
+          const updatedFields = {
+            name: extractedData.name || extractedData.nome || formData.name,
+            category: extractedData.category || extractedData.categoria || formData.category,
+            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || formData.phone,
+            address: extractedData.address || extractedData.endereco || extractedData.localizacao || formData.address,
+            description:
+              extractedData.description ||
+              extractedData.descricao ||
+              extractedData.bio ||
+              formData.description,
+            primaryColor:
+              extractedData.primaryColor || extractedData.cor_primaria || formData.primaryColor,
+            secondaryColor:
+              extractedData.secondaryColor || extractedData.cor_secundaria || formData.secondaryColor,
+            slogan: extractedData.slogan || formData.slogan,
+            targetAudience: extractedData.target_audience || extractedData.targetAudience || formData.targetAudience,
+            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
+          };
+
+          updateBusinessProfile(userId, updatedFields).catch((err) =>
+            console.error("Erro ao salvar dados analisados de imediato no Firestore:", err)
+          );
+
           toast({
             title: "Análise concluída!",
             description: "Preenchemos os campos baseados na sua presença digital.",
@@ -264,7 +312,27 @@ export function OnboardingWizard({
 
   const handleSkip = async () => {
     try {
-      await updateBusinessProfile(userId, { onboardingCompleted: true });
+      // Salva o progresso inserido até o momento antes de marcar como completo, impedindo perda de dados
+      await updateBusinessProfile(userId, {
+        name: formData.name,
+        category: formData.category,
+        phone: formData.phone,
+        address: formData.address,
+        website: formData.website,
+        instagram: formData.instagram,
+        description: formData.description,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
+        onboardingCompleted: true,
+        logo: {
+          url: formData.logoUrl,
+          width: 0,
+          height: 0,
+        },
+      });
       onComplete();
     } catch (error) {
       onClose();
