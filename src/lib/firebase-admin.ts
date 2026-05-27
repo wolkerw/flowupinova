@@ -7,22 +7,25 @@ import { cookies } from "next/headers";
 if (!getApps().length) {
   const projectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    privateKey = privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
+  }
 
   if (privateKey && clientEmail) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId,
         clientEmail,
-        privateKey: privateKey.replace(/\\n/g, "\n"),
+        privateKey,
       }),
-      storageBucket: `${projectId}.appspot.com`
+      storageBucket: `${projectId}.firebasestorage.app`
     });
     console.log("[FIREBASE_ADMIN] Inicializado com sucesso via Credenciais Explícitas do arquivo .env.");
   } else {
     admin.initializeApp({
       projectId,
-      storageBucket: `${projectId}.appspot.com`
+      storageBucket: `${projectId}.firebasestorage.app`
     });
     console.log("[FIREBASE_ADMIN] Inicializado em modo de Fallback (sem credenciais explícitas).");
   }

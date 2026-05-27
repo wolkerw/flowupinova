@@ -284,7 +284,7 @@ ${yamlAnalysis}`;
       let firebaseRefUrl = null;
 
       try {
-        const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.appspot.com");
+        const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app");
 
         // 1. Download da imagem gerada da Fal.ai no servidor Next.js
         const imgRes = await fetch(finalImageUrl);
