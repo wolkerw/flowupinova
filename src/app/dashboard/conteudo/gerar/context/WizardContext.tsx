@@ -915,7 +915,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setIsUploading(true);
       try {
-        const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+        const imageUrlToFetch = selectedImage.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
+          : selectedImage;
+        const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
@@ -979,7 +982,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const formData = new FormData();
-      const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+      const imageUrlToFetch = selectedImage.startsWith("http")
+        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
+        : selectedImage;
+      const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
       formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
       formData.append("logo", logoFile);
       formData.append("logoScale", logoScale.toString());
@@ -1084,7 +1090,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleDownloadImage = async (url: string) => {
     try {
-      const blob = await fetch(url).then((r) => r.blob());
+      const imageUrlToFetch = url.startsWith("http")
+        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`
+        : url;
+      const blob = await fetch(imageUrlToFetch).then((r) => r.blob());
       const a = document.createElement("a");
       a.href = window.URL.createObjectURL(blob);
       a.download = `numvapt-${Date.now()}.jpg`;
