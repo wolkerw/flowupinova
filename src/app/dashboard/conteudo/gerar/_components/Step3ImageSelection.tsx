@@ -110,7 +110,7 @@ export const Step3ImageSelection = () => {
                 >
                   <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
                   <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                    {maxImages === 1 ? "Buscando imagem..." : `Buscando opção ${generatedImages.length + i + 1}...`}
+                    {maxImages === 1 ? "Gerando imagem..." : `Gerando opção ${generatedImages.length + i + 1}...`}
                   </span>
                 </div>
               ))}
