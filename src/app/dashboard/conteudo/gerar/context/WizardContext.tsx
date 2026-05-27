@@ -700,64 +700,62 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                   description: "Fazendo upload permanente da imagem para o seu Firebase Storage...",
                 });
 
-                // Executar o fluxo em background para não travar a UI
+                // Executar o fluxo de download e upload com estratégia defensiva baseada em fallback
                 (async () => {
+                  let firebaseDownloadUrl = finalImageUrl;
+                  let firebaseRefUrl = null;
+                  
                   try {
                     // 1. Download do arquivo do Fal.ai através do Proxy para contornar problemas de CORS no navegador
                     const imgResponse = await fetch(`/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(finalImageUrl)}`);
-                    const imgBlob = await imgResponse.blob();
+                    if (imgResponse.ok) {
+                      const imgBlob = await imgResponse.blob();
 
-                    // 2. Upload para o Firebase Storage
-                    const storageRef = ref(storage, `users/${user.uid}/posts/${postId}/generated_image.jpg`);
-                    await uploadBytes(storageRef, imgBlob);
-                    const firebaseDownloadUrl = await getDownloadURL(storageRef);
+                      // 2. Tentar upload para o Firebase Storage se configurado
+                      if (storage) {
+                        try {
+                          const storageRef = ref(storage, `users/${user.uid}/posts/${postId}/generated_image.jpg`);
+                          await uploadBytes(storageRef, imgBlob);
+                          firebaseDownloadUrl = await getDownloadURL(storageRef);
 
-                    // 3. Upload da imagem de referência (se existir)
-                    let firebaseRefUrl = null;
-                    if (referenceImageFile) {
-                      const refStorageRef = ref(storage, `users/${user.uid}/posts/${postId}/reference_image.jpg`);
-                      await uploadBytes(refStorageRef, referenceImageFile);
-                      firebaseRefUrl = await getDownloadURL(refStorageRef);
+                          // Upload da imagem de referência (se existir)
+                          if (referenceImageFile) {
+                            const refStorageRef = ref(storage, `users/${user.uid}/posts/${postId}/reference_image.jpg`);
+                            await uploadBytes(refStorageRef, referenceImageFile);
+                            firebaseRefUrl = await getDownloadURL(refStorageRef);
+                          }
+                        } catch (sErr: any) {
+                          console.warn("[WIZARD] Firebase Storage falhou ao salvar imagem, usando fallback temporário:", sErr.message || sErr);
+                        }
+                      }
+                    }
+                  } catch (err: any) {
+                    console.warn("[WIZARD] Falha ao baixar imagem via proxy, usando fallback temporário:", err.message || err);
+                  } finally {
+                    // Salvar as URLs da melhor forma disponível (permanentes ou temporárias) no Firestore local
+                    try {
+                      const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                      await updateDoc(postDocRef, {
+                        imageUrls: [firebaseDownloadUrl],
+                        referenceImageUrl: firebaseRefUrl,
+                        status: "completed"
+                      });
+                    } catch (fsErr) {
+                      console.error("[WIZARD] Erro ao gravar rascunho no Firestore:", fsErr);
                     }
 
-                    // 4. Salvar as URLs permanentes no Firestore
-                    const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                    await updateDoc(postDocRef, {
-                      imageUrls: [firebaseDownloadUrl],
-                      referenceImageUrl: firebaseRefUrl,
-                      status: "completed"
-                    });
-
-                    toast({
-                      title: "Sucesso!",
-                      description: "Sua imagem publicitária foi gerada e armazenada de forma permanente no Firebase Storage!",
-                    });
-
+                    // Garantir a exibição da imagem e liberação do carregamento no frontend de forma imediata
                     setGeneratedImages([firebaseDownloadUrl]);
                     setSelectedImage(firebaseDownloadUrl);
                     setLastGeneratedText(fullCaption);
                     setIsGeneratingImages(false);
-                  } catch (storageErr: any) {
-                    console.error("[WIZARD] Erro ao gravar no Firebase Storage:", storageErr);
-                    
-                    // Em caso de erro do storage, salvamos o link temporário da Fal.ai como fallback
-                    const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                    await updateDoc(postDocRef, {
-                      imageUrls: [finalImageUrl],
-                      status: "completed",
-                      storageError: storageErr.message || "Erro de permissão no Firebase Storage"
-                    });
 
                     toast({
-                      variant: "destructive",
-                      title: "Aviso de Armazenamento",
-                      description: "A imagem foi gerada, mas houve uma falha ao salvar permanentemente no Firebase Storage. Usando URL temporária.",
+                      title: firebaseDownloadUrl.startsWith("http") && !firebaseDownloadUrl.includes("fal.media") ? "Sucesso!" : "Aviso de Armazenamento",
+                      description: firebaseDownloadUrl.startsWith("http") && !firebaseDownloadUrl.includes("fal.media") 
+                        ? "Sua imagem publicitária foi gerada e armazenada de forma permanente!" 
+                        : "Sua imagem foi gerada com sucesso e carregada via URL temporária da IA.",
                     });
-
-                    setGeneratedImages([finalImageUrl]);
-                    setSelectedImage(finalImageUrl);
-                    setLastGeneratedText(fullCaption);
-                    setIsGeneratingImages(false);
                   }
                 })();
 

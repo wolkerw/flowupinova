@@ -46,13 +46,18 @@ export const Step3ImageSelection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <ImageIcon className="h-6 w-6 text-accent" />
-            Etapa 3: Escolha a melhor imagem
+            {maxImages === 1 ? "Etapa 3: Sua imagem gerada" : "Etapa 3: Escolha a melhor imagem"}
           </CardTitle>
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
-              {generatedImages.length > 0 
-                ? "Selecione a imagem gerada pela IA para usar em seu post."
-                : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
+              {maxImages === 1 
+                ? (generatedImages.length > 0 
+                  ? "Sua imagem publicitária foi criada a partir do seu produto!" 
+                  : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post.")
+                : (generatedImages.length > 0 
+                  ? "Selecione a imagem gerada pela IA para usar em seu post."
+                  : "Clique no botão abaixo para gerar as opções de imagem para o seu post.")
+              }
             </p>
           </div>
         </CardHeader>

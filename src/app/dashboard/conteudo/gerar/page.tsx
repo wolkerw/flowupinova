@@ -20,7 +20,8 @@ function WizardContent() {
     handlePublish,
     isPublishing,
     selectedImage,
-    selectedContentId
+    selectedContentId,
+    referenceImageFile
   } = useWizard();
 
   const wizardSteps = [
@@ -38,7 +39,9 @@ function WizardContent() {
         <p className="mt-1 text-gray-600">
           {step === 1 && "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
           {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
-          {step === 3 && "Etapa 3: Gere e selecione a melhor imagem para o seu post."}
+          {step === 3 && (referenceImageFile 
+            ? "Etapa 3: Veja a imagem criada a partir do seu produto." 
+            : "Etapa 3: Gere e selecione a melhor imagem para o seu post.")}
           {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
           {step === 5 && "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
