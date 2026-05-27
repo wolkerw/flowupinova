@@ -703,8 +703,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                 // Executar o fluxo em background para não travar a UI
                 (async () => {
                   try {
-                    // 1. Download do arquivo do Fal.ai
-                    const imgResponse = await fetch(finalImageUrl);
+                    // 1. Download do arquivo do Fal.ai através do Proxy para contornar problemas de CORS no navegador
+                    const imgResponse = await fetch(`/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(finalImageUrl)}`);
                     const imgBlob = await imgResponse.blob();
 
                     // 2. Upload para o Firebase Storage

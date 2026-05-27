@@ -280,6 +280,32 @@ ${yamlAnalysis}`;
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+
+    if (action === "proxy") {
+      const url = searchParams.get("url");
+      if (!url) {
+        return NextResponse.json({ error: "URL ausente." }, { status: 400 });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) {
+        return NextResponse.json({ error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` }, { status: 500 });
+      }
+
+      const blob = await imgRes.blob();
+      const headers = new Headers();
+      headers.set("Content-Type", imgRes.headers.get("Content-Type") || "image/jpeg");
+      headers.set("Access-Control-Allow-Origin", "*");
+
+      return new NextResponse(blob, {
+        status: 200,
+        headers,
+      });
+    }
+
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
     if (!falKey) {
       return NextResponse.json({ error: "FAL_KEY ausente." }, { status: 500 });
@@ -289,8 +315,6 @@ export async function GET(request: NextRequest) {
       ? falKey.trim().replace(/^Key\s+/i, "") 
       : falKey.trim();
 
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
     const statusUrl = searchParams.get("statusUrl");
     const responseUrl = searchParams.get("responseUrl");
 
