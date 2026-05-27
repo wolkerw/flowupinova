@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -300,6 +302,8 @@ export function OnboardingWizard({
     return (
       <Dialog open={isOpen}>
         <DialogContent className="sm:max-w-[500px] p-0 border-none bg-white overflow-hidden shadow-2xl rounded-[40px]">
+          <DialogTitle className="sr-only">Onboarding Concluído com Sucesso</DialogTitle>
+          <DialogDescription className="sr-only">Suas configurações foram salvas com sucesso!</DialogDescription>
           <div className="py-20 flex flex-col items-center justify-center text-center px-10">
             <motion.div
               initial={{ scale: 0 }}
@@ -342,6 +346,8 @@ export function OnboardingWizard({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[850px] w-[95vw] max-h-[95vh] md:h-auto md:min-h-[600px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px] flex flex-col">
+        <DialogTitle className="sr-only">Configuração Inicial do Negócio (Onboarding)</DialogTitle>
+        <DialogDescription className="sr-only">Preencha as informações do seu negócio para personalizar as gerações de posts com IA.</DialogDescription>
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Sidebar Left */}
           <div className="w-full md:w-[280px] bg-[#030712] relative overflow-y-auto md:overflow-hidden p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 shrink-0">
