@@ -37,6 +37,7 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -294,7 +295,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex flex-1 flex-col bg-muted/50">
           <header className="border-b border-border/60 bg-background px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4"></div>
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+              </div>
 
               <div className="flex items-center gap-3">
                 <DropdownMenu onOpenChange={handleOpenNotifications}>

@@ -63,7 +63,7 @@ jest.mock("next/image", () => ({
 }));
 
 describe("DashboardLayout", () => {
-  it("renders the layout navigation items and marks Anúncios as disabled", async () => {
+  it("renders the layout navigation items, sidebar trigger, and marks Anúncios as disabled", async () => {
     render(
       <DashboardLayout>
         <div>Content</div>
@@ -79,13 +79,15 @@ describe("DashboardLayout", () => {
     expect(screen.getByText("Relacionamento")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
 
+    // Verifica se o botão SidebarTrigger (hambúrguer) está presente no cabeçalho
+    expect(screen.getByRole("button", { name: /toggle sidebar/i })).toBeInTheDocument();
+
     // O item "Anúncios" deve estar presente e desativado como link
     const anunciosLink = screen.getByText("Anúncios").closest("a");
     expect(anunciosLink).toBeInTheDocument();
     expect(anunciosLink).toHaveAttribute("href", "#");
     
     // O link ou seu container SidebarMenuButton deve possuir as classes de disabled
-    // Como asChild é usado, as classes se propagam para o Link <a> ou para o container correspondente
     await waitFor(() => {
       const hasDisabledClasses = anunciosLink?.className.includes("cursor-not-allowed") || 
                                  anunciosLink?.parentElement?.className.includes("cursor-not-allowed") ||
