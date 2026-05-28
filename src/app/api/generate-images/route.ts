@@ -24,10 +24,10 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`[GENERATE_IMAGES_NATIVE] Iniciando geração via Google Imagen 3 nativo para o post ${postId} (Slot: ${fileName})...`);
+    console.log(`[GENERATE_IMAGES_NATIVE] Iniciando geração via Google Imagen 4 Ultra nativo para o post ${postId} (Slot: ${fileName})...`);
 
-    // 1. Chamar a API REST oficial do Google Imagen 3 de forma síncrona
-    const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key=${apiKey}`;
+    // 1. Chamar a API REST oficial do Google Imagen 4 Ultra de forma síncrona usando :predict
+    const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key=${apiKey}`;
     
     const imagenResponse = await fetch(imagenUrl, {
       method: "POST",
@@ -35,25 +35,31 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        prompt: prompt,
-        numberOfImages: 1,
-        outputMimeType: "image/jpeg",
-        aspectRatio: "1:1",
+        instances: [
+          {
+            prompt: prompt,
+          }
+        ],
+        parameters: {
+          sampleCount: 1,
+          outputMimeType: "image/jpeg",
+          aspectRatio: "1:1",
+        },
       }),
     });
 
     if (!imagenResponse.ok) {
       const errText = await imagenResponse.text();
-      console.error(`[GENERATE_IMAGES_NATIVE] Erro na API do Google Imagen (status ${imagenResponse.status}):`, errText);
+      console.error(`[GENERATE_IMAGES_NATIVE] Erro na API do Google Imagen 4 Ultra (status ${imagenResponse.status}):`, errText);
       throw new Error(`Erro na API do Google Imagen (Status ${imagenResponse.status}): ${errText}`);
     }
 
     const imagenData = await imagenResponse.json();
-    const imageBytes = imagenData?.generatedImages?.[0]?.image?.imageBytes;
+    const imageBytes = imagenData?.predictions?.[0]?.bytesBase64Encoded;
 
     if (!imageBytes) {
-      console.error("[GENERATE_IMAGES_NATIVE] API do Google Imagen não retornou dados de imagem em Base64.");
-      throw new Error("A API do Google Imagen retornou uma resposta vazia de bytes de imagem.");
+      console.error("[GENERATE_IMAGES_NATIVE] API do Google Imagen não retornou dados de imagem em Base64 no formato esperado.");
+      throw new Error("A API do Google Imagen retornou uma resposta sem bytesBase64Encoded na estrutura.");
     }
 
     // 2. Converter o base64 para Buffer binário

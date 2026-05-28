@@ -193,7 +193,9 @@ const InstagramPreview = ({
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
-        <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        {currentMedia && !currentMedia.publicUrl && (
+          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        )}
         {isCarousel && (
           <>
             <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
@@ -326,7 +328,9 @@ const FacebookPreview = ({
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
-        <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        {singleItem && !singleItem.publicUrl && (
+          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        )}
       </div>
       <div className="flex items-center justify-between p-2">
         <div className="flex items-center gap-1">
@@ -499,8 +503,7 @@ export default function CriarConteudoPage() {
   const [collaborators, setCollaborators] = useState<string[]>([]);
 
   const [userTagsInput, setUserTagsInput] = useState("");
-  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);
-
+  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);  
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
@@ -521,6 +524,17 @@ export default function CriarConteudoPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+
+  // Sincronizar referências para evitar revogação precoce de blobs durante re-renderizações do Wizard
+  const mediaItemsRef = useRef(mediaItems);
+  useEffect(() => {
+    mediaItemsRef.current = mediaItems;
+  }, [mediaItems]);
+
+  const logoPreviewUrlRef = useRef(logoPreviewUrl);
+  useEffect(() => {
+    logoPreviewUrlRef.current = logoPreviewUrl;
+  }, [logoPreviewUrl]);
 
   useEffect(() => {
     if (!user) return;
@@ -569,14 +583,24 @@ export default function CriarConteudoPage() {
       webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
       const { width: mainImageWidth, height: mainImageHeight } =
         await getImageDimensions(imageFile);
+      
+      // Obter proporções reais da logomarca para evitar deformações ou posicionamento incorreto
+      const { width: logoOrigWidth, height: logoOrigHeight } =
+        await getImageDimensions(logoFile);
+      const logoAspectRatio = logoOrigHeight / logoOrigWidth;
+
       formData.append("logo", logoFile);
       formData.append("logoScale", logoScale.toString());
       formData.append("logoOpacity", logoOpacity.toString());
 
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+      const logoPixelHeight = logoPixelWidth * logoAspectRatio; // Altura real e proporcional da logo
+
       let positionX = 0,
         positionY = 0;
-      const margin = 16;
+      
+      // Margem proporcional à largura da imagem real (16px relativos aos 400px de largura do preview da interface)
+      const margin = mainImageWidth * (16 / 400);
 
       switch (logoPosition) {
         case "top-left":
@@ -593,27 +617,27 @@ export default function CriarConteudoPage() {
           break;
         case "left-center":
           positionX = margin;
-          positionY = mainImageHeight / 2 - logoPixelWidth / 2;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
         case "center":
           positionX = mainImageWidth / 2 - logoPixelWidth / 2;
-          positionY = mainImageHeight / 2 - logoPixelWidth / 2;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
         case "right-center":
           positionX = mainImageWidth - logoPixelWidth - margin;
-          positionY = mainImageHeight / 2 - logoPixelWidth / 2;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
         case "bottom-left":
           positionX = margin;
-          positionY = mainImageHeight - logoPixelWidth - margin;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
         case "bottom-center":
           positionX = mainImageWidth / 2 - logoPixelWidth / 2;
-          positionY = mainImageHeight - logoPixelWidth - margin;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
         case "bottom-right":
           positionX = mainImageWidth - logoPixelWidth - margin;
-          positionY = mainImageHeight - logoPixelWidth - margin;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
       }
 
@@ -712,6 +736,17 @@ export default function CriarConteudoPage() {
         setIsUploading(false);
       }
     }
+  };
+
+  const handleBackToStep2 = () => {
+    // Limpa a URL pública pós-mesclagem para reexibir a imagem limpa com a logo móvel interativa
+    setMediaItems((prevItems) =>
+      prevItems.map((item) => ({
+        ...item,
+        publicUrl: undefined,
+      }))
+    );
+    setStep(2);
   };
 
   const handleContentTypeSelect = (value: string) => {
@@ -895,15 +930,19 @@ export default function CriarConteudoPage() {
     (platforms.includes("instagram") && !instagramConnection?.isConnected) ||
     (scheduleType === "schedule" && !scheduleDate);
 
-  // Cleanup blob URLs on unmount
+  // Cleanup de URLs de blob executado estritamente na desmontagem real da página
   useEffect(() => {
     return () => {
-      mediaItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
-      if (logoPreviewUrl && logoPreviewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(logoPreviewUrl);
+      mediaItemsRef.current.forEach((item) => {
+        if (item.previewUrl && item.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+      if (logoPreviewUrlRef.current && logoPreviewUrlRef.current.startsWith("blob:")) {
+        URL.revokeObjectURL(logoPreviewUrlRef.current);
       }
     };
-  }, [mediaItems, logoPreviewUrl]);
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -1482,7 +1521,7 @@ export default function CriarConteudoPage() {
           </Card>
 
           <div className="col-span-full mt-8 flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>
+            <Button variant="outline" onClick={handleBackToStep2}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
             </Button>
