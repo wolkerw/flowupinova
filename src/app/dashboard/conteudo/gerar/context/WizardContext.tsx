@@ -875,25 +875,25 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       const imageUrls = await Promise.all(imageGenerationPromises);
-      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Supabase:", imageUrls);
+      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:", imageUrls);
 
-      // Atualizar o post no Firestore local a partir do frontend autenticado do usuário (usando as URLs estáveis do Supabase)
+      // Atualizar o post no Firestore local de forma resiliente usando setDoc e merge
       try {
         const postDocRef = doc(db, "users", user.uid, "posts", postId);
-        await updateDoc(postDocRef, {
-          imageUrls: imageUrls
-        });
-        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens geradas.");
+        await setDoc(postDocRef, {
+          imageUrls: imageUrls,
+          status: "completed"
+        }, { merge: true });
+        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens conceito.");
       } catch (firestoreError) {
         console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
       }
 
-      setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
-
-      
-      // Ativa o polling assíncrono para carregar as imagens reais na tela conforme sobem no Supabase
-      setCanStartPolling(true);
-      // Mantemos o spinner rodando; o polling se encarregará de desativá-lo automaticamente quando as 3 imagens reais existirem
+      // Definir as imagens geradas de imediato na UI e desativar o spinner
+      setGeneratedImages(imageUrls);
+      setSelectedImage(imageUrls[0]);
+      setLastGeneratedText(fullCaption);
+      setIsGeneratingImages(false); // Desativa o spinner imediatamente!
 
     } catch (error: any) {
       console.error(error);
