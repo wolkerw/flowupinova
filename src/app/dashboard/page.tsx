@@ -174,9 +174,13 @@ const TrialEndedOverlay = () => {
   );
 };
 
+type AppMessage = Message & {
+  createdAt?: Date;
+};
+
 export default function Dashboard() {
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<AppMessage[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
@@ -336,12 +340,22 @@ export default function Dashboard() {
 
       const history = await getChatHistory(user.uid);
       if (history.length > 0) {
-        const historyMessages: Message[] = history.map((msg) => ({
-          sender: msg.sender,
-          text: msg.text,
-          isError: msg.isError,
-        }));
-        setMessages(historyMessages);
+        // Filtrar mensagens de hoje para exibir apenas o chat de hoje na tela (inicia limpo a cada novo dia)
+        const hoje = new Date().toDateString();
+        const historyHoje = history.filter((msg) => {
+          const msgDate = msg.createdAt instanceof Date ? msg.createdAt : new Date(msg.createdAt);
+          return msgDate.toDateString() === hoje;
+        });
+
+        if (historyHoje.length > 0) {
+          const historyMessages: AppMessage[] = historyHoje.map((msg) => ({
+            sender: msg.sender,
+            text: msg.text,
+            isError: msg.isError,
+            createdAt: msg.createdAt, // Preservar a data de criação original lida do Firestore
+          }));
+          setMessages(historyMessages);
+        }
       }
     };
 
@@ -354,7 +368,7 @@ export default function Dashboard() {
         sender: msg.sender,
         text: msg.text,
         isError: msg.isError,
-        createdAt: new Date(),
+        createdAt: msg.createdAt || new Date(), // Preservar data original ou definir nova
       }));
       saveChatHistory(user.uid, storedMessages);
     }
@@ -363,7 +377,7 @@ export default function Dashboard() {
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
 
-    const userMessage: Message = { sender: "user", text: prompt };
+    const userMessage: AppMessage = { sender: "user", text: prompt, createdAt: new Date() };
     const currentHistory = [...messages];
     setMessages((prev) => [...prev, userMessage]);
     const currentPrompt = prompt;
@@ -398,13 +412,14 @@ export default function Dashboard() {
         );
       }
 
-      const aiMessage: Message = { sender: "ai", text: aiText };
+      const aiMessage: AppMessage = { sender: "ai", text: aiText, createdAt: new Date() };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
-      const errorMessage: Message = {
+      const errorMessage: AppMessage = {
         sender: "ai",
         text: `Ocorreu um erro: ${error.message}`,
         isError: true,
+        createdAt: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
