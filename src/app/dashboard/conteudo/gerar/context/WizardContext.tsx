@@ -603,10 +603,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           // --- ETAPA 1: ANALISAR IMAGEM ---
           console.log("[WIZARD] Etapa 1: Analisando imagem de referência...");
-          toast({
-            title: "Etapa 1/4: Analisando produto",
-            description: "Nossa IA está examinando as características físicas e detalhes da sua foto...",
-          });
 
           const analyzeFormData = new FormData();
           analyzeFormData.append("file", referenceImageFile);
@@ -626,10 +622,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
           // --- ETAPA 2: GERAR PROMPT ---
           console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
-          toast({
-            title: "Etapa 2/4: Criando conceito",
-            description: "Criando o prompt publicitário ideal para ambientar seu produto...",
-          });
 
           const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
             method: "POST",
@@ -651,10 +643,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
           // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
           console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
-          toast({
-            title: "Etapa 3/4: Enviando para a IA",
-            description: "Colocando seu post na fila de processamento prioritário da Fal.ai...",
-          });
 
           const submitFormData = new FormData();
           submitFormData.append("file", referenceImageFile);
@@ -675,10 +663,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
 
           // --- ETAPA 4: POLLING DA FILA ---
-          toast({
-            title: "Etapa 4/4: Gerando imagem",
-            description: "A IA está desenhando a sua nova foto publicitária. Aguarde...",
-          });
+          console.log("[WIZARD] Etapa 4: Polling iniciado...");
 
           let attempts = 0;
           const maxAttempts = 40; // 40 * 2s = 80s máximo
@@ -732,10 +717,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
                 console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
                 
-                toast({
-                  title: "Salvando imagem no Firebase",
-                  description: "Fazendo upload permanente da imagem para o seu Firebase Storage...",
-                });
+                console.log("[WIZARD] Salvando imagem no Firebase Storage...");
 
                 // Executar o download e upload no backend Next.js de forma 100% livre de CORS e ultra estável
                 (async () => {
@@ -765,10 +747,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                     setIsGeneratingImages(false);
 
                     toast({
-                      title: firebaseDownloadUrl.startsWith("http") && !firebaseDownloadUrl.includes("fal.media") ? "Sucesso!" : "Aviso de Armazenamento",
-                      description: firebaseDownloadUrl.startsWith("http") && !firebaseDownloadUrl.includes("fal.media") 
-                        ? "Sua imagem publicitária foi gerada e armazenada de forma permanente!" 
-                        : "Sua imagem foi gerada com sucesso e carregada via URL temporária da IA.",
+                      title: "Imagem criada com sucesso! ✨",
+                      description: "Sua nova imagem publicitária está pronta e ficou linda!",
                     });
                   } catch (err: any) {
                     console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
