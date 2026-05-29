@@ -179,7 +179,7 @@ async function publishPostImmediately(
         };
       }
 
-      const fullApiPath = `${config.aplicationURL}${apiPath}`;
+      const fullApiPath = typeof window !== "undefined" ? apiPath : `${config.aplicationURL}${apiPath}`;
 
       return fetch(fullApiPath, {
         method: "POST",

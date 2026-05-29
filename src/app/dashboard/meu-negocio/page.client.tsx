@@ -68,6 +68,10 @@ import {
   type BusinessProfileData,
 } from "@/lib/services/business-profile-service";
 import {
+  getOnboardingProfile,
+  updateOnboardingProfile,
+} from "@/lib/services/onboarding-service";
+import {
   getGoogleConnection,
   updateGoogleConnection,
   type GoogleConnectionData,
@@ -505,6 +509,33 @@ const Lightbox = ({
   );
 };
 
+const syncOnboardingIfEmpty = async (userId: string, gmbProfile: BusinessProfileData) => {
+  try {
+    const onboarding = await getOnboardingProfile(userId);
+    // Se o onboarding não estiver completo ou os dados principais estiverem em branco
+    if (!onboarding.onboardingCompleted || (!onboarding.name && !onboarding.phone)) {
+      await updateOnboardingProfile(userId, {
+        name: onboarding.name || gmbProfile.name || "",
+        phone: onboarding.phone || gmbProfile.phone || "",
+        address: onboarding.address || gmbProfile.address || "",
+        category: onboarding.category || gmbProfile.category || "",
+        website: onboarding.website || gmbProfile.website || "",
+        description: onboarding.description || gmbProfile.description || "",
+        primaryColor: onboarding.primaryColor || gmbProfile.primaryColor || "#3b82f6",
+        secondaryColor: onboarding.secondaryColor || gmbProfile.secondaryColor || "#1e293b",
+        logo: {
+          url: onboarding.logo?.url || gmbProfile.logo?.url || "",
+          width: onboarding.logo?.width || gmbProfile.logo?.width || 0,
+          height: onboarding.logo?.height || gmbProfile.logo?.height || 0,
+        }
+      });
+      console.log("Cópia inteligente de dados do Google Meu Negócio para Onboarding realizada.");
+    }
+  } catch (error) {
+    console.error("Erro ao sincronizar dados para onboarding:", error);
+  }
+};
+
 export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClientProps) {
   const [authLoading, setAuthLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -935,6 +966,9 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
       await updateBusinessProfile(user.uid, selectedProfileData);
 
+      // Sincroniza dados com o onboarding se este estiver incompleto
+      await syncOnboardingIfEmpty(user.uid, selectedProfileData);
+
       toast({ title: "Sucesso!", description: "Perfil do Google conectado e dados atualizados." });
       await fetchFullProfile();
     } catch (error: any) {
@@ -984,6 +1018,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
             accountId: result.accountId,
           });
           await updateBusinessProfile(user.uid, result.businessProfiles[0]);
+
+          // Sincroniza dados com o onboarding se este estiver incompleto
+          await syncOnboardingIfEmpty(user.uid, result.businessProfiles[0]);
+
           toast({
             title: "Sucesso!",
             description: "Perfil do Google conectado e dados atualizados.",

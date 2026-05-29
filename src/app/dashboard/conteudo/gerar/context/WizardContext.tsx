@@ -4,13 +4,14 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, arrayUnion } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, arrayUnion, query, where, getDocs } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
-import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
 import { getUnusedImages, saveUnusedImages, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
 import { GeneratedContent, Platform, LogoPosition } from "../types";
 
@@ -96,7 +97,7 @@ interface WizardContextType {
   user: any;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
-  businessProfile: BusinessProfileData | null;
+  businessProfile: OnboardingProfileData | null;
   currentPostId: string | null;
   visualLogoScale: number;
   selectedContent: GeneratedContent | null;
@@ -140,7 +141,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
 
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [canStartPolling, setCanStartPolling] = useState(false);
@@ -225,7 +226,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const [metaConn, instaConn, busProfile] = await Promise.all([
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
-          getBusinessProfile(user.uid),
+          getOnboardingProfile(user.uid),
         ]);
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
@@ -235,6 +236,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (metaConn?.isConnected) initialPlatforms.push("facebook");
         if (instaConn?.isConnected) initialPlatforms.push("instagram");
         setPlatforms(initialPlatforms);
+
+        // Inicializar a logomarca do Brand Kit se existir e nenhuma estiver selecionada
+        if (busProfile?.logo?.url) {
+          setLogoPreviewUrl(busProfile.logo.url);
+          
+          fetch(busProfile.logo.url)
+            .then(res => res.blob())
+            .then(blob => {
+              const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
+              setLogoFile(file);
+            })
+            .catch(err => console.error("Erro ao converter logo do Brand Kit em File no assistente:", err));
+        }
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
       }
@@ -450,7 +464,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: textToGenerate }),
+        body: JSON.stringify({ summary: textToGenerate, businessProfile }),
       });
 
       const data = await response.json();
@@ -589,10 +603,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           // --- ETAPA 1: ANALISAR IMAGEM ---
           console.log("[WIZARD] Etapa 1: Analisando imagem de referência...");
-          toast({
-            title: "Etapa 1/4: Analisando produto",
-            description: "Nossa IA está examinando as características físicas e detalhes da sua foto...",
-          });
 
           const analyzeFormData = new FormData();
           analyzeFormData.append("file", referenceImageFile);
@@ -612,10 +622,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
           // --- ETAPA 2: GERAR PROMPT ---
           console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
-          toast({
-            title: "Etapa 2/4: Criando conceito",
-            description: "Criando o prompt publicitário ideal para ambientar seu produto...",
-          });
 
           const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
             method: "POST",
@@ -623,6 +629,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               yamlAnalysis,
               description: referenceDescription,
+              businessProfile: businessProfile,
             }),
           });
 
@@ -636,10 +643,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
           // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
           console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
-          toast({
-            title: "Etapa 3/4: Enviando para a IA",
-            description: "Colocando seu post na fila de processamento prioritário da Fal.ai...",
-          });
 
           const submitFormData = new FormData();
           submitFormData.append("file", referenceImageFile);
@@ -656,20 +659,41 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           const submitResult = await submitResponse.json();
-          const { requestId, statusUrl, responseUrl } = submitResult;
-          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl);
+          const { requestId, statusUrl, responseUrl, garmentPublicUrl } = submitResult;
+          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
 
           // --- ETAPA 4: POLLING DA FILA ---
-          toast({
-            title: "Etapa 4/4: Gerando imagem",
-            description: "A IA está desenhando a sua nova foto publicitária. Aguarde...",
-          });
+          console.log("[WIZARD] Etapa 4: Polling iniciado...");
 
           let attempts = 0;
           const maxAttempts = 40; // 40 * 2s = 80s máximo
           
           const pollInterval = setInterval(async () => {
             attempts++;
+            
+            // Verificação de timeout garantida no topo absoluto do intervalo
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
+              try {
+                const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                await setDoc(postDocRef, {
+                  status: "failed",
+                  failureReason: timeoutMsg
+                }, { merge: true });
+              } catch (fsErr) {
+                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
+              }
+
+              toast({
+                variant: "destructive",
+                title: "Tempo Esgotado",
+                description: "A IA demorou muito para responder. Por favor, tente novamente.",
+              });
+              setIsGeneratingImages(false);
+              return;
+            }
+
             try {
               console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
               const statusResponse = await fetch(
@@ -677,7 +701,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               );
               
               if (!statusResponse.ok) {
-                console.warn("[WIZARD] Erro ao buscar status.");
+                console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
                 return;
               }
 
@@ -691,24 +715,63 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                   throw new Error("URL da imagem final não fornecida pela IA.");
                 }
 
-                console.log("[WIZARD] Geração por referência concluída com sucesso:", finalImageUrl);
+                console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
+                
+                console.log("[WIZARD] Salvando imagem no Firebase Storage...");
 
-                // Salvar a imagem no Firestore do cliente (Autenticado!)
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
-                  imageUrls: [finalImageUrl],
-                  status: "completed"
-                });
+                // Executar o download e upload no backend Next.js de forma 100% livre de CORS e ultra estável
+                (async () => {
+                  try {
+                    const uploadResponse = await fetch("/api/conteudo/gerar-referencia?action=upload-to-firebase", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        postId: postId,
+                        userId: user.uid,
+                        finalImageUrl: finalImageUrl,
+                        referenceImageUrl: garmentPublicUrl || null
+                      })
+                    });
 
-                toast({
-                  title: "Sucesso!",
-                  description: "Sua imagem publicitária foi gerada perfeitamente!",
-                });
+                    if (!uploadResponse.ok) {
+                      throw new Error("Falha ao salvar a imagem no Firebase via servidor.");
+                    }
 
-                setGeneratedImages([finalImageUrl]);
-                setSelectedImage(finalImageUrl);
-                setLastGeneratedText(fullCaption);
-                setIsGeneratingImages(false);
+                    const uploadData = await uploadResponse.json();
+                    const firebaseDownloadUrl = uploadData.imageUrl || finalImageUrl;
+
+                    // Garantir a exibição da imagem e liberação do carregamento no frontend de forma imediata
+                    setGeneratedImages([firebaseDownloadUrl]);
+                    setSelectedImage(firebaseDownloadUrl);
+                    setLastGeneratedText(fullCaption);
+                    setIsGeneratingImages(false);
+
+                    toast({
+                      title: "Imagem criada com sucesso! ✨",
+                      description: "Sua nova imagem publicitária está pronta e ficou linda!",
+                    });
+                  } catch (err: any) {
+                    console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
+                    
+                    // Em caso de qualquer falha no servidor (ex: timeout), usamos a URL da Fal.ai de forma imediata na tela do lojista!
+                    setGeneratedImages([finalImageUrl]);
+                    setSelectedImage(finalImageUrl);
+                    setLastGeneratedText(fullCaption);
+                    setIsGeneratingImages(false);
+
+                    // Atualizar Firestore local do navegador de forma redundante e resiliente com setDoc e merge
+                    try {
+                      const postDocRef = doc(db, "users", user.uid, "posts", postId);
+                      await setDoc(postDocRef, {
+                        imageUrls: [finalImageUrl],
+                        referenceImageUrl: garmentPublicUrl || null,
+                        status: "completed"
+                      }, { merge: true });
+                    } catch (fsErr) {
+                      console.error("[WIZARD] Erro ao gravar rascunho no Firestore local:", fsErr);
+                    }
+                  }
+                })();
 
               } else if (statusData.status === "FAILED") {
                 clearInterval(pollInterval);
@@ -720,10 +783,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               
               try {
                 const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
+                await setDoc(postDocRef, {
                   status: "failed",
                   failureReason: pollErr.message || "Erro durante o polling da IA."
-                });
+                }, { merge: true });
               } catch (fsErr) {
                 console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
               }
@@ -735,27 +798,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               });
               setIsGeneratingImages(false);
             }
-
-            if (attempts >= maxAttempts) {
-              clearInterval(pollInterval);
-              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
-              try {
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await updateDoc(postDocRef, {
-                  status: "failed",
-                  failureReason: timeoutMsg
-                });
-              } catch (fsErr) {
-                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
-              }
-
-              toast({
-                variant: "destructive",
-                title: "Tempo Esgotado",
-                description: "A IA demorou muito para responder. Por favor, tente novamente.",
-              });
-              setIsGeneratingImages(false);
-            }
           }, 2000);
 
         } catch (error: any) {
@@ -763,10 +805,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           
           try {
             const postDocRef = doc(db, "users", user.uid, "posts", postId);
-            await updateDoc(postDocRef, {
+            await setDoc(postDocRef, {
               status: "failed",
               failureReason: error.message || "Falha na orquestração do fluxo de referência."
-            });
+            }, { merge: true });
           } catch (fsErr) {
             console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
           }
@@ -786,7 +828,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/generate-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: selContent }),
+        body: JSON.stringify({ 
+          content: selContent, 
+          businessProfile: businessProfile 
+        }),
       });
       const data = await response.json();
       const generatedPrompts = data?.[0]?.output?.prompt;
@@ -823,25 +868,25 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       const imageUrls = await Promise.all(imageGenerationPromises);
-      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Supabase:", imageUrls);
+      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:", imageUrls);
 
-      // Atualizar o post no Firestore local a partir do frontend autenticado do usuário (usando as URLs estáveis do Supabase)
+      // Atualizar o post no Firestore local de forma resiliente usando setDoc e merge
       try {
         const postDocRef = doc(db, "users", user.uid, "posts", postId);
-        await updateDoc(postDocRef, {
-          imageUrls: imageUrls
-        });
-        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens geradas.");
+        await setDoc(postDocRef, {
+          imageUrls: imageUrls,
+          status: "completed"
+        }, { merge: true });
+        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens conceito.");
       } catch (firestoreError) {
         console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
       }
 
-      setLastGeneratedText(fullCaption); // Registra a legenda de sucesso
-
-      
-      // Ativa o polling assíncrono para carregar as imagens reais na tela conforme sobem no Supabase
-      setCanStartPolling(true);
-      // Mantemos o spinner rodando; o polling se encarregará de desativá-lo automaticamente quando as 3 imagens reais existirem
+      // Definir as imagens geradas de imediato na UI e desativar o spinner
+      setGeneratedImages(imageUrls);
+      setSelectedImage(imageUrls[0]);
+      setLastGeneratedText(fullCaption);
+      setIsGeneratingImages(false); // Desativa o spinner imediatamente!
 
     } catch (error: any) {
       console.error(error);
@@ -860,7 +905,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setIsUploading(true);
       try {
-        const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+        const imageUrlToFetch = selectedImage.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
+          : selectedImage;
+        const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
@@ -870,12 +918,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           setProcessedImageUrl(finalNoLogoUrl);
 
           // Atualizar o rascunho temporário no Firestore local com a URL convertida (caso exista rascunho)
-          if (currentPostId) {
+          if (currentPostId && user) {
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-              await updateDoc(postDocRef, {
+              await setDoc(postDocRef, {
                 imageUrls: [finalNoLogoUrl]
-              });
+              }, { merge: true });
               console.log("[WIZARD] Rascunho temporário atualizado com a imagem sem logotipo.");
             } catch (firestoreError) {
               console.error("[WIZARD] Erro ao salvar a imagem sem logo no Firestore local:", firestoreError);
@@ -924,7 +972,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const formData = new FormData();
-      const imageBlob = await fetch(selectedImage).then((r) => r.blob());
+      const imageUrlToFetch = selectedImage.startsWith("http")
+        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
+        : selectedImage;
+      const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
       formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
       formData.append("logo", logoFile);
       formData.append("logoScale", logoScale.toString());
@@ -940,12 +991,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setProcessedImageUrl(finalLogoUrl);
 
       // Atualizar o rascunho temporário no Firestore local com a URL final com o logotipo aplicado
-      if (currentPostId) {
+      if (currentPostId && user) {
         try {
           const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-          await updateDoc(postDocRef, {
+          await setDoc(postDocRef, {
             imageUrls: [finalLogoUrl]
-          });
+          }, { merge: true });
           console.log("[WIZARD] Rascunho temporário atualizado com a imagem com logotipo aplicado.");
         } catch (firestoreError) {
           console.error("[WIZARD] Erro ao salvar a imagem com logo no Firestore local:", firestoreError);
@@ -1006,6 +1057,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       if (result.success) {
         toast({ title: "Sucesso!", description: publishMode === "now" ? "Post enviado." : "Post agendado." });
         
+        // Marcar de forma reativa a imagem correspondente da galeria como já utilizada no post publicado
+        if (selectedImage && user) {
+          try {
+            const galleryRef = collection(db, "users", user.uid, "mediaGallery");
+            const q = query(galleryRef, where("url", "==", selectedImage));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(async (docSnap) => {
+              await updateDoc(docSnap.ref, {
+                usedInPostId: currentPostId || "published"
+              });
+              console.log(`[WIZARD_GALLERY] Imagem ${docSnap.id} marcada na galeria como usada no post ${currentPostId}`);
+            });
+          } catch (galleryError) {
+            console.error("[WIZARD_GALLERY_ERROR] Erro ao atualizar status de uso na galeria:", galleryError);
+          }
+        }
+
         // Deletar o rascunho temporário obsoleto do Firestore se a publicação foi concluída
         if (currentPostId) {
           try {
@@ -1029,7 +1097,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleDownloadImage = async (url: string) => {
     try {
-      const blob = await fetch(url).then((r) => r.blob());
+      const imageUrlToFetch = url.startsWith("http")
+        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`
+        : url;
+      const blob = await fetch(imageUrlToFetch).then((r) => r.blob());
       const a = document.createElement("a");
       a.href = window.URL.createObjectURL(blob);
       a.download = `numvapt-${Date.now()}.jpg`;

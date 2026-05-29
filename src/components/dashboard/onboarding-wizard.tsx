@@ -33,13 +33,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { updateBusinessProfile, BusinessProfileData } from "@/lib/services/business-profile-service";
+import { updateOnboardingProfile, OnboardingProfileData } from "@/lib/services/onboarding-service";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface OnboardingWizardProps {
   userId: string;
-  initialData: BusinessProfileData | null;
+  initialData: OnboardingProfileData | null;
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
@@ -70,6 +70,8 @@ export function OnboardingWizard({
     primaryColor: initialData?.primaryColor || "#3b82f6",
     secondaryColor: initialData?.secondaryColor || "#1e293b",
     logoUrl: initialData?.logo?.url || "",
+    logoWidth: initialData?.logo?.width || 0,
+    logoHeight: initialData?.logo?.height || 0,
     slogan: initialData?.slogan || "",
     targetAudience: initialData?.targetAudience || "",
     toneOfVoice: initialData?.toneOfVoice || "",
@@ -90,6 +92,8 @@ export function OnboardingWizard({
         primaryColor: initialData.primaryColor || "#3b82f6",
         secondaryColor: initialData.secondaryColor || "#1e293b",
         logoUrl: initialData.logo?.url || "",
+        logoWidth: initialData.logo?.width || 0,
+        logoHeight: initialData.logo?.height || 0,
         slogan: initialData.slogan || "",
         targetAudience: initialData.targetAudience || "",
         toneOfVoice: initialData.toneOfVoice || "",
@@ -99,8 +103,41 @@ export function OnboardingWizard({
   }, [initialData]);
 
   const handleNext = () => {
-    if (step < totalSteps) setStep(step + 1);
-    else handleFinish();
+    if (step < totalSteps) {
+      // Salva o progresso parcial no Firestore de forma assíncrona para garantir persistência robusta
+      updateOnboardingProfile(userId, {
+        name: formData.name,
+        category: formData.category,
+        phone: formData.phone,
+        address: formData.address,
+        website: formData.website,
+        instagram: formData.instagram,
+        description: formData.description,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
+        logo: {
+          url: formData.logoUrl,
+          width: formData.logoWidth,
+          height: formData.logoHeight,
+        },
+        logos: {
+          vertical: {
+            url: formData.logoUrl,
+            width: formData.logoWidth,
+            height: formData.logoHeight,
+          },
+          horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
+          symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
+        },
+      }).catch((err) => console.error("Erro ao salvar progresso parcial:", err));
+
+      setStep(step + 1);
+    } else {
+      handleFinish();
+    }
   };
 
   const handleBack = () => {
@@ -187,6 +224,30 @@ export function OnboardingWizard({
             toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
           }));
 
+          // Salvar de imediato no Firestore para garantir persistência à prova de falhas após análise de IA bem sucedida
+          const updatedFields = {
+            name: extractedData.name || extractedData.nome || formData.name,
+            category: extractedData.category || extractedData.categoria || formData.category,
+            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || formData.phone,
+            address: extractedData.address || extractedData.endereco || extractedData.localizacao || formData.address,
+            description:
+              extractedData.description ||
+              extractedData.descricao ||
+              extractedData.bio ||
+              formData.description,
+            primaryColor:
+              extractedData.primaryColor || extractedData.cor_primaria || formData.primaryColor,
+            secondaryColor:
+              extractedData.secondaryColor || extractedData.cor_secundaria || formData.secondaryColor,
+            slogan: extractedData.slogan || formData.slogan,
+            targetAudience: extractedData.target_audience || extractedData.targetAudience || formData.targetAudience,
+            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
+          };
+
+          updateOnboardingProfile(userId, updatedFields).catch((err) =>
+            console.error("Erro ao salvar dados analisados de imediato no Firestore:", err)
+          );
+
           toast({
             title: "Análise concluída!",
             description: "Preenchemos os campos baseados na sua presença digital.",
@@ -226,7 +287,7 @@ export function OnboardingWizard({
         websiteUrl = `https://${websiteUrl}`;
       }
 
-      await updateBusinessProfile(userId, {
+      await updateOnboardingProfile(userId, {
         name: formData.name,
         category: formData.category,
         phone: formData.phone,
@@ -242,8 +303,17 @@ export function OnboardingWizard({
         onboardingCompleted: true,
         logo: {
           url: formData.logoUrl,
-          width: 0,
-          height: 0,
+          width: formData.logoWidth,
+          height: formData.logoHeight,
+        },
+        logos: {
+          vertical: {
+            url: formData.logoUrl,
+            width: formData.logoWidth,
+            height: formData.logoHeight,
+          },
+          horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
+          symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
         },
       });
       
@@ -264,7 +334,36 @@ export function OnboardingWizard({
 
   const handleSkip = async () => {
     try {
-      await updateBusinessProfile(userId, { onboardingCompleted: true });
+      // Salva o progresso inserido até o momento antes de marcar como completo, impedindo perda de dados
+      await updateOnboardingProfile(userId, {
+        name: formData.name,
+        category: formData.category,
+        phone: formData.phone,
+        address: formData.address,
+        website: formData.website,
+        instagram: formData.instagram,
+        description: formData.description,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+        slogan: formData.slogan,
+        targetAudience: formData.targetAudience,
+        toneOfVoice: formData.toneOfVoice,
+        onboardingCompleted: true,
+        logo: {
+          url: formData.logoUrl,
+          width: formData.logoWidth,
+          height: formData.logoHeight,
+        },
+        logos: {
+          vertical: {
+            url: formData.logoUrl,
+            width: formData.logoWidth,
+            height: formData.logoHeight,
+          },
+          horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
+          symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
+        },
+      });
       onComplete();
     } catch (error) {
       onClose();
@@ -277,8 +376,22 @@ export function OnboardingWizard({
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setLogoPreview(base64String);
-        setFormData({ ...formData, logoUrl: base64String });
+        const img = document.createElement("img");
+        img.onload = () => {
+          const w = img.naturalWidth || img.width || 0;
+          const h = img.naturalHeight || img.height || 0;
+          setLogoPreview(base64String);
+          setFormData({
+            ...formData,
+            logoUrl: base64String,
+            logoWidth: w,
+            logoHeight: h,
+          });
+        };
+        img.onerror = (err: any) => {
+          console.error("Erro ao pré-carregar imagem no OnboardingWizard:", err);
+        };
+        img.src = base64String;
       };
       reader.readAsDataURL(file);
     }

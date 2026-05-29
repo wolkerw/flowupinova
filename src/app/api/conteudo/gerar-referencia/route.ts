@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
+import { admin, adminDb } from "@/lib/firebase-admin";
+import crypto from "crypto";
 
 export const maxDuration = 300;
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,10 +126,20 @@ If the image depicts a CHARACTER:
     }
 
     if (action === "generate-prompt") {
-      const { yamlAnalysis, description } = await request.json();
+      const { yamlAnalysis, description, businessProfile } = await request.json();
 
       if (!yamlAnalysis || !description) {
         return NextResponse.json({ error: "Campos 'yamlAnalysis' ou 'description' ausentes." }, { status: 400 });
+      }
+
+      let brandingInstruction = "";
+      if (businessProfile) {
+        const { name, category, primaryColor, secondaryColor } = businessProfile;
+        brandingInstruction = `
+6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryColor || "#000000"} and Secondary: ${secondaryColor || "#FFFFFF"}).
+   - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
+   - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
+`;
       }
 
       const geminiSystemInstruction = `# ROLE
@@ -140,10 +153,14 @@ Given a reference image description (extracted features in YAML) and the user's 
 2. TEXT PRESERVATION: If there is any literal text to be rendered (e.g., brand names, shirt prints), specify it inside escaped double quotes exactly as it appears in the reference description. 
    - Example: "...wearing a shirt with the literal text \\"NOME DA MARCA\\" printed in clean typography..."
 3. DO NOT HALLUCINATE: Never invent certifications, stamps, or long subtitles to be rendered on the product. Prohibit rendering long subtitles inside the physical image.
-4. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
-
+4. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the image features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+   - You MUST explicitly inject multiple strict spatial instructions into the generated prompt.
+   - You MUST include a phrase like: "framed in a balanced medium shot showing the model from the chest up, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
+   - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
+5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
+${brandingInstruction}
 # UGC REALISM & CAMERAS (Include at least 2-3 in the prompt)
-- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "slightly off-center composition".
+- Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition with generous headroom", "medium shot with clear space above the head".
 - Lighting: "natural indoor morning light", "ambient daylight mixed with soft neon", "soft natural shadows".
 - Texture: "raw unpolished look", "subtle film grain", "realistic skin textures", "natural imperfections".
 - Strict ban: Never use artificial terms like "cinematic lighting", "photorealistic", "4k", "8k", or "masterpiece".
@@ -153,11 +170,12 @@ If the reference image is clothing/apparel, describe a real human model wearing 
 - Specify how the fabric falls, its texture (e.g., "textured linen", "soft cotton"), and details like buttons, prints, or specific cuts.
 - Describe the model interacting naturally with the environment (e.g., "walking casually", "sitting relaxed").
 - Ensure the model matches the user's requested scenario (e.g., "on a sunny beach during golden hour").
+- EXPLICITLY state: "The model's entire head, hair, and face are fully visible, beautifully framed with clear headroom at the top of the image, ensuring no part of the head or hair is cut off by the border".
 
 # OUTPUT FORMAT (Strict JSON)
 You must return exclusively a valid JSON object with the following single key. Do not include any explanations, introductory or concluding text:
 {
-  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, ending with the square format instruction."
+  "imagePrompt": "A highly detailed descriptive prompt in English covering subject, action, mood, environment, camera, colors, and textile/textual accuracy, explicitly detailing with heavy emphasis that the entire head, skull, and hair are fully visible inside the frame with generous headroom, prohibiting tight crops or cutoffs of the head, and ending with the square format instruction."
 }`;
 
       const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
@@ -248,7 +266,99 @@ ${yamlAnalysis}`;
         success: true,
         requestId: queueData.request_id,
         statusUrl: queueData.status_url,
-        responseUrl: queueData.response_url
+        responseUrl: queueData.response_url,
+        garmentPublicUrl: garmentPublicUrl // Retornando a URL da foto de referência original
+      });
+    }
+
+    if (action === "upload-to-firebase") {
+      const { postId, userId, finalImageUrl, referenceImageUrl } = await request.json();
+
+      if (!postId || !userId || !finalImageUrl) {
+        return NextResponse.json({ error: "Campos obrigatórios ausentes." }, { status: 400 });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Iniciando upload no backend com Firebase Admin para o post ${postId}...`);
+      
+      let firebaseDownloadUrl = finalImageUrl;
+      let firebaseRefUrl = null;
+
+      try {
+        const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app");
+
+        // 1. Download da imagem gerada da Fal.ai no servidor Next.js
+        const imgRes = await fetch(finalImageUrl);
+        if (imgRes.ok) {
+          const arrayBuffer = await imgRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const contentType = imgRes.headers.get("Content-Type") || "image/jpeg";
+
+          const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
+          const downloadToken = crypto.randomUUID();
+
+          // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
+          await fileRef.save(buffer, {
+            metadata: {
+              contentType: contentType,
+              metadata: {
+                firebaseStorageDownloadTokens: downloadToken
+              }
+            }
+          });
+
+          // Gerar URL de download compatível com a biblioteca cliente
+          firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+          console.log(`[GERAR_REFERENCIA] Imagem gerada salva no Firebase Storage via Admin: ${firebaseDownloadUrl}`);
+        } else {
+          console.warn("[GERAR_REFERENCIA] Falha ao baixar imagem gerada no servidor, usando original do Fal.ai.");
+        }
+
+        // 2. Download e upload da foto de referência original (se existir)
+        if (referenceImageUrl) {
+          const refRes = await fetch(referenceImageUrl);
+          if (refRes.ok) {
+            const arrayBuffer = await refRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const contentType = refRes.headers.get("Content-Type") || "image/jpeg";
+
+            const refFileRef = bucket.file(`users/${userId}/posts/${postId}/reference_image.jpg`);
+            const refDownloadToken = crypto.randomUUID();
+
+            await refFileRef.save(buffer, {
+              metadata: {
+                contentType: contentType,
+                metadata: {
+                  firebaseStorageDownloadTokens: refDownloadToken
+                }
+              }
+            });
+
+            firebaseRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef.name)}?alt=media&token=${refDownloadToken}`;
+            console.log(`[GERAR_REFERENCIA] Imagem de referência salva no Firebase Storage via Admin: ${firebaseRefUrl}`);
+          }
+        }
+      } catch (uploadError: any) {
+        console.error("[GERAR_REFERENCIA] Erro no upload para o Firebase Storage no backend via Admin:", uploadError);
+        // Não quebra o fluxo, retorna com a URL original como fallback
+      }
+
+      // 3. Atualizar Firestore de forma resiliente no backend usando Admin SDK (set com merge)
+      try {
+        const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
+        await postDocRef.set({
+          imageUrls: [firebaseDownloadUrl],
+          referenceImageUrl: firebaseRefUrl || null,
+          status: "completed"
+        }, { merge: true });
+        console.log(`[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}!`);
+      } catch (fsError: any) {
+        console.error("[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:", fsError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        imageUrl: firebaseDownloadUrl,
+        referenceImageUrl: firebaseRefUrl
       });
     }
 
@@ -265,6 +375,32 @@ ${yamlAnalysis}`;
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get("action");
+
+    if (action === "proxy") {
+      const url = searchParams.get("url");
+      if (!url) {
+        return NextResponse.json({ error: "URL ausente." }, { status: 400 });
+      }
+
+      console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) {
+        return NextResponse.json({ error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` }, { status: 500 });
+      }
+
+      const blob = await imgRes.blob();
+      const headers = new Headers();
+      headers.set("Content-Type", imgRes.headers.get("Content-Type") || "image/jpeg");
+      headers.set("Access-Control-Allow-Origin", "*");
+
+      return new NextResponse(blob, {
+        status: 200,
+        headers,
+      });
+    }
+
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
     if (!falKey) {
       return NextResponse.json({ error: "FAL_KEY ausente." }, { status: 500 });
@@ -274,8 +410,6 @@ export async function GET(request: NextRequest) {
       ? falKey.trim().replace(/^Key\s+/i, "") 
       : falKey.trim();
 
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
     const statusUrl = searchParams.get("statusUrl");
     const responseUrl = searchParams.get("responseUrl");
 

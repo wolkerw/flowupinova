@@ -5,8 +5,32 @@ import { cookies } from "next/headers";
 // This is the Singleton pattern for the Firebase Admin SDK.
 // It ensures that initialization happens only once across the server's lifecycle.
 if (!getApps().length) {
-  admin.initializeApp();
+  const projectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    privateKey = privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
+  }
+
+  if (privateKey && clientEmail) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+      storageBucket: `${projectId}.firebasestorage.app`
+    });
+    console.log("[FIREBASE_ADMIN] Inicializado com sucesso via Credenciais Explícitas do arquivo .env.");
+  } else {
+    admin.initializeApp({
+      projectId,
+      storageBucket: `${projectId}.firebasestorage.app`
+    });
+    console.log("[FIREBASE_ADMIN] Inicializado em modo de Fallback (sem credenciais explícitas).");
+  }
 }
+
 
 const adminAuth = admin.auth();
 const adminDb = admin.firestore();

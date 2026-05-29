@@ -4,8 +4,7 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
-    const selContent = payload.content;
+    const { content: selContent, businessProfile } = await request.json();
 
     if (!selContent) {
       return NextResponse.json({ error: "Conteúdo da publicação não enviado" }, { status: 400 });
@@ -20,13 +19,31 @@ export async function POST(request: Request) {
       );
     }
 
+    let brandingInstruction = "";
+    if (businessProfile) {
+      const { name, category, primaryColor, secondaryColor } = businessProfile;
+      brandingInstruction = `
+# BRANDING AND VISUAL IDENTITY RULES (MANDATORY PERSONALIZATION)
+You are generating advertising images for the brand "${name || "a premium brand"}" which operates in the "${category || "general"}" niche.
+The brand's visual identity is defined by the following palette:
+- Primary Color Hex: ${primaryColor || "#000000"}
+- Secondary Color Hex: ${secondaryColor || "#FFFFFF"}
+
+Your CRITICAL mission is to strategically and organically blend these two brand colors into the scenic environment of ALL 3 image concepts:
+1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
+2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors (e.g., if it's a coffee shop, the cup or napkins; if it's a tech office, a desk accessory; if it's a burger, the packaging or decorative details in the background).
+3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery.
+4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
+`;
+    }
+
     // 1. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
 Você é um Diretor de Arte de Publicidade e Especialista em Engenharia de Prompts para IAs geradoras de imagem (como Imagen e Flux).
 
 # TAREFA
 Transformar o título e subtítulo recebidos em exatamente 3 prompts descritivos de imagem ultra detalhados em INGLÊS. Cada prompt representará um design/imagem conceito diferente para o mesmo post.
-
+${brandingInstruction}
 # REGRAS CRÍTICAS DE ENGENHARIA DE PROMPT
 1. IDIOMA DO PROMPT: Redija toda a descrição visual do cenário, pessoas, pose e iluminação em INGLÊS.
 2. ELEMENTO DE TEXTO (PORTUGUÊS): Insira o título do post de forma literal dentro de aspas duplas inglesas no prompt, instruindo a IA a desenhá-lo na imagem.

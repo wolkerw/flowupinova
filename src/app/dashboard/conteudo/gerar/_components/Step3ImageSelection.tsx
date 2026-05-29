@@ -18,7 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
-
+import { CircularProgressLoader } from "./CircularProgressLoader";
+ 
 export const Step3ImageSelection = () => {
   const {
     generatedImages,
@@ -29,12 +30,14 @@ export const Step3ImageSelection = () => {
     isGeneratingImages,
     handleDownloadImage: onDownload,
     referenceImageFile,
+    mode,
   } = useWizard();
 
   const onBack = () => setStep(2);
   const onNext = () => setStep(4);
 
-  const maxImages = referenceImageFile ? 1 : 3;
+  const isReferenceMode = mode === "reference-photo" || mode === "reference-link";
+  const maxImages = isReferenceMode ? 1 : 3;
 
   return (
     <motion.div
@@ -46,13 +49,18 @@ export const Step3ImageSelection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <ImageIcon className="h-6 w-6 text-accent" />
-            Etapa 3: Escolha a melhor imagem
+            {maxImages === 1 ? "Etapa 3: Imagem gerada pela IA" : "Etapa 3: Escolha a melhor imagem"}
           </CardTitle>
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
-              {generatedImages.length > 0 
-                ? "Selecione a imagem gerada pela IA para usar em seu post."
-                : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
+              {maxImages === 1 
+                ? (generatedImages.length > 0 
+                  ? "Sua imagem publicitária foi criada a partir do seu produto!" 
+                  : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post.")
+                : (generatedImages.length > 0 
+                  ? "Selecione a imagem gerada pela IA para usar no seu post."
+                  : "Clique no botão abaixo para gerar as opções de imagem para o seu post.")
+              }
             </p>
           </div>
         </CardHeader>
@@ -103,17 +111,26 @@ export const Step3ImageSelection = () => {
 
             {/* Placeholders de carregamento para completar os slots necessários */}
             {generatedImages.length < maxImages &&
-              [...Array(maxImages - generatedImages.length)].map((_, i) => (
-                <div
-                  key={`skeleton-${i}`}
-                  className="relative flex aspect-square animate-pulse flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted"
-                >
-                  <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
-                  <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                    {maxImages === 1 ? "Buscando imagem..." : `Buscando opção ${generatedImages.length + i + 1}...`}
-                  </span>
-                </div>
-              ))}
+              [...Array(maxImages - generatedImages.length)].map((_, i) => {
+                const isSingleImageLoader = maxImages === 1;
+                return (
+                  <div
+                    key={`skeleton-${i}`}
+                    className="relative flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted overflow-hidden"
+                  >
+                    {isSingleImageLoader ? (
+                      <CircularProgressLoader isActive={isGeneratingImages} />
+                    ) : (
+                      <>
+                        <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
+                        <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+                          {`Gerando opção ${generatedImages.length + i + 1}...`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,15 +91,22 @@ export async function POST(request: NextRequest) {
       proximaCampanhaInfo = `\nFoco comercial genérico do mês de ${mesNome}.\n`;
     }
 
-    // 2. Buscar informações do Perfil do Negócio no Firestore se houver userId
+    // 2. Buscar informações do Perfil do Negócio e Histórico de Chat via Admin SDK (Memória completa)
     let businessContext = "";
+    let fullHistory: any[] = [];
+
     if (userId) {
       try {
-        console.log(`[CHAT_VAPTI] Buscando perfil do negócio para o usuário: ${userId}...`);
-        const profileDocRef = doc(db, `users/${userId}/business/profile`);
-        const docSnap = await getDoc(profileDocRef);
-        if (docSnap.exists()) {
-          const bizData = docSnap.data();
+        console.log(`[CHAT_VAPTI] Carregando perfil e histórico de chat via Admin SDK para: ${userId}...`);
+        
+        // A. Buscar Perfil de Negócio (preferencialmente Onboarding/Brand Kit, com fallback para Profile)
+        let profileSnap = await adminDb.doc(`users/${userId}/business/onboarding`).get();
+        if (!profileSnap.exists) {
+          profileSnap = await adminDb.doc(`users/${userId}/business/profile`).get();
+        }
+
+        if (profileSnap.exists) {
+          const bizData = profileSnap.data();
           if (bizData) {
             const parts = [];
             if (bizData.name) parts.push(`- Nome da Marca: ${bizData.name}`);
@@ -112,6 +118,11 @@ export async function POST(request: NextRequest) {
             if (bizData.primaryColor || bizData.secondaryColor) {
               parts.push(`- Cores da Marca: Primária (${bizData.primaryColor || "N/A"}), Secundária (${bizData.secondaryColor || "N/A"})`);
             }
+            if (bizData.logo?.url) {
+              parts.push(`- Logomarca: Configurada (URL: ${bizData.logo.url})`);
+            } else {
+              parts.push(`- Logomarca: Não configurada`);
+            }
             if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
               parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);
             }
@@ -121,16 +132,30 @@ export async function POST(request: NextRequest) {
             }
           }
         }
+
+        // B. Buscar Histórico Completo de Mensagens do Banco de Dados
+        const historySnap = await adminDb.doc(`users/${userId}/appData/history`).get();
+        if (historySnap.exists) {
+          const historyData = historySnap.data();
+          if (historyData && historyData.chatHistory) {
+            fullHistory = historyData.chatHistory;
+          }
+        }
       } catch (err) {
-        console.error("[CHAT_VAPTI] Erro ao buscar perfil do negócio no Firestore:", err);
+        console.error("[CHAT_VAPTI] Erro ao buscar dados via Admin SDK no Firestore:", err);
       }
     }
 
+    // Usar o histórico do banco de dados (completo) se disponível; caso contrário, usa o enviado pelo front
+    const messagesToUse = fullHistory.length > 0 ? fullHistory : history;
+
     // 3. Construir o System Instruction (Instrução do Sistema) para o Gemini
     const systemInstructionText = `
-Você é o Vapti, especialista sênior em marketing digital, mídias sociais e inteligência artificial da FlowUp.
-Você é um consultor criativo de alta performance, parceiro de brainstorming estratégico, dinâmico e cheerleader dos seus usuários.
-Seu tom é entusiasmado, motivador, persuasivo e altamente focado em resultados rápidos e atrativos!
+Você é o Vapti, especialista sênior em marketing digital, mídias sociais e inteligência artificial da NumVapt.
+Você é um consultor criativo de alta performance, parceiro de brainstorming estratégico, dinâmico e amigo pessoal do seu usuário.
+Seu tom é entusiasmado, amigável, motivador, inspirador e altamente focado em conhecer o lojista de forma sincera e ajudá-lo a crescer!
+Você se lembra de todas as interações passadas do usuário de outros dias através do histórico completo de conversas disponível abaixo.
+Use a memória de conversas antigas para lembrar do nome dele, do nicho do negócio, de preferências de posts e particularidades reveladas em conversas anteriores, demonstrando de forma orgânica, espontânea e muito natural que você o conhece profundamente e que são grandes parceiros de negócio (evitando parecer um robô mecânico que lê dados estáticos).
 ${businessContext}
 CONTEXTO TEMPORAL E COMEMORATIVO REAL:
 - Data/Hora Atual: ${dataHoraSP}
@@ -144,7 +169,7 @@ PROATIVIDADE SAZONAL E MARKETING ESTILO "GROWTH HACKER" (CRÍTICO):
    - Conexão e Elogio: "Que nicho fantástico! 🚀" ou "Amei essa ideia de campanha!"
    - Ação Estratégica Sazonal: Proponha uma ideia de campanha super proativa baseada na data comemorativa comercial futura mais próxima.
    - Exemplo Prático de Conteúdo: Forneça uma frase curta de legenda irresistível ou roteiro de Stories rápido de 1 linha.
-   - Chamada para a Ação: Lembre o usuário de ir à seção de "Criar Conteúdo" no menu lateral esquerdo do app da FlowUp para criar essa postagem em segundos.
+   - Chamada para a Ação: Lembre o usuário de ir à seção de "Criar Conteúdo" no menu lateral esquerdo do app da NumVapt para criar essa postagem em segundos.
    - Pergunta de Fechamento Magnética: Faça uma pergunta rápida para engajar o brainstorm (ex: "Bora colocar esse carrossel para rodar? ✨").
 
 DIRETRIZES DE ESTILO:
@@ -153,11 +178,18 @@ DIRETRIZES DE ESTILO:
 - Na PRIMEIRA interação do chat, se as INFORMAÇÕES REAIS DO NEGÓCIO acima estiverem vazias e você ainda não souber o nicho ou as cores da marca do usuário, elogie a entrada dele e pergunte sutilmente as cores e o nicho enquanto já propõe um gancho sazonal antecipado sobre a campanha de ${nomeProximaCampanha || mesNome}!
 `;
 
-    // 4. Formatar o histórico no padrão aceito pelo Gemini REST
+    // 4. Formatar o histórico completo no padrão aceito pelo Gemini REST
     const formattedContents = [];
 
-    if (history && history.length > 0) {
-      for (const msg of history) {
+    if (messagesToUse && messagesToUse.length > 0) {
+      // Ordena cronologicamente por createdAt para evitar dessincronização no prompt
+      const sortedMessages = [...messagesToUse].sort((a, b) => {
+        const tA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+        const tB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+        return tA - tB;
+      });
+
+      for (const msg of sortedMessages) {
         formattedContents.push({
           role: msg.sender === "ai" ? "model" : "user",
           parts: [{ text: msg.text }]

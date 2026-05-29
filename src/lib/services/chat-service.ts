@@ -73,12 +73,37 @@ export async function saveChatHistory(userId: string, messages: StoredMessage[])
   try {
     const docRef = getUserAppDataDocRef(userId);
 
-    // Convert JS Dates to Firestore Timestamps e remove campos undefined para evitar erros do Firestore
+    // 1. Buscar histórico existente no Firestore de forma preventiva e resiliente
+    const docSnap = await getDoc(docRef);
+    let existingHistory: any[] = [];
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      existingHistory = data.chatHistory || [];
+    }
+
+    // 2. Converter as mensagens de entrada para o formato de persistência
     const messagesToStore = messages.map((msg) => {
+      let msgDate: Date;
+      if (msg.createdAt instanceof Date) {
+        msgDate = msg.createdAt;
+      } else if (typeof msg.createdAt === "string") {
+        msgDate = new Date(msg.createdAt);
+      } else if (msg.createdAt && typeof (msg.createdAt as any).seconds === "number") {
+        msgDate = new Date((msg.createdAt as any).seconds * 1000);
+      } else if (msg.createdAt && typeof (msg.createdAt as any).toDate === "function") {
+        msgDate = (msg.createdAt as any).toDate();
+      } else {
+        msgDate = msg.createdAt ? new Date(msg.createdAt) : new Date();
+      }
+
+      if (isNaN(msgDate.getTime())) {
+        msgDate = new Date();
+      }
+
       const cleanMsg: any = {
         sender: msg.sender,
         text: msg.text,
-        createdAt: Timestamp.fromDate(msg.createdAt instanceof Date ? msg.createdAt : new Date()),
+        createdAt: Timestamp.fromDate(msgDate),
       };
       if (msg.isError !== undefined) {
         cleanMsg.isError = msg.isError;
@@ -86,10 +111,30 @@ export async function saveChatHistory(userId: string, messages: StoredMessage[])
       return cleanMsg;
     });
 
-    // Use setDoc with merge to create or update the chatHistory field
-    await setDoc(docRef, { chatHistory: messagesToStore }, { merge: true });
+    // 3. Mesclar sem duplicidades (usando margem de tolerância de 2 segundos de timestamp)
+    const mergedHistory = [...existingHistory];
+
+    for (const newMsg of messagesToStore) {
+      const alreadyExists = existingHistory.some((extMsg) => {
+        const extTime = extMsg.createdAt && extMsg.createdAt.toDate 
+          ? extMsg.createdAt.toDate().getTime() 
+          : new Date(extMsg.createdAt).getTime();
+        const newTime = newMsg.createdAt.toDate().getTime();
+        return (
+          extMsg.text === newMsg.text && 
+          extMsg.sender === newMsg.sender && 
+          Math.abs(extTime - newTime) < 2000
+        );
+      });
+
+      if (!alreadyExists) {
+        mergedHistory.push(newMsg);
+      }
+    }
+
+    // 4. Salvar o histórico unificado completo
+    await setDoc(docRef, { chatHistory: mergedHistory }, { merge: true });
   } catch (error: any) {
     console.error(`Erro ao salvar o histórico do chat para o usuário ${userId}:`, error);
-    // Falha silenciosa para evitar travar a interface/UX do usuário com tela vermelha (Runtime Error)
   }
 }
