@@ -4,14 +4,14 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, arrayUnion, query, where, getDocs } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
-import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
+import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
 import { getUnusedImages, saveUnusedImages, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
 import { GeneratedContent, Platform, LogoPosition } from "../types";
 
@@ -97,7 +97,7 @@ interface WizardContextType {
   user: any;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
-  businessProfile: BusinessProfileData | null;
+  businessProfile: OnboardingProfileData | null;
   currentPostId: string | null;
   visualLogoScale: number;
   selectedContent: GeneratedContent | null;
@@ -141,7 +141,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
 
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [canStartPolling, setCanStartPolling] = useState(false);
@@ -226,7 +226,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const [metaConn, instaConn, busProfile] = await Promise.all([
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
-          getBusinessProfile(user.uid),
+          getOnboardingProfile(user.uid),
         ]);
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
@@ -236,6 +236,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (metaConn?.isConnected) initialPlatforms.push("facebook");
         if (instaConn?.isConnected) initialPlatforms.push("instagram");
         setPlatforms(initialPlatforms);
+
+        // Inicializar a logomarca do Brand Kit se existir e nenhuma estiver selecionada
+        if (busProfile?.logo?.url) {
+          setLogoPreviewUrl(busProfile.logo.url);
+          
+          fetch(busProfile.logo.url)
+            .then(res => res.blob())
+            .then(blob => {
+              const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
+              setLogoFile(file);
+            })
+            .catch(err => console.error("Erro ao converter logo do Brand Kit em File no assistente:", err));
+        }
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
       }
@@ -1064,6 +1077,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       if (result.success) {
         toast({ title: "Sucesso!", description: publishMode === "now" ? "Post enviado." : "Post agendado." });
         
+        // Marcar de forma reativa a imagem correspondente da galeria como já utilizada no post publicado
+        if (selectedImage && user) {
+          try {
+            const galleryRef = collection(db, "users", user.uid, "mediaGallery");
+            const q = query(galleryRef, where("url", "==", selectedImage));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(async (docSnap) => {
+              await updateDoc(docSnap.ref, {
+                usedInPostId: currentPostId || "published"
+              });
+              console.log(`[WIZARD_GALLERY] Imagem ${docSnap.id} marcada na galeria como usada no post ${currentPostId}`);
+            });
+          } catch (galleryError) {
+            console.error("[WIZARD_GALLERY_ERROR] Erro ao atualizar status de uso na galeria:", galleryError);
+          }
+        }
+
         // Deletar o rascunho temporário obsoleto do Firestore se a publicação foi concluída
         if (currentPostId) {
           try {

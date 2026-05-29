@@ -99,8 +99,12 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[CHAT_VAPTI] Carregando perfil e histórico de chat via Admin SDK para: ${userId}...`);
         
-        // A. Buscar Perfil de Negócio
-        const profileSnap = await adminDb.doc(`users/${userId}/business/profile`).get();
+        // A. Buscar Perfil de Negócio (preferencialmente Onboarding/Brand Kit, com fallback para Profile)
+        let profileSnap = await adminDb.doc(`users/${userId}/business/onboarding`).get();
+        if (!profileSnap.exists) {
+          profileSnap = await adminDb.doc(`users/${userId}/business/profile`).get();
+        }
+
         if (profileSnap.exists) {
           const bizData = profileSnap.data();
           if (bizData) {
@@ -113,6 +117,11 @@ export async function POST(request: NextRequest) {
             if (bizData.toneOfVoice) parts.push(`- Tom de Voz: ${bizData.toneOfVoice}`);
             if (bizData.primaryColor || bizData.secondaryColor) {
               parts.push(`- Cores da Marca: Primária (${bizData.primaryColor || "N/A"}), Secundária (${bizData.secondaryColor || "N/A"})`);
+            }
+            if (bizData.logo?.url) {
+              parts.push(`- Logomarca: Configurada (URL: ${bizData.logo.url})`);
+            } else {
+              parts.push(`- Logomarca: Não configurada`);
             }
             if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
               parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);

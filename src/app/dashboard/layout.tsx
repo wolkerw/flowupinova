@@ -24,6 +24,7 @@ import {
   XCircle,
   Sparkles,
   Settings2,
+  Images,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,11 +59,13 @@ import {
 } from "@/lib/services/notifications-service";
 import { cn } from "@/lib/utils";
 import {
-  getBusinessProfile,
-  type BusinessProfileData,
-} from "@/lib/services/business-profile-service";
+  getOnboardingProfile,
+  type OnboardingProfileData,
+} from "@/lib/services/onboarding-service";
 import { Badge } from "@/components/ui/badge";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const allNavigationItems = [
   {
@@ -79,6 +82,11 @@ const allNavigationItems = [
     title: "Conteúdo",
     url: "/dashboard/conteudo",
     icon: FileText,
+  },
+  {
+    title: "Galeria",
+    url: "/dashboard/galeria",
+    icon: Images,
   },
   {
     title: "Anúncios",
@@ -134,7 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
@@ -158,13 +166,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (user) {
       fetchAndProcessNotifications();
-      getBusinessProfile(user.uid).then((profile) => {
-        setBusinessProfile(profile);
-        // Se onboardingCompleted não for true, mostra o wizard automaticamente
-        if (profile && profile.onboardingCompleted !== true) {
-          setShowOnboarding(true);
+      
+      const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
+      const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const profile = {
+            name: "",
+            category: "",
+            address: "",
+            phone: "",
+            website: "",
+            instagram: "",
+            description: "",
+            logo: { url: "", width: 0, height: 0 },
+            primaryColor: "#3b82f6",
+            secondaryColor: "#1e293b",
+            onboardingCompleted: false,
+            slogan: "",
+            targetAudience: "",
+            toneOfVoice: "",
+            mainBenefits: [],
+            ...data,
+          } as OnboardingProfileData;
+          
+          setBusinessProfile(profile);
+          
+          const isDashboardHome = pathname === "/dashboard";
+          if (profile.onboardingCompleted !== true && isDashboardHome) {
+            setShowOnboarding(true);
+          } else {
+            setShowOnboarding(false);
+          }
+        } else {
+          // Se o documento não existir, busca/cria
+          getOnboardingProfile(user.uid).then((profile) => {
+            setBusinessProfile(profile);
+            const isDashboardHome = pathname === "/dashboard";
+            if (profile.onboardingCompleted !== true && isDashboardHome) {
+              setShowOnboarding(true);
+            }
+          });
         }
       });
+
+      return () => {
+        unsubscribeOnboarding();
+      };
     }
   }, [user, fetchAndProcessNotifications]);
 
@@ -206,7 +254,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           console.log("Onboarding complete!");
           setShowOnboarding(false);
           if (user) {
-            getBusinessProfile(user.uid).then(setBusinessProfile);
+            getOnboardingProfile(user.uid).then(setBusinessProfile);
           }
         }}
       />
@@ -261,11 +309,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   ))}
                   <SidebarMenuItem>
                   <SidebarMenuButton 
-                    onClick={() => setShowOnboarding(true)}
+                    asChild
                     className="hover:bg-primary/10 hover:text-primary transition-colors"
                   >
-                    <Settings2 className="h-4 w-4" />
-                    <span>Configurações</span>
+                    <Link href="/dashboard/configuracoes" className="flex w-full items-center gap-3">
+                      <Settings2 className="h-4 w-4" />
+                      <span>Configurações</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -356,7 +406,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={businessProfile?.logo?.url || user.photoURL || undefined}
+                          src={businessProfile?.logos?.avatar?.url || businessProfile?.logo?.url || user.photoURL || undefined}
                           alt={businessProfile?.name || user.displayName || ""}
                         />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
@@ -377,9 +427,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setShowOnboarding(true)}>
-                      <Settings2 className="mr-2 h-4 w-4" />
-                      Configurações do Negócio
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/configuracoes" className="flex w-full items-center cursor-pointer">
+                        <Settings2 className="mr-2 h-4 w-4" />
+                        Configurações do Negócio
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={logout}>
                       <LogOut className="mr-2 h-4 w-4" />

@@ -32,6 +32,11 @@ export interface BusinessProfileData {
   targetAudience?: string;
   toneOfVoice?: string;
   mainBenefits?: string[];
+  brandKit?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    [key: string]: any;
+  };
 }
 
 const defaultLogo: LogoData = {
@@ -116,8 +121,22 @@ export async function resetBusinessProfile(userId: string): Promise<void> {
   }
   try {
     const profileDocRef = getProfileDocRef(userId);
-    await setDoc(profileDocRef, defaultProfile);
-    console.log(`Business profile reset for user ${userId}.`);
+    // Em vez de apagar todo o documento (o que destruía as configurações de onboarding manual!),
+    // apenas limpamos os campos específicos trazidos pela integração com o Google para preservar a bio, cores, logo, etc.
+    await setDoc(
+      profileDocRef,
+      {
+        googleName: "",
+        pendingFields: {},
+        regularHours: null,
+        openInfo: null,
+        rating: 0,
+        totalReviews: 0,
+        isVerified: false,
+      },
+      { merge: true }
+    );
+    console.log(`Business profile Google fields cleared for user ${userId}.`);
   } catch (error: any) {
     console.error(`Error resetting business profile for user ${userId}:`, error);
     throw new Error("Não foi possível resetar o perfil de negócio.");

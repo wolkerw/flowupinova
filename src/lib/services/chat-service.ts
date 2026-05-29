@@ -83,10 +83,27 @@ export async function saveChatHistory(userId: string, messages: StoredMessage[])
 
     // 2. Converter as mensagens de entrada para o formato de persistência
     const messagesToStore = messages.map((msg) => {
+      let msgDate: Date;
+      if (msg.createdAt instanceof Date) {
+        msgDate = msg.createdAt;
+      } else if (typeof msg.createdAt === "string") {
+        msgDate = new Date(msg.createdAt);
+      } else if (msg.createdAt && typeof (msg.createdAt as any).seconds === "number") {
+        msgDate = new Date((msg.createdAt as any).seconds * 1000);
+      } else if (msg.createdAt && typeof (msg.createdAt as any).toDate === "function") {
+        msgDate = (msg.createdAt as any).toDate();
+      } else {
+        msgDate = msg.createdAt ? new Date(msg.createdAt) : new Date();
+      }
+
+      if (isNaN(msgDate.getTime())) {
+        msgDate = new Date();
+      }
+
       const cleanMsg: any = {
         sender: msg.sender,
         text: msg.text,
-        createdAt: Timestamp.fromDate(msg.createdAt instanceof Date ? msg.createdAt : new Date()),
+        createdAt: Timestamp.fromDate(msgDate),
       };
       if (msg.isError !== undefined) {
         cleanMsg.isError = msg.isError;

@@ -86,6 +86,28 @@ export async function POST(request: Request) {
     const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
     console.log(`[GENERATE_IMAGES_NATIVE] Sucesso absoluto! Imagem conceito ${fileName} salva de forma estável no Firebase Storage: ${firebaseDownloadUrl}`);
 
+    // 5. Cadastrar automaticamente o registro da imagem gerada na subcoleção mediaGallery do Firestore do lojista
+    try {
+      const galleryRef = admin.firestore().collection("users").doc(userId).collection("mediaGallery");
+      const galleryMediaId = `${postId}_concept_${fileName}`;
+      
+      await galleryRef.doc(galleryMediaId).set({
+        id: galleryMediaId,
+        url: firebaseDownloadUrl,
+        storagePath: fileRef.name,
+        source: "wizard_generation",
+        prompt: prompt,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        usedInPostId: null, // Inicialmente livre/não publicada
+        fileName: `concept_${fileName}.jpg`
+      });
+      console.log(`[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`);
+    } catch (firestoreError) {
+      console.error("[GENERATE_IMAGES_NATIVE_ERROR] Falha ao catalogar imagem gerada no Firestore:", firestoreError);
+      // Mantemos o fluxo resiliente: mesmo que a gravação no banco falhe, o base64 e o storage completaram,
+      // então não lançamos erro para não quebrar a experiência do lojista na UI.
+    }
+
     return NextResponse.json({
       success: true,
       imageUrl: firebaseDownloadUrl,

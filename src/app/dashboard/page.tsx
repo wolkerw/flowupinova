@@ -35,8 +35,12 @@ import {
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
 import {
+  getOnboardingProfile,
+  updateOnboardingProfile,
+  type OnboardingProfileData,
+} from "@/lib/services/onboarding-service";
+import {
   getBusinessProfile,
-  updateBusinessProfile,
   type BusinessProfileData,
 } from "@/lib/services/business-profile-service";
 import { getChatHistory, saveChatHistory, type StoredMessage } from "@/lib/services/chat-service";
@@ -44,7 +48,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const initialMessages: Message[] = [
@@ -186,7 +190,8 @@ export default function Dashboard() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
     null
   );
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
+  const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -195,13 +200,15 @@ export default function Dashboard() {
   const [instagramMetrics, setInstagramMetrics] = useState<PlatformMetrics | null>(null);
   const [facebookMetrics, setFacebookMetrics] = useState<PlatformMetrics | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoDimensions, setLogoDimensions] = useState<{ width: number; height: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [trialEnded, setTrialEnded] = useState(false);
   const [trialLoading, setTrialLoading] = useState(true);
 
   const fetchBusinessProfile = useCallback(async () => {
     if (!user) return;
-    getBusinessProfile(user.uid).then(setBusinessProfile);
+    getOnboardingProfile(user.uid).then(setBusinessProfile);
+    getBusinessProfile(user.uid).then(setGmbProfile);
   }, [user]);
 
   useEffect(() => {
@@ -321,22 +328,52 @@ export default function Dashboard() {
 
     checkTrialStatus();
 
+    let unsubscribeOnboarding: (() => void) | undefined;
+
     const fetchInitialData = async () => {
-      const [metaConn, instaConn] = await Promise.all([
+      const [metaConn, instaConn, profile, gmb] = await Promise.all([
         getMetaConnection(user.uid),
         getInstagramConnection(user.uid),
+        getOnboardingProfile(user.uid),
+        getBusinessProfile(user.uid),
       ]);
 
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
-      const profile = await getBusinessProfile(user.uid);
       setBusinessProfile(profile);
+      setGmbProfile(gmb);
       
       if (metaConn.isConnected || instaConn.isConnected) {
         fetchPlatformMetrics(metaConn, instaConn);
       } else {
         setMetricsLoading(false);
       }
+
+      // Escutar atualizações do Onboarding em tempo real para refletir logomarca e cores de imediato
+      const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
+      unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setBusinessProfile({
+            name: "",
+            category: "",
+            address: "",
+            phone: "",
+            website: "",
+            instagram: "",
+            description: "",
+            logo: { url: "", width: 0, height: 0 },
+            primaryColor: "#3b82f6",
+            secondaryColor: "#1e293b",
+            onboardingCompleted: false,
+            slogan: "",
+            targetAudience: "",
+            toneOfVoice: "",
+            mainBenefits: [],
+            ...data,
+          } as OnboardingProfileData);
+        }
+      });
 
       const history = await getChatHistory(user.uid);
       if (history.length > 0) {
@@ -360,6 +397,12 @@ export default function Dashboard() {
     };
 
     fetchInitialData();
+
+    return () => {
+      if (unsubscribeOnboarding) {
+        unsubscribeOnboarding();
+      }
+    };
   }, [user, fetchBusinessProfile]);
 
   useEffect(() => {
@@ -373,6 +416,46 @@ export default function Dashboard() {
       saveChatHistory(user.uid, storedMessages);
     }
   }, [messages, user]);
+
+  useEffect(() => {
+    if (businessProfile?.logo?.url) {
+      const width = businessProfile.logo.width || 0;
+      const height = businessProfile.logo.height || 0;
+      
+      if (width > 0 && height > 0) {
+        setLogoDimensions({ width, height });
+      } else {
+        // Se as dimensões vierem zeradas (usuários legados), calculamos em tempo real com robustez total
+        const img = document.createElement("img");
+        img.onload = () => {
+          const w = img.naturalWidth || img.width || 0;
+          const h = img.naturalHeight || img.height || 0;
+          
+          if (w > 0 && h > 0) {
+            setLogoDimensions({ width: w, height: h });
+            // Atualiza silenciosamente no Firestore para corrigir os dados do usuário legado para sempre!
+            if (user) {
+              updateOnboardingProfile(user.uid, {
+                logo: {
+                  url: businessProfile.logo.url,
+                  width: w,
+                  height: h,
+                }
+              }).catch(err => console.error("Erro ao corrigir dimensões da logo no Firestore:", err));
+            }
+          } else {
+            console.warn("Autocorreção: Calculou dimensão como 0x0 para a imagem do onboarding:", businessProfile.logo.url.substring(0, 50));
+          }
+        };
+        img.onerror = (err: any) => {
+          console.error("Erro ao carregar imagem em segundo plano para autocorreção:", err);
+        };
+        img.src = businessProfile.logo.url;
+      }
+    } else {
+      setLogoDimensions(null);
+    }
+  }, [businessProfile?.logo?.url, businessProfile?.logo?.width, businessProfile?.logo?.height, user]);
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -435,9 +518,11 @@ export default function Dashboard() {
       reader.onload = (e) => {
         const img = document.createElement("img");
         img.onload = () => {
+          const w = img.naturalWidth || img.width || 0;
+          const h = img.naturalHeight || img.height || 0;
           resolve({
-            width: img.width,
-            height: img.height,
+            width: w,
+            height: h,
             dataUrl: e.target?.result as string,
           });
         };
@@ -459,7 +544,7 @@ export default function Dashboard() {
     try {
       const { dataUrl, width, height } = await getImageDimensions(file);
 
-      await updateBusinessProfile(user.uid, {
+      await updateOnboardingProfile(user.uid, {
         logo: {
           url: dataUrl,
           width: width,
@@ -486,7 +571,7 @@ export default function Dashboard() {
     toast({ title: "Removendo logomarca..." });
 
     try {
-      await updateBusinessProfile(user.uid, {
+      await updateOnboardingProfile(user.uid, {
         logo: {
           url: "",
           width: 0,
@@ -503,9 +588,9 @@ export default function Dashboard() {
   };
 
   const allStepsCompleted = useMemo(() => {
-    if (!metaConnection || !businessProfile) return false;
-    return !!businessProfile.logo?.url && metaConnection.isConnected && businessProfile.isVerified;
-  }, [metaConnection, businessProfile]);
+    if (!metaConnection || !businessProfile || !gmbProfile) return false;
+    return !!businessProfile.logo?.url && metaConnection.isConnected && gmbProfile.isVerified;
+  }, [metaConnection, businessProfile, gmbProfile]);
 
   if (trialLoading) {
     return (
@@ -788,8 +873,7 @@ export default function Dashboard() {
                             <div>
                               <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
                               <p className="text-xs text-green-700">
-                                Dimensões: {businessProfile.logo.width}x
-                                {businessProfile.logo.height}
+                                Dimensões: {logoDimensions ? `${logoDimensions.width}x${logoDimensions.height}` : "Calculando..."}
                               </p>
                             </div>
                           </div>
@@ -820,11 +904,11 @@ export default function Dashboard() {
                       title="3. Conecte seu Perfil de Empresa"
                       description="Sincronize com o Google Meu Negócio para gerenciar sua presença local."
                       href="/dashboard/meu-negocio"
-                      isCompleted={businessProfile?.isVerified || false}
+                      isCompleted={gmbProfile?.isVerified || false}
                       isCurrent={
                         !!businessProfile?.logo?.url &&
                         !!metaConnection?.isConnected &&
-                        !businessProfile?.isVerified
+                        !gmbProfile?.isVerified
                       }
                     />
                     <StepItem
