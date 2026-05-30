@@ -214,7 +214,29 @@ If the image depicts a CHARACTER:
     }
 
     if (action === "generate-prompt") {
-      const { yamlAnalysis, description, businessProfile } = await request.json();
+      let yamlAnalysis = "";
+      let description = "";
+      let businessProfile: any = null;
+      let inspirationFile: File | null = null;
+
+      const contentType = request.headers.get("content-type") || "";
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await request.formData();
+        yamlAnalysis = formData.get("yamlAnalysis") as string || "";
+        description = formData.get("description") as string || "";
+        const profileStr = formData.get("businessProfile") as string;
+        if (profileStr) {
+          try {
+            businessProfile = JSON.parse(profileStr);
+          } catch {}
+        }
+        inspirationFile = formData.get("inspiration_file") as File | null;
+      } else {
+        const body = await request.json();
+        yamlAnalysis = body.yamlAnalysis || "";
+        description = body.description || "";
+        businessProfile = body.businessProfile || null;
+      }
 
       if (!yamlAnalysis || !description) {
         return NextResponse.json({ error: "Campos 'yamlAnalysis' ou 'description' ausentes." }, { status: 400 });
@@ -230,11 +252,40 @@ If the image depicts a CHARACTER:
 `;
       }
 
+      let inspirationInstruction = "";
+      let inlineDataPart: any = null;
+
+      if (inspirationFile) {
+        try {
+          const arrayBuffer = await inspirationFile.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const mimeType = inspirationFile.type || "image/jpeg";
+          const base64Image = buffer.toString("base64");
+
+          inlineDataPart = {
+            inlineData: {
+              mimeType: mimeType,
+              data: base64Image
+            }
+          };
+
+          inspirationInstruction = `
+7. LAYOUT & COMPOSITION REPLICATION (CRITICAL REFERENCE REPLICA): You have been provided with an inspiration/reference image (the print of a post).
+   - Carefully analyze its visual layout, composition, camera angle, framing, and the poses of the subject/model.
+   - Your primary mission is to instruct the model to REPLICATE this exact visual composition, camera perspective, and enquadramento (framing).
+   - Describe the exact spatial positioning: how the subject is standing/sitting relative to the frame, where the product is held or placed, and what the background backdrop consists of.
+   - The generated prompt must force the model to mimic the structural layout of the reference print, but featuring the user's product (from YAML) instead of the original product/subject.
+`;
+        } catch (e) {
+          console.warn("[GERAR_REFERENCIA] Falha ao processar arquivo de inspiração para prompt:", e);
+        }
+      }
+
       const geminiSystemInstruction = `# ROLE
 You are an elite Creative Art Director and Prompt Engineer specialized in User-Generated Content (UGC) advertising and high-fidelity product placement for image generation models (specifically Flux Kontext).
 
 # GOAL
-Given a reference image description (extracted features in YAML) and the user's creative advertising ideas, write a short, highly natural, and descriptive image prompt IN ENGLISH optimized for the "flux-pro/kontext" model.
+Given a reference image description (extracted features in YAML), the user's creative advertising ideas, and optionally an inspiration image (the print), write a short, highly natural, and descriptive image prompt IN ENGLISH optimized for the "flux-pro/kontext" model.
 
 # CRITICAL RULES
 1. OUTPUT LANGUAGE: You must write the final image prompt completely IN ENGLISH. Generating prompts in English dramatically increases the quality, pose accuracy, and realism of the model.
@@ -247,6 +298,7 @@ Given a reference image description (extracted features in YAML) and the user's 
    - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
 5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
 ${brandingInstruction}
+${inspirationInstruction}
 # UGC REALISM & CAMERAS (Include at least 2-3 in the prompt)
 - Camera styles: "spontaneous smartphone photo", "casual UGC candid shot", "centered composition with generous headroom", "medium shot with clear space above the head".
 - Lighting: "natural indoor morning light", "ambient daylight mixed with soft neon", "soft natural shadows".
@@ -267,14 +319,23 @@ You must return exclusively a valid JSON object with the following single key. D
 }`;
 
       const geminiUserMessage = `Sua tarefa: criar um prompt de imagem para post no instagram conforme orientado pelas diretrizes do sistema.
-Certifique-se de que a imagem de referência seja representada com a maior precisão possível nas imagens geradas, especialmente em relação a todos os textos e detalhes físicos.
+Certifique-se de que a imagem de referência do produto seja representada com a maior precisão possível nas imagens geradas, especialmente em relação a todos os textos e detalhes físicos.
+Além disso, se houver uma imagem de inspiração/print fornecida, garanta que a composição, pose do modelo, layout de enquadramento de câmera e estilo visual sejam fielmente imitados e replicados.
 
 Descrição desejada de cenário/modelo pelo usuário: "${description}"
 
-Descrição física da imagem de referência (YAML):
+Descrição física da imagem de referência do produto (YAML):
 ${yamlAnalysis}`;
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      
+      const contentsParts: any[] = [];
+      if (inlineDataPart) {
+        contentsParts.push({ text: "Esta é a imagem de inspiração/print de layout a ser replicada:" });
+        contentsParts.push(inlineDataPart);
+      }
+      contentsParts.push({ text: geminiUserMessage });
+
       const response = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -282,7 +343,7 @@ ${yamlAnalysis}`;
           systemInstruction: {
             parts: [{ text: geminiSystemInstruction }]
           },
-          contents: [{ parts: [{ text: geminiUserMessage }] }],
+          contents: [{ parts: contentsParts }],
           generationConfig: { responseMimeType: "application/json" }
         })
       });
@@ -439,6 +500,26 @@ ${yamlAnalysis}`;
           status: "completed"
         }, { merge: true });
         console.log(`[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}!`);
+
+        // 4. Cadastrar automaticamente o registro da imagem gerada na subcoleção mediaGallery do Firestore do lojista
+        try {
+          const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
+          const galleryMediaId = `${postId}_ref_generated`;
+          
+          await galleryRef.doc(galleryMediaId).set({
+            id: galleryMediaId,
+            url: firebaseDownloadUrl,
+            storagePath: `users/${userId}/posts/${postId}/generated_image.jpg`,
+            source: "reference_generation",
+            prompt: "Imagem gerada a partir de print de referência e produto.",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            usedInPostId: postId,
+            fileName: "generated_image.jpg"
+          });
+          console.log(`[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`);
+        } catch (galleryError) {
+          console.error("[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:", galleryError);
+        }
       } catch (fsError: any) {
         console.error("[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:", fsError);
       }

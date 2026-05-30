@@ -623,14 +623,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           // --- ETAPA 2: GERAR PROMPT ---
           console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
 
+          const promptFormData = new FormData();
+          promptFormData.append("yamlAnalysis", yamlAnalysis);
+          promptFormData.append("description", referenceDescription);
+          if (businessProfile) {
+            promptFormData.append("businessProfile", JSON.stringify(businessProfile));
+          }
+          if (mode === "reference-link" && inspirationFile) {
+            promptFormData.append("inspiration_file", inspirationFile);
+          }
+
           const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              yamlAnalysis,
-              description: referenceDescription,
-              businessProfile: businessProfile,
-            }),
+            body: promptFormData,
           });
 
           if (!promptResponse.ok) {
