@@ -30,6 +30,94 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 
+    if (action === "generate-ideas") {
+      const formData = await request.formData();
+      const inspirationFile = formData.get("inspiration_file") as File;
+      const description = formData.get("description") as string || "";
+      const businessName = formData.get("business_name") as string || "";
+      const businessCategory = formData.get("business_category") as string || "";
+      const businessDescription = formData.get("business_description") as string || "";
+
+      if (!inspirationFile) {
+        return NextResponse.json({ error: "Imagem de inspiração não fornecida." }, { status: 400 });
+      }
+
+      // Converter imagem para base64
+      const arrayBuffer = await inspirationFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = inspirationFile.type || "image/jpeg";
+      const base64Image = buffer.toString("base64");
+
+      const geminiPrompt = `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
+Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "${description}".
+Com base nessas informações e no perfil comercial do usuário informado abaixo, crie 3 propostas de publicações virais e estratégicas para o Instagram que herdem e adaptem o conceito visual, estilo estético, layout e tom de voz do print de referência para a realidade deste negócio.
+
+Informações do Negócio do Usuário:
+- Nome da Empresa: ${businessName || "Não informado"}
+- Ramo de Atuação: ${businessCategory || "Não informado"}
+- Descrição do Negócio: ${businessDescription || "Não informado"}
+
+Instruções para cada uma das 3 propostas de posts:
+1. "titulo": Crie um título extremamente curto (máx 45 caracteres), instigante e magnético (gancho comercial forte).
+2. "subtitulo": Crie um parágrafo curto e dinâmico (1 a 2 frases) aprofundando a dica ou tema e fechando com uma chamada para ação (CTA) curta e atrativa.
+3. "hashtags": Uma lista contendo de 3 a 5 hashtags muito relevantes para o nicho comercial da publicação.
+
+Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, sem qualquer explicação, introdução, conclusão ou blocos de marcação de código adicionais. Responda APENAS o JSON bruto:
+{
+  "publicacoes": [
+    {
+      "titulo": "Título Magnético 1 🚀",
+      "subtitulo": "Parágrafo curto de valor detalhando o post com CTA no final. O que você acha disso?",
+      "hashtags": ["#Hashtag1", "#Hashtag2", "#Hashtag3"]
+    },
+    {
+      "titulo": "Título Magnético 2 ✨",
+      "subtitulo": "Conteúdo estratégico com dicas práticas e leitura dinâmica. Salve para ler depois!",
+      "hashtags": ["#Hashtag4", "#Hashtag5", "#Hashtag6"]
+    },
+    {
+      "titulo": "Título Magnético 3 💡",
+      "subtitulo": "Post focado em autoridade e dor do cliente mostrando a solução. Visite nosso perfil para saber mais!",
+      "hashtags": ["#Hashtag7", "#Hashtag8", "#Hashtag9"]
+    }
+  ]
+}`;
+
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const geminiResponse = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: geminiPrompt },
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: base64Image
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+
+      if (!geminiResponse.ok) {
+        const errText = await geminiResponse.text();
+        console.error("[MIGRATED_REF_IDEAS] Falha no Gemini:", errText);
+        throw new Error(`Falha ao gerar ideias no Gemini: ${errText}`);
+      }
+
+      const resData = await geminiResponse.json();
+      const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = JSON.parse(rawJson);
+
+      return NextResponse.json(parsed);
+    }
+
     if (action === "analyze") {
       const formData = await request.formData();
       const file = formData.get("file") as File;

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (target === "gerador_imagem_referencia") {
     webhookUrl = `${request.nextUrl.origin}/api/conteudo/gerar-referencia`;
   } else if (target === "gerador_link_referencia") {
-    webhookUrl = "https://webhook.flowupinova.com.br/webhook/link-referência";
+    webhookUrl = `${request.nextUrl.origin}/api/conteudo/gerar-referencia?action=generate-ideas`;
   } else {
     try {
       const settings = await getGlobalSettings();
