@@ -1,12 +1,80 @@
 import type { Metadata } from "next";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/auth/providers";
 import Script from "next/script";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  weight: ["600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "NumVapt - Marketing com Inteligência Artificial",
+  title: {
+    default: "NumVapt - Marketing com Inteligência Artificial",
+    template: "%s | NumVapt",
+  },
   description:
     "Sua plataforma definitiva para criação de conteúdo, anúncios e gestão de negócio com IA.",
+  keywords: [
+    "marketing digital",
+    "inteligência artificial",
+    "automação de posts",
+    "criação de conteúdo",
+    "gerador de imagens",
+    "gestão de anúncios",
+    "redes sociais",
+    "Vapti AI",
+    "NumVapt",
+  ],
+  authors: [{ name: "NumVapt Soluções e Inovações I.S." }],
+  metadataBase: new URL("https://numvapt.com.br"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "NumVapt - Marketing com Inteligência Artificial",
+    description:
+      "Sua plataforma definitiva para criação de conteúdo, anúncios e gestão de negócio com IA.",
+    url: "https://numvapt.com.br",
+    siteName: "NumVapt",
+    locale: "pt_BR",
+    type: "website",
+    images: [
+      {
+        url: "/logo-numvapt.png",
+        width: 800,
+        height: 600,
+        alt: "NumVapt Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NumVapt - Marketing com Inteligência Artificial",
+    description:
+      "Sua plataforma definitiva para criação de conteúdo, anúncios e gestão de negócio com IA.",
+    images: ["/logo-numvapt.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -15,14 +83,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap"
-          rel="stylesheet"
-        />
         {/* Hotjar Tracking Code */}
         <script src="https://t.contentsquare.net/uxa/9ce52eb57993d.js"></script>
         {/* Google Tag Manager */}
