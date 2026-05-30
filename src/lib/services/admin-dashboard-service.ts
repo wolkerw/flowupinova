@@ -79,6 +79,8 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   const imageCountPromises: Promise<any>[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const postCountPromises: Promise<any>[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const failedPostCountPromises: Promise<any>[] = [];
 
   for (const userDoc of usersSnap.docs) {
     totalUsers++;
@@ -108,24 +110,21 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     postCountPromises.push(
       adminDb.collection(`users/${uid}/posts`).where("status", "==", "published").count().get()
     );
+    failedPostCountPromises.push(
+      adminDb.collection(`users/${uid}/posts`).where("status", "==", "failed").count().get()
+    );
   }
 
-  // Contar posts com falha via collectionGroup
-  const failedPostsSnap = await adminDb
-    .collectionGroup("posts")
-    .where("status", "==", "failed")
-    .count()
-    .get();
-  totalPostsFailed = failedPostsSnap.data().count;
-
   // Resolver promessas em paralelo para eficiência
-  const [imageCounts, postCounts] = await Promise.all([
+  const [imageCounts, postCounts, failedPostCounts] = await Promise.all([
     Promise.all(imageCountPromises),
     Promise.all(postCountPromises),
+    Promise.all(failedPostCountPromises),
   ]);
 
   for (const snap of imageCounts) totalImagesGenerated += snap.data().count;
   for (const snap of postCounts) totalPostsPublished += snap.data().count;
+  for (const snap of failedPostCounts) totalPostsFailed += snap.data().count;
 
   // Estimar sessões de chat (usando contagem de coleções de histórico)
   try {
@@ -253,28 +252,41 @@ export async function getRecentSignups(days = 30): Promise<SignupDataPoint[]> {
   return Object.entries(countByDay).map(([date, count]) => ({ date, count }));
 }
 
-/**
- * Busca posts com falha e seus motivos para a tela de logs.
- */
 export async function getFailedPosts(limit = 50): Promise<
   { uid: string; postId: string; reason: string; scheduledAt: string; platforms: string[] }[]
 > {
-  const snap = await adminDb
-    .collectionGroup("posts")
-    .where("status", "==", "failed")
-    .orderBy("scheduledAt", "desc")
-    .limit(limit)
-    .get();
+  try {
+    const usersSnap = await adminDb.collection("users").get();
+    const allFailedPostsPromises = usersSnap.docs.map((userDoc) => {
+      return adminDb
+        .collection(`users/${userDoc.id}/posts`)
+        .where("status", "==", "failed")
+        .get();
+    });
 
-  return snap.docs.map((doc) => {
-    const data = doc.data();
-    const uid = doc.ref.parent.parent?.id ?? "unknown";
-    return {
-      uid,
-      postId: doc.id,
-      reason: data.failureReason ?? "Motivo desconhecido",
-      scheduledAt: data.scheduledAt?.toDate?.()?.toISOString() ?? "",
-      platforms: data.platforms ?? [],
-    };
-  });
+    const results = await Promise.all(allFailedPostsPromises);
+    const failedPosts: any[] = [];
+
+    results.forEach((snap, idx) => {
+      const uid = usersSnap.docs[idx].id;
+      snap.docs.forEach((doc) => {
+        const data = doc.data();
+        failedPosts.push({
+          uid,
+          postId: doc.id,
+          reason: data.failureReason ?? "Motivo desconhecido",
+          scheduledAt: data.scheduledAt?.toDate?.()?.toISOString() ?? "",
+          platforms: data.platforms ?? [],
+        });
+      });
+    });
+
+    // Ordenar por data decrescente e limitar
+    return failedPosts
+      .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+      .slice(0, limit);
+  } catch (error) {
+    console.error("[ADMIN_DASHBOARD] Erro ao buscar posts falhos:", error);
+    return [];
+  }
 }

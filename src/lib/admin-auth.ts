@@ -33,24 +33,26 @@ export async function requireAdminAccess(): Promise<AdminUser> {
     redirect("/acesso/login");
   }
 
+  let decoded;
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    const email = decoded.email ?? "";
-
-    if (!ADMIN_EMAILS.includes(email)) {
-      console.warn(`[ADMIN_AUTH] Acesso negado para e-mail não autorizado: ${email}`);
-      redirect("/dashboard");
-    }
-
-    return {
-      uid: decoded.uid,
-      email,
-      name: decoded.name ?? email,
-    };
+    decoded = await adminAuth.verifyIdToken(token);
   } catch (err) {
     console.error("[ADMIN_AUTH] Token inválido:", err);
     redirect("/acesso/login");
   }
+
+  const email = decoded.email ?? "";
+
+  if (!ADMIN_EMAILS.includes(email)) {
+    console.warn(`[ADMIN_AUTH] Acesso negado para e-mail não autorizado: ${email}`);
+    redirect("/dashboard");
+  }
+
+  return {
+    uid: decoded.uid,
+    email,
+    name: decoded.name ?? email,
+  };
 }
 
 /**
