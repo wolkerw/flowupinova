@@ -1221,23 +1221,18 @@ export default function Conteudo() {
 
                 {/* Botão 3 - Referência Link */}
                 <button
-                  disabled
-                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500/50 to-orange-600/50 rounded-[24px] text-white/50 shadow-xl shadow-orange-100/20 transition-all cursor-not-allowed text-left overflow-hidden grayscale"
+                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-link")}
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500 to-orange-600 rounded-[24px] text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
                 >
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-white/20 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white">
-                      Em breve
-                    </span>
-                  </div>
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
                     <LinkIcon size={120} />
                   </div>
-                  <div className="bg-white/10 p-3 rounded-2xl mb-4">
-                    <MousePointer2 className="w-6 h-6 text-white/50" />
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
+                    <MousePointer2 className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-xl font-black mb-2 leading-tight">Gerar Conteúdo com Imagem de referência</h3>
-                  <p className="text-white/40 text-sm font-medium leading-relaxed">
-                    Cole o link de uma arte que gostou e criaremos algo similar.
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Envie a imagem de um post que gostou e criaremos algo similar para seu negócio.
                   </p>
                 </button>
 
