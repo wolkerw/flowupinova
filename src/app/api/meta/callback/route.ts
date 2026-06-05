@@ -33,7 +33,7 @@ async function fetchFromMetaAPI(url: string, options?: RequestInit) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, userAccessToken, origin: clientOrigin } = body;
+    const { code, userAccessToken, origin: clientOrigin, redirectUri: clientRedirectUri } = body;
 
     // Detecta a origem real através dos headers caso não venha no body
     const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (code) {
       // Usa a origem enviada pelo cliente (front-end) ou a detectada pelo servidor
       const origin = clientOrigin || serverOrigin;
-      const redirectUri = `${origin}/dashboard/conteudo`;
+      const redirectUri = clientRedirectUri || `${origin}/dashboard/conteudo`;
 
       const clientId = config.meta.appId;
       const clientSecret = config.meta.appSecret;

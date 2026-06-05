@@ -29,6 +29,7 @@ credenciais.env
 
 # Service account files
 /src/service-account.json
+*-firebase-adminsdk-*.json
 
 # Playwright
 playwright-report/

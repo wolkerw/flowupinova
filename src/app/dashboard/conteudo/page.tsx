@@ -136,9 +136,9 @@ type Platform = "instagram" | "facebook" | "linkedin";
 const PLACEHOLDER_IMAGE = "https://placehold.co/400";
 
 const META_OAUTH = {
-  clientId: "826418333144156",
+  clientId: process.env.NEXT_PUBLIC_META_APP_ID || "826418333144156",
   scope:
-    "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management",
+    "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management,ads_management,ads_read",
 };
 
 const STATUS_CONFIG: Record<

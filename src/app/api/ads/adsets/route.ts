@@ -1,18 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
-import { getMetaConnection } from "@/lib/services/meta-service";
-
-const AD_ACCOUNT_ID = "1537973740074338"; // Hardcoded for now
+import { getMetaConnectionAdmin } from "@/lib/services/meta-service-admin";
 
 export async function POST(request: NextRequest) {
   try {
     const uid = await getUidFromCookie();
-    const metaConnection = await getMetaConnection(uid);
+    const metaConnection = await getMetaConnectionAdmin(uid);
 
     if (!metaConnection.isConnected || !metaConnection.accessToken) {
       return NextResponse.json(
         { success: false, error: "Meta account not connected." },
         { status: 403 }
+      );
+    }
+
+    const adAccountId = metaConnection.adAccountId;
+    if (!adAccountId) {
+      return NextResponse.json(
+        { success: false, error: "Meta ad account is not configured." },
+        { status: 400 }
       );
     }
 
@@ -26,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const url = `https://graph.facebook.com/v24.0/act_${AD_ACCOUNT_ID}/adsets`;
+    const url = `https://graph.facebook.com/v24.0/act_${adAccountId}/adsets`;
 
     const params = new URLSearchParams({
       name,

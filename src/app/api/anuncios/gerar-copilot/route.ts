@@ -65,8 +65,8 @@ Você deve responder estritamente com um objeto JSON válido, sem markdown ou fo
 }
 `.trim();
 
-    // Chamada direta para o Gemini REST API (gemini-2.5-flash)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Chamada direta para o Gemini REST API (gemini-1.5-flash)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: "POST",
