@@ -11,13 +11,11 @@ export async function GET(request: NextRequest) {
     }
 
     const uid = await getUidFromCookie();
-    const metaConnection = await getMetaConnectionAdmin(uid);
-
-    if (!metaConnection.isConnected || !metaConnection.accessToken) {
-      return NextResponse.json(
-        { success: false, error: "Conta da Meta não conectada." },
-        { status: 403 }
-      );
+    let metaConnection: any = null;
+    try {
+      metaConnection = await getMetaConnectionAdmin(uid);
+    } catch (e) {
+      console.warn("[API_LOCATIONS] Falha ao recuperar conexao Meta:", e);
     }
 
     let locations: any[] = [];
@@ -43,47 +41,49 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // 1. BUSCA NA META ADS API (Cidades, Estados, Países e Bairros - CEPs Omitidos)
     // =========================================================================
-    try {
-      const metaUrl = `https://graph.facebook.com/v24.0/search?type=adgeolocation&q=${encodeURIComponent(q)}&access_token=${metaConnection.accessToken}`;
-      const metaRes = await fetch(metaUrl);
-      const metaData = await metaRes.json();
+    if (metaConnection?.isConnected && metaConnection?.accessToken) {
+      try {
+        const metaUrl = `https://graph.facebook.com/v24.0/search?type=adgeolocation&q=${encodeURIComponent(q)}&access_token=${metaConnection.accessToken}`;
+        const metaRes = await fetch(metaUrl);
+        const metaData = await metaRes.json();
 
-      if (metaRes.ok && metaData.data) {
-        const typeMapping: Record<string, string> = {
-          country: "País",
-          region: "Estado",
-          city: "Cidade",
-          subcity: "Bairro",
-          neighborhood: "Bairro",
-          subneighborhood: "Bairro",
-        };
+        if (metaRes.ok && metaData.data) {
+          const typeMapping: Record<string, string> = {
+            country: "País",
+            region: "Estado",
+            city: "Cidade",
+            subcity: "Bairro",
+            neighborhood: "Bairro",
+            subneighborhood: "Bairro",
+          };
 
-        const metaResults = metaData.data
-          .filter((loc: any) => loc.type !== "postal_code" && loc.type !== "zip")
-          .map((loc: any, index: number) => {
-            let finalType = typeMapping[loc.type] || "Região";
-            let displayRegion = loc.region || "";
+          const metaResults = metaData.data
+            .filter((loc: any) => loc.type !== "postal_code" && loc.type !== "zip")
+            .map((loc: any, index: number) => {
+              let finalType = typeMapping[loc.type] || "Região";
+              let displayRegion = loc.region || "";
 
-            // Correção da UX do Bairro: Se for bairro, e o usuário digitou a cidade no input,
-            // enriquecemos o subtext exibindo "Bairro • Cidade - Estado"
-            if (finalType === "Bairro" && cityCandidate) {
-              displayRegion = `${cityCandidate} - ${displayRegion}`;
-            }
+              // Correção da UX do Bairro: Se for bairro, e o usuário digitou a cidade no input,
+              // enriquecemos o subtext exibindo "Bairro • Cidade - Estado"
+              if (finalType === "Bairro" && cityCandidate) {
+                displayRegion = `${cityCandidate} - ${displayRegion}`;
+              }
 
-            return {
-              key: `meta_${index}_${loc.key}`,
-              name: loc.name,
-              type: finalType,
-              latitude: loc.latitude ? parseFloat(loc.latitude) : undefined,
-              longitude: loc.longitude ? parseFloat(loc.longitude) : undefined,
-              region: displayRegion,
-            };
-          });
+              return {
+                key: `meta_${index}_${loc.key}`,
+                name: loc.name,
+                type: finalType,
+                latitude: loc.latitude ? parseFloat(loc.latitude) : undefined,
+                longitude: loc.longitude ? parseFloat(loc.longitude) : undefined,
+                region: displayRegion,
+              };
+            });
 
-        locations = [...locations, ...metaResults];
+          locations = [...locations, ...metaResults];
+        }
+      } catch (metaErr) {
+        console.warn("[API_LOCATIONS] Falha na busca da Meta API:", metaErr);
       }
-    } catch (metaErr) {
-      console.warn("[API_LOCATIONS] Falha na busca da Meta API:", metaErr);
     }
 
     // =========================================================================
@@ -97,7 +97,9 @@ export async function GET(request: NextRequest) {
       cleanQuery.includes("r.") ||
       /\d/.test(q);
 
-    if (locations.length === 0 || hasStreetIndicator) {
+    const hasValidCoords = locations.some((l) => l.latitude !== undefined && l.longitude !== undefined);
+
+    if (!hasValidCoords || hasStreetIndicator) {
       try {
         let query = q;
         if (!query.toLowerCase().includes("brasil") && !query.toLowerCase().includes("brazil")) {

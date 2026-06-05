@@ -329,15 +329,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     if (!mapContainer) return;
 
     if (mapInstanceRef.current) {
-      const newLatLng = new L.LatLng(initialLat, initialLng);
-      mapInstanceRef.current.setView(newLatLng, mapInstanceRef.current.getZoom());
+      if (selectedCoords) {
+        const newLatLng = new L.LatLng(selectedCoords.latitude, selectedCoords.longitude);
+        mapInstanceRef.current.setView(newLatLng, mapInstanceRef.current.getZoom());
 
-      if (mapMarkerRef.current) {
-        mapMarkerRef.current.setLatLng(newLatLng);
-      }
-      if (mapCircleRef.current) {
-        mapCircleRef.current.setLatLng(newLatLng);
-        mapCircleRef.current.setRadius(radius * 1000);
+        if (mapMarkerRef.current) {
+          mapMarkerRef.current.setLatLng(newLatLng);
+        }
+        if (mapCircleRef.current) {
+          mapCircleRef.current.setLatLng(newLatLng);
+          mapCircleRef.current.setRadius(radius * 1000);
+        }
       }
       return;
     }
@@ -425,7 +427,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         mapCircleRef.current = null;
       }
     };
-  }, [isLeafletLoaded, currentStep]);
+  }, [isLeafletLoaded, currentStep, selectedCoords]);
 
   // 4. Atualiza o círculo do mapa quando o raio é alterado no slider
   useEffect(() => {
@@ -980,15 +982,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </>
           )}
         </div>
-        {!isCreating && metaConnection.isConnected && metaConnection.adAccountId && publishedPosts.length > 0 && (
-          <Button
-            onClick={() => setIsChoosePostModalOpen(true)}
-            className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95 shrink-0"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Impulsionar Post
-          </Button>
-        )}
+        {!isCreating &&
+          metaConnection.isConnected &&
+          metaConnection.adAccountId &&
+          publishedPosts.length > 0 &&
+          (campaigns.filter((c) => c.status === "active").length > 0 || activeDashboardTab === "history") && (
+            <Button
+              onClick={() => setIsChoosePostModalOpen(true)}
+              className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95 shrink-0"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Impulsionar Post
+            </Button>
+          )}
       </div>
 
       {/* ONBOARDING / CONFIGURAÇÃO DE CONEXÃO META ADS */}
@@ -1987,16 +1993,31 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 if (filteredCampaigns.length === 0) {
                   return (
                     <div className="bg-slate-50 border border-slate-200/80 border-dashed rounded-xl p-10 text-center text-slate-400 animate-in fade-in duration-300">
-                      <Megaphone className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                      <Megaphone className="h-10 w-10 text-slate-300 mx-auto mb-3 animate-pulse" />
                       <p className="text-xs font-semibold text-slate-500">
                         {activeDashboardTab === "active"
                           ? "Você não possui nenhuma campanha ativa no momento."
                           : "Nenhum anúncio finalizado ou pausado no histórico."}
                       </p>
                       {activeDashboardTab === "active" && (
-                        <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
-                          Selecione uma de suas publicações no rodapé e clique em impulsionar para começar a atrair novos clientes na sua região.
-                        </p>
+                        <div className="mt-3.5 flex flex-col items-center gap-4">
+                          <p className="text-[11.5px] text-slate-400 max-w-md mx-auto leading-relaxed">
+                            Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.
+                          </p>
+                          {publishedPosts.length > 0 ? (
+                            <Button
+                              onClick={() => setIsChoosePostModalOpen(true)}
+                              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Impulsionar um Post
+                            </Button>
+                          ) : (
+                            <p className="text-[11px] text-amber-600 font-medium bg-amber-50 border border-amber-100/60 rounded-lg px-3 py-1.5">
+                              Crie e programe um post na aba <strong>Conteúdo</strong> antes de impulsioná-lo!
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
