@@ -222,6 +222,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
   const [selectedBoundingBox, setSelectedBoundingBox] = useState<[number, number, number, number] | null>(null);
   const [selectedLocKey, setSelectedLocKey] = useState<string>("");
+  const [selectedGeoJson, setSelectedGeoJson] = useState<any | null>(null);
   const mapRectangleRef = useRef<any>(null);
   const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
   const mapInstanceRef = useRef<any>(null);
@@ -234,6 +235,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     setSelectedLocType(null);
     setSelectedBoundingBox(null);
     setSelectedLocKey("");
+    setSelectedGeoJson(null);
     if (val.length < 3) {
       setMetaLocationsSuggestions([]);
       return;
@@ -379,7 +381,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     if (!mapContainer) return;
 
     const syncMapElements = (map: any) => {
-      // 1. Remove o retângulo anterior se existir
+      // 1. Remove o retângulo/geojson anterior se existir
       if (mapRectangleRef.current) {
         map.removeLayer(mapRectangleRef.current);
         mapRectangleRef.current = null;
@@ -398,8 +400,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           mapCircleRef.current = null;
         }
 
-        // Desenha a caixa delimitadora (bounding box) da região
-        if (selectedBoundingBox) {
+        // Desenha o GeoJSON da região (exato)
+        if (selectedGeoJson) {
+          const geoJsonLayer = L.geoJSON(selectedGeoJson, {
+            style: {
+              color: "#0284c7",
+              fillColor: "#0284c7",
+              fillOpacity: 0.15,
+              weight: 2
+            }
+          }).addTo(map);
+          mapRectangleRef.current = geoJsonLayer;
+          map.fitBounds(geoJsonLayer.getBounds(), { padding: [20, 20] });
+        } else if (selectedBoundingBox) {
+          // Fallback para caixa delimitadora (bounding box) da região se GeoJSON não estiver disponível
           const bounds = [
             [selectedBoundingBox[0], selectedBoundingBox[2]], // [latMin, lonMin]
             [selectedBoundingBox[1], selectedBoundingBox[3]]  // [latMax, lonMax]
@@ -488,6 +502,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       setSelectedLocType("Endereço");
       setSelectedBoundingBox(null);
       setSelectedLocKey("");
+      setSelectedGeoJson(null);
 
       try {
         const response = await fetch(
@@ -548,7 +563,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         mapRectangleRef.current = null;
       }
     };
-  }, [isLeafletLoaded, currentStep, selectedCoords, selectedLocType, selectedBoundingBox]);
+  }, [isLeafletLoaded, currentStep, selectedCoords, selectedLocType, selectedBoundingBox, selectedGeoJson]);
 
   // 4. Atualiza o círculo do mapa quando o raio é alterado no slider
   useEffect(() => {
@@ -1566,19 +1581,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                   setSelectedLocKey(loc.key || "");
                                   setMetaLocationsSuggestions([]);
 
-                                  if (loc.latitude !== undefined && loc.longitude !== undefined) {
-                                    setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
-                                    setSelectedBoundingBox(loc.boundingBox || null);
-                                    toast({
-                                      title: "Endereço Selecionado",
-                                      description: `O anúncio será exibido ao redor de: ${loc.name}`,
-                                    });
-                                  } else {
-                                    // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
+                                  const isAreaTarget = loc.type === "País" || loc.type === "Estado";
+
+                                  if (isAreaTarget) {
                                     setIsSearchingLocations(true);
                                     try {
-                                      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(loc.name.includes("brasil") || loc.name.includes("brazil") ? loc.name : loc.name + ", Brasil")}&format=json&limit=1`;
-                                      const nomRes = await fetch(nomUrl);
+                                      const lowerName = loc.name.toLowerCase();
+                                      let searchQ = loc.name;
+                                      if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                        searchQ = `${loc.name}, Brasil`;
+                                      }
+                                      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1&polygon_geojson=1&polygon_threshold=0.01`;
+                                      const nomRes = await fetch(nomUrl, {
+                                        headers: {
+                                          "User-Agent": "NumVaptAdsApp/1.0",
+                                          "Accept-Language": "pt-BR,pt;q=0.9",
+                                        }
+                                      });
                                       if (nomRes.ok) {
                                         const nomData = await nomRes.json();
                                         if (nomData && nomData.length > 0) {
@@ -1592,25 +1611,95 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                           ] : null;
                                           setSelectedCoords({ latitude: lat, longitude: lng });
                                           setSelectedBoundingBox(bbox as any);
+                                          if (nomData[0].geojson) {
+                                            setSelectedGeoJson(nomData[0].geojson);
+                                          } else {
+                                            setSelectedGeoJson(null);
+                                          }
                                           toast({
-                                            title: "Endereço Selecionado",
-                                            description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                            title: "Região Selecionada",
+                                            description: `Fronteiras exatas mapeadas para: ${loc.name}`,
                                           });
                                         } else {
-                                          throw new Error("Coordenadas não encontradas.");
+                                          throw new Error("Dados da região não encontrados.");
                                         }
                                       } else {
-                                        throw new Error("Erro na geocodificação.");
+                                        throw new Error("Erro de resposta do Nominatim.");
                                       }
                                     } catch (err) {
-                                      console.warn("Erro ao geocodificar no cliente:", err);
+                                      console.warn("Erro ao buscar GeoJSON para região:", err);
+                                      // Fallback para as coordenadas e bounding box originais da sugestão se disponíveis
+                                      if (loc.latitude !== undefined && loc.longitude !== undefined) {
+                                        setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+                                        setSelectedBoundingBox(loc.boundingBox || null);
+                                      }
+                                      setSelectedGeoJson(null);
                                       toast({
-                                        variant: "destructive",
-                                        title: "Erro de Localização",
-                                        description: "Não conseguimos obter o ponto exato no mapa para esta região. Tente selecionar pelo mapa.",
+                                        title: "Região Selecionada",
+                                        description: `Exibindo caixa de seleção para: ${loc.name}`,
                                       });
                                     } finally {
                                       setIsSearchingLocations(false);
+                                    }
+                                  } else {
+                                    // Se não for área grande (Cidade, Bairro, Endereço etc.), limpa GeoJSON
+                                    setSelectedGeoJson(null);
+                                    if (loc.latitude !== undefined && loc.longitude !== undefined) {
+                                      setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+                                      setSelectedBoundingBox(loc.boundingBox || null);
+                                      toast({
+                                        title: "Endereço Selecionado",
+                                        description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                      });
+                                    } else {
+                                      // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
+                                      setIsSearchingLocations(true);
+                                      try {
+                                        const lowerName = loc.name.toLowerCase();
+                                        let searchQ = loc.name;
+                                        if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                          searchQ = `${loc.name}, Brasil`;
+                                        }
+                                        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1`;
+                                        const nomRes = await fetch(nomUrl, {
+                                          headers: {
+                                            "User-Agent": "NumVaptAdsApp/1.0",
+                                            "Accept-Language": "pt-BR,pt;q=0.9",
+                                          }
+                                        });
+                                        if (nomRes.ok) {
+                                          const nomData = await nomRes.json();
+                                          if (nomData && nomData.length > 0) {
+                                            const lat = parseFloat(nomData[0].lat);
+                                            const lng = parseFloat(nomData[0].lon);
+                                            const bbox = nomData[0].boundingbox ? [
+                                              parseFloat(nomData[0].boundingbox[0]),
+                                              parseFloat(nomData[0].boundingbox[1]),
+                                              parseFloat(nomData[0].boundingbox[2]),
+                                              parseFloat(nomData[0].boundingbox[3])
+                                            ] : null;
+                                            setSelectedCoords({ latitude: lat, longitude: lng });
+                                            setSelectedBoundingBox(bbox as any);
+                                            toast({
+                                              title: "Endereço Selecionado",
+                                              description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                            });
+                                          } else {
+                                            throw new Error("Coordenadas não encontradas.");
+                                          }
+                                        } else {
+                                          throw new Error("Erro na geocodificação.");
+                                        }
+                                      } catch (err) {
+                                        console.warn("Erro ao geocodificar no cliente:", err);
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Erro de Localização",
+                                          description: "Não conseguimos obter o ponto exato no mapa para esta região. Tente selecionar pelo mapa.",
+                                        });
+                                      } finally {
+                                        setIsSearchingLocations(false);
+                                      }
                                     }
                                   }
                                 }}
