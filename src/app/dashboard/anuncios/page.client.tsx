@@ -1123,66 +1123,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     />
                   </div>
 
-                  {/* Ad Copilot com Gemini (Diretamente abaixo da Legenda) */}
-                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex flex-col gap-3 shadow-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-primary flex items-center gap-1">
-                        <Sparkles className="h-4 w-4" /> Ad Copilot com Gemini
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={handleGenerateAICopy}
-                        disabled={isGeneratingCopy}
-                        className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-3 py-1.5 h-auto rounded-md shadow-sm active:scale-95 transition-all"
-                      >
-                        {isGeneratingCopy ? (
-                          <>
-                            <Loader2 className="mr-1.5 h-3 w-3.5 animate-spin" />
-                            Analisando post...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                            Sugerir Copy de Vendas
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                      Clique no botão acima para o Gemini analisar a sua publicação e sugerir legendas otimizadas para atrair o público local.
-                    </p>
 
-                    {/* Exibição das ideias de IA */}
-                    {aiSuggestions.length > 0 && (
-                      <div className="mt-3 space-y-2.5 animate-in fade-in duration-300">
-                        <p className="text-[11px] font-bold text-slate-600">Escolha uma opção sugerida para aplicar ao anúncio:</p>
-                        {aiSuggestions.map((sug, i) => (
-                          <div
-                            key={i}
-                            onClick={() => {
-                              setHeadline(sug.titulo);
-                              setBodyText(sug.texto);
-                              toast({
-                                title: "Legenda e Título Atualizados",
-                                description: "O conteúdo sugerido pela IA foi aplicado com sucesso.",
-                              });
-                            }}
-                            className="bg-white border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all text-left group shadow-sm hover:shadow"
-                          >
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-primary transition-colors">
-                                {sug.titulo}
-                              </span>
-                              <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-500 font-semibold px-2 py-0">Opção {i + 1}</Badge>
-                            </div>
-                            <p className="text-[11px] text-slate-600 mt-1.5 line-clamp-3 leading-relaxed font-inter">
-                              {sug.texto}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
 
                   {/* Link de Destino Opcional (Alcance) ou Obrigatório (Tráfego) */}
                   <div className="space-y-4 pt-2">
@@ -1508,9 +1449,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     
                     {/* Investimento Diário */}
                     <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">Investimento Diário</span>
-                        <span className="text-base font-extrabold text-primary font-poppins">R$ {dailyBudget} / dia</span>
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Investimento Diário</span>
+                          <span className="text-[10px] text-slate-400 font-normal">Valor diário debitado do seu saldo Meta</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-base font-extrabold text-primary font-poppins">R$ {dailyBudget} / dia</span>
+                          <span className="text-xs text-slate-500 font-bold block mt-0.5">Total: R$ {(dailyBudget * duration).toFixed(2)}</span>
+                        </div>
                       </div>
                       <Slider
                         defaultValue={[dailyBudget]}
@@ -1520,17 +1467,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         onValueChange={(val) => setDailyBudget(val[0])}
                         className="py-2"
                       />
-                      <div className="flex justify-between text-[10px] text-slate-400">
-                        <span>R$ 10 (Mínimo recomendado)</span>
-                        <span>R$ 50</span>
-                        <span>R$ 100</span>
-                      </div>
                     </div>
 
                     {/* Duração da Campanha */}
                     <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">Duração dos Anúncios</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Duração dos Anúncios</span>
+                          <span className="text-[10px] text-slate-400 font-normal">Período de veiculação da campanha</span>
+                        </div>
                         <span className="text-base font-extrabold text-primary font-poppins">{duration} dias</span>
                       </div>
                       <Slider
@@ -1541,11 +1486,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         onValueChange={(val) => setDuration(val[0])}
                         className="py-2"
                       />
-                      <div className="flex justify-between text-[10px] text-slate-400">
-                        <span>3 dias (Ideal para teste rápido)</span>
-                        <span>15 dias</span>
-                        <span>30 dias</span>
-                      </div>
                     </div>
 
                     {/* WIDGET DE RESULTADO DITÁDICO (WOW FACTOR) */}
