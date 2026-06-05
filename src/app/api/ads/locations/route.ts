@@ -190,11 +190,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filtra e remove qualquer item que de fato não tenha coordenadas para evitar quebras na UI (como estados ou países puros sem lat/lng)
-    // OBS: Nominatim e cidades da Meta Ads API já possuem coordenadas nativas e são exibidos perfeitamente.
-    const finalLocations = locations.filter((l) => l.latitude !== undefined && l.longitude !== undefined);
-
-    return NextResponse.json({ success: true, locations: finalLocations });
+    return NextResponse.json({ success: true, locations: locations });
   } catch (error: any) {
     console.error("[API_LOCATIONS] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

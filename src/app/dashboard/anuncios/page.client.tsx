@@ -243,9 +243,48 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       try {
         const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(val)}`);
         const data = await res.json();
-        if (data.success) {
-          setMetaLocationsSuggestions(data.locations || []);
+        let suggestions = data.success ? (data.locations || []) : [];
+
+        // Fallback Client-side Nominatim if server returned few or no results
+        if (suggestions.length === 0) {
+          try {
+            const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val.toLowerCase().includes("brasil") || val.toLowerCase().includes("brazil") ? val : val + ", Brasil")}&format=json&limit=5&countrycodes=br&addressdetails=1`;
+            const nomRes = await fetch(nomUrl, {
+              headers: { "Accept-Language": "pt-BR,pt;q=0.9" }
+            });
+            if (nomRes.ok) {
+              const nomData = await nomRes.json();
+              const nomSuggestions = nomData
+                .filter((item: any) => item.type !== "postcode" && item.class !== "postcode")
+                .map((item: any, index: number) => {
+                  const address = item.address || {};
+                  let displayName = item.display_name.replace(", Brasil", "").replace(", Brazil", "");
+                  let ptType = "Endereço";
+                  if (address.country && !address.state && !address.city && !address.suburb && !address.road) ptType = "País";
+                  else if (address.state && !address.city && !address.suburb && !address.road) ptType = "Estado";
+                  else if (address.city || address.town || address.village) {
+                    if (!address.suburb && !address.road) ptType = "Cidade";
+                    else if (address.suburb && !address.road) ptType = "Bairro";
+                  } else if (address.suburb) ptType = "Bairro";
+                  else if (address.road) ptType = "Rua/Avenida";
+
+                  return {
+                    key: `nom_client_${index}_${item.osm_id}`,
+                    name: displayName,
+                    type: ptType,
+                    latitude: parseFloat(item.lat),
+                    longitude: parseFloat(item.lon),
+                    region: address.state || "",
+                  };
+                });
+              suggestions = [...suggestions, ...nomSuggestions];
+            }
+          } catch (err) {
+            console.warn("Falha no client-side Nominatim:", err);
+          }
         }
+
+        setMetaLocationsSuggestions(suggestions);
       } catch (err) {
         console.warn("Erro ao buscar localizações:", err);
       } finally {
@@ -1437,15 +1476,50 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               <button
                                 key={loc.key}
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
                                   setAddressInput(loc.name);
-                                  setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
                                   setSelectedLocType(loc.type);
                                   setMetaLocationsSuggestions([]);
-                                  toast({
-                                    title: "Endereço Selecionado",
-                                    description: `O anúncio será exibido ao redor de: ${loc.name}`,
-                                  });
+
+                                  if (loc.latitude !== undefined && loc.longitude !== undefined) {
+                                    setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+                                    toast({
+                                      title: "Endereço Selecionado",
+                                      description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                    });
+                                  } else {
+                                    // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
+                                    setIsSearchingLocations(true);
+                                    try {
+                                      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(loc.name.includes("brasil") || loc.name.includes("brazil") ? loc.name : loc.name + ", Brasil")}&format=json&limit=1`;
+                                      const nomRes = await fetch(nomUrl);
+                                      if (nomRes.ok) {
+                                        const nomData = await nomRes.json();
+                                        if (nomData && nomData.length > 0) {
+                                          const lat = parseFloat(nomData[0].lat);
+                                          const lng = parseFloat(nomData[0].lon);
+                                          setSelectedCoords({ latitude: lat, longitude: lng });
+                                          toast({
+                                            title: "Endereço Selecionado",
+                                            description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                          });
+                                        } else {
+                                          throw new Error("Coordenadas não encontradas.");
+                                        }
+                                      } else {
+                                        throw new Error("Erro na geocodificação.");
+                                      }
+                                    } catch (err) {
+                                      console.warn("Erro ao geocodificar no cliente:", err);
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Erro de Localização",
+                                        description: "Não conseguimos obter o ponto exato no mapa para esta região. Tente selecionar pelo mapa.",
+                                      });
+                                    } finally {
+                                      setIsSearchingLocations(false);
+                                    }
+                                  }
                                 }}
                                 className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
                               >
