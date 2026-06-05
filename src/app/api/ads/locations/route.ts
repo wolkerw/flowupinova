@@ -133,25 +133,21 @@ export async function GET(request: NextRequest) {
               displayName = displayName.replace(", Brasil", "").replace(", Brazil", "");
 
               let ptType = "Endereço";
-              const hasCity = !!(address.city || address.town || address.village || address.municipality || address.city_district);
-              const hasSub = !!(address.suburb || address.neighbourhood || address.quarter);
-              const hasRoad = !!(address.road || address.street || address.avenue);
-
-              if (address.country && !address.state && !hasCity && !hasSub && !hasRoad) {
+              if (address.country && !address.state && !address.city && !address.suburb && !address.road) {
                 ptType = "País";
-              } else if (address.state && !hasCity && !hasSub && !hasRoad) {
+              } else if (address.state && !address.city && !address.suburb && !address.road) {
                 ptType = "Estado";
-              } else if (hasCity) {
-                if (!hasSub && !hasRoad) {
+              } else if (address.city || address.town || address.village) {
+                if (!address.suburb && !address.road) {
                   ptType = "Cidade";
-                } else if (hasSub && !hasRoad) {
+                } else if (address.suburb && !address.road) {
                   ptType = "Bairro";
                 } else {
                   ptType = "Endereço";
                 }
-              } else if (hasSub) {
+              } else if (address.suburb) {
                 ptType = "Bairro";
-              } else if (hasRoad) {
+              } else if (address.road) {
                 ptType = "Rua/Avenida";
               }
 
@@ -173,6 +169,12 @@ export async function GET(request: NextRequest) {
                 latitude: parseFloat(item.lat),
                 longitude: parseFloat(item.lon),
                 region: address.state || "",
+                boundingBox: item.boundingbox ? [
+                  parseFloat(item.boundingbox[0]),
+                  parseFloat(item.boundingbox[1]),
+                  parseFloat(item.boundingbox[2]),
+                  parseFloat(item.boundingbox[3])
+                ] : undefined,
               };
             });
 
