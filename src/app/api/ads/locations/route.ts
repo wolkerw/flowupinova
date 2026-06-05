@@ -133,21 +133,25 @@ export async function GET(request: NextRequest) {
               displayName = displayName.replace(", Brasil", "").replace(", Brazil", "");
 
               let ptType = "Endereço";
-              if (address.country && !address.state && !address.city && !address.suburb && !address.road) {
+              const hasCity = !!(address.city || address.town || address.village || address.municipality || address.city_district);
+              const hasSub = !!(address.suburb || address.neighbourhood || address.quarter);
+              const hasRoad = !!(address.road || address.street || address.avenue);
+
+              if (address.country && !address.state && !hasCity && !hasSub && !hasRoad) {
                 ptType = "País";
-              } else if (address.state && !address.city && !address.suburb && !address.road) {
+              } else if (address.state && !hasCity && !hasSub && !hasRoad) {
                 ptType = "Estado";
-              } else if (address.city || address.town || address.village) {
-                if (!address.suburb && !address.road) {
+              } else if (hasCity) {
+                if (!hasSub && !hasRoad) {
                   ptType = "Cidade";
-                } else if (address.suburb && !address.road) {
+                } else if (hasSub && !hasRoad) {
                   ptType = "Bairro";
                 } else {
                   ptType = "Endereço";
                 }
-              } else if (address.suburb) {
+              } else if (hasSub) {
                 ptType = "Bairro";
-              } else if (address.road) {
+              } else if (hasRoad) {
                 ptType = "Rua/Avenida";
               }
 

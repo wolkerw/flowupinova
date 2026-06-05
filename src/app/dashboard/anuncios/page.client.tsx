@@ -260,13 +260,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   const address = item.address || {};
                   let displayName = item.display_name.replace(", Brasil", "").replace(", Brazil", "");
                   let ptType = "Endereço";
-                  if (address.country && !address.state && !address.city && !address.suburb && !address.road) ptType = "País";
-                  else if (address.state && !address.city && !address.suburb && !address.road) ptType = "Estado";
-                  else if (address.city || address.town || address.village) {
-                    if (!address.suburb && !address.road) ptType = "Cidade";
-                    else if (address.suburb && !address.road) ptType = "Bairro";
-                  } else if (address.suburb) ptType = "Bairro";
-                  else if (address.road) ptType = "Rua/Avenida";
+                  const hasCity = !!(address.city || address.town || address.village || address.municipality || address.city_district);
+                  const hasSub = !!(address.suburb || address.neighbourhood || address.quarter);
+                  const hasRoad = !!(address.road || address.street || address.avenue);
+
+                  if (address.country && !address.state && !hasCity && !hasSub && !hasRoad) ptType = "País";
+                  else if (address.state && !hasCity && !hasSub && !hasRoad) ptType = "Estado";
+                  else if (hasCity) {
+                    if (!hasSub && !hasRoad) ptType = "Cidade";
+                    else if (hasSub && !hasRoad) ptType = "Bairro";
+                  } else if (hasSub) ptType = "Bairro";
+                  else if (hasRoad) ptType = "Rua/Avenida";
 
                   return {
                     key: `nom_client_${index}_${item.osm_id}`,
@@ -1445,7 +1449,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </span>
                       </Label>
                       <p className="text-[11px] text-slate-500 leading-normal mb-1">
-                        Você pode digitar um <strong>endereço exato (rua/avenida)</strong>, <strong>bairro</strong>, <strong>cidade</strong> ou <strong>estado</strong> e selecionar na lista recomendada.
+                        Você pode digitar um <strong>endereço exato (rua/avenida)</strong>, <strong>bairro</strong> ou <strong>cidade</strong> e selecionar na lista recomendada.
                       </p>
                       <div className="relative">
                         <Input
@@ -1477,6 +1481,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 key={loc.key}
                                 type="button"
                                 onClick={async () => {
+                                  if (loc.type === "Estado" || loc.type === "País") {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Seleção não recomendada",
+                                      description: "O NumVapt é otimizado para anúncios locais. Para segurança de seu orçamento, selecione uma cidade, bairro ou rua específica.",
+                                    });
+                                    return;
+                                  }
+
                                   setAddressInput(loc.name);
                                   setSelectedLocType(loc.type);
                                   setMetaLocationsSuggestions([]);
@@ -1564,16 +1577,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     {/* Lógica de Área de Cobertura Inteligente e Condicional */}
                     {selectedCoords && selectedLocType && (
                       <div className="animate-in fade-in duration-300">
-                        {/* Se selecionou um Território Inteiro (País ou Estado) */}
-                        {selectedLocType === "País" || selectedLocType === "Estado" ? (
-                          <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3 shadow-sm">
-                            <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                            <div className="text-[12px] text-slate-600 leading-relaxed">
-                              <strong>Cobertura Ampla ({selectedLocType}):</strong> O seu anúncio será veiculado em todo o território de <strong>{addressInput}</strong>. Ideal para negócios que buscam o máximo de visibilidade estadual ou nacional.
-                            </div>
-                          </div>
-                        ) : (
-                          /* Se selecionou Cidade, Bairro, Rua/Avenida ou Endereço exato */
+                        {/* Se selecionou Cidade, Bairro, Rua/Avenida ou Endereço exato */}
                           <div className="space-y-4 pt-2">
                             <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
                               <div className="flex justify-between items-center">
@@ -1614,7 +1618,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               </div>
                             </div>
                           </div>
-                        )}
                       </div>
                     )}
 
