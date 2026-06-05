@@ -220,6 +220,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [selectedCoords, setSelectedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedLocType, setSelectedLocType] = useState<string | null>(null);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
+  const mapInstanceRef = useRef<any>(null);
+  const mapMarkerRef = useRef<any>(null);
+  const mapCircleRef = useRef<any>(null);
 
   const handleAddressInputChange = (val: string) => {
     setAddressInput(val);
@@ -255,6 +259,180 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       setCustomDestination(businessProfile.website || businessProfile.instagram || "");
     }
   }, [businessProfile, customDestination]);
+
+  // 1. Carrega scripts e estilos do Leaflet dinamicamente para o Mapa Visual
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if ((window as any).L) {
+      setIsLeafletLoaded(true);
+      return;
+    }
+
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById("leaflet-js")) {
+      const script = document.createElement("script");
+      script.id = "leaflet-js";
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.async = true;
+      script.onload = () => {
+        setIsLeafletLoaded(true);
+      };
+      document.head.appendChild(script);
+    } else {
+      setIsLeafletLoaded(true);
+    }
+  }, []);
+
+  // 2. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
+  useEffect(() => {
+    if (currentStep === 3 && !selectedCoords && businessProfile?.address) {
+      const geocodeProfileAddress = async () => {
+        try {
+          const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.locations && data.locations.length > 0) {
+              const loc = data.locations[0];
+              setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+              setSelectedLocType(loc.type);
+              setAddressInput(loc.name);
+            }
+          }
+        } catch (err) {
+          console.warn("Erro ao geocodificar endereço inicial do perfil:", err);
+        }
+      };
+      geocodeProfileAddress();
+    }
+  }, [currentStep, businessProfile, selectedCoords]);
+
+  // 3. Inicializa e sincroniza o mapa Leaflet
+  useEffect(() => {
+    if (!isLeafletLoaded || currentStep !== 3 || typeof window === "undefined") return;
+
+    const L = (window as any).L;
+    if (!L) return;
+
+    let initialLat = selectedCoords?.latitude || -30.0346;
+    let initialLng = selectedCoords?.longitude || -51.2177;
+    let zoomLevel = selectedCoords ? 14 : 12;
+
+    const mapContainer = document.getElementById("targeting-map");
+    if (!mapContainer) return;
+
+    if (mapInstanceRef.current) {
+      const newLatLng = new L.LatLng(initialLat, initialLng);
+      mapInstanceRef.current.setView(newLatLng, mapInstanceRef.current.getZoom());
+
+      if (mapMarkerRef.current) {
+        mapMarkerRef.current.setLatLng(newLatLng);
+      }
+      if (mapCircleRef.current) {
+        mapCircleRef.current.setLatLng(newLatLng);
+        mapCircleRef.current.setRadius(radius * 1000);
+      }
+      return;
+    }
+
+    const map = L.map("targeting-map", {
+      center: [initialLat, initialLng],
+      zoom: zoomLevel,
+      zoomControl: true,
+    });
+    mapInstanceRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+    const customPinIcon = L.icon({
+      iconUrl: 'data:image/svg+xml;base64,' + btoa(pinSvg),
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+    });
+
+    const marker = L.marker([initialLat, initialLng], {
+      icon: customPinIcon,
+      draggable: true,
+    }).addTo(map);
+    mapMarkerRef.current = marker;
+
+    const circle = L.circle([initialLat, initialLng], {
+      color: "#0284c7",
+      fillColor: "#0284c7",
+      fillOpacity: 0.15,
+      radius: radius * 1000,
+    }).addTo(map);
+    mapCircleRef.current = circle;
+
+    const updateLocationFromCoords = async (lat: number, lng: number) => {
+      setSelectedCoords({ latitude: lat, longitude: lng });
+      setSelectedLocType("Endereço");
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "NumVaptAdsApp/1.0",
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.display_name) {
+            let cleanAddress = data.display_name.replace(", Brasil", "").replace(", Brazil", "");
+            setAddressInput(cleanAddress);
+          }
+        }
+      } catch (err) {
+        console.warn("Falha ao geocodificar reversamente:", err);
+        setAddressInput(`Pin no Mapa: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      }
+    };
+
+    marker.on("dragend", async (e: any) => {
+      const position = e.target.getLatLng();
+      circle.setLatLng(position);
+      await updateLocationFromCoords(position.lat, position.lng);
+    });
+
+    map.on("click", async (e: any) => {
+      const position = e.latlng;
+      marker.setLatLng(position);
+      circle.setLatLng(position);
+      await updateLocationFromCoords(position.lat, position.lng);
+    });
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        mapMarkerRef.current = null;
+        mapCircleRef.current = null;
+      }
+    };
+  }, [isLeafletLoaded, currentStep]);
+
+  // 4. Atualiza o círculo do mapa quando o raio é alterado no slider
+  useEffect(() => {
+    if (mapCircleRef.current) {
+      mapCircleRef.current.setRadius(radius * 1000);
+    }
+  }, [radius]);
 
   // Estados de IA e Carregamento
   const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
@@ -1287,6 +1465,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       )}
                     </div>
 
+                    {/* MAPA VISUAL INTERATIVO */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-500 block">Mapa de Segmentação Geográfica</Label>
+                      <div className="text-[11px] text-slate-500 leading-normal flex items-start gap-1.5 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/30">
+                        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                        <span>
+                          Arraste o <strong>marcador azul</strong> ou clique no mapa para definir o centro do seu anúncio. O círculo azul mostra onde o anúncio aparecerá.
+                        </span>
+                      </div>
+                      <div 
+                        id="targeting-map" 
+                        className="h-72 w-full rounded-xl border border-slate-200/80 shadow-xs relative overflow-hidden z-10 bg-slate-50"
+                        style={{ minHeight: '280px' }}
+                      />
+                    </div>
+
                     {/* Lógica de Área de Cobertura Inteligente e Condicional */}
                     {selectedCoords && selectedLocType && (
                       <div className="animate-in fade-in duration-300">
@@ -1517,20 +1711,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       </p>
                     </div>
 
-                    {/* Canais */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-600">Onde seus anúncios serão exibidos:</Label>
-                      <div className="flex gap-4">
-                        <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
-                          <Check className="h-3.5 w-3.5 text-green-500" />
-                          Instagram Feed & Stories
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
-                          <Check className="h-3.5 w-3.5 text-green-500" />
-                          Facebook Feed
-                        </div>
-                      </div>
-                    </div>
+
 
                   </div>
                 </div>
