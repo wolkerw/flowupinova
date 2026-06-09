@@ -48,9 +48,15 @@ DIRETRIZES DE PERSONALIZAÇÃO:
       }
     }
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.toLocaleString("pt-BR", { month: "long" });
+
     // 1. Prompt do Copywriter Viral
     const systemInstructionText = `
 Você é um Copywriter Sênior e Especialista em Crescimento Viral no Instagram. Sua especialidade é extrair o máximo de potencial de qualquer tema de negócio e transformá-lo em postagens que geram salvamentos, compartilhamentos e engajamento orgânico.
+
+CONTEXTO TEMPORAL: Estamos no ano de ${currentYear}, no mês de ${currentMonth}. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
 ${businessContext}
 # OBJETIVO
 Gerar exatamente 3 ideias virais e estratégicas de posts para o Instagram a partir do tema fornecido como entrada. Cada postagem deve oferecer valor real e informativo ao leitor, com gancho comercial sutil.

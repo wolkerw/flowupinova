@@ -27,13 +27,20 @@ function WizardContent() {
 
   const isReferenceMode = mode === "reference-photo" || mode === "reference-link";
 
-  const wizardSteps = [
-    { number: 1, label: "Ideia" },
-    { number: 2, label: "Texto" },
-    { number: 3, label: "Imagem" },
-    { number: 4, label: "Marca" },
-    { number: 5, label: "Revisão" },
-  ];
+  const wizardSteps = mode === "reference-photo"
+    ? [
+        { number: 1, label: "Ideia" },
+        { number: 2, label: "Conteúdo" },
+        { number: 3, label: "Marca" },
+        { number: 4, label: "Revisão e Publicação" },
+      ]
+    : [
+        { number: 1, label: "Ideia" },
+        { number: 2, label: "Texto" },
+        { number: 3, label: "Imagem" },
+        { number: 4, label: "Marca" },
+        { number: 5, label: "Revisão e Publicação" },
+      ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -41,12 +48,18 @@ function WizardContent() {
         <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
         <p className="mt-1 text-gray-600">
           {step === 1 && "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
-          {step === 2 && "Etapa 2: Selecione uma opção de texto para o seu post."}
-          {step === 3 && (isReferenceMode 
-            ? "Etapa 3: Veja a imagem criada a partir do seu produto." 
-            : "Etapa 3: Gere e selecione a melhor imagem para o seu post.")}
-          {step === 4 && "Etapa 4: Personalize sua imagem com sua logomarca."}
-          {step === 5 && "Etapa 5: Revise e agende seu post para as redes sociais."}
+          {step === 2 && (mode === "reference-photo"
+            ? "Etapa 2: Selecione uma opção de legenda e acompanhe a imagem gerada."
+            : "Etapa 2: Selecione uma opção de texto para o seu post.")}
+          {step === 3 && (mode === "reference-photo"
+            ? "Etapa 3: Personalize sua imagem com sua logomarca."
+            : (isReferenceMode 
+              ? "Etapa 3: Veja a imagem criada a partir do seu produto." 
+              : "Etapa 3: Gere e selecione a melhor imagem para o seu post."))}
+          {step === 4 && (mode === "reference-photo"
+            ? "Etapa 4: Revise e agende seu post para as redes sociais."
+            : "Etapa 4: Personalize sua imagem com sua logomarca.")}
+          {step === 5 && mode !== "reference-photo" && "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
       </div>
 
@@ -85,9 +98,13 @@ function WizardContent() {
 
       {step === 1 && <Step1Idea />}
       {step === 2 && <Step2TextSelection />}
-      {step === 3 && <Step3ImageSelection />}
-      {step === 4 && selectedImage && <Step4BrandCustomization />}
-      {step === 5 && selectedContentId && selectedImage && <Step5ReviewPublish />}
+      {step === 3 && (mode === "reference-photo"
+        ? <Step4BrandCustomization />
+        : <Step3ImageSelection />)}
+      {step === 4 && (mode === "reference-photo"
+        ? <Step5ReviewPublish />
+        : <Step4BrandCustomization />)}
+      {step === 5 && mode !== "reference-photo" && <Step5ReviewPublish />}
 
       <SchedulerModal
         isOpen={showSchedulerModal}

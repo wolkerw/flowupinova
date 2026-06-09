@@ -16,6 +16,11 @@ const config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   preset: "ts-jest",
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/tests/", // Ignorar testes E2E do Playwright
+  ],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

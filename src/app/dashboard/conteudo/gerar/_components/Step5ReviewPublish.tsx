@@ -53,6 +53,9 @@ export const Step5ReviewPublish = () => {
     generatedContent,
     setGeneratedContent,
     selectedContentId,
+    mode,
+    isGeneratingCaption,
+    handleGenerateCaption,
   } = useWizard();
 
   const selectedContent = selectedContentId !== undefined 
@@ -65,7 +68,7 @@ export const Step5ReviewPublish = () => {
     setGeneratedContent(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
   };
 
-  const onBack = () => setStep(4);
+  const onBack = () => setStep(mode === "reference-photo" ? 3 : 4);
   const onPlatformChange = (p: Platform) =>
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   
@@ -128,9 +131,11 @@ export const Step5ReviewPublish = () => {
             </div>
             <div className="space-y-6">
               <div className="space-y-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-accent" />
-                  <Label className="font-bold text-base">Editar Conteúdo</Label>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-accent" />
+                    <Label className="font-bold text-base">Editar Conteúdo</Label>
+                  </div>
                 </div>
                 
                 <div className="space-y-3">
@@ -168,6 +173,8 @@ export const Step5ReviewPublish = () => {
                   </div>
                 </div>
               </div>
+
+
 
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>

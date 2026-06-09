@@ -22,6 +22,10 @@ export interface AdCampaignData {
   name: string;
   status: "draft" | "pending_payment" | "active" | "paused" | "completed" | "failed";
   platforms: Array<"instagram" | "facebook">;
+  metaCampaignId?: string;
+  metaAdSetId?: string;
+  metaAdId?: string;
+  adAccountId?: string;
   
   creative: {
     headline: string;
@@ -179,8 +183,8 @@ export async function deleteAdCampaign(userId: string, campaignId: string): Prom
 export function estimateReach(budgetPerDay: number, durationDays: number, radiusKm: number) {
   const totalBudget = budgetPerDay * durationDays;
   
-  // Base de 500 visualizações por Real gasto
-  const reachBase = totalBudget * 450;
+  // Base de ~120 visualizações por Real gasto (alinhado com um CPM realista do Meta Ads local no Brasil entre R$ 6 e R$ 10)
+  const reachBase = totalBudget * 120;
   
   // Fator de ajuste por raio (raio menor = mais densidade local, raio maior = mais dispersão)
   // Raio ideal é em torno de 5km para marketing local
@@ -196,9 +200,9 @@ export function estimateReach(budgetPerDay: number, durationDays: number, radius
   const minReach = Math.round(reachBase * 0.7 * radiusFactor);
   const maxReach = Math.round(reachBase * 2.1 * radiusFactor);
   
-  // Cliques estimados (1.5% a 4.5% de CTR médio)
-  const minClicks = Math.round(minReach * 0.015);
-  const maxClicks = Math.round(maxReach * 0.045);
+  // Cliques estimados (1.2% a 3.5% de CTR médio local)
+  const minClicks = Math.round(minReach * 0.012);
+  const maxClicks = Math.round(maxReach * 0.035);
   
   return {
     minReach,

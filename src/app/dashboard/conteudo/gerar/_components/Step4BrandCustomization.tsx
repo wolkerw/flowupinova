@@ -35,9 +35,10 @@ export const Step4BrandCustomization = () => {
     logoInputRef,
     isGeneratingImages,
     selectedContent,
+    mode,
   } = useWizard();
 
-  const onBack = () => setStep(3);
+  const onBack = () => setStep(mode === "reference-photo" ? 2 : 3);
   const onLogoRemove = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);

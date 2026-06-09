@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import {
   Bot,
   Loader2,
@@ -17,9 +18,11 @@ import {
   Send,
   Bookmark,
   Sparkles,
+  Check,
+  Download,
 } from "lucide-react";
-import { GeneratedContent } from "../types";
-import { InstagramConnectionData } from "@/lib/services/instagram-service";
+import { cn } from "@/lib/utils";
+import { CircularProgressLoader } from "./CircularProgressLoader";
 
 import { useWizard } from "../context/WizardContext";
 
@@ -34,12 +37,25 @@ export const Step2TextSelection = () => {
     handleGeneratePostContent: onGenerateContent,
     isLoading,
     handleGeneratePrompts,
+    generatedImages,
+    selectedImage,
+    setSelectedImage: onSelectedImageChange,
+    isGeneratingImages,
+    handleDownloadImage: onDownload,
+    mode,
+    fluxImageUrl,
+    ideogramImageUrl,
+    isGeneratingIdeogram,
   } = useWizard();
 
   const onBack = () => setStep(1);
   const onNext = () => {
-    handleGeneratePrompts();
-    setStep(3);
+    if (mode === "reference-photo") {
+      setStep(3);
+    } else {
+      handleGeneratePrompts();
+      setStep(3);
+    }
   };
   const isLoadingContent = isLoading;
   const selectedContent = selectedContentId
@@ -114,7 +130,7 @@ export const Step2TextSelection = () => {
           </Button>
           <Button
             onClick={() => onNext()}
-            disabled={!selectedContentId}
+            disabled={!selectedContentId || (mode === "reference-photo" && (!selectedImage || isGeneratingImages))}
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >
             Avançar
@@ -123,63 +139,125 @@ export const Step2TextSelection = () => {
         </CardFooter>
       </Card>
 
-      <div className="flex items-center justify-center">
-        <div className="flex w-[320px] flex-col overflow-hidden rounded-lg border bg-white shadow-2xl">
-          <div className="flex items-center gap-2 border-b p-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.photoURL || undefined} />
-              <AvatarFallback>
-                {(instagramConnection?.instagramUsername || user?.displayName || "U")
-                  .charAt(0)
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm font-bold">
-              {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
-            </span>
-          </div>
-          <div className="relative flex aspect-square w-full items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
-            {generatedContent[0]?.url_da_imagem ? (
-              <img 
-                src={generatedContent[0].url_da_imagem} 
-                alt="Post" 
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <Bot className="h-16 w-16 opacity-20" />
-            )}
-          </div>
-          <div className="flex items-center justify-between px-3 pt-3">
-            <div className="flex items-center gap-4">
-              <Heart className="h-6 w-6 cursor-pointer text-gray-800" />
-              <MessageCircle className="h-6 w-6 -scale-x-100 transform cursor-pointer text-gray-800" />
-              <Send className="-ml-1 h-6 w-6 cursor-pointer text-gray-800" />
-              <RepeatIcon className="h-6 w-6 cursor-pointer text-gray-800" />
+      {mode === "reference-photo" ? (
+        <div className="flex flex-col items-center justify-start h-full w-full gap-4">
+          <Card className="w-full max-w-md border-none shadow-lg overflow-hidden">
+            <CardContent className="pt-6">
+              {isGeneratingImages || isGeneratingIdeogram ? (
+                <div className="relative flex min-h-[300px] flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
+                  <CircularProgressLoader isActive={isGeneratingImages || isGeneratingIdeogram} />
+                </div>
+              ) : generatedImages.length > 0 ? (
+                <div className="space-y-4">
+                  {generatedImages.map((imgSrc, index) => (
+                    <div
+                      key={`img-${index}`}
+                      onClick={() => onSelectedImageChange(imgSrc)}
+                      className={cn(
+                        "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
+                        "ring-4 ring-offset-2",
+                        selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
+                      )}
+                    >
+                      <Image
+                        src={imgSrc}
+                        alt={`Imagem gerada ${index + 1}`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        unoptimized
+                      />
+                      {selectedImage === imgSrc && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                          <Check className="h-12 w-12 text-white" />
+                        </div>
+                      )}
+                      {onDownload && (
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownload(imgSrc);
+                          }}
+                          className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-[300px] flex-col items-center justify-center bg-gray-50 rounded-lg p-6 border-2 border-dashed text-gray-400">
+                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                  <p className="mt-2 text-xs font-semibold">Aguardando geração da imagem...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+
+        </div>
+      ) : (
+        <div className="flex items-center justify-center">
+          <div className="flex w-[320px] flex-col overflow-hidden rounded-lg border bg-white shadow-2xl">
+            <div className="flex items-center gap-2 border-b p-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.photoURL || undefined} />
+                <AvatarFallback>
+                  {(instagramConnection?.instagramUsername || user?.displayName || "U")
+                    .charAt(0)
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-bold">
+                {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
+              </span>
             </div>
-            <Bookmark className="h-6 w-6 cursor-pointer text-gray-800" />
-          </div>
-          <div className="p-3 pt-2 text-sm">
-            {selectedContent ? (
-              <p className="whitespace-pre-wrap text-gray-800">
-                <span className="font-bold">
-                  {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
-                </span>{" "}
-                {selectedContent.titulo}
-                {"\n\n"}
-                {selectedContent.subtitulo}
-                {selectedContent.hashtags &&
-                  `\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(" ") : ""}`}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                <div className="h-4 w-5/6 animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
-                <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+            <div className="relative flex aspect-square w-full items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+              {generatedContent[0]?.url_da_imagem ? (
+                <img 
+                  src={generatedContent[0].url_da_imagem} 
+                  alt="Post" 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Bot className="h-16 w-16 opacity-20" />
+              )}
+            </div>
+            <div className="flex items-center justify-between px-3 pt-3">
+              <div className="flex items-center gap-4">
+                <Heart className="h-6 w-6 cursor-pointer text-gray-800" />
+                <MessageCircle className="h-6 w-6 -scale-x-100 transform cursor-pointer text-gray-800" />
+                <Send className="-ml-1 h-6 w-6 cursor-pointer text-gray-800" />
+                <RepeatIcon className="h-6 w-6 cursor-pointer text-gray-800" />
               </div>
-            )}
+              <Bookmark className="h-6 w-6 cursor-pointer text-gray-800" />
+            </div>
+            <div className="p-3 pt-2 text-sm">
+              {selectedContent ? (
+                <p className="whitespace-pre-wrap text-gray-800">
+                  <span className="font-bold">
+                    {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
+                  </span>{" "}
+                  {selectedContent.titulo}
+                  {"\n\n"}
+                  {selectedContent.subtitulo}
+                  {selectedContent.hashtags &&
+                    `\n\n${Array.isArray(selectedContent.hashtags) ? selectedContent.hashtags.join(" ") : ""}`}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="h-4 w-5/6 animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };

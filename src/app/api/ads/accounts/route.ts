@@ -1,36 +1,46 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
-import { getMetaConnection } from "@/lib/services/meta-service";
+import { getMetaConnectionAdmin } from "@/lib/services/meta-service-admin";
 
 export async function GET(request: NextRequest) {
   try {
     const uid = await getUidFromCookie();
-    const metaConnection = await getMetaConnection(uid);
+    const metaConnection = await getMetaConnectionAdmin(uid);
 
-    if (!metaConnection.isConnected || !metaConnection.accessToken) {
+    if (!metaConnection.isConnected && !metaConnection.pending) {
       return NextResponse.json(
         { success: false, error: "Meta account not connected." },
         { status: 403 }
       );
     }
 
-    const url = `https://graph.facebook.com/v24.0/me/adaccounts?fields=name&access_token=${metaConnection.accessToken}`;
+    const token = metaConnection.userAccessToken || metaConnection.accessToken;
+    let allAccounts: { id: string; name: string }[] = [];
+    let accountsUrl: string | null = `https://graph.facebook.com/v24.0/me/adaccounts?fields=name&limit=150&access_token=${token}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
+    while (accountsUrl) {
+      const res: Response = await fetch(accountsUrl);
+      const resData: any = await res.json();
 
-    if (!response.ok) {
-      console.error("[API_ADS_ACCOUNTS_GET] Meta API Error:", data.error);
-      throw new Error(data.error?.message || "Failed to fetch ad accounts.");
+      if (!res.ok) {
+        console.error("[API_ADS_ACCOUNTS_GET] Meta API Error:", resData.error);
+        throw new Error(resData.error?.message || "Failed to fetch ad accounts.");
+      }
+
+      if (resData.data) {
+        allAccounts.push(...resData.data.map((acc: { id: string; name: string }) => ({
+          id: acc.id,
+          name: acc.name,
+        })));
+      }
+
+      accountsUrl = resData.paging?.next || null;
     }
 
-    // A API retorna um objeto com uma propriedade 'data' que é o array de contas
-    const accounts = data.data.map((acc: { id: string; name: string }) => ({
-      id: acc.id,
-      name: acc.name,
-    }));
+    console.log(`[API_ADS_ACCOUNTS] Total accounts fetched from Meta: ${allAccounts.length}`);
+    console.log(`[API_ADS_ACCOUNTS] Accounts:`, allAccounts.map(a => `${a.name} (${a.id})`));
 
-    return NextResponse.json({ success: true, accounts });
+    return NextResponse.json({ success: true, accounts: allAccounts });
   } catch (error: any) {
     console.error("[API_ADS_ACCOUNTS_GET] Error:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

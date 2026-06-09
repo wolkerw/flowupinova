@@ -4,6 +4,40 @@ import crypto from "crypto";
 
 export const maxDuration = 300;
 
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 5,
+  delay = 3000
+): Promise<Response> {
+  let lastResponse: Response | null = null;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      lastResponse = response;
+      
+      if (response.status === 429 || response.status === 503 || (response.status >= 500 && response.status <= 599)) {
+        console.warn(
+          `[GENERATE_IMAGES_NATIVE] Recebido status ${response.status}. Tentando novamente em ${delay}ms... (Tentativa ${i + 1}/${retries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      console.warn(
+        `[GENERATE_IMAGES_NATIVE] Erro de rede ou desconhecido. Tentando novamente em ${delay}ms... (Tentativa ${i + 1}/${retries})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+  return lastResponse || fetch(url, options);
+}
+
 export async function POST(request: Request) {
   try {
     const { prompt, postId, fileName, userId } = await request.json();
@@ -24,37 +58,53 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`[GENERATE_IMAGES_NATIVE] Iniciando geração via Google Imagen 4 Ultra nativo para o post ${postId} (Slot: ${fileName})...`);
+    // 1. Chamar a API REST oficial do Google Imagen com fallback automático de modelo
+    // Tenta o Ultra primeiro (maior qualidade). Se indisponível (503/500), cai para o Fast.
+    const IMAGEN_MODELS = [
+      "imagen-4.0-ultra-generate-001",
+      "imagen-4.0-fast-generate-001",
+    ];
 
-    // 1. Chamar a API REST oficial do Google Imagen 4 Ultra de forma síncrona usando :predict
-    const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key=${apiKey}`;
-    
-    const imagenResponse = await fetch(imagenUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        instances: [
-          {
-            prompt: prompt,
-          }
-        ],
-        parameters: {
-          sampleCount: 1,
-          outputMimeType: "image/jpeg",
-          aspectRatio: "1:1",
-        },
-      }),
-    });
+    let imagenData: any = null;
+    let lastError = "";
 
-    if (!imagenResponse.ok) {
-      const errText = await imagenResponse.text();
-      console.error(`[GENERATE_IMAGES_NATIVE] Erro na API do Google Imagen 4 Ultra (status ${imagenResponse.status}):`, errText);
-      throw new Error(`Erro na API do Google Imagen (Status ${imagenResponse.status}): ${errText}`);
+    for (const model of IMAGEN_MODELS) {
+      console.log(`[GENERATE_IMAGES_NATIVE] Tentando modelo ${model} para o post ${postId} (Slot: ${fileName})...`);
+      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+
+      const imagenResponse = await fetchWithRetry(imagenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instances: [{ prompt: prompt }],
+          parameters: {
+            sampleCount: 1,
+            outputMimeType: "image/jpeg",
+            aspectRatio: "1:1",
+          },
+        }),
+      });
+
+      if (imagenResponse.ok) {
+        const data = await imagenResponse.json();
+        if (data?.predictions?.[0]?.bytesBase64Encoded) {
+          imagenData = data;
+          console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${model}!`);
+          break;
+        }
+      }
+
+      // Se for 503 ou 500 (instabilidade no servidor), tenta o próximo modelo
+      const errText = await imagenResponse.text().catch(() => `status ${imagenResponse.status}`);
+      lastError = `Modelo ${model} falhou (status ${imagenResponse.status}): ${errText.substring(0, 200)}`;
+      console.warn(`[GENERATE_IMAGES_NATIVE] ${lastError}. Tentando próximo modelo...`);
     }
 
-    const imagenData = await imagenResponse.json();
+    if (!imagenData) {
+      console.error(`[GENERATE_IMAGES_NATIVE] Todos os modelos Imagen falharam. Último erro: ${lastError}`);
+      throw new Error(`Todos os modelos do Google Imagen falharam. ${lastError}`);
+    }
+
     const imageBytes = imagenData?.predictions?.[0]?.bytesBase64Encoded;
 
     if (!imageBytes) {
@@ -104,8 +154,6 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`);
     } catch (firestoreError) {
       console.error("[GENERATE_IMAGES_NATIVE_ERROR] Falha ao catalogar imagem gerada no Firestore:", firestoreError);
-      // Mantemos o fluxo resiliente: mesmo que a gravação no banco falhe, o base64 e o storage completaram,
-      // então não lançamos erro para não quebrar a experiência do lojista na UI.
     }
 
     return NextResponse.json({

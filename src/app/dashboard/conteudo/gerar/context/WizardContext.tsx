@@ -52,6 +52,25 @@ interface WizardContextType {
   canStartPolling: boolean;
   contentHistory: GeneratedContent[];
   unusedImagesHistory: string[];
+  customPrompt: string;
+  setCustomPrompt: (prompt: string) => void;
+  handleSubmitImageGeneration: (customPromptOverride?: string, postIdOverride?: string, contentOverride?: GeneratedContent, ideogramPromptOverride?: string) => Promise<void>;
+  isRetailStyle: boolean;
+  setIsRetailStyle: (val: boolean) => void;
+  useDalle: boolean;
+  setUseDalle: (val: boolean) => void;
+  useImagen4Ref: boolean;
+  setUseImagen4Ref: (val: boolean) => void;
+  useNanoBananaRef: boolean;
+  setUseNanoBananaRef: (val: boolean) => void;
+  fluxImageUrl: string | null;
+  setFluxImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
+  ideogramImageUrl: string | null;
+  setIdeogramImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
+  isGeneratingIdeogram: boolean;
+  setIsGeneratingIdeogram: (val: boolean) => void;
+  handleGenerateRetailLayout: (textPrompt: string) => Promise<void>;
+  handleRestoreOriginalPhoto: () => Promise<void>;
   
   // Reference Image States
   referenceImageFile: File | null;
@@ -103,7 +122,8 @@ interface WizardContextType {
   selectedContent: GeneratedContent | null;
   logoInputRef: React.RefObject<HTMLInputElement>;
   foundFilesRef: React.RefObject<Set<string>>;
-  
+
+
   // Handlers
   handleGenerateText: (summary?: string) => Promise<GeneratedContent[] | null>;
   handleGeneratePostContent: () => Promise<void>;
@@ -113,6 +133,8 @@ interface WizardContextType {
   handleReferenceImageChange: (file: File | null) => void;
   handleDownloadImage: (url: string) => Promise<void>;
   handleLogoFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isGeneratingCaption: boolean;
+  handleGenerateCaption: () => Promise<void>;
 }
 
 const WizardContext = createContext<WizardContextType | undefined>(undefined);
@@ -125,6 +147,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
+
+  const handleSelectedContentIdChange = async (id: string | undefined) => {
+    setSelectedContentId(id);
+    if (id !== undefined && currentPostId && user) {
+      const sel = generatedContent[parseInt(id, 10)];
+      if (sel) {
+        try {
+          const fullCaption = `${sel.titulo}\n\n${sel.subtitulo}\n\n${Array.isArray(sel.hashtags) ? sel.hashtags.join(" ") : ""}`;
+          const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
+          await updateDoc(postDocRef, { text: fullCaption });
+          console.log("[WIZARD] Rascunho atualizado no Firestore com a legenda selecionada:", id);
+        } catch (err) {
+          console.error("Erro ao atualizar a legenda selecionada no Firestore:", err);
+        }
+      }
+    }
+  };
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
@@ -147,6 +186,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [canStartPolling, setCanStartPolling] = useState(false);
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
+  const [customPrompt, setCustomPrompt] = useState<string>("");
+  const [ideogramPrompt, setIdeogramPrompt] = useState<string>("");
+  const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
+  const [useDalle, setUseDalle] = useState<boolean>(false);
+  const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
+  const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
+  const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
+  const [ideogramImageUrl, setIdeogramImageUrl] = useState<string | null>(null);
+  const [isGeneratingIdeogram, setIsGeneratingIdeogram] = useState<boolean>(false);
+
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
 
   // Estados para imagem de referência
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
@@ -388,6 +438,59 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleGenerateText = async (summary?: any) => {
+    if (mode === "reference-photo") {
+      let textToGenerate = referenceDescription;
+      if (!textToGenerate.trim() || isLoading || !user) return null;
+      setIsLoading(true);
+
+      // Iniciar a geração da imagem em paralelo
+      handleGeneratePrompts().catch(err => {
+        console.error("Erro na geração de prompt de imagem em paralelo:", err);
+      });
+
+      try {
+        const response = await fetch("/api/generate-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ summary: textToGenerate, businessProfile }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
+
+        const publicacoes = Array.isArray(data) 
+          ? (data[0]?.publicacoes || data) 
+          : (data.publicacoes || data);
+
+        if (Array.isArray(publicacoes)) {
+          const mappedContent = publicacoes.map((item: any) => ({
+            titulo: item.titulo || item.título || "",
+            subtitulo: item.subtitulo || "",
+            hashtags: item.hashtags || [],
+            url_da_imagem: item.url_da_imagem
+          }));
+
+          setGeneratedContent(mappedContent);
+          setSelectedContentId("0");
+          await saveContentHistory(user.uid, mappedContent);
+          await fetchContentHistory();
+          return mappedContent;
+        } else {
+          throw new Error("O formato da resposta da IA é inesperado.");
+        }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao gerar textos sugeridos",
+          description: getFriendlyErrorMessage(error.message),
+        });
+        return null;
+      } finally {
+        setIsLoading(false);
+        setStep(2);
+      }
+    }
+
     let textToGenerate = (typeof summary === 'string' ? summary : null) || postSummary;
     
     if (mode === "reference-link" && !summary) {
@@ -402,7 +505,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const formData = new FormData();
         formData.append("inspiration_file", inspirationFile);
-        formData.append("description", referenceDescription);
+        
+        const combinedDescription = postSummary.trim()
+          ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
+          : referenceDescription;
+          
+        formData.append("description", combinedDescription);
         formData.append("user_id", user?.uid || "");
         
         if (businessProfile) {
@@ -551,20 +659,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const handleGeneratePrompts = async () => {
-    const selContent = selectedContentId
+
+  const handleGeneratePrompts = async (contentOverride?: GeneratedContent) => {
+    const selContent = contentOverride || (selectedContentId !== undefined
       ? generatedContent[parseInt(selectedContentId, 10)]
-      : generatedContent[0];
-    if (!selContent || !user) return;
-
-    const fullCaption = `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
-
-    // Se a legenda selecionada for idêntica à última gerada com sucesso e já temos imagens prontas,
-    // apenas evitamos regerar as imagens para economizar tempo, banda e evitar bugs
-    if (fullCaption === lastGeneratedText && generatedImages.length > 0) {
-      console.log("[WIZARD] O conteúdo de texto selecionado não mudou. Mantendo as imagens geradas anteriormente.");
-      return;
-    }
+      : generatedContent[0]);
+    if (!user) return;
+    if (mode !== "reference-photo" && !selContent) return;
 
     setIsGeneratingImages(true);
     setCanStartPolling(false);
@@ -572,7 +673,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     foundFilesRef.current.clear();
 
     try {
-      // Deletar o rascunho de post anterior ("draft") no Firestore local se o lojista decidir regerar as imagens
+      // Deletar o rascunho de post anterior ("draft") no Firestore local se o lojista decidir regerar os prompts
       if (currentPostId) {
         try {
           await deletePost(user.uid, currentPostId);
@@ -581,11 +682,15 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           console.error("[WIZARD] Erro ao deletar rascunho anterior obsoleto:", deleteError);
         }
       }
-      const fullCaption = `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`;
+      const fullCaption = selContent
+        ? `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`
+        : "";
       const postsRef = collection(db, "users", user.uid, "posts");
       const docRef = await addDoc(postsRef, {
         text: fullCaption,
         status: "draft",
+        promoText: postSummary.trim() || "",
+        isRetailStyle: isRetailStyle,
         createdAt: serverTimestamp(),
         scheduledAt: serverTimestamp(),
         imageUrls: [],
@@ -600,294 +705,425 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentPostId(postId);
 
       if (referenceImageFile) {
-        try {
-          // --- ETAPA 1: ANALISAR IMAGEM ---
-          console.log("[WIZARD] Etapa 1: Analisando imagem de referência...");
+        // --- ETAPA 1: ANALISAR IMAGEM ---
+        console.log("[WIZARD] Etapa 1: Analisando imagem de referência...");
 
-          const analyzeFormData = new FormData();
-          analyzeFormData.append("file", referenceImageFile);
+        const analyzeFormData = new FormData();
+        analyzeFormData.append("file", referenceImageFile);
 
-          const analyzeResponse = await fetch("/api/conteudo/gerar-referencia?action=analyze", {
+        const analyzeResponse = await fetch("/api/conteudo/gerar-referencia?action=analyze", {
+          method: "POST",
+          body: analyzeFormData,
+        });
+
+        if (!analyzeResponse.ok) {
+          const errData = await analyzeResponse.json().catch(() => ({}));
+          throw new Error(errData.error || "Falha ao analisar a imagem de referência.");
+        }
+
+        const { yamlAnalysis } = await analyzeResponse.json();
+        console.log("[WIZARD] Análise YAML obtida:", yamlAnalysis);
+
+        // --- ETAPA 2: GERAR PROMPT ---
+        console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
+
+        const promptFormData = new FormData();
+        promptFormData.append("yamlAnalysis", yamlAnalysis);
+        promptFormData.append("isRetailStyle", String(isRetailStyle));
+        
+        const combinedDescription = postSummary.trim()
+          ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
+          : referenceDescription;
+          
+        promptFormData.append("description", combinedDescription);
+        if (businessProfile) {
+          promptFormData.append("businessProfile", JSON.stringify(businessProfile));
+        }
+        if (mode === "reference-link" && inspirationFile) {
+          promptFormData.append("inspiration_file", inspirationFile);
+        }
+
+        const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
+          method: "POST",
+          body: promptFormData,
+        });
+
+        if (!promptResponse.ok) {
+          const errData = await promptResponse.json().catch(() => ({}));
+          throw new Error(errData.error || "Falha ao gerar o prompt de imagem.");
+        }
+
+        const resData = await promptResponse.json();
+        const fluxPrompt = resData.imagePrompt;
+        const ideoPrompt = resData.ideogramPrompt || "";
+        console.log("[WIZARD] Prompt UGC criado:", fluxPrompt, "Prompt Ideogram:", ideoPrompt);
+
+        setCustomPrompt(fluxPrompt);
+        setIdeogramPrompt(ideoPrompt);
+        setStep(mode === "reference-photo" ? 2 : 3);
+        handleSubmitImageGeneration(fluxPrompt, postId, selContent, ideoPrompt);
+      } else {
+        // Modo conceito (sem referenceImageFile)
+        console.log("[WIZARD] Gerando prompts para o modo conceito...");
+        const response = await fetch("/api/generate-prompts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            content: selContent, 
+            businessProfile: businessProfile 
+          }),
+        });
+        const data = await response.json();
+        const generatedPrompts = data?.[0]?.output?.prompt;
+
+        if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
+          throw new Error("Não foi possível gerar os prompts.");
+        }
+
+        const promptToUse = generatedPrompts[0] || "";
+        setCustomPrompt(promptToUse);
+        setStep(3);
+        handleSubmitImageGeneration(promptToUse, postId, selContent);
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
+      setIsGeneratingImages(false);
+    }
+  };
+
+  const handleSubmitImageGeneration = async (
+    customPromptOverride?: string,
+    postIdOverride?: string,
+    contentOverride?: GeneratedContent,
+    ideogramPromptOverride?: string
+  ) => {
+    const promptToUse = customPromptOverride || customPrompt;
+    const ideogramPromptToUse = ideogramPromptOverride || ideogramPrompt;
+    const activePostId = (postIdOverride || currentPostId) as string;
+    const selContent = contentOverride || (selectedContentId !== undefined
+      ? generatedContent[parseInt(selectedContentId, 10)]
+      : generatedContent[0]);
+    if (!user || !activePostId) {
+      console.warn("[WIZARD] Abortando geração. Faltam parâmetros:", { user: !!user, activePostId });
+      return;
+    }
+    if (mode !== "reference-photo" && !selContent) {
+      console.warn("[WIZARD] Abortando geração. Falta legenda para este modo.");
+      return;
+    }
+
+    setIsGeneratingImages(true);
+    setCanStartPolling(true);
+    setGeneratedImages([]);
+    foundFilesRef.current.clear();
+
+    const fullCaption = selContent
+      ? `${selContent.titulo}\n\n${selContent.subtitulo}\n\n${Array.isArray(selContent.hashtags) ? selContent.hashtags.join(" ") : ""}`
+      : "";
+
+    try {
+      if (referenceImageFile) {
+        // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
+        console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
+
+        const submitFormData = new FormData();
+        submitFormData.append("file", referenceImageFile);
+        submitFormData.append("prompt", promptToUse);
+        submitFormData.append("postId", activePostId);
+        submitFormData.append("userId", user.uid);
+        if (ideogramPromptToUse) {
+          submitFormData.append("ideogramPrompt", ideogramPromptToUse);
+        }
+
+        // 🧪 Rota de BENCHMARK: Imagen 4 (síncrono, sem polling, texto apenas)
+        if (useImagen4Ref) {
+          console.log("[WIZARD] 🧪 Modo BENCHMARK Imagen 4 ativado — chamada síncrona.");
+          const img4FormData = new FormData();
+          img4FormData.append("prompt", promptToUse);
+          img4FormData.append("postId", activePostId);
+          img4FormData.append("userId", user.uid);
+
+          const img4Response = await fetch("/api/conteudo/gerar-referencia?action=submit-imagen4-ref", {
             method: "POST",
-            body: analyzeFormData,
+            body: img4FormData,
           });
 
-          if (!analyzeResponse.ok) {
-            const errData = await analyzeResponse.json().catch(() => ({}));
-            throw new Error(errData.error || "Falha ao analisar a imagem de referência.");
+          if (!img4Response.ok) {
+            const errData = await img4Response.json().catch(() => ({}));
+            throw new Error(errData.error || "Falha na geração via Imagen 4.");
           }
 
-          const { yamlAnalysis } = await analyzeResponse.json();
-          console.log("[WIZARD] Análise YAML obtida:", yamlAnalysis);
+          const img4Data = await img4Response.json();
+          const finalUrl = img4Data.imageUrl;
 
-          // --- ETAPA 2: GERAR PROMPT ---
-          console.log("[WIZARD] Etapa 2: Gerando prompt de marketing...");
+          if (!finalUrl) throw new Error("Imagen 4 não retornou URL da imagem.");
 
-          const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
+          console.log(`[WIZARD] 🧪 Imagen 4 concluído (${img4Data.modelUsed}): ${finalUrl}`);
+          setGeneratedImages([finalUrl]);
+          setSelectedImage(finalUrl);
+          setFluxImageUrl(finalUrl);
+          setLastGeneratedText(fullCaption);
+          setIsGeneratingImages(false);
+
+          toast({
+            title: `✅ Imagen 4 concluído! (${img4Data.modelUsed?.replace("imagen-4.0-", "").replace("-generate-001", "").toUpperCase()})`,
+            description: "Imagem gerada pelo Google Imagen 4 pronta para comparação.",
+          });
+          return;
+        }
+
+        // 🍌 Rota Nano Banana: Geração com referência de imagem via Gemini 3 Pro Image (síncrono, sem polling)
+        if (useNanoBananaRef) {
+          console.log("[WIZARD] 🍌 Modo Nano Banana ativado — chamada síncrona.");
+          try {
+            const nanobananaFormData = new FormData();
+            nanobananaFormData.append("file", referenceImageFile);
+            nanobananaFormData.append("prompt", promptToUse);
+            nanobananaFormData.append("postId", activePostId);
+            nanobananaFormData.append("userId", user.uid);
+
+            const nanobananaResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-nanobanana-ref", {
+              method: "POST",
+              body: nanobananaFormData,
+            });
+
+            if (!nanobananaResponse.ok) {
+              const errData = await nanobananaResponse.json().catch(() => ({}));
+              throw new Error(errData.error || "Falha na resposta do servidor do Nano Banana.");
+            }
+
+            const nanobananaData = await nanobananaResponse.json();
+            const finalUrl = nanobananaData.imageUrl;
+
+            if (!finalUrl) throw new Error("Nano Banana não retornou URL da imagem.");
+
+            console.log(`[WIZARD] 🍌 Nano Banana concluído (${nanobananaData.modelUsed}): ${finalUrl}`);
+            setGeneratedImages([finalUrl]);
+            setSelectedImage(finalUrl);
+            setFluxImageUrl(finalUrl);
+            setLastGeneratedText(fullCaption);
+            setIsGeneratingImages(false);
+
+            toast({
+              title: `✅ Geração Concluída!`,
+              description: "Imagem criada com sucesso pelo modelo Nano Banana Pro.",
+            });
+            return;
+          } catch (nanobananaError: any) {
+            console.warn("[WIZARD] 🍌 Falha na geração via Nano Banana Pro, acionando fallback para Flux Kontext:", nanobananaError.message || nanobananaError);
+            
+            toast({
+              title: "🔄 Acionando Fallback Automático",
+              description: "O modelo principal de imagem está temporariamente instável. Gerando sua arte via Flux Kontext...",
+            });
+            
+            // Permite continuar para a geração padrão abaixo (Flux Kontext)
+          }
+        }
+
+        const targetAction = useDalle ? "submit-dalle" : "submit-kontext";
+        const submitResponse = await fetch(`/api/conteudo/gerar-referencia?action=${targetAction}`, {
+          method: "POST",
+          body: submitFormData,
+        });
+
+        if (!submitResponse.ok) {
+          const errData = await submitResponse.json().catch(() => ({}));
+          throw new Error(errData.error || "Falha ao submeter imagem para a IA.");
+        }
+
+        const submitResult = await submitResponse.json();
+        const { requestId, statusUrl, responseUrl, garmentPublicUrl } = submitResult;
+        console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
+
+        // --- ETAPA 4: POLLING DA FILA ---
+        console.log("[WIZARD] Etapa 4: Polling iniciado...");
+
+        let attempts = 0;
+        const maxAttempts = 75; // 75 * 2s = 150s máximo
+        
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          
+          // Verificação de timeout garantida no topo absoluto do intervalo
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
+            try {
+              const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
+              await setDoc(postDocRef, {
+                status: "failed",
+                failureReason: timeoutMsg
+              }, { merge: true });
+            } catch (fsErr) {
+              console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
+            }
+
+            toast({
+              variant: "destructive",
+              title: "Tempo Esgotado",
+              description: "A IA demorou muito para responder. Por favor, tente novamente.",
+            });
+            setIsGeneratingImages(false);
+            return;
+          }
+
+          try {
+            console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
+            const statusResponse = await fetch(
+              `/api/conteudo/gerar-referencia?action=check-status&statusUrl=${encodeURIComponent(statusUrl)}&responseUrl=${encodeURIComponent(responseUrl)}&postId=${activePostId}&userId=${user.uid}`
+            );
+            
+            if (!statusResponse.ok) {
+               console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
+               return;
+            }
+
+            const statusData = await statusResponse.json();
+            
+            if (statusData.status === "COMPLETED") {
+              clearInterval(pollInterval);
+              const finalImageUrl = statusData.imageUrl;
+
+              if (!finalImageUrl) {
+                throw new Error("URL da imagem final não fornecida pela IA.");
+              }
+
+              console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
+              console.log("[WIZARD] Salvando imagem no Firebase Storage...");
+
+              // Executar o download e upload no backend Next.js
+              (async () => {
+                try {
+                  const uploadResponse = await fetch("/api/conteudo/gerar-referencia?action=upload-to-firebase", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      postId: activePostId,
+                      userId: user.uid,
+                      finalImageUrl: finalImageUrl,
+                      referenceImageUrl: garmentPublicUrl || null
+                    })
+                  });
+
+                  if (!uploadResponse.ok) {
+                    throw new Error("Falha ao salvar a imagem no Firebase via servidor.");
+                  }
+
+                  const uploadData = await uploadResponse.json();
+                  const firebaseDownloadUrl = uploadData.imageUrl || finalImageUrl;
+
+                  setGeneratedImages([firebaseDownloadUrl]);
+                  setSelectedImage(firebaseDownloadUrl);
+                  setFluxImageUrl(firebaseDownloadUrl);
+                  setLastGeneratedText(fullCaption);
+                  setIsGeneratingImages(false);
+
+                  toast({
+                    title: "Imagem criada com sucesso! ✨",
+                    description: "Sua nova imagem publicitária está pronta e ficou linda!",
+                  });
+                } catch (err: any) {
+                  console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
+                  
+                  setGeneratedImages([finalImageUrl]);
+                  setSelectedImage(finalImageUrl);
+                  setFluxImageUrl(finalImageUrl);
+                  setLastGeneratedText(fullCaption);
+                  setIsGeneratingImages(false);
+
+                  try {
+                    const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
+                    await setDoc(postDocRef, {
+                      imageUrls: [finalImageUrl],
+                      referenceImageUrl: garmentPublicUrl || null,
+                      status: "completed"
+                    }, { merge: true });
+                  } catch (fsErr) {
+                    console.error("[WIZARD] Erro ao gravar rascunho no Firestore local:", fsErr);
+                  }
+                }
+              })();
+
+            } else if (statusData.status === "FAILED") {
+              clearInterval(pollInterval);
+              throw new Error(statusData.error || "A geração da imagem falhou no servidor da IA.");
+            }
+          } catch (pollErr: any) {
+            clearInterval(pollInterval);
+            console.error("[WIZARD] Erro durante o polling:", pollErr);
+            
+            try {
+              const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
+              await setDoc(postDocRef, {
+                status: "failed",
+                failureReason: pollErr.message || "Erro durante o polling da IA."
+              }, { merge: true });
+            } catch (fsErr) {
+              console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
+            }
+
+            toast({
+              variant: "destructive",
+              title: "Erro na Geração",
+              description: getFriendlyErrorMessage(pollErr.message),
+            });
+            setIsGeneratingImages(false);
+          }
+        }, 2000);
+
+      } else {
+        // Modo conceito (sem referenceImageFile)
+        console.log("[WIZARD] Iniciando geração das imagens de forma sequencial via Google Imagen...");
+
+        const filenames = ["1", "2", "3"];
+        const imageUrls: string[] = [];
+
+        for (const fname of filenames) {
+          console.log(`[WIZARD] Gerando imagem conceito ${fname}...`);
+          const imgResponse = await fetch("/api/generate-images", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              yamlAnalysis,
-              description: referenceDescription,
-              businessProfile: businessProfile,
+              prompt: promptToUse,
+              postId: activePostId,
+              fileName: fname,
+              userId: user.uid,
+              content: selContent,
             }),
           });
 
-          if (!promptResponse.ok) {
-            const errData = await promptResponse.json().catch(() => ({}));
-            throw new Error(errData.error || "Falha ao gerar o prompt de imagem.");
+          if (!imgResponse.ok) {
+            const errData = await imgResponse.json().catch(() => ({}));
+            throw new Error(errData.error || `Erro ao gerar a imagem ${fname}`);
           }
 
-          const { imagePrompt } = await promptResponse.json();
-          console.log("[WIZARD] Prompt UGC criado:", imagePrompt);
+          const imgData = await imgResponse.json();
+          imageUrls.push(imgData.imageUrl);
 
-          // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
-          console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
-
-          const submitFormData = new FormData();
-          submitFormData.append("file", referenceImageFile);
-          submitFormData.append("prompt", imagePrompt);
-
-          const submitResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-kontext", {
-            method: "POST",
-            body: submitFormData,
-          });
-
-          if (!submitResponse.ok) {
-            const errData = await submitResponse.json().catch(() => ({}));
-            throw new Error(errData.error || "Falha ao submeter imagem para a IA.");
+          // Delay de 4s entre requisições sequenciais para aliviar taxa de cota do Gemini API para o Imagen 4 Ultra
+          if (fname !== "3") {
+            await new Promise((resolve) => setTimeout(resolve, 4000));
           }
+        }
+        console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:", imageUrls);
 
-          const submitResult = await submitResponse.json();
-          const { requestId, statusUrl, responseUrl, garmentPublicUrl } = submitResult;
-          console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
-
-          // --- ETAPA 4: POLLING DA FILA ---
-          console.log("[WIZARD] Etapa 4: Polling iniciado...");
-
-          let attempts = 0;
-          const maxAttempts = 40; // 40 * 2s = 80s máximo
-          
-          const pollInterval = setInterval(async () => {
-            attempts++;
-            
-            // Verificação de timeout garantida no topo absoluto do intervalo
-            if (attempts >= maxAttempts) {
-              clearInterval(pollInterval);
-              const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
-              try {
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await setDoc(postDocRef, {
-                  status: "failed",
-                  failureReason: timeoutMsg
-                }, { merge: true });
-              } catch (fsErr) {
-                console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
-              }
-
-              toast({
-                variant: "destructive",
-                title: "Tempo Esgotado",
-                description: "A IA demorou muito para responder. Por favor, tente novamente.",
-              });
-              setIsGeneratingImages(false);
-              return;
-            }
-
-            try {
-              console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
-              const statusResponse = await fetch(
-                `/api/conteudo/gerar-referencia?action=check-status&statusUrl=${encodeURIComponent(statusUrl)}&responseUrl=${encodeURIComponent(responseUrl)}`
-              );
-              
-              if (!statusResponse.ok) {
-                console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
-                return;
-              }
-
-              const statusData = await statusResponse.json();
-              
-              if (statusData.status === "COMPLETED") {
-                clearInterval(pollInterval);
-                const finalImageUrl = statusData.imageUrl;
-
-                if (!finalImageUrl) {
-                  throw new Error("URL da imagem final não fornecida pela IA.");
-                }
-
-                console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
-                
-                console.log("[WIZARD] Salvando imagem no Firebase Storage...");
-
-                // Executar o download e upload no backend Next.js de forma 100% livre de CORS e ultra estável
-                (async () => {
-                  try {
-                    const uploadResponse = await fetch("/api/conteudo/gerar-referencia?action=upload-to-firebase", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        postId: postId,
-                        userId: user.uid,
-                        finalImageUrl: finalImageUrl,
-                        referenceImageUrl: garmentPublicUrl || null
-                      })
-                    });
-
-                    if (!uploadResponse.ok) {
-                      throw new Error("Falha ao salvar a imagem no Firebase via servidor.");
-                    }
-
-                    const uploadData = await uploadResponse.json();
-                    const firebaseDownloadUrl = uploadData.imageUrl || finalImageUrl;
-
-                    // Garantir a exibição da imagem e liberação do carregamento no frontend de forma imediata
-                    setGeneratedImages([firebaseDownloadUrl]);
-                    setSelectedImage(firebaseDownloadUrl);
-                    setLastGeneratedText(fullCaption);
-                    setIsGeneratingImages(false);
-
-                    toast({
-                      title: "Imagem criada com sucesso! ✨",
-                      description: "Sua nova imagem publicitária está pronta e ficou linda!",
-                    });
-                  } catch (err: any) {
-                    console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
-                    
-                    // Em caso de qualquer falha no servidor (ex: timeout), usamos a URL da Fal.ai de forma imediata na tela do lojista!
-                    setGeneratedImages([finalImageUrl]);
-                    setSelectedImage(finalImageUrl);
-                    setLastGeneratedText(fullCaption);
-                    setIsGeneratingImages(false);
-
-                    // Atualizar Firestore local do navegador de forma redundante e resiliente com setDoc e merge
-                    try {
-                      const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                      await setDoc(postDocRef, {
-                        imageUrls: [finalImageUrl],
-                        referenceImageUrl: garmentPublicUrl || null,
-                        status: "completed"
-                      }, { merge: true });
-                    } catch (fsErr) {
-                      console.error("[WIZARD] Erro ao gravar rascunho no Firestore local:", fsErr);
-                    }
-                  }
-                })();
-
-              } else if (statusData.status === "FAILED") {
-                clearInterval(pollInterval);
-                throw new Error(statusData.error || "A geração da imagem falhou no servidor da IA.");
-              }
-            } catch (pollErr: any) {
-              clearInterval(pollInterval);
-              console.error("[WIZARD] Erro durante o polling:", pollErr);
-              
-              try {
-                const postDocRef = doc(db, "users", user.uid, "posts", postId);
-                await setDoc(postDocRef, {
-                  status: "failed",
-                  failureReason: pollErr.message || "Erro durante o polling da IA."
-                }, { merge: true });
-              } catch (fsErr) {
-                console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
-              }
-
-              toast({
-                variant: "destructive",
-                title: "Erro na Geração",
-                description: getFriendlyErrorMessage(pollErr.message),
-              });
-              setIsGeneratingImages(false);
-            }
-          }, 2000);
-
-        } catch (error: any) {
-          console.error("[WIZARD] Erro crítico no fluxo de referência:", error);
-          
-          try {
-            const postDocRef = doc(db, "users", user.uid, "posts", postId);
-            await setDoc(postDocRef, {
-              status: "failed",
-              failureReason: error.message || "Falha na orquestração do fluxo de referência."
-            }, { merge: true });
-          } catch (fsErr) {
-            console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
-          }
-
-          toast({
-            variant: "destructive",
-            title: "Erro na Geração",
-            description: getFriendlyErrorMessage(error.message),
-          });
-          setIsGeneratingImages(false);
+        try {
+          const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
+          await setDoc(postDocRef, {
+            imageUrls: imageUrls,
+            status: "completed"
+          }, { merge: true });
+        } catch (firestoreError) {
+          console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
         }
 
-        return;
+        setGeneratedImages(imageUrls);
+        setSelectedImage(imageUrls[0]);
+        setLastGeneratedText(fullCaption);
+        setIsGeneratingImages(false);
       }
-
-
-      const response = await fetch("/api/generate-prompts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          content: selContent, 
-          businessProfile: businessProfile 
-        }),
-      });
-      const data = await response.json();
-      const generatedPrompts = data?.[0]?.output?.prompt;
-
-      if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
-        throw new Error("Não foi possível gerar os prompts.");
-      }
-
-      console.log("[WIZARD] Prompts gerados localmente! Iniciando geração das imagens em paralelo via Google Imagen...");
-
-      const filenames = ["1", "2", "3"];
-      const imageGenerationPromises = filenames.map(async (fname, index) => {
-        const promptToUse = generatedPrompts[index] || generatedPrompts[0];
-        
-        const imgResponse = await fetch("/api/generate-images", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: promptToUse,
-            postId: postId,
-            fileName: fname,
-            userId: user.uid,
-            content: selContent,
-          }),
-        });
-
-        if (!imgResponse.ok) {
-          const errData = await imgResponse.json().catch(() => ({}));
-          throw new Error(errData.error || `Erro ao gerar a imagem ${fname}`);
-        }
-
-        const imgData = await imgResponse.json();
-        return imgData.imageUrl;
-      });
-
-      const imageUrls = await Promise.all(imageGenerationPromises);
-      console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:", imageUrls);
-
-      // Atualizar o post no Firestore local de forma resiliente usando setDoc e merge
-      try {
-        const postDocRef = doc(db, "users", user.uid, "posts", postId);
-        await setDoc(postDocRef, {
-          imageUrls: imageUrls,
-          status: "completed"
-        }, { merge: true });
-        console.log("[WIZARD] Documento do post atualizado no Firestore com as imagens conceito.");
-      } catch (firestoreError) {
-        console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
-      }
-
-      // Definir as imagens geradas de imediato na UI e desativar o spinner
-      setGeneratedImages(imageUrls);
-      setSelectedImage(imageUrls[0]);
-      setLastGeneratedText(fullCaption);
-      setIsGeneratingImages(false); // Desativa o spinner imediatamente!
-
     } catch (error: any) {
       console.error(error);
       toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
@@ -900,7 +1136,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if (!logoFile) {
       if (!selectedImage.startsWith("blob:")) {
         setProcessedImageUrl(null);
-        setStep(5);
+        setStep(mode === "reference-photo" ? 4 : 5);
         return;
       }
       setIsUploading(true);
@@ -930,7 +1166,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
 
-          setStep(5);
+          setStep(mode === "reference-photo" ? 4 : 5);
         }
       } catch (error) {
         console.error(error);
@@ -945,7 +1181,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
         return new Promise((resolve, reject) => {
           const img = document.createElement("img");
-          img.onload = () => resolve({ width: img.width, height: img.height });
+          img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
           img.onerror = reject;
           img.src = url;
         });
@@ -954,21 +1190,62 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
       const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(selectedImage);
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
+      
+      // Obter proporção original da logo para calcular a altura real em pixels
+      let logoPixelHeight = logoPixelWidth; // fallback quadrado
+      if (logoPreviewUrl) {
+        try {
+          const { width: logoImgWidth, height: logoImgHeight } = await getImageDimensions(logoPreviewUrl);
+          if (logoImgWidth > 0) {
+            logoPixelHeight = logoPixelWidth * (logoImgHeight / logoImgWidth);
+          }
+        } catch (dimErr) {
+          console.warn("[WIZARD] Erro ao obter dimensões da logo:", dimErr);
+        }
+      }
+
       let positionX = 0, positionY = 0;
       
       // Margem proporcional baseada em 16px em relação ao tamanho máximo de 384px (max-w-sm) do preview no front
       const margin = mainImageWidth * 0.04167;
 
       switch (logoPosition) {
-        case "top-left": positionX = margin; positionY = margin; break;
-        case "top-center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = margin; break;
-        case "top-right": positionX = mainImageWidth - logoPixelWidth - margin; positionY = margin; break;
-        case "left-center": positionX = margin; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
-        case "center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
-        case "right-center": positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight / 2 - logoPixelWidth / 2; break;
-        case "bottom-left": positionX = margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
-        case "bottom-center": positionX = mainImageWidth / 2 - logoPixelWidth / 2; positionY = mainImageHeight - logoPixelWidth - margin; break;
-        case "bottom-right": positionX = mainImageWidth - logoPixelWidth - margin; positionY = mainImageHeight - logoPixelWidth - margin; break;
+        case "top-left": 
+          positionX = margin; 
+          positionY = margin; 
+          break;
+        case "top-center": 
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
+          positionY = margin; 
+          break;
+        case "top-right": 
+          positionX = mainImageWidth - logoPixelWidth - margin; 
+          positionY = margin; 
+          break;
+        case "left-center": 
+          positionX = margin; 
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+          break;
+        case "center": 
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+          break;
+        case "right-center": 
+          positionX = mainImageWidth - logoPixelWidth - margin; 
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+          break;
+        case "bottom-left": 
+          positionX = margin; 
+          positionY = mainImageHeight - logoPixelHeight - margin; 
+          break;
+        case "bottom-center": 
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
+          positionY = mainImageHeight - logoPixelHeight - margin; 
+          break;
+        case "bottom-right": 
+          positionX = mainImageWidth - logoPixelWidth - margin; 
+          positionY = mainImageHeight - logoPixelHeight - margin; 
+          break;
       }
 
       const formData = new FormData();
@@ -1003,7 +1280,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      setStep(5);
+      setStep(mode === "reference-photo" ? 4 : 5);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao Processar", description: getFriendlyErrorMessage(error.message) });
     } finally {
@@ -1124,9 +1401,159 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleGenerateCaption = async () => {
+    if (!referenceDescription.trim() || !user) {
+      toast({
+        variant: "destructive",
+        title: "Descrição vazia",
+        description: "Descreva o seu produto no Passo 1 para podermos gerar a legenda baseada nele."
+      });
+      return;
+    }
+    setIsGeneratingCaption(true);
+    try {
+      const response = await fetch("/api/generate-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: referenceDescription, businessProfile }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
+
+      const publicacoes = Array.isArray(data) 
+        ? (data[0]?.publicacoes || data) 
+        : (data.publicacoes || data);
+
+      if (Array.isArray(publicacoes) && publicacoes.length > 0) {
+        const item = publicacoes[0];
+        const mapped = {
+          titulo: item.titulo || item.título || "",
+          subtitulo: item.subtitulo || "",
+          hashtags: item.hashtags || [],
+          url_da_imagem: selectedContent?.url_da_imagem || undefined
+        };
+        
+        setGeneratedContent(prev => {
+          if (selectedContentId === undefined) return prev;
+          const index = parseInt(selectedContentId, 10);
+          return prev.map((c, i) => i === index ? { ...c, ...mapped } : c);
+        });
+
+        if (currentPostId) {
+          const fullCaption = `${mapped.titulo}\n\n${mapped.subtitulo}\n\n${Array.isArray(mapped.hashtags) ? mapped.hashtags.join(" ") : ""}`;
+          const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
+          await setDoc(postDocRef, {
+            text: fullCaption
+          }, { merge: true });
+        }
+
+        toast({
+          title: "Legenda gerada! ✨",
+          description: "Sua legenda e hashtags foram criadas pela IA baseadas no seu produto.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar legenda",
+        description: getFriendlyErrorMessage(error.message),
+      });
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
+  const handleGenerateRetailLayout = async (textPrompt: string) => {
+    if (!user || !currentPostId || !fluxImageUrl) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Dados insuficientes para gerar o layout de varejo."
+      });
+      return;
+    }
+
+    setIsGeneratingIdeogram(true);
+    try {
+      const retailPrompt = `A professional retail promotion layout, graphic design. The main product photo is in the background. The following text/phrases must be written clearly in bold, clean, modern typography on the image in Portuguese: "${textPrompt}". High contrast colors, vibrant retail advertising style, maintaining the subject from the background clearly.`;
+
+      console.log(`[WIZARD] Disparando submit-ideogram-remix sob demanda com prompt: ${retailPrompt}`);
+
+      const response = await fetch("/api/conteudo/gerar-referencia?action=submit-ideogram-remix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: currentPostId,
+          userId: user.uid,
+          fluxImageUrl: fluxImageUrl,
+          textPrompt: retailPrompt
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Falha na chamada ao Ideogram Remix.");
+      }
+
+      const remixUrl = data.imageUrl;
+      if (!remixUrl) {
+        throw new Error("Nenhuma URL de imagem de remix foi retornada.");
+      }
+
+      console.log(`[WIZARD] Remix do Ideogram gerado com sucesso: ${remixUrl}`);
+      setIdeogramImageUrl(remixUrl);
+      setSelectedImage(remixUrl);
+      setGeneratedImages([remixUrl]);
+
+      toast({
+        title: "Layout de varejo gerado! 🚀",
+        description: "Seu anúncio promocional foi integrado perfeitamente pela IA.",
+      });
+    } catch (err: any) {
+      console.error("[WIZARD] Erro ao gerar layout de varejo:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro no Remix do Ideogram",
+        description: getFriendlyErrorMessage(err.message),
+      });
+    } finally {
+      setIsGeneratingIdeogram(false);
+    }
+  };
+
+  const handleRestoreOriginalPhoto = async () => {
+    if (!user || !currentPostId || !fluxImageUrl) return;
+    setIsLoading(true);
+    try {
+      setSelectedImage(fluxImageUrl);
+      setGeneratedImages([fluxImageUrl]);
+      setIdeogramImageUrl(null);
+
+      const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
+      await updateDoc(postDocRef, {
+        imageUrls: [fluxImageUrl],
+        ideogramImageUrl: null
+      });
+
+      toast({
+        title: "Foto original restaurada",
+        description: "O layout promocional foi removido e a foto limpa do Flux foi restaurada.",
+      });
+    } catch (err: any) {
+      console.error("[WIZARD] Erro ao restaurar foto original:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao restaurar",
+        description: getFriendlyErrorMessage(err.message),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <WizardContext.Provider value={{
-      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId,
+      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId: handleSelectedContentIdChange,
       generatedImages, setGeneratedImages, selectedImage, setSelectedImage: handleSelectedImageChange, processedImageUrl, setProcessedImageUrl,
       showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
       collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
@@ -1138,6 +1565,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
       mode, user, metaConnection, instagramConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
       logoInputRef, foundFilesRef,
+      customPrompt, setCustomPrompt, handleSubmitImageGeneration,
+      isRetailStyle, setIsRetailStyle,
+      useDalle, setUseDalle,
+      useImagen4Ref, setUseImagen4Ref,
+      useNanoBananaRef, setUseNanoBananaRef,
+      isGeneratingCaption, handleGenerateCaption,
+      fluxImageUrl, setFluxImageUrl,
+      ideogramImageUrl, setIdeogramImageUrl,
+      isGeneratingIdeogram, setIsGeneratingIdeogram,
+      handleGenerateRetailLayout, handleRestoreOriginalPhoto,
+
       handleGenerateText, handleGeneratePostContent, handleGeneratePrompts, handleLogoProcessing, handlePublish,
       handleReferenceImageChange, handleDownloadImage, handleLogoFileChange
     }}>

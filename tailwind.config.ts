@@ -14,8 +14,8 @@ export default {
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       fontFamily: {
-        body: ["Inter", "sans-serif"],
-        headline: ["Poppins", "sans-serif"],
+        body: ["var(--font-inter)", "sans-serif"],
+        headline: ["var(--font-poppins)", "sans-serif"],
         code: ["monospace"],
       },
       colors: {

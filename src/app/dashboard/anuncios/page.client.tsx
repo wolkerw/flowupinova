@@ -1,8 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Megaphone,
   TrendingUp,
@@ -23,6 +31,8 @@ import {
   Play,
   Pause,
   Trash2,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +43,7 @@ import { Slider } from "@/components/ui/slider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getScheduledPosts } from "@/lib/services/posts-service";
+import { getMetaConnection, updateMetaConnection } from "@/lib/services/meta-service";
 import {
   createAdCampaign,
   getUserAdCampaigns,
@@ -43,6 +54,112 @@ import {
 } from "@/lib/services/anuncios-service";
 import Image from "next/image";
 import { Timestamp } from "firebase/firestore";
+
+interface SearchableSelectProps {
+  options: { id: string; name: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyMessage: string;
+}
+
+function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
+}: SearchableSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) setSearch("");
+  }, [isOpen]);
+
+  const selectedOption = options.find((opt) => opt.id === value);
+  const filteredOptions = options.filter(
+    (opt) =>
+      opt.name.toLowerCase().includes(search.toLowerCase()) ||
+      opt.id.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-800 shadow-sm hover:bg-slate-50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200"
+      >
+        <span className="truncate font-medium text-slate-700">
+          {selectedOption ? selectedOption.name : placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-slate-500 shrink-0 ml-2 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1.5 max-h-64 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="w-full rounded-md border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto max-h-48 py-1 scrollbar-thin">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-slate-500 text-center italic">
+                {emptyMessage}
+              </div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.id === value;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.id);
+                      setIsOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors ${
+                      isSelected ? "bg-primary/5 text-primary font-semibold" : "text-slate-700"
+                    }`}
+                  >
+                    <div className="flex flex-col truncate pr-2">
+                      <span className="truncate">{opt.name}</span>
+                      <span className="text-[10px] text-slate-400 font-normal mt-0.5">ID: {opt.id}</span>
+                    </div>
+                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0 ml-1" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface AnunciosPageClientProps {
   initialProfile: BusinessProfileData | null;
@@ -55,26 +172,405 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   // Dados principais
   const [publishedPosts, setPublishedPosts] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<AdCampaignData[]>([]);
+  const [activeDashboardTab, setActiveDashboardTab] = useState<"active" | "history">("active");
   const [loading, setLoading] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(initialProfile);
+  const [adAccountId, setAdAccountId] = useState<string>("");
+  const [adAccountName, setAdAccountName] = useState<string>("");
+
+  // Conexão Meta Ads Pago
+  const [metaConnection, setMetaConnection] = useState<any>({ isConnected: false });
+  const [isConnectingMeta, setIsConnectingMeta] = useState(false);
+  const [metaPages, setMetaPages] = useState<any[]>([]);
+  const [metaAdAccounts, setMetaAdAccounts] = useState<any[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState("");
+  const [selectedAdAccountIdState, setSelectedAdAccountIdState] = useState("");
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [exchangeToken, setExchangeToken] = useState("");
+  const [pageSearchTerm, setPageSearchTerm] = useState("");
+  const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
+
+  const effectRan = useRef(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Estados do Wizard/Criação
   const [isCreating, setIsCreating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isChoosePostModalOpen, setIsChoosePostModalOpen] = useState(false);
 
   // Inputs do Formulário
   const [adName, setAdName] = useState("");
   const [headline, setHeadline] = useState("");
   const [bodyText, setBodyText] = useState("");
-  const [ctaType, setCtaType] = useState<AdCampaignData["creative"]["ctaType"]>("SEND_MESSAGE");
+  const [ctaType, setCtaType] = useState<any>("WHATSAPP");
   const [platforms, setPlatforms] = useState<Array<"instagram" | "facebook">>(["instagram", "facebook"]);
   const [radius, setRadius] = useState<number>(5);
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 55]);
   const [gender, setGender] = useState<"all" | "male" | "female">("all");
   const [dailyBudget, setDailyBudget] = useState<number>(15);
   const [duration, setDuration] = useState<number>(7);
+  const [addressInput, setAddressInput] = useState("");
+  const [customDestination, setCustomDestination] = useState("");
+  const [campaignObjective, setCampaignObjective] = useState<"REACH" | "TRAFFIC">("REACH");
+  const [hasDestination, setHasDestination] = useState(false);
+  const [metaLocationsSuggestions, setMetaLocationsSuggestions] = useState<any[]>([]);
+  const [selectedCoords, setSelectedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedLocType, setSelectedLocType] = useState<string | null>(null);
+  const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+  const [selectedBoundingBox, setSelectedBoundingBox] = useState<[number, number, number, number] | null>(null);
+  const [selectedLocKey, setSelectedLocKey] = useState<string>("");
+  const [selectedGeoJson, setSelectedGeoJson] = useState<any | null>(null);
+  const mapRectangleRef = useRef<any>(null);
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
+  const mapInstanceRef = useRef<any>(null);
+  const mapMarkerRef = useRef<any>(null);
+  const mapCircleRef = useRef<any>(null);
+
+  const handleAddressInputChange = (val: string) => {
+    setAddressInput(val);
+    setSelectedCoords(null);
+    setSelectedLocType(null);
+    setSelectedBoundingBox(null);
+    setSelectedLocKey("");
+    setSelectedGeoJson(null);
+    if (val.length < 3) {
+      setMetaLocationsSuggestions([]);
+      return;
+    }
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearchingLocations(true);
+      try {
+        const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        let suggestions = data.success ? (data.locations || []) : [];
+
+        // Fallback Client-side Nominatim if server returned few or no results
+        if (suggestions.length === 0) {
+          try {
+            const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val.toLowerCase().includes("brasil") || val.toLowerCase().includes("brazil") ? val : val + ", Brasil")}&format=json&limit=5&countrycodes=br&addressdetails=1`;
+            const nomRes = await fetch(nomUrl, {
+              headers: { "Accept-Language": "pt-BR,pt;q=0.9" }
+            });
+            if (nomRes.ok) {
+              const nomData = await nomRes.json();
+              const nomSuggestions = nomData
+                .filter((item: any) => item.type !== "postcode" && item.class !== "postcode")
+                .map((item: any, index: number) => {
+                  const address = item.address || {};
+                  let displayName = item.display_name.replace(", Brasil", "").replace(", Brazil", "");
+                  let ptType = "Endereço";
+                  if (address.country && !address.state && !address.city && !address.suburb && !address.road) ptType = "País";
+                  else if (address.state && !address.city && !address.suburb && !address.road) ptType = "Estado";
+                  else if (address.city || address.town || address.village) {
+                    if (!address.suburb && !address.road) ptType = "Cidade";
+                    else if (address.suburb && !address.road) ptType = "Bairro";
+                  } else if (address.suburb) ptType = "Bairro";
+                  else if (address.road) ptType = "Rua/Avenida";
+
+                  return {
+                    key: `nom_client_${index}_${item.osm_id}`,
+                    name: displayName,
+                    type: ptType,
+                    latitude: parseFloat(item.lat),
+                    longitude: parseFloat(item.lon),
+                    region: address.state || "",
+                    boundingBox: item.boundingbox ? [
+                      parseFloat(item.boundingbox[0]),
+                      parseFloat(item.boundingbox[1]),
+                      parseFloat(item.boundingbox[2]),
+                      parseFloat(item.boundingbox[3])
+                    ] : undefined,
+                  };
+                });
+              suggestions = [...suggestions, ...nomSuggestions];
+            }
+          } catch (err) {
+            console.warn("Falha no client-side Nominatim:", err);
+          }
+        }
+
+        setMetaLocationsSuggestions(suggestions);
+      } catch (err) {
+        console.warn("Erro ao buscar localizações:", err);
+      } finally {
+        setIsSearchingLocations(false);
+      }
+    }, 400); // 400ms debounce
+  };
+
+  useEffect(() => {
+    if (businessProfile && !customDestination) {
+      setCustomDestination(businessProfile.website || businessProfile.instagram || "");
+    }
+  }, [businessProfile, customDestination]);
+
+  // 1. Carrega scripts e estilos do Leaflet dinamicamente para o Mapa Visual
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if ((window as any).L) {
+      setIsLeafletLoaded(true);
+      return;
+    }
+
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById("leaflet-js")) {
+      const script = document.createElement("script");
+      script.id = "leaflet-js";
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.async = true;
+      script.onload = () => {
+        setIsLeafletLoaded(true);
+      };
+      document.head.appendChild(script);
+    } else {
+      setIsLeafletLoaded(true);
+    }
+  }, []);
+
+  // 2. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
+  useEffect(() => {
+    if (currentStep === 3 && !selectedCoords && businessProfile?.address) {
+      const geocodeProfileAddress = async () => {
+        try {
+          const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.locations && data.locations.length > 0) {
+              const loc = data.locations[0];
+              setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+              setSelectedLocType(loc.type);
+              setAddressInput(loc.name);
+            }
+          }
+        } catch (err) {
+          console.warn("Erro ao geocodificar endereço inicial do perfil:", err);
+        }
+      };
+      geocodeProfileAddress();
+    }
+  }, [currentStep, businessProfile, selectedCoords]);
+
+  // 3. Inicializa e sincroniza o mapa Leaflet
+  useEffect(() => {
+    if (!isLeafletLoaded || currentStep !== 3 || typeof window === "undefined") return;
+
+    const L = (window as any).L;
+    if (!L) return;
+
+    let initialLat = selectedCoords?.latitude || -30.0346;
+    let initialLng = selectedCoords?.longitude || -51.2177;
+    let zoomLevel = selectedCoords ? 14 : 12;
+
+    const mapContainer = document.getElementById("targeting-map");
+    if (!mapContainer) return;
+
+    const syncMapElements = (map: any) => {
+      // 1. Remove o retângulo/geojson anterior se existir
+      if (mapRectangleRef.current) {
+        map.removeLayer(mapRectangleRef.current);
+        mapRectangleRef.current = null;
+      }
+
+      const isAreaTarget = selectedLocType === "País" || selectedLocType === "Estado";
+
+      if (isAreaTarget) {
+        // Esconde o marcador de Pin e o Círculo de Raio
+        if (mapMarkerRef.current) {
+          map.removeLayer(mapMarkerRef.current);
+          mapMarkerRef.current = null;
+        }
+        if (mapCircleRef.current) {
+          map.removeLayer(mapCircleRef.current);
+          mapCircleRef.current = null;
+        }
+
+        // Desenha o GeoJSON da região (exato)
+        if (selectedGeoJson) {
+          const geoJsonLayer = L.geoJSON(selectedGeoJson, {
+            style: {
+              color: "#0284c7",
+              fillColor: "#0284c7",
+              fillOpacity: 0.15,
+              weight: 2
+            }
+          }).addTo(map);
+          mapRectangleRef.current = geoJsonLayer;
+          map.fitBounds(geoJsonLayer.getBounds(), { padding: [20, 20] });
+        } else if (selectedBoundingBox) {
+          // Fallback para caixa delimitadora (bounding box) da região se GeoJSON não estiver disponível
+          const bounds = [
+            [selectedBoundingBox[0], selectedBoundingBox[2]], // [latMin, lonMin]
+            [selectedBoundingBox[1], selectedBoundingBox[3]]  // [latMax, lonMax]
+          ];
+          const rect = L.rectangle(bounds, {
+            color: "#0284c7",
+            fillColor: "#0284c7",
+            fillOpacity: 0.2,
+            weight: 2
+          }).addTo(map);
+          mapRectangleRef.current = rect;
+          map.fitBounds(bounds, { padding: [20, 20] });
+        }
+      } else {
+        // Mostra o marcador Pin e o Círculo de Raio para locais precisos/cidades
+        if (selectedCoords) {
+          const newLatLng = new L.LatLng(selectedCoords.latitude, selectedCoords.longitude);
+          
+          if (!mapMarkerRef.current) {
+            const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+            const customPinIcon = L.icon({
+              iconUrl: 'data:image/svg+xml;base64,' + btoa(pinSvg),
+              iconSize: [36, 36],
+              iconAnchor: [18, 36],
+            });
+            const marker = L.marker(newLatLng, {
+              icon: customPinIcon,
+              draggable: true,
+            }).addTo(map);
+            
+            marker.on("dragend", async (e: any) => {
+              const position = e.target.getLatLng();
+              if (mapCircleRef.current) {
+                mapCircleRef.current.setLatLng(position);
+              }
+              await updateLocationFromCoords(position.lat, position.lng);
+            });
+            
+            mapMarkerRef.current = marker;
+          } else {
+            mapMarkerRef.current.setLatLng(newLatLng);
+            if (!map.hasLayer(mapMarkerRef.current)) {
+              mapMarkerRef.current.addTo(map);
+            }
+          }
+
+          if (!mapCircleRef.current) {
+            const circle = L.circle(newLatLng, {
+              color: "#0284c7",
+              fillColor: "#0284c7",
+              fillOpacity: 0.15,
+              radius: radius * 1000,
+            }).addTo(map);
+            mapCircleRef.current = circle;
+          } else {
+            mapCircleRef.current.setLatLng(newLatLng);
+            mapCircleRef.current.setRadius(radius * 1000);
+            if (!map.hasLayer(mapCircleRef.current)) {
+              mapCircleRef.current.addTo(map);
+            }
+          }
+
+          map.setView(newLatLng, map.getZoom());
+        }
+      }
+    };
+
+    if (mapInstanceRef.current) {
+      syncMapElements(mapInstanceRef.current);
+      return;
+    }
+
+    const map = L.map("targeting-map", {
+      center: [initialLat, initialLng],
+      zoom: zoomLevel,
+      zoomControl: true,
+    });
+    mapInstanceRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    const updateLocationFromCoords = async (lat: number, lng: number) => {
+      setSelectedCoords({ latitude: lat, longitude: lng });
+      setSelectedLocType("Endereço");
+      setSelectedBoundingBox(null);
+      setSelectedLocKey("");
+      setSelectedGeoJson(null);
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "NumVaptAdsApp/1.0",
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.display_name) {
+            let cleanAddress = data.display_name.replace(", Brasil", "").replace(", Brazil", "");
+            setAddressInput(cleanAddress);
+            if (data.boundingbox) {
+              setSelectedBoundingBox([
+                parseFloat(data.boundingbox[0]),
+                parseFloat(data.boundingbox[1]),
+                parseFloat(data.boundingbox[2]),
+                parseFloat(data.boundingbox[3])
+              ]);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Falha ao geocodificar reversamente:", err);
+        setAddressInput(`Pin no Mapa: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      }
+    };
+
+    map.on("click", async (e: any) => {
+      const isAreaTarget = selectedLocType === "País" || selectedLocType === "Estado";
+      if (isAreaTarget) return;
+
+      const position = e.latlng;
+      if (mapMarkerRef.current) {
+        mapMarkerRef.current.setLatLng(position);
+      }
+      if (mapCircleRef.current) {
+        mapCircleRef.current.setLatLng(position);
+      }
+      await updateLocationFromCoords(position.lat, position.lng);
+    });
+
+    syncMapElements(map);
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        mapMarkerRef.current = null;
+        mapCircleRef.current = null;
+        mapRectangleRef.current = null;
+      }
+    };
+  }, [isLeafletLoaded, currentStep, selectedCoords, selectedLocType, selectedBoundingBox, selectedGeoJson]);
+
+  // 4. Atualiza o círculo do mapa quando o raio é alterado no slider
+  useEffect(() => {
+    if (mapCircleRef.current) {
+      mapCircleRef.current.setRadius(radius * 1000);
+    }
+  }, [radius]);
 
   // Estados de IA e Carregamento
   const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
@@ -95,9 +591,27 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       setPublishedPosts(filteredPosts);
       setLoadingPosts(false);
 
-      // Buscar campanhas criadas
-      const adsResult = await getUserAdCampaigns(user.uid);
-      setCampaigns(adsResult);
+      // Buscar conexão da Meta
+      const metaConn = await getMetaConnection(user.uid);
+      setMetaConnection(metaConn);
+      if (metaConn.userAccessToken) {
+        setExchangeToken(metaConn.userAccessToken);
+      }
+      if (metaConn.isConnected && metaConn.adAccountId) {
+        setAdAccountId(metaConn.adAccountId);
+        setAdAccountName(metaConn.adAccountName || "");
+
+        // Buscar campanhas reais e insights diretamente da Meta Ads API em tempo real
+        const campaignsRes = await fetch("/api/ads/campaigns");
+        const campaignsData = await campaignsRes.json();
+        if (campaignsData.success) {
+          setCampaigns(campaignsData.campaigns || []);
+        } else {
+          console.warn("Falha ao buscar campanhas reais da Meta:", campaignsData.error);
+        }
+      } else {
+        setCampaigns([]);
+      }
     } catch (err) {
       console.error("Erro ao carregar dados da página:", err);
       toast({
@@ -114,6 +628,174 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     fetchData();
   }, [fetchData]);
 
+  // Fluxo de conexão autônomo Meta Ads (Vendas/Pago)
+  const handleConnectMetaAds = () => {
+    const clientId = process.env.NEXT_PUBLIC_META_APP_ID || "826418333144156";
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/dashboard/anuncios`;
+    
+    let authUrl = "";
+    if (configId) {
+      // Usando Facebook Login para Empresas com ID de Configuração
+      authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&config_id=${configId}&response_type=code&override_default_response_type=true`;
+    } else {
+      // Fallback para Login tradicional com escopos manuais
+      const scope = [
+        "pages_show_list",
+        "pages_read_engagement",
+        "ads_management",
+        "ads_read",
+        "business_management"
+      ].join(",");
+      authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${scope}&response_type=code`;
+    }
+    
+    window.location.href = authUrl;
+  };
+
+  const runMetaAdsConnectionFlow = async (code: string) => {
+    if (!user) return;
+    setIsConnectingMeta(true);
+    try {
+      toast({
+        title: "Autenticando com a Meta",
+        description: "Obtendo chaves de acesso com segurança.",
+      });
+
+      // 1. Trocar código por Token de Longo Prazo
+      const tokenResponse = await fetch("/api/meta/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          code, 
+          origin: `${window.location.origin}/dashboard/anuncios`,
+          redirectUri: `${window.location.origin}/dashboard/anuncios`
+        }),
+      });
+      const tokenResult = await tokenResponse.json();
+      if (!tokenResult.success) throw new Error(tokenResult.error);
+      const { userAccessToken } = tokenResult;
+
+      setExchangeToken(userAccessToken);
+
+      // 2. Salvar estado temporário/pending no Firestore connections/meta
+      await updateMetaConnection(user.uid, {
+        userAccessToken,
+        pending: true,
+      });
+
+      // 3. Buscar Páginas Comerciais
+      const pagesResponse = await fetch("/api/meta/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userAccessToken }),
+      });
+      const pagesResult = await pagesResponse.json();
+      if (!pagesResult.success) throw new Error(pagesResult.error);
+      const pages = pagesResult.pages || [];
+      setMetaPages(pages);
+      if (pages.length > 0) setSelectedPageId(pages[0].id);
+
+      // 4. Buscar Contas de Anúncios (usa o userAccessToken salvo no pending)
+      const accountsResponse = await fetch("/api/ads/accounts");
+      const accountsResult = await accountsResponse.json();
+      if (!accountsResult.success) throw new Error(accountsResult.error);
+      const accounts = accountsResult.accounts || [];
+      setMetaAdAccounts(accounts);
+      if (accounts.length > 0) setSelectedAdAccountIdState(accounts[0].id);
+
+      // Limpar parâmetros da URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      // Abrir o Modal Unificado de Configuração
+      setIsSetupModalOpen(true);
+
+    } catch (err: any) {
+      console.error("Erro na conexão Meta Ads:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro na Conexão Meta Ads",
+        description: err.message || "Tente novamente mais tarde.",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } finally {
+      setIsConnectingMeta(false);
+    }
+  };
+
+  const handleSaveMetaAdsConnection = async () => {
+    if (!user || !exchangeToken || !selectedPageId || !selectedAdAccountIdState) {
+      toast({
+        variant: "destructive",
+        title: "Seleção Incompleta",
+        description: "Selecione uma página comercial e uma conta de anúncios ativa.",
+      });
+      return;
+    }
+
+    setIsConnectingMeta(true);
+    try {
+      const selectedPage = metaPages.find((p) => p.id === selectedPageId);
+      const selectedAcc = metaAdAccounts.find((a) => a.id === selectedAdAccountIdState);
+
+      if (!selectedPage || !selectedAcc) {
+        throw new Error("Seleções inválidas. Tente novamente.");
+      }
+
+      // Salvar conexão definitiva no Firestore
+      await updateMetaConnection(user.uid, {
+        isConnected: true,
+        userAccessToken: exchangeToken,
+        accessToken: selectedPage.access_token,
+        pageId: selectedPage.id,
+        pageName: selectedPage.name,
+        adAccountId: selectedAcc.id,
+        adAccountName: selectedAcc.name,
+      });
+
+      toast({
+        title: "Integração Concluída",
+        description: `Conectado com sucesso à página "${selectedPage.name}" e conta de anúncios "${selectedAcc.name}".`,
+      });
+
+      setIsSetupModalOpen(false);
+      fetchData();
+
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Salvar Integração",
+        description: err.message || "Tente novamente mais tarde.",
+      });
+    } finally {
+      setIsConnectingMeta(false);
+    }
+  };
+
+  const handleDisconnectMetaAds = async () => {
+    if (!user) return;
+    if (confirm("Tem certeza que deseja desconectar a conta de anúncios da Meta? Isso removerá a visualização das métricas.")) {
+      await updateMetaConnection(user.uid, { isConnected: false });
+      setAdAccountId("");
+      setAdAccountName("");
+      setMetaConnection({ isConnected: false });
+      fetchData();
+      toast({ title: "Desconectado", description: "A integração com o Meta Ads foi removida." });
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && user) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get("code");
+      if (code && !effectRan.current) {
+        effectRan.current = true;
+        runMetaAdsConnectionFlow(code);
+      }
+    }
+  }, [user]);
+
   // Função para chamar o Ad Copilot (Gemini)
   const handleGenerateAICopy = async () => {
     if (!selectedPost) return;
@@ -128,7 +810,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           segmento: businessProfile?.category || "Comércio Geral",
           descricaoNegocio: businessProfile?.description || "",
           textoPost: selectedPost.text,
-          objetivo: ctaType === "SEND_MESSAGE" ? "MESSAGES" : ctaType === "LEARN_MORE" ? "LINK_CLICKS" : "ENGAGEMENT",
+          objetivo: campaignObjective === "TRAFFIC" ? "LINK_CLICKS" : "ENGAGEMENT",
         }),
       });
 
@@ -137,7 +819,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       if (data && data.sugestoes) {
         setAiSuggestions(data.sugestoes);
         toast({
-          title: "Ideias prontas! ✨",
+          title: "Sugestões Prontas",
           description: "O Gemini gerou 3 excelentes sugestões de anúncios para você.",
         });
       }
@@ -156,31 +838,102 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   // Preenche dados ao selecionar um post para impulsionar
   const handleSelectPostToBoost = (post: any) => {
     setSelectedPost(post);
-    setHeadline("Aproveite nossa oferta local!");
+    setHeadline("Aproveite nossa oferta especial!");
     setBodyText(post.text);
-    setAdName(`Impulsionamento: ${post.text.substring(0, 20)}...`);
+    const cleanText = post.text.replace(/[\n\r]+/g, " ");
+    const startDesc = cleanText.length > 25 ? `${cleanText.substring(0, 25)}...` : cleanText;
+    setAdName(`[NUMVAPT] ${startDesc}`);
     setAiSuggestions([]);
     setCurrentStep(1);
     setIsCreating(true);
+    setIsChoosePostModalOpen(false);
   };
 
   // Confirma e envia para o Firestore
   const handleActivateCampaign = async () => {
     if (!user || !selectedPost) return;
+
+    if (!adAccountId) {
+      toast({
+        variant: "destructive",
+        title: "Conta de Anúncios Requerida",
+        description: "Selecione uma conta de anúncios ativa nas configurações antes de ativar o anúncio.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Nomenclatura dinâmica automática baseada no início da descrição se o nome estiver vazio
+      const finalAdName = adName || (bodyText ? (bodyText.length > 25 ? `${bodyText.substring(0, 25)}...` : bodyText) : "Impulsionamento Rápido Meta");
+
+      // Mapeia e prepara o link de destino e tipo de CTA para compatibilidade total Meta Ads
+      let backendCtaType = "NONE";
+      let backendCtaLink = "";
+
+      if (hasDestination) {
+        backendCtaType = "LEARN_MORE"; // Padronizado em Saiba Mais
+        backendCtaLink = customDestination;
+        if (backendCtaLink && !/^https?:\/\//i.test(backendCtaLink)) {
+          backendCtaLink = `https://${backendCtaLink}`;
+        }
+      }
+
+      // 1. Chamar API de Orquestração Real na Meta
+      const publishRes = await fetch("/api/ads/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: finalAdName,
+          postId: selectedPost.id,
+          campaignObjective, // Envia REACH ou TRAFFIC para o backend
+          creative: {
+            headline,
+            bodyText,
+            imageUrl: selectedPost.imageUrl || selectedPost.imageUrls?.[0] || "",
+            ctaType: backendCtaType,
+            ctaLink: backendCtaLink,
+          },
+          budget: {
+            amount: dailyBudget,
+          },
+          durationDays: duration,
+          targeting: {
+            address: addressInput || "Centro Comercial Local",
+            radiusKm: radius,
+            ageMin: ageRange[0],
+            ageMax: ageRange[1],
+            gender,
+            latitude: selectedCoords?.latitude || null,
+            longitude: selectedCoords?.longitude || null,
+            locType: selectedLocType || null,
+            locKey: selectedLocKey || null,
+          },
+        }),
+      });
+
+      const publishData = await publishRes.json();
+      if (!publishRes.ok || !publishData.success) {
+        throw new Error(publishData.error || "Erro ao publicar anúncio na API da Meta.");
+      }
+
+      // 2. Salvar dados finais com IDs reais no Firestore
       const campaignData: Omit<AdCampaignData, "userId" | "createdAt" | "updatedAt"> = {
         postId: selectedPost.id,
-        name: adName || "Impulsionamento Rápido Meta",
-        status: "active", // Inicia como ativo diretamente para simulação intuitiva
+        name: finalAdName,
+        status: "active",
         platforms,
+        metaCampaignId: publishData.metaCampaignId,
+        metaAdSetId: publishData.metaAdSetId,
+        metaAdId: publishData.metaAdId,
+        adAccountId: publishData.adAccountId,
         creative: {
           headline,
           bodyText,
           imageUrl: selectedPost.imageUrl || selectedPost.imageUrls?.[0] || "",
-          ctaType,
-          ctaLink: ctaType === "SEND_MESSAGE" ? "https://wa.me/555199922177" : businessProfile?.website || "",
+          ctaType: backendCtaType as any,
+          ctaLink: backendCtaLink,
         },
         budget: {
           type: "daily",
@@ -191,13 +944,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         startDate: Timestamp.now(),
         endDate: Timestamp.fromMillis(Date.now() + duration * 24 * 60 * 60 * 1000),
         targeting: {
-          address: businessProfile?.address || "Centro Comercial Local",
+          address: addressInput || "Centro Comercial Local",
           radiusKm: radius,
           ageMin: ageRange[0],
           ageMax: ageRange[1],
           gender,
         },
-        // Iniciar métricas simuladas legais e didáticas!
         metrics: {
           impressions: 0,
           clicks: 0,
@@ -210,8 +962,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const result = await createAdCampaign(user.uid, campaignData);
       if (result.success) {
         toast({
-          title: "Campanha no ar! 🚀",
-          description: "Seu post foi impulsionado! A Meta já está distribuindo seu anúncio.",
+          title: "Anúncio Publicado com Sucesso",
+          description: "Seu post foi impulsionado! A Meta já está veiculando sua campanha.",
         });
         setIsCreating(false);
         fetchData();
@@ -222,52 +974,70 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       console.error("Erro ao ativar campanha:", err);
       toast({
         variant: "destructive",
-        title: "Erro ao Publicar",
-        description: err.message || "Tente novamente mais tarde.",
+        title: "Erro ao Publicar na Meta",
+        description: err.message || "Não conseguimos enviar os criativos para a Meta. Tente novamente.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Alterna o status da campanha (Pausar / Ativar)
+  // Alterna o status da campanha (Pausar / Ativar) na Meta Ads API
   const handleToggleStatus = async (campaign: AdCampaignData) => {
-    if (!user || !campaign.id) return;
+    if (!user || !campaign.metaCampaignId) return;
     const newStatus = campaign.status === "active" ? "paused" : "active";
     try {
-      const res = await updateAdCampaignStatus(user.uid, campaign.id, newStatus);
-      if (res.success) {
+      const res = await fetch("/api/ads/campaigns", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: campaign.id,
+          metaCampaignId: campaign.metaCampaignId,
+          status: newStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
         toast({
           title: newStatus === "active" ? "Anúncio Ativado!" : "Anúncio Pausado!",
-          description: `O anúncio foi ${newStatus === "active" ? "ativado" : "pausado"} com sucesso.`,
+          description: `O anúncio foi ${newStatus === "active" ? "ativado" : "pausado"} na Meta com sucesso.`,
         });
         fetchData();
+      } else {
+        throw new Error(data.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Erro ao alterar status",
-        description: "Não foi possível atualizar o status do anúncio.",
+        description: err.message || "Não foi possível atualizar o status do anúncio na Meta.",
       });
     }
   };
 
-  // Exclui a campanha de anúncio
-  const handleDeleteCampaign = async (campaignId: string) => {
-    if (!user || !campaignId) return;
-    if (confirm("Tem certeza que deseja excluir esta campanha de anúncio?")) {
+  // Exclui a campanha de anúncio na Meta e no Firestore
+  const handleDeleteCampaign = async (campaign: AdCampaignData) => {
+    if (!user || !campaign.metaCampaignId) return;
+    if (confirm("Tem certeza que deseja remover esta campanha de anúncio da Meta e do seu histórico?")) {
       try {
-        await deleteAdCampaign(user.uid, campaignId);
-        toast({
-          title: "Campanha Removida",
-          description: "A campanha foi deletada do seu histórico.",
+        const res = await fetch(`/api/ads/campaigns?campaignId=${campaign.id}&metaCampaignId=${campaign.metaCampaignId}`, {
+          method: "DELETE",
         });
-        fetchData();
-      } catch (err) {
+        const data = await res.json();
+        if (data.success) {
+          toast({
+            title: "Campanha Removida",
+            description: "A campanha foi deletada com sucesso da sua conta de anúncios da Meta.",
+          });
+          fetchData();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err: any) {
         toast({
           variant: "destructive",
           title: "Erro ao excluir",
-          description: "Não foi possível remover a campanha.",
+          description: err.message || "Não foi possível remover a campanha na Meta.",
         });
       }
     }
@@ -297,10 +1067,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   };
 
   // Tradutor de CTAs
-  const getCtaLabel = (cta: string) => {
+  const getCtaLabel = (cta: string, link?: string) => {
+    if (link && link.includes("wa.me")) {
+      return "Falar no WhatsApp";
+    }
     const ctas: Record<string, string> = {
       SEND_MESSAGE: "Enviar Mensagem (WhatsApp)",
-      LEARN_MORE: "Saiba Mais (Ver Site)",
+      LEARN_MORE: "Saiba Mais (Site/Instagram)",
       CALL_NOW: "Ligar Agora",
       GET_DIRECTIONS: "Como Chegar (Mapa)",
       SHOP_NOW: "Comprar Agora",
@@ -310,28 +1083,210 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   return (
     <div className="container mx-auto p-6 max-w-7xl font-sans text-slate-800">
-      
       {/* HEADER PRINCIPAL */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
-            <Megaphone className="h-8 w-8 text-primary" />
-            Anúncios Pagos (Meta Ads)
-          </h1>
-          <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
-            Atraia clientes ideais na sua vizinhança! Impulsione suas melhores publicações no Instagram e Facebook de forma descomplicada, inteligente e sem jargões complexos.
-          </p>
+          {metaConnection.isConnected && metaConnection.adAccountId ? (
+            <>
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
+                <Megaphone className="h-8 w-8 text-primary" />
+                Seus Impulsionamentos
+              </h1>
+              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
+                Gerencie anúncios locais e acompanhe seus resultados reais no Instagram e Facebook.
+              </p>
+              <div className="flex items-center gap-2 mt-2.5 text-xs text-slate-400 font-medium">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-650 font-semibold border border-slate-200/60">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                  Conta: {adAccountName} ({adAccountId})
+                </span>
+                <button
+                  onClick={handleDisconnectMetaAds}
+                  className="text-slate-400 hover:text-red-500 transition-colors ml-1 font-bold underline decoration-dotted"
+                >
+                  Desconectar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
+                <Megaphone className="h-8 w-8 text-primary" />
+                Anúncios Pagos (Meta Ads)
+              </h1>
+              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
+                Atraia clientes ideais na sua vizinhança! Impulsione suas melhores publicações no Instagram e Facebook de forma descomplicada, inteligente e sem jargões complexos.
+              </p>
+            </>
+          )}
         </div>
-        {!isCreating && publishedPosts.length > 0 && (
-          <Button
-            onClick={() => handleSelectPostToBoost(publishedPosts[0])}
-            className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Impulsionar Post
-          </Button>
-        )}
+        {!isCreating &&
+          metaConnection.isConnected &&
+          metaConnection.adAccountId &&
+          publishedPosts.length > 0 &&
+          (campaigns.filter((c) => c.status === "active").length > 0 || activeDashboardTab === "history") && (
+            <Button
+              onClick={() => setIsChoosePostModalOpen(true)}
+              className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95 shrink-0"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Impulsionar Post
+            </Button>
+          )}
       </div>
+
+      {/* ONBOARDING / CONFIGURAÇÃO DE CONEXÃO META ADS */}
+      {!isCreating && user && (
+        <div className="mb-8">
+          {isConnectingMeta ? (
+            <div className="p-6 rounded-xl border border-slate-200 bg-white shadow-sm flex items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-sm font-semibold text-slate-600">Processando conexão com a Meta...</span>
+            </div>
+          ) : metaConnection.isConnected && metaConnection.adAccountId ? null : metaConnection.isConnected ? (
+            <div className="p-6 rounded-xl border border-blue-500/15 bg-blue-50/10 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg">
+              <div className="flex items-start md:items-center gap-4">
+                <div className="bg-blue-500/10 text-blue-600 p-3 rounded-xl animate-pulse">
+                  <Megaphone className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 leading-tight">Facebook Conectado</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                    Sua conta do Facebook está conectada. Agora, selecione qual conta de anúncios ativa receberá as cobranças e os seus impulsionamentos.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  setIsSetupModalOpen(true);
+                  if (metaPages.length === 0 || metaAdAccounts.length === 0) {
+                    setIsConnectingMeta(true);
+                    fetch("/api/meta/callback", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ userAccessToken: metaConnection.userAccessToken || metaConnection.accessToken })
+                    })
+                    .then(res => res.json())
+                    .then(pagesResult => {
+                      if (pagesResult.success) {
+                        setMetaPages(pagesResult.pages || []);
+                        if (pagesResult.pages?.length > 0) setSelectedPageId(pagesResult.pages[0].id);
+                      }
+                      return fetch("/api/ads/accounts");
+                    })
+                    .then(res => res.json())
+                    .then(accountsResult => {
+                      if (accountsResult.success) {
+                        setMetaAdAccounts(accountsResult.accounts || []);
+                        if (accountsResult.accounts?.length > 0) setSelectedAdAccountIdState(accountsResult.accounts[0].id);
+                      }
+                    })
+                    .catch(e => console.error("Erro ao buscar ativos:", e))
+                    .finally(() => setIsConnectingMeta(false));
+                  }
+                }}
+                className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-sm font-poppins transition-transform duration-200 active:scale-95 flex items-center gap-2"
+              >
+                Configurar Conta de Cobrança
+              </Button>
+            </div>
+          ) : (
+            <div className="p-6 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg">
+              <div className="flex items-start md:items-center gap-4">
+                <div className="bg-primary/10 text-primary p-3 rounded-xl">
+                  <Megaphone className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 leading-tight">Anúncios e Impulsionamento (Meta Ads)</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                    Deseja atrair mais clientes e aumentar suas vendas? Conecte sua conta do Facebook para anúncios para começar a impulsionar seus melhores posts no Instagram e Facebook com segmentação precisa.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleConnectMetaAds}
+                className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-sm font-poppins transition-transform duration-200 active:scale-95 flex items-center gap-2"
+              >
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Conectar Conta de Anúncios
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL UNIFICADO DE CONFIGURAÇÃO META ADS */}
+      <Dialog open={isSetupModalOpen} onOpenChange={setIsSetupModalOpen}>
+        <DialogContent className="max-w-md font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+              Configurar Conta do Meta Ads
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
+              Conexão com a Meta realizada! Agora selecione a página e a conta de anúncios que você deseja usar para promover seus posts.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 my-4">
+            {/* Seletor de Página */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-700">1. Selecione a Página comercial do Facebook</Label>
+              {metaPages.length === 0 ? (
+                <p className="text-xs text-red-500 bg-red-50 p-2.5 rounded-lg">
+                  Nenhuma página comercial encontrada. Certifique-se de que você é administrador de alguma página no Facebook.
+                </p>
+              ) : (
+                <SearchableSelect
+                  options={metaPages}
+                  value={selectedPageId}
+                  onChange={setSelectedPageId}
+                  placeholder="Selecione uma Página..."
+                  searchPlaceholder="🔍 Buscar página por nome..."
+                  emptyMessage="Nenhuma página encontrada"
+                />
+              )}
+            </div>
+
+            {/* Seletor de Ad Account */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-700">2. Selecione a sua Conta de Anúncios (Cobrança)</Label>
+              {metaAdAccounts.length === 0 ? (
+                <p className="text-xs text-red-500 bg-red-50 p-2.5 rounded-lg">
+                  Nenhuma conta de anúncios encontrada. Você precisa criar uma conta de anúncios no Gerenciador de Anúncios do Facebook antes de prosseguir.
+                </p>
+              ) : (
+                <SearchableSelect
+                  options={metaAdAccounts}
+                  value={selectedAdAccountIdState}
+                  onChange={setSelectedAdAccountIdState}
+                  placeholder="Selecione uma Conta..."
+                  searchPlaceholder="🔍 Buscar conta por nome ou ID..."
+                  emptyMessage="Nenhuma conta encontrada"
+                />
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsSetupModalOpen(false)}
+              className="rounded-lg text-xs font-bold"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveMetaAdsConnection}
+              disabled={isConnectingMeta || metaPages.length === 0 || metaAdAccounts.length === 0}
+              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2 rounded-lg"
+            >
+              {isConnectingMeta ? "Salvando..." : "Concluir Integração"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* TELA DE CRIAÇÃO (WIZARD GUIADO) */}
       {isCreating && selectedPost && (
@@ -345,7 +1300,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </span>
               <div>
                 <h3 className="font-bold text-slate-900 font-poppins text-base">Impulsionando Post</h3>
-                <p className="text-xs text-slate-500">Passo {currentStep} de 3</p>
+                <p className="text-xs text-slate-500">Passo {currentStep} de 4</p>
               </div>
             </div>
             <Button
@@ -362,158 +1317,217 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           <div className="h-1 bg-slate-100 w-full">
             <div
               className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(currentStep / 3) * 100}%` }}
+              style={{ width: `${(currentStep / 4) * 100}%` }}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12">
             
-            {/* COLUNA ESQUERDA: FORMULÁRIO (8 colunas) */}
+            {/* COLUNA ESQUERDA: FORMULÁRIO (7 colunas) */}
             <div className="lg:col-span-7 p-6 border-r border-slate-200">
               
-              {/* PASSO 1: EDITAR CONTEÚDO E ASSISTENTE DE IA */}
+              {/* PASSO 1: ESCOLHER OBJETIVO PRINCIPAL */}
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      1. O que seu anúncio vai dizer?
+                      <Target className="h-5 w-5 text-primary" />
+                      1. Qual é o objetivo do seu impulsionamento?
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
-                      Deixe que o **Ad Copilot da IA** otimize sua legenda para atrair mais atenção e clique de moradores locais!
+                      Selecione o principal resultado desejado. O NumVapt otimizará as configurações técnicas de forma personalizada.
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="ad-name" className="text-sm font-bold text-slate-700">Nome Interno (Organização)</Label>
-                    <Input
-                      id="ad-name"
-                      value={adName}
-                      onChange={(e) => setAdName(e.target.value)}
-                      placeholder="Ex: Campanha Promoção de Inverno"
-                      className="rounded-lg border-slate-200 text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="cta-select" className="text-sm font-bold text-slate-700">Ação desejada do cliente</Label>
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-                        <Info className="h-3 w-3" /> WhatsApp gera 3x mais contatos locais
-                      </span>
-                    </div>
-                    <select
-                      id="cta-select"
-                      value={ctaType}
-                      onChange={(e) => setCtaType(e.target.value as any)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                  <div className="grid grid-cols-1 gap-4 mt-2">
+                    {/* Opção Alcance */}
+                    <div
+                      onClick={() => setCampaignObjective("REACH")}
+                      className={`p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between text-left group relative overflow-hidden shadow-sm ${
+                        campaignObjective === "REACH"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-slate-200 bg-white hover:border-primary/50 hover:bg-slate-50/50"
+                      }`}
                     >
-                      <option value="SEND_MESSAGE">Enviar mensagem direta no WhatsApp 📲</option>
-                      <option value="LEARN_MORE">Saiba Mais (Ver meu Site/Rede Social) 🌐</option>
-                      <option value="GET_DIRECTIONS">Como Chegar no Estabelecimento 📍</option>
-                      <option value="CALL_NOW">Ligar para a Loja 📞</option>
-                    </select>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 flex flex-col gap-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-primary flex items-center gap-1">
-                        <Sparkles className="h-4 w-4" /> Ad Copilot com Gemini
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={handleGenerateAICopy}
-                        disabled={isGeneratingCopy}
-                        className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-3 py-1.5 h-auto rounded-md"
-                      >
-                        {isGeneratingCopy ? (
-                          <>
-                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                            Gerando...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                            Sugerir Copy de Vendas
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      Moradores da sua região reagem melhor a copies curtas com emojis! Clique no botão acima para o Gemini analisar o post e sugerir copys locais otimizadas.
-                    </p>
-
-                    {/* Exibição das ideias de IA */}
-                    {aiSuggestions.length > 0 && (
-                      <div className="mt-3 space-y-3">
-                        <p className="text-[11px] font-bold text-slate-600">Escolha uma opção sugerida:</p>
-                        {aiSuggestions.map((sug, i) => (
-                          <div
-                            key={i}
-                            onClick={() => {
-                              setHeadline(sug.titulo);
-                              setBodyText(sug.texto);
-                              if (sug.ctaSugerido) setCtaType(sug.ctaSugerido);
-                              toast({
-                                title: "Criação de Anúncio atualizada!",
-                                description: "Título e copy aplicados.",
-                              });
-                            }}
-                            className="bg-white border border-slate-150 rounded-lg p-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
-                          >
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-primary transition-colors">
-                                {sug.titulo}
-                              </span>
-                              <Badge variant="secondary" className="text-[9px] scale-90 py-0 font-medium">Opção {i + 1}</Badge>
-                            </div>
-                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2 leading-relaxed">
-                              {sug.texto}
-                            </p>
+                      <div className="flex gap-4 items-start z-10">
+                        <div className={`p-3 rounded-xl ${campaignObjective === "REACH" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}>
+                          <Megaphone className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-primary transition-colors">
+                              Mais Visualizações (Alcance)
+                            </span>
+                            {campaignObjective === "REACH" && (
+                              <Badge className="bg-primary hover:bg-primary text-white text-[9px] scale-90 py-0 font-medium">Ativo</Badge>
+                            )}
                           </div>
-                        ))}
+                          <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
+                            Exiba seu anúncio para o maior número possível de pessoas, aumentando a visibilidade e o reconhecimento do seu negócio ou marca na região selecionada.
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ad-headline" className="text-sm font-bold text-slate-700">Título Chamativo (Curto)</Label>
-                      <Input
-                        id="ad-headline"
-                        value={headline}
-                        onChange={(e) => setHeadline(e.target.value)}
-                        placeholder="Ex: Hambúrguer Artesanal Perto de Você!"
-                        maxLength={40}
-                        className="rounded-lg border-slate-200 text-sm"
-                      />
-                      <span className="text-[10px] text-slate-400 text-right block">
-                        {headline.length}/40 caracteres (Ideal: Curto)
-                      </span>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ad-body" className="text-sm font-bold text-slate-700">Texto Completo do Anúncio (Legenda)</Label>
-                      <Textarea
-                        id="ad-body"
-                        value={bodyText}
-                        onChange={(e) => setBodyText(e.target.value)}
-                        placeholder="Escreva a legenda que aparecerá no feed de seus clientes locais..."
-                        rows={5}
-                        className="rounded-lg border-slate-200 text-sm resize-none"
-                      />
+                    {/* Opção Tráfego */}
+                    <div
+                      onClick={() => setCampaignObjective("TRAFFIC")}
+                      className={`p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between text-left group relative overflow-hidden shadow-sm ${
+                        campaignObjective === "TRAFFIC"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-slate-200 bg-white hover:border-primary/50 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className="flex gap-4 items-start z-10">
+                        <div className={`p-3 rounded-xl ${campaignObjective === "TRAFFIC" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}>
+                          <TrendingUp className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-primary transition-colors">
+                              Mais Cliques no Link (Tráfego)
+                            </span>
+                            {campaignObjective === "TRAFFIC" && (
+                              <Badge className="bg-primary hover:bg-primary text-white text-[9px] scale-90 py-0 font-medium">Ativo</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
+                            Otimizado para gerar o máximo de cliques qualificados no seu anúncio. Ideal para direcionar potenciais clientes para o seu site, WhatsApp ou perfil.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* PASSO 2: TARGETING E SEGMENTAÇÃO LOCAL */}
+              {/* PASSO 2: EDITAR CONTEÚDO E ASSISTENTE DE IA */}
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      2. O que seu anúncio vai dizer?
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Escreva ou use nossa inteligência artificial para criar legendas de alta performance que engajam moradores locais!
+                    </p>
+                  </div>
+
+                  {/* Nome Interno */}
+                  <div className="space-y-2">
+                    <Label htmlFor="ad-name" className="text-sm font-bold text-slate-700">Nome da Campanha (Apenas para seu controle)</Label>
+                    <Input
+                      id="ad-name"
+                      value={adName}
+                      onChange={(e) => setAdName(e.target.value)}
+                      onFocus={() => setFocusedField("adName")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Ex: [NUMVAPT] Promoção de Inverno"
+                      className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Este nome é 100% interno e não aparecerá para os clientes nas redes sociais.
+                    </p>
+                  </div>
+
+                  {/* Legenda (Texto Principal) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="ad-body" className="text-sm font-bold text-slate-700">Texto Principal do Anúncio (Legenda)</Label>
+                    <Textarea
+                      id="ad-body"
+                      value={bodyText}
+                      onChange={(e) => setBodyText(e.target.value)}
+                      onFocus={() => setFocusedField("bodyText")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Escreva a legenda atrativa que aparecerá acima da imagem do anúncio..."
+                      rows={5}
+                      className="rounded-lg border-slate-200 text-sm resize-none focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+
+
+
+                  {/* Link de Destino Opcional (Alcance) ou Obrigatório (Tráfego) */}
+                  <div className="space-y-4 pt-2">
+                    {campaignObjective === "REACH" ? (
+                      <div className="space-y-2 p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id="toggle-destination"
+                            checked={hasDestination}
+                            onChange={(e) => setHasDestination(e.target.checked)}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                          />
+                          <Label htmlFor="toggle-destination" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                            Adicionar link do seu site
+                          </Label>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-normal pl-7.5">
+                          Ao ativar, adicionamos o botão <strong>"Saiba mais"</strong> no seu anúncio para levar as pessoas diretamente ao seu site. Se preferir deixar desativado, o anúncio será exibido sem botão, focando exclusivamente em alcançar e ser visto pelo maior número possível de pessoas na sua região.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-lg bg-blue-50/20 border border-blue-500/10">
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          O link do seu site é obrigatório nesta campanha para habilitar o botão <strong>"Saiba mais"</strong> e direcionar os potenciais clientes.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Input de URL de Destino */}
+                    {(hasDestination || campaignObjective === "TRAFFIC") && (
+                      <div className="space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
+                        <Label htmlFor="destination-url" className="text-xs font-bold text-slate-800">
+                          Link do seu site
+                        </Label>
+                        <Input
+                          id="destination-url"
+                          value={customDestination}
+                          onChange={(e) => setCustomDestination(e.target.value)}
+                          onFocus={() => setFocusedField("destinationUrl")}
+                          onBlur={() => setFocusedField(null)}
+                          placeholder="seusite.com.br"
+                          className="bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Título Chamativo (Exibido apenas quando tem destino/botão ativo) */}
+                  {(hasDestination || campaignObjective === "TRAFFIC") && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="ad-headline" className="text-sm font-bold text-slate-700">Título do Anúncio (Fica abaixo da imagem)</Label>
+                        <span className="text-[10px] text-slate-400">
+                          {headline.length}/40 caracteres
+                        </span>
+                      </div>
+                      <Input
+                        id="ad-headline"
+                        value={headline}
+                        onChange={(e) => setHeadline(e.target.value)}
+                        onFocus={() => setFocusedField("headline")}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="Ex: Hambúrguer Artesanal Perto de Você!"
+                        maxLength={40}
+                        className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        Este título será exibido em destaque no anúncio, ao lado do botão <strong>"Saiba mais"</strong>.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PASSO 3: TARGETING E SEGMENTAÇÃO LOCAL */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
                       <Target className="h-5 w-5 text-primary" />
-                      2. Onde seu anúncio vai aparecer?
+                      3. Onde seu anúncio vai aparecer?
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
                       Moradores próximos do seu negócio físico são os que mais geram vendas! Defina o raio ao redor da sua loja.
@@ -522,53 +1536,269 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                   <div className="space-y-4">
                     
-                    {/* Endereço Base */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4 text-primary" /> Endereço de Referência
+                    {/* Localização Híbrida (Qualquer endereço, rua, bairro, cidade ou estado) */}
+                    <div className="space-y-2 relative">
+                      <Label className="text-sm font-bold text-slate-700 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-poppins">
+                          <MapPin className="h-4 w-4 text-primary" /> Onde seu anúncio vai aparecer? (Região ou Endereço)
+                        </span>
                       </Label>
-                      <Input
-                        disabled
-                        value={businessProfile?.address || "Centro Comercial Local"}
-                        className="bg-slate-50 border-slate-200 text-sm cursor-not-allowed text-slate-600"
-                      />
-                      <p className="text-[10px] text-slate-400">
-                        * Puxamos automaticamente o endereço cadastrado no perfil de seu negócio.
+                      <p className="text-[11px] text-slate-500 leading-normal mb-1">
+                        Você pode digitar um <strong>endereço exato (rua/avenida)</strong>, <strong>bairro</strong>, <strong>cidade</strong> ou <strong>estado</strong> e selecionar na lista recomendada.
                       </p>
-                    </div>
-
-                    {/* Slider Raio em KM */}
-                    <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">Raio de entrega do anúncio</span>
-                        <span className="text-base font-extrabold text-primary font-poppins">{radius} km</span>
-                      </div>
-                      <Slider
-                        defaultValue={[radius]}
-                        max={20}
-                        min={1}
-                        step={1}
-                        onValueChange={(val) => setRadius(val[0])}
-                        className="py-2"
-                      />
-                      <div className="flex justify-between text-[10px] text-slate-400">
-                        <span>1 km (Ultra local)</span>
-                        <span>10 km</span>
-                        <span>20 km (Grande alcance)</span>
-                      </div>
-
-                      {/* Caixa Educativa */}
-                      <div className="mt-3 flex items-start gap-2 bg-white rounded p-2.5 border border-slate-100">
-                        <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-[11px] text-slate-500 leading-normal">
-                          {radius <= 5 ? (
-                            <span>💡 **Excelente escolha!** Raio de até 5km garante que seus anúncios sejam exibidos para vizinhos muito propensos a ir até sua loja ou pedir delivery rápido.</span>
+                      <div className="relative">
+                        <Input
+                          value={addressInput}
+                          onChange={(e) => handleAddressInputChange(e.target.value)}
+                          placeholder="Digite a rua, bairro, cidade ou estado (Ex: Copacabana, Rio de Janeiro)..."
+                          className={`bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary pr-9 ${selectedCoords ? 'border-green-300 ring-green-100' : ''}`}
+                        />
+                        <div className="absolute right-3 top-3 flex items-center gap-1 text-slate-400">
+                          {isSearchingLocations ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          ) : selectedCoords ? (
+                            <Check className="h-4 w-4 text-green-500 font-extrabold" />
                           ) : (
-                            <span>💡 **Atenção:** Um raio maior distribui sua verba de anúncios em áreas distantes. Ideal apenas para negócios que realizam entregas ou prestam serviços em toda a cidade.</span>
+                            <Search className="h-4 w-4 text-slate-400" />
                           )}
-                        </p>
+                        </div>
                       </div>
+
+                      {/* Dropdown flutuante de sugestões */}
+                      {metaLocationsSuggestions.length > 0 && (
+                        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="p-1.5 border-b border-slate-100 bg-slate-50 text-[10px] text-slate-500 font-bold px-3 uppercase tracking-wider shrink-0">
+                            Localidades Recomendadas
+                          </div>
+                          <div className="overflow-y-auto max-h-48 py-1 scrollbar-thin">
+                            {metaLocationsSuggestions.map((loc) => (
+                              <button
+                                key={loc.key}
+                                type="button"
+                                onClick={async () => {
+                                  setAddressInput(loc.name);
+                                  setSelectedLocType(loc.type);
+                                  setSelectedLocKey(loc.key || "");
+                                  setMetaLocationsSuggestions([]);
+
+                                  const isAreaTarget = loc.type === "País" || loc.type === "Estado";
+
+                                  if (isAreaTarget) {
+                                    setIsSearchingLocations(true);
+                                    try {
+                                      const lowerName = loc.name.toLowerCase();
+                                      let searchQ = loc.name;
+                                      if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                        searchQ = `${loc.name}, Brasil`;
+                                      }
+                                      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1&polygon_geojson=1&polygon_threshold=0.01`;
+                                      const nomRes = await fetch(nomUrl, {
+                                        headers: {
+                                          "User-Agent": "NumVaptAdsApp/1.0",
+                                          "Accept-Language": "pt-BR,pt;q=0.9",
+                                        }
+                                      });
+                                      if (nomRes.ok) {
+                                        const nomData = await nomRes.json();
+                                        if (nomData && nomData.length > 0) {
+                                          const lat = parseFloat(nomData[0].lat);
+                                          const lng = parseFloat(nomData[0].lon);
+                                          const bbox = nomData[0].boundingbox ? [
+                                            parseFloat(nomData[0].boundingbox[0]),
+                                            parseFloat(nomData[0].boundingbox[1]),
+                                            parseFloat(nomData[0].boundingbox[2]),
+                                            parseFloat(nomData[0].boundingbox[3])
+                                          ] : null;
+                                          setSelectedCoords({ latitude: lat, longitude: lng });
+                                          setSelectedBoundingBox(bbox as any);
+                                          if (nomData[0].geojson) {
+                                            setSelectedGeoJson(nomData[0].geojson);
+                                          } else {
+                                            setSelectedGeoJson(null);
+                                          }
+                                          toast({
+                                            title: "Região Selecionada",
+                                            description: `Fronteiras exatas mapeadas para: ${loc.name}`,
+                                          });
+                                        } else {
+                                          throw new Error("Dados da região não encontrados.");
+                                        }
+                                      } else {
+                                        throw new Error("Erro de resposta do Nominatim.");
+                                      }
+                                    } catch (err) {
+                                      console.warn("Erro ao buscar GeoJSON para região:", err);
+                                      // Fallback para as coordenadas e bounding box originais da sugestão se disponíveis
+                                      if (loc.latitude !== undefined && loc.longitude !== undefined) {
+                                        setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+                                        setSelectedBoundingBox(loc.boundingBox || null);
+                                      }
+                                      setSelectedGeoJson(null);
+                                      toast({
+                                        title: "Região Selecionada",
+                                        description: `Exibindo caixa de seleção para: ${loc.name}`,
+                                      });
+                                    } finally {
+                                      setIsSearchingLocations(false);
+                                    }
+                                  } else {
+                                    // Se não for área grande (Cidade, Bairro, Endereço etc.), limpa GeoJSON
+                                    setSelectedGeoJson(null);
+                                    if (loc.latitude !== undefined && loc.longitude !== undefined) {
+                                      setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
+                                      setSelectedBoundingBox(loc.boundingBox || null);
+                                      toast({
+                                        title: "Endereço Selecionado",
+                                        description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                      });
+                                    } else {
+                                      // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
+                                      setIsSearchingLocations(true);
+                                      try {
+                                        const lowerName = loc.name.toLowerCase();
+                                        let searchQ = loc.name;
+                                        if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                          searchQ = `${loc.name}, Brasil`;
+                                        }
+                                        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1`;
+                                        const nomRes = await fetch(nomUrl, {
+                                          headers: {
+                                            "User-Agent": "NumVaptAdsApp/1.0",
+                                            "Accept-Language": "pt-BR,pt;q=0.9",
+                                          }
+                                        });
+                                        if (nomRes.ok) {
+                                          const nomData = await nomRes.json();
+                                          if (nomData && nomData.length > 0) {
+                                            const lat = parseFloat(nomData[0].lat);
+                                            const lng = parseFloat(nomData[0].lon);
+                                            const bbox = nomData[0].boundingbox ? [
+                                              parseFloat(nomData[0].boundingbox[0]),
+                                              parseFloat(nomData[0].boundingbox[1]),
+                                              parseFloat(nomData[0].boundingbox[2]),
+                                              parseFloat(nomData[0].boundingbox[3])
+                                            ] : null;
+                                            setSelectedCoords({ latitude: lat, longitude: lng });
+                                            setSelectedBoundingBox(bbox as any);
+                                            toast({
+                                              title: "Endereço Selecionado",
+                                              description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                            });
+                                          } else {
+                                            throw new Error("Coordenadas não encontradas.");
+                                          }
+                                        } else {
+                                          throw new Error("Erro na geocodificação.");
+                                        }
+                                      } catch (err) {
+                                        console.warn("Erro ao geocodificar no cliente:", err);
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Erro de Localização",
+                                          description: "Não conseguimos obter o ponto exato no mapa para esta região. Tente selecionar pelo mapa.",
+                                        });
+                                      } finally {
+                                        setIsSearchingLocations(false);
+                                      }
+                                    }
+                                  }
+                                }}
+                                className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+                              >
+                                <div className="flex flex-col truncate pr-2">
+                                  <span className="truncate font-bold text-slate-700">{loc.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-normal mt-0.5 capitalize">
+                                    Tipo: {loc.type} • {loc.region || "Brasil"}
+                                  </span>
+                                </div>
+                                <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 font-semibold text-[9px] scale-90 border-none shrink-0 ml-1 capitalize">
+                                  {loc.type}
+                                </Badge>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {addressInput.length > 0 && !selectedCoords && (
+                        <p className="text-[11px] text-amber-600 font-semibold mt-1 flex items-center gap-1">
+                          Digite o endereço e selecione uma das opções recomendadas da lista.
+                        </p>
+                      )}
                     </div>
+
+                    {/* MAPA VISUAL INTERATIVO */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-500 block">Mapa de Segmentação Geográfica</Label>
+                      <div className="text-[11px] text-slate-500 leading-normal flex items-start gap-1.5 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/30">
+                        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                        <span>
+                          Arraste o <strong>marcador azul</strong> ou clique no mapa para definir o centro do seu anúncio. O círculo azul mostra onde o anúncio aparecerá.
+                        </span>
+                      </div>
+                      <div 
+                        id="targeting-map" 
+                        className="h-72 w-full rounded-xl border border-slate-200/80 shadow-xs relative overflow-hidden z-10 bg-slate-50"
+                        style={{ minHeight: '280px' }}
+                      />
+                    </div>
+
+                    {/* Lógica de Área de Cobertura Inteligente e Condicional */}
+                    {selectedCoords && selectedLocType && (
+                      <div className="animate-in fade-in duration-300">
+                        {/* Se selecionou um Território Inteiro (País ou Estado) */}
+                        {selectedLocType === "País" || selectedLocType === "Estado" ? (
+                          <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3 shadow-sm">
+                            <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="text-[12px] text-slate-600 leading-relaxed">
+                              <strong>Cobertura Ampla ({selectedLocType}):</strong> O seu anúncio será veiculado em todo o território de <strong>{addressInput}</strong>. Ideal para negócios que buscam o máximo de visibilidade estadual ou nacional.
+                            </div>
+                          </div>
+                        ) : (
+                          /* Se selecionou Cidade, Bairro, Rua/Avenida ou Endereço exato */
+                          <div className="space-y-4 pt-2">
+                            <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-bold text-slate-700">Área de Cobertura do Anúncio</span>
+                                <span className="text-base font-extrabold text-primary font-poppins">{radius} km</span>
+                              </div>
+                              <Slider
+                                defaultValue={[radius]}
+                                max={20}
+                                min={1}
+                                step={1}
+                                onValueChange={(val) => setRadius(val[0])}
+                                className="py-2"
+                              />
+                              <div className="flex justify-between text-[10px] text-slate-400">
+                                <span>1 km (Foco próximo)</span>
+                                <span>10 km</span>
+                                <span>20 km (Área ampla)</span>
+                              </div>
+
+                              {/* Caixa de Recomendação Contextual Inteligente baseada no Tipo de Local */}
+                              <div className="mt-3 flex items-start gap-2 bg-white rounded p-2.5 border border-slate-100 shadow-xs">
+                                <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                <p className="text-[11px] text-slate-500 leading-normal">
+                                  {selectedLocType === "Cidade" ? (
+                                    radius <= 4 ? (
+                                      <span><strong>Foco na Cidade:</strong> O anúncio focará principalmente nas áreas centrais e bairros mais populosos de <strong>{addressInput}</strong> em um raio inicial de <strong>{radius} km</strong>.</span>
+                                    ) : radius <= 10 ? (
+                                      <span><strong>Cidade e arredores:</strong> O anúncio alcançará a cidade de <strong>{addressInput}</strong> e áreas vizinhas imediatas em um raio de <strong>{radius} km</strong>.</span>
+                                    ) : (
+                                      <span><strong>Expansão regional:</strong> Excelente para expandir o alcance da campanha para municípios vizinhos e cidades ao redor de <strong>{addressInput}</strong> em um raio amplo de <strong>{radius} km</strong>.</span>
+                                    )
+                                  ) : (
+                                    /* Bairro, Rua, Avenida ou Endereço Exato */
+                                    <span><strong>Indicado para negócios locais:</strong> Perfeito para atrair clientes da vizinhança e focar o anúncio em alcançar pessoas bem próximas a <strong>{addressInput}</strong>.</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Demografia Básica */}
                     <div className="space-y-4">
@@ -602,20 +1832,55 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </Button>
                       </div>
 
-                      {/* Idades */}
+                      {/* Idades Seletores Dropdowns Lado a Lado */}
                       <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-700">Faixa Etária</span>
-                          <span className="text-xs font-extrabold text-primary font-poppins">{ageRange[0]} a {ageRange[1]} anos</span>
+                        <Label className="text-xs font-bold text-slate-700 block">Faixa Etária Recomendada</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Idade Mínima */}
+                          <div className="space-y-1.5">
+                            <Label htmlFor="age-min" className="text-[11px] font-bold text-slate-500">Mínima (Anos)</Label>
+                            <select
+                              id="age-min"
+                              value={ageRange[0]}
+                              onChange={(e) => {
+                                const newMin = parseInt(e.target.value);
+                                const newMax = ageRange[1] < newMin ? newMin : ageRange[1];
+                                setAgeRange([newMin, newMax]);
+                              }}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                            >
+                              {Array.from({ length: 48 }, (_, i) => 18 + i).map((age) => (
+                                <option key={age} value={age}>
+                                  {age} anos
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Idade Máxima */}
+                          <div className="space-y-1.5">
+                            <Label htmlFor="age-max" className="text-[11px] font-bold text-slate-500">Máxima (Anos)</Label>
+                            <select
+                              id="age-max"
+                              value={ageRange[1]}
+                              onChange={(e) => {
+                                const newMax = parseInt(e.target.value);
+                                const newMin = ageRange[0] > newMax ? newMax : ageRange[0];
+                                setAgeRange([newMin, newMax]);
+                              }}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                            >
+                              {Array.from({ length: 48 }, (_, i) => 18 + i).map((age) => (
+                                <option key={age} value={age} disabled={age < ageRange[0]}>
+                                  {age === 65 ? "65+ anos" : `${age} anos`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                        <Slider
-                          defaultValue={ageRange}
-                          max={65}
-                          min={18}
-                          step={1}
-                          onValueChange={(val) => setAgeRange(val as [number, number])}
-                          className="py-2"
-                        />
+                        <p className="text-[10px] text-slate-400 leading-normal">
+                          * Meta Ads exige idade mínima de pelo menos 18 anos para campanhas
+                        </p>
                       </div>
                     </div>
 
@@ -623,13 +1888,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 </div>
               )}
 
-              {/* PASSO 3: ORÇAMENTO E SIMULAÇÃO DINÂMICA */}
-              {currentStep === 3 && (
+              {/* PASSO 4: ORÇAMENTO E SIMULAÇÃO DINÂMICA */}
+              {currentStep === 4 && (
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-primary" />
-                      3. Quanto deseja investir?
+                      4. Quanto deseja investir?
                     </h4>
                     <p className="text-xs text-slate-500 mt-1">
                       Defina seu orçamento diário. Quanto mais você investe, para mais pessoas próximas a Meta exibirá seu post!
@@ -640,9 +1905,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     
                     {/* Investimento Diário */}
                     <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">Investimento Diário</span>
-                        <span className="text-base font-extrabold text-primary font-poppins">R$ {dailyBudget} / dia</span>
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Investimento Diário</span>
+                          <span className="text-[10px] text-slate-400 font-normal">Valor diário debitado do seu saldo Meta</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-base font-extrabold text-primary font-poppins">R$ {dailyBudget} / dia</span>
+                          <span className="text-xs text-slate-500 font-bold block mt-0.5">Total: R$ {(dailyBudget * duration).toFixed(2)}</span>
+                        </div>
                       </div>
                       <Slider
                         defaultValue={[dailyBudget]}
@@ -652,17 +1923,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         onValueChange={(val) => setDailyBudget(val[0])}
                         className="py-2"
                       />
-                      <div className="flex justify-between text-[10px] text-slate-400">
-                        <span>R$ 10 (Mínimo recomendado)</span>
-                        <span>R$ 50</span>
-                        <span>R$ 100</span>
-                      </div>
                     </div>
 
                     {/* Duração da Campanha */}
                     <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-slate-700">Duração dos Anúncios</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Duração dos Anúncios</span>
+                          <span className="text-[10px] text-slate-400 font-normal">Período de veiculação da campanha</span>
+                        </div>
                         <span className="text-base font-extrabold text-primary font-poppins">{duration} dias</span>
                       </div>
                       <Slider
@@ -673,11 +1942,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         onValueChange={(val) => setDuration(val[0])}
                         className="py-2"
                       />
-                      <div className="flex justify-between text-[10px] text-slate-400">
-                        <span>3 dias (Ideal para teste rápido)</span>
-                        <span>15 dias</span>
-                        <span>30 dias</span>
-                      </div>
                     </div>
 
                     {/* WIDGET DE RESULTADO DITÁDICO (WOW FACTOR) */}
@@ -709,20 +1973,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       </p>
                     </div>
 
-                    {/* Canais */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-600">Onde seus anúncios serão exibidos:</Label>
-                      <div className="flex gap-4">
-                        <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
-                          <Check className="h-3.5 w-3.5 text-green-500" />
-                          Instagram Feed & Stories
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
-                          <Check className="h-3.5 w-3.5 text-green-500" />
-                          Facebook Feed
-                        </div>
-                      </div>
-                    </div>
+
 
                   </div>
                 </div>
@@ -742,10 +1993,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {currentStep === 1 ? "Cancelar" : "Voltar"}
                 </Button>
 
-                {currentStep < 3 ? (
+                {currentStep < 4 ? (
                   <Button
                     type="button"
-                    onClick={() => setCurrentStep((prev) => prev + 1)}
+                    onClick={() => {
+                      if (currentStep === 3 && !selectedCoords) {
+                        toast({
+                          variant: "destructive",
+                          title: "Selecione uma localização oficial",
+                          description: "Digite o endereço e selecione uma das opções sugeridas na lista flutuante da Meta.",
+                        });
+                        return;
+                      }
+                      setCurrentStep((prev) => prev + 1);
+                    }}
                     className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-2 rounded-lg"
                   >
                     Próximo Passo
@@ -783,79 +2044,100 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 </p>
 
                 {/* Card de Simulação Meta */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden text-left">
-                  {/* Topo do Post */}
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="h-9 w-9 border border-slate-100">
-                        <AvatarImage src={businessProfile?.logo?.url || ""} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                          {getAvatarFallback()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <span className="text-xs font-bold text-slate-900 block leading-tight">
-                          {businessProfile?.name || "Meu Negócio"}
-                        </span>
-                        <span className="text-[10px] text-primary font-semibold block leading-tight mt-0.5">
-                          Patrocinado (Região de {radius}km)
-                        </span>
-                      </div>
+                <div className="relative">
+                  {/* Alerta de Nome da Campanha Interno e Privado */}
+                  {focusedField === "adName" && (
+                    <div className="mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 font-medium flex items-start gap-2 shadow-sm animate-in slide-in-from-top-2 duration-200">
+                      <span>
+                        O <strong>Nome da Campanha</strong> é 100% privado. Ele serve apenas para você se organizar e nunca será visto pelos seus clientes nas redes sociais.
+                      </span>
                     </div>
-                    <span className="text-slate-400 text-sm font-bold cursor-default">•••</span>
-                  </div>
+                  )}
 
-                  {/* Foto do Post */}
-                  <div className="relative aspect-square w-full bg-slate-100 border-y border-slate-100">
-                    {(selectedPost.imageUrl || selectedPost.imageUrls?.[0]) ? (
-                      <Image
-                        src={selectedPost.imageUrl || selectedPost.imageUrls?.[0]}
-                        alt="Criativo Anúncio"
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-slate-300">
-                        <Eye className="h-10 w-10" />
+                  <div className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden text-left">
+                    {/* Topo do Post */}
+                    <div className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="h-9 w-9 border border-slate-100">
+                          <AvatarImage src={businessProfile?.logo?.url || ""} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {getAvatarFallback()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block leading-tight">
+                            {businessProfile?.name || "Meu Negócio"}
+                          </span>
+                          <span className="text-[10px] text-primary font-semibold block leading-tight mt-0.5">
+                            Patrocinado
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-slate-400 text-sm font-bold cursor-default">•••</span>
+                    </div>
+
+                    {/* Foto do Post */}
+                    <div className="relative aspect-square w-full bg-slate-100 border-y border-slate-100">
+                      {(selectedPost.imageUrl || selectedPost.imageUrls?.[0]) ? (
+                        <Image
+                          src={selectedPost.imageUrl || selectedPost.imageUrls?.[0]}
+                          alt="Criativo Anúncio"
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-slate-300">
+                          <Eye className="h-10 w-10" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Barra de Ação de Conversão (CTA) */}
+                    {(hasDestination || campaignObjective === "TRAFFIC") && (
+                      <div className={`px-3.5 py-2.5 bg-[#F2F4F7] border-b border-slate-100 flex justify-between items-center gap-3 relative transition-all duration-300 ${focusedField === 'headline' || focusedField === 'destinationUrl' ? 'bg-primary/5 ring-2 ring-primary/50 scale-[1.01] z-10' : ''}`}>
+                        {focusedField === 'headline' && (
+                          <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                            Título do Anúncio
+                          </span>
+                        )}
+                        {focusedField === 'destinationUrl' && (
+                          <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                            Link do Site (Botão)
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wide font-semibold block truncate leading-none">
+                            {customDestination ? customDestination.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0].toUpperCase() : "SEUSITE.COM.BR"}
+                          </span>
+                          <span className="text-xs font-bold text-slate-800 truncate block mt-1 leading-snug">
+                            {headline || "Aproveite nossa oferta local!"}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-primary hover:bg-primary text-white text-[10px] font-bold h-7 px-3 rounded pointer-events-none"
+                        >
+                          Saiba Mais
+                        </Button>
                       </div>
                     )}
-                  </div>
 
-                  {/* Barra de Ação de Conversão (CTA) */}
-                  <div className="px-3.5 py-2.5 bg-[#F2F4F7] border-b border-slate-100 flex justify-between items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wide font-medium block">
-                        Meta Ads Local
-                      </span>
-                      <span className="text-xs font-bold text-slate-800 truncate block mt-0.5">
-                        {headline || "Aproveite nossa oferta local!"}
-                      </span>
+                    {/* Legenda/Corpo */}
+                    <div className={`p-3 relative transition-all duration-300 ${focusedField === 'bodyText' ? 'bg-primary/5 ring-2 ring-primary/50 scale-[1.01] z-10' : ''}`}>
+                      {focusedField === 'bodyText' && (
+                        <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                          Texto Principal (Legenda)
+                        </span>
+                      )}
+                      <p className="text-xs text-slate-700 leading-relaxed font-inter line-clamp-4">
+                        <span className="font-bold text-slate-900 mr-1.5">{businessProfile?.name || "Meu Negócio"}</span>
+                        {bodyText || selectedPost.text}
+                      </p>
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-primary hover:bg-primary text-white text-[10px] font-bold h-7 px-3 rounded"
-                    >
-                      {ctaType === "SEND_MESSAGE" ? "Enviar Mensagem" : ctaType === "LEARN_MORE" ? "Saiba Mais" : ctaType === "GET_DIRECTIONS" ? "Como Chegar" : "Ligar"}
-                    </Button>
-                  </div>
-
-                  {/* Legenda/Corpo */}
-                  <div className="p-3">
-                    <p className="text-xs text-slate-700 leading-relaxed font-inter line-clamp-4">
-                      <span className="font-bold text-slate-900 mr-1.5">{businessProfile?.name || "Meu Negócio"}</span>
-                      {bodyText || selectedPost.text}
-                    </p>
                   </div>
                 </div>
 
-                {/* Ajuda ao Usuário Leigo */}
-                <div className="mt-6 bg-slate-100 border border-slate-200 rounded-lg p-3 flex gap-2">
-                  <HelpCircle className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-slate-500 leading-relaxed">
-                    <span className="font-bold text-slate-700 block">Sua verba é protegida!</span>
-                    Os anúncios locais param automaticamente após os {duration} dias, e a cobrança é feita diretamente pela Meta. Você nunca gastará além do limite programado.
-                  </div>
-                </div>
+
               </div>
             </div>
 
@@ -864,97 +2146,334 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       )}
 
       {/* DASHBOARD PRINCIPAL (MÉTRICAS E LISTAS) */}
-      {!isCreating && (
-        <div className="space-y-10">
+      {!isCreating && metaConnection.isConnected && metaConnection.adAccountId && (
+        <div className="space-y-8 animate-in fade-in duration-300">
           
-          {/* SEÇÃO EDUCATIVA (BANNER DIDÁTICO) */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm relative overflow-hidden">
-            <div className="absolute right-0 bottom-0 translate-y-6 translate-x-6 text-slate-200/50 pointer-events-none">
-              <Megaphone className="h-44 w-44" />
-            </div>
-            <div className="space-y-1.5 max-w-3xl">
-              <span className="bg-primary/10 text-primary text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full font-poppins">
-                Novidade no NumVapt
-              </span>
-              <h2 className="text-xl font-bold text-slate-900 font-poppins mt-1">
-                Por que impulsionar suas publicações locais?
-              </h2>
-              <p className="text-xs text-slate-600 leading-relaxed font-inter">
-                O algoritmo das redes sociais orgânicas exibe seus posts para apenas cerca de 5% de seus seguidores. Ao investir valores pequenos (como R$ 15 por dia), a Meta distribui ativamente suas fotos de produtos ou serviços para centenas de moradores locais que **ainda não te seguem**, impulsionando contatos imediatos no WhatsApp e atraindo clientes vizinhos à sua loja!
-              </p>
-            </div>
-          </div>
-
-          {/* PAINEL DE MÉTRICAS GERAIS SIMPLIFICADAS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex items-center gap-4">
-              <div className="bg-primary/10 p-3.5 rounded-full text-primary">
-                <DollarSign className="h-6 w-6" />
+          {/* PAINEL DE MÉTRICAS GERAIS SIMPLIFICADAS (TOPO) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
+              <div className="bg-primary/5 p-3.5 rounded-xl text-primary shrink-0">
+                <DollarSign className="h-5 w-5" />
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Investimento Total</span>
-                <span className="text-xl font-extrabold text-slate-900 block font-poppins mt-0.5">
-                  R$ {campaigns.reduce((acc, curr) => acc + (curr.budget.amount * curr.durationDays), 0).toFixed(2)}
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-slate-500 block">Valor Investido</span>
+                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
+                  R$ {campaigns.reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0).toFixed(2)}
                 </span>
+                <span className="text-xs text-slate-400 block truncate mt-0.5">Valor usado nos últimos 30 dias</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex items-center gap-4">
-              <div className="bg-primary/10 p-3.5 rounded-full text-primary">
-                <Users className="h-6 w-6" />
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
+              <div className="bg-emerald-500/5 p-3.5 rounded-xl text-emerald-600 shrink-0">
+                <Users className="h-5 w-5" />
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Pessoas Alcançadas</span>
-                <span className="text-xl font-extrabold text-slate-900 block font-poppins mt-0.5">
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-slate-500 block">Visualizações</span>
+                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
                   {campaigns.reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0).toLocaleString("pt-BR")}
                 </span>
+                <span className="text-xs text-slate-400 block truncate mt-0.5">Visualizações nos últimos 30 dias</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm flex items-center gap-4">
-              <div className="bg-primary/10 p-3.5 rounded-full text-primary">
-                <TrendingUp className="h-6 w-6" />
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
+              <div className="bg-blue-500/5 p-3.5 rounded-xl text-blue-600 shrink-0">
+                <TrendingUp className="h-5 w-5" />
               </div>
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Ações e Cliques</span>
-                <span className="text-xl font-extrabold text-slate-900 block font-poppins mt-0.5">
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-slate-500 block">Cliques</span>
+                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
                   {campaigns.reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0).toLocaleString("pt-BR")}
                 </span>
+                <span className="text-xs text-slate-400 block truncate mt-0.5">Cliques (todos) nos últimos 30 dias</span>
               </div>
             </div>
           </div>
 
-          {/* GALERIA DE POSTS PUBLICADOS (SELECIONE PARA IMPULSIONAR) */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" />
-                Seus Posts Publicados (Selecione para Impulsionar)
-              </h3>
+          {/* GERENCIAMENTO DE CAMPANHAS EM VEICULAÇÃO OU HISTÓRICO */}
+          <div className="space-y-5">
+            {/* SELETOR DE ABAS SEGMENT CONTROL */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="bg-slate-100/80 p-1 rounded-xl inline-flex gap-1 border border-slate-200/50">
+                <button
+                  type="button"
+                  onClick={() => setActiveDashboardTab("active")}
+                  className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all duration-200 font-poppins flex items-center gap-2 ${
+                    activeDashboardTab === "active"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <span>Em Veiculação</span>
+                  <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
+                    activeDashboardTab === "active" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
+                  }`}>
+                    {campaigns.filter((c) => c.status === "active").length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDashboardTab("history")}
+                  className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all duration-200 font-poppins flex items-center gap-2 ${
+                    activeDashboardTab === "history"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <span>Histórico de Anúncios</span>
+                  <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
+                    activeDashboardTab === "history" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
+                  }`}>
+                    {campaigns.filter((c) => c.status !== "active").length}
+                  </span>
+                </button>
+              </div>
+              <span className="text-xs text-slate-400 font-medium font-inter flex items-center gap-1.5 self-end sm:self-center">
+                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                Relatórios considerando os últimos 30 dias
+              </span>
             </div>
 
+            {/* LISTA EM TABELA PREMIUM */}
+            {loading ? (
+              <div className="flex justify-center items-center py-12 bg-white rounded-xl border border-slate-200/80">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              (() => {
+                const filteredCampaigns = campaigns.filter((c) => {
+                  return activeDashboardTab === "active" ? c.status === "active" : c.status !== "active";
+                });
+
+                if (filteredCampaigns.length === 0) {
+                  return (
+                    <div className="bg-slate-50 border border-slate-200/80 border-dashed rounded-xl p-10 text-center text-slate-400 animate-in fade-in duration-300">
+                      <Megaphone className="h-10 w-10 text-slate-300 mx-auto mb-3 animate-pulse" />
+                      <p className="text-xs font-semibold text-slate-500">
+                        {activeDashboardTab === "active"
+                          ? "Você não possui nenhuma campanha ativa no momento."
+                          : "Nenhum anúncio finalizado ou pausado no histórico."}
+                      </p>
+                      {activeDashboardTab === "active" && (
+                        <div className="mt-3.5 flex flex-col items-center gap-4">
+                          <p className="text-[11.5px] text-slate-400 max-w-md mx-auto leading-relaxed">
+                            Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.
+                          </p>
+                          {publishedPosts.length > 0 ? (
+                            <Button
+                              onClick={() => setIsChoosePostModalOpen(true)}
+                              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Impulsionar um Post
+                            </Button>
+                          ) : (
+                            <p className="text-[11px] text-amber-600 font-medium bg-amber-50 border border-amber-100/60 rounded-lg px-3 py-1.5">
+                              Crie e programe um post na aba <strong>Conteúdo</strong> antes de impulsioná-lo!
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200/60 bg-slate-50/50 text-xs text-slate-500 font-semibold normal-case tracking-normal font-poppins">
+                            <th className="px-5 py-3.5 font-semibold">Anúncio</th>
+                            <th className="px-5 py-3.5 font-semibold">Status</th>
+                            <th className="px-5 py-3.5 font-semibold">Duração</th>
+                            <th className="px-5 py-3.5 font-semibold">Verba</th>
+                            <th className="px-5 py-3.5 font-semibold text-primary">Investido</th>
+                            <th className="px-5 py-3.5 font-semibold">Visualizações</th>
+                            <th className="px-5 py-3.5 font-semibold">Cliques</th>
+                            <th className="px-5 py-3.5 font-semibold text-right">Gerenciar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-150/40 text-xs font-inter text-slate-650">
+                          {filteredCampaigns.map((c) => {
+                            const totalDays = c.durationDays || 7;
+                            let daysPassed = 1;
+                            if (c.createdAt) {
+                              const createdDate = (c.createdAt as any).toDate ? (c.createdAt as any).toDate() : new Date(c.createdAt as any);
+                              const diffTime = Math.abs(Date.now() - createdDate.getTime());
+                              daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            }
+                            if (daysPassed > totalDays) daysPassed = totalDays;
+                            if (daysPassed < 1) daysPassed = 1;
+                            const progressPercentage = Math.round((daysPassed / totalDays) * 100);
+
+                            return (
+                              <tr key={c.id} className="hover:bg-slate-50/30 transition-colors">
+                                {/* ANÚNCIO (FOTO + NOME) */}
+                                <td className="px-5 py-3.5">
+                                  <div className="flex items-center gap-3">
+                                    {c.creative.imageUrl && (
+                                      <div className="relative h-14 w-14 rounded-lg border border-slate-150 overflow-hidden flex-shrink-0 bg-slate-50 shadow-xs">
+                                        <Image src={c.creative.imageUrl} alt="creative thumb" fill className="object-cover" />
+                                      </div>
+                                    )}
+                                    <div className="min-w-0">
+                                      <span className="block font-bold text-slate-900 text-xs leading-snug truncate max-w-[220px]">
+                                        {c.name}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* STATUS BADGE */}
+                                <td className="px-5 py-3.5">
+                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                    c.status === "active"
+                                      ? "bg-emerald-50/50 text-emerald-700 border-emerald-100"
+                                      : "bg-slate-50 text-slate-500 border-slate-100"
+                                  }`}>
+                                    {c.status === "active" && (
+                                      <span className="relative flex h-1.5 w-1.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                      </span>
+                                    )}
+                                    {c.status === "active" ? "No Ar" : c.status === "paused" ? "Pausado" : "Concluído"}
+                                  </span>
+                                </td>
+
+                                {/* DURAÇÃO PROGRESSO */}
+                                <td className="px-5 py-3.5">
+                                  {c.status === "active" ? (
+                                    <div className="min-w-[120px] max-w-[150px] space-y-1">
+                                      <div className="flex justify-between text-[10px] text-slate-500 font-medium leading-none">
+                                        <span>Dia {daysPassed}/{totalDays}</span>
+                                        <span>{progressPercentage}%</span>
+                                      </div>
+                                      <div className="w-full bg-slate-100/70 rounded-full h-1 overflow-hidden">
+                                        <div className="bg-primary h-1 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 font-medium font-poppins text-xs px-2">-</span>
+                                  )}
+                                </td>
+
+                                {/* VERBA / ORÇAMENTO */}
+                                <td className="px-5 py-3.5">
+                                  <span className="font-semibold text-slate-800 text-xs">R$ {c.budget.amount.toFixed(2)}/dia</span>
+                                </td>
+
+                                {/* INVESTIDO */}
+                                <td className="px-5 py-3.5">
+                                  <span className="font-bold text-slate-900 text-xs">R$ {(c.metrics?.amountSpent || 0).toFixed(2)}</span>
+                                </td>
+
+                                {/* VISUALIZAÇÕES */}
+                                <td className="px-5 py-3.5">
+                                  <span className="font-semibold text-slate-800 text-xs">
+                                    {c.metrics?.impressions?.toLocaleString("pt-BR") || 0}
+                                  </span>
+                                </td>
+
+                                {/* CLIQUES */}
+                                <td className="px-5 py-3.5">
+                                  <span className="font-semibold text-slate-800 text-xs">
+                                    {c.metrics?.clicks?.toLocaleString("pt-BR") || 0}
+                                  </span>
+                                </td>
+
+                                {/* GERENCIAR (AÇÕES) */}
+                                <td className="px-5 py-3.5 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {c.status === "active" ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleToggleStatus(c)}
+                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        title="Pausar anúncio na Meta"
+                                      >
+                                        <Pause className="h-3 w-3" />
+                                        Pausar
+                                      </Button>
+                                    ) : c.status === "paused" ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleToggleStatus(c)}
+                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        title="Ativar anúncio na Meta"
+                                      >
+                                        <Play className="h-3 w-3" />
+                                        Ativar
+                                      </Button>
+                                    ) : null}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteCampaign(c)}
+                                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-650 rounded-lg transition-colors"
+                                      title="Excluir campanha da Meta"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+
+          {/* O grid de posts foi movido para o Dialog de seleção */}
+
+        </div>
+      )}
+
+      {/* MODAL DE SELEÇÃO DE PUBLICIDADE (CHOOSE POST) */}
+      <Dialog open={isChoosePostModalOpen} onOpenChange={setIsChoosePostModalOpen}>
+        <DialogContent className="max-w-4xl font-sans max-h-[85vh] flex flex-col p-6">
+          <DialogHeader className="pb-3 border-b border-slate-100">
+            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+              Escolher Publicação para Impulsionar
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
+              Selecione uma de suas publicações abaixo para iniciar o processo de impulsionamento local.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">
             {loadingPosts ? (
-              <div className="flex justify-center items-center py-8">
+              <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : publishedPosts.length === 0 ? (
-              <div className="bg-slate-50 border border-slate-200 border-dashed rounded-lg p-8 text-center text-slate-400">
-                <p className="text-sm">Nenhum post publicado encontrado no feed. Crie um post na aba **Conteúdo** antes de impulsionar!</p>
+              <div className="bg-slate-50 border border-slate-200/80 border-dashed rounded-xl p-10 text-center text-slate-400">
+                <p className="text-xs font-semibold text-slate-500">Nenhum post publicado encontrado no feed do Instagram/Facebook.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Crie e programe um post na aba Conteúdo antes de impulsioná-lo!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {publishedPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm flex flex-col group hover:border-primary/40 transition-colors"
+                    className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col group hover:border-primary/40 hover:shadow transition-all duration-300"
                   >
-                    <div className="relative aspect-square w-full bg-slate-50">
+                    <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                       {(post.imageUrl || post.imageUrls?.[0]) ? (
                         <Image
                           src={post.imageUrl || post.imageUrls?.[0]}
                           alt="Thumbnail post"
                           fill
-                          className="object-cover"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full text-slate-300">
@@ -962,19 +2481,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </div>
                       )}
                     </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                    <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-white">
+                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed font-inter">
                         {post.text}
                       </p>
                       
-                      <div className="border-t pt-3 flex justify-between items-center mt-auto">
-                        <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                          🟢 Pronto para impulsionar
+                      <div className="border-t border-slate-100 pt-3.5 flex justify-between items-center mt-auto">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 leading-none">
+                          Pronto
                         </span>
                         <Button
                           size="sm"
                           onClick={() => handleSelectPostToBoost(post)}
-                          className="bg-primary hover:bg-primary/95 text-white font-bold text-[11px] h-8 px-3 rounded-lg shadow-sm font-poppins"
+                          className="bg-primary hover:bg-primary/95 text-white font-extrabold text-[11px] h-8 px-3 rounded-lg shadow-sm font-poppins"
                         >
                           <Sparkles className="mr-1 h-3.5 w-3.5" />
                           Impulsionar
@@ -986,116 +2505,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
             )}
           </div>
-
-          {/* HISTÓRICO DE CAMPANHAS DE ANÚNCIOS */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Seus Anúncios Recentes (Meta)
-            </h3>
-
-            {loading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : campaigns.length === 0 ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center text-slate-400">
-                <p className="text-sm">Nenhum anúncio veiculado ainda. Escolha um de seus posts publicados acima para impulsionar!</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-500">
-                    <thead className="text-[10px] text-slate-400 uppercase bg-slate-50 border-b border-slate-200 font-poppins tracking-wider">
-                      <tr>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Anúncio</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Status</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Orçamento Total</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Visualizações</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Cliques</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold">Ações</th>
-                        <th scope="col" className="px-5 py-3.5 font-bold text-center">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-inter">
-                      {campaigns.map((c) => (
-                        <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-5 py-4 font-bold text-slate-800">
-                            <div className="flex items-center gap-3">
-                              {c.creative.imageUrl && (
-                                <div className="relative h-10 w-10 rounded border overflow-hidden flex-shrink-0">
-                                  <Image src={c.creative.imageUrl} alt="creative thumb" fill className="object-cover" />
-                                </div>
-                              )}
-                              <div>
-                                <span className="block font-bold text-slate-900 leading-tight">{c.name}</span>
-                                <span className="text-[10px] text-slate-400 mt-0.5 block leading-none font-medium">
-                                  CTA: {getCtaLabel(c.creative.ctaType)} • Raio: {c.targeting.radiusKm}km
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 font-medium">{getStatusBadge(c.status)}</td>
-                          <td className="px-5 py-4 font-bold text-slate-900">
-                            R$ {(c.budget.amount * c.durationDays).toFixed(2)}
-                            <span className="text-[9px] text-slate-400 block font-normal leading-none mt-0.5">
-                              (R$ {c.budget.amount}/dia • {c.durationDays}d)
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
-                            {c.metrics?.impressions?.toLocaleString("pt-BR") || 0}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
-                            {c.metrics?.clicks?.toLocaleString("pt-BR") || 0}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
-                            {c.metrics?.actions?.toLocaleString("pt-BR") || 0}
-                          </td>
-                          <td className="px-5 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              {c.status === "active" ? (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleToggleStatus(c)}
-                                  className="h-8 w-8 text-yellow-600 hover:bg-yellow-50 rounded-full"
-                                  title="Pausar anúncio"
-                                >
-                                  <Pause className="h-4 w-4" />
-                                </Button>
-                              ) : c.status === "paused" ? (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleToggleStatus(c)}
-                                  className="h-8 w-8 text-green-600 hover:bg-green-50 rounded-full"
-                                  title="Ativar anúncio"
-                                >
-                                  <Play className="h-4 w-4" />
-                                </Button>
-                              ) : null}
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleDeleteCampaign(c.id!)}
-                                className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-full"
-                                title="Excluir campanha"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

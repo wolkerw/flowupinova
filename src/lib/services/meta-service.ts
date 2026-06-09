@@ -10,6 +10,8 @@ export interface MetaConnectionData {
   accessToken?: string; // This is the Page Access Token
   pageId?: string;
   pageName?: string;
+  adAccountId?: string;
+  adAccountName?: string;
   // This is the main token used to fetch pages, etc.
   userAccessToken?: string;
   // For pending state
@@ -82,6 +84,8 @@ export async function updateMetaConnection(
         accessToken: deleteField(),
         pageId: deleteField(),
         pageName: deleteField(),
+        adAccountId: deleteField(),
+        adAccountName: deleteField(),
         connectedAt: deleteField(),
         error: deleteField(),
         pending: deleteField(),

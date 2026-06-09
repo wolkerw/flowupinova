@@ -136,9 +136,9 @@ type Platform = "instagram" | "facebook" | "linkedin";
 const PLACEHOLDER_IMAGE = "https://placehold.co/400";
 
 const META_OAUTH = {
-  clientId: "826418333144156",
+  clientId: process.env.NEXT_PUBLIC_META_APP_ID || "826418333144156",
   scope:
-    "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management",
+    "pages_manage_engagement,pages_manage_posts,pages_read_engagement,pages_read_user_content,pages_show_list,business_management,ads_management,ads_read",
 };
 
 const STATUS_CONFIG: Record<
@@ -1222,22 +1222,20 @@ export default function Conteudo() {
                 {/* Botão 3 - Referência Link */}
                 <button
                   disabled
-                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500/50 to-orange-600/50 rounded-[24px] text-white/50 shadow-xl shadow-orange-100/20 transition-all cursor-not-allowed text-left overflow-hidden grayscale"
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-gray-400 to-gray-500 rounded-[24px] text-white/90 shadow-xl shadow-gray-100 transition-all cursor-not-allowed text-left overflow-hidden opacity-60"
                 >
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-white/20 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white">
-                      Em breve
-                    </span>
-                  </div>
                   <div className="absolute right-[-20px] top-[-20px] opacity-10">
                     <LinkIcon size={120} />
                   </div>
-                  <div className="bg-white/10 p-3 rounded-2xl mb-4">
-                    <MousePointer2 className="w-6 h-6 text-white/50" />
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4">
+                    <MousePointer2 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Conteúdo com Imagem de referência</h3>
-                  <p className="text-white/40 text-sm font-medium leading-relaxed">
-                    Cole o link de uma arte que gostou e criaremos algo similar.
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-xl font-black leading-tight">Gerar Conteúdo com Imagem de referência</h3>
+                    <span className="bg-white/35 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white">Offline</span>
+                  </div>
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Envie a imagem de um post que gostou e criaremos algo similar para seu negócio.
                   </p>
                 </button>
 
