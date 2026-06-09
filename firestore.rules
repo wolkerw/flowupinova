@@ -23,7 +23,7 @@ service cloud.firestore {
     }
     
     function isAllowedCollection(collection) {
-      return collection in ['posts', 'connections', 'business', 'appData', 'contacts'];
+      return collection in ['posts', 'connections', 'business', 'appData', 'contacts', 'mediaGallery'];
     }
   }
 }

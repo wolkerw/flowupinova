@@ -21,9 +21,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GERAR_COPILOT] Gerando sugestões com Gemini para objetivo: ${objetivo}...`);
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
     // Criar o prompt detalhado para o especialista em marketing local da Meta
     const prompt = `
 Você é um especialista em marketing digital da Meta (Facebook e Instagram) focado em pequenos e médios negócios locais brasileiros.
+CONTEXTO TEMPORAL: Estamos no ano de ${currentYear}. Sempre utilize esse ano atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
 Sua tarefa é criar títulos (headlines) magnéticos e copies altamente persuasivas para impulsionar um anúncio na região local.
 
 INFORMAÇÕES DO NEGÓCIO:

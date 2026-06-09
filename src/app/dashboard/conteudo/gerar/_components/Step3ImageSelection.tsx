@@ -7,18 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import {
   ImageIcon,
-  Loader2,
   ArrowLeft,
   ArrowRight,
   Check,
   Download,
-  AlertTriangle,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
-import { CircularProgressLoader } from "./CircularProgressLoader";
+
  
 export const Step3ImageSelection = () => {
   const {
@@ -26,10 +23,8 @@ export const Step3ImageSelection = () => {
     selectedImage,
     setSelectedImage: onSelectedImageChange,
     setStep,
-    handleGeneratePrompts: onGenerate,
     isGeneratingImages,
     handleDownloadImage: onDownload,
-    referenceImageFile,
     mode,
   } = useWizard();
 
@@ -45,7 +40,7 @@ export const Step3ImageSelection = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="mx-auto w-full max-w-4xl border-none shadow-lg">
+      <Card className="relative mx-auto w-full max-w-4xl border-none shadow-lg overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <ImageIcon className="h-6 w-6 text-accent" />
@@ -69,10 +64,13 @@ export const Step3ImageSelection = () => {
             "grid grid-cols-1 gap-4",
             maxImages === 1 ? "max-w-md mx-auto w-full md:grid-cols-1" : "md:grid-cols-3"
           )}>
-            {/* Imagens já encontradas */}
+            {/* Imagens já geradas com sucesso */}
             {generatedImages.map((imgSrc, index) => (
-              <div
+              <motion.div
                 key={`img-${index}`}
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={() => onSelectedImageChange(imgSrc)}
                 className={cn(
                   "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
@@ -106,29 +104,72 @@ export const Step3ImageSelection = () => {
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
-              </div>
+              </motion.div>
             ))}
 
-            {/* Placeholders de carregamento para completar os slots necessários */}
-            {generatedImages.length < maxImages &&
-              [...Array(maxImages - generatedImages.length)].map((_, i) => {
-                const isSingleImageLoader = maxImages === 1;
+            {/* Slots de carregamento para as imagens ainda sendo geradas */}
+            {(isGeneratingImages || generatedImages.length < maxImages) &&
+              [...Array(Math.max(0, maxImages - generatedImages.length))].map((_, i) => {
+                const slotNumber = generatedImages.length + i + 1;
+                const isActiveSlot = i === 0; // O primeiro slot pendente é o que está gerando agora
                 return (
-                  <div
+                  <motion.div
                     key={`skeleton-${i}`}
-                    className="relative flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
                   >
-                    {isSingleImageLoader ? (
-                      <CircularProgressLoader isActive={isGeneratingImages} />
-                    ) : (
-                      <>
-                        <Loader2 className="h-8 w-8 animate-spin text-accent/40" />
-                        <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                          {`Gerando opção ${generatedImages.length + i + 1}...`}
-                        </span>
-                      </>
-                    )}
-                  </div>
+                    {/* Shimmer animado de fundo */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "linear", delay: i * 0.4 }}
+                    />
+
+                    {/* Conteúdo central do slot */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
+                      {isActiveSlot && isGeneratingImages ? (
+                        <>
+                          {/* Ícone girando para o slot ativo */}
+                          <div className="relative">
+                            <motion.div
+                              className="w-14 h-14 rounded-full border-4 border-accent/20"
+                              style={{ borderTopColor: "hsl(var(--accent))" }}
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <ImageIcon className="h-5 w-5 text-accent/60" />
+                            </div>
+                          </div>
+                          <motion.span
+                            animate={{ opacity: [0.6, 1, 0.6] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                            className="text-xs font-semibold text-accent text-center leading-tight"
+                          >
+                            Gerando imagem {slotNumber}...
+                          </motion.span>
+                          <span className="text-[10px] text-muted-foreground text-center">
+                            Nossa IA está criando algo especial ✨
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {/* Ícone de espera para slots na fila */}
+                          <div className="w-14 h-14 rounded-full border-4 border-muted-foreground/20 flex items-center justify-center">
+                            <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground text-center">
+                            Imagem {slotNumber}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60 text-center">
+                            Na fila...
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
                 );
               })}
           </div>

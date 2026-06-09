@@ -24,13 +24,15 @@ describe("Configuração de Metadados e SEO", () => {
     });
 
     it("deve definir tags OpenGraph e Twitter corretas", () => {
-      expect(layoutMetadata.openGraph).toBeDefined();
-      expect(layoutMetadata.openGraph?.title).toBe("NumVapt - Marketing com Inteligência Artificial");
-      expect(layoutMetadata.openGraph?.locale).toBe("pt_BR");
-      expect(layoutMetadata.openGraph?.type).toBe("website");
+      const og = layoutMetadata.openGraph as any;
+      expect(og).toBeDefined();
+      expect(og?.title).toBe("NumVapt - Marketing com Inteligência Artificial");
+      expect(og?.locale).toBe("pt_BR");
+      expect(og?.type).toBe("website");
 
-      expect(layoutMetadata.twitter).toBeDefined();
-      expect(layoutMetadata.twitter?.card).toBe("summary_large_image");
+      const tw = layoutMetadata.twitter as any;
+      expect(tw).toBeDefined();
+      expect(tw?.card).toBe("summary_large_image");
     });
 
     it("deve possuir regras corretas de robots globais", () => {
@@ -57,9 +59,10 @@ describe("Configuração de Metadados e SEO", () => {
     });
 
     it("deve definir tags OpenGraph e Twitter específicas da Home", () => {
-      expect(homeMetadata?.openGraph?.title).toContain("Marketing no modo Ultra Vapt");
-      expect(homeMetadata?.openGraph?.url).toBe("https://numvapt.com.br");
-      expect(homeMetadata?.openGraph?.images).toEqual([
+      const og = homeMetadata?.openGraph as any;
+      expect(og?.title).toContain("Marketing no modo Ultra Vapt");
+      expect(og?.url).toBe("https://numvapt.com.br");
+      expect(og?.images).toEqual([
         {
           url: "/logo-numvapt.png",
           width: 1200,
@@ -68,7 +71,8 @@ describe("Configuração de Metadados e SEO", () => {
         },
       ]);
 
-      expect(homeMetadata?.twitter?.card).toBe("summary_large_image");
+      const tw = homeMetadata?.twitter as any;
+      expect(tw?.card).toBe("summary_large_image");
     });
   });
 
@@ -102,11 +106,12 @@ describe("Configuração de Metadados e SEO", () => {
     });
 
     it("deve gerar o robots.txt dinamicamente em conformidade com as regras de indexação", () => {
-      const robotsResult = robots();
+      const robotsResult = robots() as any;
       expect(robotsResult).toBeDefined();
       expect(robotsResult.rules).toBeDefined();
 
-      const disallowRules = robotsResult.rules.disallow;
+      const rules = robotsResult.rules;
+      const disallowRules = Array.isArray(rules) ? rules[0]?.disallow : rules?.disallow;
       expect(disallowRules).toContain("/dashboard/");
       expect(disallowRules).toContain("/acesso/");
       expect(disallowRules).toContain("/api/");
