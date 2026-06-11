@@ -6,6 +6,7 @@ import { adminDb, adminAuth } from "@/lib/firebase-admin";
 const COSTS = {
   falaiPerImage: 0.05,
   imagen4PerImage: 0.03,
+  nanoBananaPerImage: 0.03,
   geminiPer1kTokens: 0.00015,
   estimatedTokensPerChat: 800,
 };
@@ -39,6 +40,7 @@ export interface PlatformStats {
   totalChatSessions: number;
   estimatedCostFalai: number;
   estimatedCostImagen4: number;
+  estimatedCostNanoBanana: number;
   estimatedCostGemini: number;
   estimatedCostTotal: number;
 }
@@ -76,7 +78,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   let totalChatSessions = 0;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const imageCountPromises: Promise<any>[] = [];
+  const mediaGalleryPromises: Promise<any>[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const postCountPromises: Promise<any>[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,10 +104,10 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       standardUsers++;
     }
 
-    // Contar imagens e posts de forma agregada
+    // Buscar mediaGallery completo e contar posts de forma agregada
     const uid = userDoc.id;
-    imageCountPromises.push(
-      adminDb.collection(`users/${uid}/mediaGallery`).count().get()
+    mediaGalleryPromises.push(
+      adminDb.collection(`users/${uid}/mediaGallery`).get()
     );
     postCountPromises.push(
       adminDb.collection(`users/${uid}/posts`).where("status", "==", "published").count().get()
@@ -116,13 +118,31 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   }
 
   // Resolver promessas em paralelo para eficiência
-  const [imageCounts, postCounts, failedPostCounts] = await Promise.all([
-    Promise.all(imageCountPromises),
+  const [mediaGalleries, postCounts, failedPostCounts] = await Promise.all([
+    Promise.all(mediaGalleryPromises),
     Promise.all(postCountPromises),
     Promise.all(failedPostCountPromises),
   ]);
 
-  for (const snap of imageCounts) totalImagesGenerated += snap.data().count;
+  let totalFalaiImages = 0;
+  let totalImagen4Images = 0;
+  let totalNanoBananaImages = 0;
+
+  for (const snap of mediaGalleries) {
+    totalImagesGenerated += snap.size;
+    snap.docs.forEach((doc: any) => {
+      const imgData = doc.data();
+      const source = imgData.source;
+      if (source === "reference_generation") {
+        totalFalaiImages++;
+      } else if (source === "wizard_generation" || source === "imagen4_ref_benchmark") {
+        totalImagen4Images++;
+      } else if (source === "nanobanana_ref") {
+        totalNanoBananaImages++;
+      }
+    });
+  }
+
   for (const snap of postCounts) totalPostsPublished += snap.data().count;
   for (const snap of failedPostCounts) totalPostsFailed += snap.data().count;
 
@@ -134,8 +154,9 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     totalChatSessions = 0;
   }
 
-  const estimatedCostFalai = totalImagesGenerated * COSTS.falaiPerImage;
-  const estimatedCostImagen4 = totalImagesGenerated * COSTS.imagen4PerImage;
+  const estimatedCostFalai = totalFalaiImages * COSTS.falaiPerImage;
+  const estimatedCostImagen4 = totalImagen4Images * COSTS.imagen4PerImage;
+  const estimatedCostNanoBanana = totalNanoBananaImages * COSTS.nanoBananaPerImage;
   const estimatedCostGemini =
     (totalChatSessions * COSTS.estimatedTokensPerChat * COSTS.geminiPer1kTokens) / 1000;
 
@@ -152,8 +173,9 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     totalChatSessions,
     estimatedCostFalai,
     estimatedCostImagen4,
+    estimatedCostNanoBanana,
     estimatedCostGemini,
-    estimatedCostTotal: estimatedCostFalai + estimatedCostImagen4 + estimatedCostGemini,
+    estimatedCostTotal: estimatedCostFalai + estimatedCostImagen4 + estimatedCostNanoBanana + estimatedCostGemini,
   };
 }
 
