@@ -19,85 +19,101 @@ import Image from "next/image";
 const SUGGESTIONS = [
   // Categoria: corporate
   {
-    label: "Terno no Escritório (Homem)",
+    label: "Terno no Escritório",
     category: "corporate",
+    gender: "male",
     text: "vestindo terno cinza moderno com camisa branca, em um escritório corporativo iluminado com fundo suavemente desfocado",
   },
   {
-    label: "Blazer Azul (Mulher)",
+    label: "Blazer Azul",
     category: "corporate",
+    gender: "female",
     text: "vestindo blazer azul marinho elegante sobre blusa social, em uma biblioteca de madeira clássica com iluminação quente de estúdio",
   },
   {
-    label: "Blazer na Rua (Homem)",
+    label: "Blazer na Rua",
     category: "corporate",
+    gender: "male",
     text: "vestindo blazer bege esporte fino com camisa polo, em um ambiente externo urbano de negócios desfocado com luz natural do sol",
   },
   {
-    label: "Terno Preto (Homem)",
+    label: "Terno Preto",
     category: "corporate",
+    gender: "male",
     text: "vestindo terno preto completo com gravata, em estúdio profissional com fundo cinza neutro e luz de estúdio tridimensional",
   },
   {
-    label: "Estilo Líder (Homem)",
+    label: "Estilo Líder",
     category: "corporate",
+    gender: "male",
     text: "Crie um retrato sóbrio e autoritário de um homem. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está sentada ou em pé, imóvel, com o corpo perfeitamente equilibrado, ombros relaxados e coluna reta. As mãos devem estar visíveis e compostas, descansando juntas ou relaxadas no colo. A cabeça está levemente inclinada para frente, os olhos firmes e a expressão é séria, mas humana. Roupa: terno azul-marinho, camisa azul-clara, estilo minimalista. Fundo: espaço amplo e minimalista ou um degradê suave que transmita escala e responsabilidade. Iluminação: suave, naturalista, como luz de dia nublado, sem drama e sem brilho excessivo. Câmera: Nikon Z8, lente 85mm, Deep Tone Control. Clima: confiança, liderança, credibilidade e poder silencioso. Prompt negativo: sem exagero de moda, sem iluminação teatral, sem sorriso forçado, sem alteração facial, sem ruído, sem texto.",
   },
   {
-    label: "Profissional Leve (Mulher)",
+    label: "Profissional Leve",
     category: "corporate",
+    gender: "female",
     text: "Crie um retrato profissional, acolhedor e iluminado de uma mulher. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está em pé, com os braços relaxados ao lado do corpo e os ombros soltos. Uma leve inclinação em direção à câmera deve transmitir proximidade e simpatia. Um sorriso amigável e olhos abertos e receptivos são essenciais. Roupa: blazer claro com camisa em tom pastel. Fundo: interior neutro e suave. Iluminação: luz natural de janela. Câmera: Canon EOS R5, lente 85mm. Prompt negativo: sem alteração facial, sem mudança de idade, sem mudança de peso, sem distorção corporal, sem caricatura, sem filtro de beleza, sem excesso de suavização na pele, sem desfoque, sem ruído, sem texto, sem logos, sem marca d’água, sem artefatos.",
   },
   {
     label: "No Computador",
     category: "corporate",
+    gender: "neutral",
     text: "Transforme esta imagem em uma foto com props da marca pessoal. Objetos: adicione caneca personalizada, livro, notebook ou material de marca com logotipo visível de forma discreta. Fundo: clean em tons claros, ou cenário de escritório minimalista. Roupa: look casual-profissional. Iluminação: clara e suave. Preserve identidade facial e expressão natural. Estilo final: foto profissional de branding pessoal para materiais digitais.",
   },
 
   // Categoria: creative
   {
-    label: "Camisa Branca (Mulher)",
+    label: "Camisa Branca",
     category: "creative",
+    gender: "female",
     text: "Black and white fine art portrait of a young woman, long slightly messy hair framing her delicate face, smooth fair skin, wearing an oversized white shirt. Pose: sitting with one hand resting gently under her chin, looking at the camera with a calm and thoughtful expression. Studio setting with plain grey backdrop, soft cinematic lighting, minimalistic composition. Ultra realistic, sharp facial details, natural textures, elegant and sophisticated style. Professional photography, 8K quality, high contrast monochrome aesthetic.",
   },
   {
-    label: "Gola Alta (Mulher)",
+    label: "Gola Alta",
     category: "creative",
+    gender: "female",
     text: "High-end, ultra-realistic black-and-white portrait of a young woman, medium-close shot (head and upper torso), facing slightly toward camera with a calm, confident expression. Her long hair falls naturally over the shoulders with subtle loose waves and delicate rim light defining the strands. Lighting: dramatic studio setup with a single soft key light from camera left creating smooth shadows on the right side of the face, plus a subtle hair light from behind to outline the silhouette. Wardrobe: black turtleneck sweater, matte texture absorbing light for strong separation from the dark, seamless background. Skin rendered with natural texture and balanced highlights, no airbrushing. Background: pure black, no details, giving full isolation and high contrast. Lens: 85 mm prime at f/1.8 for shallow depth of field and creamy falloff. Overall style: elegant monochrome, wide dynamic range, crisp detail and soft gradients for a classic fine-art studio portrait.",
   },
   {
-    label: "Preto e Branco (Homem)",
+    label: "Preto e Branco",
     category: "creative",
+    gender: "male",
     text: "Crie um retrato cinematográfico hiper-realista em preto e branco, estilo chiaroscuro, de um homem. A pessoa está sentada em ângulo de três quartos, levemente inclinada para frente, com postura relaxada, mas dominante. O rosto está levemente virado para fora da câmera, sem olhar diretamente para a lente. Um lado do rosto deve estar fortemente iluminado, enquanto o outro desaparece em uma sombra preta profunda e aveludada. A expressão é contemplativa. As mãos estão próximas ao peito, em uma pose natural e precisa, com os dedos suavemente entrelaçados. Um dos pulsos mostra um relógio cronógrafo preto de luxo com pulseira metálica detalhada. Uma das mãos usa um anel prateado discreto. A pessoa veste um blazer preto elegante sobre uma camisa branca social com os primeiros botões abertos. Fundo: preto sólido, sem emendas. Iluminação: luz de estúdio forte e direcional, com contraste rico e sombras limpas. Destaque detalhes como fios de cabelo, textura da pele, barba se houver, brilho dos olhos, rosto do relógio, reflexos da pulseira metálica e anel prateado. Lente: retrato 85mm, profundidade de campo rasa, fotografia comercial premium, foco ultra nítido. Prompt negativo: sem pele artificial, sem dedos extras, sem mãos distorcidas, sem anatomia errada.",
   },
   {
-    label: "Estilo Cinema (Homem)",
+    label: "Estilo Cinema",
     category: "creative",
-    text: "Crie um retrato altamente cinematográfico de um homem, preservando 100% das características faciais e proporções naturais. A pessoa usa uma camiseta branca por baixo de uma jaqueta de couro azul, com textura realista de tecido e reflexos suaves de luz. O fundo tem um degradê de estúdio suave, indo do escuro na parte superior para um tom mais claro na parte inferior, criando profundidade e contraste ao redor da pessoa. A iluminação é suave, difusa e cinematográfica, com pontos de luz equilibrados que definem o rosto e sombras sutis que adicionam realismo e drama. A composição é perfeitamente centralizada, transmitindo intimidade, profundidade emocional e um tom editorial elegante.",
+    gender: "male",
+    text: "Crie um retrato altamente cinematográfico de um homem, preservando 100% das características faciais e proporções naturais. A pessoa usa uma camiseta branca por baixo de uma jaqueta de couro azul, com textura realista de tecido e reflexos suaves de luz. O fundo tem um degradê de estúdio suave, indo do escuro na parte superior para um tom mais claro na parte inferior, criando profundidade and contraste ao redor da pessoa. A iluminação é suave, difusa e cinematográfica, com pontos de luz equilibrados que definem o rosto e sombras sutis que adicionam realismo e drama. A composição é perfeitamente centralizada, transmitindo intimidade, profundidade emocional e um tom editorial elegante.",
   },
   {
     label: "Jaqueta Moderna",
     category: "creative",
+    gender: "neutral",
     text: "Ultra-realistic, highly detailed 8K cinematic wide shot of a contemporary figure modeling a stylized deep-purple puffer jacket. Half-body framing, subject slightly off-center to the left, looking directly at the viewer with a neutral, intense expression. The hood is down, not covering the head. The jacket features a large white Nike swoosh on the right side of the hood, a bright green smiley patch near it, and The North Face logo on the left chest, with additional subtle graphic symbols on the arms and torso. The subject is wearing sleek, modern sport sunglasses. Background is a vibrant urban gradient from deep purple to warm orange, with distressed white graffiti adding texture. Add the word 'PROMPT' in the background using the exact same font style, texture, size impression, and visual treatment as the existing graffiti text. Lighting combines cool purple light from the left and warm orange light from the right, creating dramatic rim lighting and high contrast. Electric purples, orange accents, vivid green, and clean white logos dominate the palette. Studio-quality photography with crisp sharpness, shallow depth of field, and a confident, high-fashion streetwear mood. Remove any tiny letters or micro-text from the sports sunglasses; change nothing else.",
   },
   {
     label: "Luzes Coloridas",
     category: "creative",
+    gender: "neutral",
     text: "Hyper-realistic portrait of a person with short textured dark hair, wearing futuristic cyberpunk sunglasses - mirrored neon lenses, continuous visor-like surface, translucent glow and holographic reflections. Night urban neon environment, low-angle cinematic shot, looking upward with confident expression. Strong orange and cyan neon reflections on the face and futuristic glasses high contrast warm-cold color palette. Ultra-detailed skin texture, intense light reflections and glass clarity. Defocused neon background with cinematic bokeh, immersive cyberpunk city vibe. HDR lighting, micro-detail realism, glowing highlights, futuristic editorial style. 8K resolution, 50mm f/1.2, shallow DOF, extreme sharpness, neon color grading, bold reflective lens flare. Parameters: futuristic neon visor glasses, ultra-realistic, HDR, neon glow reflections, extreme sharpness, cyberpunk cinematic, 8K, low-angle powerful shot, bokeh lights.",
   },
   {
     label: "Sol e Palmeiras",
     category: "creative",
+    gender: "neutral",
     text: "An ultra-realistic, highly detailed, 8K, cinematic medium-shot portrait captures a confident individual, facing slightly to the right with a contemplative gaze. The subject is wearing stylish dark circular sunglasses with a subtle brown tortoise shell pattern, a simple black short-sleeved t-shirt with 'Brooklyn 1999' inscribed in white font on the chest, and beige or light khaki trousers. One hand is casually placed in a trouser pocket, revealing a detailed silver-toned wristwatch with a rectangular face and a patterned metal strap on the wrist, and a visible bicep tattoo on the forearm. The composition features a shallow depth of field, with the subject in sharp focus against a beautifully diffused, sun-drenched tropical background. Golden hour lighting creates a radiant rim light around the subject's head, shoulders, and along the contour of the arm and watch, emphasizing their silhouette. The sun, partially obscured by the subject's head and the background foliage, produces a striking lens flare and warm, luminous bokeh effects throughout the background. The dominant colors are the rich, golden-orange hues of sunset contrasting with the dark green and brown tones of the tropical palm trees and lush foliage. The overall mood is warm, serene, and sophisticated, with a touch of urban cool. The textures of the t-shirt appear soft and slightly creased, while the metallic sheen of the wristwatch is subtly rendered. This shot embodies a professional photographic style, reminiscent of high-end editorial or lifestyle imagery.",
   },
   {
     label: "Cidade à Noite",
     category: "creative",
+    gender: "neutral",
     text: "Transforme esta foto em uma imagem corporativa futurista estilo Ásia moderna. Cenário: skyline iluminado de Tóquio ou Hong Kong à noite, com letreiros neon e arranha-céus tecnológicos. Pose: postura firme, expressão de liderança. Roupa: terno executivo ou blazer sofisticado, textura realista. Iluminação: neon refletindo no cenário, mantendo consistência no rosto. Preserve identidade facial com precisão molecular e mantenha a fisionomia facial da foto original. Estilo final: foto corporativa futurista, ideal para branding global e inovação.",
   },
   {
     label: "Fundo Colorido",
     category: "creative",
+    gender: "neutral",
     text: "Transforme esta imagem em uma foto de estúdio criativo. Fundo: paredes coloridas (rosa, azul, amarelo, conforme estética desejada). Roupa: look moderno e estilizado (blazer colorido, roupa minimalista, vestido geométrico). Iluminação: forte e clara, realçando cores. Pose: descontraída, leve sorriso ou olhar confiante. Preserve identidade facial e microdetalhes. Estilo final: ensaio artístico em estúdio criativo, ideal para branding moderno. Mantenha a fisionomia facial da foto original para ficar mais realista.",
   },
 
@@ -105,21 +121,25 @@ const SUGGESTIONS = [
   {
     label: "Caminhando na Rua",
     category: "pose",
+    gender: "neutral",
     text: "Transforme esta imagem em uma foto caminhando em rua urbana moderna. Cenário: cidade contemporânea, prédios de vidro, ruas limpas. Roupa: look casual elegante (blazer leve, jeans estiloso, vestido urbano). Iluminação: natural clara, estilo fotografia editorial de rua. Preserve identidade, proporções e movimento original. Estilo final: ensaio urbano de estilo casual chic.",
   },
   {
     label: "Apontando para o Lado",
     category: "pose",
+    gender: "neutral",
     text: "Transforme esta imagem em uma foto com cenário minimalista para posts carrossel. Fundo: sólido em cor única (branco, cinza claro, azul pastel). Pose: neutra ou com gesto de apontar, deixando espaço lateral livre para texto. Roupa: look casual-profissional em contraste com o fundo. Iluminação: uniforme e clara. Preserve identidade facial, microdetalhes e mantenha a fisionomia facial da foto original para ficar mais realista. Estilo final: foto clean e versátil para design de posts e anúncios.",
   },
   {
     label: "Apontando para Cima",
     category: "pose",
+    gender: "neutral",
     text: "Transforme esta foto em uma imagem com gesto de call-to-action. Pose: ajuste uma das mãos apontando para cima ou para o lado, deixando espaço livre no fundo para adicionar textos. Roupa: look casual-profissional. Fundo: sólido (branco, cinza claro ou azul), minimalista para facilitar design gráfico. Iluminação: clara e uniforme. Preserve identidade e naturalidade da expressão, mantendo a fisionomia facial da foto original para ficar mais realista. Estilo final: foto para uso em anúncios, banners e páginas de vendas.",
   },
   {
     label: "Fundo Moderno",
     category: "pose",
+    gender: "neutral",
     text: "Transforme esta imagem em uma foto futurista estilo cyberpunk. Fundo: cidade noturna iluminada com neon (azul, roxo, rosa). Roupa: look futurista ou adaptado (jaqueta moderna, blazer estilizado). Iluminação: intensa, com reflexos neon consistentes. Preserve identidade facial e proporções originais. Estilo final: ensaio criativo de estética futurista e tecnológica. Mantenha a fisionomia facial da foto original para ficar mais realista.",
   },
 ];
@@ -146,6 +166,7 @@ export default function AvatarPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"corporate" | "creative" | "pose">("corporate");
+  const [selectedGender, setSelectedGender] = useState<"male" | "female">("female");
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const styleFileInputRef = useRef<HTMLInputElement>(null);
@@ -583,10 +604,43 @@ export default function AvatarPage() {
               </div>
 
               {/* Sugestões de Estilos */}
-              <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Sugestões de Estilos e Poses
-                </label>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Sugestões de Estilos e Poses
+                  </label>
+
+                  {/* Seletor de Gênero (Masculino / Feminino) */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gênero:</span>
+                    <div className="flex gap-0.5 rounded-lg bg-slate-950/40 p-0.5 border border-slate-800/40">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGender("female")}
+                        className={`flex items-center gap-1.5 py-1 px-3.5 text-[10px] font-bold rounded-md transition-all duration-300 ${
+                          selectedGender === "female"
+                            ? "bg-gradient-to-r from-pink-600/90 to-purple-600/90 text-white shadow-[0_0_8px_rgba(219,39,119,0.2)] border border-pink-500/20"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <span>🙋‍♀️</span>
+                        <span>Feminino</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGender("male")}
+                        className={`flex items-center gap-1.5 py-1 px-3.5 text-[10px] font-bold rounded-md transition-all duration-300 ${
+                          selectedGender === "male"
+                            ? "bg-gradient-to-r from-sky-600/90 to-blue-600/90 text-white shadow-[0_0_8px_rgba(2,132,199,0.2)] border border-sky-500/20"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <span>🙋‍♂️</span>
+                        <span>Masculino</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Seletores de Aba (Tabs) */}
                 <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-950/50 p-1 border border-slate-800/50">
@@ -635,9 +689,13 @@ export default function AvatarPage() {
                   {activeTab === "pose" && "Poses ideais para posts de carrossel, chamadas para ação (CTA) ou mentoria."}
                 </p>
 
-                {/* Grid de Sugestões da Aba Ativa */}
+                {/* Grid de Sugestões da Aba Ativa Filtradas por Gênero */}
                 <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 transition-all duration-300">
-                  {SUGGESTIONS.filter((item) => item.category === activeTab).map((item) => (
+                  {SUGGESTIONS.filter(
+                    (item) =>
+                      item.category === activeTab &&
+                      (item.gender === "neutral" || item.gender === selectedGender)
+                  ).map((item) => (
                     <button
                       key={item.label}
                       type="button"
