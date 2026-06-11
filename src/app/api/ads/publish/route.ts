@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, postId, campaignObjective, creative, budget, durationDays, targeting } = body;
     const { headline, bodyText, imageUrl, ctaType, ctaLink } = creative || {};
-    const { address, radiusKm, ageMin, ageMax, gender, latitude: inputLat, longitude: inputLng, locType, locKey } = targeting || {};
+    const { address, radiusKm, ageMin, ageMax, gender, latitude: inputLat, longitude: inputLng, locType, locKey, locations } = targeting || {};
 
     if (!name || !creative || !imageUrl || !budget || !durationDays || !targeting) {
       return NextResponse.json(
@@ -167,10 +167,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const isAreaTarget = locType === "País" || locType === "Estado";
+    const hasLocationsArray = locations && Array.isArray(locations) && locations.length > 0;
+    const isAreaTarget = locType === "País" || locType === "Estado" || (hasLocationsArray && locations.some((l: any) => l.type === "País" || l.type === "Estado"));
 
-    // 3. Se ambos falharem e não for uma segmentação ampla por País/Estado, impede a criação do anúncio
-    if (!isAreaTarget && (latitude === null || longitude === null)) {
+    if (hasLocationsArray) {
+      const hasValidTarget = locations.some((l: any) => l.type === "País" || l.type === "Estado" || (typeof l.latitude === "number" && typeof l.longitude === "number"));
+      if (!hasValidTarget) {
+        throw new Error("Nenhuma das localizações selecionadas possui coordenadas ou região válida.");
+      }
+    } else if (!isAreaTarget && (latitude === null || longitude === null)) {
       throw new Error(
         "Não conseguimos localizar o endereço de referência no mapa. Por favor, forneça um endereço mais detalhado contendo cidade e estado (Ex: Av. Paulista, 1000, São Paulo - SP)."
       );
@@ -178,55 +183,109 @@ export async function POST(request: NextRequest) {
 
     // Configura a segmentação de geo-locations da Meta dinamicamente
     let geoLocations: any = {};
-    const cleanKey = locKey ? locKey.replace(/^meta_\d+_\s*/, "") : "";
 
-    if (locType === "País") {
-      geoLocations = {
-        countries: [cleanKey || "BR"],
-      };
-    } else if (locType === "Estado") {
-      let stateKey = cleanKey;
-      // Se for um ID do Nominatim ou estiver ausente, tenta obter o ID da Meta via mapa estático de estados
-      if (!stateKey || stateKey.startsWith("nom_") || stateKey.startsWith("nom_client_")) {
-        const getMetaRegionKey = (stateName: string): string | null => {
-          const normalized = stateName.toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          const stateMap: Record<string, string> = {
-            "acre": "480", "ac": "480", "alagoas": "481", "al": "481", "amazonas": "482", "am": "482",
-            "amapa": "483", "ap": "483", "bahia": "484", "ba": "484", "ceara": "485", "ce": "485",
-            "distrito federal": "486", "df": "486", "espirito santo": "487", "es": "487", "goias": "488", "go": "488",
-            "maranhao": "489", "ma": "489", "minas gerais": "490", "mg": "490", "mato grosso do sul": "491", "ms": "491",
-            "mato grosso": "492", "mt": "492", "para": "493", "pa": "493", "paraiba": "494", "pb": "494",
-            "pernambuco": "495", "pe": "495", "piaui": "496", "pi": "496", "parana": "497", "pr": "497",
-            "rio de janeiro": "498", "rj": "498", "rio grande do norte": "499", "rn": "499", "rondonia": "500", "ro": "500",
-            "roraima": "501", "rr": "501", "rio grande do sul": "456", "rs": "456", "santa catarina": "502", "sc": "502",
-            "sergipe": "503", "se": "503", "sao paulo": "504", "sp": "504", "tocantins": "505", "to": "505"
-          };
-          for (const [key, value] of Object.entries(stateMap)) {
-            if (normalized.includes(key)) return value;
+    if (hasLocationsArray) {
+      const countries: string[] = [];
+      const regions: { key: string }[] = [];
+      const customLocations: any[] = [];
+
+      for (const loc of locations) {
+        const cleanKey = loc.key ? loc.key.replace(/^meta_\d+_\s*/, "") : "";
+        if (loc.type === "País") {
+          countries.push(cleanKey || "BR");
+        } else if (loc.type === "Estado") {
+          let stateKey = cleanKey;
+          if (!stateKey || stateKey.startsWith("nom_") || stateKey.startsWith("nom_client_")) {
+            const getMetaRegionKey = (stateName: string): string | null => {
+              const normalized = stateName.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              const stateMap: Record<string, string> = {
+                "acre": "480", "ac": "480", "alagoas": "481", "al": "481", "amazonas": "482", "am": "482",
+                "amapa": "483", "ap": "483", "bahia": "484", "ba": "484", "ceara": "485", "ce": "485",
+                "distrito federal": "486", "df": "486", "espirito santo": "487", "es": "487", "goias": "488", "go": "488",
+                "maranhao": "489", "ma": "489", "minas gerais": "490", "mg": "490", "mato grosso do sul": "491", "ms": "491",
+                "mato grosso": "492", "mt": "492", "para": "493", "pa": "493", "paraiba": "494", "pb": "494",
+                "pernambuco": "495", "pe": "495", "piaui": "496", "pi": "496", "parana": "497", "pr": "497",
+                "rio de janeiro": "498", "rj": "498", "rio grande do norte": "499", "rn": "499", "rondonia": "500", "ro": "500",
+                "roraima": "501", "rr": "501", "rio grande do sul": "456", "rs": "456", "santa catarina": "502", "sc": "502",
+                "sergipe": "503", "se": "503", "sao paulo": "504", "sp": "504", "tocantins": "505", "to": "505"
+              };
+              for (const [key, value] of Object.entries(stateMap)) {
+                if (normalized.includes(key)) return value;
+              }
+              return null;
+            };
+            stateKey = getMetaRegionKey(loc.name || "") || "456"; // default para RS se falhar
           }
-          return null;
-        };
-        stateKey = getMetaRegionKey(address || "") || "456"; // default para RS se falhar
+          regions.push({ key: stateKey });
+        } else {
+          // Cidades, bairros, ruas e endereços entram como custom_locations (lat/lng + raio)
+          if (typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+            customLocations.push({
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              radius: radiusKm || 5,
+              distance_unit: "kilometer",
+            });
+          }
+        }
       }
-      geoLocations = {
-        regions: [
-          {
-            key: stateKey,
-          },
-        ],
-      };
+
+      if (countries.length > 0) geoLocations.countries = countries;
+      if (regions.length > 0) geoLocations.regions = regions;
+      if (customLocations.length > 0) geoLocations.custom_locations = customLocations;
     } else {
-      geoLocations = {
-        custom_locations: [
-          {
-            latitude: latitude,
-            longitude: longitude,
-            radius: radiusKm || 5,
-            distance_unit: "kilometer",
-          },
-        ],
-      };
+      // Fallback para comportamento de localização única (compatibilidade anterior)
+      const cleanKey = locKey ? locKey.replace(/^meta_\d+_\s*/, "") : "";
+      if (locType === "País") {
+        geoLocations = {
+          countries: [cleanKey || "BR"],
+        };
+      } else if (locType === "Estado") {
+        let stateKey = cleanKey;
+        if (!stateKey || stateKey.startsWith("nom_") || stateKey.startsWith("nom_client_")) {
+          const getMetaRegionKey = (stateName: string): string | null => {
+            const normalized = stateName.toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const stateMap: Record<string, string> = {
+              "acre": "480", "ac": "480", "alagoas": "481", "al": "481", "amazonas": "482", "am": "482",
+              "amapa": "483", "ap": "483", "bahia": "484", "ba": "484", "ceara": "485", "ce": "485",
+              "distrito federal": "486", "df": "486", "espirito santo": "487", "es": "487", "goias": "488", "go": "488",
+              "maranhao": "489", "ma": "489", "minas gerais": "490", "mg": "490", "mato grosso do sul": "491", "ms": "491",
+              "mato grosso": "492", "mt": "492", "para": "493", "pa": "493", "paraiba": "494", "pb": "494",
+              "pernambuco": "495", "pe": "495", "piaui": "496", "pi": "496", "parana": "497", "pr": "497",
+              "rio de janeiro": "498", "rj": "498", "rio grande do norte": "499", "rn": "499", "rondonia": "500", "ro": "500",
+              "roraima": "501", "rr": "501", "rio grande do sul": "456", "rs": "456", "santa catarina": "502", "sc": "502",
+              "sergipe": "503", "se": "503", "sao paulo": "504", "sp": "504", "tocantins": "505", "to": "505"
+            };
+            for (const [key, value] of Object.entries(stateMap)) {
+              if (normalized.includes(key)) return value;
+            }
+            return null;
+          };
+          stateKey = getMetaRegionKey(address || "") || "456";
+        }
+        geoLocations = {
+          regions: [
+            {
+              key: stateKey,
+            },
+          ],
+        };
+      } else {
+        if (latitude !== null && longitude !== null) {
+          geoLocations = {
+            custom_locations: [
+              {
+                latitude: latitude,
+                longitude: longitude,
+                radius: radiusKm || 5,
+                distance_unit: "kilometer",
+              },
+            ],
+          };
+        }
+      }
     }
 
     // Configura a segmentação da Meta

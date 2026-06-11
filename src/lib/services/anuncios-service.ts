@@ -50,6 +50,13 @@ export interface AdCampaignData {
     ageMin: number;
     ageMax: number;
     gender: "all" | "male" | "female";
+    locations?: Array<{
+      name: string;
+      type: string;
+      key?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+    }>;
   };
   
   metrics?: {
