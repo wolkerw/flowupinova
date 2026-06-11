@@ -19,76 +19,76 @@ import Image from "next/image";
 const SUGGESTIONS = [
   // Categoria: corporate
   {
-    label: "Terno Moderno (Escritório)",
+    label: "Terno no Escritório",
     category: "corporate",
     text: "vestindo terno cinza moderno com camisa branca, em um escritório corporativo iluminado com fundo suavemente desfocado",
   },
   {
-    label: "Blazer Social (Biblioteca)",
+    label: "Blazer Azul",
     category: "corporate",
     text: "vestindo blazer azul marinho elegante sobre blusa social, em uma biblioteca de madeira clássica com iluminação quente de estúdio",
   },
   {
-    label: "Casual Fino (Urbano)",
+    label: "Blazer na Rua",
     category: "corporate",
     text: "vestindo blazer bege esporte fino com camisa polo, em um ambiente externo urbano de negócios desfocado com luz natural do sol",
   },
   {
-    label: "Retrato Corporativo Clássico",
+    label: "Terno Preto",
     category: "corporate",
     text: "vestindo terno preto completo com gravata, em estúdio profissional com fundo cinza neutro e luz de estúdio tridimensional",
   },
   {
-    label: "Editorial Branding Pessoal",
+    label: "No Computador",
     category: "corporate",
     text: "Transforme esta imagem em uma foto com props da marca pessoal. Objetos: adicione caneca personalizada, livro, notebook ou material de marca com logotipo visível de forma discreta. Fundo: clean em tons claros, ou cenário de escritório minimalista. Roupa: look casual-profissional. Iluminação: clara e suave. Preserve identidade facial e expressão natural. Estilo final: foto profissional de branding pessoal para materiais digitais.",
   },
 
   // Categoria: creative
   {
-    label: "Streetwear Puffer Moderno",
+    label: "Jaqueta Moderna",
     category: "creative",
     text: "Ultra-realistic, highly detailed 8K cinematic wide shot of a contemporary figure modeling a stylized deep-purple puffer jacket. Half-body framing, subject slightly off-center to the left, looking directly at the viewer with a neutral, intense expression. The hood is down, not covering the head. The jacket features a large white Nike swoosh on the right side of the hood, a bright green smiley patch near it, and The North Face logo on the left chest, with additional subtle graphic symbols on the arms and torso. The subject is wearing sleek, modern sport sunglasses. Background is a vibrant urban gradient from deep purple to warm orange, with distressed white graffiti adding texture. Add the word 'PROMPT' in the background using the exact same font style, texture, size impression, and visual treatment as the existing graffiti text. Lighting combines cool purple light from the left and warm orange light from the right, creating dramatic rim lighting and high contrast. Electric purples, orange accents, vivid green, and clean white logos dominate the palette. Studio-quality photography with crisp sharpness, shallow depth of field, and a confident, high-fashion streetwear mood. Remove any tiny letters or micro-text from the sports sunglasses; change nothing else.",
   },
   {
-    label: "Retrato Cyberpunk Neon",
+    label: "Luzes Coloridas",
     category: "creative",
     text: "Hyper-realistic portrait of a man with short textured dark hair and a defined short beard, wearing futuristic cyberpunk sunglasses - mirrored neon lenses, continuous visor-like surface, translucent glow and holographic reflections. Night urban neon environment, low-angle cinematic shot, looking upward with confident expression. Strong orange and cyan neon reflections on the face and futuristic glasses high contrast warm-cold color palette. Ultra-detailed skin and beard texture, intense light reflections and glass clarity. Defocused neon background with cinematic bokeh, immersive cyberpunk city vibe. HDR lighting, micro-detail realism, glowing highlights, futuristic editorial style. 8K resolution, 50mm f/1.2, shallow DOF, extreme sharpness, neon color grading, bold reflective lens flare. Parameters: futuristic neon visor glasses, ultra-realistic, HDR, neon glow reflections, extreme sharpness, cyberpunk cinematic, 8K, low-angle powerful shot, bokeh lights.",
   },
   {
-    label: "Estilo Tropical Golden Hour",
+    label: "Sol e Palmeiras",
     category: "creative",
     text: "An ultra-realistic, highly detailed, 8K, cinematic medium-shot portrait captures a confident individual, facing slightly to the right with a contemplative gaze. The subject is wearing stylish dark circular sunglasses with a subtle brown tortoise shell pattern, a simple black short-sleeved t-shirt with 'Brooklyn 1999' inscribed in white font on the chest, and beige or light khaki trousers. One hand is casually placed in a trouser pocket, revealing a detailed silver-toned wristwatch with a rectangular face and a patterned metal strap on the wrist, and a visible bicep tattoo on the forearm. The composition features a shallow depth of field, with the subject in sharp focus against a beautifully diffused, sun-drenched tropical background. Golden hour lighting creates a radiant rim light around the subject's head, shoulders, and along the contour of the arm and watch, emphasizing their silhouette. The sun, partially obscured by the subject's head and the background foliage, produces a striking lens flare and warm, luminous bokeh effects throughout the background. The dominant colors are the rich, golden-orange hues of sunset contrasting with the dark green and brown tones of the tropical palm trees and lush foliage. The overall mood is warm, serene, and sophisticated, with a touch of urban cool. The textures of the t-shirt appear soft and slightly creased, while the metallic sheen of the wristwatch is subtly rendered. This shot embodies a professional photographic style, reminiscent of high-end editorial or lifestyle imagery.",
   },
   {
-    label: "Retrato Futurista Ásia",
+    label: "Cidade à Noite",
     category: "creative",
     text: "Transforme esta foto em uma imagem corporativa futurista estilo Ásia moderna. Cenário: skyline iluminado de Tóquio ou Hong Kong à noite, com letreiros neon e arranha-céus tecnológicos. Pose: postura firme, expressão de liderança. Roupa: terno executivo ou blazer sofisticado, textura realista. Iluminação: neon refletindo no cenário, mantendo consistência no rosto. Preserve identidade facial com precisão molecular e mantenha a fisionomia facial da foto original. Estilo final: foto corporativa futurista, ideal para branding global e inovação.",
   },
   {
-    label: "Estúdio Criativo Colorido (Brand)",
+    label: "Fundo Colorido",
     category: "creative",
     text: "Transforme esta imagem em uma foto de estúdio criativo. Fundo: paredes coloridas (rosa, azul, amarelo, conforme estética desejada). Roupa: look moderno e estilizado (blazer colorido, roupa minimalista, vestido geométrico). Iluminação: forte e clara, realçando cores. Pose: descontraída, leve sorriso ou olhar confiante. Preserve identidade facial e microdetalhes. Estilo final: ensaio artístico em estúdio criativo, ideal para branding moderno. Mantenha a fisionomia facial da foto original para ficar mais realista.",
   },
 
   // Categoria: pose
   {
-    label: "Pose Movimento Street",
+    label: "Caminhando na Rua",
     category: "pose",
     text: "Transforme esta imagem em uma foto caminhando em rua urbana moderna. Cenário: cidade contemporânea, prédios de vidro, ruas limpas. Roupa: look casual elegante (blazer leve, jeans estiloso, vestido urbano). Iluminação: natural clara, estilo fotografia editorial de rua. Preserve identidade, proporções e movimento original. Estilo final: ensaio urbano de estilo casual chic.",
   },
   {
-    label: "Pose Apresentação Carrossel",
+    label: "Apontando para o Lado",
     category: "pose",
-    text: "Transforme esta imagem em uma foto com cenário minimalista para posts carrossel. Fundo: sólido em cor única (branco, cinza claro, azul pastel). Pose: neutra ou com gesto de apontar, deixando espaço lateral livre para texto. Roupa: look casual-profissional in contraste com o fundo. Iluminação: uniforme e clara. Preserve identidade facial, microdetalhes e mantenha a fisionomia facial da foto original para ficar mais realista. Estilo final: foto clean e versátil para design de posts e anúncios.",
+    text: "Transforme esta imagem em uma foto com cenário minimalista para posts carrossel. Fundo: sólido em cor única (branco, cinza claro, azul pastel). Pose: neutra ou com gesto de apontar, deixando espaço lateral livre para texto. Roupa: look casual-profissional em contraste com o fundo. Iluminação: uniforme e clara. Preserve identidade facial, microdetalhes e mantenha a fisionomia facial da foto original para ficar mais realista. Estilo final: foto clean e versátil para design de posts e anúncios.",
   },
   {
-    label: "Pose Coach CTA",
+    label: "Apontando para Cima",
     category: "pose",
     text: "Transforme esta foto em uma imagem com gesto de call-to-action. Pose: ajuste uma das mãos apontando para cima ou para o lado, deixando espaço livre no fundo para adicionar textos. Roupa: look casual-profissional. Fundo: sólido (branco, cinza claro ou azul), minimalista para facilitar design gráfico. Iluminação: clara e uniforme. Preserve identidade e naturalidade da expressão, mantendo a fisionomia facial da foto original para ficar mais realista. Estilo final: foto para uso em anúncios, banners e páginas de vendas.",
   },
   {
-    label: "Pose Futurista Cyberpunk (Mentor)",
+    label: "Fundo Moderno",
     category: "pose",
     text: "Transforme esta imagem em uma foto futurista estilo cyberpunk. Fundo: cidade noturna iluminada com neon (azul, roxo, rosa). Roupa: look futurista ou adaptado (jaqueta moderna, blazer estilizado). Iluminação: intensa, com reflexos neon consistentes. Preserve identidade facial e proporções originais. Estilo final: ensaio criativo de estética futurista e tecnológica. Mantenha a fisionomia facial da foto original para ficar mais realista.",
   },
