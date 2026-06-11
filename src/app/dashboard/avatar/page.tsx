@@ -19,42 +19,62 @@ import Image from "next/image";
 const SUGGESTIONS = [
   // Categoria: corporate
   {
-    label: "Terno no Escritório",
+    label: "Terno no Escritório (Homem)",
     category: "corporate",
     text: "vestindo terno cinza moderno com camisa branca, em um escritório corporativo iluminado com fundo suavemente desfocado",
   },
   {
-    label: "Blazer Azul",
+    label: "Blazer Azul (Mulher)",
     category: "corporate",
     text: "vestindo blazer azul marinho elegante sobre blusa social, em uma biblioteca de madeira clássica com iluminação quente de estúdio",
   },
   {
-    label: "Blazer na Rua",
+    label: "Blazer na Rua (Homem)",
     category: "corporate",
     text: "vestindo blazer bege esporte fino com camisa polo, em um ambiente externo urbano de negócios desfocado com luz natural do sol",
   },
   {
-    label: "Terno Preto",
+    label: "Terno Preto (Homem)",
     category: "corporate",
     text: "vestindo terno preto completo com gravata, em estúdio profissional com fundo cinza neutro e luz de estúdio tridimensional",
+  },
+  {
+    label: "Estilo Líder (Homem)",
+    category: "corporate",
+    text: "Crie um retrato sóbrio e autoritário de um homem. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está sentada ou em pé, imóvel, com o corpo perfeitamente equilibrado, ombros relaxados e coluna reta. As mãos devem estar visíveis e compostas, descansando juntas ou relaxadas no colo. A cabeça está levemente inclinada para frente, os olhos firmes e a expressão é séria, mas humana. Roupa: terno azul-marinho, camisa azul-clara, estilo minimalista. Fundo: espaço amplo e minimalista ou um degradê suave que transmita escala e responsabilidade. Iluminação: suave, naturalista, como luz de dia nublado, sem drama e sem brilho excessivo. Câmera: Nikon Z8, lente 85mm, Deep Tone Control. Clima: confiança, liderança, credibilidade e poder silencioso. Prompt negativo: sem exagero de moda, sem iluminação teatral, sem sorriso forçado, sem alteração facial, sem ruído, sem texto.",
+  },
+  {
+    label: "Profissional Leve (Mulher)",
+    category: "corporate",
+    text: "Crie um retrato profissional, acolhedor e iluminado de uma mulher. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está em pé, com os braços relaxados ao lado do corpo e os ombros soltos. Uma leve inclinação em direção à câmera deve transmitir proximidade e simpatia. Um sorriso amigável e olhos abertos e receptivos são essenciais. Roupa: blazer claro com camisa em tom pastel. Fundo: interior neutro e suave. Iluminação: luz natural de janela. Câmera: Canon EOS R5, lente 85mm. Prompt negativo: sem alteração facial, sem mudança de idade, sem mudança de peso, sem distorção corporal, sem caricatura, sem filtro de beleza, sem excesso de suavização na pele, sem desfoque, sem ruído, sem texto, sem logos, sem marca d’água, sem artefatos.",
   },
   {
     label: "No Computador",
     category: "corporate",
     text: "Transforme esta imagem em uma foto com props da marca pessoal. Objetos: adicione caneca personalizada, livro, notebook ou material de marca com logotipo visível de forma discreta. Fundo: clean em tons claros, ou cenário de escritório minimalista. Roupa: look casual-profissional. Iluminação: clara e suave. Preserve identidade facial e expressão natural. Estilo final: foto profissional de branding pessoal para materiais digitais.",
   },
-  {
-    label: "Estilo Líder",
-    category: "corporate",
-    text: "Crie um retrato sóbrio e autoritário da pessoa enviada na imagem de referência. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está sentada ou em pé, imóvel, com o corpo perfeitamente equilibrado, ombros relaxados e coluna reta. As mãos devem estar visíveis e compostas, descansando juntas ou relaxadas no colo. A cabeça está levemente inclinada para frente, os olhos firmes e a expressão é séria, mas humana. Roupa: terno azul-marinho, camisa azul-clara, estilo minimalista. Fundo: espaço amplo e minimalista ou um degradê suave que transmita escala e responsabilidade. Iluminação: suave, naturalista, como luz de dia nublado, sem drama e sem brilho excessivo. Câmera: Nikon Z8, lente 85mm, Deep Tone Control. Clima: confiança, liderança, credibilidade e poder silencioso. Prompt negativo: sem exagero de moda, sem iluminação teatral, sem sorriso forçado, sem alteração facial, sem ruído, sem texto.",
-  },
-  {
-    label: "Profissional Leve",
-    category: "corporate",
-    text: "Crie um retrato profissional, acolhedor e iluminado da pessoa enviada na imagem de referência. MANTENHA AS CARACTERÍSTICAS FACIAIS IGUAIS À FOTO ORIGINAL. A pessoa está em pé, com os braços relaxados ao lado do corpo e os ombros soltos. Uma leve inclinação em direção à câmera deve transmitir proximidade e simpatia. Um sorriso amigável e olhos abertos e receptivos são essenciais. Roupa: blazer claro com camisa em tom pastel. Fundo: interior neutro e suave. Iluminação: luz natural de janela. Câmera: Canon EOS R5, lente 85mm. Prompt negativo: sem alteração facial, sem mudança de idade, sem mudança de peso, sem distorção corporal, sem caricatura, sem filtro de beleza, sem excesso de suavização na pele, sem desfoque, sem ruído, sem texto, sem logos, sem marca d’água, sem artefatos.",
-  },
 
   // Categoria: creative
+  {
+    label: "Camisa Branca (Mulher)",
+    category: "creative",
+    text: "Black and white fine art portrait of a young woman, long slightly messy hair framing her delicate face, smooth fair skin, wearing an oversized white shirt. Pose: sitting with one hand resting gently under her chin, looking at the camera with a calm and thoughtful expression. Studio setting with plain grey backdrop, soft cinematic lighting, minimalistic composition. Ultra realistic, sharp facial details, natural textures, elegant and sophisticated style. Professional photography, 8K quality, high contrast monochrome aesthetic.",
+  },
+  {
+    label: "Gola Alta (Mulher)",
+    category: "creative",
+    text: "High-end, ultra-realistic black-and-white portrait of a young woman, medium-close shot (head and upper torso), facing slightly toward camera with a calm, confident expression. Her long hair falls naturally over the shoulders with subtle loose waves and delicate rim light defining the strands. Lighting: dramatic studio setup with a single soft key light from camera left creating smooth shadows on the right side of the face, plus a subtle hair light from behind to outline the silhouette. Wardrobe: black turtleneck sweater, matte texture absorbing light for strong separation from the dark, seamless background. Skin rendered with natural texture and balanced highlights, no airbrushing. Background: pure black, no details, giving full isolation and high contrast. Lens: 85 mm prime at f/1.8 for shallow depth of field and creamy falloff. Overall style: elegant monochrome, wide dynamic range, crisp detail and soft gradients for a classic fine-art studio portrait.",
+  },
+  {
+    label: "Preto e Branco (Homem)",
+    category: "creative",
+    text: "Crie um retrato cinematográfico hiper-realista em preto e branco, estilo chiaroscuro, de um homem. A pessoa está sentada em ângulo de três quartos, levemente inclinada para frente, com postura relaxada, mas dominante. O rosto está levemente virado para fora da câmera, sem olhar diretamente para a lente. Um lado do rosto deve estar fortemente iluminado, enquanto o outro desaparece em uma sombra preta profunda e aveludada. A expressão é contemplativa. As mãos estão próximas ao peito, em uma pose natural e precisa, com os dedos suavemente entrelaçados. Um dos pulsos mostra um relógio cronógrafo preto de luxo com pulseira metálica detalhada. Uma das mãos usa um anel prateado discreto. A pessoa veste um blazer preto elegante sobre uma camisa branca social com os primeiros botões abertos. Fundo: preto sólido, sem emendas. Iluminação: luz de estúdio forte e direcional, com contraste rico e sombras limpas. Destaque detalhes como fios de cabelo, textura da pele, barba se houver, brilho dos olhos, rosto do relógio, reflexos da pulseira metálica e anel prateado. Lente: retrato 85mm, profundidade de campo rasa, fotografia comercial premium, foco ultra nítido. Prompt negativo: sem pele artificial, sem dedos extras, sem mãos distorcidas, sem anatomia errada.",
+  },
+  {
+    label: "Estilo Cinema (Homem)",
+    category: "creative",
+    text: "Crie um retrato altamente cinematográfico de um homem, preservando 100% das características faciais e proporções naturais. A pessoa usa uma camiseta branca por baixo de uma jaqueta de couro azul, com textura realista de tecido e reflexos suaves de luz. O fundo tem um degradê de estúdio suave, indo do escuro na parte superior para um tom mais claro na parte inferior, criando profundidade e contraste ao redor da pessoa. A iluminação é suave, difusa e cinematográfica, com pontos de luz equilibrados que definem o rosto e sombras sutis que adicionam realismo e drama. A composição é perfeitamente centralizada, transmitindo intimidade, profundidade emocional e um tom editorial elegante.",
+  },
   {
     label: "Jaqueta Moderna",
     category: "creative",
@@ -63,7 +83,7 @@ const SUGGESTIONS = [
   {
     label: "Luzes Coloridas",
     category: "creative",
-    text: "Hyper-realistic portrait of a man with short textured dark hair and a defined short beard, wearing futuristic cyberpunk sunglasses - mirrored neon lenses, continuous visor-like surface, translucent glow and holographic reflections. Night urban neon environment, low-angle cinematic shot, looking upward with confident expression. Strong orange and cyan neon reflections on the face and futuristic glasses high contrast warm-cold color palette. Ultra-detailed skin and beard texture, intense light reflections and glass clarity. Defocused neon background with cinematic bokeh, immersive cyberpunk city vibe. HDR lighting, micro-detail realism, glowing highlights, futuristic editorial style. 8K resolution, 50mm f/1.2, shallow DOF, extreme sharpness, neon color grading, bold reflective lens flare. Parameters: futuristic neon visor glasses, ultra-realistic, HDR, neon glow reflections, extreme sharpness, cyberpunk cinematic, 8K, low-angle powerful shot, bokeh lights.",
+    text: "Hyper-realistic portrait of a person with short textured dark hair, wearing futuristic cyberpunk sunglasses - mirrored neon lenses, continuous visor-like surface, translucent glow and holographic reflections. Night urban neon environment, low-angle cinematic shot, looking upward with confident expression. Strong orange and cyan neon reflections on the face and futuristic glasses high contrast warm-cold color palette. Ultra-detailed skin texture, intense light reflections and glass clarity. Defocused neon background with cinematic bokeh, immersive cyberpunk city vibe. HDR lighting, micro-detail realism, glowing highlights, futuristic editorial style. 8K resolution, 50mm f/1.2, shallow DOF, extreme sharpness, neon color grading, bold reflective lens flare. Parameters: futuristic neon visor glasses, ultra-realistic, HDR, neon glow reflections, extreme sharpness, cyberpunk cinematic, 8K, low-angle powerful shot, bokeh lights.",
   },
   {
     label: "Sol e Palmeiras",
@@ -79,16 +99,6 @@ const SUGGESTIONS = [
     label: "Fundo Colorido",
     category: "creative",
     text: "Transforme esta imagem em uma foto de estúdio criativo. Fundo: paredes coloridas (rosa, azul, amarelo, conforme estética desejada). Roupa: look moderno e estilizado (blazer colorido, roupa minimalista, vestido geométrico). Iluminação: forte e clara, realçando cores. Pose: descontraída, leve sorriso ou olhar confiante. Preserve identidade facial e microdetalhes. Estilo final: ensaio artístico em estúdio criativo, ideal para branding moderno. Mantenha a fisionomia facial da foto original para ficar mais realista.",
-  },
-  {
-    label: "Estilo Cinema",
-    category: "creative",
-    text: "Crie um retrato altamente cinematográfico da mesma pessoa da imagem de referência, preservando 100% das características faciais e proporções naturais. A pessoa usa uma camiseta branca por baixo de uma jaqueta de couro azul, com textura realista de tecido e reflexos suaves de luz. O fundo tem um degradê de estúdio suave, indo do escuro na parte superior para um tom mais claro na parte inferior, criando profundidade e contraste ao redor da pessoa. A iluminação é suave, difusa e cinematográfica, com pontos de luz equilibrados que definem o rosto e sombras sutis que adicionam realismo e drama. A composição é perfeitamente centralizada, transmitindo intimidade, profundidade emocional e um tom editorial elegante.",
-  },
-  {
-    label: "Preto e Branco",
-    category: "creative",
-    text: "Crie um retrato cinematográfico hiper-realista em preto e branco, estilo chiaroscuro, da pessoa enviada na imagem de referência. A pessoa está sentada em ângulo de três quartos, levemente inclinada para frente, com postura relaxada, mas dominante. O rosto está levemente virado para fora da câmera, sem olhar diretamente para a lente. Um lado do rosto deve estar fortemente iluminado, enquanto o outro desaparece em uma sombra preta profunda e aveludada. A expressão é contemplativa. As mãos estão próximas ao peito, em uma pose natural e precisa, com os dedos suavemente entrelaçados. Um dos pulsos mostra um relógio cronógrafo preto de luxo com pulseira metálica detalhada. Uma das mãos usa um anel prateado discreto. A pessoa veste um blazer preto elegante sobre uma camisa branca social com os primeiros botões abertos. Fundo: preto sólido, sem emendas. Iluminação: luz de estúdio forte e direcional, com contraste rico e sombras limpas. Destaque detalhes como fios de cabelo, textura da pele, barba se houver, brilho dos olhos, rosto do relógio, reflexos da pulseira metálica e anel prateado. Lente: retrato 85mm, profundidade de campo rasa, fotografia comercial premium, foco ultra nítido. Prompt negativo: sem pele artificial, sem dedos extras, sem mãos distorcidas, sem anatomia errada.",
   },
 
   // Categoria: pose
