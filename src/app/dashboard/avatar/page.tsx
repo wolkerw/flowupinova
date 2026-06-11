@@ -90,6 +90,18 @@ const SUGGESTIONS = [
     gender: "female",
     text: "Usando a mesma foto e mulher que me enviou como referência Crie um retrato hiper-realista e profissional em alta resolução, com qualidade fotográfica de estúdio (iluminação suave, nítida e equilibrada). A cena mostra uma mulher sentada em uma poltrona de couro marrom, com pose elegante e confiante. Uma mão apoiada sobre a perna e a outra mão no braço da poltrona. A mulher tem cabelos castanhos escuros longos, ondulados, com mechas nas pontas, caindo naturalmente sobre os ombros. A mulher tem cabelos castanhos escuros longos, levemente ondulados, com mechas nas pontas, iluminados com brilho natural. Ela usa maquiagem elegante com sobrancelhas definidas, olhos suaves e lábios nude. O look é totalmente preto, composto por uma blusa preta transparente com textura delicada, mangas longas e gola alta, combinada com uma calça preta fluida. Os acessórios dourados chamativos: brincos, pulseiras e anéis medianos e modernos. A pose mostra uma mão encostada suavemente no rosto e a outra apoiada na poltrona, transmitindo segurança, elegância e presença de moda. O fundo é neutro, escuro e limpo, reforçando o estilo editorial e o clima de ensaio fotográfico de alto padrão. Formato desejado: foto hiper-realista, nítida, iluminada profissionalmente, estética editorial de moda, alta qualidade.",
   },
+  {
+    label: "Blazer Branco de Perfil",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a mesma Foto como referência crie um retrato realista em altíssima qualidade (8K), iluminação suave e profissional em estúdio com fundo escuro. Mulher de perfil, com postura elegante e confiante. Ela tem cabelos castanhos escuros, longos e levemente ondulados, com mechas mais claras nas pontas (mesmo estando presos no penteado) O cabelo está penteado para trás, bem alinhado. A mulher veste um blazer branco estruturado, bem ajustado ao corpo, transmitindo elegância corporativa. Ela está com um braço cruzado e o outro levemente levantado, segurando delicadamente os dedos, criando uma pose sofisticada. Usa brincos dourados volumosos e anéis dourados. Sua expressão é séria e contemplativa, olhando para frente. Fotografia com foco nítido, textura suave de pele, sombras dramáticas e contraste equilibrado, estilo editorial fashion.",
+  },
+  {
+    label: "Blazer Branco na Mesa",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a mesma foto como referência, crie um retrato feminino hiper-realista de qualidade profissional 8K. A mulher tem cabelos castanho-escuros longos e ondulados, com mechas mais claras nas pontas (mesmo estando presos no penteado). A pele é iluminada, com textura natural e maquiagem elegante em tons neutros. Ela usa um blazer branco estruturado e acessórios dourados volumosos, como braceletes, anéis e brincos sofisticados. Está posicionada sentada à mesa, com as mãos cruzadas à frente e olhar levemente direcionado para a lateral, transmitindo confiança e autoridade. O fundo é marrom escuro com textura suave, iluminação difusa em estilo editorial de revista de luxo, contraste equilibrado e profundidade de campo curta. Estética minimalista e refinada, mantendo realismo extremo e atmosfera profissional.",
+  },
 
   // Categoria: creative
   {
