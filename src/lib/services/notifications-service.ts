@@ -39,23 +39,31 @@ export async function processPendingNotifications(userId: string): Promise<void>
   const notificationsRef = getNotificationsCollectionRef(userId);
   const now = Timestamp.now();
 
-  // Query for pending notifications, ordered by their scheduled time.
-  // This avoids the composite index requirement by filtering the date on the client-side.
+  // Query for pending notifications.
+  // We avoid the composite index requirement by filtering status first and sorting/filtering time on the client-side.
   const q = query(
     notificationsRef,
-    where("status", "==", "pending"),
-    orderBy("scheduledAt", "asc")
+    where("status", "==", "pending")
   );
 
   try {
     const querySnapshot = await getDocs(q);
 
-    for (const notificationDoc of querySnapshot.docs) {
+    // Ordenar em memória para evitar a necessidade de índice composto
+    const sortedDocs = [...querySnapshot.docs].sort((a, b) => {
+      const scheduledA = a.data().scheduledAt as Timestamp | undefined;
+      const scheduledB = b.data().scheduledAt as Timestamp | undefined;
+      const timeA = scheduledA?.toMillis() ?? 0;
+      const timeB = scheduledB?.toMillis() ?? 0;
+      return timeA - timeB;
+    });
+
+    for (const notificationDoc of sortedDocs) {
       const notification = notificationDoc.data();
 
       // Client-side check for the time.
       if (notification.scheduledAt > now) {
-        // Since the query is ordered, we can stop once we find a notification scheduled for the future.
+        // Since the list is sorted, we can stop once we find a notification scheduled for the future.
         break;
       }
 

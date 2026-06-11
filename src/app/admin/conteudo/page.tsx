@@ -46,10 +46,27 @@ export default function AdminConteudoPage() {
         fetch("/api/admin/users"),
         fetch("/api/admin/stats"),
       ]);
+
+      if (
+        usersRes.status === 403 ||
+        usersRes.status === 401 ||
+        statsRes.status === 403 ||
+        statsRes.status === 401
+      ) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+
+      if (!usersRes.ok || !statsRes.ok) {
+        throw new Error("Falha ao carregar dados");
+      }
+
       const usersData = await usersRes.json();
       const statsData = await statsRes.json();
       setUsers(usersData.users ?? []);
       setStats(statsData.stats ?? null);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -33,8 +33,15 @@ export default function AdminLogsPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/logs");
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error("Falha ao carregar logs");
       const data = await res.json();
       setFailedPosts(data.failedPosts ?? []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -183,7 +183,8 @@ export default function GaleriaPage() {
         description: "Preparando a imagem para download.",
       });
 
-      const response = await fetch(url);
+      const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error("Falha na resposta da rede");
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
