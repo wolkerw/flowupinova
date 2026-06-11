@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fal } from "@fal-ai/client";
-import { Jimp, loadFont } from "jimp";
-import { SANS_32_WHITE, SANS_64_WHITE } from "jimp/fonts";
+import { Jimp } from "jimp";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
 
@@ -424,49 +423,25 @@ If the image depicts a CHARACTER:
         }
       }
 
-      let retailStyleInstruction = "";
-      if (isRetailStyle) {
-        retailStyleInstruction = `
-8. HIGH-IMPACT RETAIL ADVERTISING STYLE (CRITICAL RETAIL RULES):
-   Since High-Impact Retail Mode is active, you MUST structure the generated image prompt with these exact, detailed sections, written in English. Ensure any literal text strings are written in Brazilian Portuguese and MUST strictly retain their correct orthographical accents and diacritics (ALL CAPS, e.g. "PROMOÇÃO", "POR APENAS R$ 199,90", "EXCLUSÍVO", "APROVEITE"):
-   - [SCENARIO & ACTION DYNAMICS]: Describe the product ("the product in the input image") in a highly dynamic, action-oriented real-world context matching the product type (e.g., if a bicycle, speeding on a trail; if sports gear, in an athletic arena; if cosmetics, floating with splash and particles). Specifically request dramatic motion effects like dust splatters, flying dirt particles, water splashes, mud spray, or light streaks around the product to simulate high energy and movement.
-   - [GRAPHIC DESIGN LAYOUT - MANDATORY]: Describe the following visual layouts and elements to be rendered natively on the image itself:
-     1. MAIN HEADLINE: At the top or middle of the image, specify a bold, slanted/tilted commercial title/slogan based on the user's text or ideas (e.g., "BIKE DE ALTA PERFORMANCE" or "EXCLUSÍVO"). It MUST be described as "written in bold, tilted brushstroke typography over a dark brushstroke background for high contrast".
-     2. PRICE TAG / OFFER BADGE: In the lower quadrant (left or right), describe a dynamic, eye-catching badge or grunge-style label using high-contrast colors (e.g., black, neon-yellow, bright orange) containing the literal text of the promotional price/offer (e.g., "POR APENAS R$ 199,90" or "OFERTA ESPECIAL" derived from the user's input).
-     3. TECHNICAL/COMMERCIAL BENEFIT BADGES: On one side of the image (right or left), describe a vertical column of three or four sleek dark circular badges. Inside each badge, a simple minimalist white icon is displayed, with adjacent small white text displaying the key technical or commercial features of the product (e.g., "21 MARCHAS", "SUSPENSÃO", "FREIO A DISCO"). Derivate these features logically from the user's description or YAML analysis, and ensure they are written in proper uppercase Brazilian Portuguese with all correct accents (e.g., "SUSPENSÃO", "PROMOÇÃO", "EXCLUSÍVO").
-     4. COGNITIVE SIMPLICITY: The text must be simple, readable, and bold, seamlessly integrated with the product's colors and the branding palette.
-`;
-      }
-
       const geminiSystemInstruction = `# ROLE
 You are an elite Creative Art Director, Ad Designer, and Prompt Engineer specialized in User-Generated Content (UGC) advertising and premium photographic product placement for image generation models (specifically Flux Kontext).
 
 # GOAL
-Given a reference image description (extracted features in YAML), the user's creative advertising ideas, and optionally an inspiration image (the print), you MUST write TWO separate descriptive prompts in English:
-1. "imagePrompt" (specifically for the "flux-pro/kontext" model): This prompt MUST describe a realistic photorealistic scene, detailing the product, ambient scenery, professional lighting, camera lens and realism textures, but it MUST contain ABSOLUTELY NO text, slogans, prices, or graphical UI elements written on the canvas.
-2. "ideogramPrompt" (specifically for the "ideogram-v4/remix" model): This prompt will be used to Remix the realistic image. It MUST describe the final e-commerce design poster, overlaying clean professional typography, titles/slogans in proper accented Portuguese, price tags, call-to-action buttons, and technical benefit badges in the style of Brazilian commercial ads.
-${isRetailStyle ? `
-# HIGH-IMPACT RETAIL MODE
-This generation requires a High-Impact Retail Advertising Style. You must strictly incorporate the RETAIL MODE instructions detailed below.` : ""}
+Given a reference image description (extracted features in YAML), the user's creative advertising ideas, and optionally an inspiration image (the print), you MUST write a descriptive prompt in English for the "flux-pro/kontext" model.
+This prompt MUST describe a realistic photorealistic scene, detailing the product, ambient scenery, professional lighting, camera lens and realism textures, but it MUST contain ABSOLUTELY NO text, slogans, prices, or graphical UI elements written on the canvas.
 
 # CRITICAL RULES
 1. OUTPUT LANGUAGE: You must write the final image prompt completely IN ENGLISH. Generating prompts in English dramatically increases the quality, pose accuracy, and realism of the model.
-2. TEXT PRESERVATION & ACCENTS MANDATORY (CRITICAL FOR PORTUGUESE): If there is any literal text in Portuguese to be rendered on the image (e.g. brand names, stickers, discount badges, slogans), you MUST strictly write them with proper Portuguese accents and special diacritic symbols (like 'Ã', 'Ç', 'Õ', 'É', 'Ó', 'Í').
-   - Use correct Portuguese spelling and diacritics (e.g. use "PROMOÇÃO" instead of "PROMOCAO", "VERÃO" instead of "VERAO", "EXCLUSÍVO" instead of "EXCLUSIVO").
-   - Under no circumstances should you strip accents or simplify characters in literal text strings, as correct Portuguese orthography is mandatory.
-3. GRAPHIC BADGES & DESIGN OVERLAYS: You MUST explicitly describe and request clean, professional graphic design badges, stickers, and promotional discount circles (e.g., a circle badge saying "LIQUIDAÇÃO 35%") if they are present in the inspiration/reference print layout or requested by the user. Ensure text inside these badges is simple, bold, and enclosed in escaped double quotes (e.g., "...featuring a clean fuchsia pink circular sticker overlay with the text \\"PROMOÇÃO DE VERÃO\\" in bold modern sans-serif typography...").
-4. NO DUPLICATE PRODUCTS (ULTRA-CRITICAL): Since we are using "flux-pro/kontext" (an image conditioning model), you MUST refer to the user's product in the input image as "the product" or "the product in the input image" instead of describing a new, generic product from scratch. 
+2. NO DUPLICATE PRODUCTS (ULTRA-CRITICAL): Since we are using "flux-pro/kontext" (an image conditioning model), you MUST refer to the user's product in the input image as "the product" or "the product in the input image" instead of describing a new, generic product from scratch. 
    - Never write phrases that cause the generator to draw two separate products (e.g. "a model holding a laptop while another laptop is on the table"). 
    - Always integrate "the product in the input image" seamlessly into the pose, scene, and hands of the model (if there is a model).
-5. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the image features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+3. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the image features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
    - You MUST explicitly inject multiple strict spatial instructions into the generated prompt.
    - You MUST include a phrase like: "framed in a balanced medium shot showing the model from the chest up, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
    - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
-6. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
-7. IDEOGRAM REMIX IMAGE PRESERVATION (ULTRA-CRITICAL): In the "ideogramPrompt", you MUST start the prompt with the exact literal string: "This is a remix of the reference image. You MUST keep the main subject, the model, their face, hair, body posture, and the exact clothing/product in the reference image completely unchanged and identical. Only overlay the graphic design, typography, text, and labels." This is mandatory to prevent the remix model from changing the model or the product.
+4. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
 ${brandingInstruction}
 ${inspirationInstruction}
-${retailStyleInstruction}
 # UGC PHOTOGRAPHY & ESTHETIC PREMIUM
 - Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "high-end studio product placement", "premium commercial food photography", "luxury editorial portrait").
 - Mandatorily detail advanced studio lighting setups to create stunning visual separation (e.g., "cinematic volumetric lighting", "soft diffuse professional studio gel lighting", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
@@ -482,10 +457,9 @@ If the reference product is clothing/apparel, describe a real human model wearin
 - EXPLICITLY state: "The model's entire head, full hair, and face are completely visible and beautifully framed with generous headroom at the top, strictly preventing any part of the head, forehead, or hair from being clipped or cut off by the borders".
 
 # OUTPUT FORMAT (Strict JSON)
-You must return exclusively a valid JSON object with the following two keys. Do not include any explanations, introductory or concluding text:
+You must return exclusively a valid JSON object with the following key. Do not include any explanations, introductory or concluding text:
 {
-  "imagePrompt": "The highly detailed descriptive prompt in English for the Flux Kontext model. It must be completely photographic, natural, and focus on the product and scene realism with absolutely no texts, logos, or overlay graphics.",
-  "ideogramPrompt": "The descriptive prompt in English for the Ideogram v4 remix model. It must describe the graphic design overlay, typography placement, Brazilian retail text phrases in Brazilian Portuguese (properly accented), prices, and technical badges matching the brand kit."
+  "imagePrompt": "The highly detailed descriptive prompt in English for the Flux Kontext model. It must be completely photographic, natural, and focus on the product and scene realism with absolutely no texts, logos, or overlay graphics."
 }
 `;
 
@@ -651,32 +625,18 @@ ${yamlAnalysis}`;
         }
       }
 
-      return NextResponse.json({ success: true, imagePrompt: parsedPrompt.imagePrompt, ideogramPrompt: parsedPrompt.ideogramPrompt || "" });
+      return NextResponse.json({ success: true, imagePrompt: parsedPrompt.imagePrompt });
     }
 
     if (action === "submit-kontext") {
       const formData = await request.formData();
       const file = formData.get("file") as File;
       const prompt = formData.get("prompt") as string;
-      const ideogramPrompt = formData.get("ideogramPrompt") as string || "";
       const postId = formData.get("postId") as string || "";
       const userId = formData.get("userId") as string || "";
 
       if (!file || !prompt) {
         return NextResponse.json({ error: "Campos 'file' ou 'prompt' ausentes." }, { status: 400 });
-      }
-
-      if (postId && userId && ideogramPrompt) {
-        try {
-          const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
-          await postDocRef.set({
-            ideogramPrompt: ideogramPrompt,
-            isGeneratingIdeogram: false
-          }, { merge: true });
-          console.log(`[GERAR_REFERENCIA] ideogramPrompt gravado com sucesso no Firestore para o post ${postId}`);
-        } catch (fsErr) {
-          console.error("[GERAR_REFERENCIA] Erro ao gravar ideogramPrompt no Firestore:", fsErr);
-        }
       }
 
       // Convert to buffer & crop just in case
@@ -1235,169 +1195,7 @@ Cenário e estilo desejados: ${prompt}`;
           contentType = imgRes.headers.get("Content-Type") || "image/jpeg";
         }
 
-        let finalBuffer = buffer;
-          try {
-            console.log("[GERAR_REFERENCIA] Iniciando fusão gráfica programática Jimp na imagem gerada...");
-            const jImage = await Jimp.read(buffer);
-
-            // Carregar Brand Kit e Promo do Firestore
-            let brandColor = "#ff0055"; // Fuchsia Pink padrão
-            let promoText = "";
-            let isRetailStyle = false;
-
-            try {
-              const postSnap = await adminDb.collection("users").doc(userId).collection("posts").doc(postId).get();
-              if (postSnap.exists) {
-                const postData = postSnap.data();
-                if (postData?.promoText) {
-                  promoText = postData.promoText.toUpperCase();
-                }
-                isRetailStyle = !!postData?.isRetailStyle;
-              }
-
-              const onboardingSnap = await adminDb.collection("users").doc(userId).collection("business").doc("onboarding").get();
-              if (onboardingSnap.exists) {
-                const obData = onboardingSnap.data();
-                if (obData?.primaryColor) {
-                  brandColor = obData.primaryColor;
-                }
-              }
-            } catch (fsErr) {
-              console.warn("[GERAR_REFERENCIA] Erro ao buscar Brand Kit, usando valores padrão:", fsErr);
-            }
-
-            console.log(`[GERAR_REFERENCIA] Brand Kit carregado. Cor: ${brandColor}, Promo: ${promoText}`);
-
-            // Funções auxiliares portáteis para desenho de pixels
-            const rgbaToInt = (r: number, g: number, b: number, a: number = 255) => {
-              return ((r & 0xFF) << 24) | ((g & 0xFF) << 16) | ((b & 0xFF) << 8) | (a & 0xFF);
-            };
-
-            const hexToRgbaInt = (hexStr: string, alpha: number = 255) => {
-              const cleaned = hexStr.replace("#", "");
-              const r = parseInt(cleaned.substring(0, 2), 16);
-              const g = parseInt(cleaned.substring(2, 4), 16);
-              const b = parseInt(cleaned.substring(4, 6), 16);
-              return rgbaToInt(r, g, b, alpha);
-            };
-
-            const drawSolidCircle = (image: any, cx: number, cy: number, r: number, colorHex: number) => {
-              const r2 = r * r;
-              for (let x = cx - r; x <= cx + r; x++) {
-                for (let y = cy - r; y <= cy + r; y++) {
-                  const dx = x - cx;
-                  const dy = y - cy;
-                  if (dx * dx + dy * dy <= r2) {
-                    if (x >= 0 && x < image.width && y >= 0 && y < image.height) {
-                      image.setPixelColor(colorHex, x, y);
-                    }
-                  }
-                }
-              }
-            };
-
-            const drawSolidRect = (image: any, x1: number, y1: number, w: number, h: number, colorHex: number) => {
-              for (let x = x1; x < x1 + w; x++) {
-                for (let y = y1; y < y1 + h; y++) {
-                  if (x >= 0 && x < image.width && y >= 0 && y < image.height) {
-                    image.setPixelColor(colorHex, x, y);
-                  }
-                }
-              }
-            };
-
-            const stripAccents = (str: string) => {
-              return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/Ç/g, "C");
-            };
-
-            const getCenterX = (text: string, fontSize: 32 | 64) => {
-              const charWidth = fontSize === 64 ? 28 : 14;
-              const textWidth = text.length * charWidth;
-              return Math.max(60, 240 - textWidth / 2);
-            };
-
-            const primaryColorInt = hexToRgbaInt(brandColor);
-
-            // 1. Desenhar Círculo de Desconto no canto superior esquerdo se houver promoText e não for estilo de varejo (IA já desenha organicamente)
-            if (promoText && !isRetailStyle) {
-              console.log("[GERAR_REFERENCIA] Desenhando círculo promocional com Jimp...");
-              drawSolidCircle(jImage, 240, 240, 180, primaryColorInt);
-
-              // Parser de texto inteligente para circular promo
-              let line1 = "PROMOCAO DE";
-              let line2 = "50% OFF";
-              let line3 = "APROVEITE";
-
-              const percentMatch = promoText.match(/(\d+%\s*(OFF|DESCONTO|DE DESCONTO)?)/i);
-              if (percentMatch) {
-                line2 = percentMatch[1].toUpperCase();
-                const cleanText = promoText.replace(percentMatch[0], "").trim();
-                if (cleanText) {
-                  const words = cleanText.split(" ");
-                  if (words.length >= 2) {
-                    line1 = words.slice(0, Math.ceil(words.length / 2)).join(" ").toUpperCase();
-                    line3 = words.slice(Math.ceil(words.length / 2)).join(" ").toUpperCase();
-                  } else {
-                    line1 = cleanText.substring(0, 12).toUpperCase();
-                    line3 = "APROVEITE";
-                  }
-                }
-              } else {
-                const words = promoText.split(" ");
-                if (words.length >= 3) {
-                  line1 = words.slice(0, 1).join(" ").toUpperCase();
-                  line2 = words.slice(1, 3).join(" ").toUpperCase();
-                  line3 = words.slice(3).join(" ").toUpperCase() || "HOJE";
-                } else if (words.length === 2) {
-                  line1 = "OFERTA";
-                  line2 = words[0].toUpperCase();
-                  line3 = words[1].toUpperCase();
-                } else {
-                  line1 = "OFERTA";
-                  line2 = promoText.toUpperCase() || "ESPECIAL";
-                  line3 = "EXCLUSIVA";
-                }
-              }
-
-              const cleanLine1 = stripAccents(line1);
-              const cleanLine2 = stripAccents(line2);
-              const cleanLine3 = stripAccents(line3);
-
-              const font32 = await loadFont(SANS_32_WHITE);
-              const font64 = await loadFont(SANS_64_WHITE);
-
-              // Escrever textos centralizados no círculo com matemática portátil
-              const x1 = getCenterX(cleanLine1, 32);
-              const x2 = getCenterX(cleanLine2, 64);
-              const x3 = getCenterX(cleanLine3, 32);
-
-              jImage.print({
-                font: font32,
-                x: x1,
-                y: 110,
-                text: cleanLine1
-              });
-
-              jImage.print({
-                font: font64,
-                x: x2,
-                y: 180,
-                text: cleanLine2
-              });
-
-              jImage.print({
-                font: font32,
-                x: x3,
-                y: 280,
-                text: cleanLine3
-              });
-            }
-
-            finalBuffer = await jImage.getBuffer("image/jpeg");
-            console.log("[GERAR_REFERENCIA] Fusão gráfica programática Jimp concluída com sucesso!");
-          } catch (jimpErr) {
-            console.error("[GERAR_REFERENCIA] Falha na mesclagem gráfica do Jimp, usando imagem original da Fal:", jimpErr);
-          }
+        const finalBuffer = buffer;
 
           const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
           const downloadToken = crypto.randomUUID();
@@ -1484,138 +1282,6 @@ Cenário e estilo desejados: ${prompt}`;
         imageUrl: firebaseDownloadUrl,
         referenceImageUrl: firebaseRefUrl
       });
-    }
-
-    if (action === "submit-ideogram-remix") {
-      try {
-        const { postId, userId, fluxImageUrl, textPrompt } = await request.json();
-
-        if (!postId || !userId || !fluxImageUrl || !textPrompt) {
-          return NextResponse.json({ error: "Campos obrigatórios ausentes para o Remix." }, { status: 400 });
-        }
-
-        console.log(`[GERAR_REFERENCIA] Iniciando Remix do Ideogram sob demanda para o post ${postId}...`);
-
-        const ideogramApiKey = process.env.IDEOGRAM_API_KEY;
-        if (!ideogramApiKey) {
-          throw new Error("IDEOGRAM_API_KEY ausente no servidor.");
-        }
-
-        // 1. Carregar dados do post no Firestore para ver aspect ratio e outras infos
-        const postSnap = await adminDb.collection("users").doc(userId).collection("posts").doc(postId).get();
-        if (!postSnap.exists) {
-          throw new Error("Post não encontrado no Firestore.");
-        }
-        const postData = postSnap.data();
-
-        // 2. Baixar imagem do Flux
-        console.log(`[GERAR_REFERENCIA] Baixando imagem do Flux: ${fluxImageUrl}`);
-        const imgRes = await fetch(fluxImageUrl);
-        if (!imgRes.ok) {
-          throw new Error(`Falha ao baixar imagem do Flux (status ${imgRes.status})`);
-        }
-        const arrayBuffer = await imgRes.arrayBuffer();
-        const blob = new Blob([arrayBuffer]);
-
-        // 3. Mapear aspect_ratio
-        let aspect = "1x1";
-        if (postData?.platform === "story" || postData?.isStories || postData?.aspectRatio?.includes("9")) {
-          aspect = "9x16";
-        }
-
-        console.log(`[GERAR_REFERENCIA] Enviando Remix para Ideogram v4 Turbo com aspect ratio ${aspect}...`);
-        const formData = new FormData();
-        formData.append("image", blob, "flux-image.jpg");
-        formData.append("text_prompt", textPrompt);
-        formData.append("aspect_ratio", aspect);
-        formData.append("model", "V_4");
-        formData.append("rendering_speed", "TURBO");
-        formData.append("image_weight", "60");
-
-        const ideoRes = await fetch("https://api.ideogram.ai/v1/ideogram-v4/remix", {
-          method: "POST",
-          headers: {
-            "Api-Key": ideogramApiKey
-          },
-          body: formData
-        });
-
-        if (!ideoRes.ok) {
-          const errText = await ideoRes.text();
-          throw new Error(`Erro na API do Ideogram: ${errText}`);
-        }
-
-        const ideoData = await ideoRes.json();
-        const finalUrl = ideoData.data?.[0]?.url;
-
-        if (!finalUrl) {
-          throw new Error("API do Ideogram não retornou nenhuma imagem.");
-        }
-
-        console.log(`[GERAR_REFERENCIA] Ideogram Remix concluído com sucesso. Salvando no Firebase Storage para durabilidade...`);
-
-        let firebaseDownloadUrl = finalUrl;
-        try {
-          const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app");
-          const ideoImgRes = await fetch(finalUrl);
-          if (ideoImgRes.ok) {
-            const ideoArrayBuffer = await ideoImgRes.arrayBuffer();
-            const ideoBuffer = Buffer.from(ideoArrayBuffer);
-            const contentType = ideoImgRes.headers.get("Content-Type") || "image/jpeg";
-
-            const fileRef = bucket.file(`users/${userId}/posts/${postId}/retail_promotional_image.jpg`);
-            const downloadToken = crypto.randomUUID();
-
-            await fileRef.save(ideoBuffer, {
-              metadata: {
-                contentType: contentType,
-                metadata: {
-                  firebaseStorageDownloadTokens: downloadToken
-                }
-              }
-            });
-
-            firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-            console.log(`[GERAR_REFERENCIA] Imagem do Ideogram salva no Firebase Storage: ${firebaseDownloadUrl}`);
-          }
-        } catch (storageErr) {
-          console.error("[GERAR_REFERENCIA] Falha ao fazer upload da imagem do Ideogram no Storage:", storageErr);
-        }
-
-        // 4. Salvar ideogramImageUrl no Firestore do post e atualizar status
-        await adminDb.collection("users").doc(userId).collection("posts").doc(postId).set({
-          ideogramImageUrl: firebaseDownloadUrl,
-          retailTitle: textPrompt
-        }, { merge: true });
-
-        // Também catalogar na galeria de mídias!
-        try {
-          const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
-          const galleryMediaId = `${postId}_retail_remix`;
-          
-          await galleryRef.doc(galleryMediaId).set({
-            id: galleryMediaId,
-            url: firebaseDownloadUrl,
-            storagePath: `users/${userId}/posts/${postId}/retail_promotional_image.jpg`,
-            source: "ideogram_retail_remix",
-            prompt: textPrompt,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            usedInPostId: null, // Disponível — ainda não publicada nas redes sociais
-            fileName: "retail_promotional_image.jpg"
-          });
-          console.log(`[GERAR_REFERENCIA] Imagem do Ideogram catalogada na mediaGallery: ${galleryMediaId}`);
-        } catch (galleryError) {
-          console.error("[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem do Ideogram na galeria:", galleryError);
-        }
-
-        return NextResponse.json({
-          success: true,
-          imageUrl: firebaseDownloadUrl
-        });
-      } catch (err: any) {
-        console.error("[GERAR_REFERENCIA] Erro no submit-ideogram-remix:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
-      }
     }
 
     return NextResponse.json({ error: "Ação inválida." }, { status: 400 });

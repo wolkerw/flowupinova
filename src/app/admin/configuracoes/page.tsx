@@ -13,6 +13,7 @@ interface GlobalSettings {
   generatePromptsWebhook: string;
   generateImagesFalaiWebhook: string;
   analisarPresencaWebhook: string;
+  generateAvatarWebhook: string;
   serverTimeout: string;
 }
 
@@ -26,6 +27,7 @@ const WEBHOOK_LABELS: Record<keyof GlobalSettings, string> = {
   generatePromptsWebhook: "Gerador de Prompts (n8n)",
   generateImagesFalaiWebhook: "Gerador Fal.ai (n8n)",
   analisarPresencaWebhook: "Analisar Presença (n8n)",
+  generateAvatarWebhook: "Gerador de Avatar Digital Twin (n8n)",
   serverTimeout: "Timeout do Servidor (segundos)",
 };
 
@@ -39,6 +41,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   generatePromptsWebhook: "https://webhook.flowupinova.com.br/webhook/gerador-prompts",
   generateImagesFalaiWebhook: "https://n8n.flowupinova.com.br/webhook-test/gerador-imagem-falai",
   analisarPresencaWebhook: "https://webhook.flowupinova.com.br/webhook/analisar-presenca",
+  generateAvatarWebhook: "https://webhook.flowupinova.com.br/webhook/gerador_avatar_twin",
   serverTimeout: "300",
 };
 
@@ -58,10 +61,17 @@ export default function AdminConfiguracoesPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/settings");
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error("Falha ao carregar configurações");
       const data = await res.json();
       if (data.settings && Object.keys(data.settings).length > 0) {
         setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
       }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -80,6 +90,10 @@ export default function AdminConfiguracoesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
       setSaveStatus(res.ok ? "success" : "error");
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch {

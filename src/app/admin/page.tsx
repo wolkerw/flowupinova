@@ -43,6 +43,7 @@ interface PlatformStats {
   totalChatSessions: number;
   estimatedCostFalai: number;
   estimatedCostImagen4: number;
+  estimatedCostNanoBanana: number;
   estimatedCostGemini: number;
   estimatedCostTotal: number;
 }
@@ -106,6 +107,11 @@ export default function AdminDashboardPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/stats");
+      if (res.status === 403 || res.status === 401) {
+        // Redirecionar para login caso a sessão tenha expirado ou não seja autorizada
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
       if (!res.ok) throw new Error("Falha ao carregar dados");
       const data = await res.json();
       setStats(data.stats);
@@ -250,7 +256,7 @@ export default function AdminDashboardPage() {
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
           Custo Estimado de IA (USD)
         </h2>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <KpiCard
             title="Fal.ai (Referência)"
             value={stats?.estimatedCostFalai ?? 0}
@@ -265,6 +271,14 @@ export default function AdminDashboardPage() {
             subtitle="~$0.03 por imagem"
             icon={DollarSign}
             color="text-yellow-400"
+            format="currency"
+          />
+          <KpiCard
+            title="Nano Banana Pro"
+            value={stats?.estimatedCostNanoBanana ?? 0}
+            subtitle="~$0.03 por imagem"
+            icon={DollarSign}
+            color="text-pink-400"
             format="currency"
           />
           <KpiCard

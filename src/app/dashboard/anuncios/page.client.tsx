@@ -217,25 +217,28 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [campaignObjective, setCampaignObjective] = useState<"REACH" | "TRAFFIC">("REACH");
   const [hasDestination, setHasDestination] = useState(false);
   const [metaLocationsSuggestions, setMetaLocationsSuggestions] = useState<any[]>([]);
-  const [selectedCoords, setSelectedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [selectedLocType, setSelectedLocType] = useState<string | null>(null);
+  const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
-  const [selectedBoundingBox, setSelectedBoundingBox] = useState<[number, number, number, number] | null>(null);
-  const [selectedLocKey, setSelectedLocKey] = useState<string>("");
-  const [selectedGeoJson, setSelectedGeoJson] = useState<any | null>(null);
-  const mapRectangleRef = useRef<any>(null);
+  const mapLayersRef = useRef<any[]>([]);
   const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
   const mapInstanceRef = useRef<any>(null);
-  const mapMarkerRef = useRef<any>(null);
-  const mapCircleRef = useRef<any>(null);
+
+  const addLocation = (newLoc: any) => {
+    setSelectedLocations((prev) => {
+      const isDuplicate = prev.some(
+        (l) =>
+          (l.key && l.key === newLoc.key && l.key !== "") ||
+          (typeof l.latitude === "number" && l.latitude === newLoc.latitude && l.longitude === newLoc.longitude)
+      );
+      if (isDuplicate) return prev;
+      return [...prev, newLoc];
+    });
+    setAddressInput("");
+    setMetaLocationsSuggestions([]);
+  };
 
   const handleAddressInputChange = (val: string) => {
     setAddressInput(val);
-    setSelectedCoords(null);
-    setSelectedLocType(null);
-    setSelectedBoundingBox(null);
-    setSelectedLocKey("");
-    setSelectedGeoJson(null);
     if (val.length < 3) {
       setMetaLocationsSuggestions([]);
       return;
@@ -345,7 +348,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // 2. Tenta geocodificar o endereço do perfil de negócios quando o Passo 3 inicia sem coordenadas selecionadas
   useEffect(() => {
-    if (currentStep === 3 && !selectedCoords && businessProfile?.address) {
+    if (currentStep === 3 && selectedLocations.length === 0 && businessProfile?.address) {
       const geocodeProfileAddress = async () => {
         try {
           const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
@@ -353,9 +356,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             const data = await res.json();
             if (data.locations && data.locations.length > 0) {
               const loc = data.locations[0];
-              setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
-              setSelectedLocType(loc.type);
-              setAddressInput(loc.name);
+              setSelectedLocations([{
+                name: loc.name,
+                type: loc.type,
+                key: loc.key || "",
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                boundingBox: loc.boundingBox || null,
+                geoJson: null
+              }]);
+              setAddressInput("");
             }
           }
         } catch (err) {
@@ -364,7 +374,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       };
       geocodeProfileAddress();
     }
-  }, [currentStep, businessProfile, selectedCoords]);
+  }, [currentStep, businessProfile, selectedLocations]);
 
   // 3. Inicializa e sincroniza o mapa Leaflet
   useEffect(() => {
@@ -373,111 +383,98 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     const L = (window as any).L;
     if (!L) return;
 
-    let initialLat = selectedCoords?.latitude || -30.0346;
-    let initialLng = selectedCoords?.longitude || -51.2177;
-    let zoomLevel = selectedCoords ? 14 : 12;
+    let initialLat = -30.0346;
+    let initialLng = -51.2177;
+    let zoomLevel = 12;
+
+    if (selectedLocations.length > 0) {
+      const firstLoc = selectedLocations[0];
+      if (typeof firstLoc.latitude === "number" && typeof firstLoc.longitude === "number") {
+        initialLat = firstLoc.latitude;
+        initialLng = firstLoc.longitude;
+        zoomLevel = firstLoc.type === "País" || firstLoc.type === "Estado" ? 4 : 14;
+      }
+    }
 
     const mapContainer = document.getElementById("targeting-map");
     if (!mapContainer) return;
 
     const syncMapElements = (map: any) => {
-      // 1. Remove o retângulo/geojson anterior se existir
-      if (mapRectangleRef.current) {
-        map.removeLayer(mapRectangleRef.current);
-        mapRectangleRef.current = null;
+      // Remove todos os elementos anteriores do mapa
+      if (mapLayersRef.current) {
+        mapLayersRef.current.forEach((layer) => {
+          map.removeLayer(layer);
+        });
+        mapLayersRef.current = [];
       }
 
-      const isAreaTarget = selectedLocType === "País" || selectedLocType === "Estado";
+      if (selectedLocations.length === 0) return;
 
-      if (isAreaTarget) {
-        // Esconde o marcador de Pin e o Círculo de Raio
-        if (mapMarkerRef.current) {
-          map.removeLayer(mapMarkerRef.current);
-          mapMarkerRef.current = null;
-        }
-        if (mapCircleRef.current) {
-          map.removeLayer(mapCircleRef.current);
-          mapCircleRef.current = null;
-        }
+      const bounds = L.latLngBounds([]);
+      let hasLayers = false;
 
-        // Desenha o GeoJSON da região (exato)
-        if (selectedGeoJson) {
-          const geoJsonLayer = L.geoJSON(selectedGeoJson, {
-            style: {
+      selectedLocations.forEach((loc) => {
+        const isArea = loc.type === "País" || loc.type === "Estado";
+        if (isArea) {
+          if (loc.geoJson) {
+            const geoJsonLayer = L.geoJSON(loc.geoJson, {
+              style: {
+                color: "#0284c7",
+                fillColor: "#0284c7",
+                fillOpacity: 0.15,
+                weight: 2
+              }
+            }).addTo(map);
+            mapLayersRef.current.push(geoJsonLayer);
+            bounds.extend(geoJsonLayer.getBounds());
+            hasLayers = true;
+          } else if (loc.boundingBox) {
+            const b = [
+              [loc.boundingBox[0], loc.boundingBox[2]],
+              [loc.boundingBox[1], loc.boundingBox[3]]
+            ];
+            const rect = L.rectangle(b, {
               color: "#0284c7",
               fillColor: "#0284c7",
-              fillOpacity: 0.15,
+              fillOpacity: 0.2,
               weight: 2
-            }
-          }).addTo(map);
-          mapRectangleRef.current = geoJsonLayer;
-          map.fitBounds(geoJsonLayer.getBounds(), { padding: [20, 20] });
-        } else if (selectedBoundingBox) {
-          // Fallback para caixa delimitadora (bounding box) da região se GeoJSON não estiver disponível
-          const bounds = [
-            [selectedBoundingBox[0], selectedBoundingBox[2]], // [latMin, lonMin]
-            [selectedBoundingBox[1], selectedBoundingBox[3]]  // [latMax, lonMax]
-          ];
-          const rect = L.rectangle(bounds, {
-            color: "#0284c7",
-            fillColor: "#0284c7",
-            fillOpacity: 0.2,
-            weight: 2
-          }).addTo(map);
-          mapRectangleRef.current = rect;
-          map.fitBounds(bounds, { padding: [20, 20] });
-        }
-      } else {
-        // Mostra o marcador Pin e o Círculo de Raio para locais precisos/cidades
-        if (selectedCoords) {
-          const newLatLng = new L.LatLng(selectedCoords.latitude, selectedCoords.longitude);
-          
-          if (!mapMarkerRef.current) {
+            }).addTo(map);
+            mapLayersRef.current.push(rect);
+            bounds.extend(b);
+            hasLayers = true;
+          }
+        } else {
+          if (typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+            const latLng = new L.LatLng(loc.latitude, loc.longitude);
             const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
             const customPinIcon = L.icon({
               iconUrl: 'data:image/svg+xml;base64,' + btoa(pinSvg),
               iconSize: [36, 36],
               iconAnchor: [18, 36],
             });
-            const marker = L.marker(newLatLng, {
+            const marker = L.marker(latLng, {
               icon: customPinIcon,
-              draggable: true,
+              draggable: false, // Desativa pin arrastável
             }).addTo(map);
-            
-            marker.on("dragend", async (e: any) => {
-              const position = e.target.getLatLng();
-              if (mapCircleRef.current) {
-                mapCircleRef.current.setLatLng(position);
-              }
-              await updateLocationFromCoords(position.lat, position.lng);
-            });
-            
-            mapMarkerRef.current = marker;
-          } else {
-            mapMarkerRef.current.setLatLng(newLatLng);
-            if (!map.hasLayer(mapMarkerRef.current)) {
-              mapMarkerRef.current.addTo(map);
-            }
-          }
+            mapLayersRef.current.push(marker);
 
-          if (!mapCircleRef.current) {
-            const circle = L.circle(newLatLng, {
+            const circle = L.circle(latLng, {
               color: "#0284c7",
               fillColor: "#0284c7",
               fillOpacity: 0.15,
               radius: radius * 1000,
             }).addTo(map);
-            mapCircleRef.current = circle;
-          } else {
-            mapCircleRef.current.setLatLng(newLatLng);
-            mapCircleRef.current.setRadius(radius * 1000);
-            if (!map.hasLayer(mapCircleRef.current)) {
-              mapCircleRef.current.addTo(map);
-            }
-          }
+            mapLayersRef.current.push(circle);
 
-          map.setView(newLatLng, map.getZoom());
+            bounds.extend(latLng);
+            bounds.extend(circle.getBounds());
+            hasLayers = true;
+          }
         }
+      });
+
+      if (hasLayers) {
+        map.fitBounds(bounds, { padding: [30, 30] });
       }
     };
 
@@ -497,57 +494,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
-    const updateLocationFromCoords = async (lat: number, lng: number) => {
-      setSelectedCoords({ latitude: lat, longitude: lng });
-      setSelectedLocType("Endereço");
-      setSelectedBoundingBox(null);
-      setSelectedLocKey("");
-      setSelectedGeoJson(null);
-
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-          {
-            headers: {
-              "User-Agent": "NumVaptAdsApp/1.0",
-            },
-          }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.display_name) {
-            let cleanAddress = data.display_name.replace(", Brasil", "").replace(", Brazil", "");
-            setAddressInput(cleanAddress);
-            if (data.boundingbox) {
-              setSelectedBoundingBox([
-                parseFloat(data.boundingbox[0]),
-                parseFloat(data.boundingbox[1]),
-                parseFloat(data.boundingbox[2]),
-                parseFloat(data.boundingbox[3])
-              ]);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Falha ao geocodificar reversamente:", err);
-        setAddressInput(`Pin no Mapa: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-      }
-    };
-
-    map.on("click", async (e: any) => {
-      const isAreaTarget = selectedLocType === "País" || selectedLocType === "Estado";
-      if (isAreaTarget) return;
-
-      const position = e.latlng;
-      if (mapMarkerRef.current) {
-        mapMarkerRef.current.setLatLng(position);
-      }
-      if (mapCircleRef.current) {
-        mapCircleRef.current.setLatLng(position);
-      }
-      await updateLocationFromCoords(position.lat, position.lng);
-    });
-
     syncMapElements(map);
 
     setTimeout(() => {
@@ -558,19 +504,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
-        mapMarkerRef.current = null;
-        mapCircleRef.current = null;
-        mapRectangleRef.current = null;
+        mapLayersRef.current = [];
       }
     };
-  }, [isLeafletLoaded, currentStep, selectedCoords, selectedLocType, selectedBoundingBox, selectedGeoJson]);
-
-  // 4. Atualiza o círculo do mapa quando o raio é alterado no slider
-  useEffect(() => {
-    if (mapCircleRef.current) {
-      mapCircleRef.current.setRadius(radius * 1000);
-    }
-  }, [radius]);
+  }, [isLeafletLoaded, currentStep, selectedLocations, radius]);
 
   // Estados de IA e Carregamento
   const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
@@ -900,15 +837,18 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           },
           durationDays: duration,
           targeting: {
-            address: addressInput || "Centro Comercial Local",
+            address: selectedLocations.map(l => l.name).join(", ") || "Centro Comercial Local",
             radiusKm: radius,
             ageMin: ageRange[0],
             ageMax: ageRange[1],
             gender,
-            latitude: selectedCoords?.latitude || null,
-            longitude: selectedCoords?.longitude || null,
-            locType: selectedLocType || null,
-            locKey: selectedLocKey || null,
+            locations: selectedLocations.map(l => ({
+              name: l.name,
+              type: l.type,
+              key: l.key,
+              latitude: l.latitude || null,
+              longitude: l.longitude || null
+            }))
           },
         }),
       });
@@ -944,11 +884,18 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         startDate: Timestamp.now(),
         endDate: Timestamp.fromMillis(Date.now() + duration * 24 * 60 * 60 * 1000),
         targeting: {
-          address: addressInput || "Centro Comercial Local",
+          address: selectedLocations.map(l => l.name).join(", ") || "Centro Comercial Local",
           radiusKm: radius,
           ageMin: ageRange[0],
           ageMax: ageRange[1],
           gender,
+          locations: selectedLocations.map(l => ({
+            name: l.name,
+            type: l.type,
+            key: l.key,
+            latitude: l.latitude || null,
+            longitude: l.longitude || null
+          }))
         },
         metrics: {
           impressions: 0,
@@ -1551,12 +1498,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           value={addressInput}
                           onChange={(e) => handleAddressInputChange(e.target.value)}
                           placeholder="Digite a rua, bairro, cidade ou estado (Ex: Copacabana, Rio de Janeiro)..."
-                          className={`bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary pr-9 ${selectedCoords ? 'border-green-300 ring-green-100' : ''}`}
+                          className={`bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary pr-9 ${selectedLocations.length > 0 ? 'border-green-300 ring-green-100' : ''}`}
                         />
                         <div className="absolute right-3 top-3 flex items-center gap-1 text-slate-400">
                           {isSearchingLocations ? (
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                          ) : selectedCoords ? (
+                          ) : selectedLocations.length > 0 ? (
                             <Check className="h-4 w-4 text-green-500 font-extrabold" />
                           ) : (
                             <Search className="h-4 w-4 text-slate-400" />
@@ -1576,11 +1523,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 key={loc.key}
                                 type="button"
                                 onClick={async () => {
-                                  setAddressInput(loc.name);
-                                  setSelectedLocType(loc.type);
-                                  setSelectedLocKey(loc.key || "");
-                                  setMetaLocationsSuggestions([]);
-
                                   const isAreaTarget = loc.type === "País" || loc.type === "Estado";
 
                                   if (isAreaTarget) {
@@ -1609,16 +1551,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                             parseFloat(nomData[0].boundingbox[2]),
                                             parseFloat(nomData[0].boundingbox[3])
                                           ] : null;
-                                          setSelectedCoords({ latitude: lat, longitude: lng });
-                                          setSelectedBoundingBox(bbox as any);
-                                          if (nomData[0].geojson) {
-                                            setSelectedGeoJson(nomData[0].geojson);
-                                          } else {
-                                            setSelectedGeoJson(null);
-                                          }
-                                          toast({
-                                            title: "Região Selecionada",
-                                            description: `Fronteiras exatas mapeadas para: ${loc.name}`,
+
+                                          addLocation({
+                                            name: loc.name,
+                                            type: loc.type,
+                                            key: loc.key || "",
+                                            latitude: lat,
+                                            longitude: lng,
+                                            boundingBox: bbox,
+                                            geoJson: nomData[0].geojson || null
                                           });
                                         } else {
                                           throw new Error("Dados da região não encontrados.");
@@ -1629,27 +1570,29 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                     } catch (err) {
                                       console.warn("Erro ao buscar GeoJSON para região:", err);
                                       // Fallback para as coordenadas e bounding box originais da sugestão se disponíveis
-                                      if (loc.latitude !== undefined && loc.longitude !== undefined) {
-                                        setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
-                                        setSelectedBoundingBox(loc.boundingBox || null);
-                                      }
-                                      setSelectedGeoJson(null);
-                                      toast({
-                                        title: "Região Selecionada",
-                                        description: `Exibindo caixa de seleção para: ${loc.name}`,
+                                      addLocation({
+                                        name: loc.name,
+                                        type: loc.type,
+                                        key: loc.key || "",
+                                        latitude: loc.latitude,
+                                        longitude: loc.longitude,
+                                        boundingBox: loc.boundingBox || null,
+                                        geoJson: null
                                       });
                                     } finally {
                                       setIsSearchingLocations(false);
                                     }
                                   } else {
-                                    // Se não for área grande (Cidade, Bairro, Endereço etc.), limpa GeoJSON
-                                    setSelectedGeoJson(null);
+                                    // Se não for área grande (Cidade, Bairro, Endereço etc.)
                                     if (loc.latitude !== undefined && loc.longitude !== undefined) {
-                                      setSelectedCoords({ latitude: loc.latitude, longitude: loc.longitude });
-                                      setSelectedBoundingBox(loc.boundingBox || null);
-                                      toast({
-                                        title: "Endereço Selecionado",
-                                        description: `O anúncio será exibido ao redor de: ${loc.name}`,
+                                      addLocation({
+                                        name: loc.name,
+                                        type: loc.type,
+                                        key: loc.key || "",
+                                        latitude: loc.latitude,
+                                        longitude: loc.longitude,
+                                        boundingBox: loc.boundingBox || null,
+                                        geoJson: null
                                       });
                                     } else {
                                       // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
@@ -1678,11 +1621,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                               parseFloat(nomData[0].boundingbox[2]),
                                               parseFloat(nomData[0].boundingbox[3])
                                             ] : null;
-                                            setSelectedCoords({ latitude: lat, longitude: lng });
-                                            setSelectedBoundingBox(bbox as any);
-                                            toast({
-                                              title: "Endereço Selecionado",
-                                              description: `O anúncio será exibido ao redor de: ${loc.name}`,
+
+                                            addLocation({
+                                              name: loc.name,
+                                              type: loc.type,
+                                              key: loc.key || "",
+                                              latitude: lat,
+                                              longitude: lng,
+                                              boundingBox: bbox,
+                                              geoJson: null
                                             });
                                           } else {
                                             throw new Error("Coordenadas não encontradas.");
@@ -1695,7 +1642,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         toast({
                                           variant: "destructive",
                                           title: "Erro de Localização",
-                                          description: "Não conseguimos obter o ponto exato no mapa para esta região. Tente selecionar pelo mapa.",
+                                          description: "Não conseguimos obter o ponto exato no mapa para esta região.",
                                         });
                                       } finally {
                                         setIsSearchingLocations(false);
@@ -1719,8 +1666,32 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           </div>
                         </div>
                       )}
+                      {/* Lista de Localidades Selecionadas */}
+                      {selectedLocations.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200/50">
+                          {selectedLocations.map((loc, idx) => (
+                            <div 
+                              key={`${loc.key || 'loc'}_${idx}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-xs text-xs text-slate-700 font-medium animate-in zoom-in duration-200"
+                            >
+                              <MapPin className="h-3 w-3 text-primary" />
+                              <span>{loc.name}</span>
+                              <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold ml-0.5">({loc.type})</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedLocations(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="ml-1 text-slate-400 hover:text-red-500 focus:outline-none transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                      {addressInput.length > 0 && !selectedCoords && (
+                      {addressInput.length > 0 && selectedLocations.length === 0 && (
                         <p className="text-[11px] text-amber-600 font-semibold mt-1 flex items-center gap-1">
                           Digite o endereço e selecione uma das opções recomendadas da lista.
                         </p>
@@ -1733,7 +1704,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       <div className="text-[11px] text-slate-500 leading-normal flex items-start gap-1.5 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/30">
                         <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                         <span>
-                          Arraste o <strong>marcador azul</strong> ou clique no mapa para definir o centro do seu anúncio. O círculo azul mostra onde o anúncio aparecerá.
+                          O mapa exibe visualmente todas as regiões, cidades ou endereços que você adicionou acima.
                         </span>
                       </div>
                       <div 
@@ -1744,22 +1715,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     </div>
 
                     {/* Lógica de Área de Cobertura Inteligente e Condicional */}
-                    {selectedCoords && selectedLocType && (
-                      <div className="animate-in fade-in duration-300">
-                        {/* Se selecionou um Território Inteiro (País ou Estado) */}
-                        {selectedLocType === "País" || selectedLocType === "Estado" ? (
+                    {selectedLocations.length > 0 && (
+                      <div className="animate-in fade-in duration-300 space-y-4">
+                        {selectedLocations.some((l) => l.type === "País" || l.type === "Estado") && (
                           <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3 shadow-sm">
                             <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                             <div className="text-[12px] text-slate-600 leading-relaxed">
-                              <strong>Cobertura Ampla ({selectedLocType}):</strong> O seu anúncio será veiculado em todo o território de <strong>{addressInput}</strong>. Ideal para negócios que buscam o máximo de visibilidade estadual ou nacional.
+                              <strong>Cobertura Ampla (País/Estado):</strong> O seu anúncio será veiculado em todo o território das regiões selecionadas.
                             </div>
                           </div>
-                        ) : (
-                          /* Se selecionou Cidade, Bairro, Rua/Avenida ou Endereço exato */
+                        )}
+                        
+                        {selectedLocations.some((l) => l.type !== "País" && l.type !== "Estado") && (
                           <div className="space-y-4 pt-2">
                             <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-slate-700">Área de Cobertura do Anúncio</span>
+                                <span className="text-sm font-bold text-slate-700">Área de Cobertura do Anúncio (Raio ao redor de locais)</span>
                                 <span className="text-base font-extrabold text-primary font-poppins">{radius} km</span>
                               </div>
                               <Slider
@@ -1776,22 +1747,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <span>20 km (Área ampla)</span>
                               </div>
 
-                              {/* Caixa de Recomendação Contextual Inteligente baseada no Tipo de Local */}
                               <div className="mt-3 flex items-start gap-2 bg-white rounded p-2.5 border border-slate-100 shadow-xs">
                                 <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                                 <p className="text-[11px] text-slate-500 leading-normal">
-                                  {selectedLocType === "Cidade" ? (
-                                    radius <= 4 ? (
-                                      <span><strong>Foco na Cidade:</strong> O anúncio focará principalmente nas áreas centrais e bairros mais populosos de <strong>{addressInput}</strong> em um raio inicial de <strong>{radius} km</strong>.</span>
-                                    ) : radius <= 10 ? (
-                                      <span><strong>Cidade e arredores:</strong> O anúncio alcançará a cidade de <strong>{addressInput}</strong> e áreas vizinhas imediatas em um raio de <strong>{radius} km</strong>.</span>
-                                    ) : (
-                                      <span><strong>Expansão regional:</strong> Excelente para expandir o alcance da campanha para municípios vizinhos e cidades ao redor de <strong>{addressInput}</strong> em um raio amplo de <strong>{radius} km</strong>.</span>
-                                    )
-                                  ) : (
-                                    /* Bairro, Rua, Avenida ou Endereço Exato */
-                                    <span><strong>Indicado para negócios locais:</strong> Perfeito para atrair clientes da vizinhança e focar o anúncio em alcançar pessoas bem próximas a <strong>{addressInput}</strong>.</span>
-                                  )}
+                                  <span><strong>Indicado para negócios locais:</strong> O raio de <strong>{radius} km</strong> será aplicado ao redor das cidades e endereços selecionados para atrair clientes da vizinhança.</span>
                                 </p>
                               </div>
                             </div>
@@ -1969,7 +1928,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       </div>
 
                       <p className="text-[11px] text-slate-500 leading-relaxed mt-4 italic">
-                        * Com base em históricos de anúncios na Meta para negócios locais no raio de {radius}km. O valor total a ser investido é de **R$ {dailyBudget * duration}** durante o período.
+                        Essas estimativas são baseadas em históricos de anúncios na Meta e podem variar
                       </p>
                     </div>
 
@@ -1997,11 +1956,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <Button
                     type="button"
                     onClick={() => {
-                      if (currentStep === 3 && !selectedCoords) {
+                      if (currentStep === 3 && selectedLocations.length === 0) {
                         toast({
                           variant: "destructive",
                           title: "Selecione uma localização oficial",
-                          description: "Digite o endereço e selecione uma das opções sugeridas na lista flutuante da Meta.",
+                          description: "Digite o endereço e selecione uma das opções sugeridas na lista flutuante.",
                         });
                         return;
                       }
@@ -2392,7 +2351,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
                                         title="Pausar anúncio na Meta"
                                       >
                                         <Pause className="h-3 w-3" />
@@ -2403,7 +2362,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
                                         title="Ativar anúncio na Meta"
                                       >
                                         <Play className="h-3 w-3" />
