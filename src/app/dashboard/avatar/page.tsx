@@ -60,6 +60,36 @@ const SUGGESTIONS = [
     gender: "neutral",
     text: "Transforme esta imagem em uma foto com props da marca pessoal. Objetos: adicione caneca personalizada, livro, notebook ou material de marca com logotipo visível de forma discreta. Fundo: clean em tons claros, ou cenário de escritório minimalista. Roupa: look casual-profissional. Iluminação: clara e suave. Preserve identidade facial e expressão natural. Estilo final: foto profissional de branding pessoal para materiais digitais.",
   },
+  {
+    label: "Roupa Preta Elegante",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a foto como referência Crie um retrato hiper-realista em alta resolução, com qualidade de estúdio profissional e iluminação suave, limpa e bem direcionada. A cena mostra uma mulher sentada, em pose elegante e sofisticada, com a mão apoiando levemente o rosto enquanto a outra descansa sobre a perna. A mulher tem cabelos castanhos escuros longos, levemente ondulados, com mechas nas pontas, iluminados com brilho natural. Ela usa maquiagem elegante com sobrancelhas definidas, olhos suaves e lábios nude. O look é totalmente preto, composto por uma blusa preta transparente com textura delicada, mangas longas e gola alta, combinada com uma calça preta fluida. Os acessórios dourados chamativos: brincos, pulseiras e anéis medianos e modernos. O fundo é escuro e minimalista, destacando a figura e reforçando o estilo editorial. A foto deve transmitir um clima sofisticado, moderno e de moda, com estética elegante e olhar confiante. Formato: Retrato hiper-realista, nítido, textura detalhada, iluminação premium de estúdio, estilo editorial de alta moda.",
+  },
+  {
+    label: "Blazer Branco",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a foto como referência crie um Retrato profissional feminino em estúdio minimalista, qualidade ultra realista 8K, iluminação suave e difusa. A mulher tem cabelos castanhos-escuros longos e ondulados, com mechas mais claras nas pontas (mesmo com o cabelo preso, manter essas características na criação). Pele impecável e iluminada, maquiagem elegante com sobrancelhas definidas, olhos suaves e lábios nude. Ela usa um blazer branco estruturado, transmitindo elegância e profissionalismo. Acessórios dourados chamativos: brincos, pulseiras e anéis grandes. Suas mãos estão posicionadas próximas ao rosto, em pose sofisticada e confiante, com unhas esmaltadas em tom nude acinzentado. Fundo neutro em tom claro, estética clean, foco nítido no rosto e nas mãos, textura da pele detalhada, estilo editorial de moda e fotografia de luxo em alta resolução 8K",
+  },
+  {
+    label: "Com Laptop na Poltrona",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a mesma foto é mulher que me enviou como referência Crie um retrato hiper-realista em alta resolução, com qualidade de estúdio profissional e iluminação suave, limpa e bem distribuída. A cena mostra uma mulher sentada em uma poltrona de couro marrom, usando um MacBook prateado apoiado no colo enquanto segura uma caneta digital branca na mão. A mulher tem cabelos castanhos escuros longos e ondulados, com mechas nas pontas, com brilho natural e ondas bem definidas. Ela usa maquiagem elegante com sobrancelhas definidas, olhos suaves e lábios nude. O look é totalmente preto, composto por uma blusa preta transparente com textura delicada, mangas longas e gola alta, combinada com uma calça preta fluida. Os acessórios dourados chamativos: brincos, pulseiras e anéis medianos e modernos. O fundo é neutro e escuro, com visual minimalista, reforçando a atmosfera de ensaio fotográfico editorial. A imagem deve transmitir profissionalismo, sofisticação e estética moderna, com foco na postura segura e no estilo empresarial elegante. Formato: Foto hiper-realista, nítida, textura detalhada, iluminação premium de estúdio, estilo editorial moderno, look profissional.",
+  },
+  {
+    label: "Alfaiataria Branca",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a mesma foto como referência, crie um retrato feminino hiper-realista em qualidade ultra profissional 8K. A mulher tem cabelos castanho-escuros longos e ondulados, com mechas mais claras nas pontas (mesmo estando presos no penteado). Pele iluminada, textura natural e maquiagem elegante, com sobrancelhas definidas e lábios em tom nude. Ela usa um conjunto de alfaiataria branco sofisticado — blazer estruturado e calça de corte clássico. Acessórios dourados chamativos: brincos, braceletes, anéis e detalhes metálicos. A pose transmite autoridade e elegância: sentada em uma poltrona, tronco levemente inclinado, uma mão apoiada no rosto e a outra sobre o braço da cadeira. Plano de fundo em tom marrom escuro, iluminação suave e difusa em estilo editorial de revista de luxo. Atmosfera profissional e refinada, profundidade de campo curta, contraste equilibrado e estilo fotográfico premium.",
+  },
+  {
+    label: "Preto na Poltrona",
+    category: "corporate",
+    gender: "female",
+    text: "Usando a mesma foto e mulher que me enviou como referência Crie um retrato hiper-realista e profissional em alta resolução, com qualidade fotográfica de estúdio (iluminação suave, nítida e equilibrada). A cena mostra uma mulher sentada em uma poltrona de couro marrom, com pose elegante e confiante. Uma mão apoiada sobre a perna e a outra mão no braço da poltrona. A mulher tem cabelos castanhos escuros longos, ondulados, com mechas nas pontas, caindo naturalmente sobre os ombros. A mulher tem cabelos castanhos escuros longos, levemente ondulados, com mechas nas pontas, iluminados com brilho natural. Ela usa maquiagem elegante com sobrancelhas definidas, olhos suaves e lábios nude. O look é totalmente preto, composto por uma blusa preta transparente com textura delicada, mangas longas e gola alta, combinada com uma calça preta fluida. Os acessórios dourados chamativos: brincos, pulseiras e anéis medianos e modernos. A pose mostra uma mão encostada suavemente no rosto e a outra apoiada na poltrona, transmitindo segurança, elegância e presença de moda. O fundo é neutro, escuro e limpo, reforçando o estilo editorial e o clima de ensaio fotográfico de alto padrão. Formato desejado: foto hiper-realista, nítida, iluminada profissionalmente, estética editorial de moda, alta qualidade.",
+  },
 
   // Categoria: creative
   {
