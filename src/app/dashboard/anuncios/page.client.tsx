@@ -2351,7 +2351,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
                                         title="Pausar anúncio na Meta"
                                       >
                                         <Pause className="h-3 w-3" />
@@ -2362,7 +2362,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
+                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
                                         title="Ativar anúncio na Meta"
                                       >
                                         <Play className="h-3 w-3" />
