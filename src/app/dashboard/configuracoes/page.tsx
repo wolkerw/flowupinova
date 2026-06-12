@@ -16,6 +16,7 @@ import {
   type OnboardingLogoData,
 } from "@/lib/services/onboarding-service";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Settings2,
   UploadCloud,
@@ -87,6 +88,17 @@ export default function ConfiguracoesPage() {
   const [mainBenefits, setMainBenefits] = useState<string[]>([]);
   const [newBenefit, setNewBenefit] = useState("");
 
+  // Estados locais para Brand Manual (PDF)
+  const [visualGuidelines, setVisualGuidelines] = useState("");
+  const [pdfManualPath, setPdfManualPath] = useState("");
+  const [pdfManualUrl, setPdfManualUrl] = useState("");
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [pdfProgressText, setPdfProgressText] = useState("");
+  const [extractedBrandData, setExtractedBrandData] = useState<any | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  const fileInputRefPdf = useRef<HTMLInputElement>(null);
+
   // Logos Individuais
   const [logoHorizontal, setLogoHorizontal] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
   const [logoVertical, setLogoVertical] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
@@ -123,6 +135,9 @@ export default function ConfiguracoesPage() {
       setLogoVertical(data.logos?.vertical || { url: "", width: 0, height: 0 });
       setLogoSymbol(data.logos?.symbol || { url: "", width: 0, height: 0 });
       setLogoAvatar(data.logos?.avatar || { url: "", width: 0, height: 0 });
+      setVisualGuidelines(data.brandKit?.visualGuidelines || "");
+      setPdfManualPath(data.brandKit?.pdfManualPath || "");
+      setPdfManualUrl(data.brandKit?.pdfManualUrl || "");
     } catch (error) {
       console.error("Erro ao carregar configurações de marca:", error);
       toast({ title: "Erro de Conexão", description: "Não foi possível carregar suas configurações.", variant: "destructive" });
@@ -259,6 +274,113 @@ export default function ConfiguracoesPage() {
     }
   };
 
+  const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Arquivo Inválido",
+        description: "Por favor, selecione apenas arquivos em formato PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsParsingPdf(true);
+    
+    // Mensagens de progresso simuladas para feedback
+    const messages = [
+      "Enviando manual em PDF para o servidor...",
+      "Iniciando leitura e interpretação via Inteligência Artificial...",
+      "Mapeando a paleta de cores institucional da agência...",
+      "Sintetizando slogan, público-alvo e posicionamento...",
+      "Extraindo tom de voz para legendas e redes sociais...",
+      "Estruturando diretrizes fotográficas e regras de design..."
+    ];
+    
+    let msgIndex = 0;
+    setPdfProgressText(messages[0]);
+    
+    const progressInterval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % messages.length;
+      setPdfProgressText(messages[msgIndex]);
+    }, 4500);
+
+    try {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      formData.append("userId", user.uid);
+
+      const response = await fetch("/api/brand-kit/parse-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Erro ao processar o PDF.");
+      }
+
+      const resJson = await response.json();
+      if (resJson.success && resJson.data) {
+        setExtractedBrandData(resJson.data);
+        setIsConfirmModalOpen(true);
+        toast({
+          title: "Branding Extraído!",
+          description: "Revisando diretrizes visuais e conceituais do manual.",
+          variant: "success",
+        });
+      } else {
+        throw new Error("Resposta da IA inválida.");
+      }
+
+    } catch (e: any) {
+      clearInterval(progressInterval);
+      console.error("[BRAND_KIT_PDF_UPLOAD] Erro:", e);
+      toast({
+        title: "Erro ao Processar Manual",
+        description: e.message || "Ocorreu uma falha inesperada durante a leitura do PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsParsingPdf(false);
+      setPdfProgressText("");
+      if (event.target) {
+        event.target.value = "";
+      }
+    }
+  };
+
+  const handleAcceptExtractedBranding = () => {
+    if (!extractedBrandData || !user) return;
+
+    if (extractedBrandData.name) setName(extractedBrandData.name);
+    if (extractedBrandData.slogan) setSlogan(extractedBrandData.slogan);
+    if (extractedBrandData.description) setDescription(extractedBrandData.description);
+    if (extractedBrandData.targetAudience) setTargetAudience(extractedBrandData.targetAudience);
+    if (extractedBrandData.toneOfVoice) setToneOfVoice(extractedBrandData.toneOfVoice);
+    if (extractedBrandData.primaryColor) setPrimaryColor(extractedBrandData.primaryColor);
+    if (extractedBrandData.secondaryColor) setSecondaryColor(extractedBrandData.secondaryColor);
+    if (extractedBrandData.visualGuidelines) setVisualGuidelines(extractedBrandData.visualGuidelines);
+    if (extractedBrandData.mainBenefits && extractedBrandData.mainBenefits.length > 0) {
+      setMainBenefits(extractedBrandData.mainBenefits);
+    }
+    if (extractedBrandData.pdfManualPath) setPdfManualPath(extractedBrandData.pdfManualPath);
+    if (extractedBrandData.pdfManualUrl) setPdfManualUrl(extractedBrandData.pdfManualUrl);
+
+    setIsConfirmModalOpen(false);
+    setExtractedBrandData(null);
+
+    toast({
+      title: "Configurações Carregadas!",
+      description: "Os dados do PDF foram aplicados na tela. Lembre-se de clicar em 'Salvar Alterações' para persistir.",
+      variant: "success",
+    });
+  };
+
   const handleApplyPalette = (palette: typeof presetPalettes[0]) => {
     setPrimaryColor(palette.primary);
     setSecondaryColor(palette.secondary);
@@ -308,6 +430,14 @@ export default function ConfiguracoesPage() {
           vertical: logoVertical,
           symbol: logoSymbol,
           avatar: logoAvatar,
+        },
+        brandKit: {
+          primaryColor,
+          secondaryColor,
+          visualGuidelines,
+          pdfManualPath,
+          pdfManualUrl,
+          pdfUploadedAt: profile?.brandKit?.pdfUploadedAt || null,
         },
       });
 
@@ -667,6 +797,81 @@ export default function ConfiguracoesPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Módulo de Importação de Manual de Branding (PDF) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Branding da Agência (PDF)
+              </CardTitle>
+              <CardDescription>
+                Suba o manual de identidade visual criado pela agência e a IA configurará seu Brand Kit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isParsingPdf ? (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 border border-dashed rounded-lg bg-slate-50/50">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-800">Processando manual de marca...</p>
+                    <p className="text-xs text-muted-foreground animate-pulse">{pdfProgressText}</p>
+                  </div>
+                </div>
+              ) : pdfManualPath ? (
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded border border-green-200 bg-white text-green-600">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-green-800 truncate">Manual de Marca Vinculado</p>
+                      {pdfManualUrl && (
+                        <a 
+                          href={pdfManualUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5 mt-0.5"
+                        >
+                          Visualizar PDF
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-dashed h-9 px-3 text-xs"
+                    onClick={() => fileInputRefPdf.current?.click()}
+                  >
+                    Substituir PDF
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    ref={fileInputRefPdf}
+                    className="hidden"
+                    onChange={handlePdfUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-dashed p-8 flex flex-col gap-2 items-center justify-center h-auto text-muted-foreground hover:text-foreground"
+                    onClick={() => fileInputRefPdf.current?.click()}
+                  >
+                    <UploadCloud className="mr-2 h-6 w-6 text-primary" />
+                    <div className="text-center">
+                      <p className="text-sm font-semibold">Upload do Manual em PDF</p>
+                      <p className="text-xs text-muted-foreground">Identidade Visual, Cores, Tom de Voz (até 15MB)</p>
+                    </div>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Painel Central e Direito: Dados do Negócio e Voz de Marca */}
@@ -895,6 +1100,34 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
+          {/* Diretrizes Estéticas Visuais para Geração de Imagens */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Diretrizes Visuais para IA
+              </CardTitle>
+              <CardDescription>
+                Regras e conceitos visuais/estéticos de fotografia que a IA utilizará ao gerar fotos e anúncios.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="visualGuidelines">Diretrizes Fotográficas e Estéticas</Label>
+                <Textarea
+                  id="visualGuidelines"
+                  placeholder="Ex: Fotografia de produto com iluminação suave, fundo minimalista em tons pastéis, estilo clean e moderno..."
+                  value={visualGuidelines}
+                  onChange={(e) => setVisualGuidelines(e.target.value)}
+                  className="min-h-[120px] resize-y"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Estas diretrizes são injetadas automaticamente na IA de geração de imagens do Imagen para garantir consistência visual.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
 
@@ -914,6 +1147,126 @@ export default function ConfiguracoesPage() {
           });
         }}
       />
+
+      {/* Modal de Confirmação de Branding Extraído do PDF */}
+      <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+        <DialogContent className="max-w-2xl bg-white max-h-[85vh] overflow-y-auto border-none shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+              Manual de Branding Identificado!
+            </DialogTitle>
+            <DialogDescription>
+              Nossa Inteligência Artificial leu o manual de marca da agência. Revise abaixo as informações extraídas antes de aplicá-las ao seu perfil.
+            </DialogDescription>
+          </DialogHeader>
+
+          {extractedBrandData && (
+            <div className="space-y-6 my-4">
+              {/* Seção 1: Identidade e Conceito */}
+              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Identidade da Marca</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground text-gray-500">Nome Identificado</span>
+                    <p className="text-sm font-medium text-slate-800">{extractedBrandData.name || "Não identificado"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground text-gray-500">Slogan da Marca</span>
+                    <p className="text-sm font-medium text-slate-800">{extractedBrandData.slogan || "Não identificado"}</p>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <span className="text-xs text-muted-foreground text-gray-500">Descrição de Posicionamento</span>
+                  <p className="text-xs text-slate-600 leading-relaxed">{extractedBrandData.description || "Não identificado"}</p>
+                </div>
+              </div>
+
+              {/* Seção 2: Cores Extraídas */}
+              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Paleta de Cores da Agência</h4>
+                <div className="flex flex-wrap gap-6">
+                  {extractedBrandData.primaryColor && (
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="h-10 w-10 rounded-full border border-slate-200 shadow-sm" 
+                        style={{ backgroundColor: extractedBrandData.primaryColor }}
+                      />
+                      <div>
+                        <span className="text-xs text-muted-foreground text-gray-500">Cor Primária</span>
+                        <p className="text-xs font-mono font-medium text-slate-800">{extractedBrandData.primaryColor}</p>
+                      </div>
+                    </div>
+                  )}
+                  {extractedBrandData.secondaryColor && (
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="h-10 w-10 rounded-full border border-slate-200 shadow-sm" 
+                        style={{ backgroundColor: extractedBrandData.secondaryColor }}
+                      />
+                      <div>
+                        <span className="text-xs text-muted-foreground text-gray-500">Cor Secundária</span>
+                        <p className="text-xs font-mono font-medium text-slate-800">{extractedBrandData.secondaryColor}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!extractedBrandData.primaryColor && !extractedBrandData.secondaryColor && (
+                    <p className="text-xs italic text-muted-foreground text-gray-500">Nenhuma cor detectada no manual.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Seção 3: Marketing e Tom de Voz */}
+              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Público e Tom de Voz</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground text-gray-500">Público-Alvo</span>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{extractedBrandData.targetAudience || "Não identificado"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground text-gray-500">Tom de Voz</span>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{extractedBrandData.toneOfVoice || "Não identificado"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 4: Diretrizes Fotográficas (IA) */}
+              <div className="space-y-3 rounded-lg bg-indigo-50/50 p-4 border border-indigo-100">
+                <h4 className="text-sm font-semibold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
+                  Diretrizes Estéticas de Fotografia (IA)
+                </h4>
+                <div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {extractedBrandData.visualGuidelines || "Nenhuma diretriz estética explícita foi mapeada. Será utilizado o padrão do aplicativo."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-4 border-t pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsConfirmModalOpen(false);
+                setExtractedBrandData(null);
+              }}
+            >
+              Descartar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAcceptExtractedBranding}
+              className="bg-primary hover:bg-primary/95 text-white"
+            >
+              Aplicar ao Perfil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -34,6 +34,10 @@ export interface OnboardingProfileData {
   brandKit?: {
     primaryColor?: string;
     secondaryColor?: string;
+    visualGuidelines?: string;
+    pdfManualPath?: string;
+    pdfManualUrl?: string;
+    pdfUploadedAt?: any;
     [key: string]: any;
   };
 }
@@ -66,6 +70,14 @@ const defaultOnboardingProfile: OnboardingProfileData = {
     symbol: { url: "", width: 0, height: 0 },
     avatar: { url: "", width: 0, height: 0 },
   },
+  brandKit: {
+    primaryColor: "#3b82f6",
+    secondaryColor: "#1e293b",
+    visualGuidelines: "",
+    pdfManualPath: "",
+    pdfManualUrl: "",
+    pdfUploadedAt: null,
+  },
 };
 
 function getOnboardingDocRef(userId: string) {
@@ -97,6 +109,10 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
           vertical: { ...defaultLogo, ...data?.logos?.vertical },
           symbol: { ...defaultLogo, ...data?.logos?.symbol },
           avatar: { ...defaultLogo, ...data?.logos?.avatar },
+        },
+        brandKit: {
+          ...defaultOnboardingProfile.brandKit,
+          ...data?.brandKit,
         },
       } as OnboardingProfileData;
     } else {
