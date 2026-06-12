@@ -5,34 +5,43 @@ import { render, screen } from "@testing-library/react";
 import Conteudo from "../page";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { vi, describe, it, expect } from "vitest";
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => ({
-    user: { uid: "test-user" },
-  }),
+const mockUser = { uid: "test-user-123", email: "test@example.com" };
+const mockAuth = {
+  user: mockUser,
+  loading: false,
+  loginWithEmail: vi.fn().mockResolvedValue(undefined),
+  signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => mockAuth,
 }));
 
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: jest.fn(),
+    get: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
   }),
 }));
 
 // Mock services
-jest.mock("@/lib/services/posts-service", () => ({
-  getScheduledPosts: jest.fn().mockResolvedValue([]),
-  deletePost: jest.fn().mockResolvedValue(undefined),
-  schedulePost: jest.fn().mockResolvedValue({ success: true }),
+vi.mock("@/lib/services/posts-service", () => ({
+  getScheduledPosts: vi.fn().mockResolvedValue([]),
+  deletePost: vi.fn().mockResolvedValue(undefined),
+  schedulePost: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock("@/lib/services/meta-service", () => ({
-  getMetaConnection: jest.fn().mockResolvedValue({ isConnected: false }),
-  updateMetaConnection: jest.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+  updateMetaConnection: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("Conteudo Page", () => {

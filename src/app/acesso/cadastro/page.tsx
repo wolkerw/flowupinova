@@ -101,7 +101,7 @@ export default function CadastroPage() {
           <Label htmlFor="segmento">Segmento de Negócio (Opcional)</Label>
           <div className="relative">
             <Select onValueChange={setSegment} value={segment}>
-              <SelectTrigger className="pl-10">
+              <SelectTrigger id="segmento" className="pl-10">
                 <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <SelectValue placeholder="Selecione seu segmento" />
               </SelectTrigger>

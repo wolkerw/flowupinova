@@ -6,16 +6,20 @@ import Relacionamento from "../page";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
   useAuth: () => ({
-    user: { uid: "test-user" },
+    user: { uid: "test-user-123", email: "test@example.com" },
+    loading: false,
+    loginWithEmail: vi.fn().mockResolvedValue(undefined),
+    signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
-jest.mock("@/lib/services/contacts-service", () => ({
-  getContacts: jest.fn().mockResolvedValue([]),
-  addContact: jest.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/services/contacts-service", () => ({
+  getContacts: vi.fn().mockResolvedValue([]),
+  addContact: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("Relacionamento Page", () => {

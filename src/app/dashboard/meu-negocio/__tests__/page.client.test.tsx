@@ -5,46 +5,92 @@ import { render, screen } from "@testing-library/react";
 import MeuNegocioPageClient from "../page.client";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { vi, describe, it, expect } from "vitest";
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => ({
-    user: { uid: "test-user" },
+vi.mock("@/components/auth/auth-provider", () => {
+  const user = { uid: "test-user-123", email: "test@example.com" };
+  const auth = {
+    user: user,
     loading: false,
-  }),
-}));
+    loginWithEmail: vi.fn().mockResolvedValue(undefined),
+    signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    AuthProvider: ({ children }: any) => children,
+    useAuth: () => auth,
+  };
+});
 
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: jest.fn(),
+    get: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
   }),
 }));
 
-const mockProfile = {
-  name: "Minha Empresa Teste",
-  category: "Consultoria",
-  address: "Rua Teste, 123",
-  phone: "(11) 99999-9999",
-  website: "www.teste.com",
-  description: "Descrição de teste.",
-  brandSummary: "Resumo da marca.",
-  instagram: "",
-  logo: { url: "", width: 0, height: 0 },
-  rating: 4.5,
-  totalReviews: 10,
-  isVerified: false,
-};
+vi.mock("@/lib/services/business-profile-service", () => {
+  const profile = {
+    name: "Minha Empresa Teste",
+    category: "Consultoria",
+    address: "Rua Teste, 123",
+    phone: "(11) 99999-9999",
+    website: "www.teste.com",
+    description: "Descrição de teste.",
+    brandSummary: "Resumo da marca.",
+    instagram: "",
+    logo: { url: "", width: 0, height: 0 },
+    rating: 4.5,
+    totalReviews: 10,
+    isVerified: true,
+  };
+  return {
+    getBusinessProfile: vi.fn().mockResolvedValue(profile),
+    updateBusinessProfile: vi.fn().mockResolvedValue(undefined),
+    resetBusinessProfile: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+vi.mock("@/lib/services/google-service", () => ({
+  getGoogleConnection: vi.fn().mockResolvedValue({
+    isConnected: false,
+    accessToken: "",
+    expiryDate: 0,
+    refreshToken: "",
+  }),
+  updateGoogleConnection: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/services/onboarding-service", () => ({
+  getOnboardingProfile: vi.fn().mockResolvedValue({}),
+  updateOnboardingProfile: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("MeuNegocioPageClient", () => {
   it("renders the main title", async () => {
+    const profile = {
+      name: "Minha Empresa Teste",
+      category: "Consultoria",
+      address: "Rua Teste, 123",
+      phone: "(11) 99999-9999",
+      website: "www.teste.com",
+      description: "Descrição de teste.",
+      brandSummary: "Resumo da marca.",
+      instagram: "",
+      logo: { url: "", width: 0, height: 0 },
+      rating: 4.5,
+      totalReviews: 10,
+      isVerified: true,
+    };
+
     render(
       <AuthProvider>
         <Toaster />
-        <MeuNegocioPageClient initialProfile={mockProfile} />
+        <MeuNegocioPageClient initialProfile={profile} />
       </AuthProvider>
     );
 
