@@ -60,6 +60,12 @@ vi.mock("@/lib/services/instagram-service", () => ({
   getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
 
+vi.mock("@/lib/services/posts-service", () => ({
+  getScheduledPosts: vi.fn().mockResolvedValue([]),
+}));
+
+
+
 describe("Anuncios Page", () => {
   it("renders the main title", async () => {
     // Resolve o Server Component assíncrono

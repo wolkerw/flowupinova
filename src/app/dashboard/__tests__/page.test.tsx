@@ -41,7 +41,24 @@ vi.mock("firebase/firestore", () => ({
     exists: () => true,
     data: () => ({ plan: "trial", createdAt: { toDate: () => new Date() } }),
   }),
-  onSnapshot: vi.fn(() => vi.fn()),
+  onSnapshot: vi.fn((ref, onNext) => {
+    if (onNext) {
+      setTimeout(() => {
+        onNext({
+          exists: () => true,
+          data: () => ({
+            plan: "trial",
+            role: "free",
+            subscriptionStatus: "",
+            createdAt: { toDate: () => new Date() },
+            name: "Test Business",
+            logo: { url: "test-logo-url", width: 100, height: 100 }
+          }),
+        });
+      }, 0);
+    }
+    return vi.fn();
+  }),
   dummy: {
     exists: () => true,
     data: () => ({ plan: "trial", createdAt: { toDate: () => new Date() } }),
