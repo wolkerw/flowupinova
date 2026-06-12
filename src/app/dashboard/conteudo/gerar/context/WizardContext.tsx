@@ -217,6 +217,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [lastGeneratedText, setLastGeneratedText] = useState<string>("");
+  const [lastConceptPromptUsed, setLastConceptPromptUsed] = useState<string>("");
+  const [lastSelectedContentIdUsed, setLastSelectedContentIdUsed] = useState<string | undefined>(undefined);
 
   const handleSelectedImageChange = (url: string | null) => {
     setSelectedImage(url);
@@ -658,6 +660,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     if (mode !== "reference-photo" && !selContent) return;
 
+    // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
+    if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
+      const hasImages = generatedImages && generatedImages.length === 3;
+      const hasNoChanges = hasImages &&
+        postSummary.trim() === lastConceptPromptUsed.trim() &&
+        selectedContentId === lastSelectedContentIdUsed;
+
+      if (hasNoChanges) {
+        console.log("[WIZARD] Nenhuma alteração no prompt inicial ou na escolha do texto. Mantendo imagens conceito anteriores.");
+        setStep(3);
+        return;
+      }
+    }
+
     setIsGeneratingImages(true);
     setCanStartPolling(false);
     setGeneratedImages([]);
@@ -827,6 +843,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           img4FormData.append("prompt", promptToUse);
           img4FormData.append("postId", activePostId);
           img4FormData.append("userId", user.uid);
+          img4FormData.append("caption", fullCaption);
 
           const img4Response = await fetch("/api/conteudo/gerar-referencia?action=submit-imagen4-ref", {
             method: "POST",
@@ -866,6 +883,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("prompt", promptToUse);
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
+            nanobananaFormData.append("caption", fullCaption);
 
             const nanobananaResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-nanobanana-ref", {
               method: "POST",
@@ -987,7 +1005,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                       postId: activePostId,
                       userId: user.uid,
                       finalImageUrl: finalImageUrl,
-                      referenceImageUrl: garmentPublicUrl || null
+                      referenceImageUrl: garmentPublicUrl || null,
+                      caption: fullCaption
                     })
                   });
 
@@ -1112,6 +1131,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
         }
 
+        setLastConceptPromptUsed(postSummary);
+        setLastSelectedContentIdUsed(selectedContentId);
         setLastGeneratedText(fullCaption);
         setIsGeneratingImages(false);
       }

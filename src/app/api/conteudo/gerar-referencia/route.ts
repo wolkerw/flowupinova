@@ -732,6 +732,7 @@ ${yamlAnalysis}`;
       const prompt = formData.get("prompt") as string;
       const postId = formData.get("postId") as string || "";
       const userId = formData.get("userId") as string || "";
+      const caption = formData.get("caption") as string || null;
 
       if (!prompt || !postId || !userId) {
         return NextResponse.json({ error: "Campos obrigatórios ausentes: prompt, postId, userId." }, { status: 400 });
@@ -809,7 +810,6 @@ ${yamlAnalysis}`;
         console.error("[IMAGEN4_REF] Erro ao atualizar Firestore:", fsErr);
       }
 
-      // Salvar na mediaGallery
       try {
         const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
         await galleryRef.doc(`${postId}_imagen4_ref`).set({
@@ -822,6 +822,7 @@ ${yamlAnalysis}`;
           usedInPostId: null,
           fileName: "imagen4_ref_generated.jpg",
           modelUsed,
+          caption,
         });
       } catch (galleryErr) {
         console.error("[IMAGEN4_REF] Erro ao salvar na galeria:", galleryErr);
@@ -837,13 +838,13 @@ ${yamlAnalysis}`;
       });
     }
 
-    // 🍌 NANO BANANA REF: Geração por Referência de Imagem via Gemini/Nano Banana (síncrono, sem polling)
     if (action === "submit-nanobanana-ref") {
       const formData = await request.formData();
       const file = formData.get("file") as File;
       const prompt = formData.get("prompt") as string;
       const postId = formData.get("postId") as string || "";
       const userId = formData.get("userId") as string || "";
+      const caption = formData.get("caption") as string || null;
 
       if (!file || !prompt || !postId || !userId) {
         return NextResponse.json({ error: "Campos obrigatórios ausentes: file, prompt, postId, userId." }, { status: 400 });
@@ -1029,7 +1030,6 @@ Cenário e estilo desejados: ${prompt}`;
         console.error("[NANOBANANA_REF] Erro ao atualizar Firestore:", fsErr);
       }
 
-      // 8. Salvar na mediaGallery
       try {
         const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
         await galleryRef.doc(`${postId}_nanobanana_ref`).set({
@@ -1042,6 +1042,7 @@ Cenário e estilo desejados: ${prompt}`;
           usedInPostId: null,
           fileName: "nanobanana_ref_generated.jpg",
           modelUsed,
+          caption,
         });
         console.log(`[NANOBANANA_REF] Imagem gravada na galeria.`);
       } catch (galleryErr) {
@@ -1157,7 +1158,7 @@ Cenário e estilo desejados: ${prompt}`;
 
 
     if (action === "upload-to-firebase") {
-      const { postId, userId, finalImageUrl, referenceImageUrl } = await request.json();
+      const { postId, userId, finalImageUrl, referenceImageUrl, caption } = await request.json();
 
       if (!postId || !userId || !finalImageUrl) {
         return NextResponse.json({ error: "Campos obrigatórios ausentes." }, { status: 400 });
@@ -1254,7 +1255,6 @@ Cenário e estilo desejados: ${prompt}`;
         }, { merge: true });
         console.log(`[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}! E o Base64 temporário foi excluído.`);
 
-        // 4. Cadastrar automaticamente o registro da imagem gerada na subcoleção mediaGallery do Firestore do lojista
         try {
           const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
           const galleryMediaId = `${postId}_ref_generated`;
@@ -1267,7 +1267,8 @@ Cenário e estilo desejados: ${prompt}`;
             prompt: "Imagem gerada a partir de foto do produto via IA.",
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             usedInPostId: null, // Disponível — ainda não publicada nas redes sociais
-            fileName: "generated_image.jpg"
+            fileName: "generated_image.jpg",
+            caption: caption || null
           });
           console.log(`[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`);
         } catch (galleryError) {
