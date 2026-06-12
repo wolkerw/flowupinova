@@ -4,21 +4,28 @@ import { Step1Idea } from "../_components/Step1Idea";
 import { WizardProvider } from "../context/WizardContext";
 
 // Mocking dependencies
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
-  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => ({ get: vi.fn().mockReturnValue(null) }),
 }));
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  useAuth: () => ({ user: { uid: "test-user-123" } }),
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => ({
+    user: { uid: "test-user-123", email: "test@example.com" },
+    loading: false,
+    loginWithEmail: vi.fn().mockResolvedValue(undefined),
+    signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+  }),
 }));
 
-jest.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
+vi.mock("@/hooks/use-toast", () => ({
+  useToast: () => ({ toast: vi.fn() }),
 }));
 
 // Mock framer-motion to avoid animation issues in tests
-jest.mock("framer-motion", () => ({
+vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },

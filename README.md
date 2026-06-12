@@ -1,87 +1,87 @@
-# NumVapt - Plataforma de Marketing com Inteligência Artificial
+# NumVapt - Marketing Platform with Artificial Intelligence
 
-Bem-vindo à documentação técnica da plataforma NumVapt. Este documento fornece uma visão geral da arquitetura, tecnologias utilizadas e diretrizes para contribuir com o projeto.
+Welcome to the technical documentation of the NumVapt platform. This document provides an overview of the architecture, technologies used, and guidelines for contributing to the project.
 
 ---
 
-## 🚀 Visão Geral do Projeto
+## 🚀 Project Overview
 
-A NumVapt é uma plataforma SaaS (Software as a Service) projetada para empoderar pequenas e médias empresas, automatizando e otimizando suas estratégias de marketing digital através de Inteligência Artificial. A aplicação centraliza a criação de conteúdo, gestão de anúncios, análise de performance e relacionamento com o cliente em um único lugar.
+NumVapt is a SaaS (Software as a Service) platform designed to empower small and medium-sized enterprises by automating and optimizing their digital marketing strategies through Artificial Intelligence. The application centralizes content creation, ad management, performance analytics, and customer relationship management in one single place.
 
-## 🛠️ Tecnologias e Stacks
+## 🛠️ Technologies and Stacks
 
-A plataforma é construída sobre uma stack moderna, robusta e escalável, utilizando as melhores práticas do ecossistema JavaScript/TypeScript.
+The platform is built on a modern, robust, and scalable stack, utilizing the best practices of the JavaScript/TypeScript ecosystem.
 
 ### Core
 
-- **Framework:** [Next.js](https://nextjs.org/) (v15+) - Utilizando o App Router para renderização híbrida (Server e Client Components), otimização de performance e rotas baseadas em arquivos.
-- **Linguagem:** [TypeScript](https://www.typescriptlang.org/) - Para um código mais seguro, legível e manutenível.
-- **Backend (BaaS):** [Firebase](https://firebase.google.com/) - Solução completa para autenticação, banco de dados (Firestore), armazenamento de arquivos (Storage) e hospedagem.
+- **Framework:** [Next.js](https://nextjs.org/) (v15+) - Using the App Router for hybrid rendering (Server and Client Components), performance optimization, and file-based routing.
+- **Language:** [TypeScript](https://www.typescriptlang.org/) - For safer, more readable, and maintainable code.
+- **Backend (BaaS):** [Firebase](https://firebase.google.com/) - Complete solution for authentication, database (Firestore), file storage (Storage), and hosting.
 
 ### Frontend
 
-- **UI Library:** [React](https://react.dev/) (v18+) - Para a construção de interfaces de usuário dinâmicas e reativas.
-- **Componentes UI:** [ShadCN/UI](https://ui.shadcn.com/) - Uma coleção de componentes de UI reusáveis, acessíveis e customizáveis, construídos sobre Radix UI.
-- **Estilização:** [Tailwind CSS](https://tailwindcss.com/) - Framework CSS utility-first para um design rápido, consistente e responsivo.
-- **Ícones:** [Lucide React](https://lucide.dev/) - Biblioteca de ícones open-source, leve e customizável.
-- **Animações:** [Framer Motion](https://www.framer.com/motion/) - Para a criação de animações fluidas e complexas.
-- **Formulários:** [React Hook Form](https://react-hook-form.com/) - Gerenciamento de formulários performático e eficiente.
+- **UI Library:** [React](https://react.dev/) (v18+) - For building dynamic and reactive user interfaces.
+- **UI Components:** [ShadCN/UI](https://ui.shadcn.com/) - A collection of reusable, accessible, and customizable UI components built on top of Radix UI.
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework for rapid, consistent, and responsive design.
+- **Icons:** [Lucide React](https://lucide.dev/) - Light and customizable open-source icon library.
+- **Animations:** [Framer Motion](https://www.framer.com/motion/) - For creating fluid and complex animations.
+- **Forms:** [React Hook Form](https://react-hook-form.com/) - Performance-oriented and efficient form management.
 
 ### Backend & APIs
 
-- **Infraestrutura:** [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) - Hospedagem gerenciada e escalável para aplicações web.
-- **Banco de Dados:** [Cloud Firestore](https://firebase.google.com/docs/firestore) - Banco de dados NoSQL, flexível e escalável para armazenar dados da aplicação em tempo real.
-- **Autenticação:** [Firebase Authentication](https://firebase.google.com/docs/auth) - Gerenciamento de usuários com suporte a login por e-mail/senha e provedores sociais.
-- **Armazenamento de Arquivos:** [Firebase Storage](https://firebase.google.com/docs/storage) - Para upload e armazenamento de mídias como imagens e vídeos.
-- **APIs Externas:** Integração com as APIs Graph do Facebook/Instagram e Google My Business para publicação de conteúdo e análise de métricas.
+- **Infrastructure:** [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) - Managed and scalable hosting for web applications.
+- **Database:** [Cloud Firestore](https://firebase.google.com/docs/firestore) - Flexible, scalable, real-time NoSQL database to store application data.
+- **Authentication:** [Firebase Authentication](https://firebase.google.com/docs/auth) - User management with support for email/password sign-in and social providers.
+- **File Storage:** [Firebase Storage](https://firebase.google.com/docs/storage) - For uploading and storing media assets such as images and videos.
+- **External APIs:** Integration with Facebook/Instagram Graph APIs and Google My Business to publish content and analyze metrics.
 
-### Testes
+### Testing
 
-- **Framework de Testes:** [Jest](https://jestjs.io/)
-- **Testes de Componentes:** [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- **Testing Framework:** [Vitest](https://vitest.dev/) - Fast and modern unit and integration test runner.
+- **Component Testing:** [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) - Light-utility tool for testing React components.
 
 ---
 
-## 📁 Estrutura de Diretórios
+## 📁 Directory Structure
 
-A estrutura do projeto segue as convenções do Next.js App Router para uma organização clara e escalável.
+The project structure follows the Next.js App Router conventions for a clear and scalable organization.
 
 ```
 /
 ├── src/
-│   ├── app/                    # Rotas principais da aplicação (App Router)
-│   │   ├── (acesso)/           # Rotas públicas de login e cadastro
-│   │   ├── (dashboard)/        # Rotas protegidas do painel do usuário
-│   │   ├── api/                # API Routes para comunicação com serviços externos
-│   │   └── layout.tsx          # Layout raiz da aplicação
+│   ├── app/                    # Main application routes (App Router)
+│   │   ├── (acesso)/           # Public login and signup routes
+│   │   ├── (dashboard)/        # Protected user panel routes
+│   │   ├── api/                # API Routes for communicating with external services
+│   │   └── layout.tsx          # Application root layout
 │   │
 │   ├── components/
-│   │   ├── ui/                 # Componentes base (gerados pelo ShadCN/UI)
-│   │   └── auth/               # Componentes relacionados à autenticação
+│   │   ├── ui/                 # Base components (generated by ShadCN/UI)
+│   │   └── auth/               # Authentication-related components
 │   │
 │   ├── lib/
-│   │   ├── firebase.ts         # Configuração e inicialização do Firebase (client-side)
-│   │   ├── firebase-admin.ts   # Configuração e inicialização do Firebase (server-side)
-│   │   ├── services/           # Lógica de negócio e comunicação com Firestore/APIs
-│   │   └── utils.ts            # Funções utilitárias
+│   │   ├── firebase.ts         # Firebase configuration and initialization (client-side)
+│   │   ├── firebase-admin.ts   # Firebase configuration and initialization (server-side)
+│   │   ├── services/           # Business logic and communication with Firestore/APIs
+│   │   └── utils.ts            # Utility functions
 │   │
-│   └── hooks/                  # Hooks customizados do React
+│   └── hooks/                  # React custom hooks
 │
-├── public/                     # Arquivos estáticos (imagens, fontes, etc.)
+├── public/                     # Static files (images, fonts, etc.)
 │
-├── .env                        # Variáveis de ambiente (não versionado)
-├── next.config.ts              # Configurações do Next.js
-└── package.json                # Dependências e scripts do projeto
+├── .env                        # Environment variables (git-ignored)
+├── next.config.ts              # Next.js configuration settings
+└── package.json                # Dependencies and project scripts
 ```
 
 ---
 
-## 📦 Scripts Disponíveis
+## 📦 Available Scripts
 
-Os seguintes scripts estão disponíveis no `package.json`:
+The following scripts are available in `package.json`:
 
-- `npm run dev`: Inicia o servidor de desenvolvimento em `http://localhost:9002`.
-- `npm run build`: Compila a aplicação para produção.
-- `npm run start`: Inicia o servidor de produção após o build.
-- `npm run lint`: Executa o linter para analisar o código em busca de problemas.
-- `npm run test`: Executa os testes unitários e de integração.
+- `npm run dev`: Starts the development server at `http://localhost:9002`.
+- `npm run build`: Compiles the application for production.
+- `npm run start`: Starts the production server after compilation.
+- `npm run lint`: Runs the linter to analyze the codebase for issues.
+- `npm run test`: Runs unit and integration tests with Vitest.

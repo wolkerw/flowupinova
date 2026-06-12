@@ -1,49 +1,49 @@
-# Guia de Identidade Visual - NumVapt
+# Visual Identity Guide - NumVapt
 
-Este documento define os padrões visuais para a plataforma NumVapt, garantindo consistência em toda a interface.
+This document defines the visual standards for the NumVapt platform, ensuring consistency across the interface.
 
-## 1. Cores da Marca
+## 1. Brand Colors
 
-A paleta de cores deve ser aplicada em tons **sólidos**, evitando gradientes complexos para manter uma estética limpa e profissional.
+The color palette must be applied in **solid** tones, avoiding complex gradients to maintain a clean and professional aesthetic.
 
-### 1.1 Cores Principais
+### 1.1 Core Colors
 
-- **Azul NumVapt (Primária)**: `#0083C7`
-  - _Uso_: Botões principais, ícones de destaque, cabeçalhos e links ativos.
-- **Laranja NumVapt (Acento)**: `#FA6305`
-  - _Uso_: Alertas, badges de destaque secundário e elementos de atenção pontual.
+- **NumVapt Blue (Primary)**: `#0083C7`
+  - _Usage_: Main buttons, featured icons, headers, and active links.
+- **NumVapt Orange (Accent)**: `#FA6305`
+  - _Usage_: Alerts, secondary badges, and point-of-attention elements.
 
-### 1.2 Cores de Suporte
+### 1.2 Supporting Colors
 
-- **Fundo (Light)**: `#FFFFFF` (Branco) ou `#F8FAFC` (Cinza muito claro)
-- **Texto Principal**: `#0F172A` (Slate escuro)
-- **Texto Secundário**: `#64748B` (Slate médio)
-
----
-
-## 2. Tipografia
-
-As fontes escolhidas evocam modernidade e clareza.
-
-- **Títulos e Headlines**: `Poppins` (Bold/Black)
-- **Corpo de Texto**: `Inter` (Regular/Medium)
+- **Background (Light)**: `#FFFFFF` (White) or `#F8FAFC` (Very light gray)
+- **Primary Text**: `#0F172A` (Dark slate)
+- **Secondary Text**: `#64748B` (Medium slate)
 
 ---
 
-## 3. Estética e Componentes
+## 2. Typography
 
-Seguimos um padrão de design **Sólido e Minimalista**.
+The chosen typefaces evoke modernity and clarity.
 
-- **Bordas**: Arredondamento padrão de `0.5rem` (8px).
-- **Sombras**: Utilizar sombras suaves (`shadow-sm` ou `shadow-md`) para dar profundidade sem poluir visualmente.
-- **Botões**: Sempre em cores sólidas. O botão primário deve ser Azul NumVapt com texto branco.
-- **Cards**: Fundo branco sólido com borda fina (`1px`) em cor neutra (`#E2E8F0`).
+- **Headlines and Titles**: `Poppins` (Bold/Black)
+- **Body Text**: `Inter` (Regular/Medium)
 
 ---
 
-## 4. Logo e Ativos
+## 3. Aesthetics and Components
 
-O logotipo oficial deve ser preservado em suas proporções originais.
+We follow a **Solid and Minimalist** design standard.
 
-- **Localização**: `public/logo-numvapt.png`
-- **Variante Invertida**: Para fundos escuros, utilizar a versão com texto em branco.
+- **Borders**: Standard rounding of `0.5rem` (8px).
+- **Shadows**: Use soft shadows (`shadow-sm` or `shadow-md`) to provide depth without visual clutter.
+- **Buttons**: Always in solid colors. The primary button must be NumVapt Blue with white text.
+- **Cards**: Solid white background with a thin border (`1px`) in a neutral color (`#E2E8F0`).
+
+---
+
+## 4. Logo and Assets
+
+The official logo must be preserved in its original proportions.
+
+- **Location**: `public/logo-numvapt.png`
+- **Inverted Variant**: For dark backgrounds, use the version with white text.

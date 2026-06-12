@@ -5,9 +5,9 @@ import { render, screen } from "@testing-library/react";
 import AcessoRedirectPage from "../page";
 
 // Mock Next.js router
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    replace: jest.fn(),
+    replace: vi.fn(),
   }),
 }));
 

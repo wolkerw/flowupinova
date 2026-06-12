@@ -3,31 +3,41 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import HomePage from "../page";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { vi, describe, it, expect } from "vitest";
 
 // Mock Next.js router
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: jest.fn(),
+    push: vi.fn(),
   }),
   usePathname: () => "/",
   useScroll: () => ({ scrollYProgress: { toJSON: () => 0 } }),
   useTransform: (value: any) => value,
 }));
 
-// Mock framer-motion
-jest.mock("framer-motion", () => ({
-  ...jest.requireActual("framer-motion"),
-  useScroll: () => ({ scrollYProgress: { toJSON: () => 0 } }),
-  useTransform: (value: any) => value,
-  motion: {
-    div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  },
+const mockUser = null;
+const mockAuth = {
+  user: mockUser,
+  loading: false,
+  loginWithEmail: vi.fn().mockResolvedValue(undefined),
+  signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => mockAuth,
 }));
 
 describe("HomePage", () => {
   it("renders the main headline", () => {
-    render(<HomePage />);
-    expect(screen.getByText(/Sua plataforma de marketing com/i)).toBeInTheDocument();
-    expect(screen.getByText(/Inteligência Artificial/i)).toBeInTheDocument();
+    render(
+      <AuthProvider>
+        <HomePage />
+      </AuthProvider>
+    );
+    expect(screen.getByText(/Seu marketing no modo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ultra Vapt/i)).toBeInTheDocument();
   });
 });

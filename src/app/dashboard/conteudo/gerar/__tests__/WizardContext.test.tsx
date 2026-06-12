@@ -1,54 +1,87 @@
 import React from "react";
 import { render, act, screen } from "@testing-library/react";
 import { WizardProvider, useWizard } from "../context/WizardContext";
+import { vi, describe, it, expect } from "vitest";
 
 // Mocking dependencies
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
-  useSearchParams: () => ({ get: jest.fn().mockReturnValue("concept") }), // Mocking search params
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => ({ get: vi.fn().mockReturnValue("concept") }),
 }));
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  useAuth: () => ({ user: { uid: "test-user-123" } }),
+const mockUser = { uid: "test-user-123", email: "test@example.com" };
+const mockAuth = {
+  user: mockUser,
+  loading: false,
+  loginWithEmail: vi.fn().mockResolvedValue(undefined),
+  signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => mockAuth,
 }));
 
-jest.mock("@/hooks/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
+vi.mock("@/hooks/use-toast", () => ({
+  useToast: () => ({ toast: vi.fn() }),
 }));
 
-jest.mock("@/lib/services/posts-service", () => ({
-  schedulePost: jest.fn().mockResolvedValue({ success: true }),
+vi.mock("@/lib/services/posts-service", () => ({
+  schedulePost: vi.fn().mockResolvedValue({ success: true }),
+  deletePost: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock("@/lib/services/meta-service", () => ({
-  getMetaConnection: jest.fn().mockResolvedValue({ isConnected: true }),
+vi.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: vi.fn().mockResolvedValue({ isConnected: true }),
 }));
 
-jest.mock("@/lib/services/instagram-service", () => ({
-  getInstagramConnection: jest.fn().mockResolvedValue({ isConnected: true }),
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: true }),
 }));
 
-jest.mock("@/lib/services/business-profile-service", () => ({
-  getBusinessProfile: jest.fn().mockResolvedValue({ name: "Test Business" }),
+vi.mock("@/lib/services/onboarding-service", () => ({
+  getOnboardingProfile: vi.fn().mockResolvedValue({
+    name: "Test Business",
+    category: "",
+    address: "",
+    phone: "",
+    website: "",
+    instagram: "",
+    description: "",
+    logo: { url: "" },
+    primaryColor: "#3b82f6",
+    secondaryColor: "#1e293b",
+    onboardingCompleted: true,
+  }),
+  updateOnboardingProfile: vi.fn().mockResolvedValue(undefined),
+  resetOnboardingProfile: vi.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("@/lib/services/user-data-service", () => ({
-  getUnusedImages: jest.fn().mockResolvedValue([]),
-  saveUnusedImages: jest.fn().mockResolvedValue(true),
-  getContentHistory: jest.fn().mockResolvedValue([]),
-  saveContentHistory: jest.fn().mockResolvedValue(true),
+vi.mock("@/lib/services/user-data-service", () => ({
+  getUnusedImages: vi.fn().mockResolvedValue([]),
+  saveUnusedImages: vi.fn().mockResolvedValue(true),
+  getContentHistory: vi.fn().mockResolvedValue([]),
+  saveContentHistory: vi.fn().mockResolvedValue(true),
 }));
 
-jest.mock("@/lib/firebase", () => ({
+vi.mock("@/lib/firebase", () => ({
   db: {},
+  storage: {},
 }));
 
-jest.mock("firebase/firestore", () => ({
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  collection: jest.fn(),
-  addDoc: jest.fn().mockResolvedValue({ id: "test-post-id" }),
-  serverTimestamp: jest.fn(),
+vi.mock("firebase/firestore", () => ({
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  collection: vi.fn(),
+  addDoc: vi.fn().mockResolvedValue({ id: "test-post-id" }),
+  serverTimestamp: vi.fn(),
+  updateDoc: vi.fn(),
+  setDoc: vi.fn(),
+  arrayUnion: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  getDocs: vi.fn(),
 }));
 
 const TestComponent = () => {
@@ -84,5 +117,5 @@ describe("WizardContext", () => {
     });
     
     expect(screen.getByTestId("summary")).toHaveTextContent("New Idea");
-  }, 30000);
+  });
 });
