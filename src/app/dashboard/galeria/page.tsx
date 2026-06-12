@@ -39,6 +39,7 @@ interface GalleryMediaItem {
   createdAt: any;
   usedInPostId: string | null;
   fileName: string;
+  caption?: string | null;
 }
 
 export default function GaleriaPage() {
@@ -74,6 +75,7 @@ export default function GaleriaPage() {
             createdAt: data.createdAt,
             usedInPostId: data.usedInPostId || null,
             fileName: data.fileName || "imagem.jpg",
+            caption: data.caption || null,
           });
         });
         setMediaItems(items);
@@ -121,6 +123,7 @@ export default function GaleriaPage() {
           url: item.url,
           storagePath: item.storagePath,
           prompt: item.prompt,
+          caption: item.caption || null,
         })
       );
       toast({

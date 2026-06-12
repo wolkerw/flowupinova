@@ -40,7 +40,7 @@ async function fetchWithRetry(
 
 export async function POST(request: Request) {
   try {
-    const { prompt, postId, fileName, userId } = await request.json();
+    const { prompt, postId, fileName, userId, content } = await request.json();
 
     if (!prompt || !postId || !fileName || !userId) {
       return NextResponse.json(
@@ -149,7 +149,8 @@ export async function POST(request: Request) {
         prompt: prompt,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null, // Inicialmente livre/não publicada
-        fileName: `concept_${fileName}.jpg`
+        fileName: `concept_${fileName}.jpg`,
+        caption: content ? `${content.titulo || ""}\n\n${content.subtitulo || ""}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}`.trim() : null
       });
       console.log(`[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`);
     } catch (firestoreError) {
