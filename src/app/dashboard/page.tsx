@@ -644,74 +644,39 @@ export default function Dashboard() {
       </div>
 
       {/* Banner Pro / Upgrade Assinatura */}
-      {userRole !== "pro" && (
+      {userRole !== "pro" && subscriptionStatus === "pending_verification" && (
         <div className="w-full">
-          {subscriptionStatus === "pending_verification" ? (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white shadow-lg shadow-orange-500/10"
-            >
-              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-              <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                    <Clock className="h-6 w-6 text-white animate-pulse" />
-                  </div>
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-bold">
-                      Comprovante de pagamento em análise! ⏳
-                    </h2>
-                    <p className="max-w-2xl text-xs md:text-sm text-white/90">
-                      Recebemos seu comprovante e nossa equipe está validando a transação. Sua assinatura PRO será ativada automaticamente em alguns minutos. Você receberá uma notificação assim que for aprovado.
-                    </p>
-                  </div>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white shadow-lg shadow-orange-500/10"
+          >
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <Clock className="h-6 w-6 text-white animate-pulse" />
                 </div>
-                <div className="flex shrink-0 items-center">
-                  <Button
-                    variant="outline"
-                    className="w-full md:w-auto border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold"
-                    onClick={() => setIsSubModalOpen(true)}
-                  >
-                    Ver Comprovante / Detalhes
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#ff0055] via-[#ff6a00] to-[#e6c229] p-6 text-white shadow-lg shadow-pink-500/10"
-            >
-              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
-              <div className="absolute -left-8 -bottom-8 h-24 w-24 rounded-full bg-white/10 blur-lg"></div>
-              <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-yellow-300">
-                      PROMOÇÃO EXCLUSIVA
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-extrabold md:text-2xl">
-                    Ative a versão PRO do NumVapt e multiplique seus resultados! 🚀
+                  <h2 className="text-lg font-bold">
+                    Comprovante de pagamento em análise! ⏳
                   </h2>
-                  <p className="max-w-2xl text-xs md:text-sm text-white/95">
-                    Tenha acesso ilimitado à inteligência artificial do Flux Kontext, Ideogram 4.0 Turbo, remoção profissional de fundo, downloads sem limites e relatórios avançados de concorrência.
+                  <p className="max-w-2xl text-xs md:text-sm text-white/90">
+                    Recebemos seu comprovante e nossa equipe está validando a transação. Sua assinatura PRO será ativada automaticamente em alguns minutos. Você receberá uma notificação assim que for aprovado.
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center">
-                  <Button
-                    onClick={() => setIsSubModalOpen(true)}
-                    className="w-full md:w-auto bg-white text-gray-900 font-extrabold hover:bg-gray-100 shadow-md transition-all hover:scale-105 duration-200"
-                  >
-                    <Sparkles className="mr-2 h-4.5 w-4.5 text-[#ff0055] fill-[#ff0055]" />
-                    Assinar Agora
-                  </Button>
-                </div>
               </div>
-            </motion.div>
-          )}
+              <div className="flex shrink-0 items-center">
+                <Button
+                  variant="outline"
+                  className="w-full md:w-auto border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold"
+                  onClick={() => setIsSubModalOpen(true)}
+                >
+                  Ver Comprovante / Detalhes
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
 
