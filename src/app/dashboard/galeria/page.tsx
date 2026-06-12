@@ -383,16 +383,16 @@ export default function GaleriaPage() {
                         </span>
                         
                         {/* Box de Conteúdo/Legenda Gerada */}
-                        {(item.caption || item.prompt) && (
+                        {item.caption && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="group/prompt relative rounded-lg bg-gray-50 border border-gray-100 p-2.5 text-xs text-gray-600 line-clamp-2 cursor-help pr-8">
-                                  <p className="whitespace-normal leading-relaxed">{item.caption || item.prompt}</p>
+                                  <p className="whitespace-normal leading-relaxed">{item.caption}</p>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleCopyText(item.caption || item.prompt, item.id, !!item.caption);
+                                      handleCopyText(item.caption, item.id, true);
                                     }}
                                     className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-800 opacity-0 group-hover/prompt:opacity-100 transition-opacity"
                                   >
@@ -406,9 +406,9 @@ export default function GaleriaPage() {
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs bg-slate-900 border-none text-white p-3 text-xs leading-relaxed rounded-lg shadow-lg">
                                 <p className="font-semibold mb-1 text-[10px] text-blue-400">
-                                  {item.caption ? "CONTEÚDO GERADO:" : "PROMPT DE GERAÇÃO:"}
+                                  CONTEÚDO GERADO:
                                 </p>
-                                <p>{item.caption || item.prompt}</p>
+                                <p>{item.caption}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
