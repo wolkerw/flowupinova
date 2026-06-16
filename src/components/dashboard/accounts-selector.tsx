@@ -119,7 +119,7 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
           <Megaphone className="h-5 w-5" />
         </div>
         <div>
-          <h4 className="text-sm font-bold text-slate-900 leading-tight">Configurações do Meta Ads</h4>
+          <h4 className="text-sm font-bold text-slate-900 leading-tight">Configurações de Anúncios</h4>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
             Selecione qual conta de anúncios ativa receberá as cobranças do cartão.
           </p>

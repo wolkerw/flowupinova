@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     const token = metaConnection.userAccessToken || metaConnection.accessToken;
-    let allAccounts: { id: string; name: string }[] = [];
-    let accountsUrl: string | null = `https://graph.facebook.com/v24.0/me/adaccounts?fields=name&limit=150&access_token=${token}`;
+    let allAccounts: { id: string; name: string; businessId?: string }[] = [];
+    let accountsUrl: string | null = `https://graph.facebook.com/v24.0/me/adaccounts?fields=name,business&limit=150&access_token=${token}`;
 
     while (accountsUrl) {
       const res: Response = await fetch(accountsUrl);
@@ -28,9 +28,10 @@ export async function GET(request: NextRequest) {
       }
 
       if (resData.data) {
-        allAccounts.push(...resData.data.map((acc: { id: string; name: string }) => ({
+        allAccounts.push(...resData.data.map((acc: any) => ({
           id: acc.id,
           name: acc.name,
+          businessId: acc.business?.id || "",
         })));
       }
 

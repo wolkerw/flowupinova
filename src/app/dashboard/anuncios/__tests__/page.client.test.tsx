@@ -6,13 +6,13 @@ import AnunciosPageClient from "../page.client";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 
-// Mock Auth
+const mockUser = { uid: "test-user-123" };
+const mockAuthValue = { user: mockUser, loading: false };
+
+// Mock Auth using stable references
 jest.mock("@/components/auth/auth-provider", () => ({
   ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => ({
-    user: { uid: "test-user-123" },
-    loading: false,
-  }),
+  useAuth: () => mockAuthValue,
 }));
 
 // Mock Next.js navigation
@@ -57,6 +57,17 @@ jest.mock("@/lib/services/anuncios-service", () => ({
   }),
 }));
 
+// Mock meta service
+jest.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: jest.fn().mockResolvedValue({
+    isConnected: true,
+    adAccountId: "act_123456",
+    adAccountName: "Conta de Teste",
+    userAccessToken: "token-123",
+  }),
+  updateMetaConnection: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 const mockProfile = {
   name: "Pizzaria Teste",
   category: "Alimentação",
@@ -75,6 +86,61 @@ const mockProfile = {
 describe("AnunciosPageClient", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock window.fetch globally
+    window.fetch = jest.fn().mockImplementation((url) => {
+      if (url.includes("/api/ads/billing-status")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            billing: {
+              hasPaymentMethod: true,
+              accountStatus: 1,
+              balance: 150.00,
+              isPrepaid: true,
+              fundingSourceDetails: { display_string: "Pix" },
+              businessId: "123456",
+            }
+          }),
+        });
+      }
+      if (url.includes("/api/ads/campaigns")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            campaigns: [],
+          }),
+        });
+      }
+      if (url.includes("/api/ads/interests")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            interests: [
+              { id: "1", name: "Pizza", path: ["Comida", "Pizza"] },
+              { id: "2", name: "Hambúrguer", path: ["Comida", "Hambúrguer"] }
+            ],
+          }),
+        });
+      }
+      if (url.includes("/api/meta/page-whatsapp")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            hasWhatsApp: true,
+            pageName: "Pizzaria Teste",
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+    });
   });
 
   it("renders main titles and metrics dashboard", async () => {
@@ -87,16 +153,18 @@ describe("AnunciosPageClient", () => {
 
     // Deve mostrar o título principal após o carregamento
     await waitFor(() => {
-      expect(screen.getByText("Anúncios Pagos (Meta Ads)")).toBeInTheDocument();
+      expect(screen.getByText("Seus Impulsionamentos")).toBeInTheDocument();
     }, { timeout: 5000 });
     
-    // Deve mostrar os cards de métricas simplificados para leigos
-    expect(screen.getByText("Investimento Total")).toBeInTheDocument();
-    expect(screen.getByText("Pessoas Alcançadas")).toBeInTheDocument();
-    expect(screen.getByText("Ações e Cliques")).toBeInTheDocument();
+    // Deve exibir o post publicado elegível para impulsionamento (esperando o loading terminar)
+    await waitFor(() => {
+      expect(screen.getByText("Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.")).toBeInTheDocument();
+    }, { timeout: 5000 });
 
-    // Deve exibir o post publicado elegível para impulsionamento
-    expect(screen.getByText("Promoção especial de pizza artesanal!")).toBeInTheDocument();
+    // Deve mostrar os cards de métricas simplificados para leigos
+    expect(screen.getByText("Valor Investido")).toBeInTheDocument();
+    expect(screen.getByText("Visualizações")).toBeInTheDocument();
+    expect(screen.getByText("Cliques")).toBeInTheDocument();
   });
 
   it("opens the boosting wizard when clicking on Impulsionar button", async () => {
@@ -107,20 +175,29 @@ describe("AnunciosPageClient", () => {
       </AuthProvider>
     );
 
-    // Aguarda o carregamento do post na tela
+    // Aguarda o carregamento inicial da tela
+    await waitFor(() => {
+      expect(screen.getByText("Seus Impulsionamentos")).toBeInTheDocument();
+    }, { timeout: 5000 });
+
+    // Clica no botão para abrir o modal de seleção de posts
+    const openModalButton = await screen.findByRole("button", { name: /Impulsionar um Post/i });
+    fireEvent.click(openModalButton);
+
+    // Aguarda o post ser exibido no modal
     await waitFor(() => {
       expect(screen.getByText("Promoção especial de pizza artesanal!")).toBeInTheDocument();
     }, { timeout: 5000 });
 
+    // Seleciona o post para impulsionar dentro do modal
     const boostButton = screen.getByRole("button", { name: /Impulsionar/i });
     expect(boostButton).toBeInTheDocument();
-
-    // Clica para impulsionar o post
     fireEvent.click(boostButton);
 
     // O cabeçalho do wizard e o passo 1 devem aparecer
-    expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
-    expect(screen.getByText("1. O que seu anúncio vai dizer?")).toBeInTheDocument();
-    expect(screen.getByLabelText("Título Chamativo (Curto)")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
+      expect(screen.getByText("1. Qual é o objetivo do seu impulsionamento?")).toBeInTheDocument();
+    }, { timeout: 5000 });
   });
 });

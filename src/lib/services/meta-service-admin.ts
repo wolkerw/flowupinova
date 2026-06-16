@@ -11,6 +11,7 @@ export interface MetaConnectionAdminData {
   pageName?: string;
   adAccountId?: string;
   adAccountName?: string;
+  businessId?: string;
 }
 
 /**
