@@ -44,8 +44,6 @@ export const Step2TextSelection = () => {
     handleDownloadImage: onDownload,
     mode,
     fluxImageUrl,
-    ideogramImageUrl,
-    isGeneratingIdeogram,
   } = useWizard();
 
   const onBack = () => setStep(1);
@@ -143,9 +141,9 @@ export const Step2TextSelection = () => {
         <div className="flex flex-col items-center justify-start h-full w-full gap-4">
           <Card className="w-full max-w-md border-none shadow-lg overflow-hidden">
             <CardContent className="pt-6">
-              {isGeneratingImages || isGeneratingIdeogram ? (
+              {isGeneratingImages ? (
                 <div className="relative flex min-h-[300px] flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
-                  <CircularProgressLoader isActive={isGeneratingImages || isGeneratingIdeogram} />
+                  <CircularProgressLoader isActive={isGeneratingImages} />
                 </div>
               ) : generatedImages.length > 0 ? (
                 <div className="space-y-4">

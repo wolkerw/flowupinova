@@ -5,33 +5,67 @@ import { render, screen } from "@testing-library/react";
 import Dashboard from "../page";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { vi, describe, it, expect } from "vitest";
 
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => ({
-    user: { uid: "test-user", email: "test@test.com" },
-  }),
+const mockUser = { uid: "test-user-123", email: "test@example.com" };
+const mockAuth = {
+  user: mockUser,
+  loading: false,
+  loginWithEmail: vi.fn().mockResolvedValue(undefined),
+  signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => mockAuth,
 }));
 
 // Mock services to prevent actual API calls during testing
-jest.mock("@/lib/services/meta-service", () => ({
-  getMetaConnection: jest.fn().mockResolvedValue({ isConnected: false }),
+vi.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
-jest.mock("@/lib/services/business-profile-service", () => ({
-  getBusinessProfile: jest.fn().mockResolvedValue({ isVerified: false, logo: null }),
+
+vi.mock("@/lib/services/business-profile-service", () => ({
+  getBusinessProfile: vi.fn().mockResolvedValue({ isVerified: false, logo: null }),
 }));
-jest.mock("@/lib/services/chat-service", () => ({
-  getChatHistory: jest.fn().mockResolvedValue([]),
-  saveChatHistory: jest.fn().mockResolvedValue(undefined),
+
+vi.mock("@/lib/services/chat-service", () => ({
+  getChatHistory: vi.fn().mockResolvedValue([]),
+  saveChatHistory: vi.fn().mockResolvedValue(undefined),
 }));
-jest.mock("firebase/firestore", () => ({
-  doc: jest.fn(),
-  getDoc: jest.fn().mockResolvedValue({
+
+vi.mock("firebase/firestore", () => ({
+  doc: vi.fn(),
+  getDoc: vi.fn().mockResolvedValue({
     exists: () => true,
     data: () => ({ plan: "trial", createdAt: { toDate: () => new Date() } }),
   }),
+  onSnapshot: vi.fn((ref, onNext) => {
+    if (onNext) {
+      setTimeout(() => {
+        onNext({
+          exists: () => true,
+          data: () => ({
+            plan: "trial",
+            role: "free",
+            subscriptionStatus: "",
+            createdAt: { toDate: () => new Date() },
+            name: "Test Business",
+            logo: { url: "test-logo-url", width: 100, height: 100 }
+          }),
+        });
+      }, 0);
+    }
+    return vi.fn();
+  }),
+  dummy: {
+    exists: () => true,
+    data: () => ({ plan: "trial", createdAt: { toDate: () => new Date() } }),
+  },
 }));
-jest.mock("@/lib/firebase", () => ({
+
+vi.mock("@/lib/firebase", () => ({
   db: {},
 }));
 

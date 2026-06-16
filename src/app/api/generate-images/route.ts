@@ -40,7 +40,7 @@ async function fetchWithRetry(
 
 export async function POST(request: Request) {
   try {
-    const { prompt, postId, fileName, userId } = await request.json();
+    const { prompt, postId, fileName, userId, content } = await request.json();
 
     if (!prompt || !postId || !fileName || !userId) {
       return NextResponse.json(
@@ -58,7 +58,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Chamar a API REST oficial do Google Imagen com fallback automático de modelo
+    // 1. Carregar as diretrizes visuais e paleta de cores da marca do Firestore (Brand Kit)
+    let finalPrompt = prompt;
+    try {
+      const docSnap = await admin.firestore().doc(`users/${userId}/business/onboarding`).get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        const brandKit = data?.brandKit;
+        
+        let brandEnhancements = "";
+        if (brandKit?.visualGuidelines) {
+          brandEnhancements += ` Siga o estilo visual de: ${brandKit.visualGuidelines.trim()}.`;
+        }
+        if (brandKit?.primaryColor || brandKit?.secondaryColor) {
+          const colors = [];
+          if (brandKit.primaryColor) colors.push(brandKit.primaryColor);
+          if (brandKit.secondaryColor) colors.push(brandKit.secondaryColor);
+          brandEnhancements += ` Integre de forma harmoniosa elementos de cenário ou iluminação sutil que remetam aos tons de: ${colors.join(" e ")}.`;
+        }
+        
+        if (brandEnhancements) {
+          // Remover qualquer ponto final redundante para concatenar de forma limpa
+          const cleanPrompt = prompt.trim().endsWith(".") ? prompt.trim().slice(0, -1) : prompt.trim();
+          finalPrompt = `${cleanPrompt}.${brandEnhancements}`;
+          console.log(`[GENERATE_IMAGES_NATIVE] Prompt estendido com diretrizes do Brand Kit: ${finalPrompt}`);
+        }
+      }
+    } catch (dbError) {
+      console.warn("[GENERATE_IMAGES_NATIVE] Falha ao carregar diretrizes de marca do Firestore (usando prompt original):", dbError);
+    }
+
+    // 2. Chamar a API REST oficial do Google Imagen com fallback automático de modelo
     // Tenta o Ultra primeiro (maior qualidade). Se indisponível (503/500), cai para o Fast.
     const IMAGEN_MODELS = [
       "imagen-4.0-ultra-generate-001",
@@ -76,7 +106,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instances: [{ prompt: prompt }],
+          instances: [{ prompt: finalPrompt }],
           parameters: {
             sampleCount: 1,
             outputMimeType: "image/jpeg",
@@ -149,7 +179,8 @@ export async function POST(request: Request) {
         prompt: prompt,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null, // Inicialmente livre/não publicada
-        fileName: `concept_${fileName}.jpg`
+        fileName: `concept_${fileName}.jpg`,
+        caption: content ? `${content.titulo || ""}\n\n${content.subtitulo || ""}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}`.trim() : null
       });
       console.log(`[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`);
     } catch (firestoreError) {

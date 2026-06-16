@@ -25,6 +25,7 @@ import {
   Sparkles,
   Settings2,
   Images,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,6 +85,11 @@ const allNavigationItems = [
     icon: FileText,
   },
   {
+    title: "Avatar IA",
+    url: "/dashboard/avatar",
+    icon: User,
+  },
+  {
     title: "Galeria",
     url: "/dashboard/galeria",
     icon: Images,
@@ -92,7 +98,6 @@ const allNavigationItems = [
     title: "Anúncios",
     url: "/dashboard/anuncios",
     icon: Megaphone,
-    disabled: true,
   },
   {
     title: "Relacionamento",

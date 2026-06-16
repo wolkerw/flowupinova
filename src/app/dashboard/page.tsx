@@ -24,6 +24,7 @@ import {
   Trash2,
   Clock,
   Mail,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 
 const initialMessages: Message[] = [
   {
@@ -204,6 +206,10 @@ export default function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [trialEnded, setTrialEnded] = useState(false);
   const [trialLoading, setTrialLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState<string>("trial");
+  const [userRole, setUserRole] = useState<string>("free");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
 
   const fetchBusinessProfile = useCallback(async () => {
     if (!user) return;
@@ -299,34 +305,45 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
 
-    const checkTrialStatus = async () => {
-      if (user.email === "fernando.home@hotmail.com") {
-        setTrialLoading(false);
-        return;
-      }
+    setTrialLoading(true);
+    const userDocRef = doc(db, "users", user.uid);
+    const unsubscribeUser = onSnapshot(
+      userDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setUserPlan(userData.plan || "trial");
+          setUserRole(userData.role || "free");
+          setSubscriptionStatus(userData.subscriptionStatus || "");
 
-      setTrialLoading(true);
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+          if (user.email === "fernando.home@hotmail.com") {
+            setTrialEnded(false);
+            setTrialLoading(false);
+            return;
+          }
 
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        // A lógica de expiração só se aplica se o plano for 'trial'
-        if (userData.plan === "trial") {
-          const createdAt = userData.createdAt?.toDate(); // Firestore timestamp to Date
-
-          if (createdAt) {
-            const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-            if (new Date() > trialEndDate) {
-              setTrialEnded(true);
+          if (userData.plan === "trial") {
+            const createdAt = userData.createdAt?.toDate?.() || 
+              (userData.createdAt?.seconds ? new Date(userData.createdAt.seconds * 1000) : null);
+            if (createdAt) {
+              const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+              if (new Date() > trialEndDate) {
+                setTrialEnded(true);
+              } else {
+                setTrialEnded(false);
+              }
             }
+          } else {
+            setTrialEnded(false);
           }
         }
+        setTrialLoading(false);
+      },
+      (err) => {
+        console.error("Erro ao escutar dados do usuário:", err);
+        setTrialLoading(false);
       }
-      setTrialLoading(false);
-    };
-
-    checkTrialStatus();
+    );
 
     let unsubscribeOnboarding: (() => void) | undefined;
 
@@ -401,6 +418,9 @@ export default function Dashboard() {
     return () => {
       if (unsubscribeOnboarding) {
         unsubscribeOnboarding();
+      }
+      if (unsubscribeUser) {
+        unsubscribeUser();
       }
     };
   }, [user, fetchBusinessProfile]);
@@ -622,6 +642,43 @@ export default function Dashboard() {
           </Link>
         </Button>
       </div>
+
+      {/* Banner Pro / Upgrade Assinatura */}
+      {userRole !== "pro" && subscriptionStatus === "pending_verification" && (
+        <div className="w-full">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white shadow-lg shadow-orange-500/10"
+          >
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <Clock className="h-6 w-6 text-white animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-bold">
+                    Comprovante de pagamento em análise! ⏳
+                  </h2>
+                  <p className="max-w-2xl text-xs md:text-sm text-white/90">
+                    Recebemos seu comprovante e nossa equipe está validando a transação. Sua assinatura PRO será ativada automaticamente em alguns minutos. Você receberá uma notificação assim que for aprovado.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center">
+                <Button
+                  variant="outline"
+                  className="w-full md:w-auto border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold"
+                  onClick={() => setIsSubModalOpen(true)}
+                >
+                  Ver Comprovante / Detalhes
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
@@ -925,6 +982,12 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        userId={user?.uid}
+      />
     </div>
   );
 }

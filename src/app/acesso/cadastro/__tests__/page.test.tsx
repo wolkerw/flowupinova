@@ -3,20 +3,25 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import CadastroPage from "../page";
+import { Tabs } from "@/components/ui/tabs";
 import { AuthProvider } from "@/components/auth/auth-provider";
 
 // Mock useAuth hook
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
   useAuth: () => ({
-    signUpWithEmail: jest.fn().mockResolvedValue(undefined),
+    user: { uid: "test-user-123", email: "test@example.com" },
+    loading: false,
+    loginWithEmail: vi.fn().mockResolvedValue(undefined),
+    signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
 // Mock Next.js router
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: jest.fn(),
+    push: vi.fn(),
   }),
   usePathname: () => "/acesso/cadastro",
 }));
@@ -25,7 +30,7 @@ describe("CadastroPage", () => {
   it("renders all required form fields", () => {
     render(
       <AuthProvider>
-        <CadastroPage />
+        <Tabs value="cadastrar"><CadastroPage /></Tabs>
       </AuthProvider>
     );
 

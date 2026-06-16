@@ -995,6 +995,7 @@ export default function CriarConteudoPage() {
     createdAt: any;
     usedInPostId: string | null;
     fileName: string;
+    caption?: string | null;
   }
   const [galleryImages, setGalleryImages] = useState<GalleryMediaItem[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -1020,6 +1021,7 @@ export default function CriarConteudoPage() {
           createdAt: data.createdAt,
           usedInPostId: data.usedInPostId || null,
           fileName: data.fileName || "imagem.jpg",
+          caption: data.caption || null,
         });
       });
 
@@ -1068,6 +1070,10 @@ export default function CriarConteudoPage() {
         setSelectedType("single_post");
         setStep(2);
         
+        if (item.caption) {
+          setText(item.caption);
+        }
+        
         sessionStorage.removeItem("preloaded_gallery_image");
         
         toast({
@@ -1101,6 +1107,10 @@ export default function CriarConteudoPage() {
       setMediaItems((prev) => [...prev, newMediaItem]);
     } else {
       setMediaItems([newMediaItem]);
+    }
+
+    if (item.caption) {
+      setText(item.caption);
     }
 
     setIsGalleryOpen(false);

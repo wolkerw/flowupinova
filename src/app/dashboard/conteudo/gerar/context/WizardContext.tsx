@@ -54,7 +54,7 @@ interface WizardContextType {
   unusedImagesHistory: string[];
   customPrompt: string;
   setCustomPrompt: (prompt: string) => void;
-  handleSubmitImageGeneration: (customPromptOverride?: string, postIdOverride?: string, contentOverride?: GeneratedContent, ideogramPromptOverride?: string) => Promise<void>;
+  handleSubmitImageGeneration: (customPromptOverride?: string, postIdOverride?: string, contentOverride?: GeneratedContent) => Promise<void>;
   isRetailStyle: boolean;
   setIsRetailStyle: (val: boolean) => void;
   useDalle: boolean;
@@ -65,12 +65,6 @@ interface WizardContextType {
   setUseNanoBananaRef: (val: boolean) => void;
   fluxImageUrl: string | null;
   setFluxImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
-  ideogramImageUrl: string | null;
-  setIdeogramImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
-  isGeneratingIdeogram: boolean;
-  setIsGeneratingIdeogram: (val: boolean) => void;
-  handleGenerateRetailLayout: (textPrompt: string) => Promise<void>;
-  handleRestoreOriginalPhoto: () => Promise<void>;
   
   // Reference Image States
   referenceImageFile: File | null;
@@ -187,14 +181,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
   const [customPrompt, setCustomPrompt] = useState<string>("");
-  const [ideogramPrompt, setIdeogramPrompt] = useState<string>("");
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useDalle, setUseDalle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
-  const [ideogramImageUrl, setIdeogramImageUrl] = useState<string | null>(null);
-  const [isGeneratingIdeogram, setIsGeneratingIdeogram] = useState<boolean>(false);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
 
@@ -210,7 +201,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
   const [logoScale, setLogoScale] = useState(30);
-  const [logoOpacity, setLogoOpacity] = useState(80);
+  const [logoOpacity, setLogoOpacity] = useState(100);
   
   // Text Overlay States
   const [showTextOverlay, setShowTextOverlay] = useState(false);
@@ -226,6 +217,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [lastGeneratedText, setLastGeneratedText] = useState<string>("");
+  const [lastConceptPromptUsed, setLastConceptPromptUsed] = useState<string>("");
+  const [lastSelectedContentIdUsed, setLastSelectedContentIdUsed] = useState<string | undefined>(undefined);
 
   const handleSelectedImageChange = (url: string | null) => {
     setSelectedImage(url);
@@ -667,6 +660,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     if (mode !== "reference-photo" && !selContent) return;
 
+    // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
+    if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
+      const hasImages = generatedImages && generatedImages.length === 3;
+      const hasNoChanges = hasImages &&
+        postSummary.trim() === lastConceptPromptUsed.trim() &&
+        selectedContentId === lastSelectedContentIdUsed;
+
+      if (hasNoChanges) {
+        console.log("[WIZARD] Nenhuma alteração no prompt inicial ou na escolha do texto. Mantendo imagens conceito anteriores.");
+        setStep(3);
+        return;
+      }
+    }
+
     setIsGeneratingImages(true);
     setCanStartPolling(false);
     setGeneratedImages([]);
@@ -755,13 +762,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         const resData = await promptResponse.json();
         const fluxPrompt = resData.imagePrompt;
-        const ideoPrompt = resData.ideogramPrompt || "";
-        console.log("[WIZARD] Prompt UGC criado:", fluxPrompt, "Prompt Ideogram:", ideoPrompt);
+        console.log("[WIZARD] Prompt UGC criado:", fluxPrompt);
 
         setCustomPrompt(fluxPrompt);
-        setIdeogramPrompt(ideoPrompt);
         setStep(mode === "reference-photo" ? 2 : 3);
-        handleSubmitImageGeneration(fluxPrompt, postId, selContent, ideoPrompt);
+        handleSubmitImageGeneration(fluxPrompt, postId, selContent);
       } else {
         // Modo conceito (sem referenceImageFile)
         console.log("[WIZARD] Gerando prompts para o modo conceito...");
@@ -795,11 +800,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSubmitImageGeneration = async (
     customPromptOverride?: string,
     postIdOverride?: string,
-    contentOverride?: GeneratedContent,
-    ideogramPromptOverride?: string
+    contentOverride?: GeneratedContent
   ) => {
     const promptToUse = customPromptOverride || customPrompt;
-    const ideogramPromptToUse = ideogramPromptOverride || ideogramPrompt;
     const activePostId = (postIdOverride || currentPostId) as string;
     const selContent = contentOverride || (selectedContentId !== undefined
       ? generatedContent[parseInt(selectedContentId, 10)]
@@ -832,9 +835,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         submitFormData.append("prompt", promptToUse);
         submitFormData.append("postId", activePostId);
         submitFormData.append("userId", user.uid);
-        if (ideogramPromptToUse) {
-          submitFormData.append("ideogramPrompt", ideogramPromptToUse);
-        }
 
         // 🧪 Rota de BENCHMARK: Imagen 4 (síncrono, sem polling, texto apenas)
         if (useImagen4Ref) {
@@ -843,6 +843,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           img4FormData.append("prompt", promptToUse);
           img4FormData.append("postId", activePostId);
           img4FormData.append("userId", user.uid);
+          img4FormData.append("caption", fullCaption);
 
           const img4Response = await fetch("/api/conteudo/gerar-referencia?action=submit-imagen4-ref", {
             method: "POST",
@@ -882,6 +883,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("prompt", promptToUse);
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
+            nanobananaFormData.append("caption", fullCaption);
 
             const nanobananaResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-nanobanana-ref", {
               method: "POST",
@@ -1003,7 +1005,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                       postId: activePostId,
                       userId: user.uid,
                       finalImageUrl: finalImageUrl,
-                      referenceImageUrl: garmentPublicUrl || null
+                      referenceImageUrl: garmentPublicUrl || null,
+                      caption: fullCaption
                     })
                   });
 
@@ -1096,11 +1099,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (!imgResponse.ok) {
             const errData = await imgResponse.json().catch(() => ({}));
-            throw new Error(errData.error || `Erro ao gerar a imagem ${fname}`);
+            throw new Error(errData.details || errData.error || `Erro ao gerar a imagem ${fname}`);
           }
 
           const imgData = await imgResponse.json();
           imageUrls.push(imgData.imageUrl);
+
+          // Atualizar o estado do front imediatamente para dar feedback visual em tempo real
+          setGeneratedImages((prev) => {
+            const updated = [...prev, imgData.imageUrl];
+            if (updated.length === 1) {
+              setSelectedImage(imgData.imageUrl);
+            }
+            return updated;
+          });
 
           // Delay de 4s entre requisições sequenciais para aliviar taxa de cota do Gemini API para o Imagen 4 Ultra
           if (fname !== "3") {
@@ -1119,8 +1131,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
         }
 
-        setGeneratedImages(imageUrls);
-        setSelectedImage(imageUrls[0]);
+        setLastConceptPromptUsed(postSummary);
+        setLastSelectedContentIdUsed(selectedContentId);
         setLastGeneratedText(fullCaption);
         setIsGeneratingImages(false);
       }
@@ -1463,94 +1475,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const handleGenerateRetailLayout = async (textPrompt: string) => {
-    if (!user || !currentPostId || !fluxImageUrl) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Dados insuficientes para gerar o layout de varejo."
-      });
-      return;
-    }
-
-    setIsGeneratingIdeogram(true);
-    try {
-      const retailPrompt = `A professional retail promotion layout, graphic design. The main product photo is in the background. The following text/phrases must be written clearly in bold, clean, modern typography on the image in Portuguese: "${textPrompt}". High contrast colors, vibrant retail advertising style, maintaining the subject from the background clearly.`;
-
-      console.log(`[WIZARD] Disparando submit-ideogram-remix sob demanda com prompt: ${retailPrompt}`);
-
-      const response = await fetch("/api/conteudo/gerar-referencia?action=submit-ideogram-remix", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          postId: currentPostId,
-          userId: user.uid,
-          fluxImageUrl: fluxImageUrl,
-          textPrompt: retailPrompt
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Falha na chamada ao Ideogram Remix.");
-      }
-
-      const remixUrl = data.imageUrl;
-      if (!remixUrl) {
-        throw new Error("Nenhuma URL de imagem de remix foi retornada.");
-      }
-
-      console.log(`[WIZARD] Remix do Ideogram gerado com sucesso: ${remixUrl}`);
-      setIdeogramImageUrl(remixUrl);
-      setSelectedImage(remixUrl);
-      setGeneratedImages([remixUrl]);
-
-      toast({
-        title: "Layout de varejo gerado! 🚀",
-        description: "Seu anúncio promocional foi integrado perfeitamente pela IA.",
-      });
-    } catch (err: any) {
-      console.error("[WIZARD] Erro ao gerar layout de varejo:", err);
-      toast({
-        variant: "destructive",
-        title: "Erro no Remix do Ideogram",
-        description: getFriendlyErrorMessage(err.message),
-      });
-    } finally {
-      setIsGeneratingIdeogram(false);
-    }
-  };
-
-  const handleRestoreOriginalPhoto = async () => {
-    if (!user || !currentPostId || !fluxImageUrl) return;
-    setIsLoading(true);
-    try {
-      setSelectedImage(fluxImageUrl);
-      setGeneratedImages([fluxImageUrl]);
-      setIdeogramImageUrl(null);
-
-      const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-      await updateDoc(postDocRef, {
-        imageUrls: [fluxImageUrl],
-        ideogramImageUrl: null
-      });
-
-      toast({
-        title: "Foto original restaurada",
-        description: "O layout promocional foi removido e a foto limpa do Flux foi restaurada.",
-      });
-    } catch (err: any) {
-      console.error("[WIZARD] Erro ao restaurar foto original:", err);
-      toast({
-        variant: "destructive",
-        title: "Erro ao restaurar",
-        description: getFriendlyErrorMessage(err.message),
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <WizardContext.Provider value={{
       step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId: handleSelectedContentIdChange,
@@ -1572,9 +1496,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       useNanoBananaRef, setUseNanoBananaRef,
       isGeneratingCaption, handleGenerateCaption,
       fluxImageUrl, setFluxImageUrl,
-      ideogramImageUrl, setIdeogramImageUrl,
-      isGeneratingIdeogram, setIsGeneratingIdeogram,
-      handleGenerateRetailLayout, handleRestoreOriginalPhoto,
 
       handleGenerateText, handleGeneratePostContent, handleGeneratePrompts, handleLogoProcessing, handlePublish,
       handleReferenceImageChange, handleDownloadImage, handleLogoFileChange

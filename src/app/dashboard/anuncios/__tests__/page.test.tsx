@@ -1,62 +1,81 @@
 "use client";
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import Anuncios from "../page";
+import { render, screen } from "@testing-library/react";
+import AnunciosPage from "../page";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { vi, describe, it, expect } from "vitest";
 
-// Mock Auth
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => ({
-    user: { uid: "test-user-123" },
+vi.mock("@/components/auth/auth-provider", () => {
+  const user = { uid: "test-user-123", email: "test@example.com" };
+  const auth = {
+    user: user,
     loading: false,
-  }),
-}));
-
-// Mock Next.js navigation
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
-  usePathname: () => "/dashboard/anuncios",
-}));
-
-// Mock client component to avoid rendering the heavy logic
-jest.mock("../page.client", () => {
-  return function MockPageClient({ initialProfile }: any) {
-    return (
-      <div>
-        <h1>Criar Novo Anúncio</h1>
-        <p>Perfil: {initialProfile?.name}</p>
-      </div>
-    );
+    loginWithEmail: vi.fn().mockResolvedValue(undefined),
+    signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    AuthProvider: ({ children }: any) => children,
+    useAuth: () => auth,
   };
 });
 
-// Mock server-side dependencies to prevent Jest from importing firebase-admin and jose ESM
-jest.mock("@/lib/firebase-admin", () => ({
-  getUidFromCookie: jest.fn().mockResolvedValue("test-user-123"),
-}));
-
-jest.mock("@/lib/services/business-profile-service-admin", () => ({
-  getBusinessProfileAdmin: jest.fn().mockResolvedValue({
-    name: "Pizzaria Teste",
-    category: "Alimentação",
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => ({
+    get: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
   }),
 }));
 
+vi.mock("@/lib/firebase-admin", () => ({
+  getUidFromCookie: vi.fn().mockResolvedValue("test-user-123"),
+}));
+
+vi.mock("@/lib/services/business-profile-service-admin", () => ({
+  getBusinessProfileAdmin: vi.fn().mockResolvedValue({
+    name: "Minha Empresa Teste",
+    category: "Consultoria",
+    address: "Rua Teste, 123",
+    phone: "(11) 99999-9999",
+    website: "www.teste.com",
+    description: "Descrição de teste.",
+    brandSummary: "Resumo da marca.",
+    instagram: "",
+    logo: { url: "", width: 0, height: 0 },
+    rating: 4.5,
+    totalReviews: 10,
+    isVerified: true,
+  }),
+}));
+
+// Mock dos serviços usados pelo page.client interno
+vi.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
+vi.mock("@/lib/services/posts-service", () => ({
+  getScheduledPosts: vi.fn().mockResolvedValue([]),
+}));
+
+
+
 describe("Anuncios Page", () => {
   it("renders the main title", async () => {
-    // @ts-ignore
-    const pageElement = await Anuncios();
+    // Resolve o Server Component assíncrono
+    const jsx = await AnunciosPage();
     render(
       <AuthProvider>
         <Toaster />
-        {pageElement}
+        {jsx}
       </AuthProvider>
     );
-    await waitFor(() => {
-      expect(screen.getByText("Criar Novo Anúncio")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Anúncios Pagos (Meta Ads)")).toBeInTheDocument();
   });
 });

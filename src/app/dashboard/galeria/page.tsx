@@ -39,6 +39,7 @@ interface GalleryMediaItem {
   createdAt: any;
   usedInPostId: string | null;
   fileName: string;
+  caption?: string | null;
 }
 
 export default function GaleriaPage() {
@@ -74,6 +75,7 @@ export default function GaleriaPage() {
             createdAt: data.createdAt,
             usedInPostId: data.usedInPostId || null,
             fileName: data.fileName || "imagem.jpg",
+            caption: data.caption || null,
           });
         });
         setMediaItems(items);
@@ -101,13 +103,15 @@ export default function GaleriaPage() {
     return true;
   });
 
-  const handleCopyPrompt = (text: string | null, id: string) => {
+  const handleCopyText = (text: string | null, id: string, isCaption: boolean = true) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     toast({
-      title: "Prompt Copiado!",
-      description: "O prompt de geração foi copiado para a sua área de transferência.",
+      title: isCaption ? "Conteúdo Copiado!" : "Prompt Copiado!",
+      description: isCaption 
+        ? "O conteúdo gerado foi copiado para a sua área de transferência." 
+        : "O prompt de geração foi copiado para a sua área de transferência.",
     });
     setTimeout(() => setCopiedId(null), 2500);
   };
@@ -121,6 +125,7 @@ export default function GaleriaPage() {
           url: item.url,
           storagePath: item.storagePath,
           prompt: item.prompt,
+          caption: item.caption || null,
         })
       );
       toast({
@@ -183,7 +188,8 @@ export default function GaleriaPage() {
         description: "Preparando a imagem para download.",
       });
 
-      const response = await fetch(url);
+      const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error("Falha na resposta da rede");
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -376,17 +382,17 @@ export default function GaleriaPage() {
                           {formatItemDate(item.createdAt)}
                         </span>
                         
-                        {/* Box de Prompt Inteligente */}
-                        {item.prompt && (
+                        {/* Box de Conteúdo/Legenda Gerada */}
+                        {item.caption && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="group/prompt relative rounded-lg bg-gray-50 border border-gray-100 p-2.5 text-xs text-gray-600 line-clamp-2 cursor-help pr-8">
-                                  <p className="whitespace-normal leading-relaxed">{item.prompt}</p>
+                                  <p className="whitespace-normal leading-relaxed">{item.caption}</p>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleCopyPrompt(item.prompt, item.id);
+                                      handleCopyText(item.caption, item.id, true);
                                     }}
                                     className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-800 opacity-0 group-hover/prompt:opacity-100 transition-opacity"
                                   >
@@ -399,8 +405,10 @@ export default function GaleriaPage() {
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs bg-slate-900 border-none text-white p-3 text-xs leading-relaxed rounded-lg shadow-lg">
-                                <p className="font-semibold mb-1 text-[10px] text-blue-400">PROMPT DE GERAÇÃO:</p>
-                                <p>{item.prompt}</p>
+                                <p className="font-semibold mb-1 text-[10px] text-blue-400">
+                                  CONTEÚDO GERADO:
+                                </p>
+                                <p>{item.caption}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>

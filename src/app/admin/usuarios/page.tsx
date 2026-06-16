@@ -97,10 +97,16 @@ function UserSheet({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
       if (res.ok) {
         onUpdate();
         onClose();
       }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
       setAction("");
@@ -115,9 +121,17 @@ function UserSheet({
     setLoading(true);
     setAction("delete");
     try {
-      await fetch(`/api/admin/users/${user.uid}`, { method: "DELETE" });
-      onUpdate();
-      onClose();
+      const res = await fetch(`/api/admin/users/${user.uid}`, { method: "DELETE" });
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (res.ok) {
+        onUpdate();
+        onClose();
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -301,8 +315,15 @@ export default function AdminUsuariosPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/users");
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      if (!res.ok) throw new Error("Falha ao carregar usuários");
       const data = await res.json();
       setUsers(data.users ?? []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }

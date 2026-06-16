@@ -5,31 +5,39 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import AnunciosPageClient from "../page.client";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockUser = { uid: "test-user-123" };
-const mockAuthValue = { user: mockUser, loading: false };
+const mockUser = { uid: "test-user-123", email: "test@example.com" };
+const mockAuth = {
+  user: mockUser,
+  loading: false,
+  loginWithEmail: vi.fn().mockResolvedValue(undefined),
+  signUpWithEmail: vi.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
+};
 
-// Mock Auth using stable references
-jest.mock("@/components/auth/auth-provider", () => ({
-  ...jest.requireActual("@/components/auth/auth-provider"),
-  useAuth: () => mockAuthValue,
+// Mock Auth
+vi.mock("@/components/auth/auth-provider", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => mockAuth,
 }));
 
 // Mock Next.js navigation
-jest.mock("next/navigation", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: jest.fn(),
+    get: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
   }),
   usePathname: () => "/dashboard/anuncios",
 }));
 
 // Mock posts service
-jest.mock("@/lib/services/posts-service", () => ({
-  getScheduledPosts: jest.fn().mockResolvedValue([
+vi.mock("@/lib/services/posts-service", () => ({
+  getScheduledPosts: vi.fn().mockResolvedValue([
     {
       success: true,
       post: {
@@ -43,29 +51,28 @@ jest.mock("@/lib/services/posts-service", () => ({
   ]),
 }));
 
+// Mock meta service
+vi.mock("@/lib/services/meta-service", () => ({
+  getMetaConnection: vi.fn().mockResolvedValue({
+    isConnected: true,
+    adAccountId: "act_123456",
+    adAccountName: "Conta Teste",
+  }),
+  updateMetaConnection: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock ads service
-jest.mock("@/lib/services/anuncios-service", () => ({
-  createAdCampaign: jest.fn().mockResolvedValue({ success: true, id: "campaign-1" }),
-  getUserAdCampaigns: jest.fn().mockResolvedValue([]),
-  updateAdCampaignStatus: jest.fn().mockResolvedValue({ success: true }),
-  deleteAdCampaign: jest.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/services/anuncios-service", () => ({
+  createAdCampaign: vi.fn().mockResolvedValue({ success: true, id: "campaign-1" }),
+  getUserAdCampaigns: vi.fn().mockResolvedValue([]),
+  updateAdCampaignStatus: vi.fn().mockResolvedValue({ success: true }),
+  deleteAdCampaign: vi.fn().mockResolvedValue(undefined),
   estimateReach: () => ({
     minReach: 5000,
     maxReach: 15000,
     minClicks: 100,
     maxClicks: 300,
   }),
-}));
-
-// Mock meta service
-jest.mock("@/lib/services/meta-service", () => ({
-  getMetaConnection: jest.fn().mockResolvedValue({
-    isConnected: true,
-    adAccountId: "act_123456",
-    adAccountName: "Conta de Teste",
-    userAccessToken: "token-123",
-  }),
-  updateMetaConnection: jest.fn().mockResolvedValue({ success: true }),
 }));
 
 const mockProfile = {
@@ -83,64 +90,85 @@ const mockProfile = {
   isVerified: true,
 };
 
+// Mock do fetch global
+globalThis.fetch = vi.fn().mockImplementation((url) => {
+  const urlStr = typeof url === "string" ? url : String(url);
+  if (urlStr.includes("/api/ads/campaigns")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        campaigns: [
+          {
+            id: "campaign-1",
+            name: "[NUMVAPT] Promoção especial de pizza artesanal!",
+            status: "active",
+            postId: "post-1",
+            creative: {
+              headline: "Promoção especial de pizza artesanal!",
+              bodyText: "Promoção especial de pizza artesanal!",
+              imageUrl: "https://example.com/pizza.jpg",
+            },
+            budget: { amount: 1000 },
+            durationDays: 5,
+            metrics: {
+              impressions: 15000,
+              clicks: 450,
+              actions: 380,
+              amountSpent: 50,
+            },
+          }
+        ],
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/ads/billing-status")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        billing: {
+          hasPaymentMethod: true,
+          accountStatus: 1,
+          balance: 150.00,
+          isPrepaid: true,
+          fundingSourceDetails: { display_string: "Pix" },
+          businessId: "123456",
+        }
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/ads/interests")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        interests: [
+          { id: "1", name: "Pizza", path: ["Comida", "Pizza"] },
+          { id: "2", name: "Hambúrguer", path: ["Comida", "Hambúrguer"] }
+        ],
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/meta/page-whatsapp")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        hasWhatsApp: true,
+        pageName: "Pizzaria Teste",
+      }),
+    } as any);
+  }
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ success: true }),
+  } as any);
+});
+
 describe("AnunciosPageClient", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Mock window.fetch globally
-    window.fetch = jest.fn().mockImplementation((url) => {
-      if (url.includes("/api/ads/billing-status")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            billing: {
-              hasPaymentMethod: true,
-              accountStatus: 1,
-              balance: 150.00,
-              isPrepaid: true,
-              fundingSourceDetails: { display_string: "Pix" },
-              businessId: "123456",
-            }
-          }),
-        });
-      }
-      if (url.includes("/api/ads/campaigns")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            campaigns: [],
-          }),
-        });
-      }
-      if (url.includes("/api/ads/interests")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            interests: [
-              { id: "1", name: "Pizza", path: ["Comida", "Pizza"] },
-              { id: "2", name: "Hambúrguer", path: ["Comida", "Hambúrguer"] }
-            ],
-          }),
-        });
-      }
-      if (url.includes("/api/meta/page-whatsapp")) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            hasWhatsApp: true,
-            pageName: "Pizzaria Teste",
-          }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-    });
+    vi.clearAllMocks();
   });
 
   it("renders main titles and metrics dashboard", async () => {
@@ -163,8 +191,11 @@ describe("AnunciosPageClient", () => {
 
     // Deve mostrar os cards de métricas simplificados para leigos
     expect(screen.getByText("Valor Investido")).toBeInTheDocument();
-    expect(screen.getByText("Visualizações")).toBeInTheDocument();
-    expect(screen.getByText("Cliques")).toBeInTheDocument();
+    expect(screen.getAllByText("Visualizações").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Cliques").length).toBeGreaterThan(0);
+
+    // Deve exibir a campanha ativa no histórico
+    expect(screen.getByText("[NUMVAPT] Promoção especial de pizza artesanal!")).toBeInTheDocument();
   });
 
   it("opens the boosting wizard when clicking on Impulsionar button", async () => {
@@ -175,23 +206,21 @@ describe("AnunciosPageClient", () => {
       </AuthProvider>
     );
 
-    // Aguarda o carregamento inicial da tela
+    // Deve mostrar o botão principal de Impulsionar Post
     await waitFor(() => {
-      expect(screen.getByText("Seus Impulsionamentos")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Impulsionar Post/i })).toBeInTheDocument();
     }, { timeout: 5000 });
 
-    // Clica no botão para abrir o modal de seleção de posts
-    const openModalButton = await screen.findByRole("button", { name: /Impulsionar um Post/i });
+    const openModalButton = screen.getByRole("button", { name: /Impulsionar Post/i });
     fireEvent.click(openModalButton);
 
-    // Aguarda o post ser exibido no modal
+    // Aguarda o carregamento do post qualificável dentro do modal
     await waitFor(() => {
       expect(screen.getByText("Promoção especial de pizza artesanal!")).toBeInTheDocument();
     }, { timeout: 5000 });
 
-    // Seleciona o post para impulsionar dentro do modal
-    const boostButton = screen.getByRole("button", { name: /Impulsionar/i });
-    expect(boostButton).toBeInTheDocument();
+    // Clica no botão "Impulsionar" do post específico no modal
+    const boostButton = screen.getByRole("button", { name: /^Impulsionar$/i });
     fireEvent.click(boostButton);
 
     // O cabeçalho do wizard e o passo 1 devem aparecer
