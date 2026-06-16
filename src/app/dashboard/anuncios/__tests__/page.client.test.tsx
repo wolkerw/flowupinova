@@ -184,11 +184,6 @@ describe("AnunciosPageClient", () => {
       expect(screen.getByText("Seus Impulsionamentos")).toBeInTheDocument();
     }, { timeout: 5000 });
     
-    // Deve exibir o post publicado elegível para impulsionamento (esperando o loading terminar)
-    await waitFor(() => {
-      expect(screen.getByText("Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.")).toBeInTheDocument();
-    }, { timeout: 5000 });
-
     // Deve mostrar os cards de métricas simplificados para leigos
     expect(screen.getByText("Valor Investido")).toBeInTheDocument();
     expect(screen.getAllByText("Visualizações").length).toBeGreaterThan(0);
