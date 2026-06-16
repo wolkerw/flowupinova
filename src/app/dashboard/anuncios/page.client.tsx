@@ -237,6 +237,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [selectedPageId, setSelectedPageId] = useState("");
   const [selectedAdAccountIdState, setSelectedAdAccountIdState] = useState("");
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
@@ -821,6 +822,42 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       });
     } finally {
       setIsConnectingMeta(false);
+    }
+  };
+
+  const handleRefreshAdAccounts = async () => {
+    setIsRefreshingAccounts(true);
+    try {
+      const response = await fetch("/api/ads/accounts");
+      const result = await response.json();
+      if (result.success) {
+        const accounts = result.accounts || [];
+        setMetaAdAccounts(accounts);
+        if (accounts.length > 0) {
+          setSelectedAdAccountIdState(accounts[0].id);
+          toast({
+            title: "Contas Atualizadas!",
+            description: `Encontramos ${accounts.length} conta(s) de anúncios associada(s) ao seu perfil.`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Nenhuma conta de anúncios encontrada",
+            description: "Certifique-se de que concluiu a criação da conta na Meta antes de tentar atualizar.",
+          });
+        }
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      console.error("Erro ao atualizar contas de anúncios:", err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar contas",
+        description: err.message || "Não foi possível carregar as contas de anúncios atualizadas.",
+      });
+    } finally {
+      setIsRefreshingAccounts(false);
     }
   };
 
@@ -1521,9 +1558,53 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-700">2. Selecione a sua Conta de Anúncios (Cobrança)</Label>
               {metaAdAccounts.length === 0 ? (
-                <p className="text-xs text-red-500 bg-red-50 p-2.5 rounded-lg">
-                  Nenhuma conta de anúncios encontrada. Você precisa criar uma conta de anúncios no Gerenciador de Anúncios do Facebook antes de prosseguir.
-                </p>
+                <div className="bg-blue-50/40 border border-blue-100/70 rounded-xl p-3.5 space-y-3 text-left">
+                  <div className="flex items-start gap-2 text-blue-700">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <h6 className="text-[11.5px] font-bold">Crie sua Conta de Anúncios na Meta</h6>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                        Sua página foi conectada com sucesso, mas não encontramos nenhuma conta de faturamento ativa associada ao seu perfil.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="pl-6 space-y-1.5 text-[10px] text-slate-600">
+                    <p className="leading-relaxed">1. Acesse o painel de criação da Meta: 
+                      <a 
+                        href="https://business.facebook.com/settings/ad-accounts" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
+                      >
+                        Abrir Configurações Meta ↗
+                      </a>
+                    </p>
+                    <p className="leading-relaxed">2. No painel, clique em <strong>Adicionar</strong> e depois em <strong>Criar uma nova conta de anúncios</strong>.</p>
+                    <p className="leading-relaxed">3. Configure a moeda como <strong>Real Brasileiro (BRL)</strong> e o fuso horário como <strong>São Paulo (GMT-3)</strong>.</p>
+                  </div>
+
+                  <div className="pt-1 pl-6">
+                    <Button
+                      size="sm"
+                      onClick={handleRefreshAdAccounts}
+                      disabled={isRefreshingAccounts}
+                      className="bg-primary hover:bg-primary/95 text-white font-bold text-[9.5px] h-7 rounded-lg px-3 flex items-center gap-1.5"
+                    >
+                      {isRefreshingAccounts ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Buscando nova conta...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3 w-3" />
+                          Já criei, atualizar lista
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <SearchableSelect
                   options={metaAdAccounts}
