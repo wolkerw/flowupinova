@@ -3,6 +3,7 @@ import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
@@ -684,6 +685,15 @@ ${yamlAnalysis}`;
           if (briaUrl) {
             transparentProductUrl = briaUrl;
             console.log(`[GERAR_REFERENCIA] Fundo do produto removido com sucesso: ${transparentProductUrl}`);
+
+            // Registrar log de consumo do Bria no Firestore
+            logApiUsage({
+              userId,
+              type: "background_removal",
+              provider: "falai",
+              model: "bria",
+              costUsd: 0.006
+            });
           }
         } else {
           console.warn("[GERAR_REFERENCIA] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
@@ -824,6 +834,15 @@ ${yamlAnalysis}`;
           modelUsed,
           caption,
         });
+
+        // Registrar log de consumo do Google Imagen 4
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: "google_vertex",
+          model: modelUsed || "imagen-4",
+          costUsd: 0.03
+        });
       } catch (galleryErr) {
         console.error("[IMAGEN4_REF] Erro ao salvar na galeria:", galleryErr);
       }
@@ -904,6 +923,15 @@ ${yamlAnalysis}`;
             if (briaUrl) {
               transparentProductUrl = briaUrl;
               console.log(`[NANOBANANA_REF] Fundo do produto removido com sucesso via Bria: ${transparentProductUrl}`);
+
+              // Registrar log de consumo do Bria no Firestore
+              logApiUsage({
+                userId,
+                type: "background_removal",
+                provider: "falai",
+                model: "bria",
+                costUsd: 0.006
+              });
             }
           } else {
             console.warn("[NANOBANANA_REF] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
@@ -1045,6 +1073,15 @@ Cenário e estilo desejados: ${prompt}`;
           caption,
         });
         console.log(`[NANOBANANA_REF] Imagem gravada na galeria.`);
+
+        // Registrar log de consumo do Nano Banana (Gemini 3 Pro Image)
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: "google_gemini",
+          model: modelUsed || "imagen-3.0-generate-002",
+          costUsd: 0.03
+        });
       } catch (galleryErr) {
         console.error("[NANOBANANA_REF] Erro ao salvar na galeria:", galleryErr);
       }
@@ -1271,6 +1308,15 @@ Cenário e estilo desejados: ${prompt}`;
             caption: caption || null
           });
           console.log(`[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`);
+
+          // Registrar log de consumo do Fal.ai Kontext no Firestore
+          logApiUsage({
+            userId,
+            type: "image_generation",
+            provider: "falai",
+            model: "flux-pro/kontext",
+            costUsd: 0.05
+          });
         } catch (galleryError) {
           console.error("[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:", galleryError);
         }

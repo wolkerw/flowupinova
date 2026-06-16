@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
@@ -164,6 +165,30 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
             if (geminiVisionResponse.ok) {
               const resData = await geminiVisionResponse.json();
               const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+              // Registrar log de consumo do Vision (gemini-2.5-flash)
+              const usage = resData?.usageMetadata;
+              if (usage && userId) {
+                const pTokens = usage.promptTokenCount || 0;
+                const cTokens = usage.candidatesTokenCount || 0;
+                const costInput = pTokens * (0.075 / 1_000_000);
+                const costOutput = cTokens * (0.30 / 1_000_000);
+                const totalCost = costInput + costOutput;
+
+                logApiUsage({
+                  userId,
+                  type: "vision_analysis",
+                  provider: "google_gemini",
+                  model: "gemini-2.5-flash",
+                  costUsd: totalCost,
+                  tokens: {
+                    promptTokens: pTokens,
+                    completionTokens: cTokens,
+                    totalTokens: pTokens + cTokens
+                  }
+                });
+              }
+
               try {
                 const cleanJsonText = rawText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
                 styleJson = JSON.parse(cleanJsonText);
@@ -283,6 +308,15 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
         generatedBy = `nanobanana_pro_${modelUsed}`;
         source = "nanobanana_ref";
         console.log(`[AVATAR_GENERATE] Sucesso na geração via Nano Banana Pro (${modelUsed})`);
+
+        // Registrar log de consumo real no Firestore
+        logApiUsage({
+          userId,
+          type: "avatar_generation",
+          provider: "google_gemini",
+          model: modelUsed,
+          costUsd: 0.03
+        });
 
       } catch (bananaErr: any) {
         console.error("[AVATAR_GENERATE] Falha catastrófica no Nano Banana Pro:", bananaErr);
