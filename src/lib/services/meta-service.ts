@@ -12,6 +12,7 @@ export interface MetaConnectionData {
   pageName?: string;
   adAccountId?: string;
   adAccountName?: string;
+  businessId?: string;
   // This is the main token used to fetch pages, etc.
   userAccessToken?: string;
   // For pending state

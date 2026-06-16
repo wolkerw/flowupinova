@@ -57,6 +57,11 @@ export interface AdCampaignData {
       latitude?: number | null;
       longitude?: number | null;
     }>;
+    interests?: Array<{
+      id: string;
+      name: string;
+      type?: string;
+    }>;
   };
   
   metrics?: {

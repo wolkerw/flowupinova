@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, postId, campaignObjective, creative, budget, durationDays, targeting } = body;
     const { headline, bodyText, imageUrl, ctaType, ctaLink } = creative || {};
-    const { address, radiusKm, ageMin, ageMax, gender, latitude: inputLat, longitude: inputLng, locType, locKey, locations } = targeting || {};
+    const { address, radiusKm, ageMin, ageMax, gender, latitude: inputLat, longitude: inputLng, locType, locKey, locations, interests } = targeting || {};
 
     if (!name || !creative || !imageUrl || !budget || !durationDays || !targeting) {
       return NextResponse.json(
@@ -60,7 +60,53 @@ export async function POST(request: NextRequest) {
     const profileData = profileDoc.exists ? profileDoc.data() : null;
     const profileAddress = profileData?.address || "";
 
+    let instagramActorId: string | null = null;
+    const metaToken = metaConnection.accessToken;
+
+    // 1. Tentar buscar o ID da conta do Instagram conectada diretamente na Página do Facebook (API da Meta)
+    if (pageId && metaToken) {
+      try {
+        const pageInstaRes = await fetch(
+          `https://graph.facebook.com/v24.0/${pageId}?fields=instagram_business_account&access_token=${metaToken}`
+        );
+        if (pageInstaRes.ok) {
+          const pageInstaData = await pageInstaRes.json();
+          if (pageInstaData?.instagram_business_account?.id) {
+            instagramActorId = pageInstaData.instagram_business_account.id;
+            console.log(`[ORQUESTRADOR] Instagram Actor ID obtido da Página no Graph API: ${instagramActorId}`);
+          }
+        }
+      } catch (err: any) {
+        console.warn("[ORQUESTRADOR] Falha ao consultar instagram_business_account da página:", err.message);
+      }
+    }
+
+    // 2. Fallback: Se não conseguiu via Graph API, busca no Firestore
+    if (!instagramActorId) {
+      const instagramDoc = await adminDb
+        .collection("users")
+        .doc(uid)
+        .collection("connections")
+        .doc("instagram")
+        .get();
+      const instagramData = instagramDoc.exists ? instagramDoc.data() : null;
+      const dbInstaId = instagramData?.isConnected ? instagramData?.instagramId : null;
+      
+      // Valida se o ID tem o formato esperado de uma conta empresarial do Instagram (normalmente começa com 1784 e tem 17 dígitos)
+      if (dbInstaId && dbInstaId.startsWith("1784") && dbInstaId.length === 17) {
+        instagramActorId = dbInstaId;
+        console.log(`[ORQUESTRADOR] Instagram Actor ID obtido do Firestore (válido): ${instagramActorId}`);
+      } else if (dbInstaId) {
+        console.warn(`[ORQUESTRADOR] ID do Instagram no Firestore ignorado por formato inválido para anúncios: ${dbInstaId}`);
+      }
+    }
+
     console.log(`[ORQUESTRADOR] Iniciando publicação na Meta para Ad Account: ${cleanAdAccountId}`);
+    if (instagramActorId) {
+      console.log(`[ORQUESTRADOR] Instagram Actor ID ativo para anúncio: ${instagramActorId}`);
+    } else {
+      console.log("[ORQUESTRADOR] Nenhum Instagram Actor ID ativo configurado para esta campanha.");
+    }
 
     // Nomenclatura Dinâmica
     const postStart = bodyText ? (bodyText.replace(/[\n\r]+/g, " ").length > 25 ? `${bodyText.replace(/[\n\r]+/g, " ").substring(0, 25)}...` : bodyText.replace(/[\n\r]+/g, " ")) : "Sem descrição";
@@ -79,7 +125,10 @@ export async function POST(request: NextRequest) {
     
     // Mapeamento de objetivos da campanha na Meta
     const isTraffic = campaignObjective === "TRAFFIC";
-    const metaObjective = isTraffic ? "OUTCOME_TRAFFIC" : "OUTCOME_AWARENESS";
+    const isWhatsApp = campaignObjective === "WHATSAPP";
+    // WhatsApp (Click-to-WhatsApp) exige OUTCOME_ENGAGEMENT, não OUTCOME_TRAFFIC.
+    // OUTCOME_TRAFFIC exige URL de site externo e não aceita destination_type WHATSAPP.
+    const metaObjective = isWhatsApp ? "OUTCOME_ENGAGEMENT" : (isTraffic ? "OUTCOME_TRAFFIC" : "OUTCOME_AWARENESS");
 
     const campaignParams = new URLSearchParams({
       name: campaignName,
@@ -224,7 +273,7 @@ export async function POST(request: NextRequest) {
             customLocations.push({
               latitude: loc.latitude,
               longitude: loc.longitude,
-              radius: radiusKm || 5,
+              radius: loc.radiusKm || loc.radius || radiusKm || 5,
               distance_unit: "kilometer",
             });
           }
@@ -289,7 +338,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Configura a segmentação da Meta
-    const metaTargeting = {
+    const metaTargeting: any = {
       geo_locations: geoLocations,
       age_min: ageMin || 18,
       age_max: ageMax || 65,
@@ -298,6 +347,34 @@ export async function POST(request: NextRequest) {
         advantage_audience: 0,
       },
     };
+
+    if (interests && Array.isArray(interests) && interests.length > 0) {
+      const flexibleGroup: any = {};
+      
+      interests.forEach((item: any) => {
+        let key = "interests";
+        const itemType = String(item.type || "").toLowerCase();
+        
+        if (itemType.includes("comportamento") || itemType.includes("behavior")) {
+          key = "behaviors";
+        } else if (itemType.includes("demográfico") || itemType.includes("demographic") || itemType === "demografia" || itemType === "dados demográficos") {
+          key = "demographics";
+        } else if (itemType.includes("relevante") || itemType.includes("life_event")) {
+          key = "life_events";
+        }
+        
+        if (!flexibleGroup[key]) {
+          flexibleGroup[key] = [];
+        }
+        
+        flexibleGroup[key].push({
+          id: item.id,
+          name: item.name,
+        });
+      });
+
+      metaTargeting.flexible_spec = [flexibleGroup];
+    }
 
     const adSetUrl = `https://graph.facebook.com/v24.0/${cleanAdAccountId}/adsets`;
     
@@ -311,7 +388,9 @@ export async function POST(request: NextRequest) {
     const startTimeStr = startTime.toISOString();
     const endTimeStr = endTime.toISOString();
 
-    const optimizationGoal = isTraffic ? "LINK_CLICKS" : "REACH";
+    // WhatsApp usa CONVERSATIONS como goal (otimiza para iniciar conversas).
+    // Tráfego usa LINK_CLICKS, Alcance usa REACH.
+    const optimizationGoal = isWhatsApp ? "CONVERSATIONS" : (isTraffic ? "LINK_CLICKS" : "REACH");
 
     const adSetParamsObj: Record<string, string> = {
       name: adSetName,
@@ -327,9 +406,14 @@ export async function POST(request: NextRequest) {
       access_token: metaConnection.accessToken,
     };
 
-    // Para campanhas de Tráfego, é obrigatório especificar o destination_type como WEBSITE na Meta
+    // Para campanhas de Tráfego ou WhatsApp, configuramos o destination_type e promoted_object correspondente
     if (isTraffic) {
       adSetParamsObj.destination_type = "WEBSITE";
+    } else if (isWhatsApp) {
+      adSetParamsObj.destination_type = "WHATSAPP";
+      adSetParamsObj.promoted_object = JSON.stringify({
+        page_id: pageId,
+      });
     }
 
     const adSetParams = new URLSearchParams(adSetParamsObj);
@@ -390,7 +474,18 @@ export async function POST(request: NextRequest) {
     let creativeLink = ctaLink || `https://facebook.com/${pageId}`;
     
     // Configura o Call to Action com base nas regras rígidas de objetivos e faturamento da Meta
-    if (ctaType === "CALL_NOW") {
+    if (isWhatsApp) {
+      // Click-to-WhatsApp: usa CTA tipo WHATSAPP_MESSAGE com app_destination WHATSAPP.
+      // O link obrigatório deve ser https://api.whatsapp.com/send (exigência da Meta).
+      // O número de WhatsApp usado é o que está vinculado à Página automaticamente.
+      callToAction = {
+        type: "WHATSAPP_MESSAGE",
+        value: {
+          app_destination: "WHATSAPP",
+        },
+      };
+      creativeLink = "https://api.whatsapp.com/send";
+    } else if (ctaType === "CALL_NOW") {
       // Regra de CALL_NOW da Meta:
       // O link de CTA no CALL_NOW não aceita URL no value.link, deve ser configurado apenas phone_number.
       // E o link_data.link geral da imagem deve ser uma URL de fallback válida.
@@ -444,8 +539,14 @@ export async function POST(request: NextRequest) {
       page_id: pageId,
     };
 
-    if (ctaType === "NONE") {
+    // Inclui Instagram Actor ID para exibir o anúncio no Instagram
+    if (instagramActorId) {
+      objectStorySpec.instagram_actor_id = instagramActorId;
+    }
+
+    if (ctaType === "NONE" && !isWhatsApp) {
       // Post de Imagem puro (Sem botão, sem link de destino na Meta)
+      // WhatsApp NUNCA entra aqui — sempre precisa de link_data com CTA
       objectStorySpec.photo_data = {
         image_hash: imageHash,
         caption: bodyText || "",
@@ -456,8 +557,12 @@ export async function POST(request: NextRequest) {
         image_hash: imageHash,
         link: creativeLink,
         message: bodyText,
-        name: headline,
       };
+
+      // Inclui headline se fornecido
+      if (headline) {
+        objectStorySpec.link_data.name = headline;
+      }
 
       if (callToAction) {
         objectStorySpec.link_data.call_to_action = callToAction;
@@ -470,12 +575,36 @@ export async function POST(request: NextRequest) {
       access_token: metaConnection.accessToken,
     });
 
-    const creativeResponse = await fetch(creativeUrl, {
+    let creativeResponse = await fetch(creativeUrl, {
       method: "POST",
       body: creativeParams,
     });
 
-    const creativeData = await creativeResponse.json();
+    let creativeData = await creativeResponse.json();
+
+    // Resiliência para erro de instagram_actor_id
+    if (!creativeResponse.ok && creativeData.error?.message?.includes("instagram_actor_id")) {
+      console.warn("[ORQUESTRADOR] Falha devido a instagram_actor_id. Tentando publicação de fallback sem vincular ID do Instagram...");
+      
+      // Remove instagram_actor_id e tenta novamente
+      if (objectStorySpec.instagram_actor_id) {
+        delete objectStorySpec.instagram_actor_id;
+        
+        const retryParams = new URLSearchParams({
+          name: `${adNameText} - Criativo (Fallback)`,
+          object_story_spec: JSON.stringify(objectStorySpec),
+          access_token: metaConnection.accessToken,
+        });
+        
+        creativeResponse = await fetch(creativeUrl, {
+          method: "POST",
+          body: retryParams,
+        });
+        
+        creativeData = await creativeResponse.json();
+      }
+    }
+
     if (!creativeResponse.ok) {
       console.error("[ORQUESTRADOR] Erro no Creative:", creativeData.error);
       throw new Error(creativeData.error?.error_user_msg || creativeData.error?.message || "Erro ao criar criativo do anúncio na Meta.");
