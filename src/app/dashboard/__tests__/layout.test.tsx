@@ -66,7 +66,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("DashboardLayout", () => {
-  it("renders the layout navigation items, sidebar trigger, and marks Anúncios as disabled", async () => {
+  it("renders the layout navigation items, sidebar trigger, and enables Anúncios", async () => {
     render(
       <DashboardLayout>
         <div>Content</div>
@@ -85,20 +85,22 @@ describe("DashboardLayout", () => {
     // Verifica se o botão SidebarTrigger (hambúrguer) está presente no cabeçalho
     expect(screen.getByRole("button", { name: /toggle sidebar/i })).toBeInTheDocument();
 
-    // O item "Anúncios" deve estar presente e desativado como link
+    // O item "Anúncios" deve estar presente e ativo como link
     const anunciosLink = screen.getByText("Anúncios").closest("a");
     expect(anunciosLink).toBeInTheDocument();
-    expect(anunciosLink).toHaveAttribute("href", "#");
+    expect(anunciosLink).toHaveAttribute("href", "/dashboard/anuncios");
     
-    // O link ou seu container SidebarMenuButton deve possuir as classes de disabled
+    // O link ou seu container SidebarMenuButton NÃO deve possuir as classes de disabled
     await waitFor(() => {
-      const hasDisabledClasses = anunciosLink?.className.includes("cursor-not-allowed") || 
-                                 anunciosLink?.parentElement?.className.includes("cursor-not-allowed") ||
-                                 screen.getByText("Anúncios").closest("button")?.className.includes("cursor-not-allowed");
-      expect(hasDisabledClasses).toBe(true);
+      const hasDisabledClasses = !!(
+        anunciosLink?.className?.includes("cursor-not-allowed") || 
+        anunciosLink?.parentElement?.className?.includes("cursor-not-allowed") ||
+        screen.getByText("Anúncios").closest("button")?.className?.includes("cursor-not-allowed")
+      );
+      expect(hasDisabledClasses).toBe(false);
     });
     
-    // Deve exibir o badge "Em breve" ao lado de Anúncios
-    expect(screen.getByText("Em breve")).toBeInTheDocument();
+    // Não deve exibir o badge "Em breve" ao lado de Anúncios
+    expect(screen.queryByText("Em breve")).not.toBeInTheDocument();
   });
 });
