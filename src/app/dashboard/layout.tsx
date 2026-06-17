@@ -98,7 +98,6 @@ const allNavigationItems = [
     title: "Anúncios",
     url: "/dashboard/anuncios",
     icon: Megaphone,
-    disabled: true,
   },
   {
     title: "Relacionamento",

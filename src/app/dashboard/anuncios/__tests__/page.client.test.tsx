@@ -92,7 +92,8 @@ const mockProfile = {
 
 // Mock do fetch global
 globalThis.fetch = vi.fn().mockImplementation((url) => {
-  if (typeof url === "string" && url.includes("/api/ads/campaigns")) {
+  const urlStr = typeof url === "string" ? url : String(url);
+  if (urlStr.includes("/api/ads/campaigns")) {
     return Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
@@ -118,6 +119,44 @@ globalThis.fetch = vi.fn().mockImplementation((url) => {
             },
           }
         ],
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/ads/billing-status")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        billing: {
+          hasPaymentMethod: true,
+          accountStatus: 1,
+          balance: 150.00,
+          isPrepaid: true,
+          fundingSourceDetails: { display_string: "Pix" },
+          businessId: "123456",
+        }
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/ads/interests")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        interests: [
+          { id: "1", name: "Pizza", path: ["Comida", "Pizza"] },
+          { id: "2", name: "Hambúrguer", path: ["Comida", "Hambúrguer"] }
+        ],
+      }),
+    } as any);
+  }
+  if (urlStr.includes("/api/meta/page-whatsapp")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        hasWhatsApp: true,
+        pageName: "Pizzaria Teste",
       }),
     } as any);
   }
@@ -180,7 +219,9 @@ describe("AnunciosPageClient", () => {
     fireEvent.click(boostButton);
 
     // O cabeçalho do wizard e o passo 1 devem aparecer
-    expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
-    expect(screen.getByText("1. Qual é o objetivo do seu impulsionamento?")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
+      expect(screen.getByText("1. Qual é o objetivo do seu impulsionamento?")).toBeInTheDocument();
+    }, { timeout: 5000 });
   });
 });

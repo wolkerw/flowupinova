@@ -89,17 +89,8 @@ export async function GET(request: NextRequest) {
     // =========================================================================
     // 2. BUSCA COMPLEMENTAR NO NOMINATIM (Com suporte a números de rua)
     // =========================================================================
-    const cleanQuery = q.toLowerCase();
-    const hasStreetIndicator =
-      cleanQuery.includes("rua") ||
-      cleanQuery.includes("avenida") ||
-      cleanQuery.includes("av.") ||
-      cleanQuery.includes("r.") ||
-      /\d/.test(q);
-
-    const hasValidCoords = locations.some((l) => l.latitude !== undefined && l.longitude !== undefined);
-
-    if (!hasValidCoords || hasStreetIndicator) {
+    // Sempre rodamos a busca complementar no Nominatim para garantir a presença de cidades, bairros e estados consistentes
+    if (true) {
       try {
         let query = q;
         if (!query.toLowerCase().includes("brasil") && !query.toLowerCase().includes("brazil")) {
@@ -125,7 +116,7 @@ export async function GET(request: NextRequest) {
             extractedNumber = numberMatch[1];
           }
 
-          const nomLocations = (nomData || [])
+            const nomLocations = (nomData || [])
             .filter((item: any) => item.type !== "postcode" && item.class !== "postcode")
             .map((item: any, index: number) => {
               const address = item.address || {};
@@ -133,22 +124,43 @@ export async function GET(request: NextRequest) {
               displayName = displayName.replace(", Brasil", "").replace(", Brazil", "");
 
               let ptType = "Endereço";
-              if (address.country && !address.state && !address.city && !address.suburb && !address.road) {
+              const addrType = item.addresstype || "";
+
+              if (addrType === "country") {
                 ptType = "País";
-              } else if (address.state && !address.city && !address.suburb && !address.road) {
+              } else if (addrType === "state") {
                 ptType = "Estado";
-              } else if (address.city || address.town || address.village) {
-                if (!address.suburb && !address.road) {
-                  ptType = "Cidade";
-                } else if (address.suburb && !address.road) {
-                  ptType = "Bairro";
-                } else {
-                  ptType = "Endereço";
-                }
-              } else if (address.suburb) {
+              } else if (["city", "municipality", "town", "village"].includes(addrType)) {
+                ptType = "Cidade";
+              } else if (["suburb", "neighbourhood", "quarter"].includes(addrType)) {
                 ptType = "Bairro";
-              } else if (address.road) {
+              } else if (["road", "street"].includes(addrType)) {
                 ptType = "Rua/Avenida";
+              } else {
+                if (address.country && !address.state && !address.city && !address.suburb && !address.road) {
+                  ptType = "País";
+                } else if (address.state && !address.city && !address.suburb && !address.road) {
+                  ptType = "Estado";
+                } else if (address.city || address.town || address.village || address.municipality) {
+                  if (!address.suburb && !address.road) {
+                    ptType = "Cidade";
+                  } else if (address.suburb && !address.road) {
+                    ptType = "Bairro";
+                  } else {
+                    ptType = "Endereço";
+                  }
+                } else if (address.suburb) {
+                  ptType = "Bairro";
+                } else if (address.road) {
+                  ptType = "Rua/Avenida";
+                }
+              }
+
+              // Enriquecer visualmente o nome de estados para evitar confusão com cidades homônimas
+              if (ptType === "Estado" && !displayName.includes("(Estado)")) {
+                const firstComma = displayName.indexOf(",");
+                const cleanStateName = firstComma !== -1 ? displayName.substring(0, firstComma) : displayName;
+                displayName = `${cleanStateName} (Estado)`;
               }
 
               // Injeção elegante do número de rua na sugestão caso o usuário tenha digitado e a API não retorne
@@ -169,6 +181,8 @@ export async function GET(request: NextRequest) {
                 latitude: parseFloat(item.lat),
                 longitude: parseFloat(item.lon),
                 region: address.state || "",
+                osmId: item.osm_id,
+                osmType: item.osm_type,
                 boundingBox: item.boundingbox ? [
                   parseFloat(item.boundingbox[0]),
                   parseFloat(item.boundingbox[1]),
@@ -178,25 +192,32 @@ export async function GET(request: NextRequest) {
               };
             });
 
-          // Mescla de forma única evitando duplicidade por proximidade de coordenadas
-          const existingKeys = new Set(
-            locations
-              .filter((l) => l.latitude && l.longitude)
-              .map((l) => `${Number(l.latitude).toFixed(4)}_${Number(l.longitude).toFixed(4)}`)
-          );
-
-          const uniqueNomLocations = nomLocations.filter((l: any) => {
-            return !existingKeys.has(`${Number(l.latitude).toFixed(4)}_${Number(l.longitude).toFixed(4)}`);
-          });
-
-          locations = [...locations, ...uniqueNomLocations].slice(0, 8);
+          // Mescla todas as localizações encontradas
+          locations = [...locations, ...nomLocations];
         }
       } catch (nomErr) {
         console.warn("[API_LOCATIONS] Falha silenciada no fallback Nominatim:", nomErr);
       }
     }
 
-    return NextResponse.json({ success: true, locations: locations });
+    // Deduplicação inteligente final por nome e tipo
+    const uniqueLocations: any[] = [];
+    const seenNames = new Set<string>();
+
+    for (const loc of locations) {
+      // Normaliza o nome do local (ignora acentos, espaços, caixa e o sufixo (Estado))
+      const normalizedName = loc.name.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(" (estado)", "");
+      const uniqKey = `${normalizedName}_${loc.type}`;
+
+      if (!seenNames.has(uniqKey)) {
+        seenNames.add(uniqKey);
+        uniqueLocations.push(loc);
+      }
+    }
+
+    return NextResponse.json({ success: true, locations: uniqueLocations.slice(0, 10) });
   } catch (error: any) {
     console.error("[API_LOCATIONS] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
