@@ -25,6 +25,8 @@ export interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
+  subscriptionPlan?: "mensal" | "anual" | null;
+  subscriptionExpiresAt?: string | null;
 }
 
 export interface PlatformStats {
@@ -206,6 +208,12 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         : 0;
       const trialExpired = plan === "trial" && trialDaysLeft === 0;
 
+      const subscriptionPlan = data.subscriptionPlan as "mensal" | "anual" | null | undefined;
+      let subscriptionExpiresAt: string | null = null;
+      if (data.subscriptionExpiresAt) {
+        subscriptionExpiresAt = data.subscriptionExpiresAt.toDate?.()?.toISOString() ?? null;
+      }
+
       // Contagens paralelas
       const [imagesSnap, postsSnap] = await Promise.all([
         adminDb.collection(`users/${uid}/mediaGallery`).count().get(),
@@ -226,6 +234,8 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         postsCount: postsSnap.data().count,
         imagesCount: imagesSnap.data().count,
         lastSignIn: authUsers[uid] ?? "",
+        subscriptionPlan: subscriptionPlan ?? null,
+        subscriptionExpiresAt,
       });
     })
   );

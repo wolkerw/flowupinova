@@ -15,8 +15,17 @@ import {
   type OnboardingProfileData,
   type OnboardingLogoData,
 } from "@/lib/services/onboarding-service";
+import { createCnpjRequest } from "@/lib/services/cnpj-request-service";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Lock } from "lucide-react";
 import {
   Settings2,
   UploadCloud,
@@ -36,6 +45,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 
 const presetPalettes = [
   {
@@ -71,6 +82,27 @@ export default function ConfiguracoesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+
+  // Estados Locais do CNPJ
+  const [cnpj, setCnpj] = useState("");
+  const [cnpjLocked, setCnpjLocked] = useState(false);
+  const [hasPendingCnpjRequest, setHasPendingCnpjRequest] = useState(false);
+
+  // Estados do Modal de Solicitação de Alteração de CNPJ
+  const [isCnpjModalOpen, setIsCnpjModalOpen] = useState(false);
+  const [newCnpj, setNewCnpj] = useState("");
+  const [newBusinessName, setNewBusinessName] = useState("");
+  const [cnpjReason, setCnpjReason] = useState("");
+  const [isSubmittingCnpjRequest, setIsSubmittingCnpjRequest] = useState(false);
+
+  const formatCnpjLocal = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
+  };
 
   // Formulário Local
   const [name, setName] = useState("");
@@ -130,6 +162,9 @@ export default function ConfiguracoesPage() {
       setSlogan(data.slogan || "");
       setTargetAudience(data.targetAudience || "");
       setToneOfVoice(data.toneOfVoice || "");
+      setCnpj(data.cnpj ? formatCnpjLocal(data.cnpj) : "");
+      setCnpjLocked(data.cnpjLocked || false);
+      setHasPendingCnpjRequest(data.hasPendingCnpjRequest || false);
       setMainBenefits(data.mainBenefits || []);
       setLogoHorizontal(data.logos?.horizontal || { url: "", width: 0, height: 0 });
       setLogoVertical(data.logos?.vertical || { url: "", width: 0, height: 0 });
@@ -179,11 +214,17 @@ export default function ConfiguracoesPage() {
     if (!file || !user) return;
 
     setUploadingType(type);
-    toast({ title: `Processando logo ${type}...` });
+    toast({ title: `Enviando logo ${type}...`, description: "Aguarde a conclusão do upload." });
 
     try {
-      const { dataUrl, width, height } = await getImageDimensions(file);
-      const newLogo: OnboardingLogoData = { url: dataUrl, width, height };
+      // 1. Fazer upload para o Firebase Storage
+      const storageRef = ref(storage, `users/${user.uid}/logos/${type}_${Date.now()}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+      // 2. Obter as dimensões da imagem localmente
+      const { width, height } = await getImageDimensions(file);
+      const newLogo: OnboardingLogoData = { url: downloadUrl, width, height };
 
       // Lógica de sincronização inteligente de logo padrão para manter compatibilidade
       let logoPrincipal = profile?.logo || { url: "", width: 0, height: 0 };
@@ -410,6 +451,9 @@ export default function ConfiguracoesPage() {
       // Sincronização inteligente de segurança para a logo principal
       const logoPrincipal = logoVertical.url ? logoVertical : (logoHorizontal.url ? logoHorizontal : { url: "", width: 0, height: 0 });
 
+      const cleanCnpj = cnpj.replace(/\D/g, "");
+      const finalCnpjLocked = cnpjLocked || cleanCnpj.length === 14;
+
       await updateOnboardingProfile(user.uid, {
         name,
         category,
@@ -424,6 +468,8 @@ export default function ConfiguracoesPage() {
         targetAudience,
         toneOfVoice,
         mainBenefits,
+        cnpj: cleanCnpj,
+        cnpjLocked: finalCnpjLocked,
         logo: logoPrincipal,
         logos: {
           horizontal: logoHorizontal,
@@ -919,14 +965,60 @@ export default function ConfiguracoesPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="businessName">Nome Fantasia da Empresa</Label>
+                  <Label htmlFor="businessName">Nome Fantasia da Empresa (Razão Social)</Label>
                   <Input
                     id="businessName"
                     placeholder="Ex: Pizzaria Forno de Ouro"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    disabled={cnpjLocked}
                   />
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="cnpj">CNPJ do Cadastro</Label>
+                    {cnpjLocked && (
+                      <span className="text-[10px] font-bold text-violet-600 flex items-center gap-1">
+                        <Lock className="h-3 w-3" /> Protegido
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cnpj"
+                      placeholder="00.000.000/0000-00"
+                      value={cnpj}
+                      onChange={(e) => setCnpj(formatCnpjLocal(e.target.value))}
+                      disabled={cnpjLocked}
+                      className="flex-1"
+                      maxLength={18}
+                    />
+                    {cnpjLocked && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setNewCnpj(cnpj);
+                          setNewBusinessName(name);
+                          setCnpjReason("");
+                          setIsCnpjModalOpen(true);
+                        }}
+                        disabled={hasPendingCnpjRequest}
+                        className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 shrink-0 h-10 px-3 text-xs"
+                      >
+                        Solicitar Alteração
+                      </Button>
+                    )}
+                  </div>
+                  {hasPendingCnpjRequest && (
+                    <p className="text-[10px] text-amber-600 font-semibold mt-1">
+                      ⚠️ Solicitação de alteração em análise pelo administrador.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="category">Categoria do Negócio</Label>
                   <Input
@@ -936,9 +1028,6 @@ export default function ConfiguracoesPage() {
                     onChange={(e) => setCategory(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone / WhatsApp Comercial</Label>
                   <div className="relative">
@@ -952,6 +1041,9 @@ export default function ConfiguracoesPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
                 <div className="space-y-2">
                   <Label htmlFor="website">Website URL</Label>
                   <Input
@@ -1096,33 +1188,30 @@ export default function ConfiguracoesPage() {
                   )}
                 </div>
               </div>
-
             </CardContent>
           </Card>
 
-          {/* Diretrizes Estéticas Visuais para Geração de Imagens */}
+          {/* Diretrizes de Imagem para IA */}
           <Card className="border-none shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Diretrizes Visuais para IA
+                <Palette className="h-5 w-5 text-primary" />
+                Diretrizes Visuais para Geração de Fotos
               </CardTitle>
-              <CardDescription>
-                Regras e conceitos visuais/estéticos de fotografia que a IA utilizará ao gerar fotos e anúncios.
-              </CardDescription>
+              <CardDescription>Instruções estéticas que guiam a IA na renderização das suas imagens conceito</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="visualGuidelines">Diretrizes Fotográficas e Estéticas</Label>
+                <Label htmlFor="visualGuidelines">Diretrizes Fotográficas e Conceituais</Label>
                 <Textarea
                   id="visualGuidelines"
-                  placeholder="Ex: Fotografia de produto com iluminação suave, fundo minimalista em tons pastéis, estilo clean e moderno..."
+                  placeholder="Ex: Fotografia de produto clean em estúdio com luz suave, sombras alongadas e fundo em tons pastéis ou madeira clara. Enquadramento focado no centro."
                   value={visualGuidelines}
                   onChange={(e) => setVisualGuidelines(e.target.value)}
-                  className="min-h-[120px] resize-y"
+                  className="min-h-[100px] resize-y"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Estas diretrizes são injetadas automaticamente na IA de geração de imagens do Imagen para garantir consistência visual.
+                  Se você importar um PDF de manual de marca, essas diretrizes serão extraídas automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a seguir o estilo do seu designer.
                 </p>
               </div>
             </CardContent>
@@ -1148,108 +1237,201 @@ export default function ConfiguracoesPage() {
         }}
       />
 
+      {/* Modal de Solicitação de Alteração de CNPJ */}
+      <Dialog open={isCnpjModalOpen} onOpenChange={setIsCnpjModalOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-slate-900 border border-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Solicitar Alteração Jurídica do Negócio</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Para prevenção de abusos de múltiplos negócios por conta, a alteração de CNPJ/Nome necessita de aprovação administrativa.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4 text-slate-300">
+            <div className="space-y-2">
+              <Label htmlFor="modal-new-business-name" className="text-slate-200">Novo Nome da Empresa (Razão Social)</Label>
+              <Input
+                id="modal-new-business-name"
+                placeholder="Ex: Clínica Beleza Pura Ltda"
+                value={newBusinessName}
+                onChange={(e) => setNewBusinessName(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modal-new-cnpj" className="text-slate-200">Novo CNPJ</Label>
+              <Input
+                id="modal-new-cnpj"
+                placeholder="00.000.000/0000-00"
+                value={newCnpj}
+                onChange={(e) => setNewCnpj(formatCnpjLocal(e.target.value))}
+                className="bg-slate-950 border-slate-800 text-white"
+                maxLength={18}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modal-reason" className="text-slate-200">Justificativa da Alteração</Label>
+              <Textarea
+                id="modal-reason"
+                placeholder="Descreva o motivo real de mudança jurídica (ex: transição de MEI para LTDA, correção de digitação, reestruturação societária...)"
+                value={cnpjReason}
+                onChange={(e) => setCnpjReason(e.target.value)}
+                className="min-h-[100px] bg-slate-950 border-slate-800 text-white"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCnpjModalOpen(false)}
+              disabled={isSubmittingCnpjRequest}
+              className="border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmittingCnpjRequest || !newBusinessName.trim() || newCnpj.replace(/\D/g, "").length !== 14 || !cnpjReason.trim()}
+              onClick={async () => {
+                if (!user) return;
+                setIsSubmittingCnpjRequest(true);
+                try {
+                  const cleanNewCnpj = newCnpj.replace(/\D/g, "");
+                  const cleanCurrentCnpj = cnpj.replace(/\D/g, "");
+                  
+                  await createCnpjRequest(
+                    user.uid,
+                    user.email || "",
+                    cleanCurrentCnpj,
+                    name,
+                    cleanNewCnpj,
+                    newBusinessName,
+                    cnpjReason
+                  );
+                  
+                  toast({
+                    title: "Solicitação Enviada!",
+                    description: "Seu pedido de alteração foi cadastrado e está sob revisão.",
+                    variant: "success",
+                  });
+                  
+                  setIsCnpjModalOpen(false);
+                  await loadProfile();
+                } catch (err: any) {
+                  toast({
+                    title: "Erro ao enviar",
+                    description: err.message,
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsSubmittingCnpjRequest(false);
+                }
+              }}
+              className="bg-violet-600 hover:bg-violet-500 text-white"
+            >
+              {isSubmittingCnpjRequest ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                "Enviar Solicitação"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal de Confirmação de Branding Extraído do PDF */}
       <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-        <DialogContent className="max-w-2xl bg-white max-h-[85vh] overflow-y-auto border-none shadow-xl">
+        <DialogContent className="sm:max-w-[600px] bg-slate-900 border border-slate-800 text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
-              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-              Manual de Branding Identificado!
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-yellow-400" />
+              Revisar Branding Extraído da Agência
             </DialogTitle>
-            <DialogDescription>
-              Nossa Inteligência Artificial leu o manual de marca da agência. Revise abaixo as informações extraídas antes de aplicá-las ao seu perfil.
+            <DialogDescription className="text-slate-400">
+              Nosso assistente analisou o PDF e identificou as diretrizes de marca abaixo. Deseja aplicá-las às suas configurações locais?
             </DialogDescription>
           </DialogHeader>
 
           {extractedBrandData && (
-            <div className="space-y-6 my-4">
-              {/* Seção 1: Identidade e Conceito */}
-              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Identidade da Marca</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground text-gray-500">Nome Identificado</span>
-                    <p className="text-sm font-medium text-slate-800">{extractedBrandData.name || "Não identificado"}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground text-gray-500">Slogan da Marca</span>
-                    <p className="text-sm font-medium text-slate-800">{extractedBrandData.slogan || "Não identificado"}</p>
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <span className="text-xs text-muted-foreground text-gray-500">Descrição de Posicionamento</span>
-                  <p className="text-xs text-slate-600 leading-relaxed">{extractedBrandData.description || "Não identificado"}</p>
-                </div>
-              </div>
-
-              {/* Seção 2: Cores Extraídas */}
-              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Paleta de Cores da Agência</h4>
-                <div className="flex flex-wrap gap-6">
-                  {extractedBrandData.primaryColor && (
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="h-10 w-10 rounded-full border border-slate-200 shadow-sm" 
-                        style={{ backgroundColor: extractedBrandData.primaryColor }}
-                      />
-                      <div>
-                        <span className="text-xs text-muted-foreground text-gray-500">Cor Primária</span>
-                        <p className="text-xs font-mono font-medium text-slate-800">{extractedBrandData.primaryColor}</p>
-                      </div>
-                    </div>
-                  )}
-                  {extractedBrandData.secondaryColor && (
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="h-10 w-10 rounded-full border border-slate-200 shadow-sm" 
-                        style={{ backgroundColor: extractedBrandData.secondaryColor }}
-                      />
-                      <div>
-                        <span className="text-xs text-muted-foreground text-gray-500">Cor Secundária</span>
-                        <p className="text-xs font-mono font-medium text-slate-800">{extractedBrandData.secondaryColor}</p>
-                      </div>
-                    </div>
-                  )}
-                  {!extractedBrandData.primaryColor && !extractedBrandData.secondaryColor && (
-                    <p className="text-xs italic text-muted-foreground text-gray-500">Nenhuma cor detectada no manual.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Seção 3: Marketing e Tom de Voz */}
-              <div className="space-y-3 rounded-lg bg-slate-50 p-4 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Público e Tom de Voz</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground text-gray-500">Público-Alvo</span>
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{extractedBrandData.targetAudience || "Não identificado"}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground text-gray-500">Tom de Voz</span>
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{extractedBrandData.toneOfVoice || "Não identificado"}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 4: Diretrizes Fotográficas (IA) */}
-              <div className="space-y-3 rounded-lg bg-indigo-50/50 p-4 border border-indigo-100">
-                <h4 className="text-sm font-semibold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
-                  Diretrizes Estéticas de Fotografia (IA)
-                </h4>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2 text-slate-300 text-sm">
+              <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
                 <div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {extractedBrandData.visualGuidelines || "Nenhuma diretriz estética explícita foi mapeada. Será utilizado o padrão do aplicativo."}
-                  </p>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Nome do Negócio</span>
+                  <p className="font-semibold text-white mt-0.5">{extractedBrandData.name || "Não identificado"}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Slogan</span>
+                  <p className="font-semibold text-white mt-0.5">{extractedBrandData.slogan || "Não identificado"}</p>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-800 pb-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Descrição Comercial</span>
+                <p className="mt-0.5 text-slate-200">{extractedBrandData.description || "Não identificada"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Público-Alvo</span>
+                  <p className="mt-0.5 text-slate-200">{extractedBrandData.targetAudience || "Não identificado"}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Tom de Voz</span>
+                  <p className="mt-0.5 text-slate-200">{extractedBrandData.toneOfVoice || "Não identificado"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Cor Primária</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="h-6 w-6 rounded border border-slate-700" style={{ backgroundColor: extractedBrandData.primaryColor }} />
+                    <span className="font-mono text-xs text-white">{extractedBrandData.primaryColor || "N/A"}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Cor Secundária</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="h-6 w-6 rounded border border-slate-700" style={{ backgroundColor: extractedBrandData.secondaryColor }} />
+                    <span className="font-mono text-xs text-white">{extractedBrandData.secondaryColor || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-800 pb-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Diretrizes Visuais para IA</span>
+                <p className="mt-0.5 text-slate-200 text-xs leading-relaxed">{extractedBrandData.visualGuidelines || "Não identificadas"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Principais Benefícios / Diferenciais</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {extractedBrandData.mainBenefits && extractedBrandData.mainBenefits.length > 0 ? (
+                    extractedBrandData.mainBenefits.map((b: string) => (
+                      <span key={b} className="bg-blue-900/50 border border-blue-800 text-blue-200 rounded px-2 py-0.5 text-xs font-semibold">
+                        {b}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Nenhum benefício listado.</p>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-4 border-t pt-4">
+          <DialogFooter className="mt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
+              className="text-slate-400 hover:text-white hover:bg-slate-800 border-none"
               onClick={() => {
                 setIsConfirmModalOpen(false);
                 setExtractedBrandData(null);
@@ -1259,10 +1441,10 @@ export default function ConfiguracoesPage() {
             </Button>
             <Button
               type="button"
+              className="bg-primary text-white hover:bg-primary/90 shadow-md"
               onClick={handleAcceptExtractedBranding}
-              className="bg-primary hover:bg-primary/95 text-white"
             >
-              Aplicar ao Perfil
+              Aplicar ao Meu Negócio
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -22,6 +22,7 @@ import {
   Eye,
   Phone,
   Tag,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,8 @@ interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
+  subscriptionPlan?: "mensal" | "anual" | null;
+  subscriptionExpiresAt?: string | null;
 }
 
 type PlanFilter = "all" | "trial" | "standard" | "blocked" | "expired";
@@ -163,18 +166,35 @@ function UserSheet({
         <div className="space-y-5 p-5">
           {/* Info Cards */}
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Plano Atual", value: PLAN_LABELS[user.plan] ?? user.plan, icon: Tag },
-              { label: "Posts", value: `${user.postsCount}`, icon: FileText },
-              { label: "Imagens", value: `${user.imagesCount}`, icon: ImageIcon },
-              {
-                label: "Trial",
-                value: user.trialExpired
-                  ? "Expirado"
-                  : `${user.trialDaysLeft} dias restantes`,
-                icon: Clock,
-              },
-            ].map(({ label, value, icon: Icon }) => (
+            {((): { label: string; value: string; icon: React.ComponentType<any> }[] => {
+              const cards = [
+                {
+                  label: "Plano Atual",
+                  value: user.plan === "standard"
+                    ? `Standard (${user.subscriptionPlan === "anual" ? "Anual" : "Mensal"})`
+                    : PLAN_LABELS[user.plan] ?? user.plan,
+                  icon: Tag
+                },
+                { label: "Posts", value: `${user.postsCount}`, icon: FileText },
+                { label: "Imagens", value: `${user.imagesCount}`, icon: ImageIcon },
+              ];
+
+              if (user.plan === "trial") {
+                cards.push({
+                  label: "Trial",
+                  value: user.trialExpired ? "Expirado" : `${user.trialDaysLeft}d restantes`,
+                  icon: Clock,
+                });
+              } else if (user.plan === "standard" && user.subscriptionExpiresAt) {
+                const expDate = new Date(user.subscriptionExpiresAt);
+                cards.push({
+                  label: "Vencimento",
+                  value: expDate.toLocaleDateString("pt-BR"),
+                  icon: Clock,
+                });
+              }
+              return cards;
+            })().map(({ label, value, icon: Icon }) => (
               <div key={label} className="rounded-lg bg-slate-800/60 p-3">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500">
                   <Icon className="h-3.5 w-3.5" />
@@ -204,18 +224,35 @@ function UserSheet({
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ações</p>
 
-            {user.plan !== "standard" && (
+            {/* Ativar/Mudar para Plano Mensal */}
+            {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
               <button
-                onClick={() => doAction({ plan: "standard" }, "standard")}
+                onClick={() => doAction({ plan: "standard", subscriptionPlan: "mensal" }, "activate-mensal")}
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
               >
-                {loading && action === "standard" ? (
+                {loading && action === "activate-mensal" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <CheckCircle className="h-4 w-4" />
                 )}
-                Ativar Plano Standard
+                {user.plan === "standard" ? "Mudar para Plano Mensal" : "Ativar Plano Mensal (30 dias)"}
+              </button>
+            )}
+
+            {/* Ativar/Mudar para Plano Anual */}
+            {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
+              <button
+                onClick={() => doAction({ plan: "standard", subscriptionPlan: "anual" }, "activate-anual")}
+                disabled={loading}
+                className="flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {loading && action === "activate-anual" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Crown className="h-4 w-4" />
+                )}
+                {user.plan === "standard" ? "Mudar para Plano Anual" : "Ativar Plano Anual (365 dias)"}
               </button>
             )}
 
@@ -234,18 +271,34 @@ function UserSheet({
               </button>
             )}
 
-            <button
-              onClick={() => doAction({ extendTrial: true }, "extend")}
-              disabled={loading}
-              className="flex w-full items-center gap-3 rounded-lg border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm font-medium text-violet-400 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
-            >
-              {loading && action === "extend" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CalendarPlus className="h-4 w-4" />
-              )}
-              Estender Trial (+7 dias)
-            </button>
+            {/* Estender Trial (+7d / +30d) */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => doAction({ extendTrial: true, extendTrialDays: 7 }, "extend-7")}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 py-2.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
+              >
+                {loading && action === "extend-7" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                )}
+                Estender Trial (+7d)
+              </button>
+
+              <button
+                onClick={() => doAction({ extendTrial: true, extendTrialDays: 30 }, "extend-30")}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 py-2.5 text-xs font-medium text-fuchsia-400 transition-colors hover:bg-fuchsia-500/20 disabled:opacity-50"
+              >
+                {loading && action === "extend-30" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                )}
+                Estender Trial (+30d)
+              </button>
+            </div>
 
             {user.paymentStatus !== "blocked" ? (
               <button
@@ -485,6 +538,8 @@ export default function AdminUsuariosPage() {
                         >
                           {user.paymentStatus === "blocked"
                             ? "Bloqueado"
+                            : user.plan === "standard"
+                            ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
                             : PLAN_LABELS[user.plan] ?? user.plan}
                         </span>
                       </td>
@@ -497,6 +552,10 @@ export default function AdminUsuariosPage() {
                             )}
                           >
                             {user.trialExpired ? "Expirado" : `${user.trialDaysLeft}d restantes`}
+                          </span>
+                        ) : user.plan === "standard" && user.subscriptionExpiresAt ? (
+                          <span className="text-xs text-emerald-400">
+                            Expira {new Date(user.subscriptionExpiresAt).toLocaleDateString("pt-BR")}
                           </span>
                         ) : (
                           <span className="text-xs text-slate-600">—</span>

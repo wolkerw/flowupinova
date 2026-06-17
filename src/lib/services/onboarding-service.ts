@@ -25,6 +25,9 @@ export interface OnboardingProfileData {
   targetAudience?: string;
   toneOfVoice?: string;
   mainBenefits?: string[];
+  cnpj?: string;
+  cnpjLocked?: boolean;
+  hasPendingCnpjRequest?: boolean;
   logos?: {
     horizontal?: OnboardingLogoData;
     vertical?: OnboardingLogoData;
@@ -36,7 +39,6 @@ export interface OnboardingProfileData {
     secondaryColor?: string;
     visualGuidelines?: string;
     pdfManualPath?: string;
-    pdfManualUrl?: string;
     pdfUploadedAt?: any;
     [key: string]: any;
   };
@@ -64,6 +66,9 @@ const defaultOnboardingProfile: OnboardingProfileData = {
   targetAudience: "",
   toneOfVoice: "",
   mainBenefits: [],
+  cnpj: "",
+  cnpjLocked: false,
+  hasPendingCnpjRequest: false,
   logos: {
     horizontal: { url: "", width: 0, height: 0 },
     vertical: { url: "", width: 0, height: 0 },
@@ -75,7 +80,6 @@ const defaultOnboardingProfile: OnboardingProfileData = {
     secondaryColor: "#1e293b",
     visualGuidelines: "",
     pdfManualPath: "",
-    pdfManualUrl: "",
     pdfUploadedAt: null,
   },
 };
