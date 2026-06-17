@@ -327,6 +327,32 @@ export function OnboardingWizard({
         websiteUrl = `https://${websiteUrl}`;
       }
 
+      // Helper para converter dataUrl base64 em File/Blob para upload no Storage
+      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
+        const res = await fetch(base64Str);
+        const blob = await res.blob();
+        const storageRef = ref(storage, `users/${userId}/logos/${type}_migrated_${Date.now()}`);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        return await getDownloadURL(uploadResult.ref);
+      };
+
+      let finalLogoUrl = formData.logoUrl;
+      if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
+        toast({ title: "Migrando logomarca..." });
+        finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
+        setFormData(prev => ({ ...prev, logoUrl: finalLogoUrl }));
+      }
+
+      let finalHorizontalUrl = initialData?.logos?.horizontal?.url || "";
+      if (finalHorizontalUrl && finalHorizontalUrl.startsWith("data:image")) {
+        finalHorizontalUrl = await uploadBase64ToStorage(finalHorizontalUrl, "horizontal");
+      }
+
+      let finalSymbolUrl = initialData?.logos?.symbol?.url || "";
+      if (finalSymbolUrl && finalSymbolUrl.startsWith("data:image")) {
+        finalSymbolUrl = await uploadBase64ToStorage(finalSymbolUrl, "symbol");
+      }
+
       await updateOnboardingProfile(userId, {
         name: formData.name,
         category: formData.category,
@@ -344,18 +370,26 @@ export function OnboardingWizard({
         cnpjLocked: true, // Travar o CNPJ na conclusão do onboarding
         onboardingCompleted: true,
         logo: {
-          url: formData.logoUrl,
+          url: finalLogoUrl,
           width: formData.logoWidth,
           height: formData.logoHeight,
         },
         logos: {
           vertical: {
-            url: formData.logoUrl,
+            url: finalLogoUrl,
             width: formData.logoWidth,
             height: formData.logoHeight,
           },
-          horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
-          symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
+          horizontal: {
+            url: finalHorizontalUrl,
+            width: initialData?.logos?.horizontal?.width || 0,
+            height: initialData?.logos?.horizontal?.height || 0,
+          },
+          symbol: {
+            url: finalSymbolUrl,
+            width: initialData?.logos?.symbol?.width || 0,
+            height: initialData?.logos?.symbol?.height || 0,
+          },
         },
       });
       
@@ -364,6 +398,7 @@ export function OnboardingWizard({
         onComplete();
       }, 2500);
     } catch (error) {
+      console.error("Erro ao finalizar onboarding:", error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível salvar suas informações.",
@@ -377,6 +412,31 @@ export function OnboardingWizard({
   const handleSkip = async () => {
     const cleanCnpj = formData.cnpj.replace(/\D/g, "");
     try {
+      // Helper para converter dataUrl base64 em File/Blob para upload no Storage
+      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
+        const res = await fetch(base64Str);
+        const blob = await res.blob();
+        const storageRef = ref(storage, `users/${userId}/logos/${type}_migrated_${Date.now()}`);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        return await getDownloadURL(uploadResult.ref);
+      };
+
+      let finalLogoUrl = formData.logoUrl;
+      if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
+        finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
+        setFormData(prev => ({ ...prev, logoUrl: finalLogoUrl }));
+      }
+
+      let finalHorizontalUrl = initialData?.logos?.horizontal?.url || "";
+      if (finalHorizontalUrl && finalHorizontalUrl.startsWith("data:image")) {
+        finalHorizontalUrl = await uploadBase64ToStorage(finalHorizontalUrl, "horizontal");
+      }
+
+      let finalSymbolUrl = initialData?.logos?.symbol?.url || "";
+      if (finalSymbolUrl && finalSymbolUrl.startsWith("data:image")) {
+        finalSymbolUrl = await uploadBase64ToStorage(finalSymbolUrl, "symbol");
+      }
+
       // Salva o progresso inserido até o momento antes de marcar como completo, impedindo perda de dados
       await updateOnboardingProfile(userId, {
         name: formData.name,
@@ -395,18 +455,26 @@ export function OnboardingWizard({
         cnpjLocked: cleanCnpj.length === 14, // Travar se estiver preenchido completamente
         onboardingCompleted: true,
         logo: {
-          url: formData.logoUrl,
+          url: finalLogoUrl,
           width: formData.logoWidth,
           height: formData.logoHeight,
         },
         logos: {
           vertical: {
-            url: formData.logoUrl,
+            url: finalLogoUrl,
             width: formData.logoWidth,
             height: formData.logoHeight,
           },
-          horizontal: initialData?.logos?.horizontal || { url: "", width: 0, height: 0 },
-          symbol: initialData?.logos?.symbol || { url: "", width: 0, height: 0 },
+          horizontal: {
+            url: finalHorizontalUrl,
+            width: initialData?.logos?.horizontal?.width || 0,
+            height: initialData?.logos?.horizontal?.height || 0,
+          },
+          symbol: {
+            url: finalSymbolUrl,
+            width: initialData?.logos?.symbol?.width || 0,
+            height: initialData?.logos?.symbol?.height || 0,
+          },
         },
       });
       onComplete();

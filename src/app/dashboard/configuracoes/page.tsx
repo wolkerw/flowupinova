@@ -144,6 +144,111 @@ export default function ConfiguracoesPage() {
   const fileInputRefSymbol = useRef<HTMLInputElement>(null);
   const fileInputRefAvatar = useRef<HTMLInputElement>(null);
 
+  const migrateLegacyBase64Profile = async (data: OnboardingProfileData) => {
+    if (!user) return;
+    
+    // Verifica se há alguma logo em Base64
+    const hasBase64 = 
+      (data.logo?.url && data.logo.url.startsWith("data:image")) ||
+      (data.logos?.horizontal?.url && data.logos.horizontal.url.startsWith("data:image")) ||
+      (data.logos?.vertical?.url && data.logos.vertical.url.startsWith("data:image")) ||
+      (data.logos?.symbol?.url && data.logos.symbol.url.startsWith("data:image")) ||
+      (data.logos?.avatar?.url && data.logos.avatar.url.startsWith("data:image"));
+
+    if (!hasBase64) return;
+
+    console.log("[MIGRATE_BASE64] Detectadas logos antigas em Base64. Iniciando migração automática...");
+    
+    // Pequeno delay para garantir que os toasts locais ou estados iniciais de carregamento não entrem em conflito
+    setTimeout(() => {
+      toast({
+        title: "Otimizando armazenamento...",
+        description: "Convertendo imagens antigas para melhorar a performance.",
+      });
+    }, 1000);
+
+    try {
+      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
+        const res = await fetch(base64Str);
+        const blob = await res.blob();
+        const storageRef = ref(storage, `users/${user.uid}/logos/${type}_migrated_${Date.now()}`);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        return await getDownloadURL(uploadResult.ref);
+      };
+
+      const finalLogoHorizontal = { ...data.logos?.horizontal || { url: "", width: 0, height: 0 } };
+      const finalLogoVertical = { ...data.logos?.vertical || { url: "", width: 0, height: 0 } };
+      const finalLogoSymbol = { ...data.logos?.symbol || { url: "", width: 0, height: 0 } };
+      const finalLogoAvatar = { ...data.logos?.avatar || { url: "", width: 0, height: 0 } };
+
+      if (finalLogoHorizontal.url && finalLogoHorizontal.url.startsWith("data:image")) {
+        finalLogoHorizontal.url = await uploadBase64ToStorage(finalLogoHorizontal.url, "horizontal");
+      }
+      if (finalLogoVertical.url && finalLogoVertical.url.startsWith("data:image")) {
+        finalLogoVertical.url = await uploadBase64ToStorage(finalLogoVertical.url, "vertical");
+      }
+      if (finalLogoSymbol.url && finalLogoSymbol.url.startsWith("data:image")) {
+        finalLogoSymbol.url = await uploadBase64ToStorage(finalLogoSymbol.url, "symbol");
+      }
+      if (finalLogoAvatar.url && finalLogoAvatar.url.startsWith("data:image")) {
+        finalLogoAvatar.url = await uploadBase64ToStorage(finalLogoAvatar.url, "avatar");
+      }
+
+      const logoPrincipal = finalLogoVertical.url ? finalLogoVertical : (finalLogoHorizontal.url ? finalLogoHorizontal : { url: "", width: 0, height: 0 });
+
+      const cleanProfileData: OnboardingProfileData = {
+        name: data.name || "",
+        category: data.category || "",
+        address: data.address || "",
+        phone: data.phone || "",
+        website: data.website || "",
+        instagram: data.instagram || "",
+        description: data.description || "",
+        primaryColor: data.primaryColor || "#3b82f6",
+        secondaryColor: data.secondaryColor || "#1e293b",
+        onboardingCompleted: data.onboardingCompleted || false,
+        slogan: data.slogan || "",
+        targetAudience: data.targetAudience || "",
+        toneOfVoice: data.toneOfVoice || "",
+        mainBenefits: data.mainBenefits || [],
+        cnpj: data.cnpj || "",
+        cnpjLocked: data.cnpjLocked || false,
+        hasPendingCnpjRequest: data.hasPendingCnpjRequest || false,
+        logo: logoPrincipal,
+        logos: {
+          horizontal: finalLogoHorizontal,
+          vertical: finalLogoVertical,
+          symbol: finalLogoSymbol,
+          avatar: finalLogoAvatar,
+        },
+        brandKit: {
+          ...data.brandKit,
+          primaryColor: data.brandKit?.primaryColor || data.primaryColor || "#3b82f6",
+          secondaryColor: data.brandKit?.secondaryColor || data.secondaryColor || "#1e293b",
+          visualGuidelines: data.brandKit?.visualGuidelines || "",
+          pdfManualPath: data.brandKit?.pdfManualPath || "",
+          pdfManualUrl: data.brandKit?.pdfManualUrl || "",
+          pdfUploadedAt: data.brandKit?.pdfUploadedAt || null,
+        },
+      };
+
+      // merge: false é crítico aqui para limpar o lixo do Base64 antigo do Firestore de forma definitiva!
+      await updateOnboardingProfile(user.uid, cleanProfileData, { merge: false });
+      
+      console.log("[MIGRATE_BASE64] Migração e limpeza concluídas com sucesso.");
+      toast({
+        title: "Perfil Otimizado!",
+        description: "As logos antigas foram migradas para o Storage com sucesso.",
+        variant: "success",
+      });
+
+      // Recarrega o perfil local com dados novos
+      await loadProfile();
+    } catch (migrateError) {
+      console.error("[MIGRATE_BASE64] Falha ao migrar logos antigas:", migrateError);
+    }
+  };
+
   const loadProfile = async () => {
     if (!user) return;
     setIsLoading(true);
@@ -173,6 +278,9 @@ export default function ConfiguracoesPage() {
       setVisualGuidelines(data.brandKit?.visualGuidelines || "");
       setPdfManualPath(data.brandKit?.pdfManualPath || "");
       setPdfManualUrl(data.brandKit?.pdfManualUrl || "");
+      
+      // Inicia migração assíncrona se houver Base64 legado
+      migrateLegacyBase64Profile(data);
     } catch (error) {
       console.error("Erro ao carregar configurações de marca:", error);
       toast({ title: "Erro de Conexão", description: "Não foi possível carregar suas configurações.", variant: "destructive" });
@@ -448,44 +556,91 @@ export default function ConfiguracoesPage() {
     toast({ title: "Salvando configurações...", description: "Por favor, aguarde." });
 
     try {
+      // Helper para converter dataUrl base64 em File/Blob para upload no Storage
+      const uploadBase64ToStorage = async (base64Str: string, type: string) => {
+        const res = await fetch(base64Str);
+        const blob = await res.blob();
+        const storageRef = ref(storage, `users/${user.uid}/logos/${type}_migrated_${Date.now()}`);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        return await getDownloadURL(uploadResult.ref);
+      };
+
+      // Migração automática de logos em Base64 legado para o Storage
+      let finalLogoHorizontal = { ...logoHorizontal };
+      let finalLogoVertical = { ...logoVertical };
+      let finalLogoSymbol = { ...logoSymbol };
+      let finalLogoAvatar = { ...logoAvatar };
+
+      if (logoHorizontal.url && logoHorizontal.url.startsWith("data:image")) {
+        toast({ title: "Migrando logo horizontal..." });
+        const url = await uploadBase64ToStorage(logoHorizontal.url, "horizontal");
+        finalLogoHorizontal.url = url;
+        setLogoHorizontal(finalLogoHorizontal);
+      }
+      if (logoVertical.url && logoVertical.url.startsWith("data:image")) {
+        toast({ title: "Migrando logo vertical..." });
+        const url = await uploadBase64ToStorage(logoVertical.url, "vertical");
+        finalLogoVertical.url = url;
+        setLogoVertical(finalLogoVertical);
+      }
+      if (logoSymbol.url && logoSymbol.url.startsWith("data:image")) {
+        toast({ title: "Migrando símbolo..." });
+        const url = await uploadBase64ToStorage(logoSymbol.url, "symbol");
+        finalLogoSymbol.url = url;
+        setLogoSymbol(finalLogoSymbol);
+      }
+      if (logoAvatar.url && logoAvatar.url.startsWith("data:image")) {
+        toast({ title: "Migrando avatar..." });
+        const url = await uploadBase64ToStorage(logoAvatar.url, "avatar");
+        finalLogoAvatar.url = url;
+        setLogoAvatar(finalLogoAvatar);
+      }
+
       // Sincronização inteligente de segurança para a logo principal
-      const logoPrincipal = logoVertical.url ? logoVertical : (logoHorizontal.url ? logoHorizontal : { url: "", width: 0, height: 0 });
+      const logoPrincipal = finalLogoVertical.url ? finalLogoVertical : (finalLogoHorizontal.url ? finalLogoHorizontal : { url: "", width: 0, height: 0 });
 
       const cleanCnpj = cnpj.replace(/\D/g, "");
       const finalCnpjLocked = cnpjLocked || cleanCnpj.length === 14;
 
-      await updateOnboardingProfile(user.uid, {
-        name,
-        category,
-        phone,
-        address,
-        website,
-        instagram,
-        description,
-        primaryColor,
-        secondaryColor,
-        slogan,
-        targetAudience,
-        toneOfVoice,
-        mainBenefits,
-        cnpj: cleanCnpj,
-        cnpjLocked: finalCnpjLocked,
-        logo: logoPrincipal,
-        logos: {
-          horizontal: logoHorizontal,
-          vertical: logoVertical,
-          symbol: logoSymbol,
-          avatar: logoAvatar,
-        },
-        brandKit: {
+      await updateOnboardingProfile(
+        user.uid,
+        {
+          name,
+          category,
+          phone,
+          address,
+          website,
+          instagram,
+          description,
           primaryColor,
           secondaryColor,
-          visualGuidelines,
-          pdfManualPath,
-          pdfManualUrl,
-          pdfUploadedAt: profile?.brandKit?.pdfUploadedAt || null,
+          slogan,
+          targetAudience,
+          toneOfVoice,
+          mainBenefits,
+          cnpj: cleanCnpj,
+          cnpjLocked: finalCnpjLocked,
+          onboardingCompleted: profile?.onboardingCompleted || false,
+          hasPendingCnpjRequest: profile?.hasPendingCnpjRequest || false,
+          logo: logoPrincipal,
+          logos: {
+            horizontal: finalLogoHorizontal,
+            vertical: finalLogoVertical,
+            symbol: finalLogoSymbol,
+            avatar: finalLogoAvatar,
+          },
+          brandKit: {
+            ...profile?.brandKit,
+            primaryColor,
+            secondaryColor,
+            visualGuidelines,
+            pdfManualPath,
+            pdfManualUrl,
+            pdfUploadedAt: profile?.brandKit?.pdfUploadedAt || null,
+          },
         },
-      });
+        { merge: false }
+      );
 
       toast({ title: "Sucesso!", description: "Configurações de marca atualizadas com sucesso.", variant: "success" });
       await loadProfile();

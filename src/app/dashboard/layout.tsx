@@ -68,7 +68,7 @@ import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const allNavigationItems = [
+const allNavigationItems: { title: string; url: string; icon: React.ComponentType<any>; disabled?: boolean }[] = [
   {
     title: "Início",
     url: "/dashboard",
