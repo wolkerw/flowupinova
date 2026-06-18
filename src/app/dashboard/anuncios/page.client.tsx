@@ -240,26 +240,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
   const [isProfileSwitchTutorialOpen, setIsProfileSwitchTutorialOpen] = useState(false);
   const [tutorialRedirectUrl, setTutorialRedirectUrl] = useState("");
-  const [tutorialCountdown, setTutorialCountdown] = useState(0);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isProfileSwitchTutorialOpen) {
-      setTutorialCountdown(5);
-      interval = setInterval(() => {
-        setTutorialCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isProfileSwitchTutorialOpen]);
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
@@ -1861,18 +1841,18 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             {/* ESTILOS INLINE DE ANIMAÇÃO */}
             <style dangerouslySetInnerHTML={{__html: `
               @keyframes cursorMovement {
-                0% { transform: translate(180px, 110px); }
-                18% { transform: translate(460px, 20px); } /* Move para a foto do perfil */
-                20% { transform: translate(460px, 20px) scale(0.85); } /* Clique */
-                22% { transform: translate(460px, 20px) scale(1); } /* Solta */
-                45% { transform: translate(420px, 92px); } /* Move para selecionar a página */
-                47% { transform: translate(420px, 92px) scale(0.85); } /* Clique */
-                49% { transform: translate(420px, 92px) scale(1); } /* Solta */
-                52% { transform: translate(420px, 92px); } /* Pausa na página ativa */
-                57% { transform: translate(250px, 150px); } /* Descanso */
-                88% { transform: translate(250px, 150px); } /* Espera */
-                93% { transform: translate(180px, 110px); } /* Volta */
-                100% { transform: translate(180px, 110px); }
+                0% { left: 40%; top: 110px; }
+                18% { left: calc(100% - 24px); top: 20px; } /* Move para a foto do perfil */
+                20% { left: calc(100% - 24px); top: 20px; transform: scale(0.85); } /* Clique */
+                22% { left: calc(100% - 24px); top: 20px; transform: scale(1); } /* Solta */
+                45% { left: calc(100% - 112px); top: 92px; } /* Move para selecionar a página */
+                47% { left: calc(100% - 112px); top: 92px; transform: scale(0.85); } /* Clique */
+                49% { left: calc(100% - 112px); top: 92px; transform: scale(1); } /* Solta */
+                52% { left: calc(100% - 112px); top: 92px; } /* Pausa na página ativa */
+                57% { left: 50%; top: 140px; } /* Descanso */
+                88% { left: 50%; top: 140px; } /* Espera */
+                93% { left: 40%; top: 110px; } /* Volta */
+                100% { left: 40%; top: 110px; }
               }
 
               @keyframes dropdownToggle {
@@ -1951,14 +1931,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   🔔
                   <div className="absolute -top-1 -right-1 bg-red-500 text-[6px] text-white rounded-full h-3 w-3 flex items-center justify-center font-bold">2</div>
                 </div>
-                {/* Foto do perfil pessoal simulada */}
-                <div className="h-6 w-6 rounded-full bg-slate-500 border border-slate-650 overflow-hidden cursor-pointer relative flex items-center justify-center shrink-0">
-                  <img
-                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
-                    alt="Giovana"
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
+                {/* Foto do perfil na barra superior (Alterna entre Pessoal e Página) */}
+                <div className="h-6 w-6 rounded-full overflow-hidden cursor-pointer relative shrink-0">
+                  {/* Avatar Pessoal (Fase 1 e 2) */}
+                  <div className="absolute inset-0 z-10 sim-personal-view">
+                    <img
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
+                      alt="Giovana"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
+                  </div>
+                  {/* Avatar Página (Fase 3) */}
+                  <div className="absolute inset-0 z-20 sim-whatsapp-view">
+                    <div className="h-full w-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] border border-white/10 rounded-full">
+                      {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
+                    </div>
+                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
+                  </div>
                 </div>
               </div>
 
@@ -2205,19 +2195,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
           <DialogFooter className="pt-2 border-t border-slate-800 gap-2 items-center justify-between">
             <div className="text-slate-400 text-[11px] font-medium flex items-center gap-1.5 select-none">
-              {tutorialCountdown > 0 ? (
-                <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-                  Veja a animação acima antes de prosseguir ({tutorialCountdown}s)...
-                </>
-              ) : (
-                <span className="text-green-450 flex items-center gap-1 font-semibold">
-                  ✓ Tutorial assistido. Pode prosseguir!
-                </span>
-              )}
+              <span className="text-green-450 flex items-center gap-1 font-semibold">
+                ✓ Clique abaixo para prosseguir
+              </span>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button
@@ -2228,16 +2208,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 Voltar
               </Button>
               <Button
-                disabled={tutorialCountdown > 0}
                 onClick={() => {
                   window.open(tutorialRedirectUrl, "_blank");
                   setIsProfileSwitchTutorialOpen(false);
                 }}
-                className={`font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0 transition-all ${
-                  tutorialCountdown > 0
-                    ? "bg-slate-700 text-slate-400 cursor-not-allowed opacity-60"
-                    : "bg-green-600 hover:bg-green-700 text-white active:scale-95 cursor-pointer shadow-md"
-                }`}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0 transition-all active:scale-95 cursor-pointer shadow-md"
               >
                 Prosseguir para o Facebook ↗
               </Button>
