@@ -72,48 +72,63 @@ Instruct the typography to be rendered using the specified Primary Font for titl
 
     // 1. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
-Você é um Diretor de Arte de Publicidade e Especialista em Engenharia de Prompts para IAs geradoras de imagem (como Imagen e Flux).
+You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
 
-# TAREFA
-Transformar o título e subtítulo recebidos em exatamente 3 prompts descritivos de imagem ultra detalhados em INGLÊS.
-Cada prompt representará um conceito visual, estilo fotográfico e composição RADICALMENTE DIFERENTES para o mesmo post, obedecendo de forma estrita às seguintes especificações de opções:
+# CORE MISSION
+Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
+CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 3 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
 
-- **OPÇÃO 1: FOCO HUMANO / LIFESTYLE (Cena com Pessoas)**
-  - Foco em pessoas reais no ambiente associado ao tema (ex: operário profissional, cliente, etc.) com poses e expressões confiantes e naturais.
-  - Enquadramento médio (medium shot) ou plano americano. Detalhe bem o cenário ao fundo de forma integrada com profundidade de campo suave (bokeh).
-  
-- **OPÇÃO 2: DETALHE DO PRODUTO / MACRO / PRODUTO-CÊNTRICO (Sem Pessoas)**
-  - Foco exclusivo no objeto, equipamento ou produto físico.
-  - É EXPRESSAMENTE PROIBIDO ter qualquer pessoa, rosto, silhueta ou parte do corpo humano (incluindo mãos) visível nesta imagem.
-  - Descreva uma fotografia macro ou close-up comercial ultra detalhado, realçando texturas físicas, brilho, engrenagens, materiais e qualidade do produto/objeto em si sob iluminação de estúdio contrastante.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: One or two REAL people (professional workers, satisfied customers, athletes, entrepreneurs — chosen based on the post topic) with confident, natural body language and expressions.
+CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slightly low angle for authority, OR eye-level for approachability.
+LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
+SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
+LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
+COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
+MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
-- **OPÇÃO 3: CONCEITUAL / MINIMALISTA / ESTÚDIO GRÁFICO (Simbólico)**
-  - Uma imagem de estúdio artística, moderna e conceitual.
-  - Pode usar o estilo "flat lay" (vista aérea), ou uma composição de pedestais/plataformas sob fundos sólidos ou texturizados de alto padrão usando as cores da marca.
-  - A composição deve ser limpa, focando na sofisticação estética e deixando amplo destaque para o texto renderizado na imagem.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 2 — PRODUCT / MACRO / DETAIL (MANDATORY RULE: ABSOLUTELY NO PEOPLE OR HUMAN BODY PARTS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: The physical product, tool, equipment, object, or material most directly associated with the post topic — shown in EXTREME close-up detail.
+CAMERA: Macro photography or extreme close-up. Camera angle: dramatic 15–25 degree side view OR direct overhead.
+LENS: 100mm macro lens, ultra-sharp focus on the key textural detail (metallic grooves, liquid drops, fabric texture, food surface, circuit board, etc.). Shallow depth of field with creamy bokeh on edges.
+SETTING: A professional studio setup with a gradient or contrasting background — NOT outdoors.
+LIGHTING: Describe high-contrast studio lighting that creates hard specular highlights and deep dramatic shadows on the object's surface (e.g., "split studio lighting with a hard key light at 45 degrees creating deep texture shadows on the stainless steel surface, cold blue rim light on the far edge").
+COMPOSITION: Object fills 70–80% of the frame. The remaining 20–30% is background space where text is placed.
+MANDATORY PROHIBITION: Do NOT include any human body part (hands, arms, face, feet). Do NOT include natural outdoor environments.
 
-# REGRAS RÍGIDAS DE DIVERSIFICAÇÃO CONCEITUAL (MANDATÓRIO)
-1. O array de saída "prompts" deve conter EXATAMENTE 3 strings.
-2. A primeira string ("prompts[0]") DEVE obrigatoriamente descrever o conceito da **OPÇÃO 1 (Foco Humano / Lifestyle)**.
-3. A segunda string ("prompts[1]") DEVE obrigatoriamente descrever o conceito da **OPÇÃO 2 (Detalhe do Produto / Macro)**. Ela NÃO PODE conter referências a seres humanos, focando unicamente na engenharia ou peças do produto.
-4. A terceira string ("prompts[2]") DEVE obrigatoriamente descrever o conceito da **OPÇÃO 3 (Conceitual / Minimalista / Estúdio)**. Ela deve propor um visual gráfico conceitual com pedestais ou superfícies artísticas limpas.
-5. É estritamente proibido gerar variações semelhantes de uma mesma cena de fundo. As três opções devem diferir drasticamente em estilo de imagem, enquadramento (médio, macro e conceitual de estúdio) e presença humana.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: ABSTRACT OR SYMBOLIC — NO DIRECT PRODUCT, NO PEOPLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: A highly stylized, abstract, or symbolic visual metaphor representing the concept of the post. Think: geometric shapes, abstract color fields, artistic arrangements of minimalist props (not the main product), luxury textures (marble, silk, velvet, frosted glass), architectural details, or a graphic design-inspired composition.
+CAMERA: Overhead flat lay (top-down, 90 degrees) OR extreme wide angle for an architectural/graphic feel.
+LENS: Wide angle 24mm or tilt-shift for a clean, graphic look. Everything in sharp focus (f/8–f/11).
+SETTING: A pristine studio with a deliberately styled backdrop: solid color wall, painted concrete, brushed linen, luxury marble surface, or geometric platform arrangement.
+LIGHTING: Describe soft, even, diffused studio lighting with zero harsh shadows (e.g., "large octabox overhead diffused light, flat and even, like a luxury product catalog photograph for a high-fashion brand"). OR dramatic single-color gel-lit studio background.
+COMPOSITION: 40–50% of the frame is intentionally left as negative space (empty background) to give the text maximum visual prominence. Use asymmetric or central composition with strong graphic impact.
+MANDATORY PROHIBITION: Do NOT include real people. Do NOT include the actual product being sold. Keep it ABSTRACT and SYMBOLIC.
 
 ${brandingInstruction}
-# REGRAS CRÍTICAS DE ENGENHARIA DE PROMPT
-1. IDIOMA DO PROMPT: Redija toda a descrição visual do cenário, pessoas, pose e iluminação em INGLÊS.
-2. ELEMENTO DE TEXTO (PORTUGUÊS): Insira o título do post de forma literal dentro de aspas duplas inglesas no prompt, instruindo a IA a desenhá-lo na imagem.
-   - Exemplo: "...with the literal text "TÍTULO EXATO EM PORTUGUÊS" written in clean, modern typography...".
-3. MÁXIMO DE TEXTO: Somente inclua o título. É EXPRESSAMENTE PROIBIDO tentar incluir o subtítulo como texto na imagem, pois isso causará borrões e poluição.
-4. ESTILO VISUAL PREMIUM: Descreva uma fotografia publicitária profissional de produto ou estilo de vida ("commercial food photography", "premium editorial portrait", etc.), detalhando a iluminação (ex: "studio lighting", "soft natural morning light"), lente de câmera (ex: "35mm lens, sharp focus") e profundidade de campo (ex: "depth of field, beautiful bokeh").
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CRITICAL PROMPT ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. LANGUAGE: Write all visual descriptions in English only.
+2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
+   - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
+   - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
+3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
+4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 3 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
+5. MINIMUM LENGTH: Each prompt must be at least 120 words to ensure sufficient detail.
 
-# FORMATO DE SAÍDA EXIGIDO (JSON ESTRITO)
-Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, conclusão ou marcações markdown:
+# REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {
   "prompts": [
-    "A professional lifestyle photography showing a confident employee... with the literal text 'TITULO'...",
-    "A professional close-up macro studio photography focusing on the detailed metallic gear... with the literal text 'TITULO'...",
-    "A professional minimalist studio setup with a sleek geometric backdrop... with the literal text 'TITULO'..."
+    "[OPTION 1 — LIFESTYLE] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
+    "[OPTION 2 — MACRO PRODUCT] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
+    "[OPTION 3 — CONCEPTUAL MINIMALIST] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
   ]
 }
 `;
@@ -146,7 +161,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
               }
             ],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 1.2,
               responseMimeType: "application/json"
             }
           })
