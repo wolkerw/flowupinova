@@ -36,6 +36,8 @@ import { useToast } from "@/hooks/use-toast";
 import { updateOnboardingProfile, OnboardingProfileData } from "@/lib/services/onboarding-service";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 
 interface OnboardingWizardProps {
   userId: string;
@@ -58,6 +60,7 @@ export function OnboardingWizard({
   const [isSaving, setIsSaving] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
@@ -75,7 +78,18 @@ export function OnboardingWizard({
     slogan: initialData?.slogan || "",
     targetAudience: initialData?.targetAudience || "",
     toneOfVoice: initialData?.toneOfVoice || "",
+    cnpj: initialData?.cnpj || "",
+    cnpjLocked: initialData?.cnpjLocked || false,
   });
+
+  const formatCnpj = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
+  };
 
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo?.url || null);
 
@@ -97,12 +111,26 @@ export function OnboardingWizard({
         slogan: initialData.slogan || "",
         targetAudience: initialData.targetAudience || "",
         toneOfVoice: initialData.toneOfVoice || "",
+        cnpj: initialData.cnpj ? formatCnpj(initialData.cnpj) : "",
+        cnpjLocked: initialData.cnpjLocked || false,
       });
       setLogoPreview(initialData.logo?.url || null);
     }
   }, [initialData]);
 
   const handleNext = () => {
+    if (step === 2) {
+      const cleanCnpj = formData.cnpj.replace(/\D/g, "");
+      if (!formData.name.trim()) {
+        toast({ title: "Nome fantasia obrigatório", description: "Por favor, insira o nome fantasia da empresa.", variant: "destructive" });
+        return;
+      }
+      if (cleanCnpj.length !== 14) {
+        toast({ title: "CNPJ obrigatório", description: "Por favor, informe um CNPJ válido de 14 dígitos.", variant: "destructive" });
+        return;
+      }
+    }
+
     if (step < totalSteps) {
       // Salva o progresso parcial no Firestore de forma assíncrona para garantir persistência robusta
       updateOnboardingProfile(userId, {
@@ -118,6 +146,7 @@ export function OnboardingWizard({
         slogan: formData.slogan,
         targetAudience: formData.targetAudience,
         toneOfVoice: formData.toneOfVoice,
+        cnpj: formData.cnpj.replace(/\D/g, ""),
         logo: {
           url: formData.logoUrl,
           width: formData.logoWidth,
@@ -279,6 +308,17 @@ export function OnboardingWizard({
   };
 
   const handleFinish = async () => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, "");
+    if (!formData.name.trim() || cleanCnpj.length !== 14) {
+      toast({
+        title: "Dados obrigatórios",
+        description: "Nome fantasia e CNPJ válido (14 dígitos) são obrigatórios na etapa 2.",
+        variant: "destructive",
+      });
+      setStep(2);
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Normaliza a URL do website antes de salvar
@@ -300,6 +340,8 @@ export function OnboardingWizard({
         slogan: formData.slogan,
         targetAudience: formData.targetAudience,
         toneOfVoice: formData.toneOfVoice,
+        cnpj: cleanCnpj,
+        cnpjLocked: true, // Travar o CNPJ na conclusão do onboarding
         onboardingCompleted: true,
         logo: {
           url: formData.logoUrl,
@@ -333,6 +375,7 @@ export function OnboardingWizard({
   };
 
   const handleSkip = async () => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, "");
     try {
       // Salva o progresso inserido até o momento antes de marcar como completo, impedindo perda de dados
       await updateOnboardingProfile(userId, {
@@ -348,6 +391,8 @@ export function OnboardingWizard({
         slogan: formData.slogan,
         targetAudience: formData.targetAudience,
         toneOfVoice: formData.toneOfVoice,
+        cnpj: cleanCnpj,
+        cnpjLocked: cleanCnpj.length === 14, // Travar se estiver preenchido completamente
         onboardingCompleted: true,
         logo: {
           url: formData.logoUrl,
@@ -370,30 +415,53 @@ export function OnboardingWizard({
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    toast({ title: "Enviando logomarca...", description: "Por favor, aguarde o upload." });
+
+    try {
+      // 1. Fazer upload para o Firebase Storage
+      const storageRef = ref(storage, `users/${userId}/logos/logo_onboarding_${Date.now()}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+      // 2. Ler as dimensões da imagem localmente para consistência de aspect-ratio
+      const img = document.createElement("img");
       const reader = new FileReader();
+      
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const img = document.createElement("img");
         img.onload = () => {
           const w = img.naturalWidth || img.width || 0;
           const h = img.naturalHeight || img.height || 0;
-          setLogoPreview(base64String);
+          
+          setLogoPreview(downloadUrl);
           setFormData({
             ...formData,
-            logoUrl: base64String,
+            logoUrl: downloadUrl,
             logoWidth: w,
             logoHeight: h,
           });
+          toast({ title: "Logomarca carregada!", description: "Imagem salva com sucesso no servidor.", variant: "success" });
         };
-        img.onerror = (err: any) => {
-          console.error("Erro ao pré-carregar imagem no OnboardingWizard:", err);
-        };
-        img.src = base64String;
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
+
+    } catch (err: any) {
+      console.error("Erro no upload da logomarca:", err);
+      toast({
+        title: "Erro ao carregar logomarca",
+        description: err.message || "Tente novamente com outro arquivo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingLogo(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -643,7 +711,7 @@ export function OnboardingWizard({
                   >
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Fantasia</Label>
+                        <Label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Fantasia (Obrigatório)</Label>
                         <Input 
                           id="name" 
                           placeholder="Nome da sua empresa" 
@@ -651,6 +719,24 @@ export function OnboardingWizard({
                           onChange={(e) => setFormData({...formData, name: e.target.value})}
                           className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cnpj" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">CNPJ (Obrigatório)</Label>
+                        <Input 
+                          id="cnpj" 
+                          placeholder="00.000.000/0000-00" 
+                          value={formData.cnpj}
+                          onChange={(e) => setFormData({...formData, cnpj: formatCnpj(e.target.value)})}
+                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                          disabled={formData.cnpjLocked}
+                          maxLength={18}
+                        />
+                        <p className="text-[10px] text-slate-400 ml-1">
+                          {formData.cnpjLocked 
+                            ? "O CNPJ está travado para proteção jurídica da assinatura. Solicite alteração se necessário."
+                            : "O CNPJ vincula sua assinatura e não poderá ser alterado livremente após o Onboarding."
+                          }
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="category" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Ramo de Atividade</Label>
@@ -772,9 +858,14 @@ export function OnboardingWizard({
                         <Label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Sua Logo</Label>
                         <div 
                           className="relative aspect-square rounded-[40px] border-2 border-dashed border-slate-200 hover:border-cyan-500 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden bg-slate-100/50 group shadow-inner"
-                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          onClick={() => !isUploadingLogo && document.getElementById('logo-upload')?.click()}
                         >
-                          {logoPreview ? (
+                          {isUploadingLogo ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="w-10 h-10 animate-spin text-cyan-500" />
+                              <span className="text-[10px] font-black uppercase text-cyan-500 tracking-tighter animate-pulse">Enviando logo...</span>
+                            </div>
+                          ) : logoPreview ? (
                             <div className="relative w-full h-full p-8">
                               <Image src={logoPreview} alt="Logo" fill style={{ objectFit: 'contain' }} className="p-4 transition-transform group-hover:scale-105" />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -787,7 +878,7 @@ export function OnboardingWizard({
                               <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Upload PNG/JPG</span>
                             </div>
                           )}
-                          <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                          <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={isUploadingLogo} />
                         </div>
                       </div>
 

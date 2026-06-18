@@ -25,6 +25,8 @@ export interface UserSummary {
   postsCount: number;
   imagesCount: number;
   lastSignIn?: string;
+  subscriptionPlan?: "mensal" | "anual" | null;
+  subscriptionExpiresAt?: string | null;
 }
 
 export interface PlatformStats {
@@ -72,17 +74,6 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   let trialUsers = 0;
   let standardUsers = 0;
   let trialExpiredUsers = 0;
-  let totalImagesGenerated = 0;
-  let totalPostsPublished = 0;
-  let totalPostsFailed = 0;
-  let totalChatSessions = 0;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mediaGalleryPromises: Promise<any>[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const postCountPromises: Promise<any>[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const failedPostCountPromises: Promise<any>[] = [];
 
   for (const userDoc of usersSnap.docs) {
     totalUsers++;
@@ -103,62 +94,67 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     } else if (plan === "standard") {
       standardUsers++;
     }
-
-    // Buscar mediaGallery completo e contar posts de forma agregada
-    const uid = userDoc.id;
-    mediaGalleryPromises.push(
-      adminDb.collection(`users/${uid}/mediaGallery`).get()
-    );
-    postCountPromises.push(
-      adminDb.collection(`users/${uid}/posts`).where("status", "==", "published").count().get()
-    );
-    failedPostCountPromises.push(
-      adminDb.collection(`users/${uid}/posts`).where("status", "==", "failed").count().get()
-    );
   }
 
-  // Resolver promessas em paralelo para eficiência
-  const [mediaGalleries, postCounts, failedPostCounts] = await Promise.all([
-    Promise.all(mediaGalleryPromises),
-    Promise.all(postCountPromises),
-    Promise.all(failedPostCountPromises),
-  ]);
+  // Executa contagem agregada de posts globalmente (muito mais rápido!)
+  let totalPostsPublished = 0;
+  let totalPostsFailed = 0;
+  try {
+    const [publishedSnap, failedSnap] = await Promise.all([
+      adminDb.collectionGroup("posts").where("status", "==", "published").count().get(),
+      adminDb.collectionGroup("posts").where("status", "==", "failed").count().get(),
+    ]);
+    totalPostsPublished = publishedSnap.data().count;
+    totalPostsFailed = failedSnap.data().count;
+  } catch (err) {
+    console.error("[ADMIN_DASHBOARD] Erro ao contar posts via collectionGroup:", err);
+  }
 
-  let totalFalaiImages = 0;
-  let totalImagen4Images = 0;
-  let totalNanoBananaImages = 0;
+  // Contagem precisa de sessões de chat (lendo subcoleção appData/history)
+  let totalChatSessions = 0;
+  try {
+    const appDataSnap = await adminDb.collectionGroup("appData").get();
+    const historyDocs = appDataSnap.docs.filter((d) => d.id === "history");
+    totalChatSessions = historyDocs.length;
+  } catch (err) {
+    console.error("[ADMIN_DASHBOARD] Erro ao contar sessões de chat:", err);
+  }
 
-  for (const snap of mediaGalleries) {
-    totalImagesGenerated += snap.size;
-    snap.docs.forEach((doc: any) => {
-      const imgData = doc.data();
-      const source = imgData.source;
-      if (source === "reference_generation") {
-        totalFalaiImages++;
-      } else if (source === "wizard_generation" || source === "imagen4_ref_benchmark") {
-        totalImagen4Images++;
-      } else if (source === "nanobanana_ref") {
-        totalNanoBananaImages++;
+  // Obter custos e imagens reais a partir da coleção apiUsageLogs
+  let totalImagesGenerated = 0;
+  let estimatedCostFalai = 0;
+  let estimatedCostImagen4 = 0;
+  let estimatedCostNanoBanana = 0;
+  let estimatedCostGemini = 0;
+
+  try {
+    const usageSnap = await adminDb.collection("apiUsageLogs").get();
+    usageSnap.docs.forEach((doc) => {
+      const data = doc.data();
+      const cost = data.costUsd || 0;
+
+      if (data.provider === "falai") {
+        estimatedCostFalai += cost;
+      } else if (data.provider === "google_vertex") {
+        estimatedCostImagen4 += cost;
+      } else if (
+        data.model === "imagen-3.0-generate-002" || 
+        data.source === "nanobanana_ref" ||
+        (data.provider === "google_gemini" && data.type === "avatar_generation") ||
+        (data.provider === "google_gemini" && data.type === "image_generation")
+      ) {
+        estimatedCostNanoBanana += cost;
+      } else if (data.type === "chat" || data.type === "vision_analysis") {
+        estimatedCostGemini += cost;
+      }
+
+      if (data.type === "image_generation" || data.type === "avatar_generation") {
+        totalImagesGenerated++;
       }
     });
+  } catch (err) {
+    console.error("[ADMIN_DASHBOARD] Erro ao carregar logs de consumo de APIs:", err);
   }
-
-  for (const snap of postCounts) totalPostsPublished += snap.data().count;
-  for (const snap of failedPostCounts) totalPostsFailed += snap.data().count;
-
-  // Estimar sessões de chat (usando contagem de coleções de histórico)
-  try {
-    const chatGroupSnap = await adminDb.collectionGroup("chatHistory").count().get();
-    totalChatSessions = chatGroupSnap.data().count;
-  } catch {
-    totalChatSessions = 0;
-  }
-
-  const estimatedCostFalai = totalFalaiImages * COSTS.falaiPerImage;
-  const estimatedCostImagen4 = totalImagen4Images * COSTS.imagen4PerImage;
-  const estimatedCostNanoBanana = totalNanoBananaImages * COSTS.nanoBananaPerImage;
-  const estimatedCostGemini =
-    (totalChatSessions * COSTS.estimatedTokensPerChat * COSTS.geminiPer1kTokens) / 1000;
 
   return {
     totalUsers,
@@ -212,6 +208,12 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         : 0;
       const trialExpired = plan === "trial" && trialDaysLeft === 0;
 
+      const subscriptionPlan = data.subscriptionPlan as "mensal" | "anual" | null | undefined;
+      let subscriptionExpiresAt: string | null = null;
+      if (data.subscriptionExpiresAt) {
+        subscriptionExpiresAt = data.subscriptionExpiresAt.toDate?.()?.toISOString() ?? null;
+      }
+
       // Contagens paralelas
       const [imagesSnap, postsSnap] = await Promise.all([
         adminDb.collection(`users/${uid}/mediaGallery`).count().get(),
@@ -232,6 +234,8 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
         postsCount: postsSnap.data().count,
         imagesCount: imagesSnap.data().count,
         lastSignIn: authUsers[uid] ?? "",
+        subscriptionPlan: subscriptionPlan ?? null,
+        subscriptionExpiresAt,
       });
     })
   );

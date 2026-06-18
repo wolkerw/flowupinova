@@ -33,6 +33,11 @@ const navItems = [
     icon: Users,
   },
   {
+    title: "Solicitações CNPJ",
+    href: "/admin/solicitacoes",
+    icon: Shield,
+  },
+  {
     title: "Conteúdo Gerado",
     href: "/admin/conteudo",
     icon: ImageIcon,

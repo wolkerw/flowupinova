@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
@@ -183,6 +184,15 @@ export async function POST(request: Request) {
         caption: content ? `${content.titulo || ""}\n\n${content.subtitulo || ""}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}`.trim() : null
       });
       console.log(`[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`);
+
+      // Registrar log de consumo real no Firestore
+      logApiUsage({
+        userId,
+        type: "image_generation",
+        provider: "google_vertex",
+        model: "imagen-4",
+        costUsd: 0.03
+      });
     } catch (firestoreError) {
       console.error("[GENERATE_IMAGES_NATIVE_ERROR] Falha ao catalogar imagem gerada no Firestore:", firestoreError);
     }

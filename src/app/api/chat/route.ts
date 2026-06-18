@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -244,6 +245,40 @@ DIRETRIZES DE ESTILO:
         }
 
         aiResponseText = candidateText.trim();
+
+        // Registrar custo e consumo real se houver metadados e userId
+        const usage = resData?.usageMetadata;
+        if (usage && userId) {
+          const pTokens = usage.promptTokenCount || 0;
+          const cTokens = usage.candidatesTokenCount || 0;
+
+          let inputPrice = 0.075;
+          let outputPrice = 0.30;
+
+          if (model === "gemini-2.5-flash-lite") {
+            inputPrice = 0.0375;
+            outputPrice = 0.15;
+          }
+
+          const costInput = pTokens * (inputPrice / 1_000_000);
+          const costOutput = cTokens * (outputPrice / 1_000_000);
+          const totalCost = costInput + costOutput;
+
+          // Executa em background
+          logApiUsage({
+            userId,
+            type: "chat",
+            provider: "google_gemini",
+            model: model,
+            costUsd: totalCost,
+            tokens: {
+              promptTokens: pTokens,
+              completionTokens: cTokens,
+              totalTokens: pTokens + cTokens
+            }
+          });
+        }
+
         // Se conseguiu responder com sucesso, interrompe o loop!
         break;
       } catch (err: any) {
