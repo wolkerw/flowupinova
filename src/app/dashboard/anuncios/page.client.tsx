@@ -239,6 +239,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
   const [isProfileSwitchTutorialOpen, setIsProfileSwitchTutorialOpen] = useState(false);
+  const [tutorialRedirectUrl, setTutorialRedirectUrl] = useState("");
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
@@ -1978,12 +1979,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-slate-800">
+          <DialogFooter className="pt-2 border-t border-slate-800 gap-2">
             <Button
+              variant="ghost"
               onClick={() => setIsProfileSwitchTutorialOpen(false)}
-              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2 rounded-lg"
+              className="text-slate-400 hover:text-white hover:bg-slate-850 font-bold text-xs px-4 py-2 rounded-lg"
             >
-              Entendi, vou trocar
+              Voltar
+            </Button>
+            <Button
+              onClick={() => {
+                window.open(tutorialRedirectUrl, "_blank");
+                setIsProfileSwitchTutorialOpen(false);
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0"
+            >
+              Prosseguir para o Facebook ↗
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2184,24 +2195,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <p className="text-xs font-bold text-slate-800">WhatsApp Business</p>
                                 <p className="text-[10px] text-slate-500">WhatsApp conectado à página</p>
                               </div>
-                              <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                <a
-                                  href="https://www.facebook.com/settings/?tab=linked_whatsapp"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] text-green-600 hover:text-green-700 font-semibold underline underline-offset-2 decoration-green-300 hover:decoration-green-500 transition-colors whitespace-nowrap"
-                                >
-                                  Alterar número →
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsProfileSwitchTutorialOpen(true)}
-                                  className="text-[9px] text-slate-400 hover:text-slate-500 font-medium flex items-center gap-0.5 underline transition-colors whitespace-nowrap"
-                                >
-                                  <HelpCircle className="h-2.5 w-2.5" />
-                                  Tela errada?
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTutorialRedirectUrl("https://www.facebook.com/settings/?tab=linked_whatsapp");
+                                  setIsProfileSwitchTutorialOpen(true);
+                                }}
+                                className="text-[10px] text-green-600 hover:text-green-700 font-semibold underline underline-offset-2 decoration-green-300 hover:decoration-green-500 transition-colors whitespace-nowrap shrink-0"
+                              >
+                                Alterar número →
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2229,35 +2232,27 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               </ol>
                             </div>
 
-                            <div className="flex flex-col gap-2.5 text-left">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <a
-                                  href={whatsAppSettingsUrl || (metaConnection?.pageId ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp` : "https://www.facebook.com")}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] h-8 px-4 rounded-lg active:scale-95 transition-all shadow-sm gap-1.5"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Vincular no Facebook
-                                </a>
-                                <Button
-                                  type="button"
-                                  onClick={checkWhatsAppConnection}
-                                  variant="outline"
-                                  className="font-bold text-[11px] h-8 px-3 rounded-lg gap-1.5"
-                                >
-                                  <RefreshCw className="h-3 w-3" />
-                                  Verificar conexão
-                                </Button>
-                              </div>
-                              <button
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
                                 type="button"
-                                onClick={() => setIsProfileSwitchTutorialOpen(true)}
-                                className="text-[10px] text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 underline transition-colors self-start"
+                                onClick={() => {
+                                  setTutorialRedirectUrl(whatsAppSettingsUrl || (metaConnection?.pageId ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp` : "https://www.facebook.com"));
+                                  setIsProfileSwitchTutorialOpen(true);
+                                }}
+                                className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] h-8 px-4 rounded-lg active:scale-95 transition-all shadow-sm gap-1.5 border-0"
                               >
-                                <HelpCircle className="h-3 w-3" />
-                                Tela errada/pessoal no Facebook? Veja como alternar para a Página
-                              </button>
+                                <ExternalLink className="h-3 w-3" />
+                                Vincular no Facebook
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={checkWhatsAppConnection}
+                                variant="outline"
+                                className="font-bold text-[11px] h-8 px-3 rounded-lg gap-1.5"
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                Verificar conexão
+                              </Button>
                             </div>
                           </div>
                         </div>
