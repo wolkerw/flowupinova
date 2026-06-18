@@ -238,6 +238,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [selectedAdAccountIdState, setSelectedAdAccountIdState] = useState("");
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
+  const [isProfileSwitchTutorialOpen, setIsProfileSwitchTutorialOpen] = useState(false);
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
@@ -1821,6 +1822,173 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         </DialogContent>
       </Dialog>
 
+      {/* MODAL DE TUTORIAL: COMO ALTERNAR PERFIL NO FACEBOOK */}
+      <Dialog open={isProfileSwitchTutorialOpen} onOpenChange={setIsProfileSwitchTutorialOpen}>
+        <DialogContent className="max-w-xl font-sans text-slate-800 bg-[#18191a] border-slate-800 text-white rounded-2xl">
+          <DialogHeader className="text-left">
+            <DialogTitle className="font-poppins font-bold text-white text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Apareceu a tela errada no Facebook?
+            </DialogTitle>
+            <DialogDescription className="text-slate-450 text-xs leading-relaxed">
+              Se você caiu em uma tela com configurações pessoais e sem a opção do WhatsApp, você precisa alternar para o perfil da sua Página comercial no topo do Facebook. Veja abaixo como fazer:
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* SIMULAÇÃO ANIMADA CSS */}
+          <div className="relative border border-[#3e4042]/50 rounded-xl overflow-hidden bg-[#18191a] my-4 shadow-2xl select-none">
+            {/* ESTILOS INLINE DE ANIMAÇÃO */}
+            <style dangerouslySetInnerHTML={{__html: `
+              @keyframes cursorMovement {
+                0% { transform: translate(180px, 120px); }
+                15% { transform: translate(480px, 16px); } /* Move para a foto do perfil */
+                20% { transform: translate(480px, 16px) scale(0.8); } /* Clique */
+                25% { transform: translate(480px, 16px) scale(1); } /* Solta */
+                45% { transform: translate(440px, 140px); } /* Move para selecionar a página */
+                50% { transform: translate(440px, 140px) scale(0.8); } /* Clique */
+                55% { transform: translate(440px, 140px) scale(1); } /* Solta */
+                75% { transform: translate(440px, 140px); } /* Pausa na página ativa */
+                85% { transform: translate(180px, 120px); } /* Volta */
+                100% { transform: translate(180px, 120px); }
+              }
+
+              @keyframes dropdownToggle {
+                0%, 20% { opacity: 0; transform: translateY(-10px) scale(0.95); visibility: hidden; }
+                25%, 50% { opacity: 1; transform: translateY(0) scale(1); visibility: visible; }
+                55%, 100% { opacity: 0; transform: translateY(-10px) scale(0.95); visibility: hidden; }
+              }
+
+              @keyframes clickRing {
+                0%, 18%, 22%, 48%, 52%, 100% { opacity: 0; transform: scale(0.5); }
+                20%, 50% { opacity: 0.8; transform: scale(1.8); }
+              }
+
+              @keyframes switchEffect {
+                0%, 50% { filter: brightness(1); }
+                52% { filter: brightness(0.2); }
+                56%, 100% { filter: brightness(1); }
+              }
+
+              .sim-cursor {
+                animation: cursorMovement 8s infinite ease-in-out;
+              }
+              .sim-dropdown {
+                animation: dropdownToggle 8s infinite ease-in-out;
+              }
+              .sim-click-ring {
+                animation: clickRing 8s infinite ease-in-out;
+              }
+              .sim-switch-page {
+                animation: switchEffect 8s infinite ease-in-out;
+              }
+            `}} />
+
+            {/* Simulação da Barra Superior do Facebook */}
+            <div className="bg-[#242526] h-12 border-b border-[#3e4042] px-4 flex items-center justify-between text-white relative sim-switch-page">
+              {/* Logo e Busca */}
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-[#1877f2] rounded-full flex items-center justify-center font-bold text-lg text-white">f</div>
+                <div className="bg-[#3a3b3c] h-7 w-28 rounded-full hidden sm:block"></div>
+              </div>
+              
+              {/* Ícones de Navegação */}
+              <div className="flex items-center gap-6 text-slate-400">
+                <div className="h-5 w-5 bg-transparent border-b-2 border-[#1877f2] text-[#1877f2] flex items-center justify-center">🏠</div>
+                <div className="h-5 w-5">📺</div>
+                <div className="h-5 w-5">👥</div>
+              </div>
+
+              {/* Botões da Direita */}
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-[#3a3b3c] flex items-center justify-center text-xs">💬</div>
+                <div className="h-8 w-8 rounded-full bg-[#3a3b3c] flex items-center justify-center text-xs">🔔</div>
+                {/* Foto do perfil pessoal simulada */}
+                <div className="h-8 w-8 rounded-full bg-slate-500 border border-slate-600 overflow-hidden cursor-pointer relative flex items-center justify-center font-bold text-[10px] text-white">
+                  VO
+                  <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+              </div>
+
+              {/* Dropdown de Perfis Simulado */}
+              <div className="absolute top-11 right-4 bg-[#242526] w-64 border border-[#3e4042] rounded-lg shadow-xl p-3 z-50 text-left space-y-3.5 sim-dropdown">
+                {/* Cabeçalho */}
+                <div className="border-b border-[#3e4042] pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-slate-500 flex items-center justify-center font-bold text-[10px]">VO</div>
+                    <div>
+                      <p className="text-[11px] font-bold text-white">Seu Perfil Pessoal</p>
+                      <p className="text-[9px] text-slate-400">Clique para ver todos</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Linha da Página comercial (Para onde alternar) */}
+                <div className="p-2 rounded-lg bg-[#3a3b3c] hover:bg-[#3a3b3c]/80 flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center font-bold text-white text-[10px] shadow-sm">
+                      {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-extrabold text-white truncate max-w-[130px]">{whatsAppPageName || "Pizzaria Teste"}</p>
+                      <p className="text-[9px] text-[#1877f2] font-semibold">Alternar para esta Página</p>
+                    </div>
+                  </div>
+                  <div className="h-5 w-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-[10px]">🔄</div>
+                </div>
+
+                <div className="text-[9px] text-slate-400 text-center font-medium">
+                  Selecione sua página comercial para abrir as configurações certas.
+                </div>
+              </div>
+            </div>
+
+            {/* Simulação do Corpo da Página */}
+            <div className="bg-[#18191a] h-36 p-4 flex flex-col justify-center items-center text-slate-450 text-xs font-poppins sim-switch-page">
+              <div className="text-center space-y-2 w-full max-w-[280px]">
+                <div className="h-2 w-20 bg-slate-800 rounded mx-auto"></div>
+                <div className="h-3 w-40 bg-slate-800 rounded mx-auto"></div>
+                <div className="h-7 w-24 bg-[#3a3b3c] rounded mx-auto mt-4"></div>
+              </div>
+            </div>
+
+            {/* Cursor Simulado */}
+            <div className="absolute top-0 left-0 pointer-events-none z-50 sim-cursor">
+              {/* Círculo do clique */}
+              <div className="absolute -top-3.5 -left-3.5 w-8 h-8 rounded-full bg-red-500 border border-red-400 sim-click-ring"></div>
+              {/* Ícone de cursor de mouse */}
+              <svg className="w-5 h-5 text-white filter drop-shadow-md" viewBox="0 0 24 24" fill="black" stroke="white" strokeWidth="1.5">
+                <path d="M5.5 3.5l14 7-6 1.5 4 5.5-2.5 1.5-4-5.5-5.5 4v-14z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Passos do Tutorial */}
+          <div className="space-y-3 text-sm text-slate-300 pr-1 text-left">
+            <div className="flex items-start gap-2.5">
+              <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+              <p className="text-xs">No canto superior direito do Facebook, clique na sua <strong>foto de perfil</strong>.</p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+              <p className="text-xs">Clique no card com o <strong>logo e nome da sua Página Comercial</strong> para alternar para o perfil da empresa.</p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="h-5 w-5 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">✓</span>
+              <p className="text-xs">Pronto! O Facebook recarregará e abrirá exatamente a tela de inserção do WhatsApp conectada à sua página.</p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2 border-t border-slate-800">
+            <Button
+              onClick={() => setIsProfileSwitchTutorialOpen(false)}
+              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2 rounded-lg"
+            >
+              Entendi, vou trocar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* TELA DE CRIAÇÃO (WIZARD GUIADO) */}
       {isCreating && selectedPost && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
@@ -2016,14 +2184,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <p className="text-xs font-bold text-slate-800">WhatsApp Business</p>
                                 <p className="text-[10px] text-slate-500">WhatsApp conectado à página</p>
                               </div>
-                              <a
-                                href="https://www.facebook.com/settings/?tab=linked_whatsapp"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[10px] text-green-600 hover:text-green-700 font-semibold underline underline-offset-2 decoration-green-300 hover:decoration-green-500 transition-colors whitespace-nowrap shrink-0"
-                              >
-                                Alterar número →
-                              </a>
+                              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                <a
+                                  href="https://www.facebook.com/settings/?tab=linked_whatsapp"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] text-green-600 hover:text-green-700 font-semibold underline underline-offset-2 decoration-green-300 hover:decoration-green-500 transition-colors whitespace-nowrap"
+                                >
+                                  Alterar número →
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsProfileSwitchTutorialOpen(true)}
+                                  className="text-[9px] text-slate-400 hover:text-slate-500 font-medium flex items-center gap-0.5 underline transition-colors whitespace-nowrap"
+                                >
+                                  <HelpCircle className="h-2.5 w-2.5" />
+                                  Tela errada?
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2051,25 +2229,35 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               </ol>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
-                              <a
-                                href={whatsAppSettingsUrl || (metaConnection?.pageId ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp` : "https://www.facebook.com")}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] h-8 px-4 rounded-lg active:scale-95 transition-all shadow-sm gap-1.5"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Vincular no Facebook
-                              </a>
-                              <Button
+                            <div className="flex flex-col gap-2.5 text-left">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <a
+                                  href={whatsAppSettingsUrl || (metaConnection?.pageId ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp` : "https://www.facebook.com")}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] h-8 px-4 rounded-lg active:scale-95 transition-all shadow-sm gap-1.5"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Vincular no Facebook
+                                </a>
+                                <Button
+                                  type="button"
+                                  onClick={checkWhatsAppConnection}
+                                  variant="outline"
+                                  className="font-bold text-[11px] h-8 px-3 rounded-lg gap-1.5"
+                                >
+                                  <RefreshCw className="h-3 w-3" />
+                                  Verificar conexão
+                                </Button>
+                              </div>
+                              <button
                                 type="button"
-                                onClick={checkWhatsAppConnection}
-                                variant="outline"
-                                className="font-bold text-[11px] h-8 px-3 rounded-lg gap-1.5"
+                                onClick={() => setIsProfileSwitchTutorialOpen(true)}
+                                className="text-[10px] text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 underline transition-colors self-start"
                               >
-                                <RefreshCw className="h-3 w-3" />
-                                Verificar conexão
-                              </Button>
+                                <HelpCircle className="h-3 w-3" />
+                                Tela errada/pessoal no Facebook? Veja como alternar para a Página
+                              </button>
                             </div>
                           </div>
                         </div>
