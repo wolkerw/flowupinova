@@ -973,14 +973,25 @@ export default function CriarConteudoPage() {
       if (profile?.logo?.url && !logoPreviewUrlRef.current) {
         setLogoPreviewUrl(profile.logo.url);
         
+        const logoUrlToFetch = profile.logo.url.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(profile.logo.url)}`
+          : profile.logo.url;
+
         // Converter a URL/Base64 do logotipo do Brand Kit de volta para File
-        fetch(profile.logo.url)
-          .then(res => res.blob())
+        fetch(logoUrlToFetch)
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.blob();
+          })
           .then(blob => {
             const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
             setLogoFile(file);
           })
-          .catch(err => console.error("Erro ao carregar e converter logo do Brand Kit para File:", err));
+          .catch(err => {
+            console.warn("Aviso: Não foi possível carregar a logo do Brand Kit como File (CORS/Rede), usando apenas URL de visualização:", err.message || err);
+          });
       }
     });
   }, [user]);
