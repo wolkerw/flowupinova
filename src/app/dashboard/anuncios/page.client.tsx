@@ -240,6 +240,26 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
   const [isProfileSwitchTutorialOpen, setIsProfileSwitchTutorialOpen] = useState(false);
   const [tutorialRedirectUrl, setTutorialRedirectUrl] = useState("");
+  const [tutorialCountdown, setTutorialCountdown] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isProfileSwitchTutorialOpen) {
+      setTutorialCountdown(5);
+      interval = setInterval(() => {
+        setTutorialCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProfileSwitchTutorialOpen]);
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
@@ -1828,10 +1848,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         <DialogContent className="max-w-xl font-sans text-slate-800 bg-[#18191a] border-slate-800 text-white rounded-2xl">
           <DialogHeader className="text-left">
             <DialogTitle className="font-poppins font-bold text-white text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
+              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
               Apareceu a tela errada no Facebook?
             </DialogTitle>
-            <DialogDescription className="text-slate-450 text-xs leading-relaxed">
+            <DialogDescription className="text-slate-455 text-xs leading-relaxed">
               Se você caiu em uma tela com configurações pessoais e sem a opção do WhatsApp, você precisa alternar para o perfil da sua Página comercial no topo do Facebook. Veja abaixo como fazer:
             </DialogDescription>
           </DialogHeader>
@@ -1841,114 +1861,318 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             {/* ESTILOS INLINE DE ANIMAÇÃO */}
             <style dangerouslySetInnerHTML={{__html: `
               @keyframes cursorMovement {
-                0% { transform: translate(180px, 120px); }
-                15% { transform: translate(480px, 16px); } /* Move para a foto do perfil */
-                20% { transform: translate(480px, 16px) scale(0.8); } /* Clique */
-                25% { transform: translate(480px, 16px) scale(1); } /* Solta */
-                45% { transform: translate(440px, 140px); } /* Move para selecionar a página */
-                50% { transform: translate(440px, 140px) scale(0.8); } /* Clique */
-                55% { transform: translate(440px, 140px) scale(1); } /* Solta */
-                75% { transform: translate(440px, 140px); } /* Pausa na página ativa */
-                85% { transform: translate(180px, 120px); } /* Volta */
-                100% { transform: translate(180px, 120px); }
+                0% { transform: translate(180px, 110px); }
+                18% { transform: translate(460px, 20px); } /* Move para a foto do perfil */
+                20% { transform: translate(460px, 20px) scale(0.85); } /* Clique */
+                22% { transform: translate(460px, 20px) scale(1); } /* Solta */
+                45% { transform: translate(420px, 92px); } /* Move para selecionar a página */
+                47% { transform: translate(420px, 92px) scale(0.85); } /* Clique */
+                49% { transform: translate(420px, 92px) scale(1); } /* Solta */
+                52% { transform: translate(420px, 92px); } /* Pausa na página ativa */
+                57% { transform: translate(250px, 150px); } /* Descanso */
+                88% { transform: translate(250px, 150px); } /* Espera */
+                93% { transform: translate(180px, 110px); } /* Volta */
+                100% { transform: translate(180px, 110px); }
               }
 
               @keyframes dropdownToggle {
-                0%, 20% { opacity: 0; transform: translateY(-10px) scale(0.95); visibility: hidden; }
-                25%, 50% { opacity: 1; transform: translateY(0) scale(1); visibility: visible; }
-                55%, 100% { opacity: 0; transform: translateY(-10px) scale(0.95); visibility: hidden; }
+                0%, 20% { opacity: 0; transform: translateY(-8px) scale(0.95); visibility: hidden; pointer-events: none; }
+                22%, 47% { opacity: 1; transform: translateY(0) scale(1); visibility: visible; }
+                49%, 100% { opacity: 0; transform: translateY(-8px) scale(0.95); visibility: hidden; pointer-events: none; }
               }
 
               @keyframes clickRing {
-                0%, 18%, 22%, 48%, 52%, 100% { opacity: 0; transform: scale(0.5); }
-                20%, 50% { opacity: 0.8; transform: scale(1.8); }
+                0%, 18%, 22%, 45%, 49%, 100% { opacity: 0; transform: scale(0.5); }
+                20%, 47% { opacity: 0.8; transform: scale(1.6); }
               }
 
               @keyframes switchEffect {
-                0%, 50% { filter: brightness(1); }
-                52% { filter: brightness(0.2); }
-                56%, 100% { filter: brightness(1); }
+                0%, 47% { filter: brightness(1); }
+                49% { filter: brightness(0.05); }
+                53%, 100% { filter: brightness(1); }
+              }
+
+              @keyframes personalViewFade {
+                0%, 47% { opacity: 1; pointer-events: auto; }
+                49%, 88% { opacity: 0; pointer-events: none; }
+                92%, 100% { opacity: 1; pointer-events: auto; }
+              }
+
+              @keyframes whatsAppViewFade {
+                0%, 48% { opacity: 0; pointer-events: none; }
+                52%, 87% { opacity: 1; pointer-events: auto; }
+                91%, 100% { opacity: 0; pointer-events: none; }
               }
 
               .sim-cursor {
-                animation: cursorMovement 8s infinite ease-in-out;
+                animation: cursorMovement 11s infinite ease-in-out;
               }
               .sim-dropdown {
-                animation: dropdownToggle 8s infinite ease-in-out;
+                animation: dropdownToggle 11s infinite ease-in-out;
               }
               .sim-click-ring {
-                animation: clickRing 8s infinite ease-in-out;
+                animation: clickRing 11s infinite ease-in-out;
               }
               .sim-switch-page {
-                animation: switchEffect 8s infinite ease-in-out;
+                animation: switchEffect 11s infinite ease-in-out;
+              }
+              .sim-personal-view {
+                animation: personalViewFade 11s infinite ease-in-out;
+              }
+              .sim-whatsapp-view {
+                animation: whatsAppViewFade 11s infinite ease-in-out;
               }
             `}} />
 
             {/* Simulação da Barra Superior do Facebook */}
-            <div className="bg-[#242526] h-12 border-b border-[#3e4042] px-4 flex items-center justify-between text-white relative sim-switch-page">
+            <div className="bg-[#242526] h-10 border-b border-[#393a3b] px-3 flex items-center justify-between text-white relative sim-switch-page z-30">
               {/* Logo e Busca */}
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 bg-[#1877f2] rounded-full flex items-center justify-center font-bold text-lg text-white">f</div>
-                <div className="bg-[#3a3b3c] h-7 w-28 rounded-full hidden sm:block"></div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="h-6 w-6 bg-[#1877f2] rounded-full flex items-center justify-center font-bold text-sm text-white select-none">f</div>
+                <div className="bg-[#3a3b3c] h-5 rounded-full px-2.5 flex items-center gap-1 text-[#b0b3b8] text-[8px] w-28 max-sm:w-20">
+                  <span>🔍</span>
+                  <span className="truncate">Pesquisar no Facebook</span>
+                </div>
               </div>
               
               {/* Ícones de Navegação */}
-              <div className="flex items-center gap-6 text-slate-400">
-                <div className="h-5 w-5 bg-transparent border-b-2 border-[#1877f2] text-[#1877f2] flex items-center justify-center">🏠</div>
-                <div className="h-5 w-5">📺</div>
-                <div className="h-5 w-5">👥</div>
+              <div className="flex items-center gap-4 text-slate-400 text-[10px] max-sm:hidden">
+                <div className="h-7 px-2 border-b-2 border-[#1877f2] text-[#1877f2] flex items-center justify-center">🏠</div>
+                <div className="h-7 px-2 flex items-center justify-center">📺</div>
+                <div className="h-7 px-2 flex items-center justify-center">🏪</div>
+                <div className="h-7 px-2 flex items-center justify-center">👥</div>
+                <div className="h-7 px-2 flex items-center justify-center">🎮</div>
               </div>
 
               {/* Botões da Direita */}
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-[#3a3b3c] flex items-center justify-center text-xs">💬</div>
-                <div className="h-8 w-8 rounded-full bg-[#3a3b3c] flex items-center justify-center text-xs">🔔</div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="h-6 w-6 rounded-full bg-[#3a3b3c] flex items-center justify-center text-[9px] text-[#e4e6eb]">💬</div>
+                <div className="h-6 w-6 rounded-full bg-[#3a3b3c] flex items-center justify-center text-[9px] text-[#e4e6eb] relative">
+                  🔔
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-[6px] text-white rounded-full h-3 w-3 flex items-center justify-center font-bold">2</div>
+                </div>
                 {/* Foto do perfil pessoal simulada */}
-                <div className="h-8 w-8 rounded-full bg-slate-500 border border-slate-600 overflow-hidden cursor-pointer relative flex items-center justify-center font-bold text-[10px] text-white">
-                  VO
-                  <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border border-white"></div>
+                <div className="h-6 w-6 rounded-full bg-slate-500 border border-slate-650 overflow-hidden cursor-pointer relative flex items-center justify-center shrink-0">
+                  <img
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
+                    alt="Giovana"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
                 </div>
               </div>
 
               {/* Dropdown de Perfis Simulado */}
-              <div className="absolute top-11 right-4 bg-[#242526] w-64 border border-[#3e4042] rounded-lg shadow-xl p-3 z-50 text-left space-y-3.5 sim-dropdown">
-                {/* Cabeçalho */}
-                <div className="border-b border-[#3e4042] pb-2">
+              <div className="absolute top-9 right-2 bg-[#242526] w-52 border border-[#393a3b] rounded-lg shadow-2xl p-2 z-50 text-left space-y-1.5 sim-dropdown">
+                {/* Perfil Pessoal */}
+                <div className="p-1 hover:bg-[#3a3b3c]/50 rounded-md transition-colors">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-slate-500 flex items-center justify-center font-bold text-[10px]">VO</div>
-                    <div>
-                      <p className="text-[11px] font-bold text-white">Seu Perfil Pessoal</p>
-                      <p className="text-[9px] text-slate-400">Clique para ver todos</p>
+                    <div className="h-7 w-7 rounded-full overflow-hidden shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
+                        alt="Giovana"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold text-white truncate">Giovana Mueller Gomes</p>
+                      <p className="text-[7px] text-[#b0b3b8]">Perfil pessoal</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-b border-[#393a3b] my-1"></div>
+
+                {/* Páginas do Usuário */}
+                <div className="space-y-1">
+                  {/* Página Comercial Principal */}
+                  <div className="p-1.5 rounded-md bg-[#3a3b3c] flex items-center justify-between cursor-pointer border border-[#4e4f50]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-6 w-6 rounded-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] shrink-0 shadow-sm border border-white/10">
+                        {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-white truncate">{whatsAppPageName || "NumVapt"}</p>
+                        <p className="text-[7px] text-[#1877f2] font-semibold flex items-center gap-0.5">
+                          <span>🔄</span> Alternar para Página
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Página Adicional */}
+                  <div className="p-1 hover:bg-[#3a3b3c]/30 rounded-md flex items-center justify-between cursor-pointer text-[#b0b3b8]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-6 w-6 rounded-full bg-orange-700 flex items-center justify-center font-bold text-white text-[8px] shrink-0">
+                        II
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-slate-300 truncate">Imobiliária Imobel</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Linha da Página comercial (Para onde alternar) */}
-                <div className="p-2 rounded-lg bg-[#3a3b3c] hover:bg-[#3a3b3c]/80 flex items-center justify-between cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center font-bold text-white text-[10px] shadow-sm">
-                      {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-extrabold text-white truncate max-w-[130px]">{whatsAppPageName || "Pizzaria Teste"}</p>
-                      <p className="text-[9px] text-[#1877f2] font-semibold">Alternar para esta Página</p>
-                    </div>
-                  </div>
-                  <div className="h-5 w-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-[10px]">🔄</div>
+                <div className="border-b border-[#393a3b] my-1"></div>
+                <div className="w-full text-center py-1 bg-[#3a3b3c]/50 hover:bg-[#3a3b3c]/80 rounded-md text-[8px] font-bold text-white cursor-pointer select-none">
+                  👥 Ver todos os perfis
                 </div>
 
-                <div className="text-[9px] text-slate-400 text-center font-medium">
-                  Selecione sua página comercial para abrir as configurações certas.
+                {/* Links Adicionais */}
+                <div className="pt-1.5 space-y-1.5 text-[8px] text-slate-300">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="flex items-center gap-1.5">⚙️ Configurações e privacidade</span>
+                    <span>❯</span>
+                  </div>
+                  <div className="flex items-center justify-between px-1">
+                    <span className="flex items-center gap-1.5">❓ Ajuda e suporte</span>
+                    <span>❯</span>
+                  </div>
+                  <div className="flex items-center justify-between px-1">
+                    <span className="flex items-center gap-1.5">🚪 Sair</span>
+                    <span>❯</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Simulação do Corpo da Página */}
-            <div className="bg-[#18191a] h-36 p-4 flex flex-col justify-center items-center text-slate-450 text-xs font-poppins sim-switch-page">
-              <div className="text-center space-y-2 w-full max-w-[280px]">
-                <div className="h-2 w-20 bg-slate-800 rounded mx-auto"></div>
-                <div className="h-3 w-40 bg-slate-800 rounded mx-auto"></div>
-                <div className="h-7 w-24 bg-[#3a3b3c] rounded mx-auto mt-4"></div>
+            {/* Simulação do Corpo do Facebook */}
+            <div className="relative h-44 flex overflow-hidden bg-[#18191a] sim-switch-page">
+              
+              {/* === VIEW 1: CONFIGURAÇÕES PESSOAIS === */}
+              <div className="absolute inset-0 flex w-full h-full sim-personal-view z-10 bg-[#18191a]">
+                {/* Sidebar Lateral */}
+                <div className="w-1/3 border-r border-[#393a3b] bg-[#18191a] p-2 flex flex-col gap-1.5 text-[8px] overflow-hidden select-none shrink-0 text-left">
+                  <p className="font-bold text-white text-[10px]">Configurações</p>
+                  <div className="bg-[#3a3b3c] h-5 rounded-full px-2 flex items-center text-[#b0b3b8] text-[7px] w-full mb-1">
+                    🔍 Pesquisar configurações
+                  </div>
+                  <p className="font-semibold text-slate-300 text-[8px]">Configurações e privacidade</p>
+                  
+                  {/* Meta Accounts Center */}
+                  <div className="border border-[#3e4042] bg-[#242526] rounded-lg p-1.5 space-y-1">
+                    <div className="flex items-center gap-1 text-[7px] font-bold text-white">
+                      <span className="text-blue-400 font-extrabold text-[8px]">∞</span> Meta
+                    </div>
+                    <p className="font-bold text-white text-[7px]">Central de Contas</p>
+                    <p className="text-[6px] text-slate-400 leading-tight">Gerencie suas experiências conectadas e configurações de conta nas tecnologias da Meta.</p>
+                    <div className="text-[6px] text-slate-300 space-y-0.5 pt-0.5">
+                      <p>🪪 Dados pessoais</p>
+                      <p>🔒 Senha e segurança</p>
+                      <p>📢 Preferências de anúncios</p>
+                      <p>✔️ Verificação</p>
+                    </div>
+                    <p className="text-[6px] text-[#1877f2] font-semibold cursor-pointer pt-0.5">Ver mais na Central de Contas</p>
+                  </div>
+
+                  <p className="font-semibold text-slate-450 pt-1 border-t border-[#393a3b]">Ferramentas e recursos</p>
+                  <p className="text-slate-400">🛡️ Checkup de Privacidade</p>
+                  <p className="text-slate-400">👨‍👩‍👦 Central da Família</p>
+                </div>
+
+                {/* Painel Central */}
+                <div className="w-2/3 p-3 bg-[#18191a] flex flex-col gap-2 overflow-hidden text-left">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-extrabold text-white">Encontre a configuração de que você precisa</p>
+                    <div className="bg-[#242526] border border-[#393a3b] h-6 rounded-md px-2 flex items-center text-[#b0b3b8] text-[8px] w-full">
+                      🔍 Pesquisar configurações
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[8px] font-bold text-slate-350">Configurações mais acessadas</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {/* Card 1 */}
+                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
+                        <div className="h-6 w-6 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-[10px] font-bold">🚫</div>
+                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Bloqueio</p>
+                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Veja quem bloqueou</p>
+                      </div>
+
+                      {/* Card 2 */}
+                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
+                        <div className="h-6 w-6 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-[10px] font-bold">📝</div>
+                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Atividades</p>
+                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Gerencie histórico</p>
+                      </div>
+
+                      {/* Card 3 */}
+                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
+                        <div className="h-6 w-6 rounded-full bg-slate-500/10 text-slate-300 flex items-center justify-center text-[10px] font-bold">💡</div>
+                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Modo escuro</p>
+                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Tema de tela</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* === VIEW 2: TELA DE CONEXÃO DO WHATSAPP === */}
+              <div className="absolute inset-0 flex w-full h-full sim-whatsapp-view bg-[#18191a] z-20">
+                {/* Sidebar Lateral Página */}
+                <div className="w-1/3 border-r border-[#393a3b] bg-[#18191a] p-2 flex flex-col gap-1 text-[7px] overflow-hidden select-none shrink-0 text-left">
+                  <p className="font-bold text-white text-[9px]">Configurações da Página</p>
+                  <p className="font-bold text-slate-300 pt-1 mt-0.5 border-t border-[#393a3b]">Preferências</p>
+                  <p className="text-slate-400">⭐ Preferências de reação</p>
+                  <p className="text-slate-400">🔔 Notificações</p>
+                  <p className="text-slate-400">♿ Acessibilidade</p>
+                  <p className="text-slate-400">🎬 Mídia</p>
+                  <p className="text-slate-400">🌙 Modo escuro</p>
+
+                  <p className="font-bold text-slate-300 pt-1 mt-0.5 border-t border-[#393a3b]">Público e visibilidade</p>
+                  <p className="text-slate-400">📄 Detalhes da Página</p>
+                  <p className="text-[#1877f2] font-semibold bg-[#1877f2]/10 p-0.5 rounded">💬 WhatsApp Conectado</p>
+                  <p className="text-slate-400">📝 Posts e Stories</p>
+                </div>
+
+                {/* Painel Central WhatsApp */}
+                <div className="w-2/3 p-3 bg-[#18191a] flex flex-col items-center justify-start overflow-hidden relative text-left">
+                  {/* Ícone de WhatsApp grande */}
+                  <div className="h-8 w-8 rounded-full bg-[#25d366] flex items-center justify-center shadow-md select-none shrink-0 mb-1 border border-white/10">
+                    <svg viewBox="0 0 32 32" className="h-5 w-5 text-white" fill="currentColor">
+                      <path d="M16 3C9.373 3 4 8.373 4 15c0 2.127.553 4.174 1.604 5.99L4 29l8.187-1.574A12.94 12.94 0 0016 28c6.627 0 12-5.373 12-12S22.627 3 16 3zm6.39 17.39c-.27.76-1.59 1.45-2.18 1.49-.56.04-1.08.26-3.65-.76-3.11-1.23-5.08-4.43-5.24-4.64-.15-.2-1.26-1.67-1.26-3.19s.79-2.26 1.08-2.57c.27-.3.6-.37.8-.37s.4.01.57.01c.19.01.44-.07.68.52.27.63.9 2.2.98 2.36.08.16.13.35.03.55-.11.21-.16.33-.32.51-.15.18-.33.4-.47.53-.15.15-.31.31-.13.61.18.3.78 1.28 1.67 2.08 1.15 1.03 2.12 1.35 2.42 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.19 1.42z"/>
+                    </svg>
+                  </div>
+
+                  <p className="text-[7px] text-[#b0b3b8] text-center max-w-[210px] leading-tight mb-1 select-none">
+                    Insira o número do WhatsApp de <strong>{whatsAppPageName || "NumVapt"}</strong> e depois veja se você recebeu um código de confirmação.
+                  </p>
+
+                  {/* Form Simulador */}
+                  <div className="flex gap-1 items-center justify-center w-full max-w-[210px] select-none shrink-0 mb-1">
+                    <div className="bg-[#242526] border border-[#393a3b] rounded-md h-5 px-1.5 flex items-center text-white text-[7px] shrink-0 font-medium">
+                      BR +55 ▾
+                    </div>
+                    <div className="bg-[#242526] border border-[#393a3b] rounded-md h-5 px-1.5 flex items-center text-slate-500 text-[7px] flex-1">
+                      Número do WhatsApp
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[#3a3b3c] text-[#727477] border-0 rounded-md h-5 px-4 flex items-center justify-center text-[7px] font-bold w-full max-w-[210px] select-none shrink-0 mb-1.5 cursor-not-allowed">
+                    Enviar código do WhatsApp
+                  </div>
+
+                  {/* Benefícios */}
+                  <div className="w-full border-t border-[#393a3b] pt-1.5 text-left space-y-1">
+                    <p className="text-[7.5px] font-extrabold text-white">Conecte sua Página do Facebook ao WhatsApp</p>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-[6px]">
+                      <div className="flex items-start gap-1">
+                        <span className="text-[8px] leading-none text-[#25d366] shrink-0 mt-0.5">💬</span>
+                        <div>
+                          <p className="font-bold text-white">Receber mais mensagens</p>
+                          <p className="text-slate-450 leading-tight">Adicione um botão do WhatsApp à sua página comercial.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-1">
+                        <span className="text-[8px] leading-none text-blue-400 shrink-0 mt-0.5">📢</span>
+                        <div>
+                          <p className="font-bold text-white">Criar anúncios do WhatsApp</p>
+                          <p className="text-slate-450 leading-tight">Redirecione as pessoas para o seu WhatsApp nos anúncios.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1964,38 +2188,60 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </div>
 
           {/* Passos do Tutorial */}
-          <div className="space-y-3 text-sm text-slate-300 pr-1 text-left">
+          <div className="space-y-3 text-slate-350 text-left">
             <div className="flex items-start gap-2.5">
               <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
-              <p className="text-xs">No canto superior direito do Facebook, clique na sua <strong>foto de perfil</strong>.</p>
+              <p className="text-xs leading-relaxed">No canto superior direito da tela de configurações, clique na <strong>foto do seu perfil pessoal</strong> (Giovana).</p>
             </div>
             <div className="flex items-start gap-2.5">
               <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
-              <p className="text-xs">Clique no card com o <strong>logo e nome da sua Página Comercial</strong> para alternar para o perfil da empresa.</p>
+              <p className="text-xs leading-relaxed">No menu que se abrir, clique sobre a sua <strong>Página comercial ({whatsAppPageName || "NumVapt"})</strong> para alternar o perfil de acesso.</p>
             </div>
             <div className="flex items-start gap-2.5">
-              <span className="h-5 w-5 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">✓</span>
-              <p className="text-xs">Pronto! O Facebook recarregará e abrirá exatamente a tela de inserção do WhatsApp conectada à sua página.</p>
+              <span className="h-5 w-5 rounded-full bg-green-500/20 text-green-450 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 font-sans">✓</span>
+              <p className="text-xs leading-relaxed">A página recarregará automaticamente e mostrará a tela certa para você <strong>conectar o WhatsApp Business</strong>.</p>
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-slate-800 gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => setIsProfileSwitchTutorialOpen(false)}
-              className="text-slate-400 hover:text-white hover:bg-slate-850 font-bold text-xs px-4 py-2 rounded-lg"
-            >
-              Voltar
-            </Button>
-            <Button
-              onClick={() => {
-                window.open(tutorialRedirectUrl, "_blank");
-                setIsProfileSwitchTutorialOpen(false);
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0"
-            >
-              Prosseguir para o Facebook ↗
-            </Button>
+          <DialogFooter className="pt-2 border-t border-slate-800 gap-2 items-center justify-between">
+            <div className="text-slate-400 text-[11px] font-medium flex items-center gap-1.5 select-none">
+              {tutorialCountdown > 0 ? (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                  Veja a animação acima antes de prosseguir ({tutorialCountdown}s)...
+                </>
+              ) : (
+                <span className="text-green-450 flex items-center gap-1 font-semibold">
+                  ✓ Tutorial assistido. Pode prosseguir!
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => setIsProfileSwitchTutorialOpen(false)}
+                className="text-slate-400 hover:text-white hover:bg-slate-800 font-bold text-xs px-4 py-2 rounded-lg"
+              >
+                Voltar
+              </Button>
+              <Button
+                disabled={tutorialCountdown > 0}
+                onClick={() => {
+                  window.open(tutorialRedirectUrl, "_blank");
+                  setIsProfileSwitchTutorialOpen(false);
+                }}
+                className={`font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0 transition-all ${
+                  tutorialCountdown > 0
+                    ? "bg-slate-700 text-slate-400 cursor-not-allowed opacity-60"
+                    : "bg-green-600 hover:bg-green-700 text-white active:scale-95 cursor-pointer shadow-md"
+                }`}
+              >
+                Prosseguir para o Facebook ↗
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
