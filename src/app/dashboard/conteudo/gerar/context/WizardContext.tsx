@@ -284,13 +284,24 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (busProfile?.logo?.url) {
           setLogoPreviewUrl(busProfile.logo.url);
           
-          fetch(busProfile.logo.url)
-            .then(res => res.blob())
+          const logoUrlToFetch = busProfile.logo.url.startsWith("http")
+            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(busProfile.logo.url)}`
+            : busProfile.logo.url;
+
+          fetch(logoUrlToFetch)
+            .then(res => {
+              if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
+              return res.blob();
+            })
             .then(blob => {
               const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
               setLogoFile(file);
             })
-            .catch(err => console.error("Erro ao converter logo do Brand Kit em File no assistente:", err));
+            .catch(err => {
+              console.warn("Aviso: Não foi possível pré-carregar o arquivo físico da logo do Brand Kit (CORS/Rede), utilizando apenas URL de visualização:", err.message || err);
+            });
         }
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
