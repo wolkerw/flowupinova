@@ -2181,12 +2181,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-slate-800 gap-2 items-center justify-between">
-            <div className="text-slate-400 text-[11px] font-medium flex items-center gap-1.5 select-none">
-              <span className="text-green-450 flex items-center gap-1 font-semibold">
-                ✓ Clique abaixo para prosseguir
-              </span>
-            </div>
+          <DialogFooter className="pt-2 border-t border-slate-800 gap-2 items-center justify-end">
             <div className="flex gap-2 shrink-0">
               <Button
                 variant="ghost"
