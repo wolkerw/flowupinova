@@ -33,6 +33,39 @@ export async function POST(request: Request) {
         parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
       }
 
+      // Adicionar novas informações do Brand Kit profissional (fontes, cores e personas)
+      const brandKit = businessProfile.brandKit;
+      if (brandKit) {
+        if (brandKit.fonts) {
+          const fontsInfo = [];
+          if (brandKit.fonts.primaryFont) fontsInfo.push(`Principal/Títulos: ${brandKit.fonts.primaryFont}`);
+          if (brandKit.fonts.secondaryFont) fontsInfo.push(`Secundária/Corpo: ${brandKit.fonts.secondaryFont}`);
+          if (brandKit.fonts.style) fontsInfo.push(`Estilo Geral: ${brandKit.fonts.style}`);
+          if (fontsInfo.length > 0) {
+            parts.push(`- **Tipografia da Marca**: ${fontsInfo.join(" | ")}`);
+          }
+        }
+
+        if (brandKit.extendedColors) {
+          const colorsInfo = [];
+          if (brandKit.extendedColors.complementary) colorsInfo.push(`Complementar/Apoio: ${brandKit.extendedColors.complementary}`);
+          if (brandKit.extendedColors.background) colorsInfo.push(`Cenário/Fundo: ${brandKit.extendedColors.background}`);
+          if (colorsInfo.length > 0) {
+            parts.push(`- **Paleta de Cores Estendida**: ${colorsInfo.join(" | ")}`);
+          }
+        }
+
+        if (brandKit.personas && brandKit.personas.length > 0) {
+          const personasInfo = brandKit.personas.map((p: any, idx: number) => {
+            return `Persona ${idx + 1} (${p.name || "Sem nome"}):
+    * Perfil: ${p.profile || "N/A"}
+    * Dores/Desafios: ${p.painPoints || "N/A"}
+    * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
+          }).join("\n");
+          parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
+        }
+      }
+
       if (parts.length > 0) {
         businessContext = `
 # CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
@@ -44,6 +77,12 @@ DIRETRIZES DE PERSONALIZAÇÃO:
 2. **Tom de Voz**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
 3. **Foco e Benefícios**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo e realce os Diferenciais/Benefícios da marca.
 4. **Hashtags do Nicho**: Suas sugestões de hashtags devem incluir de 2 a 3 hashtags exclusivas e relevantes ao nicho de atuação (${businessProfile.category || "negócios"}).
+5. **Segmentação por Personas**: Como você deve propor exatamente 3 postagens (Ideias 1, 2 e 3):
+   - Se houver **Personas da Marca** descritas no contexto acima, você DEVE direcionar cada uma das 3 propostas de post de forma personalizada para uma das personas cadastradas.
+   - O Post 1 deve ser escrito especificamente para resolver as dores e apelar às motivações de compra da **Persona 1**.
+   - O Post 2 deve fazer o mesmo para a **Persona 2** (se houver, caso contrário use a Persona 1 com outra abordagem).
+   - O Post 3 deve fazer o mesmo para a **Persona 3** (se houver, caso contrário use outra persona disponível).
+   - Ajuste sutilmente o tom da escrita de cada legenda para ressonar com o perfil específico dessa persona (ex: falar de homologação e segurança para o comprador técnico, ou facilidade e resultados rápidos para o gerente operacional).
 `;
       }
     }

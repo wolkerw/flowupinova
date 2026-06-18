@@ -21,19 +21,52 @@ export async function POST(request: Request) {
 
     let brandingInstruction = "";
     if (businessProfile) {
-      const { name, category, primaryColor, secondaryColor } = businessProfile;
+      const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+      const primaryHex = primaryColor || "#000000";
+      const secondaryHex = secondaryColor || "#FFFFFF";
+      
+      let extendedColorsText = "";
+      if (brandKit?.extendedColors) {
+        if (brandKit.extendedColors.complementary) {
+          extendedColorsText += `- Complementary Color Hex: ${brandKit.extendedColors.complementary}\n`;
+        }
+        if (brandKit.extendedColors.background) {
+          extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
+        }
+      }
+
+      let fontsText = "";
+      if (brandKit?.fonts) {
+        if (brandKit.fonts.primaryFont) {
+          fontsText += `- Primary Font (Headers): "${brandKit.fonts.primaryFont}"\n`;
+        }
+        if (brandKit.fonts.secondaryFont) {
+          fontsText += `- Secondary Font (Body): "${brandKit.fonts.secondaryFont}"\n`;
+        }
+        if (brandKit.fonts.style) {
+          fontsText += `- General Typographic Style: ${brandKit.fonts.style}\n`;
+        }
+      }
+
       brandingInstruction = `
 # BRANDING AND VISUAL IDENTITY RULES (MANDATORY PERSONALIZATION)
 You are generating advertising images for the brand "${name || "a premium brand"}" which operates in the "${category || "general"}" niche.
 The brand's visual identity is defined by the following palette:
-- Primary Color Hex: ${primaryColor || "#000000"}
-- Secondary Color Hex: ${secondaryColor || "#FFFFFF"}
-
-Your CRITICAL mission is to strategically and organically blend these two brand colors into the scenic environment of ALL 3 image concepts:
+- Primary Color Hex: ${primaryHex}
+- Secondary Color Hex: ${secondaryHex}
+${extendedColorsText}
+Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
-2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors (e.g., if it's a coffee shop, the cup or napkins; if it's a tech office, a desk accessory; if it's a burger, the packaging or decorative details in the background).
-3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery.
+2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors.
+3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery. If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
+
+${fontsText ? `
+# TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
+When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
+${fontsText}
+Instruct the typography to be rendered using the specified Primary Font for titles/headers or using the specified General Typographic Style (e.g. "write the literal text '...' using a clean, sans-serif Montserrat font to match the brand's typography").
+` : ""}
 `;
     }
 

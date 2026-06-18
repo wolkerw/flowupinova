@@ -381,11 +381,44 @@ If the image depicts a CHARACTER:
 
       let brandingInstruction = "";
       if (businessProfile) {
-        const { name, category, primaryColor, secondaryColor } = businessProfile;
+        const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+        const primaryHex = primaryColor || "#000000";
+        const secondaryHex = secondaryColor || "#FFFFFF";
+
+        let extendedColorsText = "";
+        if (brandKit?.extendedColors) {
+          if (brandKit.extendedColors.complementary) {
+            extendedColorsText += `- Complementary Color Hex: ${brandKit.extendedColors.complementary}\n`;
+          }
+          if (brandKit.extendedColors.background) {
+            extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
+          }
+        }
+
+        let fontsText = "";
+        if (brandKit?.fonts) {
+          if (brandKit.fonts.primaryFont) {
+            fontsText += `- Primary Font (Headers): "${brandKit.fonts.primaryFont}"\n`;
+          }
+          if (brandKit.fonts.secondaryFont) {
+            fontsText += `- Secondary Font (Body): "${brandKit.fonts.secondaryFont}"\n`;
+          }
+          if (brandKit.fonts.style) {
+            fontsText += `- General Typographic Style: ${brandKit.fonts.style}\n`;
+          }
+        }
+
         brandingInstruction = `
-6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryColor || "#000000"} and Secondary: ${secondaryColor || "#FFFFFF"}).
+6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryHex} and Secondary: ${secondaryHex}).
+   ${extendedColorsText ? `Additional extended brand colors to integrate:\n${extendedColorsText}` : ""}
    - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
+   - If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
    - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
+${fontsText ? `
+7. TYPOGRAPHY AND BRAND FONTS: If the layout requires text overlays, badges, or printed titles, they must follow the brand's typography system:
+   ${fontsText}
+   - Describe a clean typographic composition that uses the specified Primary Font for titles/headers or aligns with the specified General Typographic Style (e.g. "with bold modern text printed in Montserrat typeface").
+` : ""}
 `;
       }
 

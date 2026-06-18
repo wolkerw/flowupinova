@@ -9,6 +9,13 @@ export interface OnboardingLogoData {
   height: number;
 }
 
+export interface OnboardingPersona {
+  name: string;
+  profile: string;
+  painPoints: string;
+  buyingMotivation: string;
+}
+
 export interface OnboardingProfileData {
   name: string;
   category: string;
@@ -39,7 +46,18 @@ export interface OnboardingProfileData {
     secondaryColor?: string;
     visualGuidelines?: string;
     pdfManualPath?: string;
+    pdfManualUrl?: string;
     pdfUploadedAt?: any;
+    fonts?: {
+      primaryFont?: string;
+      secondaryFont?: string;
+      style?: string;
+    };
+    extendedColors?: {
+      complementary?: string;
+      background?: string;
+    };
+    personas?: OnboardingPersona[];
     [key: string]: any;
   };
 }
@@ -80,7 +98,18 @@ const defaultOnboardingProfile: OnboardingProfileData = {
     secondaryColor: "#1e293b",
     visualGuidelines: "",
     pdfManualPath: "",
+    pdfManualUrl: "",
     pdfUploadedAt: null,
+    fonts: {
+      primaryFont: "",
+      secondaryFont: "",
+      style: "",
+    },
+    extendedColors: {
+      complementary: "",
+      background: "",
+    },
+    personas: [],
   },
 };
 

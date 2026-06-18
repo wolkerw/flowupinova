@@ -14,6 +14,7 @@ import {
   updateOnboardingProfile,
   type OnboardingProfileData,
   type OnboardingLogoData,
+  type OnboardingPersona,
 } from "@/lib/services/onboarding-service";
 import { createCnpjRequest } from "@/lib/services/cnpj-request-service";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
@@ -124,6 +125,15 @@ export default function ConfiguracoesPage() {
   const [visualGuidelines, setVisualGuidelines] = useState("");
   const [pdfManualPath, setPdfManualPath] = useState("");
   const [pdfManualUrl, setPdfManualUrl] = useState("");
+  
+  // Novos estados estendidos de branding
+  const [primaryFont, setPrimaryFont] = useState("");
+  const [secondaryFont, setSecondaryFont] = useState("");
+  const [fontStyle, setFontStyle] = useState("");
+  const [complementaryColor, setComplementaryColor] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
+  const [personas, setPersonas] = useState<OnboardingPersona[]>([]);
+
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [pdfProgressText, setPdfProgressText] = useState("");
   const [extractedBrandData, setExtractedBrandData] = useState<any | null>(null);
@@ -229,6 +239,9 @@ export default function ConfiguracoesPage() {
           pdfManualPath: data.brandKit?.pdfManualPath || "",
           pdfManualUrl: data.brandKit?.pdfManualUrl || "",
           pdfUploadedAt: data.brandKit?.pdfUploadedAt || null,
+          fonts: data.brandKit?.fonts || { primaryFont: "", secondaryFont: "", style: "" },
+          extendedColors: data.brandKit?.extendedColors || { complementary: "", background: "" },
+          personas: data.brandKit?.personas || [],
         },
       };
 
@@ -278,6 +291,12 @@ export default function ConfiguracoesPage() {
       setVisualGuidelines(data.brandKit?.visualGuidelines || "");
       setPdfManualPath(data.brandKit?.pdfManualPath || "");
       setPdfManualUrl(data.brandKit?.pdfManualUrl || "");
+      setPrimaryFont(data.brandKit?.fonts?.primaryFont || "");
+      setSecondaryFont(data.brandKit?.fonts?.secondaryFont || "");
+      setFontStyle(data.brandKit?.fonts?.style || "");
+      setComplementaryColor(data.brandKit?.extendedColors?.complementary || "");
+      setBackgroundColor(data.brandKit?.extendedColors?.background || "");
+      setPersonas(data.brandKit?.personas || []);
       
       // Inicia migração assíncrona se houver Base64 legado
       migrateLegacyBase64Profile(data);
@@ -519,6 +538,20 @@ export default function ConfiguracoesPage() {
     }
     if (extractedBrandData.pdfManualPath) setPdfManualPath(extractedBrandData.pdfManualPath);
     if (extractedBrandData.pdfManualUrl) setPdfManualUrl(extractedBrandData.pdfManualUrl);
+    
+    // Novas chaves do Brand Kit estendido
+    if (extractedBrandData.fonts) {
+      if (extractedBrandData.fonts.primaryFont) setPrimaryFont(extractedBrandData.fonts.primaryFont);
+      if (extractedBrandData.fonts.secondaryFont) setSecondaryFont(extractedBrandData.fonts.secondaryFont);
+      if (extractedBrandData.fonts.style) setFontStyle(extractedBrandData.fonts.style);
+    }
+    if (extractedBrandData.extendedColors) {
+      if (extractedBrandData.extendedColors.complementary) setComplementaryColor(extractedBrandData.extendedColors.complementary);
+      if (extractedBrandData.extendedColors.background) setBackgroundColor(extractedBrandData.extendedColors.background);
+    }
+    if (extractedBrandData.personas && extractedBrandData.personas.length > 0) {
+      setPersonas(extractedBrandData.personas);
+    }
 
     setIsConfirmModalOpen(false);
     setExtractedBrandData(null);
@@ -637,6 +670,16 @@ export default function ConfiguracoesPage() {
             pdfManualPath,
             pdfManualUrl,
             pdfUploadedAt: profile?.brandKit?.pdfUploadedAt || null,
+            fonts: {
+              primaryFont,
+              secondaryFont,
+              style: fontStyle,
+            },
+            extendedColors: {
+              complementary: complementaryColor,
+              background: backgroundColor,
+            },
+            personas: personas,
           },
         },
         { merge: false }
@@ -761,6 +804,50 @@ export default function ConfiguracoesPage() {
                       type="text"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="h-9 font-mono text-xs uppercase"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cores Estendidas */}
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="complementaryColor" className="text-sm font-medium">Cor de Apoio</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      id="complementaryColor"
+                      value={complementaryColor || "#ffffff"}
+                      onChange={(e) => setComplementaryColor(e.target.value)}
+                      className="h-9 w-12 cursor-pointer p-0"
+                    />
+                    <Input
+                      type="text"
+                      value={complementaryColor}
+                      onChange={(e) => setComplementaryColor(e.target.value)}
+                      placeholder="#HEX"
+                      className="h-9 font-mono text-xs uppercase"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="backgroundColor" className="text-sm font-medium">Cenário / Fundo</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      id="backgroundColor"
+                      value={backgroundColor || "#ffffff"}
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="h-9 w-12 cursor-pointer p-0"
+                    />
+                    <Input
+                      type="text"
+                      value={backgroundColor}
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      placeholder="#HEX"
                       className="h-9 font-mono text-xs uppercase"
                       maxLength={7}
                     />
@@ -1369,6 +1456,91 @@ export default function ConfiguracoesPage() {
                   Se você importar um PDF de manual de marca, essas diretrizes serão extraídas automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a seguir o estilo do seu designer.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Tipografia da Marca (Fontes) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bookmark className="h-5 w-5 text-primary" />
+                Tipografia do Brand Kit
+              </CardTitle>
+              <CardDescription>Estilo de fontes e escritas recomendados para as imagens da marca</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="primaryFont">Fonte Primária (Títulos)</Label>
+                  <Input
+                    id="primaryFont"
+                    placeholder="Ex: Eras Light ITC, Montserrat"
+                    value={primaryFont}
+                    onChange={(e) => setPrimaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryFont">Fonte Secundária (Textos)</Label>
+                  <Input
+                    id="secondaryFont"
+                    placeholder="Ex: Myriad Pro, Inter"
+                    value={secondaryFont}
+                    onChange={(e) => setSecondaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fontStyle">Estilo Geral</Label>
+                  <Input
+                    id="fontStyle"
+                    placeholder="Ex: Tecnológico minimalista, serif moderno"
+                    value={fontStyle}
+                    onChange={(e) => setFontStyle(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Personas do Negócio */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5 text-primary" />
+                Personas da Marca
+              </CardTitle>
+              <CardDescription>Perfis de compradores ideais mapeados a partir do manual da agência</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {personas.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground bg-slate-50/50">
+                  <p className="font-semibold">Nenhuma persona cadastrada.</p>
+                  <p className="text-xs mt-1">Envie o manual de branding em PDF para que nossa IA mapeie e gere os perfis de compradores ideais automaticamente!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {personas.map((persona, index) => (
+                    <div
+                      key={persona.name || index}
+                      className="rounded-xl border border-slate-100 bg-slate-50/40 p-4 space-y-3 relative hover:shadow-sm transition-all"
+                    >
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-800">{persona.name || `Persona ${index + 1}`}</h4>
+                        <p className="text-[10px] uppercase font-semibold tracking-wider text-primary">{persona.profile || "Colaborador"}</p>
+                      </div>
+                      <div className="space-y-2 text-xs text-slate-600 border-t pt-2">
+                        <div>
+                          <strong className="text-slate-700 text-[10px] uppercase block">Desafios/Dores:</strong>
+                          <p className="mt-0.5 line-clamp-3 leading-relaxed">{persona.painPoints || "Sem descrição"}</p>
+                        </div>
+                        <div>
+                          <strong className="text-slate-700 text-[10px] uppercase block">Motivação de Compra:</strong>
+                          <p className="mt-0.5 line-clamp-3 leading-relaxed">{persona.buyingMotivation || "Sem descrição"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
