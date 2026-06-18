@@ -1937,7 +1937,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <div className="absolute inset-0 z-10 sim-personal-view">
                     <img
                       src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
-                      alt="Giovana"
+                      alt="Perfil"
                       className="h-full w-full object-cover"
                     />
                     <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
@@ -1945,7 +1945,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   {/* Avatar Página (Fase 3) */}
                   <div className="absolute inset-0 z-20 sim-whatsapp-view">
                     <div className="h-full w-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] border border-white/10 rounded-full">
-                      {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
+                      PN
                     </div>
                     <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
                   </div>
@@ -1960,12 +1960,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     <div className="h-7 w-7 rounded-full overflow-hidden shrink-0">
                       <img
                         src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
-                        alt="Giovana"
+                        alt="Perfil"
                         className="h-full w-full object-cover"
                       />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold text-white truncate">Giovana Mueller Gomes</p>
+                      <p className="text-[9px] font-bold text-white truncate">Seu Perfil</p>
                       <p className="text-[7px] text-[#b0b3b8]">Perfil pessoal</p>
                     </div>
                   </div>
@@ -1978,25 +1978,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <div className="p-1.5 rounded-md bg-[#3a3b3c] flex items-center justify-between cursor-pointer border border-[#4e4f50]">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="h-6 w-6 rounded-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] shrink-0 shadow-sm border border-white/10">
-                        {whatsAppPageName ? whatsAppPageName.substring(0, 2).toUpperCase() : "NV"}
+                        PN
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold text-white truncate">{whatsAppPageName || "NumVapt"}</p>
+                        <p className="text-[9px] font-bold text-white truncate">Página Numvapt</p>
                         <p className="text-[7px] text-[#1877f2] font-semibold flex items-center gap-0.5">
                           <span>🔄</span> Alternar para Página
                         </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Página Adicional */}
-                  <div className="p-1 hover:bg-[#3a3b3c]/30 rounded-md flex items-center justify-between cursor-pointer text-[#b0b3b8]">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 rounded-full bg-orange-700 flex items-center justify-center font-bold text-white text-[8px] shrink-0">
-                        II
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-bold text-slate-300 truncate">Imobiliária Imobel</p>
                       </div>
                     </div>
                   </div>
@@ -2124,7 +2112,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   </div>
 
                   <p className="text-[7px] text-[#b0b3b8] text-center max-w-[210px] leading-tight mb-1 select-none">
-                    Insira o número do WhatsApp de <strong>{whatsAppPageName || "NumVapt"}</strong> e depois veja se você recebeu um código de confirmação.
+                    Insira o número do WhatsApp de <strong>Página Numvapt</strong> e depois veja se você recebeu um código de confirmação.
                   </p>
 
                   {/* Form Simulador */}
@@ -2181,11 +2169,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           <div className="space-y-3 text-slate-350 text-left">
             <div className="flex items-start gap-2.5">
               <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
-              <p className="text-xs leading-relaxed">No canto superior direito da tela de configurações, clique na <strong>foto do seu perfil pessoal</strong> (Giovana).</p>
+              <p className="text-xs leading-relaxed">No canto superior direito da tela de configurações, clique na <strong>foto do seu perfil pessoal</strong>.</p>
             </div>
             <div className="flex items-start gap-2.5">
               <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
-              <p className="text-xs leading-relaxed">No menu que se abrir, clique sobre a sua <strong>Página comercial ({whatsAppPageName || "NumVapt"})</strong> para alternar o perfil de acesso.</p>
+              <p className="text-xs leading-relaxed">No menu que se abrir, clique sobre a <strong>Página Numvapt</strong> para alternar o perfil de acesso.</p>
             </div>
             <div className="flex items-start gap-2.5">
               <span className="h-5 w-5 rounded-full bg-green-500/20 text-green-450 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 font-sans">✓</span>
