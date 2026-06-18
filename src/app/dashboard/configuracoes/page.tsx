@@ -328,10 +328,10 @@ export default function ConfiguracoesPage() {
             dataUrl: e.target?.result as string,
           });
         };
-        img.onerror = reject;
+        img.onerror = () => reject(new Error("Não foi possível carregar a imagem para leitura das dimensões."));
         img.src = e.target?.result as string;
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error("Falha ao ler o arquivo de imagem."));
       reader.readAsDataURL(file);
     });
   };
@@ -779,13 +779,13 @@ export default function ConfiguracoesPage() {
                       id="primaryColor"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0"
+                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
                     />
                     <Input
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 font-mono text-xs uppercase"
+                      className="h-9 font-mono text-xs uppercase flex-1"
                       maxLength={7}
                     />
                   </div>
@@ -798,13 +798,13 @@ export default function ConfiguracoesPage() {
                       id="secondaryColor"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0"
+                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
                     />
                     <Input
                       type="text"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 font-mono text-xs uppercase"
+                      className="h-9 font-mono text-xs uppercase flex-1"
                       maxLength={7}
                     />
                   </div>
@@ -821,14 +821,14 @@ export default function ConfiguracoesPage() {
                       id="complementaryColor"
                       value={complementaryColor || "#ffffff"}
                       onChange={(e) => setComplementaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0"
+                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
                     />
                     <Input
                       type="text"
                       value={complementaryColor}
                       onChange={(e) => setComplementaryColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 font-mono text-xs uppercase"
+                      className="h-9 font-mono text-xs uppercase flex-1"
                       maxLength={7}
                     />
                   </div>
@@ -841,14 +841,14 @@ export default function ConfiguracoesPage() {
                       id="backgroundColor"
                       value={backgroundColor || "#ffffff"}
                       onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0"
+                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
                     />
                     <Input
                       type="text"
                       value={backgroundColor}
                       onChange={(e) => setBackgroundColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 font-mono text-xs uppercase"
+                      className="h-9 font-mono text-xs uppercase flex-1"
                       maxLength={7}
                     />
                   </div>
@@ -1160,6 +1160,48 @@ export default function ConfiguracoesPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Tipografia da Marca (Fontes) */}
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bookmark className="h-5 w-5 text-primary" />
+                Tipografia do Brand Kit
+              </CardTitle>
+              <CardDescription>Estilo de fontes e escritas recomendados para as imagens da marca</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="primaryFont">Fonte Primária (Títulos)</Label>
+                  <Input
+                    id="primaryFont"
+                    placeholder="Ex: Eras Light ITC, Montserrat"
+                    value={primaryFont}
+                    onChange={(e) => setPrimaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryFont">Fonte Secundária (Textos)</Label>
+                  <Input
+                    id="secondaryFont"
+                    placeholder="Ex: Myriad Pro, Inter"
+                    value={secondaryFont}
+                    onChange={(e) => setSecondaryFont(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fontStyle">Estilo Geral</Label>
+                  <Input
+                    id="fontStyle"
+                    placeholder="Ex: Tecnológico minimalista, serif moderno"
+                    value={fontStyle}
+                    onChange={(e) => setFontStyle(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Painel Central e Direito: Dados do Negócio e Voz de Marca */}
@@ -1459,47 +1501,6 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
 
-          {/* Tipografia da Marca (Fontes) */}
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Bookmark className="h-5 w-5 text-primary" />
-                Tipografia do Brand Kit
-              </CardTitle>
-              <CardDescription>Estilo de fontes e escritas recomendados para as imagens da marca</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryFont">Fonte Primária (Títulos)</Label>
-                  <Input
-                    id="primaryFont"
-                    placeholder="Ex: Eras Light ITC, Montserrat"
-                    value={primaryFont}
-                    onChange={(e) => setPrimaryFont(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryFont">Fonte Secundária (Textos)</Label>
-                  <Input
-                    id="secondaryFont"
-                    placeholder="Ex: Myriad Pro, Inter"
-                    value={secondaryFont}
-                    onChange={(e) => setSecondaryFont(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fontStyle">Estilo Geral</Label>
-                  <Input
-                    id="fontStyle"
-                    placeholder="Ex: Tecnológico minimalista, serif moderno"
-                    value={fontStyle}
-                    onChange={(e) => setFontStyle(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Personas do Negócio */}
           <Card className="border-none shadow-md">
