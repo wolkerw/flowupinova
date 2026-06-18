@@ -40,6 +40,7 @@ import {
   Repeat,
   Heart,
   Info,
+  Store,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -66,6 +67,7 @@ import {
   getInstagramConnection,
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
+import { getGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -83,7 +85,7 @@ type LogoPosition =
   | "bottom-left"
   | "bottom-center"
   | "bottom-right";
-type Platform = "instagram" | "facebook";
+type Platform = "instagram" | "facebook" | "google";
 
 type MediaItem = {
   type: "image" | "video";
@@ -935,6 +937,7 @@ export default function CriarConteudoPage() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
     null
   );
+  const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -958,15 +961,18 @@ export default function CriarConteudoPage() {
     Promise.all([
       getMetaConnection(user.uid),
       getInstagramConnection(user.uid),
+      getGoogleConnection(user.uid),
       getOnboardingProfile(user.uid)
-    ]).then(([metaConn, instaConn, profile]) => {
+    ]).then(([metaConn, instaConn, googleConn, profile]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
+      setGoogleConnection(googleConn);
       setBusinessProfile(profile);
       
       const initialPlatforms: Platform[] = [];
       if (metaConn?.isConnected) initialPlatforms.push("facebook");
       if (instaConn?.isConnected) initialPlatforms.push("instagram");
+      if (googleConn?.isConnected) initialPlatforms.push("google");
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
@@ -1566,6 +1572,9 @@ export default function CriarConteudoPage() {
     if (platforms.includes("instagram") && instagramConnection?.isConnected) {
       postInput.instagramConnection = instagramConnection;
     }
+    if (platforms.includes("google") && googleConnection?.isConnected) {
+      postInput.googleConnection = googleConnection;
+    }
 
     const result = await schedulePost(user.uid, postInput);
 
@@ -2143,8 +2152,8 @@ export default function CriarConteudoPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+                 <Label className="font-semibold">Onde Publicar?</Label>
+                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -2204,6 +2213,38 @@ export default function CriarConteudoPage() {
                       {!instagramConnection?.isConnected && (
                         <TooltipContent>
                           <p>Conecte o Instagram na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !googleConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-google"
+                            checked={platforms.includes("google") && !!googleConnection?.isConnected}
+                            onCheckedChange={() => handlePlatformChange("google")}
+                            disabled={!googleConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-google"
+                            className={cn("flex cursor-pointer items-center gap-2", !googleConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Store className="h-5 w-5 text-blue-500" />
+                            Google Meu Negócio
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!googleConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte seu Perfil no Google na aba 'Meu Negócio' para publicar.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>

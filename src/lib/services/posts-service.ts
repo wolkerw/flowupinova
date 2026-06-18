@@ -20,6 +20,7 @@ import {
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { MetaConnectionData } from "./meta-service";
 import type { InstagramConnectionData } from "./instagram-service";
+import type { GoogleConnectionData } from "./google-service";
 import { config } from "@/lib/config";
 
 // Interface for data stored in Firestore
@@ -31,7 +32,7 @@ export interface PostData {
   // Changed to array to support carousels
   imageUrls: string[];
   isCarousel: boolean;
-  platforms: Array<"instagram" | "facebook">;
+  platforms: Array<"instagram" | "facebook" | "google">;
   status: "scheduled" | "publishing" | "published" | "failed";
   scheduledAt: Timestamp;
   connections: {
@@ -60,11 +61,12 @@ export type PostDataInput = {
   text: string;
   // Changed to array to support carousels
   media: MediaFileInput[];
-  platforms: Array<"instagram" | "facebook">;
+  platforms: Array<"instagram" | "facebook" | "google">;
   isCarousel: boolean;
   scheduledAt: Date;
   metaConnection?: MetaConnectionData;
   instagramConnection?: InstagramConnectionData;
+  googleConnection?: GoogleConnectionData;
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
 };
@@ -163,8 +165,7 @@ async function publishPostImmediately(
             userTags: postData.userTags,
           },
         };
-      } else {
-        // 'facebook'
+      } else if (platform === "facebook") {
         apiPath = "/api/facebook/publish";
         payload = {
           postData: {
@@ -175,6 +176,16 @@ async function publishPostImmediately(
               accessToken: postData.connections.fbPageAccessToken,
               pageId: postData.connections.pageId,
             },
+          },
+        };
+      } else {
+        // 'google'
+        apiPath = "/api/google/publish";
+        payload = {
+          postData: {
+            text: postData.text,
+            imageUrl: postData.imageUrls && postData.imageUrls.length > 0 ? postData.imageUrls[0] : undefined,
+            userId,
           },
         };
       }
@@ -224,6 +235,7 @@ export async function schedulePost(
 
   const hasFacebook = postData.platforms.includes("facebook");
   const hasInstagram = postData.platforms.includes("instagram");
+  const hasGoogle = postData.platforms.includes("google");
 
   if (hasFacebook && (!postData.metaConnection || !postData.metaConnection.isConnected)) {
     return {
@@ -238,6 +250,12 @@ export async function schedulePost(
     return {
       success: false,
       error: "A conexão com o Instagram é necessária para publicar nesta plataforma.",
+    };
+  }
+  if (hasGoogle && (!postData.googleConnection || !postData.googleConnection.isConnected)) {
+    return {
+      success: false,
+      error: "A conexão com o Google Meu Negócio é necessária para publicar nesta plataforma.",
     };
   }
 

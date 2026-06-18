@@ -10,15 +10,23 @@ import { config } from "@/lib/config";
  * Tenta publicar um post em uma plataforma específica.
  */
 async function publishToPlatform(
-  platform: "instagram" | "facebook",
-  post: PostData
+  platform: "instagram" | "facebook" | "google",
+  post: PostData & { _parentPath?: string }
 ): Promise<string> {
   const isInstagram = platform === "instagram";
+  const isFacebook = platform === "facebook";
 
   // Usa a URL canônica definida no arquivo de configuração.
   const baseUrl = config.aplicationURL;
 
-  const apiPath = isInstagram ? "/api/instagram/v2/publish" : "/api/facebook/publish";
+  let apiPath: string;
+  if (isInstagram) {
+    apiPath = "/api/instagram/v2/publish";
+  } else if (isFacebook) {
+    apiPath = "/api/facebook/publish";
+  } else {
+    apiPath = "/api/google/publish";
+  }
   const requestUrl = new URL(apiPath, baseUrl);
 
   if (!post?.text) throw new Error(`Post sem texto (post.id=${post.id}).`);
@@ -44,7 +52,7 @@ async function publishToPlatform(
         instagramId,
       },
     };
-  } else {
+  } else if (isFacebook) {
     // Facebook
     const accessToken = post.connections.fbPageAccessToken;
     const pageId = post.connections.pageId;
@@ -68,6 +76,20 @@ async function publishToPlatform(
           accessToken,
           pageId,
         },
+      },
+    };
+  } else {
+    // Google Meu Negócio
+    const userId = post._parentPath ? post._parentPath.split("/")[1] : "";
+    if (!userId) {
+      throw new Error(`Impossível identificar o proprietário do post (post.id=${post.id}).`);
+    }
+
+    payload = {
+      postData: {
+        text: post.text,
+        imageUrl: post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls[0] : undefined,
+        userId,
       },
     };
   }
