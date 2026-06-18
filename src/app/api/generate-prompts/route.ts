@@ -75,7 +75,23 @@ Instruct the typography to be rendered using the specified Primary Font for titl
 Você é um Diretor de Arte de Publicidade e Especialista em Engenharia de Prompts para IAs geradoras de imagem (como Imagen e Flux).
 
 # TAREFA
-Transformar o título e subtítulo recebidos em exatamente 3 prompts descritivos de imagem ultra detalhados em INGLÊS. Cada prompt representará um design/imagem conceito diferente para o mesmo post.
+Transformar o título e subtítulo recebidos em exatamente 3 prompts descritivos de imagem ultra detalhados em INGLÊS.
+Cada prompt representará um conceito visual, estilo fotográfico e composição RADICALMENTE DIFERENTES para o mesmo post, seguindo rigorosamente a estrutura de diferenciação abaixo:
+
+- **OPÇÃO 1: FOCO HUMANO / LIFESTYLE (Cena com Pessoas)**
+  - Foco em pessoas reais no ambiente associado ao tema (ex: operário profissional, cliente, etc.) com poses e expressões confiantes e naturais.
+  - Enquadramento médio (medium shot) ou plano americano. Detalhe bem o cenário ao fundo de forma integrada com profundidade de campo suave (bokeh).
+  
+- **OPÇÃO 2: DETALHE DO PRODUTO / MACRO / PRODUTO-CÊNTRICO (Sem Pessoas)**
+  - Foco exclusivo no objeto, equipamento ou produto físico.
+  - É expressamente PROIBIDO ter pessoas visíveis nesta imagem.
+  - Descreva uma fotografia macro ou close-up comercial ultra detalhado, realçando texturas físicas, brilho, engrenagens, materiais e qualidade do produto/objeto em si sob iluminação de estúdio contrastante.
+
+- **OPÇÃO 3: CONCEITUAL / MINIMALISTA / ESTÚDIO GRÁFICO (Simbólico)**
+  - Uma imagem de estúdio artística, moderna e conceitual.
+  - Pode usar o estilo "flat lay" (vista aérea), ou uma composição de pedestais/plataformas sob fundos sólidos ou texturizados de alto padrão usando as cores da marca.
+  - A composição deve ser limpa, focando na sofisticação estética e deixando amplo destaque para o texto renderizado na imagem.
+
 ${brandingInstruction}
 # REGRAS CRÍTICAS DE ENGENHARIA DE PROMPT
 1. IDIOMA DO PROMPT: Redija toda a descrição visual do cenário, pessoas, pose e iluminação em INGLÊS.
@@ -88,9 +104,9 @@ ${brandingInstruction}
 Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, conclusão ou marcações markdown:
 {
   "prompts": [
-    "A professional commercial food photography of a fresh tasty hamburger... with the literal text 'TITULO'...",
-    "A professional lifestyle photography of a cozy gourmet restaurant... with the literal text 'TITULO'...",
-    "A professional flat lay studio photography showing organic burger ingredients... with the literal text 'TITULO'..."
+    "A professional lifestyle photography showing a confident employee... with the literal text 'TITULO'...",
+    "A professional close-up macro studio photography focusing on the detailed metallic gear... with the literal text 'TITULO'...",
+    "A professional minimalist studio setup with a sleek geometric backdrop... with the literal text 'TITULO'..."
   ]
 }
 `;
