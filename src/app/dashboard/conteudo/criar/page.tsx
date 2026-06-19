@@ -1526,6 +1526,15 @@ export default function CriarConteudoPage() {
       return;
     }
 
+    if (platforms.includes("google") && !text.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Texto Obrigatório",
+        description: "O texto da publicação é obrigatório para publicar no Google Meu Negócio.",
+      });
+      return;
+    }
+
     if (scheduleType === "schedule" && !scheduleDate) {
       toast({
         variant: "destructive",
