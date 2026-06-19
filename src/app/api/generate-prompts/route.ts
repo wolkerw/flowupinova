@@ -101,15 +101,19 @@ COMPOSITION: Object fills 70–80% of the frame. The remaining 20–30% is backg
 MANDATORY PROHIBITION: Do NOT include any human body part (hands, arms, face, feet). Do NOT include natural outdoor environments.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: ABSTRACT OR SYMBOLIC — NO DIRECT PRODUCT, NO PEOPLE)
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI DESIGN STYLE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A highly stylized, abstract, or symbolic visual metaphor representing the concept of the post. Think: geometric shapes, abstract color fields, artistic arrangements of minimalist props (not the main product), luxury textures (marble, silk, velvet, frosted glass), architectural details, or a graphic design-inspired composition.
-CAMERA: Overhead flat lay (top-down, 90 degrees) OR extreme wide angle for an architectural/graphic feel.
-LENS: Wide angle 24mm or tilt-shift for a clean, graphic look. Everything in sharp focus (f/8–f/11).
-SETTING: A pristine studio with a deliberately styled backdrop: solid color wall, painted concrete, brushed linen, luxury marble surface, or geometric platform arrangement.
-LIGHTING: Describe soft, even, diffused studio lighting with zero harsh shadows (e.g., "large octabox overhead diffused light, flat and even, like a luxury product catalog photograph for a high-fashion brand"). OR dramatic single-color gel-lit studio background.
-COMPOSITION: 40–50% of the frame is intentionally left as negative space (empty background) to give the text maximum visual prominence. Use asymmetric or central composition with strong graphic impact.
-MANDATORY PROHIBITION: Do NOT include real people. Do NOT include the actual product being sold. Keep it ABSTRACT and SYMBOLIC.
+SUBJECT: A premium, modern graphic design composition representing the post's concept, styled like a top-trending visual project on Dribbble and Behance.
+STYLE & LAYOUT:
+- **Dribbble & Behance Aesthetics:** Incorporate trendy graphic elements like frosted glass panels (glassmorphism), clean 3D shapes with soft clay-like textures (claymorphism), floating geometric shapes (spheres, cubes, toruses), or premium styled isometric platforms/pedestals. Use smooth, high-end color gradients in the background.
+- **Designi Commercial Standard:** Follow a clean commercial banner structure with a clear visual hierarchy. Use soft, realistic contact shadows beneath objects to create depth and realism.
+- **Negative Space:** Leave 45-55% of the frame as empty space (clean solid wall, brushed concrete backdrop, or smooth gradient) to give the text maximum readability and graphic impact.
+CAMERA & LENS:
+- Front-facing flat graphic composition OR elegant 30-degree isometric view.
+- Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
+LIGHTING:
+- Soft, even, diffused studio lighting with zero harsh shadows (large overhead softbox look). OR dramatic single-color gel-lit studio background using the complementary brand color.
+MANDATORY PROHIBITION: Do NOT include real people. Keep it abstract, symbolic, and graphic-design oriented. Do NOT include the actual physical product being sold; represent it metaphorically.
 
 ${brandingInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
