@@ -74,6 +74,7 @@ import {
   UploadCloud,
   MousePointer2,
   Image as ImageIcon,
+  Store,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -94,6 +95,10 @@ import {
   updateInstagramConnection,
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
+import {
+  getGoogleConnection,
+  type GoogleConnectionData,
+} from "@/lib/services/google-service";
 import { config } from "@/lib/config";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -127,7 +132,7 @@ interface FacebookPage {
 
 type HistoryFilter = "last-7-days" | "this-month" | "this-year" | "all-time";
 type RepublishScheduleType = "now" | "schedule";
-type Platform = "instagram" | "facebook" | "linkedin";
+type Platform = "instagram" | "facebook" | "linkedin" | "google";
 
 /* -------------------------------------------------------------------------------------------------
  * Constants / Utils
@@ -522,6 +527,9 @@ export default function Conteudo() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({
     isConnected: false,
   });
+  const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData>({
+    isConnected: false,
+  });
   const [linkedinConnection, setLinkedinConnection] = useState({
     isConnected: false,
     organizationName: "",
@@ -563,10 +571,11 @@ export default function Conteudo() {
     setCheckingConnection(true);
 
     try {
-      const [postsResults, metaResult, instagramResult] = await Promise.all([
+      const [postsResults, metaResult, instagramResult, googleResult] = await Promise.all([
         getScheduledPosts(user.uid),
         getMetaConnection(user.uid),
         getInstagramConnection(user.uid),
+        getGoogleConnection(user.uid),
       ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
@@ -587,6 +596,7 @@ export default function Conteudo() {
       }
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
+      setGoogleConnection(googleResult);
     } catch (err) {
       console.error("Failed to fetch page data:", err);
       toast({
@@ -918,6 +928,22 @@ export default function Conteudo() {
       });
       return;
     }
+    if (republishPlatforms.includes("google") && !googleConnection.isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Google Meu Negócio não conectado",
+        description: "Conecte o Google Meu Negócio para republicar.",
+      });
+      return;
+    }
+    if (republishPlatforms.includes("google") && !postToRepublish.text.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Texto Obrigatório",
+        description: "O texto da publicação é obrigatório para publicar no Google Meu Negócio.",
+      });
+      return;
+    }
 
     if (republishScheduleType === "schedule" && !republishScheduleDate) {
       toast({
@@ -956,6 +982,10 @@ export default function Conteudo() {
       input.metaConnection = metaConnection;
     }
 
+    if (republishPlatforms.includes("google")) {
+      input.googleConnection = googleConnection;
+    }
+
     const result = await schedulePost(user.uid, input);
 
     setIsRepublishing(false);
@@ -976,6 +1006,7 @@ export default function Conteudo() {
     fetchPageData,
     metaConnection,
     instagramConnection,
+    googleConnection,
     postToRepublish,
     republishScheduleDate,
     republishScheduleType,
@@ -1050,7 +1081,7 @@ export default function Conteudo() {
           <div className="space-y-6 py-4">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
-              <div className="mt-2 grid grid-cols-2 gap-4">
+              <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div
                   className={cn(
                     "flex items-center space-x-2 rounded-lg border p-4",
@@ -1089,6 +1120,26 @@ export default function Conteudo() {
                   >
                     <Facebook className="h-5 w-5 text-blue-600" />
                     Facebook
+                  </Label>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4",
+                    !googleConnection?.isConnected && "bg-gray-100 opacity-60"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-google"
+                    checked={republishPlatforms.includes("google")}
+                    onCheckedChange={() => handleRepublishPlatformChange("google")}
+                    disabled={!googleConnection?.isConnected}
+                  />
+                  <Label
+                    htmlFor="republish-google"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Store className="h-5 w-5 text-blue-500" />
+                    Google Meu Negócio
                   </Label>
                 </div>
               </div>

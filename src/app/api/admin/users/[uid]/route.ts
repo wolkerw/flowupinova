@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { validateAdminToken } from "@/lib/admin-auth";
-import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { adminDb, adminAuth, admin as firebaseAdmin } from "@/lib/firebase-admin";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function PATCH(
 
   const { uid } = await params;
   const body = await request.json();
-  const { plan, paymentStatus, extendTrial } = body;
+  const { plan, paymentStatus, extendTrial, extendTrialDays, subscriptionPlan } = body;
 
   if (!uid) {
     return NextResponse.json({ error: "UID do usuário é obrigatório." }, { status: 400 });
@@ -25,20 +25,46 @@ export async function PATCH(
     const userRef = adminDb.collection("users").doc(uid);
     const updates: Record<string, unknown> = {};
 
-    if (plan) updates.plan = plan;
     if (paymentStatus) updates.paymentStatus = paymentStatus;
 
-    // Estender o trial adicionando 7 dias a partir de agora
+    if (plan) {
+      if (plan === "standard") {
+        updates.plan = "standard";
+        updates.role = "pro";
+        updates.subscriptionStatus = "active";
+        
+        const subPlan = subscriptionPlan === "anual" ? "anual" : "mensal";
+        updates.subscriptionPlan = subPlan;
+        
+        const durationDays = subPlan === "anual" ? 365 : 30;
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + durationDays);
+        updates.subscriptionExpiresAt = firebaseAdmin.firestore.Timestamp.fromDate(expirationDate);
+      } else if (plan === "trial") {
+        updates.plan = "trial";
+        updates.role = "free";
+        updates.subscriptionStatus = "inactive";
+        updates.subscriptionPlan = null;
+        updates.subscriptionExpiresAt = null;
+      } else {
+        updates.plan = plan;
+      }
+    }
+
+    // Estender o trial adicionando dias a partir de agora
     if (extendTrial) {
-      const userSnap = await userRef.get();
-      const currentCreatedAt = userSnap.data()?.createdAt?.toDate?.() ?? new Date();
-      const newTrialStart = new Date(
-        Math.max(currentCreatedAt.getTime(), Date.now() - 7 * 24 * 60 * 60 * 1000)
-      );
-      updates.createdAt = new Date(newTrialStart.getTime() + 7 * 24 * 60 * 60 * 1000 - 7 * 24 * 60 * 60 * 1000);
-      // Simplesmente resetar o createdAt para agora (garantindo 7 dias a partir de hoje)
-      updates.createdAt = new Date();
+      const days = typeof extendTrialDays === "number" ? extendTrialDays : 7;
+      // Como o trial dura fixamente 7 dias a partir do createdAt, definimos o createdAt
+      // de forma que o término (createdAt + 7 dias) seja exatamente daqui a "days" dias.
+      // createdAt + 7d = hoje + daysd => createdAt = hoje + (days - 7)d.
+      const msToAdd = (days - 7) * 24 * 60 * 60 * 1000;
+      updates.createdAt = new Date(Date.now() + msToAdd);
+      
       updates.plan = "trial";
+      updates.role = "free";
+      updates.subscriptionStatus = "inactive";
+      updates.subscriptionPlan = null;
+      updates.subscriptionExpiresAt = null;
     }
 
     await userRef.update(updates);

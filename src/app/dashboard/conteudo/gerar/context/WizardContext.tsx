@@ -54,7 +54,7 @@ interface WizardContextType {
   unusedImagesHistory: string[];
   customPrompt: string;
   setCustomPrompt: (prompt: string) => void;
-  handleSubmitImageGeneration: (customPromptOverride?: string, postIdOverride?: string, contentOverride?: GeneratedContent) => Promise<void>;
+  handleSubmitImageGeneration: (customPromptOverride?: string | string[], postIdOverride?: string, contentOverride?: GeneratedContent) => Promise<void>;
   isRetailStyle: boolean;
   setIsRetailStyle: (val: boolean) => void;
   useDalle: boolean;
@@ -284,13 +284,24 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (busProfile?.logo?.url) {
           setLogoPreviewUrl(busProfile.logo.url);
           
-          fetch(busProfile.logo.url)
-            .then(res => res.blob())
+          const logoUrlToFetch = busProfile.logo.url.startsWith("http")
+            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(busProfile.logo.url)}`
+            : busProfile.logo.url;
+
+          fetch(logoUrlToFetch)
+            .then(res => {
+              if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
+              return res.blob();
+            })
             .then(blob => {
               const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
               setLogoFile(file);
             })
-            .catch(err => console.error("Erro ao converter logo do Brand Kit em File no assistente:", err));
+            .catch(err => {
+              console.warn("Aviso: Não foi possível pré-carregar o arquivo físico da logo do Brand Kit (CORS/Rede), utilizando apenas URL de visualização:", err.message || err);
+            });
         }
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
@@ -785,10 +796,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           throw new Error("Não foi possível gerar os prompts.");
         }
 
-        const promptToUse = generatedPrompts[0] || "";
-        setCustomPrompt(promptToUse);
+        const defaultPrompt = generatedPrompts[0] || "";
+        setCustomPrompt(defaultPrompt);
         setStep(3);
-        handleSubmitImageGeneration(promptToUse, postId, selContent);
+        handleSubmitImageGeneration(generatedPrompts, postId, selContent);
       }
     } catch (error: any) {
       console.error(error);
@@ -798,7 +809,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleSubmitImageGeneration = async (
-    customPromptOverride?: string,
+    customPromptOverride?: string | string[],
     postIdOverride?: string,
     contentOverride?: GeneratedContent
   ) => {
@@ -1083,13 +1094,18 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const filenames = ["1", "2", "3"];
         const imageUrls: string[] = [];
 
-        for (const fname of filenames) {
-          console.log(`[WIZARD] Gerando imagem conceito ${fname}...`);
+        for (let i = 0; i < filenames.length; i++) {
+          const fname = filenames[i];
+          const singlePrompt = Array.isArray(promptToUse)
+            ? (promptToUse[i] || promptToUse[0] || "")
+            : promptToUse;
+
+          console.log(`[WIZARD] Gerando imagem conceito ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`);
           const imgResponse = await fetch("/api/generate-images", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              prompt: promptToUse,
+              prompt: singlePrompt,
               postId: activePostId,
               fileName: fname,
               userId: user.uid,

@@ -75,8 +75,27 @@ Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatament
     "Diferencial 1 da empresa ou produto",
     "Diferencial 2 da empresa ou produto",
     "Diferencial 3 da empresa ou produto"
+  ],
+  "fonts": {
+    "primaryFont": "Nome da fonte de escrita institucional recomendada para títulos ou destaque, conforme manual (ex: Eras Light ITC, Montserrat). Deixe vazio se não houver.",
+    "secondaryFont": "Nome da fonte recomendada para textos corridos e legibilidade do corpo, conforme manual (ex: Myriad Pro, Inter). Deixe vazio se não houver.",
+    "style": "Descrição geral do estilo tipográfico (ex: moderno sans-serif limpo, tradicional serif corporativo, tecnológico minimalista)"
+  },
+  "extendedColors": {
+    "complementary": "Cor complementar ou cor secundária extra no formato hexadecimal contendo '#' (ex: #e67e22). Se houver várias, pegue a principal de apoio. Deixe vazio se não houver.",
+    "background": "Cor sugerida de fundo ou cenário de estúdio no formato hexadecimal contendo '#' (ex: #f5f6fa). Deixe vazio se não houver."
+  },
+  "personas": [
+    {
+      "name": "Nome fictício ou representativo da Persona (ex: Eng. Carlos, Gerente Ana)",
+      "profile": "Perfil profissional, demográfico e hábitos da persona no contexto de compra",
+      "painPoints": "Desafios, dores, problemas ou gargalos que a persona enfrenta e que o negócio ajuda a resolver",
+      "buyingMotivation": "O que motiva essa persona a fechar contrato ou comprar da marca (ex: segurança, homologação rápida)"
+    }
   ]
-}`;
+}
+
+Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 perfis identificados ou inferidos a partir do público-alvo no manual.`;
 
     // 4. Invocar a API do Gemini 2.5 Flash
     let parsedData = null;

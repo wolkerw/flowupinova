@@ -9,6 +9,13 @@ export interface OnboardingLogoData {
   height: number;
 }
 
+export interface OnboardingPersona {
+  name: string;
+  profile: string;
+  painPoints: string;
+  buyingMotivation: string;
+}
+
 export interface OnboardingProfileData {
   name: string;
   category: string;
@@ -25,6 +32,9 @@ export interface OnboardingProfileData {
   targetAudience?: string;
   toneOfVoice?: string;
   mainBenefits?: string[];
+  cnpj?: string;
+  cnpjLocked?: boolean;
+  hasPendingCnpjRequest?: boolean;
   logos?: {
     horizontal?: OnboardingLogoData;
     vertical?: OnboardingLogoData;
@@ -38,6 +48,16 @@ export interface OnboardingProfileData {
     pdfManualPath?: string;
     pdfManualUrl?: string;
     pdfUploadedAt?: any;
+    fonts?: {
+      primaryFont?: string;
+      secondaryFont?: string;
+      style?: string;
+    };
+    extendedColors?: {
+      complementary?: string;
+      background?: string;
+    };
+    personas?: OnboardingPersona[];
     [key: string]: any;
   };
 }
@@ -64,6 +84,9 @@ const defaultOnboardingProfile: OnboardingProfileData = {
   targetAudience: "",
   toneOfVoice: "",
   mainBenefits: [],
+  cnpj: "",
+  cnpjLocked: false,
+  hasPendingCnpjRequest: false,
   logos: {
     horizontal: { url: "", width: 0, height: 0 },
     vertical: { url: "", width: 0, height: 0 },
@@ -77,6 +100,16 @@ const defaultOnboardingProfile: OnboardingProfileData = {
     pdfManualPath: "",
     pdfManualUrl: "",
     pdfUploadedAt: null,
+    fonts: {
+      primaryFont: "",
+      secondaryFont: "",
+      style: "",
+    },
+    extendedColors: {
+      complementary: "",
+      background: "",
+    },
+    personas: [],
   },
 };
 
@@ -135,14 +168,16 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
  */
 export async function updateOnboardingProfile(
   userId: string,
-  data: Partial<OnboardingProfileData>
+  data: Partial<OnboardingProfileData>,
+  options?: { merge?: boolean }
 ): Promise<void> {
   if (!userId) {
     throw new Error("UserID é necessário para atualizar o perfil de onboarding.");
   }
   try {
     const docRef = getOnboardingDocRef(userId);
-    await setDoc(docRef, data, { merge: true });
+    const merge = options?.merge !== false;
+    await setDoc(docRef, data, { merge });
     console.log(`Perfil de onboarding atualizado com sucesso para o usuário ${userId}.`);
   } catch (error) {
     console.error(`Erro ao atualizar perfil de onboarding para o usuário ${userId}:`, error);

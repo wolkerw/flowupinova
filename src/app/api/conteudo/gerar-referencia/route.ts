@@ -3,6 +3,7 @@ import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
@@ -380,11 +381,44 @@ If the image depicts a CHARACTER:
 
       let brandingInstruction = "";
       if (businessProfile) {
-        const { name, category, primaryColor, secondaryColor } = businessProfile;
+        const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+        const primaryHex = primaryColor || "#000000";
+        const secondaryHex = secondaryColor || "#FFFFFF";
+
+        let extendedColorsText = "";
+        if (brandKit?.extendedColors) {
+          if (brandKit.extendedColors.complementary) {
+            extendedColorsText += `- Complementary Color Hex: ${brandKit.extendedColors.complementary}\n`;
+          }
+          if (brandKit.extendedColors.background) {
+            extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
+          }
+        }
+
+        let fontsText = "";
+        if (brandKit?.fonts) {
+          if (brandKit.fonts.primaryFont) {
+            fontsText += `- Primary Font (Headers): "${brandKit.fonts.primaryFont}"\n`;
+          }
+          if (brandKit.fonts.secondaryFont) {
+            fontsText += `- Secondary Font (Body): "${brandKit.fonts.secondaryFont}"\n`;
+          }
+          if (brandKit.fonts.style) {
+            fontsText += `- General Typographic Style: ${brandKit.fonts.style}\n`;
+          }
+        }
+
         brandingInstruction = `
-6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryColor || "#000000"} and Secondary: ${secondaryColor || "#FFFFFF"}).
+6. BRANDING AND VISUAL PALETTE (CRITICAL BRAND MATCHING): The advertising scene surrounding the subject MUST organically represent the brand colors of "${name || "the brand"}" (Primary: ${primaryHex} and Secondary: ${secondaryHex}).
+   ${extendedColorsText ? `Additional extended brand colors to integrate:\n${extendedColorsText}` : ""}
    - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
+   - If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
    - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
+${fontsText ? `
+7. TYPOGRAPHY AND BRAND FONTS: If the layout requires text overlays, badges, or printed titles, they must follow the brand's typography system:
+   ${fontsText}
+   - Describe a clean typographic composition that uses the specified Primary Font for titles/headers or aligns with the specified General Typographic Style (e.g. "with bold modern text printed in Montserrat typeface").
+` : ""}
 `;
       }
 
@@ -684,6 +718,15 @@ ${yamlAnalysis}`;
           if (briaUrl) {
             transparentProductUrl = briaUrl;
             console.log(`[GERAR_REFERENCIA] Fundo do produto removido com sucesso: ${transparentProductUrl}`);
+
+            // Registrar log de consumo do Bria no Firestore
+            logApiUsage({
+              userId,
+              type: "background_removal",
+              provider: "falai",
+              model: "bria",
+              costUsd: 0.006
+            });
           }
         } else {
           console.warn("[GERAR_REFERENCIA] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
@@ -824,6 +867,15 @@ ${yamlAnalysis}`;
           modelUsed,
           caption,
         });
+
+        // Registrar log de consumo do Google Imagen 4
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: "google_vertex",
+          model: modelUsed || "imagen-4",
+          costUsd: 0.03
+        });
       } catch (galleryErr) {
         console.error("[IMAGEN4_REF] Erro ao salvar na galeria:", galleryErr);
       }
@@ -904,6 +956,15 @@ ${yamlAnalysis}`;
             if (briaUrl) {
               transparentProductUrl = briaUrl;
               console.log(`[NANOBANANA_REF] Fundo do produto removido com sucesso via Bria: ${transparentProductUrl}`);
+
+              // Registrar log de consumo do Bria no Firestore
+              logApiUsage({
+                userId,
+                type: "background_removal",
+                provider: "falai",
+                model: "bria",
+                costUsd: 0.006
+              });
             }
           } else {
             console.warn("[NANOBANANA_REF] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
@@ -1045,6 +1106,15 @@ Cenário e estilo desejados: ${prompt}`;
           caption,
         });
         console.log(`[NANOBANANA_REF] Imagem gravada na galeria.`);
+
+        // Registrar log de consumo do Nano Banana (Gemini 3 Pro Image)
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: "google_gemini",
+          model: modelUsed || "imagen-3.0-generate-002",
+          costUsd: 0.03
+        });
       } catch (galleryErr) {
         console.error("[NANOBANANA_REF] Erro ao salvar na galeria:", galleryErr);
       }
@@ -1271,6 +1341,15 @@ Cenário e estilo desejados: ${prompt}`;
             caption: caption || null
           });
           console.log(`[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`);
+
+          // Registrar log de consumo do Fal.ai Kontext no Firestore
+          logApiUsage({
+            userId,
+            type: "image_generation",
+            provider: "falai",
+            model: "flux-pro/kontext",
+            costUsd: 0.05
+          });
         } catch (galleryError) {
           console.error("[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:", galleryError);
         }

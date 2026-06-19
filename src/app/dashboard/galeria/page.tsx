@@ -392,7 +392,7 @@ export default function GaleriaPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleCopyText(item.caption, item.id, true);
+                                      handleCopyText(item.caption ?? null, item.id, true);
                                     }}
                                     className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-800 opacity-0 group-hover/prompt:opacity-100 transition-opacity"
                                   >

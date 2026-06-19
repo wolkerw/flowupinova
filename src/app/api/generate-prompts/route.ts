@@ -21,43 +21,114 @@ export async function POST(request: Request) {
 
     let brandingInstruction = "";
     if (businessProfile) {
-      const { name, category, primaryColor, secondaryColor } = businessProfile;
+      const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+      const primaryHex = primaryColor || "#000000";
+      const secondaryHex = secondaryColor || "#FFFFFF";
+      
+      let extendedColorsText = "";
+      if (brandKit?.extendedColors) {
+        if (brandKit.extendedColors.complementary) {
+          extendedColorsText += `- Complementary Color Hex: ${brandKit.extendedColors.complementary}\n`;
+        }
+        if (brandKit.extendedColors.background) {
+          extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
+        }
+      }
+
+      let fontsText = "";
+      if (brandKit?.fonts) {
+        if (brandKit.fonts.primaryFont) {
+          fontsText += `- Primary Font (Headers): "${brandKit.fonts.primaryFont}"\n`;
+        }
+        if (brandKit.fonts.secondaryFont) {
+          fontsText += `- Secondary Font (Body): "${brandKit.fonts.secondaryFont}"\n`;
+        }
+        if (brandKit.fonts.style) {
+          fontsText += `- General Typographic Style: ${brandKit.fonts.style}\n`;
+        }
+      }
+
       brandingInstruction = `
 # BRANDING AND VISUAL IDENTITY RULES (MANDATORY PERSONALIZATION)
 You are generating advertising images for the brand "${name || "a premium brand"}" which operates in the "${category || "general"}" niche.
 The brand's visual identity is defined by the following palette:
-- Primary Color Hex: ${primaryColor || "#000000"}
-- Secondary Color Hex: ${secondaryColor || "#FFFFFF"}
-
-Your CRITICAL mission is to strategically and organically blend these two brand colors into the scenic environment of ALL 3 image concepts:
+- Primary Color Hex: ${primaryHex}
+- Secondary Color Hex: ${secondaryHex}
+${extendedColorsText}
+Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
-2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors (e.g., if it's a coffee shop, the cup or napkins; if it's a tech office, a desk accessory; if it's a burger, the packaging or decorative details in the background).
-3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery.
+2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors.
+3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery. If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
+
+${fontsText ? `
+# TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
+When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
+${fontsText}
+Instruct the typography to be rendered using the specified Primary Font for titles/headers or using the specified General Typographic Style (e.g. "write the literal text '...' using a clean, sans-serif Montserrat font to match the brand's typography").
+` : ""}
 `;
     }
 
     // 1. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
-Você é um Diretor de Arte de Publicidade e Especialista em Engenharia de Prompts para IAs geradoras de imagem (como Imagen e Flux).
+You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
 
-# TAREFA
-Transformar o título e subtítulo recebidos em exatamente 3 prompts descritivos de imagem ultra detalhados em INGLÊS. Cada prompt representará um design/imagem conceito diferente para o mesmo post.
+# CORE MISSION
+Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
+CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 3 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: One or two REAL people (professional workers, satisfied customers, athletes, entrepreneurs — chosen based on the post topic) with confident, natural body language and expressions.
+CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slightly low angle for authority, OR eye-level for approachability.
+LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
+SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
+LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
+COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
+MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 2 — PRODUCT / MACRO / DETAIL (MANDATORY RULE: ABSOLUTELY NO PEOPLE OR HUMAN BODY PARTS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: The physical product, tool, equipment, object, or material most directly associated with the post topic — shown in EXTREME close-up detail.
+CAMERA: Macro photography or extreme close-up. Camera angle: dramatic 15–25 degree side view OR direct overhead.
+LENS: 100mm macro lens, ultra-sharp focus on the key textural detail (metallic grooves, liquid drops, fabric texture, food surface, circuit board, etc.). Shallow depth of field with creamy bokeh on edges.
+SETTING: A professional studio setup with a gradient or contrasting background — NOT outdoors.
+LIGHTING: Describe high-contrast studio lighting that creates hard specular highlights and deep dramatic shadows on the object's surface (e.g., "split studio lighting with a hard key light at 45 degrees creating deep texture shadows on the stainless steel surface, cold blue rim light on the far edge").
+COMPOSITION: Object fills 70–80% of the frame. The remaining 20–30% is background space where text is placed.
+MANDATORY PROHIBITION: Do NOT include any human body part (hands, arms, face, feet). Do NOT include natural outdoor environments.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: ABSTRACT OR SYMBOLIC — NO DIRECT PRODUCT, NO PEOPLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: A highly stylized, abstract, or symbolic visual metaphor representing the concept of the post. Think: geometric shapes, abstract color fields, artistic arrangements of minimalist props (not the main product), luxury textures (marble, silk, velvet, frosted glass), architectural details, or a graphic design-inspired composition.
+CAMERA: Overhead flat lay (top-down, 90 degrees) OR extreme wide angle for an architectural/graphic feel.
+LENS: Wide angle 24mm or tilt-shift for a clean, graphic look. Everything in sharp focus (f/8–f/11).
+SETTING: A pristine studio with a deliberately styled backdrop: solid color wall, painted concrete, brushed linen, luxury marble surface, or geometric platform arrangement.
+LIGHTING: Describe soft, even, diffused studio lighting with zero harsh shadows (e.g., "large octabox overhead diffused light, flat and even, like a luxury product catalog photograph for a high-fashion brand"). OR dramatic single-color gel-lit studio background.
+COMPOSITION: 40–50% of the frame is intentionally left as negative space (empty background) to give the text maximum visual prominence. Use asymmetric or central composition with strong graphic impact.
+MANDATORY PROHIBITION: Do NOT include real people. Do NOT include the actual product being sold. Keep it ABSTRACT and SYMBOLIC.
+
 ${brandingInstruction}
-# REGRAS CRÍTICAS DE ENGENHARIA DE PROMPT
-1. IDIOMA DO PROMPT: Redija toda a descrição visual do cenário, pessoas, pose e iluminação em INGLÊS.
-2. ELEMENTO DE TEXTO (PORTUGUÊS): Insira o título do post de forma literal dentro de aspas duplas inglesas no prompt, instruindo a IA a desenhá-lo na imagem.
-   - Exemplo: "...with the literal text "TÍTULO EXATO EM PORTUGUÊS" written in clean, modern typography...".
-3. MÁXIMO DE TEXTO: Somente inclua o título. É EXPRESSAMENTE PROIBIDO tentar incluir o subtítulo como texto na imagem, pois isso causará borrões e poluição.
-4. ESTILO VISUAL PREMIUM: Descreva uma fotografia publicitária profissional de produto ou estilo de vida ("commercial food photography", "premium editorial portrait", etc.), detalhando a iluminação (ex: "studio lighting", "soft natural morning light"), lente de câmera (ex: "35mm lens, sharp focus") e profundidade de campo (ex: "depth of field, beautiful bokeh").
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CRITICAL PROMPT ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. LANGUAGE: Write all visual descriptions in English only.
+2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
+   - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
+   - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
+3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
+4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 3 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
+5. MINIMUM LENGTH: Each prompt must be at least 120 words to ensure sufficient detail.
 
-# FORMATO DE SAÍDA EXIGIDO (JSON ESTRITO)
-Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, conclusão ou marcações markdown:
+# REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {
   "prompts": [
-    "A professional commercial food photography of a fresh tasty hamburger... with the literal text 'TITULO'...",
-    "A professional lifestyle photography of a cozy gourmet restaurant... with the literal text 'TITULO'...",
-    "A professional flat lay studio photography showing organic burger ingredients... with the literal text 'TITULO'..."
+    "[OPTION 1 — LIFESTYLE] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
+    "[OPTION 2 — MACRO PRODUCT] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
+    "[OPTION 3 — CONCEPTUAL MINIMALIST] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
   ]
 }
 `;
@@ -90,7 +161,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
               }
             ],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 1.2,
               responseMimeType: "application/json"
             }
           })
