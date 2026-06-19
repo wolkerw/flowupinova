@@ -69,6 +69,7 @@ import {
 } from "@/lib/services/instagram-service";
 import { getGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
 import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
+import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Slider } from "@/components/ui/slider";
@@ -825,12 +826,135 @@ const FacebookPreview = ({
   );
 };
 
+const GooglePreview = ({
+  mediaItems,
+  user,
+  text,
+  googleConnection,
+  businessProfile,
+  gmbProfile = null,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
+  contentType,
+  brandKitPrimaryColor,
+  isFinalPreview,
+}: {
+  mediaItems: MediaItem[];
+  user: any;
+  text: string;
+  googleConnection: GoogleConnectionData | null;
+  businessProfile: OnboardingProfileData | null;
+  gmbProfile?: BusinessProfileData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
+  contentType?: ContentType | null;
+  brandKitPrimaryColor?: string;
+  isFinalPreview?: boolean;
+}) => {
+  const getAvatarFallback = () => {
+    if (gmbProfile?.name) return gmbProfile.name.charAt(0).toUpperCase();
+    if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    return "G";
+  };
+
+  const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+  const isCarousel = mediaItems.length > 1;
+
+  const businessName = gmbProfile?.name || businessProfile?.name || "Minha Empresa";
+  const avatarUrl = gmbProfile?.logo?.url || businessProfile?.logo?.url || user?.photoURL || undefined;
+
+  return (
+    <div className="flex w-full flex-col rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {isCarousel && (
+        <div className="flex items-start gap-2 border-b bg-yellow-50 p-3 text-sm text-yellow-800">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <span>
+            Apenas a primeira imagem será postada no Google Meu Negócio, pois a plataforma não permite
+            publicar carrosséis diretamente.
+          </span>
+        </div>
+      )}
+
+      {(contentType === "story" || contentType === "reels") && (
+        <div className="flex items-start gap-2 border-b bg-blue-50 p-3 text-sm text-blue-800">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          <span>
+            O formato {contentType === "story" ? "Story" : "Reels"} será publicado como uma atualização padrão (post) no Google Meu Negócio.
+          </span>
+        </div>
+      )}
+
+      {/* Google Maps / Search Style Header */}
+      <div className="flex items-start justify-between p-4 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Avatar className="h-10 w-10 border border-gray-100">
+              <AvatarImage src={avatarUrl} />
+              <AvatarFallback className="bg-blue-600 text-white font-bold">{getAvatarFallback()}</AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-1.5 -right-1.5 rounded-full bg-white p-0.5 shadow-sm">
+              <svg className="h-4 w-4 text-[#1a73e8]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.7 3.1 5.51l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium text-gray-900 leading-none pb-0.5">
+                {businessName}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-gray-500">há 2 minutos</p>
+            </div>
+          </div>
+        </div>
+        <MoreVertical className="h-5 w-5 cursor-pointer text-gray-500" />
+      </div>
+
+      {/* Image Container with black background letterboxing */}
+      <div className="relative aspect-[4/3] w-full bg-black flex items-center justify-center border-y border-gray-100">
+        {singleItem ? (
+          <Image
+            src={singleItem.publicUrl || singleItem.previewUrl}
+            alt="Preview Google"
+            layout="fill"
+            objectFit="contain"
+            unoptimized
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+            <ImageIcon className="h-12 w-12 text-gray-300 mb-2" />
+            <span className="text-xs">Nenhuma imagem anexada</span>
+          </div>
+        )}
+        {singleItem && !isFinalPreview && (
+          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        )}
+      </div>
+
+      {/* Caption text below image */}
+      <div className="px-4 pt-3 pb-4 text-sm text-gray-800 leading-relaxed">
+        <p className="whitespace-pre-wrap">{text || "legenda"}</p>
+      </div>
+    </div>
+  );
+};
+
 const FinalPreview = ({
   mediaItems,
   user,
   text,
   metaConnection,
   instagramConnection,
+  googleConnection,
+  businessProfile,
+  gmbProfile = null,
   contentType,
   storyAdaptationMode,
   brandKitPrimaryColor,
@@ -844,6 +968,9 @@ const FinalPreview = ({
   text: string;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
+  googleConnection: GoogleConnectionData | null;
+  businessProfile: OnboardingProfileData | null;
+  gmbProfile?: BusinessProfileData | null;
   contentType?: ContentType | null;
   storyAdaptationMode?: "blur" | "crop" | "solid";
   brandKitPrimaryColor?: string;
@@ -855,7 +982,7 @@ const FinalPreview = ({
   return (
     <div className="w-full max-w-sm">
       <Tabs defaultValue="instagram">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="instagram">
             <Instagram className="mr-2 h-4 w-4" />
             Instagram
@@ -863,6 +990,10 @@ const FinalPreview = ({
           <TabsTrigger value="facebook">
             <Facebook className="mr-2 h-4 w-4" />
             Facebook
+          </TabsTrigger>
+          <TabsTrigger value="google">
+            <Store className="mr-2 h-4 w-4" />
+            Google
           </TabsTrigger>
         </TabsList>
         <TabsContent value="instagram" className="mt-4">
@@ -893,6 +1024,23 @@ const FinalPreview = ({
             logoOpacity={logoOpacity}
             contentType={contentType}
             storyAdaptationMode={storyAdaptationMode}
+            brandKitPrimaryColor={brandKitPrimaryColor}
+            isFinalPreview={true}
+          />
+        </TabsContent>
+        <TabsContent value="google" className="mt-4">
+          <GooglePreview
+            mediaItems={mediaItems}
+            user={user}
+            text={text}
+            googleConnection={googleConnection}
+            businessProfile={businessProfile}
+            gmbProfile={gmbProfile}
+            logoPreviewUrl={logoPreviewUrl}
+            logoPosition={logoPosition}
+            visualLogoScale={visualLogoScale}
+            logoOpacity={logoOpacity}
+            contentType={contentType}
             brandKitPrimaryColor={brandKitPrimaryColor}
             isFinalPreview={true}
           />
@@ -938,6 +1086,7 @@ export default function CriarConteudoPage() {
     null
   );
   const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
+  const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -962,12 +1111,14 @@ export default function CriarConteudoPage() {
       getMetaConnection(user.uid),
       getInstagramConnection(user.uid),
       getGoogleConnection(user.uid),
-      getOnboardingProfile(user.uid)
-    ]).then(([metaConn, instaConn, googleConn, profile]) => {
+      getOnboardingProfile(user.uid),
+      getBusinessProfile(user.uid)
+    ]).then(([metaConn, instaConn, googleConn, profile, gmbProf]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
       setGoogleConnection(googleConn);
       setBusinessProfile(profile);
+      setGmbProfile(gmbProf);
       
       const initialPlatforms: Platform[] = [];
       if (metaConn?.isConnected) initialPlatforms.push("facebook");
@@ -2057,7 +2208,7 @@ export default function CriarConteudoPage() {
               <div className="sticky top-24 w-full">
                 <div className="w-full max-w-sm">
                   <Tabs defaultValue="instagram">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="instagram">
                         <Instagram className="mr-2 h-4 w-4" />
                         Instagram
@@ -2065,6 +2216,10 @@ export default function CriarConteudoPage() {
                       <TabsTrigger value="facebook">
                         <Facebook className="mr-2 h-4 w-4" />
                         Facebook
+                      </TabsTrigger>
+                      <TabsTrigger value="google">
+                        <Store className="mr-2 h-4 w-4" />
+                        Google
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="instagram" className="mt-4">
@@ -2094,6 +2249,22 @@ export default function CriarConteudoPage() {
                         logoOpacity={logoOpacity}
                         contentType={selectedType}
                         storyAdaptationMode={storyAdaptationMode}
+                        brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}
+                      />
+                    </TabsContent>
+                    <TabsContent value="google" className="mt-4">
+                      <GooglePreview
+                        mediaItems={mediaItems}
+                        user={user}
+                        text={text}
+                        googleConnection={googleConnection}
+                        businessProfile={businessProfile}
+                        gmbProfile={gmbProfile}
+                        logoPreviewUrl={logoPreviewUrl}
+                        logoPosition={logoPosition}
+                        visualLogoScale={visualLogoScale}
+                        logoOpacity={logoOpacity}
+                        contentType={selectedType}
                         brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}
                       />
                     </TabsContent>
@@ -2141,6 +2312,8 @@ export default function CriarConteudoPage() {
                     text={text}
                     metaConnection={metaConnection}
                     instagramConnection={instagramConnection}
+                    googleConnection={googleConnection}
+                    businessProfile={businessProfile}
                     contentType={selectedType}
                     storyAdaptationMode={storyAdaptationMode}
                     brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}

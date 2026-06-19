@@ -56,6 +56,7 @@ export const Step5ReviewPublish = () => {
     mode,
     isGeneratingCaption,
     handleGenerateCaption,
+    businessProfile,
   } = useWizard();
 
   const selectedContent = selectedContentId !== undefined 
@@ -125,6 +126,7 @@ export const Step5ReviewPublish = () => {
                   user={user}
                   metaConnection={metaConnection}
                   instagramConnection={instagramConnection}
+                  businessProfile={businessProfile}
                   platforms={platforms}
                 />
               </div>
