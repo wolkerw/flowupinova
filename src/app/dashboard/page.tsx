@@ -409,7 +409,23 @@ export default function Dashboard() {
             createdAt: msg.createdAt, // Preservar a data de criação original lida do Firestore
           }));
           setMessages(historyMessages);
+        } else {
+          // Usuário já usou o chat antes, mas sem conversas hoje. Exibe saudação amigável de retorno.
+          setMessages([
+            {
+              sender: "ai",
+              text: "Olá! Que prazer ter você aqui de novo. Como posso ajudar você a decolar hoje? ✨",
+            }
+          ]);
         }
+      } else {
+        // Primeiro acesso absoluto do usuário no chat. Exibe mensagem de boas-vindas introdutória.
+        setMessages([
+          {
+            sender: "ai",
+            text: "Olá! Sou o **Vapti**, e a partir de hoje serei o seu braço direito no marketing para decolar o seu negócio. Como posso ajudar você hoje? 🚀",
+          }
+        ]);
       }
     };
 
