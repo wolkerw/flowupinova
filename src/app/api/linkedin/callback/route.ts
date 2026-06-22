@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
     // O endpoint correto é /organizationAcls (não /organizationalAccessControl que retorna 404)
-    const linkedinVersion = "202501";
+    const linkedinVersion = "202404";
     const orgsUrl = "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee";
     const orgsResponse = await fetch(orgsUrl, {
       headers: {
