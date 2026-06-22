@@ -46,9 +46,11 @@ export const Step2TextSelection = () => {
     fluxImageUrl,
   } = useWizard();
 
+  const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
+
   const onBack = () => setStep(1);
   const onNext = () => {
-    if (mode === "reference-photo") {
+    if (isSyncImageMode) {
       setStep(3);
     } else {
       handleGeneratePrompts();
@@ -134,7 +136,7 @@ export const Step2TextSelection = () => {
             onClick={() => onNext()}
             disabled={
               !selectedContentId ||
-              (mode === "reference-photo" && (!selectedImage || isGeneratingImages))
+              (isSyncImageMode && (!selectedImage || isGeneratingImages))
             }
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >
@@ -144,7 +146,7 @@ export const Step2TextSelection = () => {
         </CardFooter>
       </Card>
 
-      {mode === "reference-photo" ? (
+      {isSyncImageMode ? (
         <div className="flex h-full w-full flex-col items-center justify-start gap-4">
           <Card className="w-full max-w-md overflow-hidden border-none shadow-lg">
             <CardContent className="pt-6">
