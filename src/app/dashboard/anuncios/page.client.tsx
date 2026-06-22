@@ -1549,6 +1549,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const isGoogleActive = !!(googleAdsConnection.isConnected && googleAdsConnection.adAccountId);
   const isAnyActive = isMetaActive || isGoogleActive;
 
+  useEffect(() => {
+    if (isMetaActive && !isGoogleActive) {
+      setActivePlatformTab("meta");
+    } else if (isGoogleActive && !isMetaActive) {
+      setActivePlatformTab("google");
+    }
+  }, [isMetaActive, isGoogleActive]);
+
   return (
     <div className="container mx-auto max-w-7xl p-6 font-sans text-slate-800">
       {/* HEADER PRINCIPAL */}
@@ -1686,7 +1694,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         )}
 
       {/* ONBOARDING / CONFIGURAÇÃO DE CONEXÃO META ADS */}
-      {!isCreating && user && (
+      {!isCreating && user && !isMetaActive && !isGoogleActive && (
         <div className="mb-8">
           {isConnectingMeta ? (
             <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
