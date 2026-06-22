@@ -77,31 +77,41 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) throw new Error("Token de acesso não retornado.");
 
-    // 2. Obter perfil do membro (OpenID Connect) se o escopo openid estiver autorizado
+    // 2. Obter perfil do membro via /rest/me (scope r_basicprofile)
+    // Não usamos /v2/userinfo pois requer openid scope que conflita com Community Management API
     let personName = "LinkedIn User";
     let personUrn = "";
     let profilePictureUrl: string | null = null;
 
     try {
-      const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const profileResponse = await fetch("https://api.linkedin.com/rest/me", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "LinkedIn-Version": "202505",
+          "X-Restli-Protocol-Version": "2.0.0",
+        },
       });
+
+      console.log("[LINKEDIN_CALLBACK_DEBUG] /rest/me status:", profileResponse.status);
 
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        personName = profileData.name || `${profileData.given_name} ${profileData.family_name}`;
-        personUrn = `urn:li:person:${profileData.sub}`;
-        profilePictureUrl = profileData.picture || null;
+        personName = profileData.localizedFirstName && profileData.localizedLastName
+          ? `${profileData.localizedFirstName} ${profileData.localizedLastName}`
+          : (profileData.localizedFirstName || "LinkedIn User");
+        personUrn = profileData.id ? `urn:li:person:${profileData.id}` : "";
+        console.log("[LINKEDIN_CALLBACK_DEBUG] Perfil obtido:", personName, personUrn);
       } else {
-        console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter dados do perfil via OpenID Connect. Código HTTP:", profileResponse.status);
+        const errText = await profileResponse.text();
+        console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /rest/me. Status:", profileResponse.status, errText);
       }
     } catch (profileErr: any) {
-      console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter dados do perfil via OpenID Connect:", profileErr.message);
+      console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil:", profileErr.message);
     }
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
-    // O endpoint correto é /organizationAcls (não /organizationalAccessControl que retorna 404)
-    const linkedinVersion = "202404";
+    // Endpoint: /rest/organizationAcls com scope rw_organization_admin (versão 202505)
+    const linkedinVersion = "202505";
     const orgsUrl = "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee";
     const orgsResponse = await fetch(orgsUrl, {
       headers: {
