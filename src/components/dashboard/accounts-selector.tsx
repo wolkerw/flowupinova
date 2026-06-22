@@ -101,9 +101,11 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        <span className="text-xs text-slate-500 font-medium">Buscando contas de anúncios da Meta...</span>
+        <span className="text-xs font-medium text-slate-500">
+          Buscando contas de anúncios da Meta...
+        </span>
       </div>
     );
   }
@@ -113,27 +115,29 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
   }
 
   return (
-    <div className="p-5 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 hover:shadow-md">
+    <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm transition-all duration-300 hover:shadow-md md:flex-row md:items-center">
       <div className="flex items-center gap-3.5">
-        <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+        <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
           <Megaphone className="h-5 w-5" />
         </div>
         <div>
-          <h4 className="text-sm font-bold text-slate-900 leading-tight">Configurações de Anúncios</h4>
-          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+          <h4 className="text-sm font-bold leading-tight text-slate-900">
+            Configurações de Anúncios
+          </h4>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
             Selecione qual conta de anúncios ativa receberá as cobranças do cartão.
           </p>
         </div>
       </div>
 
-      <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center md:w-auto">
         {error ? (
-          <div className="flex items-center gap-2 text-xs text-red-500 bg-red-50/50 border border-red-100 p-2.5 rounded-lg max-w-md">
+          <div className="flex max-w-md items-center gap-2 rounded-lg border border-red-100 bg-red-50/50 p-2.5 text-xs text-red-500">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50/50 border border-amber-100 p-2.5 rounded-lg">
+          <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 p-2.5 text-xs text-amber-600">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>Nenhuma conta de anúncios encontrada nesta conta da Meta.</span>
           </div>
@@ -143,9 +147,11 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
               value={selectedAccountId}
               onChange={handleAccountChange}
               disabled={saving}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50 appearance-none pr-8 cursor-pointer"
+              className="w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white px-3.5 py-2 pr-8 text-xs font-semibold text-slate-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
             >
-              <option value="" disabled>-- Selecione a Conta de Anúncios --</option>
+              <option value="" disabled>
+                -- Selecione a Conta de Anúncios --
+              </option>
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
                   {acc.name} ({acc.id})
@@ -156,8 +162,12 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
               ) : (
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                <svg
+                  className="h-4 w-4 fill-current"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                 </svg>
               )}
             </div>
@@ -165,7 +175,7 @@ export default function AccountsSelector({ userId, onAccountSelected }: Accounts
         )}
 
         {selectedAccountId && !saving && !error && (
-          <div className="flex items-center justify-center gap-1.5 bg-green-500/10 text-green-700 px-3.5 py-2 rounded-lg text-xs font-bold border border-green-500/10">
+          <div className="flex items-center justify-center gap-1.5 rounded-lg border border-green-500/10 bg-green-500/10 px-3.5 py-2 text-xs font-bold text-green-700">
             <Check className="h-3.5 w-3.5" />
             Viculado
           </div>

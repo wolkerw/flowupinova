@@ -58,8 +58,7 @@ export async function getGlobalSettings(): Promise<GlobalSettings> {
         data.generateImagesFalaiWebhook || DEFAULT_SETTINGS.generateImagesFalaiWebhook,
       analisarPresencaWebhook:
         data.analisarPresencaWebhook || DEFAULT_SETTINGS.analisarPresencaWebhook,
-      generateAvatarWebhook:
-        data.generateAvatarWebhook || DEFAULT_SETTINGS.generateAvatarWebhook,
+      generateAvatarWebhook: data.generateAvatarWebhook || DEFAULT_SETTINGS.generateAvatarWebhook,
       serverTimeout: data.serverTimeout || DEFAULT_SETTINGS.serverTimeout,
     };
   } catch (error) {

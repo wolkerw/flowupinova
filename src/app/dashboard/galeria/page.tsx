@@ -109,8 +109,8 @@ export default function GaleriaPage() {
     setCopiedId(id);
     toast({
       title: isCaption ? "Conteúdo Copiado!" : "Prompt Copiado!",
-      description: isCaption 
-        ? "O conteúdo gerado foi copiado para a sua área de transferência." 
+      description: isCaption
+        ? "O conteúdo gerado foi copiado para a sua área de transferência."
         : "O prompt de geração foi copiado para a sua área de transferência.",
     });
     setTimeout(() => setCopiedId(null), 2500);
@@ -235,17 +235,18 @@ export default function GaleriaPage() {
     <div className="mx-auto max-w-7xl space-y-8 p-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-blue-500 animate-pulse" />
+          <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
+            <Sparkles className="h-8 w-8 animate-pulse text-blue-500" />
             Minha Galeria NumVapt
           </h1>
           <p className="mt-1 text-gray-600">
-            Gerencie todas as imagens criadas por Inteligência Artificial e reutilize-as de imediato.
+            Gerencie todas as imagens criadas por Inteligência Artificial e reutilize-as de
+            imediato.
           </p>
         </div>
       </div>
 
-      <Card className="border-none shadow-lg bg-white/70 backdrop-blur-md">
+      <Card className="border-none bg-white/70 shadow-lg backdrop-blur-md">
         <CardHeader className="pb-0">
           <Tabs
             defaultValue="unused"
@@ -254,7 +255,7 @@ export default function GaleriaPage() {
             className="w-full"
           >
             <div className="flex flex-col items-start justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
-              <TabsList className="grid grid-cols-3 bg-gray-100/80 p-1 w-full max-w-md">
+              <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100/80 p-1">
                 <TabsTrigger value="unused" className="rounded-md py-1.5 text-xs font-medium">
                   Não Publicadas
                 </TabsTrigger>
@@ -265,20 +266,22 @@ export default function GaleriaPage() {
                   Todas
                 </TabsTrigger>
               </TabsList>
-              
-              <div className="text-xs text-gray-500 flex items-center gap-1.5 font-medium bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full border border-blue-100">
+
+              <div className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 text-gray-500">
                 <ImageIcon className="h-4 w-4" />
                 Total no acervo: <span className="font-bold">{mediaItems.length} imagens</span>
               </div>
             </div>
           </Tabs>
         </CardHeader>
-        
-        <CardContent className="pt-6 min-h-[350px]">
+
+        <CardContent className="min-h-[350px] pt-6">
           {isLoading ? (
             <div className="flex h-64 flex-col items-center justify-center gap-2">
               <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-              <p className="text-sm text-gray-500 font-medium">Carregando seu acervo de imagens...</p>
+              <p className="text-sm font-medium text-gray-500">
+                Carregando seu acervo de imagens...
+              </p>
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
@@ -291,10 +294,13 @@ export default function GaleriaPage() {
                   {activeTab === "used" && "Nenhum post publicado com imagens do acervo"}
                   {activeTab === "all" && "Sua galeria está vazia"}
                 </h3>
-                <p className="mt-1 text-sm text-gray-600 max-w-sm">
-                  {activeTab === "unused" && "Todas as imagens de IA geradas no assistente já foram publicadas! Gere novos posts automatizados para alimentar seu acervo."}
-                  {activeTab === "used" && "As imagens que você usar e publicar no assistente aparecerão marcadas aqui."}
-                  {activeTab === "all" && "Gere ideias com o assistente de IA. Todos os conceitos gerados (como do Imagen 4 Ultra) serão salvos aqui automaticamente!"}
+                <p className="mt-1 max-w-sm text-sm text-gray-600">
+                  {activeTab === "unused" &&
+                    "Todas as imagens de IA geradas no assistente já foram publicadas! Gere novos posts automatizados para alimentar seu acervo."}
+                  {activeTab === "used" &&
+                    "As imagens que você usar e publicar no assistente aparecerão marcadas aqui."}
+                  {activeTab === "all" &&
+                    "Gere ideias com o assistente de IA. Todos os conceitos gerados (como do Imagen 4 Ultra) serão salvos aqui automaticamente!"}
                 </p>
               </div>
             </div>
@@ -324,27 +330,27 @@ export default function GaleriaPage() {
                         unoptimized
                         className="transition-transform duration-500 ease-out group-hover:scale-105"
                       />
-                      
+
                       {/* Badge de Status */}
                       <div className="absolute left-3 top-3 z-10">
                         {item.usedInPostId === null ? (
-                          <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none shadow-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                          <Badge className="flex items-center gap-1 rounded-full border-none bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm hover:bg-emerald-600">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                             Disponível
                           </Badge>
                         ) : (
-                          <Badge className="bg-blue-500 hover:bg-blue-600 border-none shadow-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          <Badge className="rounded-full border-none bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm hover:bg-blue-600">
                             Publicada
                           </Badge>
                         )}
                       </div>
 
                       {/* Overlays rápidos de Hover */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center gap-3">
+                      <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="rounded-full shadow-md hover:bg-white flex items-center gap-1.5 text-xs font-bold"
+                          className="flex items-center gap-1.5 rounded-full text-xs font-bold shadow-md hover:bg-white"
                           onClick={() => handleCreatePost(item)}
                         >
                           <Send className="h-3.5 w-3.5" />
@@ -353,7 +359,7 @@ export default function GaleriaPage() {
                         <Button
                           size="icon"
                           variant="secondary"
-                          className="h-8 w-8 rounded-full shadow-md hover:bg-white hover:text-blue-600 transition-colors"
+                          className="h-8 w-8 rounded-full shadow-md transition-colors hover:bg-white hover:text-blue-600"
                           disabled={isDownloading === item.url}
                           onClick={() => handleDownloadImage(item.url, item.fileName)}
                         >
@@ -375,26 +381,28 @@ export default function GaleriaPage() {
                     </div>
 
                     {/* Conteúdo Informativo */}
-                    <div className="flex flex-1 flex-col justify-between p-4 space-y-3 bg-white">
+                    <div className="flex flex-1 flex-col justify-between space-y-3 bg-white p-4">
                       <div className="space-y-1.5">
-                        <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400">
                           <Calendar className="h-3 w-3" />
                           {formatItemDate(item.createdAt)}
                         </span>
-                        
+
                         {/* Box de Conteúdo/Legenda Gerada */}
                         {item.caption && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="group/prompt relative rounded-lg bg-gray-50 border border-gray-100 p-2.5 text-xs text-gray-600 line-clamp-2 cursor-help pr-8">
-                                  <p className="whitespace-normal leading-relaxed">{item.caption}</p>
+                                <div className="group/prompt relative line-clamp-2 cursor-help rounded-lg border border-gray-100 bg-gray-50 p-2.5 pr-8 text-xs text-gray-600">
+                                  <p className="whitespace-normal leading-relaxed">
+                                    {item.caption}
+                                  </p>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCopyText(item.caption ?? null, item.id, true);
                                     }}
-                                    className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-800 opacity-0 group-hover/prompt:opacity-100 transition-opacity"
+                                    className="absolute right-2 top-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-200 hover:text-gray-800 group-hover/prompt:opacity-100"
                                   >
                                     {copiedId === item.id ? (
                                       <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
@@ -404,8 +412,8 @@ export default function GaleriaPage() {
                                   </button>
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent className="max-w-xs bg-slate-900 border-none text-white p-3 text-xs leading-relaxed rounded-lg shadow-lg">
-                                <p className="font-semibold mb-1 text-[10px] text-blue-400">
+                              <TooltipContent className="max-w-xs rounded-lg border-none bg-slate-900 p-3 text-xs leading-relaxed text-white shadow-lg">
+                                <p className="mb-1 text-[10px] font-semibold text-blue-400">
                                   CONTEÚDO GERADO:
                                 </p>
                                 <p>{item.caption}</p>
@@ -416,24 +424,24 @@ export default function GaleriaPage() {
                       </div>
 
                       {/* Botões de Ação na base */}
-                      <div className="flex gap-2 w-full">
+                      <div className="flex w-full gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-xs font-semibold hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors border-gray-200"
+                          className="flex-1 border-gray-200 text-xs font-semibold transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                           onClick={() => handleCreatePost(item)}
                         >
                           <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                           Usar em Post
                         </Button>
-                        
+
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-9 w-9 shrink-0 text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors border-gray-200"
+                                className="h-9 w-9 shrink-0 border-gray-200 text-gray-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                                 disabled={isDownloading === item.url}
                                 onClick={() => handleDownloadImage(item.url, item.fileName)}
                               >
@@ -444,7 +452,7 @@ export default function GaleriaPage() {
                                 )}
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent className="bg-slate-950 border-none text-white text-[10px] rounded px-2 py-1 shadow">
+                            <TooltipContent className="rounded border-none bg-slate-950 px-2 py-1 text-[10px] text-white shadow">
                               Baixar imagem
                             </TooltipContent>
                           </Tooltip>

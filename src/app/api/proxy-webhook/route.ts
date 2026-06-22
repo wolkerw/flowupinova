@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
       // Fallback estático
       const DEFAULT_POST_MANUAL = "https://webhook.flowupinova.com.br/webhook/post_manual";
       const DEFAULT_IMG_NO_LOGO = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
-      const DEFAULT_ANALISAR_PRESENCA = "https://webhook.flowupinova.com.br/webhook/analisar-presenca";
+      const DEFAULT_ANALISAR_PRESENCA =
+        "https://webhook.flowupinova.com.br/webhook/analisar-presenca";
       if (target === "post_manual") webhookUrl = DEFAULT_POST_MANUAL;
       else if (target === "imagem_sem_logo") webhookUrl = DEFAULT_IMG_NO_LOGO;
       else if (target === "analisar_presenca") webhookUrl = DEFAULT_ANALISAR_PRESENCA;

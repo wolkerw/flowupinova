@@ -357,7 +357,9 @@ export default function AvatarPage() {
 
   const handleGenerate = async () => {
     if (!file || (!prompt.trim() && !styleFile) || !user) {
-      setError("Por favor, selecione a sua selfie e descreva o estilo ou envie uma foto profissional de estilo.");
+      setError(
+        "Por favor, selecione a sua selfie e descreva o estilo ou envie uma foto profissional de estilo."
+      );
       return;
     }
 
@@ -422,15 +424,19 @@ export default function AvatarPage() {
       `}</style>
 
       {/* Cabeçalho Premium com Efeito Glow */}
-      <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-slate-900/40 p-6 md:p-8 backdrop-blur-md shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl border border-primary/15 bg-slate-900/40 p-6 shadow-2xl backdrop-blur-md md:p-8">
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/10 blur-3xl" />
         <div className="relative z-10 space-y-3">
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Retrato <span className="bg-gradient-to-r from-sky-400 via-blue-500 to-accent bg-clip-text text-transparent">Profissional IA</span>
+            Retrato{" "}
+            <span className="bg-gradient-to-r from-sky-400 via-blue-500 to-accent bg-clip-text text-transparent">
+              Profissional IA
+            </span>
           </h1>
-          <p className="max-w-2xl text-sm md:text-base text-slate-300">
-            Transforme uma selfie comum em um retrato corporativo e profissional realista de estúdio usando IA de ponta.
+          <p className="max-w-2xl text-sm text-slate-300 md:text-base">
+            Transforme uma selfie comum em um retrato corporativo e profissional realista de estúdio
+            usando IA de ponta.
           </p>
         </div>
       </div>
@@ -438,13 +444,13 @@ export default function AvatarPage() {
       {/* Grid de Configurações Lado a Lado (Etapa 1 e 2) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Bloco 1: Fotos de Referência */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 md:p-8 backdrop-blur-md shadow-2xl space-y-6 flex flex-col justify-between">
+        <div className="flex flex-col justify-between space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md md:p-8">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-sky-400 ring-1 ring-primary/30">
                 1
               </span>
-              <h2 className="text-lg font-bold text-white tracking-wide">
+              <h2 className="text-lg font-bold tracking-wide text-white">
                 Envie as Fotos de Referência
               </h2>
             </div>
@@ -452,14 +458,14 @@ export default function AvatarPage() {
             <div className="grid grid-cols-2 gap-4">
               {/* Coluna 1: Foto do Rosto */}
               <div className="space-y-3">
-                <label className="h-8 flex items-end text-xs font-bold text-slate-300 uppercase tracking-wider leading-tight">
+                <label className="flex h-8 items-end text-xs font-bold uppercase leading-tight tracking-wider text-slate-300">
                   Foto do Rosto (Selfie - Obrigatório)
                 </label>
                 <div
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onClick={triggerFileInput}
-                  className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-300 min-h-[200px] ${
+                  className={`group relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-300 ${
                     previewUrl
                       ? "border-primary bg-sky-950/10 shadow-[0_0_15px_rgba(0,131,199,0.15)]"
                       : "border-slate-800 bg-slate-950/40 hover:border-primary/60 hover:bg-sky-950/5 hover:shadow-[0_0_20px_rgba(0,131,199,0.05)]"
@@ -483,7 +489,7 @@ export default function AvatarPage() {
                         />
                       </div>
                       <div>
-                        <p className="text-[11px] text-slate-300 truncate max-w-[150px] mx-auto font-medium">
+                        <p className="mx-auto max-w-[150px] truncate text-[11px] font-medium text-slate-300">
                           Carregada: <span className="font-semibold text-white">{file?.name}</span>
                         </p>
                         <button
@@ -500,13 +506,11 @@ export default function AvatarPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 border border-slate-800 text-slate-400 transition-colors group-hover:bg-primary/20 group-hover:text-sky-400 group-hover:border-primary/30">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 transition-colors group-hover:border-primary/30 group-hover:bg-primary/20 group-hover:text-sky-400">
                         <Upload className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">
-                          Selfie do seu Rosto
-                        </p>
+                        <p className="text-xs font-bold text-white">Selfie do seu Rosto</p>
                         <p className="mt-1 text-[10px] text-slate-400">
                           Clique ou solte a foto aqui
                         </p>
@@ -518,14 +522,14 @@ export default function AvatarPage() {
 
               {/* Coluna 2: Foto de Estilo (Opcional) */}
               <div className="space-y-3">
-                <label className="h-8 flex items-end text-xs font-bold text-slate-300 uppercase tracking-wider leading-tight">
+                <label className="flex h-8 items-end text-xs font-bold uppercase leading-tight tracking-wider text-slate-300">
                   Foto de Estilo (Opcional)
                 </label>
                 <div
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleStyleDrop}
                   onClick={triggerStyleFileInput}
-                  className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-300 min-h-[200px] ${
+                  className={`group relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-300 ${
                     stylePreviewUrl
                       ? "border-primary bg-sky-950/10 shadow-[0_0_15px_rgba(0,131,199,0.15)]"
                       : "border-slate-800 bg-slate-950/40 hover:border-primary/60 hover:bg-sky-950/5 hover:shadow-[0_0_20px_rgba(0,131,199,0.05)]"
@@ -549,8 +553,9 @@ export default function AvatarPage() {
                         />
                       </div>
                       <div>
-                        <p className="text-[11px] text-slate-300 truncate max-w-[150px] mx-auto font-medium">
-                          Carregado: <span className="font-semibold text-white">{styleFile?.name}</span>
+                        <p className="mx-auto max-w-[150px] truncate text-[11px] font-medium text-slate-300">
+                          Carregado:{" "}
+                          <span className="font-semibold text-white">{styleFile?.name}</span>
                         </p>
                         <button
                           type="button"
@@ -566,16 +571,12 @@ export default function AvatarPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 border border-slate-800 text-slate-400 transition-colors group-hover:bg-primary/20 group-hover:text-sky-400 group-hover:border-primary/30">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 transition-colors group-hover:border-primary/30 group-hover:bg-primary/20 group-hover:text-sky-400">
                         <Upload className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">
-                          Retrato de Estilo
-                        </p>
-                        <p className="mt-1 text-[10px] text-slate-400">
-                          Copie roupas e cenário
-                        </p>
+                        <p className="text-xs font-bold text-white">Retrato de Estilo</p>
+                        <p className="mt-1 text-[10px] text-slate-400">Copie roupas e cenário</p>
                       </div>
                     </div>
                   )}
@@ -585,28 +586,35 @@ export default function AvatarPage() {
           </div>
 
           {/* Recomendações */}
-          <div className="flex gap-3.5 rounded-2xl bg-gradient-to-r from-sky-950/20 to-slate-900/10 border border-primary/10 p-4 text-xs text-slate-300 mt-4">
-            <Info className="h-4.5 w-4.5 flex-shrink-0 text-sky-400 mt-0.5" />
+          <div className="mt-4 flex gap-3.5 rounded-2xl border border-primary/10 bg-gradient-to-r from-sky-950/20 to-slate-900/10 p-4 text-xs text-slate-300">
+            <Info className="h-4.5 w-4.5 mt-0.5 flex-shrink-0 text-sky-400" />
             <div className="space-y-1">
               <span className="font-bold text-white">Dicas para melhor resultado:</span>
-              <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-slate-300">
-                <li><span className="text-sky-300 font-medium">Selfie:</span> Rosto de frente, boa iluminação e foco nítido.</li>
-                <li><span className="text-sky-300 font-medium">Foto de Estilo:</span> A IA extrairá a pose, cenário e vestimenta desta foto.</li>
+              <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-300">
+                <li>
+                  <span className="font-medium text-sky-300">Selfie:</span> Rosto de frente, boa
+                  iluminação e foco nítido.
+                </li>
+                <li>
+                  <span className="font-medium text-sky-300">Foto de Estilo:</span> A IA extrairá a
+                  pose, cenário e vestimenta desta foto.
+                </li>
               </ul>
             </div>
           </div>
         </div>
 
         {/* Bloco 2: Configuração de Prompt */}
-        <div className="relative rounded-3xl border border-slate-800 bg-slate-900/60 p-6 md:p-8 backdrop-blur-md shadow-2xl flex flex-col justify-between min-h-[460px]">
+        <div className="relative flex min-h-[460px] flex-col justify-between rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md md:p-8">
           {styleFile && (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-3xl bg-slate-950/85 p-6 text-center backdrop-blur-sm transition-all duration-300">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/20 text-sky-400 border border-primary/30 shadow-md">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-primary/20 text-sky-400 shadow-md">
                 <Info className="h-6 w-6" />
               </div>
-              <p className="mt-3 text-sm font-bold text-white tracking-wide">Etapa 2 Desativada</p>
-              <p className="mt-2 max-w-[280px] text-xs text-slate-300 leading-relaxed">
-                Como você enviou uma <strong>Foto de Estilo Profissional</strong> na Etapa 1, a IA irá copiar o estilo, cenário e pose diretamente daquela imagem.
+              <p className="mt-3 text-sm font-bold tracking-wide text-white">Etapa 2 Desativada</p>
+              <p className="mt-2 max-w-[280px] text-xs leading-relaxed text-slate-300">
+                Como você enviou uma <strong>Foto de Estilo Profissional</strong> na Etapa 1, a IA
+                irá copiar o estilo, cenário e pose diretamente daquela imagem.
               </p>
               <button
                 type="button"
@@ -614,7 +622,7 @@ export default function AvatarPage() {
                   setStyleFile(null);
                   setStylePreviewUrl(null);
                 }}
-                className="mt-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2 text-xs font-bold text-white hover:from-orange-500 hover:to-amber-500 hover:shadow-[0_0_15px_rgba(250,99,5,0.25)] transition-all duration-300"
+                className="mt-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-4 py-2 text-xs font-bold text-white transition-all duration-300 hover:from-orange-500 hover:to-amber-500 hover:shadow-[0_0_15px_rgba(250,99,5,0.25)]"
               >
                 Remover Foto de Estilo
               </button>
@@ -626,42 +634,44 @@ export default function AvatarPage() {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-sky-400 ring-1 ring-primary/30">
                 2
               </span>
-              <h2 className="text-lg font-bold text-white tracking-wide">
+              <h2 className="text-lg font-bold tracking-wide text-white">
                 Descreva seu Estilo e Cenário
               </h2>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Instruções de Roupas, Pose e Fundo
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Ex: vestindo blazer escuro fino, sorriso amigável, no topo de um terraço corporativo moderno desfocado ao fundo com luz solar..."
-                  className="h-24 w-full rounded-2xl border border-slate-850 bg-slate-950/60 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-primary/60 focus:shadow-[0_0_15px_rgba(0,131,199,0.15)]"
+                  className="border-slate-850 h-24 w-full rounded-2xl border bg-slate-950/60 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-primary/60 focus:shadow-[0_0_15px_rgba(0,131,199,0.15)]"
                   disabled={loading}
                 />
               </div>
 
               {/* Sugestões de Estilos */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
                     Sugestões de Estilos e Poses
                   </label>
 
                   {/* Seletor de Gênero (Masculino / Feminino) */}
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gênero:</span>
-                    <div className="flex gap-0.5 rounded-lg bg-slate-950/40 p-0.5 border border-slate-800/40">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Gênero:
+                    </span>
+                    <div className="flex gap-0.5 rounded-lg border border-slate-800/40 bg-slate-950/40 p-0.5">
                       <button
                         type="button"
                         onClick={() => setSelectedGender("female")}
-                        className={`flex items-center gap-1.5 py-1 px-3.5 text-[10px] font-bold rounded-md transition-all duration-300 ${
+                        className={`flex items-center gap-1.5 rounded-md px-3.5 py-1 text-[10px] font-bold transition-all duration-300 ${
                           selectedGender === "female"
-                            ? "bg-gradient-to-r from-pink-600/90 to-purple-600/90 text-white shadow-[0_0_8px_rgba(219,39,119,0.2)] border border-pink-500/20"
+                            ? "border border-pink-500/20 bg-gradient-to-r from-pink-600/90 to-purple-600/90 text-white shadow-[0_0_8px_rgba(219,39,119,0.2)]"
                             : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
@@ -671,9 +681,9 @@ export default function AvatarPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedGender("male")}
-                        className={`flex items-center gap-1.5 py-1 px-3.5 text-[10px] font-bold rounded-md transition-all duration-300 ${
+                        className={`flex items-center gap-1.5 rounded-md px-3.5 py-1 text-[10px] font-bold transition-all duration-300 ${
                           selectedGender === "male"
-                            ? "bg-gradient-to-r from-sky-600/90 to-blue-600/90 text-white shadow-[0_0_8px_rgba(2,132,199,0.2)] border border-sky-500/20"
+                            ? "border border-sky-500/20 bg-gradient-to-r from-sky-600/90 to-blue-600/90 text-white shadow-[0_0_8px_rgba(2,132,199,0.2)]"
                             : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
@@ -683,16 +693,16 @@ export default function AvatarPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Seletores de Aba (Tabs) */}
-                <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-950/50 p-1 border border-slate-800/50">
+                <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-800/50 bg-slate-950/50 p-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("corporate")}
-                    className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all duration-300 ${
+                    className={`flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-300 sm:flex-row ${
                       activeTab === "corporate"
                         ? "bg-primary text-white shadow-[0_0_10px_rgba(0,131,199,0.2)]"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                        : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
                     }`}
                   >
                     <span>💼</span>
@@ -701,10 +711,10 @@ export default function AvatarPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("creative")}
-                    className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all duration-300 ${
+                    className={`flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-300 sm:flex-row ${
                       activeTab === "creative"
                         ? "bg-primary text-white shadow-[0_0_10px_rgba(0,131,199,0.2)]"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                        : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
                     }`}
                   >
                     <span>🎨</span>
@@ -713,10 +723,10 @@ export default function AvatarPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("pose")}
-                    className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all duration-300 ${
+                    className={`flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-300 sm:flex-row ${
                       activeTab === "pose"
                         ? "bg-primary text-white shadow-[0_0_10px_rgba(0,131,199,0.2)]"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                        : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
                     }`}
                   >
                     <span>📸</span>
@@ -725,14 +735,17 @@ export default function AvatarPage() {
                 </div>
 
                 {/* Subtexto Descritivo da Categoria */}
-                <p className="text-[10px] text-slate-400 italic">
-                  {activeTab === "corporate" && "Sugestões de vestimenta corporativa formal e cenários de negócios clássicos."}
-                  {activeTab === "creative" && "Estilos descontraídos, urbanos, temáticos e fotos com cores vibrantes."}
-                  {activeTab === "pose" && "Poses ideais para posts de carrossel, chamadas para ação (CTA) ou mentoria."}
+                <p className="text-[10px] italic text-slate-400">
+                  {activeTab === "corporate" &&
+                    "Sugestões de vestimenta corporativa formal e cenários de negócios clássicos."}
+                  {activeTab === "creative" &&
+                    "Estilos descontraídos, urbanos, temáticos e fotos com cores vibrantes."}
+                  {activeTab === "pose" &&
+                    "Poses ideais para posts de carrossel, chamadas para ação (CTA) ou mentoria."}
                 </p>
 
                 {/* Grid de Sugestões da Aba Ativa Filtradas por Gênero */}
-                <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1 transition-all duration-300">
+                <div className="flex max-h-[120px] flex-wrap gap-1.5 overflow-y-auto pr-1 transition-all duration-300">
                   {SUGGESTIONS.filter(
                     (item) =>
                       item.category === activeTab &&
@@ -745,7 +758,9 @@ export default function AvatarPage() {
                       className="group relative flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-950/30 px-2.5 py-1.5 text-[11px] text-slate-300 transition-all duration-300 hover:border-primary hover:bg-primary hover:text-white hover:shadow-[0_0_10px_rgba(0,131,199,0.15)]"
                       disabled={loading}
                     >
-                      <span>{activeTab === "corporate" ? "👔" : activeTab === "creative" ? "✨" : "📸"}</span>
+                      <span>
+                        {activeTab === "corporate" ? "👔" : activeTab === "creative" ? "✨" : "📸"}
+                      </span>
                       <span>{item.label}</span>
                     </button>
                   ))}
@@ -769,7 +784,7 @@ export default function AvatarPage() {
           <button
             onClick={handleGenerate}
             disabled={loading || !file || (!prompt.trim() && !styleFile)}
-            className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 py-4 text-sm font-bold text-white transition-all hover:from-orange-500 hover:to-amber-500 active:scale-[0.98] disabled:opacity-50 hover:shadow-[0_0_20px_rgba(250,99,5,0.35)] duration-300"
+            className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 py-4 text-sm font-bold text-white transition-all duration-300 hover:from-orange-500 hover:to-amber-500 hover:shadow-[0_0_20px_rgba(250,99,5,0.35)] active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -788,7 +803,7 @@ export default function AvatarPage() {
             <button
               onClick={resetAll}
               disabled={loading}
-              className="rounded-2xl border border-slate-800 bg-slate-900/60 px-6 py-4 text-sm font-bold text-slate-300 transition-all hover:bg-slate-850 hover:text-white disabled:opacity-50 duration-200"
+              className="hover:bg-slate-850 rounded-2xl border border-slate-800 bg-slate-900/60 px-6 py-4 text-sm font-bold text-slate-300 transition-all duration-200 hover:text-white disabled:opacity-50"
             >
               Limpar
             </button>
@@ -798,21 +813,27 @@ export default function AvatarPage() {
 
       {/* Seção de Resultado e Loading (Exibida abaixo das etapas se ativo) */}
       {(loading || resultUrl) && (
-        <div className="mx-auto max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/60 p-6 md:p-8 backdrop-blur-md shadow-2xl space-y-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 text-center">
+        <div className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md md:p-8">
+          <h2 className="text-center text-sm font-bold uppercase tracking-wider text-slate-300">
             Seu Retrato Profissional IA
           </h2>
 
           <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 shadow-2xl">
             {/* Estado Carregando com o Loader Circular igual as outras gerações */}
             {loading && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-sm p-6">
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/95 p-6 backdrop-blur-sm">
                 <div className="relative flex flex-col items-center gap-6">
                   {/* SVG Container do Círculo de Progresso */}
-                  <div className="relative w-36 h-36">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <div className="relative h-36 w-36">
+                    <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
                       <defs>
-                        <linearGradient id="avatarProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient
+                          id="avatarProgressGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
                           <stop offset="0%" stopColor="#0284c7" />
                           <stop offset="100%" stopColor="#f97316" />
                         </linearGradient>
@@ -845,15 +866,15 @@ export default function AvatarPage() {
 
                     {/* Porcentagem em texto no centro absoluto */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white tracking-tight">
+                      <span className="text-2xl font-bold tracking-tight text-white">
                         {Math.round(progress)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Mensagem Otimista com a frase de carregamento atual */}
-                  <div className="h-14 flex items-center justify-center">
-                    <p className="text-sm font-medium text-slate-300 text-center max-w-[280px] leading-relaxed transition-all duration-300">
+                  <div className="flex h-14 items-center justify-center">
+                    <p className="max-w-[280px] text-center text-sm font-medium leading-relaxed text-slate-300 transition-all duration-300">
                       {getLoaderMessage()}
                     </p>
                   </div>
@@ -873,10 +894,10 @@ export default function AvatarPage() {
 
           {/* Estado de Sucesso (Resultado Gerado) */}
           {!loading && resultUrl && (
-            <div className="space-y-4 max-w-md mx-auto">
+            <div className="mx-auto max-w-md space-y-4">
               {success && (
-                <div className="flex items-center gap-2.5 rounded-2xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-xs text-green-400 shadow-sm">
-                  <CheckCircle2 className="h-4.5 w-4.5 flex-shrink-0 text-green-400 animate-pulse" />
+                <div className="flex items-center gap-2.5 rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400 shadow-sm">
+                  <CheckCircle2 className="h-4.5 w-4.5 flex-shrink-0 animate-pulse text-green-400" />
                   <span>Seu retrato foi salvo automaticamente na sua Galeria de Mídias!</span>
                 </div>
               )}
@@ -887,7 +908,7 @@ export default function AvatarPage() {
                 download={`retrato_avatar_${Date.now()}.jpg`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 py-3.5 text-sm font-bold text-white transition-all hover:bg-slate-900 active:scale-[0.98] duration-200"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:border-slate-700 hover:bg-slate-900 active:scale-[0.98]"
               >
                 <Download className="h-4 w-4" />
                 Baixar Imagem

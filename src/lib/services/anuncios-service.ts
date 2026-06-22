@@ -28,7 +28,7 @@ export interface AdCampaignData {
   adAccountId?: string;
   googleCampaignId?: string;
   googleCustomerId?: string;
-  
+
   creative: {
     headline: string;
     bodyText: string;
@@ -36,7 +36,7 @@ export interface AdCampaignData {
     ctaType: "SEND_MESSAGE" | "LEARN_MORE" | "CALL_NOW" | "GET_DIRECTIONS" | "SHOP_NOW";
     ctaLink?: string;
   };
-  
+
   budget: {
     type: "daily" | "lifetime";
     amount: number; // Valor em reais (ex: 15 para R$ 15,00)
@@ -45,7 +45,7 @@ export interface AdCampaignData {
   durationDays: number;
   startDate: Timestamp;
   endDate: Timestamp;
-  
+
   targeting: {
     address: string;
     radiusKm: number;
@@ -65,7 +65,7 @@ export interface AdCampaignData {
       type?: string;
     }>;
   };
-  
+
   metrics?: {
     impressions: number;
     clicks: number;
@@ -73,7 +73,7 @@ export interface AdCampaignData {
     amountSpent: number;
     lastSyncedAt: Timestamp;
   };
-  
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -103,7 +103,7 @@ export async function createAdCampaign(
     };
 
     const docRef = await addDoc(getAdsCollectionRef(userId), dataToSave);
-    
+
     // Se o anúncio for baseado em um post, marca o post como impulsionado
     if (campaignData.postId) {
       try {
@@ -129,11 +129,11 @@ export async function createAdCampaign(
  */
 export async function getUserAdCampaigns(userId: string): Promise<AdCampaignData[]> {
   if (!userId) return [];
-  
+
   try {
     const q = query(getAdsCollectionRef(userId), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    
+
     const campaigns: AdCampaignData[] = [];
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data() as AdCampaignData;
@@ -142,7 +142,7 @@ export async function getUserAdCampaigns(userId: string): Promise<AdCampaignData
         id: docSnap.id,
       });
     });
-    
+
     return campaigns;
   } catch (error) {
     console.error("[ADS_SERVICE] Erro ao buscar campanhas:", error);
@@ -182,7 +182,7 @@ export async function deleteAdCampaign(userId: string, campaignId: string): Prom
   if (!userId || !campaignId) {
     throw new Error("Parâmetros necessários ausentes.");
   }
-  
+
   const campaignRef = doc(db, "users", userId, "ads", campaignId);
   await deleteDoc(campaignRef);
 }
@@ -196,10 +196,10 @@ export async function deleteAdCampaign(userId: string, campaignId: string): Prom
  */
 export function estimateReach(budgetPerDay: number, durationDays: number, radiusKm: number) {
   const totalBudget = budgetPerDay * durationDays;
-  
+
   // Base de ~120 visualizações por Real gasto (alinhado com um CPM realista do Meta Ads local no Brasil entre R$ 6 e R$ 10)
   const reachBase = totalBudget * 120;
-  
+
   // Fator de ajuste por raio (raio menor = mais densidade local, raio maior = mais dispersão)
   // Raio ideal é em torno de 5km para marketing local
   let radiusFactor = 1.0;
@@ -210,14 +210,14 @@ export function estimateReach(budgetPerDay: number, durationDays: number, radius
   } else if (radiusKm > 10) {
     radiusFactor = 0.85; // Dispersão alta
   }
-  
+
   const minReach = Math.round(reachBase * 0.7 * radiusFactor);
   const maxReach = Math.round(reachBase * 2.1 * radiusFactor);
-  
+
   // Cliques estimados (1.2% a 3.5% de CTR médio local)
   const minClicks = Math.round(minReach * 0.012);
   const maxClicks = Math.round(maxReach * 0.035);
-  
+
   return {
     minReach,
     maxReach,

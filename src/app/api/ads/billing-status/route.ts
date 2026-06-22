@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
-import { getMetaConnectionAdmin, updateMetaConnectionAdmin } from "@/lib/services/meta-service-admin";
+import {
+  getMetaConnectionAdmin,
+  updateMetaConnectionAdmin,
+} from "@/lib/services/meta-service-admin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,8 +30,8 @@ export async function GET(request: NextRequest) {
           hasPaymentMethod: false,
           balance: 0,
           fundingSourceDetails: null,
-          error: "Nenhuma conta de anúncios selecionada nas configurações."
-        }
+          error: "Nenhuma conta de anúncios selecionada nas configurações.",
+        },
       });
     }
 
@@ -60,8 +63,8 @@ export async function GET(request: NextRequest) {
           balance: 0,
           fundingSourceDetails: null,
           businessId: "",
-          error: resData.error?.message || "Erro de autenticação com a API da Meta."
-        }
+          error: resData.error?.message || "Erro de autenticação com a API da Meta.",
+        },
       });
     }
 

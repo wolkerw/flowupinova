@@ -67,10 +67,7 @@ import {
   resetBusinessProfile,
   type BusinessProfileData,
 } from "@/lib/services/business-profile-service";
-import {
-  getOnboardingProfile,
-  updateOnboardingProfile,
-} from "@/lib/services/onboarding-service";
+import { getOnboardingProfile, updateOnboardingProfile } from "@/lib/services/onboarding-service";
 import {
   getGoogleConnection,
   updateGoogleConnection,
@@ -527,7 +524,7 @@ const syncOnboardingIfEmpty = async (userId: string, gmbProfile: BusinessProfile
           url: onboarding.logo?.url || gmbProfile.logo?.url || "",
           width: onboarding.logo?.width || gmbProfile.logo?.width || 0,
           height: onboarding.logo?.height || gmbProfile.logo?.height || 0,
-        }
+        },
       });
       console.log("Cópia inteligente de dados do Google Meu Negócio para Onboarding realizada.");
     }
@@ -691,7 +688,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
 
       if (googleConn.isConnected && googleConn.accessToken && activeProfile.googleName) {
         let currentAccessToken = googleConn.accessToken;
-        
+
         if (googleConn.expiryDate && Date.now() >= googleConn.expiryDate - 300000) {
           if (googleConn.refreshToken) {
             try {
@@ -700,7 +697,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ refreshToken: googleConn.refreshToken }),
               });
-              
+
               if (refreshRes.ok) {
                 const refreshData = await refreshRes.json();
                 if (refreshData.success) {
@@ -726,8 +723,8 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
               return;
             }
           } else {
-             await handleDisconnect();
-             return;
+            await handleDisconnect();
+            return;
           }
         }
 
@@ -1657,11 +1654,19 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className={cn("group relative overflow-hidden transition-all duration-200 shadow-lg", isEditing ? "ring-2 ring-primary border-transparent" : "border-none")}>
+                <Card
+                  className={cn(
+                    "group relative overflow-hidden shadow-lg transition-all duration-200",
+                    isEditing ? "border-transparent ring-2 ring-primary" : "border-none"
+                  )}
+                >
                   {isEditing && (
-                    <div className="bg-primary/10 border-b border-primary/20 px-6 py-3 flex items-center gap-2 text-primary">
+                    <div className="flex items-center gap-2 border-b border-primary/20 bg-primary/10 px-6 py-3 text-primary">
                       <Edit className="h-4 w-4 shrink-0" />
-                      <span className="text-sm font-medium">Você está no modo de edição. Modifique os campos abaixo e clique em Salvar Alterações no final.</span>
+                      <span className="text-sm font-medium">
+                        Você está no modo de edição. Modifique os campos abaixo e clique em Salvar
+                        Alterações no final.
+                      </span>
                     </div>
                   )}
                   {(dataLoading || authLoading || isSaving) && (
@@ -1735,8 +1740,13 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     <div className="flex items-start justify-between">
                       <div className="w-full pt-12">
                         {isEditing ? (
-                          <div className="space-y-1.5 w-full">
-                            <Label htmlFor="company-name" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Nome da Empresa</Label>
+                          <div className="w-full space-y-1.5">
+                            <Label
+                              htmlFor="company-name"
+                              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Nome da Empresa
+                            </Label>
                             <Input
                               id="company-name"
                               value={editableProfile.name}
@@ -1799,19 +1809,22 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         {isEditing ? (
                           <div className="flex-1 space-y-1.5 opacity-80">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                               Endereço Físico <Lock className="h-3 w-3" />
                             </Label>
-                            <div className="p-2 border rounded-md bg-muted/50 text-sm flex items-start gap-2 cursor-not-allowed">
+                            <div className="flex cursor-not-allowed items-start gap-2 rounded-md border bg-muted/50 p-2 text-sm">
                               <span>{profile.address}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                            <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                               <Info className="h-3 w-3 shrink-0" />
-                              <span>A alteração de endereço deve ser feita diretamente no painel do Google.</span>
+                              <span>
+                                A alteração de endereço deve ser feita diretamente no painel do
+                                Google.
+                              </span>
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm mt-0.5">{profile.address}</span>
+                          <span className="mt-0.5 text-sm">{profile.address}</span>
                         )}
                       </div>
 
@@ -1819,7 +1832,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <Phone className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         {isEditing ? (
                           <div className="flex-1 space-y-1.5">
-                            <Label htmlFor="company-phone" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Telefone de Contato</Label>
+                            <Label
+                              htmlFor="company-phone"
+                              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Telefone de Contato
+                            </Label>
                             <Input
                               id="company-phone"
                               value={editableProfile.phone}
@@ -1827,7 +1845,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 setEditableProfile((p) => ({ ...p, phone: e.target.value }))
                               }
                               placeholder="(00) 00000-0000"
-                              className="h-9 text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50"
+                              className="h-9 border-primary/30 bg-primary/5 text-sm shadow-sm focus-visible:ring-primary/50"
                             />
                           </div>
                         ) : (
@@ -1861,7 +1879,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                         <Globe className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         {isEditing ? (
                           <div className="flex-1 space-y-1.5">
-                            <Label htmlFor="company-website" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Website Oficial</Label>
+                            <Label
+                              htmlFor="company-website"
+                              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Website Oficial
+                            </Label>
                             <Input
                               id="company-website"
                               value={editableProfile.website}
@@ -1869,7 +1892,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 setEditableProfile((p) => ({ ...p, website: e.target.value }))
                               }
                               placeholder="https://seu-site.com.br"
-                              className="h-9 text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50"
+                              className="h-9 border-primary/30 bg-primary/5 text-sm shadow-sm focus-visible:ring-primary/50"
                             />
                           </div>
                         ) : (
@@ -1909,7 +1932,12 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                       <div className="pt-2">
                         {isEditing ? (
                           <div className="space-y-1.5">
-                            <Label htmlFor="company-desc" className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Descrição do Negócio</Label>
+                            <Label
+                              htmlFor="company-desc"
+                              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Descrição do Negócio
+                            </Label>
                             <Textarea
                               id="company-desc"
                               value={editableProfile.description}
@@ -1917,7 +1945,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                                 setEditableProfile((p) => ({ ...p, description: e.target.value }))
                               }
                               placeholder="Descreva sua empresa aqui de forma clara e atrativa..."
-                              className="text-sm border-primary/30 bg-primary/5 shadow-sm focus-visible:ring-primary/50 resize-y"
+                              className="resize-y border-primary/30 bg-primary/5 text-sm shadow-sm focus-visible:ring-primary/50"
                               rows={5}
                             />
                           </div>
@@ -2151,7 +2179,7 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                     </div>
                   </CardContent>
                   {isEditing && (
-                    <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 border-t bg-muted/20 p-4 mt-4">
+                    <CardFooter className="mt-4 flex flex-col justify-end gap-3 border-t bg-muted/20 p-4 sm:flex-row">
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -2163,10 +2191,10 @@ export default function MeuNegocioPageClient({ initialProfile }: MeuNegocioClien
                       >
                         Cancelar
                       </Button>
-                      <Button 
-                        onClick={() => setIsConfirmingSave(true)} 
+                      <Button
+                        onClick={() => setIsConfirmingSave(true)}
                         disabled={isSaving}
-                        className="w-full sm:w-auto shadow-md"
+                        className="w-full shadow-md sm:w-auto"
                       >
                         {isSaving ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

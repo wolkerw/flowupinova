@@ -12,9 +12,14 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("[GENERATE_PROMPTS_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente.");
+      console.error(
+        "[GENERATE_PROMPTS_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente."
+      );
       return NextResponse.json(
-        { error: "Configure a chave GEMINI_API_KEY no arquivo .env.local para habilitar a geração de prompts." },
+        {
+          error:
+            "Configure a chave GEMINI_API_KEY no arquivo .env.local para habilitar a geração de prompts.",
+        },
         { status: 500 }
       );
     }
@@ -24,7 +29,7 @@ export async function POST(request: Request) {
       const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
       const primaryHex = primaryColor || "#000000";
       const secondaryHex = secondaryColor || "#FFFFFF";
-      
+
       let extendedColorsText = "";
       if (brandKit?.extendedColors) {
         if (brandKit.extendedColors.complementary) {
@@ -67,12 +72,16 @@ Your CRITICAL mission is to strategically and organically blend these brand colo
 3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery. If a Background/Studio Color Hex is specified, use its plain color name for the backdrop/studio setup.
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
 
-${fontsText ? `
+${
+  fontsText
+    ? `
 # TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
 When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
 ${fontsText}
 Instruct the typography to be rendered using the specified Primary Font for titles/headers or using the specified General Typographic Style (e.g. "write the literal text '...' using a clean, sans-serif Montserrat font to match the brand's typography").
-` : ""}
+`
+    : ""
+}
 `;
     }
 
@@ -167,8 +176,10 @@ ${brandingInstruction}
     for (const model of modelsToTry) {
       try {
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        console.log(`[GENERATE_PROMPTS] Enviando requisição para a API do Gemini usando modelo: ${model}...`);
-        
+        console.log(
+          `[GENERATE_PROMPTS] Enviando requisição para a API do Gemini usando modelo: ${model}...`
+        );
+
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: {
@@ -176,19 +187,19 @@ ${brandingInstruction}
           },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: systemInstructionText }]
+              parts: [{ text: systemInstructionText }],
             },
             contents: [
               {
                 role: "user",
-                parts: [{ text: `Conteúdo da publicação:\n${summaryText}` }]
-              }
+                parts: [{ text: `Conteúdo da publicação:\n${summaryText}` }],
+              },
             ],
             generationConfig: {
               temperature: 1.2,
-              responseMimeType: "application/json"
-            }
-          })
+              responseMimeType: "application/json",
+            },
+          }),
         });
 
         if (!response.ok) {
@@ -206,13 +217,18 @@ ${brandingInstruction}
         aiResponseText = candidateText.trim();
         break;
       } catch (err: any) {
-        console.warn(`[GENERATE_PROMPTS_WARN] Falha ao chamar o modelo ${model}:`, err.message || err);
+        console.warn(
+          `[GENERATE_PROMPTS_WARN] Falha ao chamar o modelo ${model}:`,
+          err.message || err
+        );
         lastError = err;
       }
     }
 
     if (!aiResponseText) {
-      throw new Error(`Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`);
+      throw new Error(
+        `Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`
+      );
     }
 
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
@@ -233,9 +249,9 @@ ${brandingInstruction}
     const outputFormat = [
       {
         output: {
-          prompt: promptsArray.map((p: any) => String(p))
-        }
-      }
+          prompt: promptsArray.map((p: any) => String(p)),
+        },
+      },
     ];
 
     console.log(`[GENERATE_PROMPTS] Sucesso ao gerar ${promptsArray.length} prompts.`);

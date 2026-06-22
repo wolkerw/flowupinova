@@ -115,27 +115,30 @@ Você deve responder estritamente com um objeto JSON válido, sem markdown ou fo
       const parsedData = JSON.parse(rawText.trim());
       return NextResponse.json(parsedData);
     } catch (parseErr) {
-      console.error("[GERAR_COPILOT_ERROR] Falha ao converter texto do Gemini para JSON. Conteúdo bruto:", rawText);
-      
+      console.error(
+        "[GERAR_COPILOT_ERROR] Falha ao converter texto do Gemini para JSON. Conteúdo bruto:",
+        rawText
+      );
+
       // Tratamento de contingência básico caso não venha JSON estrito
       return NextResponse.json({
         sugestoes: [
           {
             titulo: "Chame a atenção da sua região!",
             texto: `${textoPost || "Confira nossas novidades e ofertas imperdíveis!"} Entre em contato hoje mesmo!`,
-            ctaSugerido: "SEND_MESSAGE"
+            ctaSugerido: "SEND_MESSAGE",
           },
           {
             titulo: "Qualidade garantida perto de você",
             texto: `Temos tudo o que você precisa no setor de ${segmento || "serviços locais"}. Venha nos conhecer!`,
-            ctaSugerido: "LEARN_MORE"
+            ctaSugerido: "LEARN_MORE",
           },
           {
             titulo: "Desconto especial local",
             texto: `Morador da região ganha atendimento VIP! Fale com nossa equipe agora mesmo e garanta sua oferta.`,
-            ctaSugerido: "SEND_MESSAGE"
-          }
-        ]
+            ctaSugerido: "SEND_MESSAGE",
+          },
+        ],
       });
     }
   } catch (error: any) {

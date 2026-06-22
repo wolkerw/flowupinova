@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,8 +107,10 @@ export default function ConfiguracoesPage() {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) return numbers;
     if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
-    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
-    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    if (numbers.length <= 8)
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12)
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
     return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
   };
 
@@ -125,7 +134,7 @@ export default function ConfiguracoesPage() {
   const [visualGuidelines, setVisualGuidelines] = useState("");
   const [pdfManualPath, setPdfManualPath] = useState("");
   const [pdfManualUrl, setPdfManualUrl] = useState("");
-  
+
   // Novos estados estendidos de branding
   const [primaryFont, setPrimaryFont] = useState("");
   const [secondaryFont, setSecondaryFont] = useState("");
@@ -142,12 +151,30 @@ export default function ConfiguracoesPage() {
   const fileInputRefPdf = useRef<HTMLInputElement>(null);
 
   // Logos Individuais
-  const [logoHorizontal, setLogoHorizontal] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
-  const [logoVertical, setLogoVertical] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
-  const [logoSymbol, setLogoSymbol] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
-  const [logoAvatar, setLogoAvatar] = useState<OnboardingLogoData>({ url: "", width: 0, height: 0 });
+  const [logoHorizontal, setLogoHorizontal] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [logoVertical, setLogoVertical] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [logoSymbol, setLogoSymbol] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [logoAvatar, setLogoAvatar] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
 
-  const [uploadingType, setUploadingType] = useState<"horizontal" | "vertical" | "symbol" | "avatar" | null>(null);
+  const [uploadingType, setUploadingType] = useState<
+    "horizontal" | "vertical" | "symbol" | "avatar" | null
+  >(null);
 
   const fileInputRefHorizontal = useRef<HTMLInputElement>(null);
   const fileInputRefVertical = useRef<HTMLInputElement>(null);
@@ -156,9 +183,9 @@ export default function ConfiguracoesPage() {
 
   const migrateLegacyBase64Profile = async (data: OnboardingProfileData) => {
     if (!user) return;
-    
+
     // Verifica se há alguma logo em Base64
-    const hasBase64 = 
+    const hasBase64 =
       (data.logo?.url && data.logo.url.startsWith("data:image")) ||
       (data.logos?.horizontal?.url && data.logos.horizontal.url.startsWith("data:image")) ||
       (data.logos?.vertical?.url && data.logos.vertical.url.startsWith("data:image")) ||
@@ -167,8 +194,10 @@ export default function ConfiguracoesPage() {
 
     if (!hasBase64) return;
 
-    console.log("[MIGRATE_BASE64] Detectadas logos antigas em Base64. Iniciando migração automática...");
-    
+    console.log(
+      "[MIGRATE_BASE64] Detectadas logos antigas em Base64. Iniciando migração automática..."
+    );
+
     // Pequeno delay para garantir que os toasts locais ou estados iniciais de carregamento não entrem em conflito
     setTimeout(() => {
       toast({
@@ -186,13 +215,18 @@ export default function ConfiguracoesPage() {
         return await getDownloadURL(uploadResult.ref);
       };
 
-      const finalLogoHorizontal = { ...data.logos?.horizontal || { url: "", width: 0, height: 0 } };
-      const finalLogoVertical = { ...data.logos?.vertical || { url: "", width: 0, height: 0 } };
-      const finalLogoSymbol = { ...data.logos?.symbol || { url: "", width: 0, height: 0 } };
-      const finalLogoAvatar = { ...data.logos?.avatar || { url: "", width: 0, height: 0 } };
+      const finalLogoHorizontal = {
+        ...(data.logos?.horizontal || { url: "", width: 0, height: 0 }),
+      };
+      const finalLogoVertical = { ...(data.logos?.vertical || { url: "", width: 0, height: 0 }) };
+      const finalLogoSymbol = { ...(data.logos?.symbol || { url: "", width: 0, height: 0 }) };
+      const finalLogoAvatar = { ...(data.logos?.avatar || { url: "", width: 0, height: 0 }) };
 
       if (finalLogoHorizontal.url && finalLogoHorizontal.url.startsWith("data:image")) {
-        finalLogoHorizontal.url = await uploadBase64ToStorage(finalLogoHorizontal.url, "horizontal");
+        finalLogoHorizontal.url = await uploadBase64ToStorage(
+          finalLogoHorizontal.url,
+          "horizontal"
+        );
       }
       if (finalLogoVertical.url && finalLogoVertical.url.startsWith("data:image")) {
         finalLogoVertical.url = await uploadBase64ToStorage(finalLogoVertical.url, "vertical");
@@ -204,7 +238,11 @@ export default function ConfiguracoesPage() {
         finalLogoAvatar.url = await uploadBase64ToStorage(finalLogoAvatar.url, "avatar");
       }
 
-      const logoPrincipal = finalLogoVertical.url ? finalLogoVertical : (finalLogoHorizontal.url ? finalLogoHorizontal : { url: "", width: 0, height: 0 });
+      const logoPrincipal = finalLogoVertical.url
+        ? finalLogoVertical
+        : finalLogoHorizontal.url
+          ? finalLogoHorizontal
+          : { url: "", width: 0, height: 0 };
 
       const cleanProfileData: OnboardingProfileData = {
         name: data.name || "",
@@ -247,7 +285,7 @@ export default function ConfiguracoesPage() {
 
       // merge: false é crítico aqui para limpar o lixo do Base64 antigo do Firestore de forma definitiva!
       await updateOnboardingProfile(user.uid, cleanProfileData, { merge: false });
-      
+
       console.log("[MIGRATE_BASE64] Migração e limpeza concluídas com sucesso.");
       toast({
         title: "Perfil Otimizado!",
@@ -297,12 +335,16 @@ export default function ConfiguracoesPage() {
       setComplementaryColor(data.brandKit?.extendedColors?.complementary || "");
       setBackgroundColor(data.brandKit?.extendedColors?.background || "");
       setPersonas(data.brandKit?.personas || []);
-      
+
       // Inicia migração assíncrona se houver Base64 legado
       migrateLegacyBase64Profile(data);
     } catch (error) {
       console.error("Erro ao carregar configurações de marca:", error);
-      toast({ title: "Erro de Conexão", description: "Não foi possível carregar suas configurações.", variant: "destructive" });
+      toast({
+        title: "Erro de Conexão",
+        description: "Não foi possível carregar suas configurações.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -328,7 +370,8 @@ export default function ConfiguracoesPage() {
             dataUrl: e.target?.result as string,
           });
         };
-        img.onerror = () => reject(new Error("Não foi possível carregar a imagem para leitura das dimensões."));
+        img.onerror = () =>
+          reject(new Error("Não foi possível carregar a imagem para leitura das dimensões."));
         img.src = e.target?.result as string;
       };
       reader.onerror = () => reject(new Error("Falha ao ler o arquivo de imagem."));
@@ -336,7 +379,10 @@ export default function ConfiguracoesPage() {
     });
   };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: "horizontal" | "vertical" | "symbol" | "avatar") => {
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: "horizontal" | "vertical" | "symbol" | "avatar"
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -355,7 +401,7 @@ export default function ConfiguracoesPage() {
 
       // Lógica de sincronização inteligente de logo padrão para manter compatibilidade
       let logoPrincipal = profile?.logo || { url: "", width: 0, height: 0 };
-      
+
       if (type === "vertical") {
         logoPrincipal = newLogo;
         setLogoVertical(newLogo);
@@ -383,7 +429,11 @@ export default function ConfiguracoesPage() {
 
       // Recarrega dados locais
       await loadProfile();
-      toast({ title: "Sucesso!", description: `Logomarca ${type} salva com sucesso.`, variant: "success" });
+      toast({
+        title: "Sucesso!",
+        description: `Logomarca ${type} salva com sucesso.`,
+        variant: "success",
+      });
     } catch (error: any) {
       console.error(`Erro ao subir logo ${type}:`, error);
       toast({ title: "Erro de Processamento", description: error.message, variant: "destructive" });
@@ -402,7 +452,7 @@ export default function ConfiguracoesPage() {
 
     try {
       const emptyLogo: OnboardingLogoData = { url: "", width: 0, height: 0 };
-      
+
       // Sincronização inteligente na remoção
       let logoPrincipal = profile?.logo || { url: "", width: 0, height: 0 };
 
@@ -456,7 +506,7 @@ export default function ConfiguracoesPage() {
     }
 
     setIsParsingPdf(true);
-    
+
     // Mensagens de progresso simuladas para feedback
     const messages = [
       "Enviando manual em PDF para o servidor...",
@@ -464,12 +514,12 @@ export default function ConfiguracoesPage() {
       "Mapeando a paleta de cores institucional da agência...",
       "Sintetizando slogan, público-alvo e posicionamento...",
       "Extraindo tom de voz para legendas e redes sociais...",
-      "Estruturando diretrizes fotográficas e regras de design..."
+      "Estruturando diretrizes fotográficas e regras de design...",
     ];
-    
+
     let msgIndex = 0;
     setPdfProgressText(messages[0]);
-    
+
     const progressInterval = setInterval(() => {
       msgIndex = (msgIndex + 1) % messages.length;
       setPdfProgressText(messages[msgIndex]);
@@ -504,7 +554,6 @@ export default function ConfiguracoesPage() {
       } else {
         throw new Error("Resposta da IA inválida.");
       }
-
     } catch (e: any) {
       clearInterval(progressInterval);
       console.error("[BRAND_KIT_PDF_UPLOAD] Erro:", e);
@@ -532,22 +581,27 @@ export default function ConfiguracoesPage() {
     if (extractedBrandData.toneOfVoice) setToneOfVoice(extractedBrandData.toneOfVoice);
     if (extractedBrandData.primaryColor) setPrimaryColor(extractedBrandData.primaryColor);
     if (extractedBrandData.secondaryColor) setSecondaryColor(extractedBrandData.secondaryColor);
-    if (extractedBrandData.visualGuidelines) setVisualGuidelines(extractedBrandData.visualGuidelines);
+    if (extractedBrandData.visualGuidelines)
+      setVisualGuidelines(extractedBrandData.visualGuidelines);
     if (extractedBrandData.mainBenefits && extractedBrandData.mainBenefits.length > 0) {
       setMainBenefits(extractedBrandData.mainBenefits);
     }
     if (extractedBrandData.pdfManualPath) setPdfManualPath(extractedBrandData.pdfManualPath);
     if (extractedBrandData.pdfManualUrl) setPdfManualUrl(extractedBrandData.pdfManualUrl);
-    
+
     // Novas chaves do Brand Kit estendido
     if (extractedBrandData.fonts) {
-      if (extractedBrandData.fonts.primaryFont) setPrimaryFont(extractedBrandData.fonts.primaryFont);
-      if (extractedBrandData.fonts.secondaryFont) setSecondaryFont(extractedBrandData.fonts.secondaryFont);
+      if (extractedBrandData.fonts.primaryFont)
+        setPrimaryFont(extractedBrandData.fonts.primaryFont);
+      if (extractedBrandData.fonts.secondaryFont)
+        setSecondaryFont(extractedBrandData.fonts.secondaryFont);
       if (extractedBrandData.fonts.style) setFontStyle(extractedBrandData.fonts.style);
     }
     if (extractedBrandData.extendedColors) {
-      if (extractedBrandData.extendedColors.complementary) setComplementaryColor(extractedBrandData.extendedColors.complementary);
-      if (extractedBrandData.extendedColors.background) setBackgroundColor(extractedBrandData.extendedColors.background);
+      if (extractedBrandData.extendedColors.complementary)
+        setComplementaryColor(extractedBrandData.extendedColors.complementary);
+      if (extractedBrandData.extendedColors.background)
+        setBackgroundColor(extractedBrandData.extendedColors.background);
     }
     if (extractedBrandData.personas && extractedBrandData.personas.length > 0) {
       setPersonas(extractedBrandData.personas);
@@ -558,12 +612,13 @@ export default function ConfiguracoesPage() {
 
     toast({
       title: "Configurações Carregadas!",
-      description: "Os dados do PDF foram aplicados na tela. Lembre-se de clicar em 'Salvar Alterações' para persistir.",
+      description:
+        "Os dados do PDF foram aplicados na tela. Lembre-se de clicar em 'Salvar Alterações' para persistir.",
       variant: "success",
     });
   };
 
-  const handleApplyPalette = (palette: typeof presetPalettes[0]) => {
+  const handleApplyPalette = (palette: (typeof presetPalettes)[0]) => {
     setPrimaryColor(palette.primary);
     setSecondaryColor(palette.secondary);
     toast({
@@ -630,7 +685,11 @@ export default function ConfiguracoesPage() {
       }
 
       // Sincronização inteligente de segurança para a logo principal
-      const logoPrincipal = finalLogoVertical.url ? finalLogoVertical : (finalLogoHorizontal.url ? finalLogoHorizontal : { url: "", width: 0, height: 0 });
+      const logoPrincipal = finalLogoVertical.url
+        ? finalLogoVertical
+        : finalLogoHorizontal.url
+          ? finalLogoHorizontal
+          : { url: "", width: 0, height: 0 };
 
       const cleanCnpj = cnpj.replace(/\D/g, "");
       const finalCnpjLocked = cnpjLocked || cleanCnpj.length === 14;
@@ -685,7 +744,11 @@ export default function ConfiguracoesPage() {
         { merge: false }
       );
 
-      toast({ title: "Sucesso!", description: "Configurações de marca atualizadas com sucesso.", variant: "success" });
+      toast({
+        title: "Sucesso!",
+        description: "Configurações de marca atualizadas com sucesso.",
+        variant: "success",
+      });
       await loadProfile();
     } catch (error: any) {
       console.error("Erro ao salvar configurações:", error);
@@ -708,8 +771,12 @@ export default function ConfiguracoesPage() {
       {/* Cabeçalho */}
       <div className="flex flex-col items-start justify-between gap-4 border-b pb-6 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Configurações da Marca</h1>
-          <p className="mt-1 text-gray-600">Personalize a identidade visual, voz e cadastro do seu negócio</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Configurações da Marca
+          </h1>
+          <p className="mt-1 text-gray-600">
+            Personalize a identidade visual, voz e cadastro do seu negócio
+          </p>
         </div>
         <Button
           onClick={handleSaveAll}
@@ -729,10 +796,8 @@ export default function ConfiguracoesPage() {
 
       {/* Seções de Configurações */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        
         {/* Painel Esquerdo: Identidade Visual e Logos */}
         <div className="space-y-8 lg:col-span-1">
-          
           {/* Módulo de Cores (Paleta e Sugestões) */}
           <Card className="border-none shadow-md">
             <CardHeader className="pb-4">
@@ -743,10 +808,11 @@ export default function ConfiguracoesPage() {
               <CardDescription>Cores oficiais do seu Brand Kit</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
               {/* Sugestões de Paletas */}
               <div className="space-y-3">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Paletas Sugeridas</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Paletas Sugeridas
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   {presetPalettes.map((palette) => (
                     <button
@@ -759,10 +825,18 @@ export default function ConfiguracoesPage() {
                           : "border-border"
                       }`}
                     >
-                      <span className="text-[10px] font-semibold text-foreground/80 truncate w-full">{palette.name}</span>
-                      <div className="flex h-5 w-full gap-1 rounded overflow-hidden">
-                        <div className="h-full w-1/2" style={{ backgroundColor: palette.primary }} />
-                        <div className="h-full w-1/2" style={{ backgroundColor: palette.secondary }} />
+                      <span className="w-full truncate text-[10px] font-semibold text-foreground/80">
+                        {palette.name}
+                      </span>
+                      <div className="flex h-5 w-full gap-1 overflow-hidden rounded">
+                        <div
+                          className="h-full w-1/2"
+                          style={{ backgroundColor: palette.primary }}
+                        />
+                        <div
+                          className="h-full w-1/2"
+                          style={{ backgroundColor: palette.secondary }}
+                        />
                       </div>
                     </button>
                   ))}
@@ -772,39 +846,43 @@ export default function ConfiguracoesPage() {
               {/* Color Pickers Customizados */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="primaryColor" className="text-sm font-medium">Cor Primária</Label>
+                  <Label htmlFor="primaryColor" className="text-sm font-medium">
+                    Cor Primária
+                  </Label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="color"
                       id="primaryColor"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
+                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
                     />
                     <Input
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-9 font-mono text-xs uppercase flex-1"
+                      className="h-9 flex-1 font-mono text-xs uppercase"
                       maxLength={7}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="secondaryColor" className="text-sm font-medium">Cor Secundária</Label>
+                  <Label htmlFor="secondaryColor" className="text-sm font-medium">
+                    Cor Secundária
+                  </Label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="color"
                       id="secondaryColor"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
+                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
                     />
                     <Input
                       type="text"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-9 font-mono text-xs uppercase flex-1"
+                      className="h-9 flex-1 font-mono text-xs uppercase"
                       maxLength={7}
                     />
                   </div>
@@ -814,41 +892,45 @@ export default function ConfiguracoesPage() {
               {/* Cores Estendidas */}
               <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="complementaryColor" className="text-sm font-medium">Cor de Apoio</Label>
+                  <Label htmlFor="complementaryColor" className="text-sm font-medium">
+                    Cor de Apoio
+                  </Label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="color"
                       id="complementaryColor"
                       value={complementaryColor || "#ffffff"}
                       onChange={(e) => setComplementaryColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
+                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
                     />
                     <Input
                       type="text"
                       value={complementaryColor}
                       onChange={(e) => setComplementaryColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 font-mono text-xs uppercase flex-1"
+                      className="h-9 flex-1 font-mono text-xs uppercase"
                       maxLength={7}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="backgroundColor" className="text-sm font-medium">Cenário / Fundo</Label>
+                  <Label htmlFor="backgroundColor" className="text-sm font-medium">
+                    Cenário / Fundo
+                  </Label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="color"
                       id="backgroundColor"
                       value={backgroundColor || "#ffffff"}
                       onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer p-0 shrink-0"
+                      className="h-9 w-12 shrink-0 cursor-pointer p-0"
                     />
                     <Input
                       type="text"
                       value={backgroundColor}
                       onChange={(e) => setBackgroundColor(e.target.value)}
                       placeholder="#HEX"
-                      className="h-9 font-mono text-xs uppercase flex-1"
+                      className="h-9 flex-1 font-mono text-xs uppercase"
                       maxLength={7}
                     />
                   </div>
@@ -867,18 +949,18 @@ export default function ConfiguracoesPage() {
               <CardDescription>Gerencie as variações visuais da sua marca</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
               {/* 0. Thumb / Ícone de Perfil da Plataforma */}
-              <div className="space-y-2 pb-4 border-b border-gray-100">
-                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+              <div className="space-y-2 border-b border-gray-100 pb-4">
+                <Label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                   Avatar / Ícone de Perfil da Plataforma
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs p-3 text-xs bg-slate-900 text-white border-none rounded shadow-lg">
-                        Este ícone circular aparecerá no canto superior direito do seu painel. Recomendamos imagens quadradas (1:1).
+                      <TooltipContent className="max-w-xs rounded border-none bg-slate-900 p-3 text-xs text-white shadow-lg">
+                        Este ícone circular aparecerá no canto superior direito do seu painel.
+                        Recomendamos imagens quadradas (1:1).
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -886,12 +968,20 @@ export default function ConfiguracoesPage() {
                 {logoAvatar.url ? (
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white p-0.5 overflow-hidden">
-                        <img src={logoAvatar.url} alt="Avatar da Plataforma" className="h-full w-full rounded-full object-cover" />
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white p-0.5">
+                        <img
+                          src={logoAvatar.url}
+                          alt="Avatar da Plataforma"
+                          className="h-full w-full rounded-full object-cover"
+                        />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-green-800 truncate">Avatar Salvo</p>
-                        <p className="text-[10px] text-green-700">{logoAvatar.width}x{logoAvatar.height}</p>
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Avatar Salvo
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoAvatar.width}x{logoAvatar.height}
+                        </p>
                       </div>
                     </div>
                     <Button
@@ -933,16 +1023,26 @@ export default function ConfiguracoesPage() {
 
               {/* 1. Logo Horizontal */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-700">Logo Horizontal (Formatos Retangulares)</Label>
+                <Label className="text-sm font-semibold text-gray-700">
+                  Logo Horizontal (Formatos Retangulares)
+                </Label>
                 {logoHorizontal.url ? (
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative flex h-10 w-16 shrink-0 items-center justify-center rounded border bg-white p-1 overflow-hidden">
-                        <img src={logoHorizontal.url} alt="Logo Horizontal" className="h-full w-full object-contain" />
+                      <div className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                        <img
+                          src={logoHorizontal.url}
+                          alt="Logo Horizontal"
+                          className="h-full w-full object-contain"
+                        />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-green-800 truncate">Horizontal Salva</p>
-                        <p className="text-[10px] text-green-700">{logoHorizontal.width}x{logoHorizontal.height}</p>
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Horizontal Salva
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoHorizontal.width}x{logoHorizontal.height}
+                        </p>
                       </div>
                     </div>
                     <Button
@@ -984,16 +1084,26 @@ export default function ConfiguracoesPage() {
 
               {/* 2. Logo Vertical */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-700">Logo Vertical / Quadrada (Perfis e Posts)</Label>
+                <Label className="text-sm font-semibold text-gray-700">
+                  Logo Vertical / Quadrada (Perfis e Posts)
+                </Label>
                 {logoVertical.url ? (
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded border bg-white p-1 overflow-hidden">
-                        <img src={logoVertical.url} alt="Logo Vertical" className="h-full w-full object-contain" />
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                        <img
+                          src={logoVertical.url}
+                          alt="Logo Vertical"
+                          className="h-full w-full object-contain"
+                        />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-green-800 truncate">Vertical Salva</p>
-                        <p className="text-[10px] text-green-700">{logoVertical.width}x{logoVertical.height}</p>
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Vertical Salva
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoVertical.width}x{logoVertical.height}
+                        </p>
                       </div>
                     </div>
                     <Button
@@ -1035,16 +1145,26 @@ export default function ConfiguracoesPage() {
 
               {/* 3. Símbolo / Ícone */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-700">Símbolo / Ícone (Marcas D'água Sutis)</Label>
+                <Label className="text-sm font-semibold text-gray-700">
+                  Símbolo / Ícone (Marcas D'água Sutis)
+                </Label>
                 {logoSymbol.url ? (
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded border bg-white p-1 overflow-hidden">
-                        <img src={logoSymbol.url} alt="Símbolo" className="h-full w-full object-contain" />
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                        <img
+                          src={logoSymbol.url}
+                          alt="Símbolo"
+                          className="h-full w-full object-contain"
+                        />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-green-800 truncate">Símbolo Salvo</p>
-                        <p className="text-[10px] text-green-700">{logoSymbol.width}x{logoSymbol.height}</p>
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Símbolo Salvo
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoSymbol.width}x{logoSymbol.height}
+                        </p>
                       </div>
                     </div>
                     <Button
@@ -1094,16 +1214,19 @@ export default function ConfiguracoesPage() {
                 Branding da Agência (PDF)
               </CardTitle>
               <CardDescription>
-                Suba o manual de identidade visual criado pela agência e a IA configurará seu Brand Kit.
+                Suba o manual de identidade visual criado pela agência e a IA configurará seu Brand
+                Kit.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {isParsingPdf ? (
-                <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 border border-dashed rounded-lg bg-slate-50/50">
+                <div className="flex flex-col items-center justify-center space-y-3 rounded-lg border border-dashed bg-slate-50/50 p-6 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-gray-800">Processando manual de marca...</p>
-                    <p className="text-xs text-muted-foreground animate-pulse">{pdfProgressText}</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      Processando manual de marca...
+                    </p>
+                    <p className="animate-pulse text-xs text-muted-foreground">{pdfProgressText}</p>
                   </div>
                 </div>
               ) : pdfManualPath ? (
@@ -1113,13 +1236,15 @@ export default function ConfiguracoesPage() {
                       <Sparkles className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-green-800 truncate">Manual de Marca Vinculado</p>
+                      <p className="truncate text-xs font-semibold text-green-800">
+                        Manual de Marca Vinculado
+                      </p>
                       {pdfManualUrl && (
-                        <a 
-                          href={pdfManualUrl} 
-                          target="_blank" 
+                        <a
+                          href={pdfManualUrl}
+                          target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5 mt-0.5"
+                          className="mt-0.5 flex items-center gap-0.5 text-[10px] text-primary hover:underline"
                         >
                           Visualizar PDF
                         </a>
@@ -1129,7 +1254,7 @@ export default function ConfiguracoesPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-dashed h-9 px-3 text-xs"
+                    className="h-9 border-dashed px-3 text-xs"
                     onClick={() => fileInputRefPdf.current?.click()}
                   >
                     Substituir PDF
@@ -1147,13 +1272,15 @@ export default function ConfiguracoesPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-dashed p-8 flex flex-col gap-2 items-center justify-center h-auto text-muted-foreground hover:text-foreground"
+                    className="flex h-auto w-full flex-col items-center justify-center gap-2 border-dashed p-8 text-muted-foreground hover:text-foreground"
                     onClick={() => fileInputRefPdf.current?.click()}
                   >
                     <UploadCloud className="mr-2 h-6 w-6 text-primary" />
                     <div className="text-center">
                       <p className="text-sm font-semibold">Upload do Manual em PDF</p>
-                      <p className="text-xs text-muted-foreground">Identidade Visual, Cores, Tom de Voz (até 15MB)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Identidade Visual, Cores, Tom de Voz (até 15MB)
+                      </p>
                     </div>
                   </Button>
                 </div>
@@ -1168,7 +1295,9 @@ export default function ConfiguracoesPage() {
                 <Bookmark className="h-5 w-5 text-primary" />
                 Tipografia do Brand Kit
               </CardTitle>
-              <CardDescription>Estilo de fontes e escritas recomendados para as imagens da marca</CardDescription>
+              <CardDescription>
+                Estilo de fontes e escritas recomendados para as imagens da marca
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
@@ -1206,24 +1335,25 @@ export default function ConfiguracoesPage() {
 
         {/* Painel Central e Direito: Dados do Negócio e Voz de Marca */}
         <div className="space-y-8 lg:col-span-2">
-          
           {/* Assistente de Marca (Banner Inteligente de IA) */}
           <Card className="relative overflow-hidden border-none bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
             <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
             <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-500/20 blur-xl"></div>
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-xl font-bold text-white">
-                <Sparkles className="h-6 w-6 text-yellow-300 animate-pulse" />
+                <Sparkles className="h-6 w-6 animate-pulse text-yellow-300" />
                 Assistência guiada com Inteligência Artificial
               </CardTitle>
               <CardDescription className="text-blue-100">
-                Deixe o assistente Vapti criar sua paleta de cores, tom de voz, slogans e público através da IA.
+                Deixe o assistente Vapti criar sua paleta de cores, tom de voz, slogans e público
+                através da IA.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-relaxed text-blue-50/90">
-                Se você deseja remodelar a identidade do seu negócio ou quer ajuda para extrair slogans marcantes,
-                nosso onboarding interativo pode mapear seu site ou suas respostas em segundos.
+                Se você deseja remodelar a identidade do seu negócio ou quer ajuda para extrair
+                slogans marcantes, nosso onboarding interativo pode mapear seu site ou suas
+                respostas em segundos.
               </p>
             </CardContent>
             <CardFooter className="pt-2">
@@ -1262,7 +1392,7 @@ export default function ConfiguracoesPage() {
                   <div className="flex items-center justify-between">
                     <Label htmlFor="cnpj">CNPJ do Cadastro</Label>
                     {cnpjLocked && (
-                      <span className="text-[10px] font-bold text-violet-600 flex items-center gap-1">
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-violet-600">
                         <Lock className="h-3 w-3" /> Protegido
                       </span>
                     )}
@@ -1288,14 +1418,14 @@ export default function ConfiguracoesPage() {
                           setIsCnpjModalOpen(true);
                         }}
                         disabled={hasPendingCnpjRequest}
-                        className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800 shrink-0 h-10 px-3 text-xs"
+                        className="h-10 shrink-0 border-violet-200 px-3 text-xs text-violet-700 hover:bg-violet-50 hover:text-violet-800"
                       >
                         Solicitar Alteração
                       </Button>
                     )}
                   </div>
                   {hasPendingCnpjRequest && (
-                    <p className="text-[10px] text-amber-600 font-semibold mt-1">
+                    <p className="mt-1 text-[10px] font-semibold text-amber-600">
                       ⚠️ Solicitação de alteração em análise pelo administrador.
                     </p>
                   )}
@@ -1352,7 +1482,9 @@ export default function ConfiguracoesPage() {
               <div className="space-y-2">
                 <Label htmlFor="instagram">Perfil do Instagram (Sufixo / Username)</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    @
+                  </span>
                   <Input
                     id="instagram"
                     placeholder="pizzaria_fornodeouro"
@@ -1383,10 +1515,11 @@ export default function ConfiguracoesPage() {
                 <Bookmark className="h-5 w-5 text-primary" />
                 Voz de Marca e Posicionamento
               </CardTitle>
-              <CardDescription>Definições de marketing que guiam a IA na criação de posts</CardDescription>
+              <CardDescription>
+                Definições de marketing que guiam a IA na criação de posts
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
               <div className="space-y-2">
                 <Label htmlFor="slogan">Slogan da Empresa</Label>
                 <div className="relative">
@@ -1432,7 +1565,9 @@ export default function ConfiguracoesPage() {
 
               {/* Benefícios da Marca */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Principais Benefícios / Diferenciais (Tags)</Label>
+                <Label className="text-sm font-medium">
+                  Principais Benefícios / Diferenciais (Tags)
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Adicionar novo benefício... Ex: Ingredientes Importados"
@@ -1451,7 +1586,9 @@ export default function ConfiguracoesPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   {mainBenefits.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">Nenhum benefício cadastrado. Adicione acima para orientar a IA.</p>
+                    <p className="text-xs italic text-muted-foreground">
+                      Nenhum benefício cadastrado. Adicione acima para orientar a IA.
+                    </p>
                   ) : (
                     mainBenefits.map((benefit, index) => (
                       <span
@@ -1462,7 +1599,7 @@ export default function ConfiguracoesPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveBenefit(index)}
-                          className="hover:text-primary/70 shrink-0 font-bold"
+                          className="shrink-0 font-bold hover:text-primary/70"
                           aria-label={`Remover benefício ${benefit}`}
                         >
                           ×
@@ -1482,7 +1619,9 @@ export default function ConfiguracoesPage() {
                 <Palette className="h-5 w-5 text-primary" />
                 Diretrizes Visuais para Geração de Fotos
               </CardTitle>
-              <CardDescription>Instruções estéticas que guiam a IA na renderização das suas imagens conceito</CardDescription>
+              <CardDescription>
+                Instruções estéticas que guiam a IA na renderização das suas imagens conceito
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -1495,12 +1634,13 @@ export default function ConfiguracoesPage() {
                   className="min-h-[100px] resize-y"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Se você importar um PDF de manual de marca, essas diretrizes serão extraídas automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a seguir o estilo do seu designer.
+                  Se você importar um PDF de manual de marca, essas diretrizes serão extraídas
+                  automaticamente pela IA da agência. Elas ajudam o motor de imagem (Imagen) a
+                  seguir o estilo do seu designer.
                 </p>
               </div>
             </CardContent>
           </Card>
-
 
           {/* Personas do Negócio */}
           <Card className="border-none shadow-md">
@@ -1509,33 +1649,50 @@ export default function ConfiguracoesPage() {
                 <Users className="h-5 w-5 text-primary" />
                 Personas da Marca
               </CardTitle>
-              <CardDescription>Perfis de compradores ideais mapeados a partir do manual da agência</CardDescription>
+              <CardDescription>
+                Perfis de compradores ideais mapeados a partir do manual da agência
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {personas.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground bg-slate-50/50">
+                <div className="rounded-lg border border-dashed bg-slate-50/50 p-6 text-center text-sm text-muted-foreground">
                   <p className="font-semibold">Nenhuma persona cadastrada.</p>
-                  <p className="text-xs mt-1">Envie o manual de branding em PDF para que nossa IA mapeie e gere os perfis de compradores ideais automaticamente!</p>
+                  <p className="mt-1 text-xs">
+                    Envie o manual de branding em PDF para que nossa IA mapeie e gere os perfis de
+                    compradores ideais automaticamente!
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {personas.map((persona, index) => (
                     <div
                       key={persona.name || index}
-                      className="rounded-xl border border-slate-100 bg-slate-50/40 p-4 space-y-3 relative hover:shadow-sm transition-all"
+                      className="relative space-y-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4 transition-all hover:shadow-sm"
                     >
                       <div className="space-y-1">
-                        <h4 className="text-sm font-bold text-slate-800">{persona.name || `Persona ${index + 1}`}</h4>
-                        <p className="text-[10px] uppercase font-semibold tracking-wider text-primary">{persona.profile || "Colaborador"}</p>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          {persona.name || `Persona ${index + 1}`}
+                        </h4>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                          {persona.profile || "Colaborador"}
+                        </p>
                       </div>
-                      <div className="space-y-2 text-xs text-slate-600 border-t pt-2">
+                      <div className="space-y-2 border-t pt-2 text-xs text-slate-600">
                         <div>
-                          <strong className="text-slate-700 text-[10px] uppercase block">Desafios/Dores:</strong>
-                          <p className="mt-0.5 line-clamp-3 leading-relaxed">{persona.painPoints || "Sem descrição"}</p>
+                          <strong className="block text-[10px] uppercase text-slate-700">
+                            Desafios/Dores:
+                          </strong>
+                          <p className="mt-0.5 line-clamp-3 leading-relaxed">
+                            {persona.painPoints || "Sem descrição"}
+                          </p>
                         </div>
                         <div>
-                          <strong className="text-slate-700 text-[10px] uppercase block">Motivação de Compra:</strong>
-                          <p className="mt-0.5 line-clamp-3 leading-relaxed">{persona.buyingMotivation || "Sem descrição"}</p>
+                          <strong className="block text-[10px] uppercase text-slate-700">
+                            Motivação de Compra:
+                          </strong>
+                          <p className="mt-0.5 line-clamp-3 leading-relaxed">
+                            {persona.buyingMotivation || "Sem descrição"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1544,7 +1701,6 @@ export default function ConfiguracoesPage() {
               )}
             </CardContent>
           </Card>
-
         </div>
       </div>
 
@@ -1559,7 +1715,8 @@ export default function ConfiguracoesPage() {
           await loadProfile();
           toast({
             title: "Marca Configurada com IA!",
-            description: "As configurações foram recalculadas com sucesso pela nossa inteligência artificial.",
+            description:
+              "As configurações foram recalculadas com sucesso pela nossa inteligência artificial.",
             variant: "success",
           });
         }}
@@ -1567,46 +1724,55 @@ export default function ConfiguracoesPage() {
 
       {/* Modal de Solicitação de Alteração de CNPJ */}
       <Dialog open={isCnpjModalOpen} onOpenChange={setIsCnpjModalOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-slate-900 border border-slate-800 text-white">
+        <DialogContent className="border border-slate-800 bg-slate-900 text-white sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-white">Solicitar Alteração Jurídica do Negócio</DialogTitle>
+            <DialogTitle className="text-white">
+              Solicitar Alteração Jurídica do Negócio
+            </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Para prevenção de abusos de múltiplos negócios por conta, a alteração de CNPJ/Nome necessita de aprovação administrativa.
+              Para prevenção de abusos de múltiplos negócios por conta, a alteração de CNPJ/Nome
+              necessita de aprovação administrativa.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4 text-slate-300">
             <div className="space-y-2">
-              <Label htmlFor="modal-new-business-name" className="text-slate-200">Novo Nome da Empresa (Razão Social)</Label>
+              <Label htmlFor="modal-new-business-name" className="text-slate-200">
+                Novo Nome da Empresa (Razão Social)
+              </Label>
               <Input
                 id="modal-new-business-name"
                 placeholder="Ex: Clínica Beleza Pura Ltda"
                 value={newBusinessName}
                 onChange={(e) => setNewBusinessName(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-white"
+                className="border-slate-800 bg-slate-950 text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modal-new-cnpj" className="text-slate-200">Novo CNPJ</Label>
+              <Label htmlFor="modal-new-cnpj" className="text-slate-200">
+                Novo CNPJ
+              </Label>
               <Input
                 id="modal-new-cnpj"
                 placeholder="00.000.000/0000-00"
                 value={newCnpj}
                 onChange={(e) => setNewCnpj(formatCnpjLocal(e.target.value))}
-                className="bg-slate-950 border-slate-800 text-white"
+                className="border-slate-800 bg-slate-950 text-white"
                 maxLength={18}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modal-reason" className="text-slate-200">Justificativa da Alteração</Label>
+              <Label htmlFor="modal-reason" className="text-slate-200">
+                Justificativa da Alteração
+              </Label>
               <Textarea
                 id="modal-reason"
                 placeholder="Descreva o motivo real de mudança jurídica (ex: transição de MEI para LTDA, correção de digitação, reestruturação societária...)"
                 value={cnpjReason}
                 onChange={(e) => setCnpjReason(e.target.value)}
-                className="min-h-[100px] bg-slate-950 border-slate-800 text-white"
+                className="min-h-[100px] border-slate-800 bg-slate-950 text-white"
               />
             </div>
           </div>
@@ -1617,20 +1783,25 @@ export default function ConfiguracoesPage() {
               variant="outline"
               onClick={() => setIsCnpjModalOpen(false)}
               disabled={isSubmittingCnpjRequest}
-              className="border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white"
+              className="border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white"
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              disabled={isSubmittingCnpjRequest || !newBusinessName.trim() || newCnpj.replace(/\D/g, "").length !== 14 || !cnpjReason.trim()}
+              disabled={
+                isSubmittingCnpjRequest ||
+                !newBusinessName.trim() ||
+                newCnpj.replace(/\D/g, "").length !== 14 ||
+                !cnpjReason.trim()
+              }
               onClick={async () => {
                 if (!user) return;
                 setIsSubmittingCnpjRequest(true);
                 try {
                   const cleanNewCnpj = newCnpj.replace(/\D/g, "");
                   const cleanCurrentCnpj = cnpj.replace(/\D/g, "");
-                  
+
                   await createCnpjRequest(
                     user.uid,
                     user.email || "",
@@ -1640,13 +1811,13 @@ export default function ConfiguracoesPage() {
                     newBusinessName,
                     cnpjReason
                   );
-                  
+
                   toast({
                     title: "Solicitação Enviada!",
                     description: "Seu pedido de alteração foi cadastrado e está sob revisão.",
                     variant: "success",
                   });
-                  
+
                   setIsCnpjModalOpen(false);
                   await loadProfile();
                 } catch (err: any) {
@@ -1659,7 +1830,7 @@ export default function ConfiguracoesPage() {
                   setIsSubmittingCnpjRequest(false);
                 }
               }}
-              className="bg-violet-600 hover:bg-violet-500 text-white"
+              className="bg-violet-600 text-white hover:bg-violet-500"
             >
               {isSubmittingCnpjRequest ? (
                 <>
@@ -1676,79 +1847,119 @@ export default function ConfiguracoesPage() {
 
       {/* Modal de Confirmação de Branding Extraído do PDF */}
       <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-slate-900 border border-slate-800 text-white">
+        <DialogContent className="border border-slate-800 bg-slate-900 text-white sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-white">
               <Sparkles className="h-5 w-5 text-yellow-400" />
               Revisar Branding Extraído da Agência
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Nosso assistente analisou o PDF e identificou as diretrizes de marca abaixo. Deseja aplicá-las às suas configurações locais?
+              Nosso assistente analisou o PDF e identificou as diretrizes de marca abaixo. Deseja
+              aplicá-las às suas configurações locais?
             </DialogDescription>
           </DialogHeader>
 
           {extractedBrandData && (
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2 text-slate-300 text-sm">
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto py-4 pr-2 text-sm text-slate-300">
               <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Nome do Negócio</span>
-                  <p className="font-semibold text-white mt-0.5">{extractedBrandData.name || "Não identificado"}</p>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">
+                    Nome do Negócio
+                  </span>
+                  <p className="mt-0.5 font-semibold text-white">
+                    {extractedBrandData.name || "Não identificado"}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Slogan</span>
-                  <p className="font-semibold text-white mt-0.5">{extractedBrandData.slogan || "Não identificado"}</p>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Slogan</span>
+                  <p className="mt-0.5 font-semibold text-white">
+                    {extractedBrandData.slogan || "Não identificado"}
+                  </p>
                 </div>
               </div>
 
               <div className="border-b border-slate-800 pb-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Descrição Comercial</span>
-                <p className="mt-0.5 text-slate-200">{extractedBrandData.description || "Não identificada"}</p>
+                <span className="text-[10px] font-bold uppercase text-slate-400">
+                  Descrição Comercial
+                </span>
+                <p className="mt-0.5 text-slate-200">
+                  {extractedBrandData.description || "Não identificada"}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Público-Alvo</span>
-                  <p className="mt-0.5 text-slate-200">{extractedBrandData.targetAudience || "Não identificado"}</p>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">
+                    Público-Alvo
+                  </span>
+                  <p className="mt-0.5 text-slate-200">
+                    {extractedBrandData.targetAudience || "Não identificado"}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Tom de Voz</span>
-                  <p className="mt-0.5 text-slate-200">{extractedBrandData.toneOfVoice || "Não identificado"}</p>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Tom de Voz</span>
+                  <p className="mt-0.5 text-slate-200">
+                    {extractedBrandData.toneOfVoice || "Não identificado"}
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-3">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Cor Primária</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="h-6 w-6 rounded border border-slate-700" style={{ backgroundColor: extractedBrandData.primaryColor }} />
-                    <span className="font-mono text-xs text-white">{extractedBrandData.primaryColor || "N/A"}</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">
+                    Cor Primária
+                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div
+                      className="h-6 w-6 rounded border border-slate-700"
+                      style={{ backgroundColor: extractedBrandData.primaryColor }}
+                    />
+                    <span className="font-mono text-xs text-white">
+                      {extractedBrandData.primaryColor || "N/A"}
+                    </span>
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Cor Secundária</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="h-6 w-6 rounded border border-slate-700" style={{ backgroundColor: extractedBrandData.secondaryColor }} />
-                    <span className="font-mono text-xs text-white">{extractedBrandData.secondaryColor || "N/A"}</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">
+                    Cor Secundária
+                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div
+                      className="h-6 w-6 rounded border border-slate-700"
+                      style={{ backgroundColor: extractedBrandData.secondaryColor }}
+                    />
+                    <span className="font-mono text-xs text-white">
+                      {extractedBrandData.secondaryColor || "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="border-b border-slate-800 pb-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Diretrizes Visuais para IA</span>
-                <p className="mt-0.5 text-slate-200 text-xs leading-relaxed">{extractedBrandData.visualGuidelines || "Não identificadas"}</p>
+                <span className="text-[10px] font-bold uppercase text-slate-400">
+                  Diretrizes Visuais para IA
+                </span>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-200">
+                  {extractedBrandData.visualGuidelines || "Não identificadas"}
+                </p>
               </div>
 
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Principais Benefícios / Diferenciais</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
+                <span className="text-[10px] font-bold uppercase text-slate-400">
+                  Principais Benefícios / Diferenciais
+                </span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
                   {extractedBrandData.mainBenefits && extractedBrandData.mainBenefits.length > 0 ? (
                     extractedBrandData.mainBenefits.map((b: string) => (
-                      <span key={b} className="bg-blue-900/50 border border-blue-800 text-blue-200 rounded px-2 py-0.5 text-xs font-semibold">
+                      <span
+                        key={b}
+                        className="rounded border border-blue-800 bg-blue-900/50 px-2 py-0.5 text-xs font-semibold text-blue-200"
+                      >
                         {b}
                       </span>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 italic">Nenhum benefício listado.</p>
+                    <p className="text-xs italic text-slate-500">Nenhum benefício listado.</p>
                   )}
                 </div>
               </div>
@@ -1759,7 +1970,7 @@ export default function ConfiguracoesPage() {
             <Button
               type="button"
               variant="ghost"
-              className="text-slate-400 hover:text-white hover:bg-slate-800 border-none"
+              className="border-none text-slate-400 hover:bg-slate-800 hover:text-white"
               onClick={() => {
                 setIsConfirmModalOpen(false);
                 setExtractedBrandData(null);
@@ -1769,7 +1980,7 @@ export default function ConfiguracoesPage() {
             </Button>
             <Button
               type="button"
-              className="bg-primary text-white hover:bg-primary/90 shadow-md"
+              className="bg-primary text-white shadow-md hover:bg-primary/90"
               onClick={handleAcceptExtractedBranding}
             >
               Aplicar ao Meu Negócio

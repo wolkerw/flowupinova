@@ -59,7 +59,15 @@ export async function updateMetaConnectionAdmin(
  * @param userId The UID of the user.
  * @returns The connection data.
  */
-export async function getMetaConnectionAdmin(userId: string): Promise<Partial<MetaConnectionAdminData> & { isConnected: boolean; userAccessToken?: string; pending?: boolean }> {
+export async function getMetaConnectionAdmin(
+  userId: string
+): Promise<
+  Partial<MetaConnectionAdminData> & {
+    isConnected: boolean;
+    userAccessToken?: string;
+    pending?: boolean;
+  }
+> {
   if (!userId) {
     throw new Error("User ID is required to get Meta connection.");
   }
@@ -89,7 +97,17 @@ export async function getMetaConnectionAdmin(userId: string): Promise<Partial<Me
  * This is server-side only.
  * @param userId The UID of the user.
  */
-export async function getMetaAdsConnectionAdmin(userId: string): Promise<Partial<MetaConnectionAdminData> & { isConnected: boolean; userAccessToken?: string; pending?: boolean; adAccountId?: string; adAccountName?: string }> {
+export async function getMetaAdsConnectionAdmin(
+  userId: string
+): Promise<
+  Partial<MetaConnectionAdminData> & {
+    isConnected: boolean;
+    userAccessToken?: string;
+    pending?: boolean;
+    adAccountId?: string;
+    adAccountName?: string;
+  }
+> {
   if (!userId) {
     throw new Error("User ID is required to get Meta Ads connection.");
   }
@@ -121,7 +139,14 @@ export async function getMetaAdsConnectionAdmin(userId: string): Promise<Partial
  */
 export async function updateMetaAdsConnectionAdmin(
   userId: string,
-  connectionData: Partial<MetaConnectionAdminData & { userAccessToken?: string; pending?: boolean; adAccountId?: string; adAccountName?: string }>
+  connectionData: Partial<
+    MetaConnectionAdminData & {
+      userAccessToken?: string;
+      pending?: boolean;
+      adAccountId?: string;
+      adAccountName?: string;
+    }
+  >
 ): Promise<void> {
   if (!userId) {
     throw new Error("User ID is required to update Meta Ads connection.");

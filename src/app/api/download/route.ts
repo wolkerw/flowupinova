@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`[DOWNLOAD_PROXY] Iniciando download de: ${url}`);
-    
+
     // Buscar a imagem na CDN/Firebase Storage pelo servidor
     const response = await fetch(url);
     if (!response.ok) {

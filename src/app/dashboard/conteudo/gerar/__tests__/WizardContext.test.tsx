@@ -105,17 +105,17 @@ describe("WizardContext", () => {
     );
 
     expect(screen.getByTestId("step")).toHaveTextContent("1");
-    
+
     await act(async () => {
       screen.getByText("Next Step").click();
     });
-    
+
     expect(screen.getByTestId("step")).toHaveTextContent("2");
 
     await act(async () => {
       screen.getByText("Set Summary").click();
     });
-    
+
     expect(screen.getByTestId("summary")).toHaveTextContent("New Idea");
   });
 });

@@ -68,8 +68,6 @@ vi.mock("@/lib/services/google-ads-service", () => ({
   getGoogleAdsConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
 
-
-
 describe("Anuncios Page", () => {
   it("renders the main title", async () => {
     // Resolve o Server Component assíncrono

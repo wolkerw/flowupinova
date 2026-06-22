@@ -40,11 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const publishedMediaId = await publishToGoogle(
-      targetUid,
-      postData.text,
-      postData.imageUrl
-    );
+    const publishedMediaId = await publishToGoogle(targetUid, postData.text, postData.imageUrl);
 
     console.log("[GOOGLE_PUBLISH_SUCCESS] Post publicado no Google Meu Negócio:", publishedMediaId);
 

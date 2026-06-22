@@ -3,11 +3,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://numvapt.com.br";
 
-  const routes = [
-    "",
-    "/termos",
-    "/privacidade",
-  ];
+  const routes = ["", "/termos", "/privacidade"];
 
   return routes.map((route) => ({
     url: `${baseUrl}${route}`,

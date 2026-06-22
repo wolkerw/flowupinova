@@ -37,8 +37,13 @@ export async function GET(request: NextRequest) {
     const campaignsData = await campaignsRes.json();
 
     if (!campaignsRes.ok) {
-      console.error("[API_ADS_CAMPAIGNS_GET] Erro ao buscar campanhas na Meta:", campaignsData.error);
-      throw new Error(campaignsData.error?.message || "Falha ao consultar campanhas na Meta Ads API.");
+      console.error(
+        "[API_ADS_CAMPAIGNS_GET] Erro ao buscar campanhas na Meta:",
+        campaignsData.error
+      );
+      throw new Error(
+        campaignsData.error?.message || "Falha ao consultar campanhas na Meta Ads API."
+      );
     }
 
     const rawMetaCampaigns = campaignsData.data || [];
@@ -80,7 +85,9 @@ export async function GET(request: NextRequest) {
 
         let actions = clicks;
         if (insight?.actions) {
-          const linkClicksAction = insight.actions.find((act: any) => act.action_type === "link_click");
+          const linkClicksAction = insight.actions.find(
+            (act: any) => act.action_type === "link_click"
+          );
           if (linkClicksAction) {
             actions = parseInt(linkClicksAction.value || "0");
           }
@@ -122,15 +129,16 @@ export async function GET(request: NextRequest) {
             actions,
             amountSpent: spend,
           },
-          createdAt: firestoreData.createdAt 
-            ? (firestoreData.createdAt.toDate ? firestoreData.createdAt.toDate().toISOString() : firestoreData.createdAt)
+          createdAt: firestoreData.createdAt
+            ? firestoreData.createdAt.toDate
+              ? firestoreData.createdAt.toDate().toISOString()
+              : firestoreData.createdAt
             : metaCamp.created_time,
         };
       })
       .filter((c: any) => c !== null);
 
     return NextResponse.json({ success: true, campaigns });
-
   } catch (error: any) {
     console.error("[API_ADS_CAMPAIGNS_GET] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -255,7 +263,6 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error("[API_ADS_CAMPAIGNS_PUT] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -305,7 +312,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error("[API_ADS_CAMPAIGNS_DELETE] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

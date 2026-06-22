@@ -80,7 +80,7 @@ vi.mock("@/lib/services/google-ads-service-admin", () => ({
       status: "active",
       budgetAmount: 15.0,
       metrics: { impressions: 1240, clicks: 88, amountSpent: 42.5 },
-    }
+    },
   ]),
   updateGoogleAdsCampaignStatus: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -120,46 +120,48 @@ globalThis.fetch = vi.fn().mockImplementation((url) => {
   if (urlStr.includes("/api/ads/campaigns")) {
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({
-        success: true,
-        campaigns: [
-          {
-            id: "campaign-1",
-            name: "[NUMVAPT] Promoção especial de pizza artesanal!",
-            status: "active",
-            postId: "post-1",
-            creative: {
-              headline: "Promoção especial de pizza artesanal!",
-              bodyText: "Promoção especial de pizza artesanal!",
-              imageUrl: "https://example.com/pizza.jpg",
+      json: () =>
+        Promise.resolve({
+          success: true,
+          campaigns: [
+            {
+              id: "campaign-1",
+              name: "[NUMVAPT] Promoção especial de pizza artesanal!",
+              status: "active",
+              postId: "post-1",
+              creative: {
+                headline: "Promoção especial de pizza artesanal!",
+                bodyText: "Promoção especial de pizza artesanal!",
+                imageUrl: "https://example.com/pizza.jpg",
+              },
+              budget: { amount: 1000 },
+              durationDays: 5,
+              metrics: {
+                impressions: 15000,
+                clicks: 450,
+                actions: 380,
+                amountSpent: 50,
+              },
             },
-            budget: { amount: 1000 },
-            durationDays: 5,
-            metrics: {
-              impressions: 15000,
-              clicks: 450,
-              actions: 380,
-              amountSpent: 50,
-            },
-          }
-        ],
-      }),
+          ],
+        }),
     } as any);
   }
   if (urlStr.includes("/api/ads/billing-status")) {
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({
-        success: true,
-        billing: {
-          hasPaymentMethod: true,
-          accountStatus: 1,
-          balance: 150.00,
-          isPrepaid: true,
-          fundingSourceDetails: { display_string: "Pix" },
-          businessId: "123456",
-        }
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          billing: {
+            hasPaymentMethod: true,
+            accountStatus: 1,
+            balance: 150.0,
+            isPrepaid: true,
+            fundingSourceDetails: { display_string: "Pix" },
+            businessId: "123456",
+          },
+        }),
     } as any);
   }
   return Promise.resolve({
@@ -182,10 +184,13 @@ describe("AnunciosPageClient", () => {
     );
 
     // Deve mostrar o título principal após o carregamento
-    await waitFor(() => {
-      expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
-    }, { timeout: 5000 });
-    
+    await waitFor(
+      () => {
+        expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
     // Deve mostrar os cards de métricas simplificados para leigos
     expect(screen.getByText("Valor Investido")).toBeInTheDocument();
     expect(screen.getAllByText("Visualizações").length).toBeGreaterThan(0);
@@ -204,27 +209,38 @@ describe("AnunciosPageClient", () => {
     );
 
     // Deve mostrar o botão principal de Impulsionar Publicação
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Impulsionar Publicação/i })).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByRole("button", { name: /Impulsionar Publicação/i })).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     const openModalButton = screen.getByRole("button", { name: /Impulsionar Publicação/i });
     fireEvent.click(openModalButton);
 
     // Aguarda o carregamento do post qualificável dentro do modal
-    await waitFor(() => {
-      expect(screen.getByText("Promoção especial de pizza artesanal!")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Promoção especial de pizza artesanal!")).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Clica no botão "Impulsionar" do post específico no modal
     const boostButton = screen.getByRole("button", { name: /^Impulsionar$/i });
     fireEvent.click(boostButton);
 
     // O cabeçalho do wizard e o passo 1 devem aparecer
-    await waitFor(() => {
-      expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
-      expect(screen.getByText("1. Qual é o objetivo do seu impulsionamento?")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
+        expect(
+          screen.getByText("1. Qual é o objetivo do seu impulsionamento?")
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 
   it("allows switching to Google Ads platform tab and opening creation dialog", async () => {

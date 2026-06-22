@@ -4,7 +4,12 @@ import type { NextRequest } from "next/server";
 import { getDueScheduledPosts, updatePostStatus } from "@/lib/services/posts-service-admin";
 import type { PostData } from "@/lib/services/posts-service";
 import { FieldValue } from "firebase-admin/firestore";
-import { publishToFacebook, publishToInstagram, publishToGoogle, publishToLinkedIn } from "@/lib/services/publisher-service";
+import {
+  publishToFacebook,
+  publishToInstagram,
+  publishToGoogle,
+  publishToLinkedIn,
+} from "@/lib/services/publisher-service";
 
 /**
  * Tenta publicar um post em uma plataforma específica.
@@ -53,12 +58,7 @@ async function publishToPlatform(
     }
 
     const caption = post.text.slice(0, 2200);
-    return publishToFacebook(
-      pageId,
-      accessToken,
-      post.imageUrls[0],
-      caption
-    );
+    return publishToFacebook(pageId, accessToken, post.imageUrls[0], caption);
   } else if (isGoogle) {
     const userId = post._parentPath ? post._parentPath.split("/")[1] : "";
     if (!userId) {
@@ -78,8 +78,6 @@ async function publishToPlatform(
     return publishToLinkedIn(userId, post.text, imageUrl);
   }
 }
-
-
 
 /**
  * Executa a lógica principal do CRON Job.

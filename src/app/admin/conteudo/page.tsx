@@ -18,15 +18,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface UserSummary {
   uid: string;
@@ -48,7 +40,6 @@ interface PostItem {
   text: string;
   imageUrl: string | null;
   imageUrls: string[];
-  conceptUrls?: string[];
   status: "scheduled" | "publishing" | "published" | "failed" | "completed";
   platforms: string[];
   createdAt: string | null;
@@ -70,7 +61,6 @@ export default function AdminConteudoPage() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [activeImageMap, setActiveImageMap] = useState<Record<string, string>>({});
 
   // Pesquisa/Filtros de Posts
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,7 +108,7 @@ export default function AdminConteudoPage() {
     setPostsError(null);
     try {
       const res = await fetch("/api/admin/posts");
-      
+
       if (res.status === 403 || res.status === 401) {
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
@@ -150,13 +140,9 @@ export default function AdminConteudoPage() {
   }, [activeTab, fetchPosts]);
 
   // Rankings e Gráficos da aba Stats
-  const topImageUsers = [...users]
-    .sort((a, b) => b.imagesCount - a.imagesCount)
-    .slice(0, 10);
+  const topImageUsers = [...users].sort((a, b) => b.imagesCount - a.imagesCount).slice(0, 10);
 
-  const topPostUsers = [...users]
-    .sort((a, b) => b.postsCount - a.postsCount)
-    .slice(0, 10);
+  const topPostUsers = [...users].sort((a, b) => b.postsCount - a.postsCount).slice(0, 10);
 
   const chartData = topImageUsers.map((u) => ({
     name: u.displayName.split(" ")[0] || u.email.split("@")[0],
@@ -190,7 +176,8 @@ export default function AdminConteudoPage() {
 
     const matchesStatus =
       statusFilter === "all" ||
-      (statusFilter === "published" && (post.status === "published" || post.status === "completed")) ||
+      (statusFilter === "published" &&
+        (post.status === "published" || post.status === "completed")) ||
       post.status === statusFilter;
 
     return matchesSearch && matchesStatus;
@@ -262,7 +249,7 @@ export default function AdminConteudoPage() {
         </div>
       ) : activeTab === "stats" ? (
         /* ==================== ABA 1: ESTATÍSTICAS ==================== */
-        <div className="space-y-6 animate-fadeIn">
+        <div className="animate-fadeIn space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
@@ -358,10 +345,10 @@ export default function AdminConteudoPage() {
                         i === 0
                           ? "text-yellow-400"
                           : i === 1
-                          ? "text-slate-300"
-                          : i === 2
-                          ? "text-amber-600"
-                          : "text-slate-600"
+                            ? "text-slate-300"
+                            : i === 2
+                              ? "text-amber-600"
+                              : "text-slate-600"
                       }`}
                     >
                       {i + 1}
@@ -396,10 +383,10 @@ export default function AdminConteudoPage() {
                         i === 0
                           ? "text-yellow-400"
                           : i === 1
-                          ? "text-slate-300"
-                          : i === 2
-                          ? "text-amber-600"
-                          : "text-slate-600"
+                            ? "text-slate-300"
+                            : i === 2
+                              ? "text-amber-600"
+                              : "text-slate-600"
                       }`}
                     >
                       {i + 1}
@@ -423,7 +410,7 @@ export default function AdminConteudoPage() {
         </div>
       ) : (
         /* ==================== ABA 2: EXPLORAR GERAÇÕES ==================== */
-        <div className="space-y-6 animate-fadeIn">
+        <div className="animate-fadeIn space-y-6">
           {/* Filtros e Busca */}
           <div className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-900/40 p-4 sm:flex-row">
             {/* Barra de Pesquisa */}
@@ -485,39 +472,42 @@ export default function AdminConteudoPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredPosts.map((post) => {
                 const creator = getUserInfo(post.userId);
-                
-                // Reunir todas as imagens únicas (finais, rascunhos e conceitos)
-                const allImages = Array.from(new Set([
-                  ...(post.imageUrls || []),
-                  ...(post.imageUrl ? [post.imageUrl] : []),
-                  ...(post.conceptUrls || [])
-                ])).filter(Boolean);
-
-                const hasImages = allImages.length > 0;
-                const currentImage = activeImageMap[post.id] || allImages[0];
+                const hasImages = (post.imageUrls && post.imageUrls.length > 0) || post.imageUrl;
+                const imagesArray =
+                  post.imageUrls && post.imageUrls.length > 0
+                    ? post.imageUrls
+                    : post.imageUrl
+                      ? [post.imageUrl]
+                      : [];
 
                 return (
                   <div
                     key={post.id}
-                    className="flex flex-col overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 hover:border-slate-700/60 transition-all duration-200"
+                    className="flex flex-col overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 transition-all duration-200 hover:border-slate-700/60"
                   >
                     {/* Visualização de Imagem */}
-                    <div className="relative aspect-video w-full bg-slate-950 overflow-hidden group">
+                    <div className="group relative aspect-video w-full overflow-hidden bg-slate-950">
                       {hasImages ? (
                         <>
                           <img
-                            src={currentImage}
+                            src={imagesArray[0]}
                             alt="Preview"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                           {/* Botão de Zoom */}
                           <button
-                            onClick={() => setZoomImageUrl(currentImage)}
-                            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/80"
+                            onClick={() => setZoomImageUrl(imagesArray[0])}
+                            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity duration-200 hover:bg-black/80 group-hover:opacity-100"
                             title="Ampliar Imagem"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
+                          {/* Indicador de Carrossel */}
+                          {imagesArray.length > 1 && (
+                            <span className="absolute left-2 top-2 rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                              +{imagesArray.length - 1} fotos
+                            </span>
+                          )}
                         </>
                       ) : (
                         <div className="flex h-full w-full flex-col items-center justify-center text-slate-600">
@@ -548,39 +538,16 @@ export default function AdminConteudoPage() {
                       </div>
                     </div>
 
-                    {/* Exibir Miniaturas Interativas do Carrossel de Imagens */}
-                    {allImages.length > 1 && (
-                      <div className="flex gap-2 p-2.5 bg-slate-950/40 border-b border-slate-800/60 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800">
-                        {allImages.map((imgUrl, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setActiveImageMap((prev) => ({ ...prev, [post.id]: imgUrl }))}
-                            className={`relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150 ${
-                              currentImage === imgUrl 
-                                ? "border-violet-500 scale-105 shadow-md shadow-violet-500/20" 
-                                : "border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700"
-                            }`}
-                          >
-                            <img src={imgUrl} className="h-full w-full object-cover" />
-                            {idx === 0 && (
-                              <span className="absolute bottom-0 right-0 left-0 bg-violet-600/90 text-[7px] font-bold text-white text-center py-0.5 uppercase tracking-wider">
-                                Ativa
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
                     {/* Dados do Criador */}
-                    <div className="border-b border-slate-800/80 px-4 py-3 bg-slate-900/20">
+                    <div className="border-b border-slate-800/80 bg-slate-900/20 px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-violet-400">
                           <User className="h-3.5 w-3.5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-bold text-slate-100">{creator.displayName}</p>
+                          <p className="truncate text-xs font-bold text-slate-100">
+                            {creator.displayName}
+                          </p>
                           <p className="truncate text-[10px] text-slate-400">{creator.email}</p>
                         </div>
                       </div>
@@ -595,7 +562,7 @@ export default function AdminConteudoPage() {
                         {post.text && post.text.length > 130 && (
                           <button
                             onClick={() => setSelectedPost(post)}
-                            className="text-[11px] font-semibold text-violet-400 hover:text-violet-300 transition-colors"
+                            className="text-[11px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
                           >
                             Ler Legenda Completa →
                           </button>
@@ -603,15 +570,26 @@ export default function AdminConteudoPage() {
                       </div>
 
                       {/* Rodapé do Card */}
-                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400">
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-800/60 pt-3 text-[10px] text-slate-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                          {post.createdAt ? new Date(post.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
+                          {post.createdAt
+                            ? new Date(post.createdAt).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "N/A"}
                         </span>
-                        
+
                         <div className="flex gap-2">
                           {post.platforms.map((plat) => (
-                            <span key={plat} className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300 uppercase">
+                            <span
+                              key={plat}
+                              className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-slate-300"
+                            >
                               {plat}
                             </span>
                           ))}
@@ -620,7 +598,7 @@ export default function AdminConteudoPage() {
 
                       {/* Motivo de erro */}
                       {post.status === "failed" && post.failureReason && (
-                        <div className="mt-3 rounded-lg bg-red-500/10 p-2 text-[10px] text-red-400 border border-red-500/20">
+                        <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-[10px] text-red-400">
                           <strong>Erro:</strong> {post.failureReason}
                         </div>
                       )}
@@ -636,7 +614,7 @@ export default function AdminConteudoPage() {
       {/* Modal: Visualizar Legenda Completa */}
       {selectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl animate-scaleIn">
+          <div className="animate-scaleIn w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-violet-400" />
@@ -649,25 +627,30 @@ export default function AdminConteudoPage() {
                 <XCircle className="h-5 w-5" />
               </button>
             </div>
-            
+
             {/* Informações do Usuário no Modal */}
-            <div className="mt-4 rounded-lg bg-slate-950/40 p-3 text-xs flex justify-between items-center border border-slate-800/50">
+            <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-800/50 bg-slate-950/40 p-3 text-xs">
               <div>
                 <p className="text-slate-400">Criado por:</p>
-                <p className="font-bold text-white">{getUserInfo(selectedPost.userId).displayName} ({getUserInfo(selectedPost.userId).email})</p>
+                <p className="font-bold text-white">
+                  {getUserInfo(selectedPost.userId).displayName} (
+                  {getUserInfo(selectedPost.userId).email})
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-slate-400">Data:</p>
                 <p className="font-bold text-white">
-                  {selectedPost.createdAt ? new Date(selectedPost.createdAt).toLocaleDateString("pt-BR") : "N/A"}
+                  {selectedPost.createdAt
+                    ? new Date(selectedPost.createdAt).toLocaleDateString("pt-BR")
+                    : "N/A"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 max-h-60 overflow-y-auto rounded-lg bg-slate-950 p-4 text-xs leading-relaxed text-slate-200 whitespace-pre-wrap">
+            <div className="mt-4 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
               {selectedPost.text}
             </div>
-            
+
             <div className="mt-5 flex justify-end">
               <button
                 onClick={() => setSelectedPost(null)}
@@ -682,7 +665,10 @@ export default function AdminConteudoPage() {
 
       {/* Modal: Zoom da Imagem */}
       {zoomImageUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={() => setZoomImageUrl(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setZoomImageUrl(null)}
+        >
           <div className="relative max-h-[85vh] max-w-[85vw] overflow-hidden rounded-lg">
             <button
               onClick={() => setZoomImageUrl(null)}
@@ -693,7 +679,7 @@ export default function AdminConteudoPage() {
             <img
               src={zoomImageUrl}
               alt="Zoom"
-              className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg animate-scaleIn"
+              className="animate-scaleIn max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
               onClick={(e) => e.stopPropagation()} // impede fechar ao clicar na imagem em si
             />
           </div>

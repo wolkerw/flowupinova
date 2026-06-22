@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Erro de configuração no servidor. As credenciais do Google não foram encontradas.",
+          error:
+            "Erro de configuração no servidor. As credenciais do Google não foram encontradas.",
         },
         { status: 500 }
       );

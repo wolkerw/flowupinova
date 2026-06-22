@@ -51,7 +51,6 @@ vi.mock("next/link", () => {
   };
 });
 
-
 // Mock next/font/google globalmente para evitar erros de fontes
 vi.mock("next/font/google", () => ({
   Inter: () => ({ className: "inter-font", variable: "--font-inter" }),

@@ -4,16 +4,42 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, arrayUnion, query, where, getDocs } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp,
+  updateDoc,
+  setDoc,
+  arrayUnion,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
-import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
-import { getLinkedInConnection, type LinkedInConnectionData } from "@/lib/services/linkedin-service";
-import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
-import { getUnusedImages, saveUnusedImages, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
+import {
+  getInstagramConnection,
+  type InstagramConnectionData,
+} from "@/lib/services/instagram-service";
+import {
+  getLinkedInConnection,
+  type LinkedInConnectionData,
+} from "@/lib/services/linkedin-service";
+import {
+  getOnboardingProfile,
+  type OnboardingProfileData,
+} from "@/lib/services/onboarding-service";
+import {
+  getUnusedImages,
+  saveUnusedImages,
+  getContentHistory,
+  saveContentHistory,
+} from "@/lib/services/user-data-service";
 import { GeneratedContent, Platform, LogoPosition } from "../types";
 
 interface WizardContextType {
@@ -44,8 +70,8 @@ interface WizardContextType {
   setCollaborators: (collabs: string[]) => void;
   collaboratorsInput: string;
   setCollaboratorsInput: (input: string) => void;
-  userTags: {username: string, x: number, y: number}[];
-  setUserTags: (tags: {username: string, x: number, y: number}[]) => void;
+  userTags: { username: string; x: number; y: number }[];
+  setUserTags: (tags: { username: string; x: number; y: number }[]) => void;
   userTagsInput: string;
   setUserTagsInput: (input: string) => void;
   isGeneratingImages: boolean;
@@ -55,7 +81,11 @@ interface WizardContextType {
   unusedImagesHistory: string[];
   customPrompt: string;
   setCustomPrompt: (prompt: string) => void;
-  handleSubmitImageGeneration: (customPromptOverride?: string | string[], postIdOverride?: string, contentOverride?: GeneratedContent) => Promise<void>;
+  handleSubmitImageGeneration: (
+    customPromptOverride?: string | string[],
+    postIdOverride?: string,
+    contentOverride?: GeneratedContent
+  ) => Promise<void>;
   isRetailStyle: boolean;
   setIsRetailStyle: (val: boolean) => void;
   useDalle: boolean;
@@ -66,7 +96,7 @@ interface WizardContextType {
   setUseNanoBananaRef: (val: boolean) => void;
   fluxImageUrl: string | null;
   setFluxImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
-  
+
   // Reference Image States
   referenceImageFile: File | null;
   setReferenceImageFile: (file: File | null) => void;
@@ -78,7 +108,7 @@ interface WizardContextType {
   setReferenceDescription: (desc: string) => void;
   referenceLink: string;
   setReferenceLink: (link: string) => void;
-  
+
   // Customization States
   logoFile: File | null;
   setLogoFile: (file: File | null) => void;
@@ -105,7 +135,7 @@ interface WizardContextType {
   isItalic: boolean;
   setIsItalic: (italic: boolean) => void;
   isUploading: boolean;
-  
+
   // Computed & Refs
   mode: string | null;
   user: any;
@@ -118,7 +148,6 @@ interface WizardContextType {
   selectedContent: GeneratedContent | null;
   logoInputRef: React.RefObject<HTMLInputElement>;
   foundFilesRef: React.RefObject<Set<string>>;
-
 
   // Handlers
   handleGenerateText: (summary?: string) => Promise<GeneratedContent[] | null>;
@@ -172,10 +201,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [collaborators, setCollaborators] = useState<string[]>([]);
 
   const [userTagsInput, setUserTagsInput] = useState("");
-  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);
+  const [userTags, setUserTags] = useState<{ username: string; x: number; y: number }[]>([]);
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
-  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
+    null
+  );
   const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
 
@@ -205,7 +236,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
   const [logoScale, setLogoScale] = useState(30);
   const [logoOpacity, setLogoOpacity] = useState(100);
-  
+
   // Text Overlay States
   const [showTextOverlay, setShowTextOverlay] = useState(false);
   const [textPosition, setTextPosition] = useState<LogoPosition>("top-center");
@@ -221,7 +252,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
   const [lastGeneratedText, setLastGeneratedText] = useState<string>("");
   const [lastConceptPromptUsed, setLastConceptPromptUsed] = useState<string>("");
-  const [lastSelectedContentIdUsed, setLastSelectedContentIdUsed] = useState<string | undefined>(undefined);
+  const [lastSelectedContentIdUsed, setLastSelectedContentIdUsed] = useState<string | undefined>(
+    undefined
+  );
 
   const handleSelectedImageChange = (url: string | null) => {
     setSelectedImage(url);
@@ -279,7 +312,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setInstagramConnection(instaConn);
         setLinkedinConnection(linkedinConn);
         setBusinessProfile(busProfile);
-        
+
         const initialPlatforms: Platform[] = [];
         if (metaConn?.isConnected) initialPlatforms.push("facebook");
         if (instaConn?.isConnected) initialPlatforms.push("instagram");
@@ -289,24 +322,29 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         // Inicializar a logomarca do Brand Kit se existir e nenhuma estiver selecionada
         if (busProfile?.logo?.url) {
           setLogoPreviewUrl(busProfile.logo.url);
-          
+
           const logoUrlToFetch = busProfile.logo.url.startsWith("http")
             ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(busProfile.logo.url)}`
             : busProfile.logo.url;
 
           fetch(logoUrlToFetch)
-            .then(res => {
+            .then((res) => {
               if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
               }
               return res.blob();
             })
-            .then(blob => {
-              const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
+            .then((blob) => {
+              const file = new File([blob], "logo-brandkit.png", {
+                type: blob.type || "image/png",
+              });
               setLogoFile(file);
             })
-            .catch(err => {
-              console.warn("Aviso: Não foi possível pré-carregar o arquivo físico da logo do Brand Kit (CORS/Rede), utilizando apenas URL de visualização:", err.message || err);
+            .catch((err) => {
+              console.warn(
+                "Aviso: Não foi possível pré-carregar o arquivo físico da logo do Brand Kit (CORS/Rede), utilizando apenas URL de visualização:",
+                err.message || err
+              );
             });
         }
       } catch (error: any) {
@@ -454,7 +492,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
 
       // Iniciar a geração da imagem em paralelo
-      handleGeneratePrompts().catch(err => {
+      handleGeneratePrompts().catch((err) => {
         console.error("Erro na geração de prompt de imagem em paralelo:", err);
       });
 
@@ -468,16 +506,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
 
-        const publicacoes = Array.isArray(data) 
-          ? (data[0]?.publicacoes || data) 
-          : (data.publicacoes || data);
+        const publicacoes = Array.isArray(data)
+          ? data[0]?.publicacoes || data
+          : data.publicacoes || data;
 
         if (Array.isArray(publicacoes)) {
           const mappedContent = publicacoes.map((item: any) => ({
             titulo: item.titulo || item.título || "",
             subtitulo: item.subtitulo || "",
             hashtags: item.hashtags || [],
-            url_da_imagem: item.url_da_imagem
+            url_da_imagem: item.url_da_imagem,
           }));
 
           setGeneratedContent(mappedContent);
@@ -501,8 +539,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    let textToGenerate = (typeof summary === 'string' ? summary : null) || postSummary;
-    
+    let textToGenerate = (typeof summary === "string" ? summary : null) || postSummary;
+
     if (mode === "reference-link" && !summary) {
       if (!inspirationFile || !referenceDescription.trim()) {
         toast({
@@ -515,14 +553,14 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const formData = new FormData();
         formData.append("inspiration_file", inspirationFile);
-        
+
         const combinedDescription = postSummary.trim()
           ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
           : referenceDescription;
-          
+
         formData.append("description", combinedDescription);
         formData.append("user_id", user?.uid || "");
-        
+
         if (businessProfile) {
           formData.append("business_name", businessProfile.name || "");
           formData.append("business_category", businessProfile.category || "");
@@ -541,16 +579,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.details || "Erro ao processar link de referência.");
 
-        const publicacoes = Array.isArray(data) 
-          ? (data[0]?.publicacoes || data) 
-          : (data.publicacoes || data);
+        const publicacoes = Array.isArray(data)
+          ? data[0]?.publicacoes || data
+          : data.publicacoes || data;
 
         if (Array.isArray(publicacoes)) {
           const mappedContent = publicacoes.map((item: any) => ({
             titulo: item.titulo || item.título || "",
             subtitulo: item.subtitulo || "",
             hashtags: item.hashtags || [],
-            url_da_imagem: item.url_da_imagem
+            url_da_imagem: item.url_da_imagem,
           }));
 
           setGeneratedContent(mappedContent);
@@ -588,16 +626,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
 
-      const publicacoes = Array.isArray(data) 
-        ? (data[0]?.publicacoes || data) 
-        : (data.publicacoes || data);
+      const publicacoes = Array.isArray(data)
+        ? data[0]?.publicacoes || data
+        : data.publicacoes || data;
 
       if (Array.isArray(publicacoes)) {
         const mappedContent = publicacoes.map((item: any) => ({
           titulo: item.titulo || item.título || "",
           subtitulo: item.subtitulo || "",
           hashtags: item.hashtags || [],
-          url_da_imagem: item.url_da_imagem
+          url_da_imagem: item.url_da_imagem,
         }));
 
         setGeneratedContent(mappedContent);
@@ -636,23 +674,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           businessProfile,
           referenceDescription,
           postId: currentPostId,
-          userId: user.uid
+          userId: user.uid,
         }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.details || "Erro ao gerar conteúdo.");
 
-      const publicacoes = Array.isArray(data) 
-        ? (data[0]?.publicacoes || data) 
-        : (data.publicacoes || [data]);
+      const publicacoes = Array.isArray(data)
+        ? data[0]?.publicacoes || data
+        : data.publicacoes || [data];
 
       if (Array.isArray(publicacoes)) {
         const mappedContent = publicacoes.map((item: any) => ({
           titulo: item.titulo || item.título || "",
           subtitulo: item.subtitulo || "",
           hashtags: item.hashtags || [],
-          url_da_imagem: imageUrl || item.url_da_imagem
+          url_da_imagem: imageUrl || item.url_da_imagem,
         }));
 
         setGeneratedContent(mappedContent);
@@ -669,23 +707,27 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-
   const handleGeneratePrompts = async (contentOverride?: GeneratedContent) => {
-    const selContent = contentOverride || (selectedContentId !== undefined
-      ? generatedContent[parseInt(selectedContentId, 10)]
-      : generatedContent[0]);
+    const selContent =
+      contentOverride ||
+      (selectedContentId !== undefined
+        ? generatedContent[parseInt(selectedContentId, 10)]
+        : generatedContent[0]);
     if (!user) return;
     if (mode !== "reference-photo" && !selContent) return;
 
     // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
     if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
       const hasImages = generatedImages && generatedImages.length === 3;
-      const hasNoChanges = hasImages &&
+      const hasNoChanges =
+        hasImages &&
         postSummary.trim() === lastConceptPromptUsed.trim() &&
         selectedContentId === lastSelectedContentIdUsed;
 
       if (hasNoChanges) {
-        console.log("[WIZARD] Nenhuma alteração no prompt inicial ou na escolha do texto. Mantendo imagens conceito anteriores.");
+        console.log(
+          "[WIZARD] Nenhuma alteração no prompt inicial ou na escolha do texto. Mantendo imagens conceito anteriores."
+        );
         setStep(3);
         return;
       }
@@ -701,7 +743,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentPostId) {
         try {
           await deletePost(user.uid, currentPostId);
-          console.log("[WIZARD] Post de rascunho anterior abandonado foi deletado do Firestore com sucesso.");
+          console.log(
+            "[WIZARD] Post de rascunho anterior abandonado foi deletado do Firestore com sucesso."
+          );
         } catch (deleteError) {
           console.error("[WIZARD] Erro ao deletar rascunho anterior obsoleto:", deleteError);
         }
@@ -724,9 +768,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           instagramUsername: instagramConnection?.instagramUsername || null,
           pageName: metaConnection?.pageName || null,
           linkedinName: linkedinConnection?.isConnected
-            ? (linkedinConnection.publishTarget === "organization"
-                ? linkedinConnection.selectedOrganizationName || "Página corporativa"
-                : linkedinConnection.personName || "Perfil pessoal")
+            ? linkedinConnection.publishTarget === "organization"
+              ? linkedinConnection.selectedOrganizationName || "Página corporativa"
+              : linkedinConnection.personName || "Perfil pessoal"
             : null,
         },
       });
@@ -759,11 +803,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const promptFormData = new FormData();
         promptFormData.append("yamlAnalysis", yamlAnalysis);
         promptFormData.append("isRetailStyle", String(isRetailStyle));
-        
+
         const combinedDescription = postSummary.trim()
           ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
           : referenceDescription;
-          
+
         promptFormData.append("description", combinedDescription);
         if (businessProfile) {
           promptFormData.append("businessProfile", JSON.stringify(businessProfile));
@@ -772,10 +816,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           promptFormData.append("inspiration_file", inspirationFile);
         }
 
-        const promptResponse = await fetch("/api/conteudo/gerar-referencia?action=generate-prompt", {
-          method: "POST",
-          body: promptFormData,
-        });
+        const promptResponse = await fetch(
+          "/api/conteudo/gerar-referencia?action=generate-prompt",
+          {
+            method: "POST",
+            body: promptFormData,
+          }
+        );
 
         if (!promptResponse.ok) {
           const errData = await promptResponse.json().catch(() => ({}));
@@ -795,9 +842,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const response = await fetch("/api/generate-prompts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            content: selContent, 
-            businessProfile: businessProfile 
+          body: JSON.stringify({
+            content: selContent,
+            businessProfile: businessProfile,
           }),
         });
         const data = await response.json();
@@ -814,7 +861,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       console.error(error);
-      toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
+      toast({
+        variant: "destructive",
+        title: "Erro na Geração",
+        description: getFriendlyErrorMessage(error.message),
+      });
       setIsGeneratingImages(false);
     }
   };
@@ -826,11 +877,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   ) => {
     const promptToUse = customPromptOverride || customPrompt;
     const activePostId = (postIdOverride || currentPostId) as string;
-    const selContent = contentOverride || (selectedContentId !== undefined
-      ? generatedContent[parseInt(selectedContentId, 10)]
-      : generatedContent[0]);
+    const selContent =
+      contentOverride ||
+      (selectedContentId !== undefined
+        ? generatedContent[parseInt(selectedContentId, 10)]
+        : generatedContent[0]);
     if (!user || !activePostId) {
-      console.warn("[WIZARD] Abortando geração. Faltam parâmetros:", { user: !!user, activePostId });
+      console.warn("[WIZARD] Abortando geração. Faltam parâmetros:", {
+        user: !!user,
+        activePostId,
+      });
       return;
     }
     if (mode !== "reference-photo" && !selContent) {
@@ -867,10 +923,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           img4FormData.append("userId", user.uid);
           img4FormData.append("caption", fullCaption);
 
-          const img4Response = await fetch("/api/conteudo/gerar-referencia?action=submit-imagen4-ref", {
-            method: "POST",
-            body: img4FormData,
-          });
+          const img4Response = await fetch(
+            "/api/conteudo/gerar-referencia?action=submit-imagen4-ref",
+            {
+              method: "POST",
+              body: img4FormData,
+            }
+          );
 
           if (!img4Response.ok) {
             const errData = await img4Response.json().catch(() => ({}));
@@ -907,10 +966,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
 
-            const nanobananaResponse = await fetch("/api/conteudo/gerar-referencia?action=submit-nanobanana-ref", {
-              method: "POST",
-              body: nanobananaFormData,
-            });
+            const nanobananaResponse = await fetch(
+              "/api/conteudo/gerar-referencia?action=submit-nanobanana-ref",
+              {
+                method: "POST",
+                body: nanobananaFormData,
+              }
+            );
 
             if (!nanobananaResponse.ok) {
               const errData = await nanobananaResponse.json().catch(() => ({}));
@@ -922,7 +984,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (!finalUrl) throw new Error("Nano Banana não retornou URL da imagem.");
 
-            console.log(`[WIZARD] 🍌 Nano Banana concluído (${nanobananaData.modelUsed}): ${finalUrl}`);
+            console.log(
+              `[WIZARD] 🍌 Nano Banana concluído (${nanobananaData.modelUsed}): ${finalUrl}`
+            );
             setGeneratedImages([finalUrl]);
             setSelectedImage(finalUrl);
             setFluxImageUrl(finalUrl);
@@ -935,22 +999,29 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             });
             return;
           } catch (nanobananaError: any) {
-            console.warn("[WIZARD] 🍌 Falha na geração via Nano Banana Pro, acionando fallback para Flux Kontext:", nanobananaError.message || nanobananaError);
-            
+            console.warn(
+              "[WIZARD] 🍌 Falha na geração via Nano Banana Pro, acionando fallback para Flux Kontext:",
+              nanobananaError.message || nanobananaError
+            );
+
             toast({
               title: "🔄 Acionando Fallback Automático",
-              description: "O modelo principal de imagem está temporariamente instável. Gerando sua arte via Flux Kontext...",
+              description:
+                "O modelo principal de imagem está temporariamente instável. Gerando sua arte via Flux Kontext...",
             });
-            
+
             // Permite continuar para a geração padrão abaixo (Flux Kontext)
           }
         }
 
         const targetAction = useDalle ? "submit-dalle" : "submit-kontext";
-        const submitResponse = await fetch(`/api/conteudo/gerar-referencia?action=${targetAction}`, {
-          method: "POST",
-          body: submitFormData,
-        });
+        const submitResponse = await fetch(
+          `/api/conteudo/gerar-referencia?action=${targetAction}`,
+          {
+            method: "POST",
+            body: submitFormData,
+          }
+        );
 
         if (!submitResponse.ok) {
           const errData = await submitResponse.json().catch(() => ({}));
@@ -959,27 +1030,40 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         const submitResult = await submitResponse.json();
         const { requestId, statusUrl, responseUrl, garmentPublicUrl } = submitResult;
-        console.log("[WIZARD] ID da fila do Fal.ai recebido:", requestId, "Status URL:", statusUrl, "Response URL:", responseUrl, "Garment URL:", garmentPublicUrl);
+        console.log(
+          "[WIZARD] ID da fila do Fal.ai recebido:",
+          requestId,
+          "Status URL:",
+          statusUrl,
+          "Response URL:",
+          responseUrl,
+          "Garment URL:",
+          garmentPublicUrl
+        );
 
         // --- ETAPA 4: POLLING DA FILA ---
         console.log("[WIZARD] Etapa 4: Polling iniciado...");
 
         let attempts = 0;
         const maxAttempts = 75; // 75 * 2s = 150s máximo
-        
+
         const pollInterval = setInterval(async () => {
           attempts++;
-          
+
           // Verificação de timeout garantida no topo absoluto do intervalo
           if (attempts >= maxAttempts) {
             clearInterval(pollInterval);
             const timeoutMsg = "Tempo limite atingido aguardando a fila da IA.";
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
-              await setDoc(postDocRef, {
-                status: "failed",
-                failureReason: timeoutMsg
-              }, { merge: true });
+              await setDoc(
+                postDocRef,
+                {
+                  status: "failed",
+                  failureReason: timeoutMsg,
+                },
+                { merge: true }
+              );
             } catch (fsErr) {
               console.error("[WIZARD] Falha ao registrar timeout no Firestore:", fsErr);
             }
@@ -994,18 +1078,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           try {
-            console.log(`[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`);
+            console.log(
+              `[WIZARD] Consultando status da geração da imagem (Tentativa ${attempts})...`
+            );
             const statusResponse = await fetch(
               `/api/conteudo/gerar-referencia?action=check-status&statusUrl=${encodeURIComponent(statusUrl)}&responseUrl=${encodeURIComponent(responseUrl)}&postId=${activePostId}&userId=${user.uid}`
             );
-            
+
             if (!statusResponse.ok) {
-               console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
-               return;
+              console.warn("[WIZARD] Erro ao buscar status. Continuando na próxima tentativa.");
+              return;
             }
 
             const statusData = await statusResponse.json();
-            
+
             if (statusData.status === "COMPLETED") {
               clearInterval(pollInterval);
               const finalImageUrl = statusData.imageUrl;
@@ -1014,23 +1100,29 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error("URL da imagem final não fornecida pela IA.");
               }
 
-              console.log("[WIZARD] Geração por referência concluída com sucesso na Fal.ai:", finalImageUrl);
+              console.log(
+                "[WIZARD] Geração por referência concluída com sucesso na Fal.ai:",
+                finalImageUrl
+              );
               console.log("[WIZARD] Salvando imagem no Firebase Storage...");
 
               // Executar o download e upload no backend Next.js
               (async () => {
                 try {
-                  const uploadResponse = await fetch("/api/conteudo/gerar-referencia?action=upload-to-firebase", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      postId: activePostId,
-                      userId: user.uid,
-                      finalImageUrl: finalImageUrl,
-                      referenceImageUrl: garmentPublicUrl || null,
-                      caption: fullCaption
-                    })
-                  });
+                  const uploadResponse = await fetch(
+                    "/api/conteudo/gerar-referencia?action=upload-to-firebase",
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        postId: activePostId,
+                        userId: user.uid,
+                        finalImageUrl: finalImageUrl,
+                        referenceImageUrl: garmentPublicUrl || null,
+                        caption: fullCaption,
+                      }),
+                    }
+                  );
 
                   if (!uploadResponse.ok) {
                     throw new Error("Falha ao salvar a imagem no Firebase via servidor.");
@@ -1050,8 +1142,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
                     description: "Sua nova imagem publicitária está pronta e ficou linda!",
                   });
                 } catch (err: any) {
-                  console.warn("[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:", err.message || err);
-                  
+                  console.warn(
+                    "[WIZARD] Falha no upload no backend, usando fallback temporário da Fal.ai:",
+                    err.message || err
+                  );
+
                   setGeneratedImages([finalImageUrl]);
                   setSelectedImage(finalImageUrl);
                   setFluxImageUrl(finalImageUrl);
@@ -1060,17 +1155,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
                   try {
                     const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
-                    await setDoc(postDocRef, {
-                      imageUrls: [finalImageUrl],
-                      referenceImageUrl: garmentPublicUrl || null,
-                      status: "completed"
-                    }, { merge: true });
+                    await setDoc(
+                      postDocRef,
+                      {
+                        imageUrls: [finalImageUrl],
+                        referenceImageUrl: garmentPublicUrl || null,
+                        status: "completed",
+                      },
+                      { merge: true }
+                    );
                   } catch (fsErr) {
                     console.error("[WIZARD] Erro ao gravar rascunho no Firestore local:", fsErr);
                   }
                 }
               })();
-
             } else if (statusData.status === "FAILED") {
               clearInterval(pollInterval);
               throw new Error(statusData.error || "A geração da imagem falhou no servidor da IA.");
@@ -1078,13 +1176,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           } catch (pollErr: any) {
             clearInterval(pollInterval);
             console.error("[WIZARD] Erro durante o polling:", pollErr);
-            
+
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
-              await setDoc(postDocRef, {
-                status: "failed",
-                failureReason: pollErr.message || "Erro durante o polling da IA."
-              }, { merge: true });
+              await setDoc(
+                postDocRef,
+                {
+                  status: "failed",
+                  failureReason: pollErr.message || "Erro durante o polling da IA.",
+                },
+                { merge: true }
+              );
             } catch (fsErr) {
               console.error("[WIZARD] Falha ao registrar erro no Firestore:", fsErr);
             }
@@ -1097,10 +1199,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             setIsGeneratingImages(false);
           }
         }, 2000);
-
       } else {
         // Modo conceito (sem referenceImageFile)
-        console.log("[WIZARD] Iniciando geração das imagens de forma sequencial via Google Imagen...");
+        console.log(
+          "[WIZARD] Iniciando geração das imagens de forma sequencial via Google Imagen..."
+        );
 
         const filenames = ["1", "2", "3"];
         const imageUrls: string[] = [];
@@ -1108,10 +1211,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         for (let i = 0; i < filenames.length; i++) {
           const fname = filenames[i];
           const singlePrompt = Array.isArray(promptToUse)
-            ? (promptToUse[i] || promptToUse[0] || "")
+            ? promptToUse[i] || promptToUse[0] || ""
             : promptToUse;
 
-          console.log(`[WIZARD] Gerando imagem conceito ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`);
+          console.log(
+            `[WIZARD] Gerando imagem conceito ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`
+          );
           const imgResponse = await fetch("/api/generate-images", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1146,17 +1251,26 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             await new Promise((resolve) => setTimeout(resolve, 4000));
           }
         }
-        console.log("[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:", imageUrls);
+        console.log(
+          "[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:",
+          imageUrls
+        );
 
         try {
           const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
-          await setDoc(postDocRef, {
-            imageUrls: imageUrls,
-            conceptUrls: imageUrls,
-            status: "completed"
-          }, { merge: true });
+          await setDoc(
+            postDocRef,
+            {
+              imageUrls: imageUrls,
+              status: "completed",
+            },
+            { merge: true }
+          );
         } catch (firestoreError) {
-          console.error("[WIZARD] Erro ao atualizar o Firestore local com as imagens:", firestoreError);
+          console.error(
+            "[WIZARD] Erro ao atualizar o Firestore local com as imagens:",
+            firestoreError
+          );
         }
 
         setLastConceptPromptUsed(postSummary);
@@ -1166,7 +1280,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       console.error(error);
-      toast({ variant: "destructive", title: "Erro na Geração", description: getFriendlyErrorMessage(error.message) });
+      toast({
+        variant: "destructive",
+        title: "Erro na Geração",
+        description: getFriendlyErrorMessage(error.message),
+      });
       setIsGeneratingImages(false);
     }
   };
@@ -1187,7 +1305,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
-        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
+        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
+          method: "POST",
+          body: formData,
+        });
         const result = await response.json();
         if (response.ok && result?.[0]?.url_post) {
           const finalNoLogoUrl = result[0].url_post;
@@ -1197,12 +1318,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           if (currentPostId && user) {
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-              await setDoc(postDocRef, {
-                imageUrls: [finalNoLogoUrl]
-              }, { merge: true });
+              await setDoc(
+                postDocRef,
+                {
+                  imageUrls: [finalNoLogoUrl],
+                },
+                { merge: true }
+              );
               console.log("[WIZARD] Rascunho temporário atualizado com a imagem sem logotipo.");
             } catch (firestoreError) {
-              console.error("[WIZARD] Erro ao salvar a imagem sem logo no Firestore local:", firestoreError);
+              console.error(
+                "[WIZARD] Erro ao salvar a imagem sem logo no Firestore local:",
+                firestoreError
+              );
             }
           }
 
@@ -1221,21 +1349,27 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
         return new Promise((resolve, reject) => {
           const img = document.createElement("img");
-          img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+          img.onload = () =>
+            resolve({
+              width: img.naturalWidth || img.width,
+              height: img.naturalHeight || img.height,
+            });
           img.onerror = reject;
           img.src = url;
         });
       };
 
       const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
-      const { width: mainImageWidth, height: mainImageHeight } = await getImageDimensions(selectedImage);
+      const { width: mainImageWidth, height: mainImageHeight } =
+        await getImageDimensions(selectedImage);
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
-      
+
       // Obter proporção original da logo para calcular a altura real em pixels
       let logoPixelHeight = logoPixelWidth; // fallback quadrado
       if (logoPreviewUrl) {
         try {
-          const { width: logoImgWidth, height: logoImgHeight } = await getImageDimensions(logoPreviewUrl);
+          const { width: logoImgWidth, height: logoImgHeight } =
+            await getImageDimensions(logoPreviewUrl);
           if (logoImgWidth > 0) {
             logoPixelHeight = logoPixelWidth * (logoImgHeight / logoImgWidth);
           }
@@ -1244,47 +1378,48 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      let positionX = 0, positionY = 0;
-      
+      let positionX = 0,
+        positionY = 0;
+
       // Margem proporcional baseada em 16px em relação ao tamanho máximo de 384px (max-w-sm) do preview no front
       const margin = mainImageWidth * 0.04167;
 
       switch (logoPosition) {
-        case "top-left": 
-          positionX = margin; 
-          positionY = margin; 
+        case "top-left":
+          positionX = margin;
+          positionY = margin;
           break;
-        case "top-center": 
-          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
-          positionY = margin; 
+        case "top-center":
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2;
+          positionY = margin;
           break;
-        case "top-right": 
-          positionX = mainImageWidth - logoPixelWidth - margin; 
-          positionY = margin; 
+        case "top-right":
+          positionX = mainImageWidth - logoPixelWidth - margin;
+          positionY = margin;
           break;
-        case "left-center": 
-          positionX = margin; 
-          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+        case "left-center":
+          positionX = margin;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
-        case "center": 
-          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
-          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+        case "center":
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
-        case "right-center": 
-          positionX = mainImageWidth - logoPixelWidth - margin; 
-          positionY = mainImageHeight / 2 - logoPixelHeight / 2; 
+        case "right-center":
+          positionX = mainImageWidth - logoPixelWidth - margin;
+          positionY = mainImageHeight / 2 - logoPixelHeight / 2;
           break;
-        case "bottom-left": 
-          positionX = margin; 
-          positionY = mainImageHeight - logoPixelHeight - margin; 
+        case "bottom-left":
+          positionX = margin;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
-        case "bottom-center": 
-          positionX = mainImageWidth / 2 - logoPixelWidth / 2; 
-          positionY = mainImageHeight - logoPixelHeight - margin; 
+        case "bottom-center":
+          positionX = mainImageWidth / 2 - logoPixelWidth / 2;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
-        case "bottom-right": 
-          positionX = mainImageWidth - logoPixelWidth - margin; 
-          positionY = mainImageHeight - logoPixelHeight - margin; 
+        case "bottom-right":
+          positionX = mainImageWidth - logoPixelWidth - margin;
+          positionY = mainImageHeight - logoPixelHeight - margin;
           break;
       }
 
@@ -1300,10 +1435,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       formData.append("positionX", Math.round(positionX).toString());
       formData.append("positionY", Math.round(positionY).toString());
 
-      const response = await fetch("/api/proxy-webhook?target=post_manual", { method: "POST", body: formData });
+      const response = await fetch("/api/proxy-webhook?target=post_manual", {
+        method: "POST",
+        body: formData,
+      });
       const result = await response.json();
       if (!response.ok) throw new Error("Falha no webhook de personalização.");
-      
+
       const finalLogoUrl = result?.[0]?.url_post;
       setProcessedImageUrl(finalLogoUrl);
 
@@ -1311,18 +1449,31 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentPostId && user) {
         try {
           const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-          await setDoc(postDocRef, {
-            imageUrls: [finalLogoUrl]
-          }, { merge: true });
-          console.log("[WIZARD] Rascunho temporário atualizado com a imagem com logotipo aplicado.");
+          await setDoc(
+            postDocRef,
+            {
+              imageUrls: [finalLogoUrl],
+            },
+            { merge: true }
+          );
+          console.log(
+            "[WIZARD] Rascunho temporário atualizado com a imagem com logotipo aplicado."
+          );
         } catch (firestoreError) {
-          console.error("[WIZARD] Erro ao salvar a imagem com logo no Firestore local:", firestoreError);
+          console.error(
+            "[WIZARD] Erro ao salvar a imagem com logo no Firestore local:",
+            firestoreError
+          );
         }
       }
 
       setStep(mode === "reference-photo" ? 4 : 5);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao Processar", description: getFriendlyErrorMessage(error.message) });
+      toast({
+        variant: "destructive",
+        title: "Erro ao Processar",
+        description: getFriendlyErrorMessage(error.message),
+      });
     } finally {
       setIsUploading(false);
     }
@@ -1332,11 +1483,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     let finalImageUrl = processedImageUrl || selectedImage;
     if (!selectedContent || !finalImageUrl || !user) return;
     if (platforms.length === 0) {
-      toast({ variant: "destructive", title: "Nenhuma plataforma", description: "Selecione ao menos uma plataforma." });
+      toast({
+        variant: "destructive",
+        title: "Nenhuma plataforma",
+        description: "Selecione ao menos uma plataforma.",
+      });
       return;
     }
     if (publishMode === "schedule" && !scheduleDateTime) {
-      toast({ variant: "destructive", title: "Data inválida", description: "Selecione data e hora." });
+      toast({
+        variant: "destructive",
+        title: "Data inválida",
+        description: "Selecione data e hora.",
+      });
       return;
     }
 
@@ -1346,7 +1505,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const imageBlob = await fetch(finalImageUrl).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "post-image.jpg", { type: imageBlob.type }));
-        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
+        const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
+          method: "POST",
+          body: formData,
+        });
         const result = await response.json();
         if (response.ok && result?.[0]?.url_post) {
           finalImageUrl = result[0].url_post;
@@ -1373,8 +1535,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (result.success) {
-        toast({ title: "Sucesso!", description: publishMode === "now" ? "Post enviado." : "Post agendado." });
-        
+        toast({
+          title: "Sucesso!",
+          description: publishMode === "now" ? "Post enviado." : "Post agendado.",
+        });
+
         // Marcar de forma reativa a imagem correspondente da galeria como já utilizada no post publicado
         if (selectedImage && user) {
           try {
@@ -1383,12 +1548,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(async (docSnap) => {
               await updateDoc(docSnap.ref, {
-                usedInPostId: currentPostId || "published"
+                usedInPostId: currentPostId || "published",
               });
-              console.log(`[WIZARD_GALLERY] Imagem ${docSnap.id} marcada na galeria como usada no post ${currentPostId}`);
+              console.log(
+                `[WIZARD_GALLERY] Imagem ${docSnap.id} marcada na galeria como usada no post ${currentPostId}`
+              );
             });
           } catch (galleryError) {
-            console.error("[WIZARD_GALLERY_ERROR] Erro ao atualizar status de uso na galeria:", galleryError);
+            console.error(
+              "[WIZARD_GALLERY_ERROR] Erro ao atualizar status de uso na galeria:",
+              galleryError
+            );
           }
         }
 
@@ -1396,7 +1566,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (currentPostId) {
           try {
             await deletePost(user.uid, currentPostId);
-            console.log("[WIZARD] Rascunho temporário deletado com sucesso para evitar post duplicado.");
+            console.log(
+              "[WIZARD] Rascunho temporário deletado com sucesso para evitar post duplicado."
+            );
           } catch (deleteError) {
             console.error("[WIZARD] Erro ao deletar rascunho temporário obsoleto:", deleteError);
           }
@@ -1447,7 +1619,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       toast({
         variant: "destructive",
         title: "Descrição vazia",
-        description: "Descreva o seu produto no Passo 1 para podermos gerar a legenda baseada nele."
+        description:
+          "Descreva o seu produto no Passo 1 para podermos gerar a legenda baseada nele.",
       });
       return;
     }
@@ -1461,9 +1634,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.details || data.error || "Erro na API");
 
-      const publicacoes = Array.isArray(data) 
-        ? (data[0]?.publicacoes || data) 
-        : (data.publicacoes || data);
+      const publicacoes = Array.isArray(data)
+        ? data[0]?.publicacoes || data
+        : data.publicacoes || data;
 
       if (Array.isArray(publicacoes) && publicacoes.length > 0) {
         const item = publicacoes[0];
@@ -1471,21 +1644,25 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           titulo: item.titulo || item.título || "",
           subtitulo: item.subtitulo || "",
           hashtags: item.hashtags || [],
-          url_da_imagem: selectedContent?.url_da_imagem || undefined
+          url_da_imagem: selectedContent?.url_da_imagem || undefined,
         };
-        
-        setGeneratedContent(prev => {
+
+        setGeneratedContent((prev) => {
           if (selectedContentId === undefined) return prev;
           const index = parseInt(selectedContentId, 10);
-          return prev.map((c, i) => i === index ? { ...c, ...mapped } : c);
+          return prev.map((c, i) => (i === index ? { ...c, ...mapped } : c));
         });
 
         if (currentPostId) {
           const fullCaption = `${mapped.titulo}\n\n${mapped.subtitulo}\n\n${Array.isArray(mapped.hashtags) ? mapped.hashtags.join(" ") : ""}`;
           const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
-          await setDoc(postDocRef, {
-            text: fullCaption
-          }, { merge: true });
+          await setDoc(
+            postDocRef,
+            {
+              text: fullCaption,
+            },
+            { merge: true }
+          );
         }
 
         toast({
@@ -1505,30 +1682,115 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <WizardContext.Provider value={{
-      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId: handleSelectedContentIdChange,
-      generatedImages, setGeneratedImages, selectedImage, setSelectedImage: handleSelectedImageChange, processedImageUrl, setProcessedImageUrl,
-      showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
-      collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
-      isGeneratingImages, setIsGeneratingImages, canStartPolling, contentHistory, unusedImagesHistory,
-      referenceImageFile, setReferenceImageFile, referenceImagePreview, setReferenceImagePreview, inspirationFile, setInspirationFile,
-      referenceDescription, setReferenceDescription, referenceLink, setReferenceLink,
-      logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
-      showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
-      fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
-      mode, user, metaConnection, instagramConnection, linkedinConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
-      logoInputRef, foundFilesRef,
-      customPrompt, setCustomPrompt, handleSubmitImageGeneration,
-      isRetailStyle, setIsRetailStyle,
-      useDalle, setUseDalle,
-      useImagen4Ref, setUseImagen4Ref,
-      useNanoBananaRef, setUseNanoBananaRef,
-      isGeneratingCaption, handleGenerateCaption,
-      fluxImageUrl, setFluxImageUrl,
+    <WizardContext.Provider
+      value={{
+        step,
+        setStep,
+        postSummary,
+        setPostSummary,
+        isLoading,
+        generatedContent,
+        setGeneratedContent,
+        selectedContentId,
+        setSelectedContentId: handleSelectedContentIdChange,
+        generatedImages,
+        setGeneratedImages,
+        selectedImage,
+        setSelectedImage: handleSelectedImageChange,
+        processedImageUrl,
+        setProcessedImageUrl,
+        showSchedulerModal,
+        setShowSchedulerModal,
+        isPublishing,
+        scheduleDateTime,
+        setScheduleDateTime,
+        platforms,
+        setPlatforms,
+        collaborators,
+        setCollaborators,
+        collaboratorsInput,
+        setCollaboratorsInput,
+        userTags,
+        setUserTags,
+        userTagsInput,
+        setUserTagsInput,
+        isGeneratingImages,
+        setIsGeneratingImages,
+        canStartPolling,
+        contentHistory,
+        unusedImagesHistory,
+        referenceImageFile,
+        setReferenceImageFile,
+        referenceImagePreview,
+        setReferenceImagePreview,
+        inspirationFile,
+        setInspirationFile,
+        referenceDescription,
+        setReferenceDescription,
+        referenceLink,
+        setReferenceLink,
+        logoFile,
+        setLogoFile,
+        logoPreviewUrl,
+        setLogoPreviewUrl,
+        logoPosition,
+        setLogoPosition,
+        logoScale,
+        setLogoScale,
+        logoOpacity,
+        setLogoOpacity,
+        showTextOverlay,
+        setShowTextOverlay,
+        textPosition,
+        setTextPosition,
+        textScale,
+        setTextScale,
+        textColor,
+        setTextColor,
+        fontFamily,
+        setFontFamily,
+        fontWeight,
+        setFontWeight,
+        isItalic,
+        setIsItalic,
+        isUploading,
+        mode,
+        user,
+        metaConnection,
+        instagramConnection,
+        linkedinConnection,
+        businessProfile,
+        currentPostId,
+        visualLogoScale,
+        selectedContent,
+        logoInputRef,
+        foundFilesRef,
+        customPrompt,
+        setCustomPrompt,
+        handleSubmitImageGeneration,
+        isRetailStyle,
+        setIsRetailStyle,
+        useDalle,
+        setUseDalle,
+        useImagen4Ref,
+        setUseImagen4Ref,
+        useNanoBananaRef,
+        setUseNanoBananaRef,
+        isGeneratingCaption,
+        handleGenerateCaption,
+        fluxImageUrl,
+        setFluxImageUrl,
 
-      handleGenerateText, handleGeneratePostContent, handleGeneratePrompts, handleLogoProcessing, handlePublish,
-      handleReferenceImageChange, handleDownloadImage, handleLogoFileChange
-    }}>
+        handleGenerateText,
+        handleGeneratePostContent,
+        handleGeneratePrompts,
+        handleLogoProcessing,
+        handlePublish,
+        handleReferenceImageChange,
+        handleDownloadImage,
+        handleLogoFileChange,
+      }}
+    >
       {children}
     </WizardContext.Provider>
   );

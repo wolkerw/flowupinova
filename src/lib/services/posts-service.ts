@@ -24,7 +24,6 @@ import type { GoogleConnectionData } from "./google-service";
 import type { LinkedInConnectionData } from "./linkedin-service";
 import { config } from "@/lib/config";
 
-
 // Interface for data stored in Firestore
 export interface PostData {
   id?: string;
@@ -73,7 +72,6 @@ export type PostDataInput = {
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
 };
-
 
 // Interface for data being sent to the client from the service
 export type PostDataOutput = {
@@ -188,7 +186,10 @@ async function publishPostImmediately(
         payload = {
           postData: {
             text: postData.text,
-            imageUrl: postData.imageUrls && postData.imageUrls.length > 0 ? postData.imageUrls[0] : undefined,
+            imageUrl:
+              postData.imageUrls && postData.imageUrls.length > 0
+                ? postData.imageUrls[0]
+                : undefined,
             userId,
           },
         };
@@ -198,14 +199,17 @@ async function publishPostImmediately(
         payload = {
           postData: {
             text: postData.text,
-            imageUrl: postData.imageUrls && postData.imageUrls.length > 0 ? postData.imageUrls[0] : undefined,
+            imageUrl:
+              postData.imageUrls && postData.imageUrls.length > 0
+                ? postData.imageUrls[0]
+                : undefined,
             userId,
           },
         };
       }
 
-
-      const fullApiPath = typeof window !== "undefined" ? apiPath : `${config.aplicationURL}${apiPath}`;
+      const fullApiPath =
+        typeof window !== "undefined" ? apiPath : `${config.aplicationURL}${apiPath}`;
 
       return fetch(fullApiPath, {
         method: "POST",
@@ -281,7 +285,6 @@ export async function schedulePost(
     };
   }
 
-
   let imageUrls: string[];
 
   try {
@@ -298,20 +301,29 @@ export async function schedulePost(
       );
 
       // Se já temos uma URL pública real (não blob e não base64), usamos ela
-      if (mediaItem.publicUrl && !mediaItem.publicUrl.startsWith("blob:") && !mediaItem.publicUrl.startsWith("data:")) {
+      if (
+        mediaItem.publicUrl &&
+        !mediaItem.publicUrl.startsWith("blob:") &&
+        !mediaItem.publicUrl.startsWith("data:")
+      ) {
         console.log(`[POST_SERVICE] Item ${index}: Usando URL pública existente.`);
         return mediaItem.publicUrl;
       }
 
       // Se for um link 'blob:' ou 'data:' (base64), precisamos baixar/converter os dados binários para fazer o upload real no Storage
-      if (mediaItem.publicUrl && (mediaItem.publicUrl.startsWith("blob:") || mediaItem.publicUrl.startsWith("data:"))) {
+      if (
+        mediaItem.publicUrl &&
+        (mediaItem.publicUrl.startsWith("blob:") || mediaItem.publicUrl.startsWith("data:"))
+      ) {
         console.log(`[POST_SERVICE] Item ${index}: Convertendo URL temporária (blob/base64)...`);
         const response = await fetch(mediaItem.publicUrl);
         const blob = await response.blob();
         const file = new File([blob], `generated_${Date.now()}.jpg`, {
           type: blob.type,
         });
-        console.log(`[POST_SERVICE] Item ${index}: Imagem convertida com sucesso, fazendo upload permanente no Firebase Storage...`);
+        console.log(
+          `[POST_SERVICE] Item ${index}: Imagem convertida com sucesso, fazendo upload permanente no Firebase Storage...`
+        );
         return await uploadMediaAndGetURL(userId, file);
       }
 

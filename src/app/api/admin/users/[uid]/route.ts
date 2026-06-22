@@ -32,10 +32,10 @@ export async function PATCH(
         updates.plan = "standard";
         updates.role = "pro";
         updates.subscriptionStatus = "active";
-        
+
         const subPlan = subscriptionPlan === "anual" ? "anual" : "mensal";
         updates.subscriptionPlan = subPlan;
-        
+
         const durationDays = subPlan === "anual" ? 365 : 30;
         const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getDate() + durationDays);
@@ -59,7 +59,7 @@ export async function PATCH(
       // createdAt + 7d = hoje + daysd => createdAt = hoje + (days - 7)d.
       const msToAdd = (days - 7) * 24 * 60 * 60 * 1000;
       updates.createdAt = new Date(Date.now() + msToAdd);
-      
+
       updates.plan = "trial";
       updates.role = "free";
       updates.subscriptionStatus = "inactive";

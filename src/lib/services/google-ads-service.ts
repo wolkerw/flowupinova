@@ -38,7 +38,9 @@ export async function getGoogleAdsConnection(userId: string): Promise<GoogleAdsC
       const data = docSnap.data() as GoogleAdsConnectionData;
       return { ...data, isConnected: !!data.isConnected };
     } else {
-      console.log(`[GOOGLE_ADS_SERVICE] Sem documento de conexão Google Ads para ${userId}, criando um padrão.`);
+      console.log(
+        `[GOOGLE_ADS_SERVICE] Sem documento de conexão Google Ads para ${userId}, criando um padrão.`
+      );
       await setDoc(doc(db, "users", userId), { createdAt: new Date() }, { merge: true });
       await setDoc(docRef, defaultConnection);
       return defaultConnection;

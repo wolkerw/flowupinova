@@ -16,6 +16,7 @@ export interface LinkedInConnectionData {
   publishTarget?: "person" | "organization";
   selectedOrganizationUrn?: string;
   selectedOrganizationName?: string;
+  organizations?: { urn: string; name: string }[];
 }
 
 const defaultConnection: LinkedInConnectionData = {

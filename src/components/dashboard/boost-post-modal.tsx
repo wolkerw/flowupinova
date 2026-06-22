@@ -34,14 +34,20 @@ interface BoostPostModalProps {
   onBoostSuccess?: () => void;
 }
 
-export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoostSuccess }: BoostPostModalProps) {
+export function BoostPostModal({
+  isOpen,
+  onClose,
+  post,
+  businessProfile,
+  onBoostSuccess,
+}: BoostPostModalProps) {
   const { toast } = useToast();
-  
+
   // States
   const [objective, setObjective] = useState("POST_ENGAGEMENT");
   const [budget, setBudget] = useState("20");
   const [durationDays, setDurationDays] = useState("5");
-  
+
   // Targeting States
   const [location, setLocation] = useState(businessProfile?.address || "BR");
   const [ageMin, setAgeMin] = useState("18");
@@ -66,14 +72,14 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
     try {
       // TODO: Conectar com o endpoint /api/ai/suggest-audience que faremos em seguida
       // Simulando delay da IA
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Simulação de preenchimento inteligente
       setInterests("Empreendedorismo, Marketing Digital, Pequenas Empresas");
       setLocation("São Paulo, SP (Raio 15km)");
       setAgeMin("25");
       setAgeMax("45");
-      
+
       toast({
         title: "Público Sugerido!",
         description: "A IA analisou seu post e seu negócio para criar essa segmentação.",
@@ -92,16 +98,16 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
   const handleBoost = async () => {
     if (!post) return;
     setIsBoosting(true);
-    
+
     try {
       // TODO: Conectar com endpoint real /api/ads/boost
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       toast({
         title: "Post Impulsionado com Sucesso! 🚀",
         description: "Seu anúncio está em análise pela Meta e começará a rodar em breve.",
       });
-      
+
       onBoostSuccess?.();
       onClose();
     } catch (error: any) {
@@ -130,7 +136,7 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+        <div className="grid grid-cols-1 gap-6 py-4 md:grid-cols-2">
           {/* Post Preview (Left Side) */}
           <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
             <p className="text-sm font-semibold text-muted-foreground">Prévia do Post</p>
@@ -151,7 +157,9 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="POST_ENGAGEMENT">Engajamento (Curtidas e Comentários)</SelectItem>
+                  <SelectItem value="POST_ENGAGEMENT">
+                    Engajamento (Curtidas e Comentários)
+                  </SelectItem>
                   <SelectItem value="LINK_CLICKS">Tráfego (Visitas ao Site/Perfil)</SelectItem>
                   <SelectItem value="MESSAGES">Mensagens (WhatsApp/Direct)</SelectItem>
                 </SelectContent>
@@ -160,12 +168,12 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
 
             <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2 text-primary font-bold">
+                <Label className="flex items-center gap-2 font-bold text-primary">
                   <Target className="h-4 w-4" /> Público Alvo
                 </Label>
-                <Button 
-                  size="sm" 
-                  variant="secondary" 
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={handleSuggestAudience}
                   disabled={isSuggesting}
                   className="bg-white text-primary hover:bg-primary/10"
@@ -178,81 +186,110 @@ export function BoostPostModal({ isOpen, onClose, post, businessProfile, onBoost
                   Sugerir com IA
                 </Button>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-xs">Localização (País, Estado ou Cidade)</Label>
+                <Label htmlFor="location" className="text-xs">
+                  Localização (País, Estado ou Cidade)
+                </Label>
                 <div className="relative">
                   <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="location" 
-                    value={location} 
-                    onChange={e => setLocation(e.target.value)}
-                    className="pl-9 h-9"
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="h-9 pl-9"
                     placeholder="Ex: São Paulo, SP"
                   />
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="ageMin" className="text-xs">Idade Mín.</Label>
-                  <Input id="ageMin" value={ageMin} onChange={e => setAgeMin(e.target.value)} type="number" className="h-9" />
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="ageMin" className="text-xs">
+                    Idade Mín.
+                  </Label>
+                  <Input
+                    id="ageMin"
+                    value={ageMin}
+                    onChange={(e) => setAgeMin(e.target.value)}
+                    type="number"
+                    className="h-9"
+                  />
                 </div>
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="ageMax" className="text-xs">Idade Máx.</Label>
-                  <Input id="ageMax" value={ageMax} onChange={e => setAgeMax(e.target.value)} type="number" className="h-9" />
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="ageMax" className="text-xs">
+                    Idade Máx.
+                  </Label>
+                  <Input
+                    id="ageMax"
+                    value={ageMax}
+                    onChange={(e) => setAgeMax(e.target.value)}
+                    type="number"
+                    className="h-9"
+                  />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="interests" className="text-xs">Interesses (Separe por vírgula)</Label>
-                <Textarea 
-                  id="interests" 
-                  value={interests} 
-                  onChange={e => setInterests(e.target.value)}
+                <Label htmlFor="interests" className="text-xs">
+                  Interesses (Separe por vírgula)
+                </Label>
+                <Textarea
+                  id="interests"
+                  value={interests}
+                  onChange={(e) => setInterests(e.target.value)}
                   placeholder="Ex: Pets, Cachorros, Banho e Tosa"
-                  className="h-16 text-sm resize-none"
+                  className="h-16 resize-none text-sm"
                 />
               </div>
             </div>
 
             <div className="flex gap-4">
-              <div className="space-y-2 flex-1">
+              <div className="flex-1 space-y-2">
                 <Label htmlFor="budget">Orçamento Diário (R$)</Label>
-                <Input 
-                  id="budget" 
-                  type="number" 
-                  value={budget} 
-                  onChange={e => setBudget(e.target.value)} 
+                <Input
+                  id="budget"
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
                   min="5"
                 />
               </div>
-              <div className="space-y-2 flex-1">
+              <div className="flex-1 space-y-2">
                 <Label htmlFor="duration">Duração (Dias)</Label>
-                <Input 
-                  id="duration" 
-                  type="number" 
-                  value={durationDays} 
-                  onChange={e => setDurationDays(e.target.value)} 
+                <Input
+                  id="duration"
+                  type="number"
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(e.target.value)}
                   min="1"
                 />
               </div>
             </div>
-            
-            <div className="rounded bg-muted p-3 text-sm font-medium flex justify-between items-center">
+
+            <div className="flex items-center justify-between rounded bg-muted p-3 text-sm font-medium">
               <span>Investimento Total Previsto:</span>
               <span className="text-lg font-bold text-primary">
                 R$ {(parseInt(budget || "0") * parseInt(durationDays || "0")).toFixed(2)}
               </span>
             </div>
-
           </div>
         </div>
 
         <DialogFooter className="border-t pt-4">
-          <Button variant="ghost" onClick={onClose} disabled={isBoosting}>Cancelar</Button>
-          <Button onClick={handleBoost} disabled={isBoosting || isSuggesting} className="bg-primary hover:bg-primary/90 font-bold px-8">
-            {isBoosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TrendingUp className="mr-2 h-4 w-4" />}
+          <Button variant="ghost" onClick={onClose} disabled={isBoosting}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleBoost}
+            disabled={isBoosting || isSuggesting}
+            className="bg-primary px-8 font-bold hover:bg-primary/90"
+          >
+            {isBoosting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <TrendingUp className="mr-2 h-4 w-4" />
+            )}
             Confirmar Impulsionamento
           </Button>
         </DialogFooter>

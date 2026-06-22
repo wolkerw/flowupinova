@@ -40,13 +40,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const publishedMediaId = await publishToLinkedIn(
-      targetUid,
-      postData.text,
-      postData.imageUrl
-    );
+    const publishedMediaId = await publishToLinkedIn(targetUid, postData.text, postData.imageUrl);
 
-    console.log("[LINKEDIN_PUBLISH_SUCCESS] Post publicado com sucesso no LinkedIn:", publishedMediaId);
+    console.log(
+      "[LINKEDIN_PUBLISH_SUCCESS] Post publicado com sucesso no LinkedIn:",
+      publishedMediaId
+    );
 
     return NextResponse.json({
       success: true,

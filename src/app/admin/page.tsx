@@ -83,7 +83,9 @@ const KpiCard = ({
           <p className={`mt-2 text-3xl font-bold ${color}`}>{formatted}</p>
           {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
         </div>
-        <div className={`rounded-lg p-2.5 ${color.replace("text-", "bg-").replace("-400", "-500/10")}`}>
+        <div
+          className={`rounded-lg p-2.5 ${color.replace("text-", "bg-").replace("-400", "-500/10")}`}
+        >
           <Icon className={`h-5 w-5 ${color}`} />
         </div>
       </div>
@@ -158,9 +160,7 @@ export default function AdminDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Visão geral da plataforma NumVapt
-          </p>
+          <p className="mt-1 text-sm text-slate-400">Visão geral da plataforma NumVapt</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
@@ -303,7 +303,7 @@ export default function AdminDashboardPage() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Gráfico de linha: novos cadastros */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
+        <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5 lg:col-span-2">
           <h3 className="mb-4 text-sm font-semibold text-white">
             Novos Cadastros (últimos 14 dias)
           </h3>
@@ -378,7 +378,7 @@ export default function AdminDashboardPage() {
               </div>
             </>
           ) : (
-            <div className="flex h-40 items-center justify-center text-slate-500 text-sm">
+            <div className="flex h-40 items-center justify-center text-sm text-slate-500">
               Sem dados de usuários
             </div>
           )}
@@ -391,10 +391,12 @@ export default function AdminDashboardPage() {
           <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-400" />
           <div>
             <p className="text-sm font-semibold text-orange-300">
-              {stats.trialExpiredUsers} usuário{stats.trialExpiredUsers > 1 ? "s" : ""} com trial expirado
+              {stats.trialExpiredUsers} usuário{stats.trialExpiredUsers > 1 ? "s" : ""} com trial
+              expirado
             </p>
             <p className="mt-0.5 text-xs text-orange-400/80">
-              Estes usuários estão sem acesso ativo. Considere entrar em contato para converter em Standard.
+              Estes usuários estão sem acesso ativo. Considere entrar em contato para converter em
+              Standard.
             </p>
           </div>
         </div>

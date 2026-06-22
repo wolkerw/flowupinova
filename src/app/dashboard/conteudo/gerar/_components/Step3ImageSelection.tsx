@@ -5,18 +5,11 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  ImageIcon,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Download,
-} from "lucide-react";
+import { ImageIcon, ArrowLeft, ArrowRight, Check, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
 
- 
 export const Step3ImageSelection = () => {
   const {
     generatedImages,
@@ -40,30 +33,33 @@ export const Step3ImageSelection = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="relative mx-auto w-full max-w-4xl border-none shadow-lg overflow-hidden">
+      <Card className="relative mx-auto w-full max-w-4xl overflow-hidden border-none shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <ImageIcon className="h-6 w-6 text-accent" />
-            {maxImages === 1 ? "Etapa 3: Imagem gerada pela IA" : "Etapa 3: Escolha a melhor imagem"}
+            {maxImages === 1
+              ? "Etapa 3: Imagem gerada pela IA"
+              : "Etapa 3: Escolha a melhor imagem"}
           </CardTitle>
           <div className="flex items-center justify-between">
             <p className="pt-1 text-sm text-gray-600">
-              {maxImages === 1 
-                ? (generatedImages.length > 0 
-                  ? "Sua imagem publicitária foi criada a partir do seu produto!" 
-                  : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post.")
-                : (generatedImages.length > 0 
+              {maxImages === 1
+                ? generatedImages.length > 0
+                  ? "Sua imagem publicitária foi criada a partir do seu produto!"
+                  : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post."
+                : generatedImages.length > 0
                   ? "Selecione a imagem gerada pela IA para usar no seu post."
-                  : "Clique no botão abaixo para gerar as opções de imagem para o seu post.")
-              }
+                  : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
             </p>
           </div>
         </CardHeader>
         <CardContent>
-          <div className={cn(
-            "grid grid-cols-1 gap-4",
-            maxImages === 1 ? "max-w-md mx-auto w-full md:grid-cols-1" : "md:grid-cols-3"
-          )}>
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-4",
+              maxImages === 1 ? "mx-auto w-full max-w-md md:grid-cols-1" : "md:grid-cols-3"
+            )}
+          >
             {/* Imagens já geradas com sucesso */}
             {generatedImages.map((imgSrc, index) => (
               <motion.div
@@ -118,13 +114,18 @@ export const Step3ImageSelection = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: i * 0.1 }}
-                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
+                    className="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
                   >
                     {/* Shimmer animado de fundo */}
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
                       animate={{ x: ["-100%", "200%"] }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: "linear", delay: i * 0.4 }}
+                      transition={{
+                        duration: 1.8,
+                        repeat: Infinity,
+                        ease: "linear",
+                        delay: i * 0.4,
+                      }}
                     />
 
                     {/* Conteúdo central do slot */}
@@ -134,7 +135,7 @@ export const Step3ImageSelection = () => {
                           {/* Ícone girando para o slot ativo */}
                           <div className="relative">
                             <motion.div
-                              className="w-14 h-14 rounded-full border-4 border-accent/20"
+                              className="h-14 w-14 rounded-full border-4 border-accent/20"
                               style={{ borderTopColor: "hsl(var(--accent))" }}
                               animate={{ rotate: 360 }}
                               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -146,24 +147,24 @@ export const Step3ImageSelection = () => {
                           <motion.span
                             animate={{ opacity: [0.6, 1, 0.6] }}
                             transition={{ duration: 1.5, repeat: Infinity }}
-                            className="text-xs font-semibold text-accent text-center leading-tight"
+                            className="text-center text-xs font-semibold leading-tight text-accent"
                           >
                             Gerando imagem {slotNumber}...
                           </motion.span>
-                          <span className="text-[10px] text-muted-foreground text-center">
+                          <span className="text-center text-[10px] text-muted-foreground">
                             Nossa IA está criando algo especial ✨
                           </span>
                         </>
                       ) : (
                         <>
                           {/* Ícone de espera para slots na fila */}
-                          <div className="w-14 h-14 rounded-full border-4 border-muted-foreground/20 flex items-center justify-center">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-muted-foreground/20">
                             <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
                           </div>
-                          <span className="text-xs font-medium text-muted-foreground text-center">
+                          <span className="text-center text-xs font-medium text-muted-foreground">
                             Imagem {slotNumber}
                           </span>
-                          <span className="text-[10px] text-muted-foreground/60 text-center">
+                          <span className="text-center text-[10px] text-muted-foreground/60">
                             Na fila...
                           </span>
                         </>

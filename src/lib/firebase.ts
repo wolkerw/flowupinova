@@ -13,7 +13,8 @@ const firebaseConfig = {
     process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "studio-7502195980-3983c.firebaseapp.com",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "studio-7502195980-3983c",
   storageBucket:
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "studio-7502195980-3983c.firebasestorage.app",
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    "studio-7502195980-3983c.firebasestorage.app",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "569130702994",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:569130702994:web:47f5c0b95cdb9369e2ee4b",
 };

@@ -41,7 +41,11 @@ export function getFriendlyErrorMessage(error: string): string {
   }
 
   // Mensagens padrão traduzidas se conhecidas
-  if (errorLower.includes("network error") || errorLower.includes("fetch") || errorLower.includes("failed to fetch")) {
+  if (
+    errorLower.includes("network error") ||
+    errorLower.includes("fetch") ||
+    errorLower.includes("failed to fetch")
+  ) {
     return "Falha de conexão com o servidor. Verifique sua internet ou tente novamente.";
   }
 

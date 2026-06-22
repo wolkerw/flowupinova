@@ -6,7 +6,9 @@ const aplicationURL =
     ? "https://numvapt.com"
     : process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : (typeof window !== "undefined" ? window.location.origin : "http://localhost:9002"));
+      : typeof window !== "undefined"
+        ? window.location.origin
+        : "http://localhost:9002");
 
 export const config = {
   aplicationURL,
@@ -35,4 +37,3 @@ export const config = {
       process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI || `${aplicationURL}/api/linkedin/callback`,
   },
 };
-

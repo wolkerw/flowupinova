@@ -7,7 +7,6 @@ import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
-
 export async function POST(request: NextRequest) {
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
@@ -20,8 +19,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rawFalKey = falKey.trim().startsWith("Key ") 
-      ? falKey.trim().replace(/^Key\s+/i, "") 
+    const rawFalKey = falKey.trim().startsWith("Key ")
+      ? falKey.trim().replace(/^Key\s+/i, "")
       : falKey.trim();
 
     fal.config({
@@ -34,10 +33,10 @@ export async function POST(request: NextRequest) {
     if (action === "generate-ideas") {
       const formData = await request.formData();
       const inspirationFile = formData.get("inspiration_file") as File;
-      const description = formData.get("description") as string || "";
-      const businessName = formData.get("business_name") as string || "";
-      const businessCategory = formData.get("business_category") as string || "";
-      const businessDescription = formData.get("business_description") as string || "";
+      const description = (formData.get("description") as string) || "";
+      const businessName = (formData.get("business_name") as string) || "";
+      const businessCategory = (formData.get("business_category") as string) || "";
+      const businessDescription = (formData.get("business_description") as string) || "";
 
       if (!inspirationFile) {
         return NextResponse.json({ error: "Imagem de inspiração não fornecida." }, { status: 400 });
@@ -95,13 +94,15 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
       if (anthropicApiKey) {
         try {
-          console.log("[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para analisar inspiração...");
+          console.log(
+            "[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para analisar inspiração..."
+          );
           let response = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
               "x-api-key": anthropicApiKey,
               "anthropic-version": "2023-06-01",
-              "content-type": "application/json"
+              "content-type": "application/json",
             },
             body: JSON.stringify({
               model: "claude-3-5-sonnet-20241022",
@@ -115,30 +116,33 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                       source: {
                         type: "base64",
                         media_type: mimeType,
-                        data: base64Image
-                      }
+                        data: base64Image,
+                      },
                     },
                     {
                       type: "text",
-                      text: geminiPrompt
-                    }
-                  ]
-                }
-              ]
-            })
+                      text: geminiPrompt,
+                    },
+                  ],
+                },
+              ],
+            }),
           });
 
           // Se der erro de modelo não encontrado, tentar Sonnet v1 (20240620)
           if (!response.ok) {
             const errText = await response.text();
-            console.warn("[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Ideas), tentando v1:", errText);
-            
+            console.warn(
+              "[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Ideas), tentando v1:",
+              errText
+            );
+
             response = await fetch("https://api.anthropic.com/v1/messages", {
               method: "POST",
               headers: {
                 "x-api-key": anthropicApiKey,
                 "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
+                "content-type": "application/json",
               },
               body: JSON.stringify({
                 model: "claude-3-5-sonnet-20240620",
@@ -152,17 +156,17 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                         source: {
                           type: "base64",
                           media_type: mimeType,
-                          data: base64Image
-                        }
+                          data: base64Image,
+                        },
                       },
                       {
                         type: "text",
-                        text: geminiPrompt
-                      }
-                    ]
-                  }
-                ]
-              })
+                        text: geminiPrompt,
+                      },
+                    ],
+                  },
+                ],
+              }),
             });
           }
 
@@ -176,13 +180,18 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
           const rawText = resData.content?.[0]?.text;
           parsed = JSON.parse(rawText.trim());
         } catch (claudeError) {
-          console.error("[GERAR_REFERENCIA] Falha no Claude Vision (Ideas), acionando fallback para Gemini:", claudeError);
+          console.error(
+            "[GERAR_REFERENCIA] Falha no Claude Vision (Ideas), acionando fallback para Gemini:",
+            claudeError
+          );
         }
       }
 
       if (!parsed) {
         try {
-          console.log("[GERAR_REFERENCIA] Usando Gemini 2.5 Pro de fallback para gerar ideias textuais...");
+          console.log(
+            "[GERAR_REFERENCIA] Usando Gemini 2.5 Pro de fallback para gerar ideias textuais..."
+          );
           const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
           const geminiResponse = await fetch(geminiProUrl, {
             method: "POST",
@@ -195,14 +204,14 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                     {
                       inlineData: {
                         mimeType: mimeType,
-                        data: base64Image
-                      }
-                    }
-                  ]
-                }
+                        data: base64Image,
+                      },
+                    },
+                  ],
+                },
               ],
-              generationConfig: { responseMimeType: "application/json" }
-            })
+              generationConfig: { responseMimeType: "application/json" },
+            }),
           });
 
           if (!geminiResponse.ok) {
@@ -213,8 +222,11 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
           parsed = JSON.parse(rawJson);
         } catch (proError) {
-          console.warn("[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Ideas), tentando Gemini 2.5 Flash:", proError);
-          
+          console.warn(
+            "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Ideas), tentando Gemini 2.5 Flash:",
+            proError
+          );
+
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
           const geminiResponse = await fetch(geminiUrl, {
             method: "POST",
@@ -227,14 +239,14 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                     {
                       inlineData: {
                         mimeType: mimeType,
-                        data: base64Image
-                      }
-                    }
-                  ]
-                }
+                        data: base64Image,
+                      },
+                    },
+                  ],
+                },
               ],
-              generationConfig: { responseMimeType: "application/json" }
-            })
+              generationConfig: { responseMimeType: "application/json" },
+            }),
           });
 
           if (!geminiResponse.ok) {
@@ -328,13 +340,13 @@ If the image depicts a CHARACTER:
                 {
                   inlineData: {
                     mimeType: mimeType,
-                    data: base64Image
-                  }
-                }
-              ]
-            }
-          ]
-        })
+                    data: base64Image,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
       });
 
       if (!response.ok) {
@@ -357,8 +369,8 @@ If the image depicts a CHARACTER:
       const contentType = request.headers.get("content-type") || "";
       if (contentType.includes("multipart/form-data")) {
         const formData = await request.formData();
-        yamlAnalysis = formData.get("yamlAnalysis") as string || "";
-        description = formData.get("description") as string || "";
+        yamlAnalysis = (formData.get("yamlAnalysis") as string) || "";
+        description = (formData.get("description") as string) || "";
         isRetailStyle = formData.get("isRetailStyle") === "true";
         const profileStr = formData.get("businessProfile") as string;
         if (profileStr) {
@@ -376,7 +388,10 @@ If the image depicts a CHARACTER:
       }
 
       if (!yamlAnalysis || !description) {
-        return NextResponse.json({ error: "Campos 'yamlAnalysis' ou 'description' ausentes." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Campos 'yamlAnalysis' ou 'description' ausentes." },
+          { status: 400 }
+        );
       }
 
       let brandingInstruction = "";
@@ -414,11 +429,15 @@ If the image depicts a CHARACTER:
    - Carefully blend these colors in the surrounding environment. For instance: add colored studio gel lighting highlights, gentle glowing neon tubes in the background, bokeh ambient colors, or aesthetic secondary props (a vase, furniture accent, background canvas texture, or studio accessories) reflecting this color palette.
    - If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
    - The main reference product/garment itself must remain physically unaffected, retaining its original colors as detailed in the reference YAML description. Only customize the surrounding visual elements of the photo.
-${fontsText ? `
+${
+  fontsText
+    ? `
 7. TYPOGRAPHY AND BRAND FONTS: If the layout requires text overlays, badges, or printed titles, they must follow the brand's typography system:
    ${fontsText}
    - Describe a clean typographic composition that uses the specified Primary Font for titles/headers or aligns with the specified General Typographic Style (e.g. "with bold modern text printed in Montserrat typeface").
-` : ""}
+`
+    : ""
+}
 `;
       }
 
@@ -438,8 +457,8 @@ ${fontsText ? `
           inlineDataPart = {
             inlineData: {
               mimeType: mimeType,
-              data: base64Image
-            }
+              data: base64Image,
+            },
           };
 
           inspirationInstruction = `
@@ -453,7 +472,10 @@ ${fontsText ? `
    - FORCE FIDELITY: Your output prompt must explicitly detail these visual features as the foundational pillars of the generation, ensuring the resulting image is an extremely accurate aesthetic and compositional sibling of the reference print.
 `;
         } catch (e) {
-          console.warn("[GERAR_REFERENCIA] Falha ao processar arquivo de inspiração para prompt:", e);
+          console.warn(
+            "[GERAR_REFERENCIA] Falha ao processar arquivo de inspiração para prompt:",
+            e
+          );
         }
       }
 
@@ -511,8 +533,10 @@ ${yamlAnalysis}`;
 
       if (anthropicApiKey) {
         try {
-          console.log("[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para gerar o prompt de imagem...");
-          
+          console.log(
+            "[GERAR_REFERENCIA] Usando Claude 3.5 Sonnet Vision (v2) para gerar o prompt de imagem..."
+          );
+
           const claudeContent: any[] = [];
           if (base64Image) {
             claudeContent.push({
@@ -520,18 +544,18 @@ ${yamlAnalysis}`;
               source: {
                 type: "base64",
                 media_type: mimeType,
-                data: base64Image
-              }
+                data: base64Image,
+              },
             });
             claudeContent.push({
               type: "text",
-              text: "Esta é a imagem de inspiração/print de layout a ser replicada."
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada.",
             });
           }
-          
+
           claudeContent.push({
             type: "text",
-            text: geminiUserMessage
+            text: geminiUserMessage,
           });
 
           let response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -539,7 +563,7 @@ ${yamlAnalysis}`;
             headers: {
               "x-api-key": anthropicApiKey,
               "anthropic-version": "2023-06-01",
-              "content-type": "application/json"
+              "content-type": "application/json",
             },
             body: JSON.stringify({
               model: "claude-3-5-sonnet-20241022",
@@ -548,23 +572,26 @@ ${yamlAnalysis}`;
               messages: [
                 {
                   role: "user",
-                  content: claudeContent
-                }
-              ]
-            })
+                  content: claudeContent,
+                },
+              ],
+            }),
           });
 
           // Se der erro de modelo não encontrado, tentar Sonnet v1 (20240620)
           if (!response.ok) {
             const errText = await response.text();
-            console.warn("[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Prompt), tentando v1:", errText);
+            console.warn(
+              "[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Prompt), tentando v1:",
+              errText
+            );
 
             response = await fetch("https://api.anthropic.com/v1/messages", {
               method: "POST",
               headers: {
                 "x-api-key": anthropicApiKey,
                 "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
+                "content-type": "application/json",
               },
               body: JSON.stringify({
                 model: "claude-3-5-sonnet-20240620",
@@ -573,10 +600,10 @@ ${yamlAnalysis}`;
                 messages: [
                   {
                     role: "user",
-                    content: claudeContent
-                  }
-                ]
-              })
+                    content: claudeContent,
+                  },
+                ],
+              }),
             });
           }
 
@@ -590,7 +617,10 @@ ${yamlAnalysis}`;
           const rawText = resData.content?.[0]?.text;
           parsedPrompt = JSON.parse(rawText.trim());
         } catch (claudeError) {
-          console.error("[GERAR_REFERENCIA] Falha catastrófica no Claude Vision (Prompt), acionando fallback para Gemini:", claudeError);
+          console.error(
+            "[GERAR_REFERENCIA] Falha catastrófica no Claude Vision (Prompt), acionando fallback para Gemini:",
+            claudeError
+          );
         }
       }
 
@@ -598,10 +628,12 @@ ${yamlAnalysis}`;
         try {
           console.log("[GERAR_REFERENCIA] Usando Gemini 2.5 Pro de fallback para gerar prompt...");
           const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
-          
+
           const contentsParts: any[] = [];
           if (inlineDataPart) {
-            contentsParts.push({ text: "Esta é a imagem de inspiração/print de layout a ser replicada:" });
+            contentsParts.push({
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada:",
+            });
             contentsParts.push(inlineDataPart);
           }
           contentsParts.push({ text: geminiUserMessage });
@@ -611,11 +643,11 @@ ${yamlAnalysis}`;
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               systemInstruction: {
-                parts: [{ text: geminiSystemInstruction }]
+                parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" }
-            })
+              generationConfig: { responseMimeType: "application/json" },
+            }),
           });
 
           if (!response.ok) {
@@ -626,13 +658,18 @@ ${yamlAnalysis}`;
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
           parsedPrompt = JSON.parse(rawJson);
         } catch (proError) {
-          console.warn("[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Prompt), tentando Gemini 2.5 Flash:", proError);
-          
+          console.warn(
+            "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Prompt), tentando Gemini 2.5 Flash:",
+            proError
+          );
+
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-          
+
           const contentsParts: any[] = [];
           if (inlineDataPart) {
-            contentsParts.push({ text: "Esta é a imagem de inspiração/print de layout a ser replicada:" });
+            contentsParts.push({
+              text: "Esta é a imagem de inspiração/print de layout a ser replicada:",
+            });
             contentsParts.push(inlineDataPart);
           }
           contentsParts.push({ text: geminiUserMessage });
@@ -642,11 +679,11 @@ ${yamlAnalysis}`;
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               systemInstruction: {
-                parts: [{ text: geminiSystemInstruction }]
+                parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" }
-            })
+              generationConfig: { responseMimeType: "application/json" },
+            }),
           });
 
           if (!response.ok) {
@@ -666,8 +703,8 @@ ${yamlAnalysis}`;
       const formData = await request.formData();
       const file = formData.get("file") as File;
       const prompt = formData.get("prompt") as string;
-      const postId = formData.get("postId") as string || "";
-      const userId = formData.get("userId") as string || "";
+      const postId = (formData.get("postId") as string) || "";
+      const userId = (formData.get("userId") as string) || "";
 
       if (!file || !prompt) {
         return NextResponse.json({ error: "Campos 'file' ou 'prompt' ausentes." }, { status: 400 });
@@ -694,22 +731,26 @@ ${yamlAnalysis}`;
       }
 
       // Upload to Fal.ai CDN
-      const finalFile = new File([new Blob([buffer], { type: mimeType })], file.name, { type: mimeType });
+      const finalFile = new File([new Blob([buffer], { type: mimeType })], file.name, {
+        type: mimeType,
+      });
       const garmentPublicUrl = await fal.storage.upload(finalFile);
 
       // --- REMOÇÃO DE FUNDO AUTOMÁTICA VIA BRIA API ---
       let transparentProductUrl = garmentPublicUrl;
       try {
-        console.log(`[GERAR_REFERENCIA] Removendo fundo do produto de forma síncrona via Bria API: ${garmentPublicUrl}`);
+        console.log(
+          `[GERAR_REFERENCIA] Removendo fundo do produto de forma síncrona via Bria API: ${garmentPublicUrl}`
+        );
         const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
           method: "POST",
           headers: {
-            "Authorization": `Key ${rawFalKey}`,
-            "Content-Type": "application/json"
+            Authorization: `Key ${rawFalKey}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            image_url: garmentPublicUrl
-          })
+            image_url: garmentPublicUrl,
+          }),
         });
 
         if (briaResponse.ok) {
@@ -717,7 +758,9 @@ ${yamlAnalysis}`;
           const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
           if (briaUrl) {
             transparentProductUrl = briaUrl;
-            console.log(`[GERAR_REFERENCIA] Fundo do produto removido com sucesso: ${transparentProductUrl}`);
+            console.log(
+              `[GERAR_REFERENCIA] Fundo do produto removido com sucesso: ${transparentProductUrl}`
+            );
 
             // Registrar log de consumo do Bria no Firestore
             logApiUsage({
@@ -725,28 +768,34 @@ ${yamlAnalysis}`;
               type: "background_removal",
               provider: "falai",
               model: "bria",
-              costUsd: 0.006
+              costUsd: 0.006,
             });
           }
         } else {
-          console.warn("[GERAR_REFERENCIA] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
+          console.warn(
+            "[GERAR_REFERENCIA] Falha na API do Bria, prosseguindo com imagem original:",
+            await briaResponse.text()
+          );
         }
       } catch (briaError) {
-        console.error("[GERAR_REFERENCIA] Erro catastrófico ao remover fundo do produto (Bria), usando original:", briaError);
+        console.error(
+          "[GERAR_REFERENCIA] Erro catastrófico ao remover fundo do produto (Bria), usando original:",
+          briaError
+        );
       }
 
       // Submit to queue
       const queueResponse = await fetch("https://queue.fal.run/fal-ai/flux-pro/kontext", {
         method: "POST",
         headers: {
-          "Authorization": `Key ${rawFalKey}`,
-          "Content-Type": "application/json"
+          Authorization: `Key ${rawFalKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           prompt: prompt,
           image_url: transparentProductUrl,
-          aspect_ratio: "1:1"
-        })
+          aspect_ratio: "1:1",
+        }),
       });
 
       if (!queueResponse.ok) {
@@ -759,7 +808,7 @@ ${yamlAnalysis}`;
         requestId: queueData.request_id,
         statusUrl: queueData.status_url,
         responseUrl: queueData.response_url,
-        garmentPublicUrl: garmentPublicUrl // Retornando a URL da foto de referência original
+        garmentPublicUrl: garmentPublicUrl, // Retornando a URL da foto de referência original
       });
     }
 
@@ -773,21 +822,23 @@ ${yamlAnalysis}`;
     if (action === "submit-imagen4-ref") {
       const formData = await request.formData();
       const prompt = formData.get("prompt") as string;
-      const postId = formData.get("postId") as string || "";
-      const userId = formData.get("userId") as string || "";
-      const caption = formData.get("caption") as string || null;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = (formData.get("userId") as string) || "";
+      const caption = (formData.get("caption") as string) || null;
 
       if (!prompt || !postId || !userId) {
-        return NextResponse.json({ error: "Campos obrigatórios ausentes: prompt, postId, userId." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Campos obrigatórios ausentes: prompt, postId, userId." },
+          { status: 400 }
+        );
       }
 
-      console.log(`[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`);
+      console.log(
+        `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
+      );
 
       // Cadeia de modelos: Fast primeiro (Ultra tendo 503), depois Ultra quando voltar
-      const IMAGEN_MODELS = [
-        "imagen-4.0-fast-generate-001",
-        "imagen-4.0-ultra-generate-001",
-      ];
+      const IMAGEN_MODELS = ["imagen-4.0-fast-generate-001", "imagen-4.0-ultra-generate-001"];
 
       let imageBytes: string | null = null;
       let modelUsed = "";
@@ -815,19 +866,30 @@ ${yamlAnalysis}`;
               break;
             }
           }
-          const errText = await imagenResponse.text().catch(() => `status ${imagenResponse.status}`);
-          console.warn(`[IMAGEN4_REF] Modelo ${model} falhou (${imagenResponse.status}): ${errText.substring(0, 150)}`);
+          const errText = await imagenResponse
+            .text()
+            .catch(() => `status ${imagenResponse.status}`);
+          console.warn(
+            `[IMAGEN4_REF] Modelo ${model} falhou (${imagenResponse.status}): ${errText.substring(0, 150)}`
+          );
         } catch (modelErr: any) {
           console.warn(`[IMAGEN4_REF] Exceção no modelo ${model}:`, modelErr.message);
         }
       }
 
       if (!imageBytes) {
-        return NextResponse.json({ error: "Todos os modelos do Google Imagen falharam para a geração de referência." }, { status: 500 });
+        return NextResponse.json(
+          { error: "Todos os modelos do Google Imagen falharam para a geração de referência." },
+          { status: 500 }
+        );
       }
 
       // Salvar no Firebase Storage
-      const bucket = admin.storage().bucket(`${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`);
+      const bucket = admin
+        .storage()
+        .bucket(
+          `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
+        );
       const buffer = Buffer.from(imageBytes, "base64");
       const fileRef = bucket.file(`users/${userId}/posts/${postId}/imagen4_ref_generated.jpg`);
       const downloadToken = crypto.randomUUID();
@@ -840,15 +902,25 @@ ${yamlAnalysis}`;
       });
 
       const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-      console.log(`[IMAGEN4_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`);
+      console.log(
+        `[IMAGEN4_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
+      );
 
       // Atualizar post no Firestore
       try {
-        await adminDb.collection("users").doc(userId).collection("posts").doc(postId).set({
-          imageUrls: [firebaseDownloadUrl],
-          imagenModelUsed: modelUsed,
-          status: "completed",
-        }, { merge: true });
+        await adminDb
+          .collection("users")
+          .doc(userId)
+          .collection("posts")
+          .doc(postId)
+          .set(
+            {
+              imageUrls: [firebaseDownloadUrl],
+              imagenModelUsed: modelUsed,
+              status: "completed",
+            },
+            { merge: true }
+          );
       } catch (fsErr) {
         console.error("[IMAGEN4_REF] Erro ao atualizar Firestore:", fsErr);
       }
@@ -874,7 +946,7 @@ ${yamlAnalysis}`;
           type: "image_generation",
           provider: "google_vertex",
           model: modelUsed || "imagen-4",
-          costUsd: 0.03
+          costUsd: 0.03,
         });
       } catch (galleryErr) {
         console.error("[IMAGEN4_REF] Erro ao salvar na galeria:", galleryErr);
@@ -894,15 +966,20 @@ ${yamlAnalysis}`;
       const formData = await request.formData();
       const file = formData.get("file") as File;
       const prompt = formData.get("prompt") as string;
-      const postId = formData.get("postId") as string || "";
-      const userId = formData.get("userId") as string || "";
-      const caption = formData.get("caption") as string || null;
+      const postId = (formData.get("postId") as string) || "";
+      const userId = (formData.get("userId") as string) || "";
+      const caption = (formData.get("caption") as string) || null;
 
       if (!file || !prompt || !postId || !userId) {
-        return NextResponse.json({ error: "Campos obrigatórios ausentes: file, prompt, postId, userId." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Campos obrigatórios ausentes: file, prompt, postId, userId." },
+          { status: 400 }
+        );
       }
 
-      console.log(`[NANOBANANA_REF] Iniciando processamento da foto do produto para o post ${postId}...`);
+      console.log(
+        `[NANOBANANA_REF] Iniciando processamento da foto do produto para o post ${postId}...`
+      );
 
       // 1. Recorte 1:1 proporcional usando Jimp
       const arrayBuffer = await file.arrayBuffer();
@@ -927,7 +1004,9 @@ ${yamlAnalysis}`;
       // 2. Upload temporário para a CDN do Fal.ai
       let garmentPublicUrl = "";
       try {
-        const finalFile = new File([new Blob([buffer], { type: mimeType })], file.name, { type: mimeType });
+        const finalFile = new File([new Blob([buffer], { type: mimeType })], file.name, {
+          type: mimeType,
+        });
         garmentPublicUrl = await fal.storage.upload(finalFile);
         console.log(`[NANOBANANA_REF] Imagem enviada para CDN do Fal.ai: ${garmentPublicUrl}`);
       } catch (uploadErr) {
@@ -938,16 +1017,18 @@ ${yamlAnalysis}`;
       let transparentProductUrl = garmentPublicUrl;
       if (garmentPublicUrl) {
         try {
-          console.log(`[NANOBANANA_REF] Removendo fundo do produto de forma síncrona via Bria API...`);
+          console.log(
+            `[NANOBANANA_REF] Removendo fundo do produto de forma síncrona via Bria API...`
+          );
           const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
             method: "POST",
             headers: {
-              "Authorization": `Key ${rawFalKey}`,
-              "Content-Type": "application/json"
+              Authorization: `Key ${rawFalKey}`,
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              image_url: garmentPublicUrl
-            })
+              image_url: garmentPublicUrl,
+            }),
           });
 
           if (briaResponse.ok) {
@@ -955,7 +1036,9 @@ ${yamlAnalysis}`;
             const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
             if (briaUrl) {
               transparentProductUrl = briaUrl;
-              console.log(`[NANOBANANA_REF] Fundo do produto removido com sucesso via Bria: ${transparentProductUrl}`);
+              console.log(
+                `[NANOBANANA_REF] Fundo do produto removido com sucesso via Bria: ${transparentProductUrl}`
+              );
 
               // Registrar log de consumo do Bria no Firestore
               logApiUsage({
@@ -963,14 +1046,20 @@ ${yamlAnalysis}`;
                 type: "background_removal",
                 provider: "falai",
                 model: "bria",
-                costUsd: 0.006
+                costUsd: 0.006,
               });
             }
           } else {
-            console.warn("[NANOBANANA_REF] Falha na API do Bria, prosseguindo com imagem original:", await briaResponse.text());
+            console.warn(
+              "[NANOBANANA_REF] Falha na API do Bria, prosseguindo com imagem original:",
+              await briaResponse.text()
+            );
           }
         } catch (briaError) {
-          console.error("[NANOBANANA_REF] Erro ao remover fundo via Bria, usando original:", briaError);
+          console.error(
+            "[NANOBANANA_REF] Erro ao remover fundo via Bria, usando original:",
+            briaError
+          );
         }
       }
 
@@ -980,7 +1069,9 @@ ${yamlAnalysis}`;
 
       if (transparentProductUrl && transparentProductUrl !== garmentPublicUrl) {
         try {
-          console.log(`[NANOBANANA_REF] Baixando imagem sem fundo de ${transparentProductUrl} para converter para Base64...`);
+          console.log(
+            `[NANOBANANA_REF] Baixando imagem sem fundo de ${transparentProductUrl} para converter para Base64...`
+          );
           const imgRes = await fetch(transparentProductUrl);
           if (imgRes.ok) {
             const imgArrayBuffer = await imgRes.arrayBuffer();
@@ -988,10 +1079,15 @@ ${yamlAnalysis}`;
             finalBase64Image = imgBuffer.toString("base64");
             finalMimeType = imgRes.headers.get("content-type") || "image/png";
           } else {
-            console.warn(`[NANOBANANA_REF] Erro no download da imagem sem fundo (${imgRes.status}), usando original croppada.`);
+            console.warn(
+              `[NANOBANANA_REF] Erro no download da imagem sem fundo (${imgRes.status}), usando original croppada.`
+            );
           }
         } catch (fetchErr) {
-          console.error("[NANOBANANA_REF] Falha ao baixar imagem do Bria, usando original croppada:", fetchErr);
+          console.error(
+            "[NANOBANANA_REF] Falha ao baixar imagem do Bria, usando original croppada:",
+            fetchErr
+          );
         }
       }
 
@@ -999,7 +1095,7 @@ ${yamlAnalysis}`;
       const NANOBANANA_MODELS = [
         "gemini-3-pro-image",
         "gemini-3.1-flash-image",
-        "gemini-2.5-flash-image"
+        "gemini-2.5-flash-image",
       ];
 
       // Formatar o prompt para garantir a fidelidade do produto inserido
@@ -1020,23 +1116,25 @@ Cenário e estilo desejados: ${prompt}`;
         try {
           console.log(`[NANOBANANA_REF] Tentando gerar com modelo ${model}...`);
           const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          
+
           const response = await fetch(nanobananaUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: nanobananaPrompt },
-                  {
-                    inlineData: {
-                      mimeType: finalMimeType,
-                      data: finalBase64Image
-                    }
-                  }
-                ]
-              }]
-            })
+              contents: [
+                {
+                  parts: [
+                    { text: nanobananaPrompt },
+                    {
+                      inlineData: {
+                        mimeType: finalMimeType,
+                        data: finalBase64Image,
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
           });
 
           if (response.ok) {
@@ -1048,11 +1146,16 @@ Cenário e estilo desejados: ${prompt}`;
               console.log(`[NANOBANANA_REF] ✅ Sucesso total com o modelo ${model}!`);
               break;
             } else {
-              console.warn(`[NANOBANANA_REF] Resposta ok do modelo ${model}, mas bytes de imagem ausentes:`, JSON.stringify(data).substring(0, 200));
+              console.warn(
+                `[NANOBANANA_REF] Resposta ok do modelo ${model}, mas bytes de imagem ausentes:`,
+                JSON.stringify(data).substring(0, 200)
+              );
             }
           } else {
             const errText = await response.text().catch(() => `status ${response.status}`);
-            console.warn(`[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`);
+            console.warn(
+              `[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`
+            );
           }
         } catch (modelErr: any) {
           console.warn(`[NANOBANANA_REF] Exceção na chamada do modelo ${model}:`, modelErr.message);
@@ -1060,11 +1163,21 @@ Cenário e estilo desejados: ${prompt}`;
       }
 
       if (!imageBytes) {
-        return NextResponse.json({ error: "Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração por referência." }, { status: 500 });
+        return NextResponse.json(
+          {
+            error:
+              "Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração por referência.",
+          },
+          { status: 500 }
+        );
       }
 
       // 6. Gravar a imagem gerada no Firebase Storage
-      const bucket = admin.storage().bucket(`${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`);
+      const bucket = admin
+        .storage()
+        .bucket(
+          `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
+        );
       const generatedBuffer = Buffer.from(imageBytes, "base64");
       const fileRef = bucket.file(`users/${userId}/posts/${postId}/nanobanana_ref_generated.jpg`);
       const downloadToken = crypto.randomUUID();
@@ -1077,16 +1190,26 @@ Cenário e estilo desejados: ${prompt}`;
       });
 
       const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-      console.log(`[NANOBANANA_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`);
+      console.log(
+        `[NANOBANANA_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
+      );
 
       // 7. Atualizar post no Firestore
       try {
-        await adminDb.collection("users").doc(userId).collection("posts").doc(postId).set({
-          imageUrls: [firebaseDownloadUrl],
-          referenceImageUrl: garmentPublicUrl || null,
-          nanobananaModelUsed: modelUsed,
-          status: "completed",
-        }, { merge: true });
+        await adminDb
+          .collection("users")
+          .doc(userId)
+          .collection("posts")
+          .doc(postId)
+          .set(
+            {
+              imageUrls: [firebaseDownloadUrl],
+              referenceImageUrl: garmentPublicUrl || null,
+              nanobananaModelUsed: modelUsed,
+              status: "completed",
+            },
+            { merge: true }
+          );
       } catch (fsErr) {
         console.error("[NANOBANANA_REF] Erro ao atualizar Firestore:", fsErr);
       }
@@ -1113,7 +1236,7 @@ Cenário e estilo desejados: ${prompt}`;
           type: "image_generation",
           provider: "google_gemini",
           model: modelUsed || "imagen-3.0-generate-002",
-          costUsd: 0.03
+          costUsd: 0.03,
         });
       } catch (galleryErr) {
         console.error("[NANOBANANA_REF] Erro ao salvar na galeria:", galleryErr);
@@ -1132,35 +1255,40 @@ Cenário e estilo desejados: ${prompt}`;
       const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
         return NextResponse.json(
-          { error: "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o gpt-image-2." },
+          {
+            error:
+              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o gpt-image-2.",
+          },
           { status: 400 }
         );
       }
 
       const formData = await request.formData();
       const prompt = formData.get("prompt") as string;
-      const postId = formData.get("postId") as string || "";
-      const userId = formData.get("userId") as string || "";
+      const postId = (formData.get("postId") as string) || "";
+      const userId = (formData.get("userId") as string) || "";
 
       if (!prompt) {
         return NextResponse.json({ error: "Campo 'prompt' ausente." }, { status: 400 });
       }
 
-      console.log("[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-1) para gerar imagem conceitual...");
+      console.log(
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-1) para gerar imagem conceitual..."
+      );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${openaiKey}`,
-            "Content-Type": "application/json"
+            Authorization: `Bearer ${openaiKey}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             model: "gpt-image-1",
             prompt: prompt,
             n: 1,
             size: "1024x1024",
-            quality: "auto"
-          })
+            quality: "auto",
+          }),
         });
 
         if (!response.ok) {
@@ -1180,9 +1308,15 @@ Cenário e estilo desejados: ${prompt}`;
         let dalleImageUrl = urlData || "";
 
         if (b64Data && postId && userId) {
-          console.log("[GERAR_REFERENCIA] Gravando imagem Base64 da OpenAI direto no Firebase Storage...");
+          console.log(
+            "[GERAR_REFERENCIA] Gravando imagem Base64 da OpenAI direto no Firebase Storage..."
+          );
           try {
-            const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app");
+            const bucket = admin
+              .storage()
+              .bucket(
+                admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app"
+              );
             const buffer = Buffer.from(b64Data, "base64");
             const fileRef = bucket.file(`users/${userId}/posts/${postId}/temp_dalle.jpg`);
             const downloadToken = crypto.randomUUID();
@@ -1191,13 +1325,15 @@ Cenário e estilo desejados: ${prompt}`;
               metadata: {
                 contentType: "image/jpeg",
                 metadata: {
-                  firebaseStorageDownloadTokens: downloadToken
-                }
-              }
+                  firebaseStorageDownloadTokens: downloadToken,
+                },
+              },
             });
 
             dalleImageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-            console.log(`[GERAR_REFERENCIA] Imagem Base64 salva temporariamente no Firebase Storage: ${dalleImageUrl}`);
+            console.log(
+              `[GERAR_REFERENCIA] Imagem Base64 salva temporariamente no Firebase Storage: ${dalleImageUrl}`
+            );
           } catch (fsErr) {
             console.error("[GERAR_REFERENCIA] Erro ao salvar Base64 no Firebase Storage:", fsErr);
             throw fsErr;
@@ -1214,7 +1350,7 @@ Cenário e estilo desejados: ${prompt}`;
           requestId: "dalle-direct",
           statusUrl: fakeStatusUrl,
           responseUrl: fakeStatusUrl,
-          garmentPublicUrl: dalleImageUrl
+          garmentPublicUrl: dalleImageUrl,
         });
       } catch (dalleErr: any) {
         console.error("[GERAR_REFERENCIA] Falha na geração da OpenAI (gpt-image-2):", dalleErr);
@@ -1225,8 +1361,6 @@ Cenário e estilo desejados: ${prompt}`;
       }
     }
 
-
-
     if (action === "upload-to-firebase") {
       const { postId, userId, finalImageUrl, referenceImageUrl, caption } = await request.json();
 
@@ -1234,13 +1368,19 @@ Cenário e estilo desejados: ${prompt}`;
         return NextResponse.json({ error: "Campos obrigatórios ausentes." }, { status: 400 });
       }
 
-      console.log(`[GERAR_REFERENCIA] Iniciando upload no backend com Firebase Admin para o post ${postId}...`);
-      
+      console.log(
+        `[GERAR_REFERENCIA] Iniciando upload no backend com Firebase Admin para o post ${postId}...`
+      );
+
       let firebaseDownloadUrl = finalImageUrl;
       let firebaseRefUrl = null;
 
       try {
-        const bucket = admin.storage().bucket(admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app");
+        const bucket = admin
+          .storage()
+          .bucket(
+            admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app"
+          );
 
         // 1. Obtenção do buffer da imagem (ou decodificação direta de Base64, ou download via fetch se for URL HTTP)
         let buffer: Buffer;
@@ -1256,10 +1396,14 @@ Cenário e estilo desejados: ${prompt}`;
           const base64Data = match[2];
           buffer = Buffer.from(base64Data, "base64");
         } else {
-          console.log(`[GERAR_REFERENCIA] Fazendo download da imagem de URL externa: ${finalImageUrl}`);
+          console.log(
+            `[GERAR_REFERENCIA] Fazendo download da imagem de URL externa: ${finalImageUrl}`
+          );
           const imgRes = await fetch(finalImageUrl);
           if (!imgRes.ok) {
-            throw new Error(`Falha ao baixar imagem gerada de URL externa (status ${imgRes.status})`);
+            throw new Error(
+              `Falha ao baixar imagem gerada de URL externa (status ${imgRes.status})`
+            );
           }
           const arrayBuffer = await imgRes.arrayBuffer();
           buffer = Buffer.from(arrayBuffer);
@@ -1268,22 +1412,24 @@ Cenário e estilo desejados: ${prompt}`;
 
         const finalBuffer = buffer;
 
-          const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
-          const downloadToken = crypto.randomUUID();
+        const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
+        const downloadToken = crypto.randomUUID();
 
-          // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
-          await fileRef.save(finalBuffer, {
+        // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
+        await fileRef.save(finalBuffer, {
+          metadata: {
+            contentType: contentType,
             metadata: {
-              contentType: contentType,
-              metadata: {
-                firebaseStorageDownloadTokens: downloadToken
-              }
-            }
-          });
+              firebaseStorageDownloadTokens: downloadToken,
+            },
+          },
+        });
 
-          // Gerar URL de download compatível com a biblioteca cliente
-          firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-          console.log(`[GERAR_REFERENCIA] Imagem gerada salva no Firebase Storage via Admin: ${firebaseDownloadUrl}`);
+        // Gerar URL de download compatível com a biblioteca cliente
+        firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+        console.log(
+          `[GERAR_REFERENCIA] Imagem gerada salva no Firebase Storage via Admin: ${firebaseDownloadUrl}`
+        );
 
         // 2. Download e upload da foto de referência original (se existir)
         if (referenceImageUrl) {
@@ -1300,35 +1446,45 @@ Cenário e estilo desejados: ${prompt}`;
               metadata: {
                 contentType: contentType,
                 metadata: {
-                  firebaseStorageDownloadTokens: refDownloadToken
-                }
-              }
+                  firebaseStorageDownloadTokens: refDownloadToken,
+                },
+              },
             });
 
             firebaseRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef.name)}?alt=media&token=${refDownloadToken}`;
-            console.log(`[GERAR_REFERENCIA] Imagem de referência salva no Firebase Storage via Admin: ${firebaseRefUrl}`);
+            console.log(
+              `[GERAR_REFERENCIA] Imagem de referência salva no Firebase Storage via Admin: ${firebaseRefUrl}`
+            );
           }
         }
       } catch (uploadError: any) {
-        console.error("[GERAR_REFERENCIA] Erro no upload para o Firebase Storage no backend via Admin:", uploadError);
+        console.error(
+          "[GERAR_REFERENCIA] Erro no upload para o Firebase Storage no backend via Admin:",
+          uploadError
+        );
         // Não quebra o fluxo, retorna com a URL original como fallback
       }
 
       // 3. Atualizar Firestore de forma resiliente no backend usando Admin SDK (set com merge)
       try {
         const postDocRef = adminDb.collection("users").doc(userId).collection("posts").doc(postId);
-        await postDocRef.set({
-          imageUrls: [firebaseDownloadUrl],
-          referenceImageUrl: firebaseRefUrl || null,
-          status: "completed",
-          tempDalleB64: admin.firestore.FieldValue.delete()
-        }, { merge: true });
-        console.log(`[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}! E o Base64 temporário foi excluído.`);
+        await postDocRef.set(
+          {
+            imageUrls: [firebaseDownloadUrl],
+            referenceImageUrl: firebaseRefUrl || null,
+            status: "completed",
+            tempDalleB64: admin.firestore.FieldValue.delete(),
+          },
+          { merge: true }
+        );
+        console.log(
+          `[GERAR_REFERENCIA] Firestore atualizado com sucesso via Admin para o post ${postId}! E o Base64 temporário foi excluído.`
+        );
 
         try {
           const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
           const galleryMediaId = `${postId}_ref_generated`;
-          
+
           await galleryRef.doc(galleryMediaId).set({
             id: galleryMediaId,
             url: firebaseDownloadUrl,
@@ -1338,9 +1494,11 @@ Cenário e estilo desejados: ${prompt}`;
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             usedInPostId: null, // Disponível — ainda não publicada nas redes sociais
             fileName: "generated_image.jpg",
-            caption: caption || null
+            caption: caption || null,
           });
-          console.log(`[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`);
+          console.log(
+            `[GERAR_REFERENCIA] Imagem catalogada com sucesso na subcoleção mediaGallery: ${galleryMediaId}`
+          );
 
           // Registrar log de consumo do Fal.ai Kontext no Firestore
           logApiUsage({
@@ -1348,28 +1506,36 @@ Cenário e estilo desejados: ${prompt}`;
             type: "image_generation",
             provider: "falai",
             model: "flux-pro/kontext",
-            costUsd: 0.05
+            costUsd: 0.05,
           });
         } catch (galleryError) {
-          console.error("[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:", galleryError);
+          console.error(
+            "[GERAR_REFERENCIA_ERROR] Falha ao catalogar imagem gerada na galeria:",
+            galleryError
+          );
         }
       } catch (fsError: any) {
-        console.error("[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:", fsError);
+        console.error(
+          "[GERAR_REFERENCIA] Erro ao gravar dados no Firestore via Admin no backend:",
+          fsError
+        );
       }
 
       return NextResponse.json({
         success: true,
         imageUrl: firebaseDownloadUrl,
-        referenceImageUrl: firebaseRefUrl
+        referenceImageUrl: firebaseRefUrl,
       });
     }
 
     return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
-
   } catch (error: any) {
     console.error("[GERAR_REFERENCIA_ACTION_ERROR] Erro:", error);
     return NextResponse.json(
-      { error: "Erro interno no servidor ao processar ação de referência.", details: error.message },
+      {
+        error: "Erro interno no servidor ao processar ação de referência.",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
@@ -1389,7 +1555,10 @@ export async function GET(request: NextRequest) {
       console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
       const imgRes = await fetch(url);
       if (!imgRes.ok) {
-        return NextResponse.json({ error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` }, { status: 500 });
+        return NextResponse.json(
+          { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },
+          { status: 500 }
+        );
       }
 
       const blob = await imgRes.blob();
@@ -1408,8 +1577,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "FAL_KEY ausente." }, { status: 500 });
     }
 
-    const rawFalKey = falKey.trim().startsWith("Key ") 
-      ? falKey.trim().replace(/^Key\s+/i, "") 
+    const rawFalKey = falKey.trim().startsWith("Key ")
+      ? falKey.trim().replace(/^Key\s+/i, "")
       : falKey.trim();
 
     const statusUrl = searchParams.get("statusUrl");
@@ -1423,11 +1592,13 @@ export async function GET(request: NextRequest) {
       if (statusUrl.includes("action=dalle-status") || statusUrl.includes("dalle")) {
         const parsedUrl = new URL(statusUrl);
         const imageUrl = parsedUrl.searchParams.get("imageUrl");
-        console.log(`[GERAR_REFERENCIA] Interceptando status da OpenAI síncrono. Retornando COMPLETED para: ${imageUrl}`);
+        console.log(
+          `[GERAR_REFERENCIA] Interceptando status da OpenAI síncrono. Retornando COMPLETED para: ${imageUrl}`
+        );
         return NextResponse.json({
           success: true,
           status: "COMPLETED",
-          imageUrl: imageUrl
+          imageUrl: imageUrl,
         });
       }
 
@@ -1435,18 +1606,26 @@ export async function GET(request: NextRequest) {
       const checkResponse = await fetch(statusUrl, {
         method: "GET",
         headers: {
-          "Authorization": `Key ${rawFalKey}`
-        }
+          Authorization: `Key ${rawFalKey}`,
+        },
       });
 
       if (!checkResponse.ok) {
         const errorText = await checkResponse.text();
-        console.error(`[GERAR_REFERENCIA] Falha ao consultar status na Fal.ai (Status ${checkResponse.status}):`, errorText);
-        throw new Error(`Falha ao consultar status na Fal.ai (Status ${checkResponse.status}): ${errorText}`);
+        console.error(
+          `[GERAR_REFERENCIA] Falha ao consultar status na Fal.ai (Status ${checkResponse.status}):`,
+          errorText
+        );
+        throw new Error(
+          `Falha ao consultar status na Fal.ai (Status ${checkResponse.status}): ${errorText}`
+        );
       }
 
       const checkData = await checkResponse.json();
-      console.log("[GERAR_REFERENCIA] Dados obtidos no status de requests:", JSON.stringify(checkData));
+      console.log(
+        "[GERAR_REFERENCIA] Dados obtidos no status de requests:",
+        JSON.stringify(checkData)
+      );
 
       let imageUrl = null;
       let finalStatus = checkData.status;
@@ -1455,26 +1634,34 @@ export async function GET(request: NextRequest) {
       const userId = searchParams.get("userId") || "";
 
       if (checkData.status === "COMPLETED") {
-        console.log(`[GERAR_REFERENCIA] Status COMPLETED! Buscando resultado real no responseUrl: ${responseUrl}`);
-        
+        console.log(
+          `[GERAR_REFERENCIA] Status COMPLETED! Buscando resultado real no responseUrl: ${responseUrl}`
+        );
+
         const resultResponse = await fetch(responseUrl, {
           method: "GET",
           headers: {
-            "Authorization": `Key ${rawFalKey}`
-          }
+            Authorization: `Key ${rawFalKey}`,
+          },
         });
 
         if (resultResponse.ok) {
           const resultData = await resultResponse.json();
-          console.log("[GERAR_REFERENCIA] Dados de resultado recebidos da Fal:", JSON.stringify(resultData));
-          
-          imageUrl = 
-            resultData?.images?.[0]?.url || 
-            resultData?.image?.url || 
-            resultData?.output?.images?.[0]?.url || 
+          console.log(
+            "[GERAR_REFERENCIA] Dados de resultado recebidos da Fal:",
+            JSON.stringify(resultData)
+          );
+
+          imageUrl =
+            resultData?.images?.[0]?.url ||
+            resultData?.image?.url ||
+            resultData?.output?.images?.[0]?.url ||
             resultData?.output?.image?.url;
         } else {
-          console.error("[GERAR_REFERENCIA] Falha ao ler responseUrl secundário:", await resultResponse.text());
+          console.error(
+            "[GERAR_REFERENCIA] Falha ao ler responseUrl secundário:",
+            await resultResponse.text()
+          );
         }
       }
 
@@ -1482,7 +1669,7 @@ export async function GET(request: NextRequest) {
         success: true,
         status: finalStatus,
         imageUrl: imageUrl,
-        error: checkData.error
+        error: checkData.error,
       });
     }
 

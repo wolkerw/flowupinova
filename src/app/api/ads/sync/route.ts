@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     const snapshot = await adsRef.where("status", "==", "active").get();
 
     if (snapshot.empty) {
-      return NextResponse.json({ success: true, message: "Nenhuma campanha ativa encontrada para sincronizar." });
+      return NextResponse.json({
+        success: true,
+        message: "Nenhuma campanha ativa encontrada para sincronizar.",
+      });
     }
 
     console.log(`[SYNC] Iniciando sincronização para ${snapshot.size} campanhas...`);
@@ -59,7 +62,9 @@ export async function GET(request: NextRequest) {
           // Encontrar cliques de ação específicos (ex: cliques no link/botão)
           let actions = clicks;
           if (insight.actions) {
-            const linkClicksAction = insight.actions.find((act: any) => act.action_type === "link_click");
+            const linkClicksAction = insight.actions.find(
+              (act: any) => act.action_type === "link_click"
+            );
             if (linkClicksAction) {
               actions = parseInt(linkClicksAction.value || "0");
             }
@@ -80,7 +85,9 @@ export async function GET(request: NextRequest) {
             const endDateMillis = data.endDate.toMillis();
             if (Date.now() > endDateMillis) {
               status = "completed";
-              console.log(`[SYNC] Campanha ${metaCampaignId} atingiu a data de término. Marcando como concluída.`);
+              console.log(
+                `[SYNC] Campanha ${metaCampaignId} atingiu a data de término. Marcando como concluída.`
+              );
             }
           }
 
@@ -92,7 +99,9 @@ export async function GET(request: NextRequest) {
 
           syncedCount++;
         } else {
-          console.warn(`[SYNC] Sem insights disponíveis para a campanha ${metaCampaignId} na Meta.`);
+          console.warn(
+            `[SYNC] Sem insights disponíveis para a campanha ${metaCampaignId} na Meta.`
+          );
         }
       } catch (err: any) {
         console.error(`[SYNC] Falha ao sincronizar campanha ${metaCampaignId}:`, err.message);
@@ -103,7 +112,6 @@ export async function GET(request: NextRequest) {
       success: true,
       message: `Métricas sincronizadas com sucesso. Sincronizadas: ${syncedCount} campanhas.`,
     });
-
   } catch (error: any) {
     console.error("[SYNC] Erro geral na sincronização:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

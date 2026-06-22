@@ -8,7 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sparkles,
@@ -61,28 +66,27 @@ export const Step5ReviewPublish = () => {
     businessProfile,
   } = useWizard();
 
-  const selectedContent = selectedContentId !== undefined 
-    ? generatedContent[parseInt(selectedContentId, 10)] 
-    : null;
+  const selectedContent =
+    selectedContentId !== undefined ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
   const handleEditContent = (field: keyof GeneratedContent, value: any) => {
     if (selectedContentId === undefined) return;
     const index = parseInt(selectedContentId, 10);
-    setGeneratedContent(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
+    setGeneratedContent((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
   };
 
   const onBack = () => setStep(mode === "reference-photo" ? 3 : 4);
   const onPlatformChange = (p: Platform) =>
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
-  
+
   const onPublish = (mode: "now" | "schedule") =>
     mode === "now" ? handlePublish("now") : setShowSchedulerModal(true);
 
   if (!selectedContent || !selectedImage) return null;
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      const val = collaboratorsInput.trim().replace('@', '');
+      const val = collaboratorsInput.trim().replace("@", "");
       if (val && collaborators.length < 3 && !collaborators.includes(val)) {
         onCollaboratorsChange([...collaborators, val]);
       }
@@ -91,10 +95,10 @@ export const Step5ReviewPublish = () => {
   };
 
   const handleAddUserTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      const val = userTagsInput.trim().replace('@', '');
-      if (val && !userTags.some(t => t.username === val)) {
+      const val = userTagsInput.trim().replace("@", "");
+      if (val && !userTags.some((t) => t.username === val)) {
         onUserTagsChange([...userTags, { username: val, x: 0.5, y: 0.5 }]);
       }
       onUserTagsInputChange("");
@@ -136,50 +140,68 @@ export const Step5ReviewPublish = () => {
             </div>
             <div className="space-y-6">
               <div className="space-y-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
-                <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent" />
-                    <Label className="font-bold text-base">Editar Conteúdo</Label>
+                    <Label className="text-base font-bold">Editar Conteúdo</Label>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-title" className="text-xs font-semibold uppercase text-gray-500">Título / Destaque</Label>
-                    <Input 
+                    <Label
+                      htmlFor="edit-title"
+                      className="text-xs font-semibold uppercase text-gray-500"
+                    >
+                      Título / Destaque
+                    </Label>
+                    <Input
                       id="edit-title"
                       value={selectedContent.titulo}
-                      onChange={(e) => handleEditContent('titulo', e.target.value)}
+                      onChange={(e) => handleEditContent("titulo", e.target.value)}
                       className="bg-white"
                       placeholder="Título que aparece no post..."
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-subtitle" className="text-xs font-semibold uppercase text-gray-500">Legenda / Corpo do Post</Label>
-                    <Textarea 
+                    <Label
+                      htmlFor="edit-subtitle"
+                      className="text-xs font-semibold uppercase text-gray-500"
+                    >
+                      Legenda / Corpo do Post
+                    </Label>
+                    <Textarea
                       id="edit-subtitle"
                       value={selectedContent.subtitulo}
-                      onChange={(e) => handleEditContent('subtitulo', e.target.value)}
-                      className="bg-white min-h-[120px] resize-none"
+                      onChange={(e) => handleEditContent("subtitulo", e.target.value)}
+                      className="min-h-[120px] resize-none bg-white"
                       placeholder="Escreva a legenda principal aqui..."
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-hashtags" className="text-xs font-semibold uppercase text-gray-500">Hashtags</Label>
-                    <Input 
+                    <Label
+                      htmlFor="edit-hashtags"
+                      className="text-xs font-semibold uppercase text-gray-500"
+                    >
+                      Hashtags
+                    </Label>
+                    <Input
                       id="edit-hashtags"
-                      value={selectedContent.hashtags.join(' ')}
-                      onChange={(e) => handleEditContent('hashtags', e.target.value.split(' ').filter(h => h.trim() !== ''))}
+                      value={selectedContent.hashtags.join(" ")}
+                      onChange={(e) =>
+                        handleEditContent(
+                          "hashtags",
+                          e.target.value.split(" ").filter((h) => h.trim() !== "")
+                        )
+                      }
                       className="bg-white"
                       placeholder="#hashtag1 #hashtag2..."
                     />
                   </div>
                 </div>
               </div>
-
-
 
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
@@ -190,18 +212,24 @@ export const Step5ReviewPublish = () => {
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !instagramConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !instagramConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-instagram"
-                            checked={platforms.includes("instagram") && !!instagramConnection?.isConnected}
+                            checked={
+                              platforms.includes("instagram") && !!instagramConnection?.isConnected
+                            }
                             onCheckedChange={() => onPlatformChange("instagram")}
                             disabled={!instagramConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-instagram"
-                            className={cn("flex cursor-pointer items-center gap-2", !instagramConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !instagramConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Instagram className="h-5 w-5 text-pink-500" />
                             Instagram
@@ -222,18 +250,24 @@ export const Step5ReviewPublish = () => {
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !metaConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !metaConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-facebook"
-                            checked={platforms.includes("facebook") && !!metaConnection?.isConnected}
+                            checked={
+                              platforms.includes("facebook") && !!metaConnection?.isConnected
+                            }
                             onCheckedChange={() => onPlatformChange("facebook")}
                             disabled={!metaConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-facebook"
-                            className={cn("flex cursor-pointer items-center gap-2", !metaConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !metaConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Facebook className="h-5 w-5 text-blue-600" />
                             Facebook
@@ -254,18 +288,24 @@ export const Step5ReviewPublish = () => {
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !linkedinConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !linkedinConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-linkedin"
-                            checked={platforms.includes("linkedin") && !!linkedinConnection?.isConnected}
+                            checked={
+                              platforms.includes("linkedin") && !!linkedinConnection?.isConnected
+                            }
                             onCheckedChange={() => onPlatformChange("linkedin")}
                             disabled={!linkedinConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-linkedin"
-                            className={cn("flex cursor-pointer items-center gap-2", !linkedinConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !linkedinConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Linkedin className="h-5 w-5 text-blue-700" />
                             LinkedIn
@@ -284,20 +324,32 @@ export const Step5ReviewPublish = () => {
 
               {/* Instagram Specific Features */}
               {platforms.includes("instagram") && (
-                <div className="space-y-6 pt-4 border-t">
+                <div className="space-y-6 border-t pt-4">
                   {/* Collabs */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Dividir postagem com parceiro (Collab)</h4>
-                    <p className="text-xs text-muted-foreground">A postagem também aparecerá no perfil desta pessoa se ela aceitar.</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <h4 className="text-sm font-semibold">
+                      Dividir postagem com parceiro (Collab)
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      A postagem também aparecerá no perfil desta pessoa se ela aceitar.
+                    </p>
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {collaborators.map((username) => (
-                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                        <div
+                          key={username}
+                          className="flex items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-1 text-xs text-pink-700"
+                        >
                           @{username}
-                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => onCollaboratorsChange(collaborators.filter(c => c !== username))} />
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-pink-900"
+                            onClick={() =>
+                              onCollaboratorsChange(collaborators.filter((c) => c !== username))
+                            }
+                          />
                         </div>
                       ))}
                     </div>
-                    <input 
+                    <input
                       type="text"
                       value={collaboratorsInput}
                       onChange={(e) => onCollaboratorsInputChange(e.target.value)}
@@ -310,17 +362,27 @@ export const Step5ReviewPublish = () => {
 
                   {/* User Tags */}
                   <div className="space-y-2 border-t pt-4">
-                    <h4 className="font-semibold text-sm">Marcar na foto</h4>
-                    <p className="text-xs text-muted-foreground">A pessoa apenas receberá uma notificação de que foi marcada.</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <h4 className="text-sm font-semibold">Marcar na foto</h4>
+                    <p className="text-xs text-muted-foreground">
+                      A pessoa apenas receberá uma notificação de que foi marcada.
+                    </p>
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {userTags.map((tag) => (
-                        <div key={tag.username} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs">
+                        <div
+                          key={tag.username}
+                          className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700"
+                        >
                           @{tag.username}
-                          <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => onUserTagsChange(userTags.filter(t => t.username !== tag.username))} />
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-blue-900"
+                            onClick={() =>
+                              onUserTagsChange(userTags.filter((t) => t.username !== tag.username))
+                            }
+                          />
                         </div>
                       ))}
                     </div>
-                    <input 
+                    <input
                       type="text"
                       value={userTagsInput}
                       onChange={(e) => onUserTagsInputChange(e.target.value)}
@@ -358,12 +420,14 @@ export const Step5ReviewPublish = () => {
                     Agendar
                   </Button>
                 </div>
-                {!metaConnection?.isConnected && !instagramConnection?.isConnected && !linkedinConnection?.isConnected && (
-                  <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
-                    <AlertTriangle className="h-4 w-4" />
-                    Conecte suas contas na página de "Conteúdo" ou "Conexões" para publicar.
-                  </p>
-                )}
+                {!metaConnection?.isConnected &&
+                  !instagramConnection?.isConnected &&
+                  !linkedinConnection?.isConnected && (
+                    <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
+                      <AlertTriangle className="h-4 w-4" />
+                      Conecte suas contas na página de "Conteúdo" ou "Conexões" para publicar.
+                    </p>
+                  )}
               </div>
             </div>
           </div>

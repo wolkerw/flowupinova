@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
       adAccountName: accounts.length === 1 ? accounts[0].name : null,
     });
   } catch (error: any) {
-    console.error("[GOOGLE_ADS_CALLBACK_ERROR] Erro no processamento de callback:", error.message || error);
+    console.error(
+      "[GOOGLE_ADS_CALLBACK_ERROR] Erro no processamento de callback:",
+      error.message || error
+    );
     return NextResponse.json(
       { success: false, error: error.message || "Erro desconhecido no processamento de callback." },
       { status: 500 }

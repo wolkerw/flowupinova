@@ -54,7 +54,9 @@ export async function getAuthenticatedGoogleAdsClient(userId: string) {
 /**
  * Lista as contas acessíveis do Google Ads
  */
-export async function listGoogleAdsCustomers(userId: string): Promise<Array<{ id: string; name: string }>> {
+export async function listGoogleAdsCustomers(
+  userId: string
+): Promise<Array<{ id: string; name: string }>> {
   try {
     const oauth2Client = await getAuthenticatedGoogleAdsClient(userId);
     const tokenInfo = await oauth2Client.getAccessToken();
@@ -119,7 +121,10 @@ export async function listGoogleAdsCustomers(userId: string): Promise<Array<{ id
           });
         }
       } catch (innerErr) {
-        console.warn(`[GOOGLE_ADS_ADMIN] Erro ao buscar detalhes da conta ${customerId}:`, innerErr);
+        console.warn(
+          `[GOOGLE_ADS_ADMIN] Erro ao buscar detalhes da conta ${customerId}:`,
+          innerErr
+        );
         accounts.push({
           id: customerId,
           name: `Conta Google Ads (${customerId})`,

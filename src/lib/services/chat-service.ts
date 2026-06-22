@@ -116,13 +116,14 @@ export async function saveChatHistory(userId: string, messages: StoredMessage[])
 
     for (const newMsg of messagesToStore) {
       const alreadyExists = existingHistory.some((extMsg) => {
-        const extTime = extMsg.createdAt && extMsg.createdAt.toDate 
-          ? extMsg.createdAt.toDate().getTime() 
-          : new Date(extMsg.createdAt).getTime();
+        const extTime =
+          extMsg.createdAt && extMsg.createdAt.toDate
+            ? extMsg.createdAt.toDate().getTime()
+            : new Date(extMsg.createdAt).getTime();
         const newTime = newMsg.createdAt.toDate().getTime();
         return (
-          extMsg.text === newMsg.text && 
-          extMsg.sender === newMsg.sender && 
+          extMsg.text === newMsg.text &&
+          extMsg.sender === newMsg.sender &&
           Math.abs(extTime - newTime) < 2000
         );
       });

@@ -14,15 +14,12 @@ export async function GET(request: NextRequest) {
 
   try {
     let posts: any[] = [];
-    
+
     // Método 1: Tentar via Collection Group (mais rápido caso o índice composto exista)
     try {
       console.log("[ADMIN_POSTS] Tentando buscar posts via collectionGroup...");
-      const postsQuery = adminDb
-        .collectionGroup("posts")
-        .orderBy("createdAt", "desc")
-        .limit(50);
-      
+      const postsQuery = adminDb.collectionGroup("posts").orderBy("createdAt", "desc").limit(50);
+
       const snapshot = await postsQuery.get();
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
@@ -44,14 +41,19 @@ export async function GET(request: NextRequest) {
       });
       console.log(`[ADMIN_POSTS] Sucesso! ${posts.length} posts carregados via collectionGroup.`);
     } catch (grpErr: any) {
-      console.warn("[ADMIN_POSTS] CollectionGroup falhou (provável falta de índice composto). Acionando Fallback...", grpErr.message || grpErr);
-      
+      console.warn(
+        "[ADMIN_POSTS] CollectionGroup falhou (provável falta de índice composto). Acionando Fallback...",
+        grpErr.message || grpErr
+      );
+
       // Método 2 (Fallback): Buscar usuários e ler as subcoleções de cada um de forma concorrente
       const usersSnapshot = await adminDb.collection("users").get();
       const userDocs = usersSnapshot.docs;
-      
-      console.log(`[ADMIN_POSTS] Executando fallback: Carregando posts de ${userDocs.length} usuários...`);
-      
+
+      console.log(
+        `[ADMIN_POSTS] Executando fallback: Carregando posts de ${userDocs.length} usuários...`
+      );
+
       const userPostsPromises = userDocs.map(async (userDoc) => {
         try {
           const userPostsSnap = await userDoc.ref
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
             .orderBy("createdAt", "desc")
             .limit(20)
             .get();
-            
+
           return userPostsSnap.docs.map((doc) => {
             const data = doc.data();
             return {
@@ -78,14 +80,17 @@ export async function GET(request: NextRequest) {
             };
           });
         } catch (subErr) {
-          console.error(`[ADMIN_POSTS_WARN] Erro ao carregar posts do usuário ${userDoc.id}:`, subErr);
+          console.error(
+            `[ADMIN_POSTS_WARN] Erro ao carregar posts do usuário ${userDoc.id}:`,
+            subErr
+          );
           return [];
         }
       });
-      
+
       const resolvedPostsArray = await Promise.all(userPostsPromises);
       const allPosts = resolvedPostsArray.flat();
-      
+
       // Ordenar e pegar os últimos 50
       posts = allPosts
         .sort((a, b) => {
@@ -94,7 +99,7 @@ export async function GET(request: NextRequest) {
           return dateB - dateA;
         })
         .slice(0, 50);
-      
+
       console.log(`[ADMIN_POSTS] Fallback concluído. ${posts.length} posts mesclados com sucesso.`);
     }
 

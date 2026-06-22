@@ -36,14 +36,22 @@ export async function GET(request: NextRequest) {
 
   if (!userId) {
     redirectUrl.searchParams.set("linkedin_error", "missing_state");
-    redirectUrl.searchParams.set("linkedin_error_description", "Identificação do usuário (state) ausente.");
+    redirectUrl.searchParams.set(
+      "linkedin_error_description",
+      "Identificação do usuário (state) ausente."
+    );
     return NextResponse.redirect(redirectUrl);
   }
 
   if (!config.linkedin.clientId || !config.linkedin.clientSecret) {
-    console.error("[LINKEDIN_CALLBACK_ERROR] Credenciais do LinkedIn não configuradas no servidor.");
+    console.error(
+      "[LINKEDIN_CALLBACK_ERROR] Credenciais do LinkedIn não configuradas no servidor."
+    );
     redirectUrl.searchParams.set("linkedin_error", "server_config_missing");
-    redirectUrl.searchParams.set("linkedin_error_description", "Configuração do servidor para LinkedIn incompleta.");
+    redirectUrl.searchParams.set(
+      "linkedin_error_description",
+      "Configuração do servidor para LinkedIn incompleta."
+    );
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -96,14 +104,19 @@ export async function GET(request: NextRequest) {
 
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        personName = profileData.localizedFirstName && profileData.localizedLastName
-          ? `${profileData.localizedFirstName} ${profileData.localizedLastName}`
-          : (profileData.localizedFirstName || "LinkedIn User");
+        personName =
+          profileData.localizedFirstName && profileData.localizedLastName
+            ? `${profileData.localizedFirstName} ${profileData.localizedLastName}`
+            : profileData.localizedFirstName || "LinkedIn User";
         personUrn = profileData.id ? `urn:li:person:${profileData.id}` : "";
         console.log("[LINKEDIN_CALLBACK_DEBUG] Perfil obtido:", personName, personUrn);
       } else {
         const errText = await profileResponse.text();
-        console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /rest/me. Status:", profileResponse.status, errText);
+        console.warn(
+          "[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /rest/me. Status:",
+          profileResponse.status,
+          errText
+        );
       }
     } catch (profileErr: any) {
       console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil:", profileErr.message);
@@ -126,7 +139,7 @@ export async function GET(request: NextRequest) {
     const organizations: { urn: string; name: string }[] = [];
 
     if (orgsResponse.ok) {
-      const orgsData = await orgsResponse.ok ? await orgsResponse.json() : { elements: [] };
+      const orgsData = (await orgsResponse.ok) ? await orgsResponse.json() : { elements: [] };
       const elements = orgsData.elements || [];
 
       // Log diagnóstico: loga o primeiro elemento completo para identificar os campos corretos
@@ -136,13 +149,15 @@ export async function GET(request: NextRequest) {
       );
       console.log(
         "[LINKEDIN_CALLBACK_DEBUG] Roles retornados pela API:",
-        JSON.stringify(elements.map((el: any) => ({
-          role: el.role,
-          organization: el.organization,
-          organizationalTarget: el.organizationalTarget,
-          roleAssignee: el.roleAssignee,
-          state: el.state,
-        })))
+        JSON.stringify(
+          elements.map((el: any) => ({
+            role: el.role,
+            organization: el.organization,
+            organizationalTarget: el.organizationalTarget,
+            roleAssignee: el.roleAssignee,
+            state: el.state,
+          }))
+        )
       );
 
       // O campo correto na API organizationAcls é "organization" (não "organizationalTarget")
@@ -190,9 +205,12 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Salvar conexão no Firestore do usuário
-    const targetName = (personUrn && personName !== "LinkedIn User")
-      ? personName
-      : (organizations.length > 0 ? organizations[0].name : "LinkedIn User");
+    const targetName =
+      personUrn && personName !== "LinkedIn User"
+        ? personName
+        : organizations.length > 0
+          ? organizations[0].name
+          : "LinkedIn User";
 
     const targetUrn = personUrn || (organizations.length > 0 ? organizations[0].urn : "");
 

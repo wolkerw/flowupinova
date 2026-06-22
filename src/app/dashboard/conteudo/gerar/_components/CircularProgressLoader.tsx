@@ -99,14 +99,14 @@ export const CircularProgressLoader: React.FC<CircularProgressLoaderProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm rounded-lg z-20 p-6",
+        "absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg bg-white/95 p-6 backdrop-blur-sm",
         className
       )}
     >
       <div className="relative flex flex-col items-center gap-6">
         {/* SVG Container do Círculo de Progresso */}
-        <div className="relative w-36 h-36">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+        <div className="relative h-36 w-36">
+          <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
             {/* Definições de Gradiente para o círculo premium */}
             <defs>
               <linearGradient id="premiumProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -144,12 +144,12 @@ export const CircularProgressLoader: React.FC<CircularProgressLoaderProps> = ({
           </svg>
 
           {/* Porcentagem em texto no centro absoluto */}
-          <div className="absolute inset-0 flex items-center justify-center flex-col">
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
             <motion.span
               key={`percentage-${Math.round(progress)}`}
               initial={{ scale: 0.9, opacity: 0.8 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-2xl font-bold text-gray-800 tracking-tight"
+              className="text-2xl font-bold tracking-tight text-gray-800"
             >
               {Math.round(progress)}%
             </motion.span>
@@ -157,7 +157,7 @@ export const CircularProgressLoader: React.FC<CircularProgressLoaderProps> = ({
         </div>
 
         {/* Mensagem Otimista com Animação de Troca Suave */}
-        <div className="h-14 flex items-center justify-center">
+        <div className="flex h-14 items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.p
               key={currentMessage}
@@ -165,7 +165,7 @@ export const CircularProgressLoader: React.FC<CircularProgressLoaderProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="text-sm font-medium text-gray-600 text-center max-w-[280px] leading-relaxed"
+              className="max-w-[280px] text-center text-sm font-medium leading-relaxed text-gray-600"
             >
               {currentMessage}
             </motion.p>

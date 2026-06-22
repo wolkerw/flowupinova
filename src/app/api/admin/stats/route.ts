@@ -11,10 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [stats, signups] = await Promise.all([
-      getPlatformStats(),
-      getRecentSignups(30),
-    ]);
+    const [stats, signups] = await Promise.all([getPlatformStats(), getRecentSignups(30)]);
 
     return NextResponse.json({ stats, signups }, { status: 200 });
   } catch (err: any) {

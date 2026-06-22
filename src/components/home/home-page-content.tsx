@@ -26,7 +26,8 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const WHATSAPP_LINK = "https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt.";
+const WHATSAPP_LINK =
+  "https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20saber%20mais%20sobre%20a%20NumVapt.";
 
 export function HomePageContent() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -63,17 +64,20 @@ export function HomePageContent() {
     {
       icon: Clock,
       title: "Ganhe Horas na Semana",
-      description: "Reduza o tempo gasto com marketing em 90%. De horas de sufoco para apenas 3 cliques.",
+      description:
+        "Reduza o tempo gasto com marketing em 90%. De horas de sufoco para apenas 3 cliques.",
     },
     {
       icon: TrendingUp,
       title: "Consistência Absoluta",
-      description: "Nunca mais deixe de postar por 'falta de tempo'. Mantenha sua marca viva e atraia mais clientes todos os dias.",
+      description:
+        "Nunca mais deixe de postar por 'falta de tempo'. Mantenha sua marca viva e atraia mais clientes todos os dias.",
     },
     {
       icon: ShieldCheck,
       title: "Zero Curva de Aprendizado",
-      description: "Nossa interface é tão intuitiva que você cria seu primeiro post profissional em menos de 5 minutos.",
+      description:
+        "Nossa interface é tão intuitiva que você cria seu primeiro post profissional em menos de 5 minutos.",
     },
   ];
 
@@ -123,7 +127,11 @@ export function HomePageContent() {
               </Button>
             ) : (
               <>
-                <Button variant="ghost" asChild className="hidden rounded-full font-bold sm:inline-flex">
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="hidden rounded-full font-bold sm:inline-flex"
+                >
                   <Link href="/acesso/login">Login</Link>
                 </Button>
                 <Button
@@ -159,7 +167,8 @@ export function HomePageContent() {
                 Seu marketing no modo <span className="text-primary">Ultra Vapt</span>
               </h1>
               <p className="mx-auto mb-10 max-w-2xl text-xl font-medium leading-relaxed text-slate-600">
-                A primeira plataforma com IA que cria textos brilhantes, gera imagens com a sua marca e agenda seus posts automaticamente. Tudo em um só lugar.
+                A primeira plataforma com IA que cria textos brilhantes, gera imagens com a sua
+                marca e agenda seus posts automaticamente. Tudo em um só lugar.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button
@@ -191,18 +200,19 @@ export function HomePageContent() {
         <section className="bg-slate-50 px-6 py-24">
           <div className="container mx-auto">
             <div className="mb-16 text-center">
-              <h2 className="text-3xl font-black md:text-4xl text-slate-900">
-                Criar conteúdo não precisa ser um <span className="text-primary">segundo trabalho.</span>
+              <h2 className="text-3xl font-black text-slate-900 md:text-4xl">
+                Criar conteúdo não precisa ser um{" "}
+                <span className="text-primary">segundo trabalho.</span>
               </h2>
             </div>
-            <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
+            <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
               <Card className="border-red-100 bg-red-50/50 shadow-none">
                 <CardHeader>
-                  <CardTitle className="text-red-700 flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-red-700">
                     <X className="h-6 w-6" /> O Jeito Antigo
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-slate-600 font-medium">
+                <CardContent className="space-y-4 font-medium text-slate-600">
                   <p>❌ Horas perdidas pensando em "o que postar hoje".</p>
                   <p>❌ Luta constante com ferramentas de design complexas.</p>
                   <p>❌ Pagando caro por agências que não entendem a sua voz.</p>
@@ -212,11 +222,11 @@ export function HomePageContent() {
 
               <Card className="border-primary/20 bg-primary/5 shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-primary flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-primary">
                     <CheckCircle className="h-6 w-6" /> Com o NumVapt
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-slate-700 font-medium">
+                <CardContent className="space-y-4 font-medium text-slate-700">
                   <p>✅ Ideias de conteúdo geradas por IA em segundos.</p>
                   <p>✅ Imagens lindas geradas e com sua logo aplicada automaticamente.</p>
                   <p>✅ Publicação e agendamento diretos para Facebook e Instagram.</p>
@@ -228,23 +238,24 @@ export function HomePageContent() {
         </section>
 
         {/* How it Works Section */}
-        <section id="how-it-works" className="bg-white px-6 py-24 border-y border-slate-100">
+        <section id="how-it-works" className="border-y border-slate-100 bg-white px-6 py-24">
           <div className="container mx-auto text-center">
             <h2 className="mb-4 text-4xl font-black text-slate-900">
               Simples como <span className="italic text-primary">Vapt Vupt!</span>
             </h2>
-            <p className="mx-auto mb-16 max-w-2xl text-lg text-slate-500 font-medium">
+            <p className="mx-auto mb-16 max-w-2xl text-lg font-medium text-slate-500">
               Nossa plataforma foi desenhada para que você gaste o menor tempo possível configurando
               e o máximo colhendo resultados.
             </p>
-            <div className="grid gap-12 md:grid-cols-3 max-w-6xl mx-auto">
+            <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-3">
               <div className="group flex flex-col items-center">
                 <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary/10 text-primary transition-all duration-300 group-hover:-translate-y-2 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg">
                   <Bot className="h-10 w-10" />
                 </div>
                 <h3 className="mb-3 text-2xl font-black text-slate-800">1. Dê a Ideia</h3>
-                <p className="px-4 text-slate-500 font-medium leading-relaxed">
-                  Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e cria opções prontas.
+                <p className="px-4 font-medium leading-relaxed text-slate-500">
+                  Diga ao Vapti sobre o que você quer postar hoje. Ele entende seu negócio e cria
+                  opções prontas.
                 </p>
               </div>
               <div className="group flex flex-col items-center">
@@ -252,8 +263,9 @@ export function HomePageContent() {
                   <Edit className="h-10 w-10" />
                 </div>
                 <h3 className="mb-3 text-2xl font-black text-slate-800">2. Personalize</h3>
-                <p className="px-4 text-slate-500 font-medium leading-relaxed">
-                  Escolha entre as imagens geradas pela IA. Nossa ferramenta embute sua marca no post na hora.
+                <p className="px-4 font-medium leading-relaxed text-slate-500">
+                  Escolha entre as imagens geradas pela IA. Nossa ferramenta embute sua marca no
+                  post na hora.
                 </p>
               </div>
               <div className="group flex flex-col items-center">
@@ -261,8 +273,9 @@ export function HomePageContent() {
                   <Send className="h-10 w-10" />
                 </div>
                 <h3 className="mb-3 text-2xl font-black text-slate-800">3. Publique</h3>
-                <p className="px-4 text-slate-500 font-medium leading-relaxed">
-                  Envie direto para suas redes ou deixe agendado para o melhor horário. O resto é com a gente.
+                <p className="px-4 font-medium leading-relaxed text-slate-500">
+                  Envie direto para suas redes ou deixe agendado para o melhor horário. O resto é
+                  com a gente.
                 </p>
               </div>
             </div>
@@ -274,9 +287,12 @@ export function HomePageContent() {
           <div className="container mx-auto">
             <div className="mb-16 text-center">
               <h2 className="text-4xl font-black text-slate-900">A Plataforma Definitiva</h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500 font-medium">Tudo o que você precisa para dominar as redes sociais, reunido em uma interface elegante e poderosa.</p>
+              <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-slate-500">
+                Tudo o que você precisa para dominar as redes sociais, reunido em uma interface
+                elegante e poderosa.
+              </p>
             </div>
-            <div className="grid gap-8 md:grid-cols-2 max-w-6xl mx-auto">
+            <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2">
               {features.map((feature, index) => (
                 <motion.div
                   key={feature.title}
@@ -285,14 +301,16 @@ export function HomePageContent() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="h-full border-none shadow-md hover:shadow-lg transition-shadow bg-white">
+                  <Card className="h-full border-none bg-white shadow-md transition-shadow hover:shadow-lg">
                     <CardHeader className="flex flex-row items-start gap-4 space-y-0">
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <feature.icon className="h-7 w-7" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-slate-900 mb-2">{feature.title}</CardTitle>
-                        <p className="text-slate-500 font-medium leading-relaxed">
+                        <CardTitle className="mb-2 text-xl font-bold text-slate-900">
+                          {feature.title}
+                        </CardTitle>
+                        <p className="font-medium leading-relaxed text-slate-500">
                           {feature.description}
                         </p>
                       </div>
@@ -310,21 +328,25 @@ export function HomePageContent() {
             <div className="mb-16 text-center">
               <h2 className="text-4xl font-black">Por que escolher o NumVapt?</h2>
             </div>
-            <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+            <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-3">
               {benefits.map((benefit, index) => (
                 <div key={index} className="text-center">
                   <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
                     <benefit.icon className="h-8 w-8 text-white" />
                   </div>
                   <h3 className="mb-3 text-2xl font-bold">{benefit.title}</h3>
-                  <p className="text-primary-foreground/80 font-medium leading-relaxed">
+                  <p className="font-medium leading-relaxed text-primary-foreground/80">
                     {benefit.description}
                   </p>
                 </div>
               ))}
             </div>
             <div className="mt-16 text-center">
-              <Button asChild size="lg" className="rounded-full bg-white text-primary hover:bg-slate-100 font-bold px-10 h-14 text-lg">
+              <Button
+                asChild
+                size="lg"
+                className="h-14 rounded-full bg-white px-10 text-lg font-bold text-primary hover:bg-slate-100"
+              >
                 <Link href="/acesso/cadastro">Quero começar a economizar tempo</Link>
               </Button>
             </div>
@@ -336,7 +358,7 @@ export function HomePageContent() {
           <div className="container mx-auto">
             <div className="mb-16 text-center">
               <h2 className="mb-4 text-4xl font-black text-slate-900">Planos sem pegadinhas</h2>
-              <p className="mx-auto max-w-xl text-lg text-slate-500 font-medium">
+              <p className="mx-auto max-w-xl text-lg font-medium text-slate-500">
                 Escolha a velocidade ideal para o crescimento do seu negócio.
               </p>
 
@@ -345,7 +367,7 @@ export function HomePageContent() {
                   htmlFor="billing-cycle"
                   className={cn(
                     "text-lg font-bold transition-all",
-                    !isAnnual ? "text-primary scale-105" : "text-slate-400"
+                    !isAnnual ? "scale-105 text-primary" : "text-slate-400"
                   )}
                 >
                   Mensal
@@ -361,14 +383,12 @@ export function HomePageContent() {
                     htmlFor="billing-cycle"
                     className={cn(
                       "text-lg font-bold transition-all",
-                      isAnnual ? "text-primary scale-105" : "text-slate-400"
+                      isAnnual ? "scale-105 text-primary" : "text-slate-400"
                     )}
                   >
                     Anual
                   </Label>
-                  <Badge className="bg-accent text-white border-none font-bold">
-                    -20%
-                  </Badge>
+                  <Badge className="border-none bg-accent font-bold text-white">-20%</Badge>
                 </div>
               </div>
             </div>
@@ -381,13 +401,19 @@ export function HomePageContent() {
                   <p className="pt-4 text-5xl font-black text-slate-900">
                     R$0<span className="text-xl font-bold text-slate-400">/7 dias</span>
                   </p>
-                  <p className="mt-2 text-sm text-slate-500 font-medium">
+                  <p className="mt-2 text-sm font-medium text-slate-500">
                     Experimente o poder da IA sem compromisso.
                   </p>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4 pt-6">
                   <ul className="space-y-4">
-                    {["Geração de Conteúdo IA", "Criação Automática de Imagens", "Agendamento Facebook/Instagram", "Relatórios de Desempenho", "Suporte por E-mail"].map((item) => (
+                    {[
+                      "Geração de Conteúdo IA",
+                      "Criação Automática de Imagens",
+                      "Agendamento Facebook/Instagram",
+                      "Relatórios de Desempenho",
+                      "Suporte por E-mail",
+                    ].map((item) => (
                       <li key={item} className="flex items-center gap-3 font-bold text-slate-700">
                         <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary" />
                         {item}
@@ -399,7 +425,7 @@ export function HomePageContent() {
                   <Button
                     asChild
                     variant="outline"
-                    className="h-14 w-full rounded-full border-2 border-primary text-primary hover:bg-primary/5 font-bold text-lg"
+                    className="h-14 w-full rounded-full border-2 border-primary text-lg font-bold text-primary hover:bg-primary/5"
                   >
                     <Link href="/acesso/cadastro">Iniciar Teste Grátis</Link>
                   </Button>
@@ -412,18 +438,22 @@ export function HomePageContent() {
                   Mais Assinado
                 </div>
                 <CardHeader className="pb-4 pt-10 text-center">
-                  <CardTitle className="text-3xl font-black text-slate-900">Plano Standard</CardTitle>
+                  <CardTitle className="text-3xl font-black text-slate-900">
+                    Plano Standard
+                  </CardTitle>
                   <div className="pt-6">
                     <p className="text-6xl font-black text-primary">
                       {isAnnual ? "R$400" : "R$490"}
                       <span className="text-xl font-bold text-slate-400">/mês</span>
                     </p>
                     <p className="mt-3 text-sm font-medium text-slate-500">
-                      {isAnnual ? "Faturado anualmente (economia de R$ 1.080)" : "Faturado mensalmente"}
+                      {isAnnual
+                        ? "Faturado anualmente (economia de R$ 1.080)"
+                        : "Faturado mensalmente"}
                     </p>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-5 pt-8 px-10">
+                <CardContent className="flex-grow space-y-5 px-10 pt-8">
                   <ul className="space-y-4">
                     <li className="flex items-center gap-3 font-bold text-slate-800">
                       <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary" />
@@ -461,10 +491,12 @@ export function HomePageContent() {
         </section>
 
         {/* CTA Section */}
-        <section className="bg-white px-6 py-32 border-t border-slate-100">
+        <section className="border-t border-slate-100 bg-white px-6 py-32">
           <div className="container mx-auto text-center">
             <h2 className="mb-6 text-4xl font-black text-slate-900 md:text-5xl">
-              Pare de postar por obrigação.<br/>Comece a postar para <span className="text-primary">crescer</span>.
+              Pare de postar por obrigação.
+              <br />
+              Comece a postar para <span className="text-primary">crescer</span>.
             </h2>
             <p className="mx-auto mb-10 max-w-2xl text-xl font-medium text-slate-500">
               O Vapti está pronto para impulsionar seu marketing. E você?
@@ -493,8 +525,8 @@ export function HomePageContent() {
                 className="mb-8 h-auto brightness-0 invert"
               />
               <p className="max-w-sm text-lg font-medium leading-relaxed text-slate-400">
-                A plataforma de marketing inteligente focada em velocidade e resultados reais
-                para donos de negócios.
+                A plataforma de marketing inteligente focada em velocidade e resultados reais para
+                donos de negócios.
               </p>
             </div>
             <div>
@@ -526,7 +558,12 @@ export function HomePageContent() {
               <h4 className="mb-6 text-xl font-bold">Contato e Legal</h4>
               <ul className="space-y-4 font-medium text-slate-400">
                 <li>
-                  <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white flex items-center gap-2">
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 transition-colors hover:text-white"
+                  >
                     <MessageCircle className="h-4 w-4" /> Suporte via WhatsApp
                   </a>
                 </li>
@@ -555,7 +592,8 @@ export function HomePageContent() {
           </div>
           <div className="border-t border-white/10 pt-8 text-center text-sm font-medium text-slate-500">
             <p>
-              &copy; {new Date().getFullYear()} NumVapt Soluções e Inovações I.S. Todos os direitos reservados.
+              &copy; {new Date().getFullYear()} NumVapt Soluções e Inovações I.S. Todos os direitos
+              reservados.
             </p>
           </div>
         </div>
@@ -569,7 +607,7 @@ export function HomePageContent() {
         className="group fixed bottom-8 right-8 z-50 flex items-center gap-3"
         aria-label="Entre em contato pelo WhatsApp"
       >
-        <span className="hidden rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-lg md:block group-hover:bg-slate-50">
+        <span className="hidden rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-lg group-hover:bg-slate-50 md:block">
           Precisa de ajuda?
         </span>
         <div className="relative">

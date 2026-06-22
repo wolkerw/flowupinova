@@ -12,6 +12,7 @@ Esta skill documenta a integração do projeto NumVapt com os workflows do n8n p
 O projeto utiliza um sistema de proxy (`/api/proxy-webhook`) e chamadas diretas para o domínio `webhook.flowupinova.com.br`.
 
 ### 1. Geração por Link de Referência
+
 - **Target**: `gerador_link_referencia`
 - **Método**: POST (FormData)
 - **Campos**:
@@ -23,6 +24,7 @@ O projeto utiliza um sistema de proxy (`/api/proxy-webhook`) e chamadas diretas 
 - **Resposta**: JSON contendo lista de `publicacoes`.
 
 ### 2. Geração de Imagem (Main)
+
 - **URL**: `https://webhook.flowupinova.com.br/webhook/gerador-imagem`
 - **Método**: POST (JSON)
 - **Payload**:
@@ -37,6 +39,7 @@ O projeto utiliza um sistema de proxy (`/api/proxy-webhook`) e chamadas diretas 
 - **Fluxo**: Inicia a geração assíncrona. O frontend deve realizar polling após o sucesso desta chamada.
 
 ### 3. Busca de Imagens (Polling)
+
 - **URL**: `https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase`
 - **Método**: POST (JSON)
 - **Payload**:
@@ -50,6 +53,7 @@ O projeto utiliza um sistema de proxy (`/api/proxy-webhook`) e chamadas diretas 
 - **Intervalo sugerido**: 10 segundos, começando 10s após o trigger de geração.
 
 ### 4. Personalização de Marca
+
 - **Target**: `personalizador_imagem`
 - **Método**: POST (FormData)
 - **Campos**: `logo`, `image`, `position`, `scale`, `opacity`, `text`, `text_color`, etc.
@@ -62,5 +66,6 @@ O projeto utiliza um sistema de proxy (`/api/proxy-webhook`) e chamadas diretas 
 4.  **Tratamento de Blob**: Ao receber imagens binárias, utilize `URL.createObjectURL` e lembre-se de revogar a URL no `cleanup` do componente para evitar vazamento de memória.
 
 ## Depuração
+
 - Verifique os logs do n8n em `https://n8n.flowupinova.com.br` (se acessível).
 - Utilize a aba "Network" do navegador para inspecionar os payloads enviados para o `/api/proxy-webhook`.

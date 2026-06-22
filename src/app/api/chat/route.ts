@@ -12,9 +12,16 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("[CHAT_VAPTI_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente.");
+      console.error(
+        "[CHAT_VAPTI_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente."
+      );
       return NextResponse.json(
-        [{ output: "Olá! Fico muito feliz em falar com você! 🌟 Para ativarmos o meu cérebro e começarmos nosso brainstorming de posts, por favor, adicione a sua chave **GEMINI_API_KEY** no arquivo **.env.local** do seu projeto!" }],
+        [
+          {
+            output:
+              "Olá! Fico muito feliz em falar com você! 🌟 Para ativarmos o meu cérebro e começarmos nosso brainstorming de posts, por favor, adicione a sua chave **GEMINI_API_KEY** no arquivo **.env.local** do seu projeto!",
+          },
+        ],
         { status: 200 }
       );
     }
@@ -47,32 +54,100 @@ export async function POST(request: NextRequest) {
       };
 
       return [
-        { nome: "Ano Novo", data: new Date(anoCampanha, 0, 1), foco: "Celebração, recomeço, metas e planejamento anual." },
-        { nome: "Carnaval", data: new Date(anoCampanha, 1, 16), foco: "Folia, alegria, ofertas de verão, engajamento e energia de bloco." }, // aproximado
-        { nome: "Dia Internacional da Mulher", data: new Date(anoCampanha, 2, 8), foco: "Homenagem, empoderamento feminino, presentes afetivos e autocuidado." },
-        { nome: "Dia do Consumidor", data: new Date(anoCampanha, 2, 15), foco: "Promoções de relacionamento, descontos exclusivos, cupons e fidelização." },
-        { nome: "Páscoa", data: new Date(anoCampanha, 3, 5), foco: "Ganchos doces, ovos de chocolate, família, união e presentes." }, // aproximado 2026
-        { nome: "Dia do Frete Grátis", data: new Date(anoCampanha, 3, 28), foco: "Incentivo a compras online rápidas, e-commerce e gatilho de frete grátis." },
-        { nome: "Dia das Mães", data: obterSegundoDomingo(4), foco: "Emoção profunda, gratidão, presentes afetivos, combos para mães e conexões familiares." },
-        { nome: "Dia dos Namorados", data: new Date(anoCampanha, 5, 12), foco: "Romantismo, casais, ideias de presentes especiais, jantares e ofertas em dobro." },
-        { nome: "Festas Juninas / São João", data: new Date(anoCampanha, 5, 24), foco: "Comidas típicas, arraiá, alegria, engajamento temático, quadrilhas e roupas xadrez." },
-        { nome: "Dia do Amigo", data: new Date(anoCampanha, 6, 20), foco: "Parcerias, cupom de indicação de amigos, compre 1 leve 2 e afeto." },
-        { nome: "Dia dos Pais", data: obterSegundoDomingo(7), foco: "Estilo, ferramentas, utilidade prática, homenagens masculinas e combos especiais." },
-        { nome: "Dia do Cliente", data: new Date(anoCampanha, 8, 15), foco: "Cupons de agradecimento, descontos VIP, brindes e fidelização máxima." },
-        { nome: "Dia das Crianças", data: new Date(anoCampanha, 9, 12), foco: "Diversão, brinquedos, nostalgia infantil e campanhas de marketing lúdicas." },
-        { nome: "Halloween", data: new Date(anoCampanha, 9, 31), foco: "Doces ou travessuras, descontos assustadores, campanhas temáticas e criatividade misteriosa." },
-        { nome: "Black Friday", data: obterBlackFriday(), foco: "Ofertas bombásticas de escassez, gatilhos de urgência extrema e grandes descontos." },
-        { nome: "Natal", data: new Date(anoCampanha, 11, 25), foco: "Presentes de amigo secreto, confraternização, espírito natalino e campanhas afetivas." },
-        { nome: "Ano Novo (Véspera)", data: new Date(anoCampanha, 11, 31), foco: "Festas de réveillon, retrospectiva anual e renovação de ciclos." }
+        {
+          nome: "Ano Novo",
+          data: new Date(anoCampanha, 0, 1),
+          foco: "Celebração, recomeço, metas e planejamento anual.",
+        },
+        {
+          nome: "Carnaval",
+          data: new Date(anoCampanha, 1, 16),
+          foco: "Folia, alegria, ofertas de verão, engajamento e energia de bloco.",
+        }, // aproximado
+        {
+          nome: "Dia Internacional da Mulher",
+          data: new Date(anoCampanha, 2, 8),
+          foco: "Homenagem, empoderamento feminino, presentes afetivos e autocuidado.",
+        },
+        {
+          nome: "Dia do Consumidor",
+          data: new Date(anoCampanha, 2, 15),
+          foco: "Promoções de relacionamento, descontos exclusivos, cupons e fidelização.",
+        },
+        {
+          nome: "Páscoa",
+          data: new Date(anoCampanha, 3, 5),
+          foco: "Ganchos doces, ovos de chocolate, família, união e presentes.",
+        }, // aproximado 2026
+        {
+          nome: "Dia do Frete Grátis",
+          data: new Date(anoCampanha, 3, 28),
+          foco: "Incentivo a compras online rápidas, e-commerce e gatilho de frete grátis.",
+        },
+        {
+          nome: "Dia das Mães",
+          data: obterSegundoDomingo(4),
+          foco: "Emoção profunda, gratidão, presentes afetivos, combos para mães e conexões familiares.",
+        },
+        {
+          nome: "Dia dos Namorados",
+          data: new Date(anoCampanha, 5, 12),
+          foco: "Romantismo, casais, ideias de presentes especiais, jantares e ofertas em dobro.",
+        },
+        {
+          nome: "Festas Juninas / São João",
+          data: new Date(anoCampanha, 5, 24),
+          foco: "Comidas típicas, arraiá, alegria, engajamento temático, quadrilhas e roupas xadrez.",
+        },
+        {
+          nome: "Dia do Amigo",
+          data: new Date(anoCampanha, 6, 20),
+          foco: "Parcerias, cupom de indicação de amigos, compre 1 leve 2 e afeto.",
+        },
+        {
+          nome: "Dia dos Pais",
+          data: obterSegundoDomingo(7),
+          foco: "Estilo, ferramentas, utilidade prática, homenagens masculinas e combos especiais.",
+        },
+        {
+          nome: "Dia do Cliente",
+          data: new Date(anoCampanha, 8, 15),
+          foco: "Cupons de agradecimento, descontos VIP, brindes e fidelização máxima.",
+        },
+        {
+          nome: "Dia das Crianças",
+          data: new Date(anoCampanha, 9, 12),
+          foco: "Diversão, brinquedos, nostalgia infantil e campanhas de marketing lúdicas.",
+        },
+        {
+          nome: "Halloween",
+          data: new Date(anoCampanha, 9, 31),
+          foco: "Doces ou travessuras, descontos assustadores, campanhas temáticas e criatividade misteriosa.",
+        },
+        {
+          nome: "Black Friday",
+          data: obterBlackFriday(),
+          foco: "Ofertas bombásticas de escassez, gatilhos de urgência extrema e grandes descontos.",
+        },
+        {
+          nome: "Natal",
+          data: new Date(anoCampanha, 11, 25),
+          foco: "Presentes de amigo secreto, confraternização, espírito natalino e campanhas afetivas.",
+        },
+        {
+          nome: "Ano Novo (Véspera)",
+          data: new Date(anoCampanha, 11, 31),
+          foco: "Festas de réveillon, retrospectiva anual e renovação de ciclos.",
+        },
       ];
     };
 
     const hojeZeroHora = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const campanhas = obterCampanhasDoAno(ano);
-    
+
     // Filtrar campanhas futuras (ou que ocorrem hoje)
     const campanhasFuturas = campanhas
-      .filter(c => c.data.getTime() >= hojeZeroHora.getTime())
+      .filter((c) => c.data.getTime() >= hojeZeroHora.getTime())
       .sort((a, b) => a.data.getTime() - b.data.getTime());
 
     let proximaCampanhaInfo = "";
@@ -98,8 +173,10 @@ export async function POST(request: NextRequest) {
 
     if (userId) {
       try {
-        console.log(`[CHAT_VAPTI] Carregando perfil e histórico de chat via Admin SDK para: ${userId}...`);
-        
+        console.log(
+          `[CHAT_VAPTI] Carregando perfil e histórico de chat via Admin SDK para: ${userId}...`
+        );
+
         // A. Buscar Perfil de Negócio (preferencialmente Onboarding/Brand Kit, com fallback para Profile)
         let profileSnap = await adminDb.doc(`users/${userId}/business/onboarding`).get();
         if (!profileSnap.exists) {
@@ -117,7 +194,9 @@ export async function POST(request: NextRequest) {
             if (bizData.targetAudience) parts.push(`- Público-Alvo: ${bizData.targetAudience}`);
             if (bizData.toneOfVoice) parts.push(`- Tom de Voz: ${bizData.toneOfVoice}`);
             if (bizData.primaryColor || bizData.secondaryColor) {
-              parts.push(`- Cores da Marca: Primária (${bizData.primaryColor || "N/A"}), Secundária (${bizData.secondaryColor || "N/A"})`);
+              parts.push(
+                `- Cores da Marca: Primária (${bizData.primaryColor || "N/A"}), Secundária (${bizData.secondaryColor || "N/A"})`
+              );
             }
             if (bizData.logo?.url) {
               parts.push(`- Logomarca: Configurada (URL: ${bizData.logo.url})`);
@@ -127,7 +206,7 @@ export async function POST(request: NextRequest) {
             if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
               parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);
             }
-            
+
             if (parts.length > 0) {
               businessContext = `\nINFORMAÇÕES REAIS DO NEGÓCIO DO USUÁRIO (CADASTRADAS NA PLATAFORMA):\n${parts.join("\n")}\nUse estas informações reais acima para personalizar todas as suas respostas, ideias de campanhas e sugerões de cores para a marca do usuário. Demonstre de forma sutil que você conhece profundamente o negócio dele!\n`;
             }
@@ -200,15 +279,21 @@ DIRETRIZES DE ESTILO:
     if (messagesToUse && messagesToUse.length > 0) {
       // Ordena cronologicamente por createdAt para evitar dessincronização no prompt
       const sortedMessages = [...messagesToUse].sort((a, b) => {
-        const tA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
-        const tB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+        const tA =
+          a.createdAt && a.createdAt.toDate
+            ? a.createdAt.toDate().getTime()
+            : new Date(a.createdAt).getTime();
+        const tB =
+          b.createdAt && b.createdAt.toDate
+            ? b.createdAt.toDate().getTime()
+            : new Date(b.createdAt).getTime();
         return tA - tB;
       });
 
       for (const msg of sortedMessages) {
         formattedContents.push({
           role: msg.sender === "ai" ? "model" : "user",
-          parts: [{ text: msg.text }]
+          parts: [{ text: msg.text }],
         });
       }
     }
@@ -216,7 +301,7 @@ DIRETRIZES DE ESTILO:
     // Adiciona a mensagem atual do usuário
     formattedContents.push({
       role: "user",
-      parts: [{ text: message }]
+      parts: [{ text: message }],
     });
 
     // 4. Disparar chamada REST com Fallback Automático Resiliente
@@ -227,8 +312,10 @@ DIRETRIZES DE ESTILO:
     for (const model of modelsToTry) {
       try {
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        console.log(`[CHAT_VAPTI] Enviando requisição para a API do Gemini usando modelo: ${model}...`);
-        
+        console.log(
+          `[CHAT_VAPTI] Enviando requisição para a API do Gemini usando modelo: ${model}...`
+        );
+
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: {
@@ -236,15 +323,13 @@ DIRETRIZES DE ESTILO:
           },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [
-                { text: systemInstructionText }
-              ]
+              parts: [{ text: systemInstructionText }],
             },
             contents: formattedContents,
             generationConfig: {
               temperature: 0.7,
-            }
-          })
+            },
+          }),
         });
 
         if (!response.ok) {
@@ -268,7 +353,7 @@ DIRETRIZES DE ESTILO:
           const cTokens = usage.candidatesTokenCount || 0;
 
           let inputPrice = 0.075;
-          let outputPrice = 0.30;
+          let outputPrice = 0.3;
 
           if (model === "gemini-2.5-flash-lite") {
             inputPrice = 0.0375;
@@ -289,8 +374,8 @@ DIRETRIZES DE ESTILO:
             tokens: {
               promptTokens: pTokens,
               completionTokens: cTokens,
-              totalTokens: pTokens + cTokens
-            }
+              totalTokens: pTokens + cTokens,
+            },
           });
         }
 
@@ -304,7 +389,9 @@ DIRETRIZES DE ESTILO:
     }
 
     if (!aiResponseText) {
-      throw new Error(`Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`);
+      throw new Error(
+        `Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`
+      );
     }
 
     console.log(`[CHAT_VAPTI] Resposta do assistente: "${aiResponseText}"`);
@@ -314,7 +401,12 @@ DIRETRIZES DE ESTILO:
   } catch (error: any) {
     console.error("[CHAT_VAPTI_ERROR] Erro no processamento da mensagem:", error);
     return NextResponse.json(
-      [{ output: "Olá! Tive um breve soluço ao processar sua mensagem. Que tal tentarmos novamente?" }],
+      [
+        {
+          output:
+            "Olá! Tive um breve soluço ao processar sua mensagem. Que tal tentarmos novamente?",
+        },
+      ],
       { status: 200 } // Retorna status 200 com mensagem amigável para não travar a UI
     );
   }

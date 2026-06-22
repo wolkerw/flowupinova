@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !customerId || !name || !dailyBudget) {
       return NextResponse.json(
-        { success: false, error: "Parâmetros obrigatórios ausentes (userId, customerId, name, dailyBudget)." },
+        {
+          success: false,
+          error: "Parâmetros obrigatórios ausentes (userId, customerId, name, dailyBudget).",
+        },
         { status: 400 }
       );
     }
@@ -91,17 +94,15 @@ export async function POST(request: NextRequest) {
     // Se o anúncio for baseado em um post, marca o post como impulsionado no Firestore
     if (postId) {
       try {
-        await adminDb
-          .collection("users")
-          .doc(userId)
-          .collection("posts")
-          .doc(postId)
-          .update({
-            isBoosted: true,
-            adCampaignId: adCampaignRef.id,
-          });
+        await adminDb.collection("users").doc(userId).collection("posts").doc(postId).update({
+          isBoosted: true,
+          adCampaignId: adCampaignRef.id,
+        });
       } catch (postErr) {
-        console.warn("[GOOGLE_ADS_CAMPAIGN_ROUTE] Falha ao marcar post como impulsionado:", postErr);
+        console.warn(
+          "[GOOGLE_ADS_CAMPAIGN_ROUTE] Falha ao marcar post como impulsionado:",
+          postErr
+        );
       }
     }
 
@@ -111,7 +112,10 @@ export async function POST(request: NextRequest) {
       googleCampaignId: adsResult.campaignId,
     });
   } catch (error: any) {
-    console.error("[GOOGLE_ADS_CAMPAIGN_ROUTE_ERROR] Erro na criação de campanha:", error.message || error);
+    console.error(
+      "[GOOGLE_ADS_CAMPAIGN_ROUTE_ERROR] Erro na criação de campanha:",
+      error.message || error
+    );
     return NextResponse.json(
       { success: false, error: error.message || "Erro interno ao processar criação de campanha." },
       { status: 500 }

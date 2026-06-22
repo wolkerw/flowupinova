@@ -106,11 +106,9 @@ async function createMediaItemContainer(
   const data = await response.json();
 
   if (!response.ok || !data.id) {
-    console.error(
-      "[PUBLISHER_IG_ERROR] Falha ao criar container de item de mídia:",
-      data.error
-    );
-    let errorMessage = data.error?.message || "Falha ao criar o container de item de mídia no Instagram.";
+    console.error("[PUBLISHER_IG_ERROR] Falha ao criar container de item de mídia:", data.error);
+    let errorMessage =
+      data.error?.message || "Falha ao criar o container de item de mídia no Instagram.";
     if (
       errorMessage.toLowerCase().includes("invalid user id") ||
       errorMessage.toLowerCase().includes("unknown error")
@@ -122,14 +120,24 @@ async function createMediaItemContainer(
         exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
         errorSource = "Colaboradores";
       } else if (userTags?.length && (!collaborators || collaborators.length === 0)) {
-        exactInvalidProfile = await findInvalidProfile(params, url, userTags.map((t) => t.username), "user_tags");
+        exactInvalidProfile = await findInvalidProfile(
+          params,
+          url,
+          userTags.map((t) => t.username),
+          "user_tags"
+        );
         errorSource = "Marcações";
       } else if (collaborators?.length && userTags?.length) {
         exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
         if (exactInvalidProfile) {
           errorSource = "Colaboradores";
         } else {
-          exactInvalidProfile = await findInvalidProfile(params, url, userTags.map((t) => t.username), "user_tags");
+          exactInvalidProfile = await findInvalidProfile(
+            params,
+            url,
+            userTags.map((t) => t.username),
+            "user_tags"
+          );
           errorSource = "Marcações";
         }
       }
@@ -172,13 +180,19 @@ async function createCarouselContainer(
 
   if (!response.ok || !data.id) {
     console.error("[PUBLISHER_IG_ERROR] Falha ao criar o container do carrossel:", data.error);
-    let errorMessage = data.error?.message || "Falha ao criar o container do carrossel no Instagram.";
+    let errorMessage =
+      data.error?.message || "Falha ao criar o container do carrossel no Instagram.";
     if (
       errorMessage.toLowerCase().includes("invalid user id") ||
       errorMessage.toLowerCase().includes("unknown error")
     ) {
       if (collaborators && collaborators.length > 0) {
-        const exactInvalidProfile = await findInvalidProfile(params, url, collaborators, "collaborators");
+        const exactInvalidProfile = await findInvalidProfile(
+          params,
+          url,
+          collaborators,
+          "collaborators"
+        );
         if (exactInvalidProfile) {
           errorMessage = `Erro nos Colaboradores. O perfil @${exactInvalidProfile} não existe ou é privado.`;
         } else {
@@ -318,7 +332,9 @@ export async function publishToGoogle(
   const website = profileDoc.data()?.website || profileDoc.data()?.instagram || "";
 
   if (!accountId || !googleName) {
-    throw new Error("Configuração do Google Meu Negócio incompleta. Verifique se o local foi selecionado.");
+    throw new Error(
+      "Configuração do Google Meu Negócio incompleta. Verifique se o local foi selecionado."
+    );
   }
 
   const oauth2Client = await getAuthenticatedGoogleClient(userId);
@@ -533,4 +549,3 @@ export async function publishToLinkedIn(
   console.log(`[PUBLISHER_LINKEDIN_SUCCESS] Post publicado com sucesso! ID: ${postUrn}`);
   return postUrn;
 }
-

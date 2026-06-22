@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
     const metaConnection = await getMetaConnectionAdmin(uid);
 
     if (!metaConnection.isConnected || !metaConnection.pageId) {
-      return NextResponse.json({ success: true, hasWhatsApp: false, error: "Meta page not connected." });
+      return NextResponse.json({
+        success: true,
+        hasWhatsApp: false,
+        error: "Meta page not connected.",
+      });
     }
 
     const pageId = metaConnection.pageId;
@@ -18,14 +22,17 @@ export async function GET(request: NextRequest) {
     const token = metaConnection.accessToken || metaConnection.userAccessToken;
 
     if (!token) {
-      return NextResponse.json({ success: false, error: "No access token found." }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "No access token found." },
+        { status: 401 }
+      );
     }
 
     // Strategy: Query Page Call-to-Actions (CTAs).
     // The deprecated fields (has_whatsapp_number, whatsapp_number) on the Page node
     // are unreliable and return empty in the New Page Experience.
     // The WABA endpoints require whatsapp_business_management permission.
-    // 
+    //
     // However, the Page CTA endpoint reliably returns a CTA of type "WHATSAPP_MESSAGE"
     // with status "ACTIVE" when a WhatsApp number is connected to the page.
     // This only requires pages_read_engagement or similar permissions we already have.
@@ -36,10 +43,13 @@ export async function GET(request: NextRequest) {
 
     if (!ctaRes.ok) {
       console.error("[API_META_PAGE_WHATSAPP] CTA API Error:", ctaData.error);
-      return NextResponse.json({
-        success: false,
-        error: ctaData.error?.message || "Failed to query Page CTAs.",
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: ctaData.error?.message || "Failed to query Page CTAs.",
+        },
+        { status: 500 }
+      );
     }
 
     // Check if there is an active WhatsApp CTA

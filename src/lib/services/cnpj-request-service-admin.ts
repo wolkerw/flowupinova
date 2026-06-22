@@ -42,8 +42,12 @@ export async function listPendingCnpjRequests(): Promise<AdminCnpjChangeRequest[
         requestedBusinessName: data.requestedBusinessName,
         reason: data.reason,
         adminNotes: data.adminNotes || "",
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-        updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+        createdAt: data.createdAt
+          ? data.createdAt.toDate().toISOString()
+          : new Date().toISOString(),
+        updatedAt: data.updatedAt
+          ? data.updatedAt.toDate().toISOString()
+          : new Date().toISOString(),
       });
     });
 
@@ -106,7 +110,9 @@ export async function processCnpjRequest(
         updatedAt: new Date(),
       });
 
-      console.log(`[CNPJ_REQUEST_ADMIN] Solicitação ${requestId} APROVADA. Perfil do usuário ${userId} atualizado.`);
+      console.log(
+        `[CNPJ_REQUEST_ADMIN] Solicitação ${requestId} APROVADA. Perfil do usuário ${userId} atualizado.`
+      );
     } else {
       // 1. Caso rejeitado, apenas remover a flag de pendência do onboarding do usuário
       await onboardingDocRef.set(
@@ -123,7 +129,9 @@ export async function processCnpjRequest(
         updatedAt: new Date(),
       });
 
-      console.log(`[CNPJ_REQUEST_ADMIN] Solicitação ${requestId} REJEITADA para o usuário ${userId}.`);
+      console.log(
+        `[CNPJ_REQUEST_ADMIN] Solicitação ${requestId} REJEITADA para o usuário ${userId}.`
+      );
     }
   } catch (error: any) {
     console.error("[CNPJ_REQUEST_ADMIN] Erro ao processar solicitação de CNPJ:", error);

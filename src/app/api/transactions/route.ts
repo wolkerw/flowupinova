@@ -12,7 +12,9 @@ const getTransporter = () => {
   const pass = process.env.SMTP_PASS || "";
 
   if (!host || !user || !pass) {
-    console.warn("[TRANSACTIONS] SMTP não configurado completamente. Notificações por e-mail ficarão inativas.");
+    console.warn(
+      "[TRANSACTIONS] SMTP não configurado completamente. Notificações por e-mail ficarão inativas."
+    );
     return null;
   }
 
@@ -22,8 +24,8 @@ const getTransporter = () => {
     secure: port === 465,
     auth: {
       user,
-      pass
-    }
+      pass,
+    },
   });
 };
 
@@ -43,7 +45,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`[TRANSACTIONS] Recebendo comprovante para o usuário ${userId}, plano ${plan}, método ${method}...`);
+      console.log(
+        `[TRANSACTIONS] Recebendo comprovante para o usuário ${userId}, plano ${plan}, método ${method}...`
+      );
 
       // 1. Buscar dados do usuário no Firestore para enriquecer a transação e e-mail
       let userEmail = "Não informado";
@@ -62,7 +66,7 @@ export async function POST(request: NextRequest) {
       // 2. Criar a transação no Firestore
       const transactionRef = adminDb.collection("transactions").doc();
       const transactionId = transactionRef.id;
-      const price = plan === "mensal" ? 49.90 : 399.90;
+      const price = plan === "mensal" ? 49.9 : 399.9;
 
       await transactionRef.set({
         id: transactionId,
@@ -75,15 +79,18 @@ export async function POST(request: NextRequest) {
         receiptUrl,
         status: "pending_verification",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       // 3. Atualizar status de assinatura temporário do usuário no Firestore
       const userDocRef = adminDb.collection("users").doc(userId);
-      await userDocRef.set({
-        subscriptionStatus: "pending_verification",
-        subscriptionPlan: plan
-      }, { merge: true });
+      await userDocRef.set(
+        {
+          subscriptionStatus: "pending_verification",
+          subscriptionPlan: plan,
+        },
+        { merge: true }
+      );
 
       // 4. Enviar e-mail de notificação para o administrador PJ
       const transporter = getTransporter();
@@ -131,10 +138,12 @@ export async function POST(request: NextRequest) {
             from: `"${process.env.SMTP_FROM_NAME || "NumVapt Pagamentos"}" <${process.env.SMTP_USER}>`,
             to: adminEmail,
             subject: emailSubject,
-            html: emailHtml
+            html: emailHtml,
           });
 
-          console.log(`[TRANSACTIONS] E-mail de notificação enviado com sucesso para ${adminEmail}.`);
+          console.log(
+            `[TRANSACTIONS] E-mail de notificação enviado com sucesso para ${adminEmail}.`
+          );
         } catch (emailErr) {
           console.error("[TRANSACTIONS] Erro ao enviar e-mail de notificação:", emailErr);
         }
@@ -143,7 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         transactionId: transactionId,
-        message: "Comprovante enviado com sucesso para validação."
+        message: "Comprovante enviado com sucesso para validação.",
       });
     }
 
@@ -158,7 +167,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`[TRANSACTIONS_ADMIN] Atualizando transação ${transactionId} para o status ${status}...`);
+      console.log(
+        `[TRANSACTIONS_ADMIN] Atualizando transação ${transactionId} para o status ${status}...`
+      );
 
       // 1. Obter a transação para saber qual o userId e plano
       const transactionDocRef = adminDb.collection("transactions").doc(transactionId);
@@ -177,10 +188,13 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Atualizar transação no Firestore
-      await transactionDocRef.set({
-        status,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      await transactionDocRef.set(
+        {
+          status,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       // 3. Atualizar a Role e Status do Usuário no Firestore
       const userDocRef = adminDb.collection("users").doc(userId);
@@ -190,31 +204,36 @@ export async function POST(request: NextRequest) {
         const expirationDate = new Date();
         expirationDate.setDate(now.getDate() + durationDays);
 
-        await userDocRef.set({
-          role: "pro",
-          subscriptionStatus: "active",
-          subscriptionPlan: plan,
-          subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate)
-        }, { merge: true });
+        await userDocRef.set(
+          {
+            role: "pro",
+            subscriptionStatus: "active",
+            subscriptionPlan: plan,
+            subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expirationDate),
+          },
+          { merge: true }
+        );
         console.log(`[TRANSACTIONS_ADMIN] Usuário ${userId} atualizado para Pro com sucesso!`);
       } else {
-        await userDocRef.set({
-          role: "free",
-          subscriptionStatus: "inactive",
-          subscriptionPlan: null,
-          subscriptionExpiresAt: null
-        }, { merge: true });
+        await userDocRef.set(
+          {
+            role: "free",
+            subscriptionStatus: "inactive",
+            subscriptionPlan: null,
+            subscriptionExpiresAt: null,
+          },
+          { merge: true }
+        );
         console.log(`[TRANSACTIONS_ADMIN] Inscrição do usuário ${userId} rejeitada.`);
       }
 
       return NextResponse.json({
         success: true,
-        message: `Status da transação atualizado para ${status} com sucesso.`
+        message: `Status da transação atualizado para ${status} com sucesso.`,
       });
     }
 
     return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
-
   } catch (error: any) {
     console.error("[TRANSACTIONS_ERROR] Erro no endpoint de transações:", error);
     return NextResponse.json(
@@ -242,12 +261,15 @@ export async function GET(request: NextRequest) {
               pixKey: settingsData?.pixKey || "pix@numvapt.com.br",
               pixQrCodeUrl: settingsData?.pixQrCodeUrl || "",
               creditLinkMonthly: settingsData?.creditLinkMonthly || "",
-              creditLinkYearly: settingsData?.creditLinkYearly || ""
-            }
+              creditLinkYearly: settingsData?.creditLinkYearly || "",
+            },
           });
         }
       } catch (fsErr) {
-        console.warn("[TRANSACTIONS] Erro ao carregar configurações de pagamento no Firestore, usando fallback:", fsErr);
+        console.warn(
+          "[TRANSACTIONS] Erro ao carregar configurações de pagamento no Firestore, usando fallback:",
+          fsErr
+        );
       }
 
       // Fallback padrão se não houver documento criado no Firestore
@@ -257,8 +279,8 @@ export async function GET(request: NextRequest) {
           pixKey: "pix@numvapt.com.br",
           pixQrCodeUrl: "",
           creditLinkMonthly: "https://payment.pagar.me/mensal-exemplo",
-          creditLinkYearly: "https://payment.pagar.me/anual-exemplo"
-        }
+          creditLinkYearly: "https://payment.pagar.me/anual-exemplo",
+        },
       });
     }
 
@@ -277,18 +299,17 @@ export async function GET(request: NextRequest) {
         transactions.push({
           ...data,
           createdAt: data.createdAt?.toDate()?.toISOString() || null,
-          updatedAt: data.updatedAt?.toDate()?.toISOString() || null
+          updatedAt: data.updatedAt?.toDate()?.toISOString() || null,
         });
       });
 
       return NextResponse.json({
         success: true,
-        transactions
+        transactions,
       });
     }
 
     return NextResponse.json({ error: "Ação GET inválida." }, { status: 400 });
-
   } catch (error: any) {
     console.error("[TRANSACTIONS_GET_ERROR] Erro:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
