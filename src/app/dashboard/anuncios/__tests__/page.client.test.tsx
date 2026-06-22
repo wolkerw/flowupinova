@@ -61,6 +61,30 @@ vi.mock("@/lib/services/meta-service", () => ({
   updateMetaConnection: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock google ads service
+vi.mock("@/lib/services/google-ads-service", () => ({
+  getGoogleAdsConnection: vi.fn().mockResolvedValue({
+    isConnected: true,
+    adAccountId: "123-456-7890",
+    adAccountName: "Conta Teste Google Ads",
+  }),
+  updateGoogleAdsConnection: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock google ads service admin
+vi.mock("@/lib/services/google-ads-service-admin", () => ({
+  getGoogleAdsCampaigns: vi.fn().mockResolvedValue([
+    {
+      id: "mock-campaign-1",
+      name: "Promoção Sorveteria Local (Pesquisa)",
+      status: "active",
+      budgetAmount: 15.0,
+      metrics: { impressions: 1240, clicks: 88, amountSpent: 42.5 },
+    }
+  ]),
+  updateGoogleAdsCampaignStatus: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 // Mock ads service
 vi.mock("@/lib/services/anuncios-service", () => ({
   createAdCampaign: vi.fn().mockResolvedValue({ success: true, id: "campaign-1" }),
@@ -138,28 +162,6 @@ globalThis.fetch = vi.fn().mockImplementation((url) => {
       }),
     } as any);
   }
-  if (urlStr.includes("/api/ads/interests")) {
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        success: true,
-        interests: [
-          { id: "1", name: "Pizza", path: ["Comida", "Pizza"] },
-          { id: "2", name: "Hambúrguer", path: ["Comida", "Hambúrguer"] }
-        ],
-      }),
-    } as any);
-  }
-  if (urlStr.includes("/api/meta/page-whatsapp")) {
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        success: true,
-        hasWhatsApp: true,
-        pageName: "Pizzaria Teste",
-      }),
-    } as any);
-  }
   return Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ success: true }),
@@ -181,7 +183,7 @@ describe("AnunciosPageClient", () => {
 
     // Deve mostrar o título principal após o carregamento
     await waitFor(() => {
-      expect(screen.getByText("Seus Impulsionamentos")).toBeInTheDocument();
+      expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
     }, { timeout: 5000 });
     
     // Deve mostrar os cards de métricas simplificados para leigos
@@ -201,12 +203,12 @@ describe("AnunciosPageClient", () => {
       </AuthProvider>
     );
 
-    // Deve mostrar o botão principal de Impulsionar Post
+    // Deve mostrar o botão principal de Impulsionar Publicação
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Impulsionar Post/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Impulsionar Publicação/i })).toBeInTheDocument();
     }, { timeout: 5000 });
 
-    const openModalButton = screen.getByRole("button", { name: /Impulsionar Post/i });
+    const openModalButton = screen.getByRole("button", { name: /Impulsionar Publicação/i });
     fireEvent.click(openModalButton);
 
     // Aguarda o carregamento do post qualificável dentro do modal
@@ -223,5 +225,39 @@ describe("AnunciosPageClient", () => {
       expect(screen.getByText("Impulsionando Post")).toBeInTheDocument();
       expect(screen.getByText("1. Qual é o objetivo do seu impulsionamento?")).toBeInTheDocument();
     }, { timeout: 5000 });
+  });
+
+  it("allows switching to Google Ads platform tab and opening creation dialog", async () => {
+    render(
+      <AuthProvider>
+        <Toaster />
+        <AnunciosPageClient initialProfile={mockProfile} />
+      </AuthProvider>
+    );
+
+    // Deve mostrar os botões do seletor de plataforma
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Google Ads/i })).toBeInTheDocument();
+    });
+
+    const googleTabButton = screen.getByRole("button", { name: /Google Ads/i });
+    fireEvent.click(googleTabButton);
+
+    // Deve mostrar a campanha mockada do Google Ads
+    await waitFor(() => {
+      expect(screen.getByText("Promoção Sorveteria Local (Pesquisa)")).toBeInTheDocument();
+    });
+
+    // Deve mostrar o botão de criar anúncio no Google
+    const createAdButton = screen.getByRole("button", { name: /Criar Anúncio Google/i });
+    expect(createAdButton).toBeInTheDocument();
+
+    // Clica para abrir o modal de criação do Google Ads
+    fireEvent.click(createAdButton);
+
+    // O modal deve abrir com o título
+    await waitFor(() => {
+      expect(screen.getByText("Criar Campanha no Google Ads")).toBeInTheDocument();
+    });
   });
 });

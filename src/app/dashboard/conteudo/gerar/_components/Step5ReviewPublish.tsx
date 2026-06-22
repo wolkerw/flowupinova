@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Instagram,
   Facebook,
+  Linkedin,
   AlertTriangle,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export const Step5ReviewPublish = () => {
     user,
     metaConnection,
     instagramConnection,
+    linkedinConnection,
     platforms,
     setPlatforms,
     setShowSchedulerModal,
@@ -56,6 +58,7 @@ export const Step5ReviewPublish = () => {
     mode,
     isGeneratingCaption,
     handleGenerateCaption,
+    businessProfile,
   } = useWizard();
 
   const selectedContent = selectedContentId !== undefined 
@@ -125,6 +128,8 @@ export const Step5ReviewPublish = () => {
                   user={user}
                   metaConnection={metaConnection}
                   instagramConnection={instagramConnection}
+                  linkedinConnection={linkedinConnection}
+                  businessProfile={businessProfile}
                   platforms={platforms}
                 />
               </div>
@@ -178,7 +183,7 @@ export const Step5ReviewPublish = () => {
 
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-2 gap-4">
+                <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -238,6 +243,38 @@ export const Step5ReviewPublish = () => {
                       {!metaConnection?.isConnected && (
                         <TooltipContent>
                           <p>Conecte o Facebook na aba 'Conteúdo' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !linkedinConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-linkedin"
+                            checked={platforms.includes("linkedin") && !!linkedinConnection?.isConnected}
+                            onCheckedChange={() => onPlatformChange("linkedin")}
+                            disabled={!linkedinConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-linkedin"
+                            className={cn("flex cursor-pointer items-center gap-2", !linkedinConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Linkedin className="h-5 w-5 text-blue-700" />
+                            LinkedIn
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!linkedinConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -321,10 +358,10 @@ export const Step5ReviewPublish = () => {
                     Agendar
                   </Button>
                 </div>
-                {!metaConnection?.isConnected && !instagramConnection?.isConnected && (
+                {!metaConnection?.isConnected && !instagramConnection?.isConnected && !linkedinConnection?.isConnected && (
                   <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
                     <AlertTriangle className="h-4 w-4" />
-                    Conecte suas contas na página de "Conteúdo" para publicar.
+                    Conecte suas contas na página de "Conteúdo" ou "Conexões" para publicar.
                   </p>
                 )}
               </div>

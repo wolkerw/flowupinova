@@ -74,6 +74,7 @@ import {
   UploadCloud,
   MousePointer2,
   Image as ImageIcon,
+  Store,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -94,7 +95,17 @@ import {
   updateInstagramConnection,
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
+import {
+  getGoogleConnection,
+  type GoogleConnectionData,
+} from "@/lib/services/google-service";
+import {
+  getLinkedInConnection,
+  updateLinkedInConnection,
+  type LinkedInConnectionData,
+} from "@/lib/services/linkedin-service";
 import { config } from "@/lib/config";
+
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +138,7 @@ interface FacebookPage {
 
 type HistoryFilter = "last-7-days" | "this-month" | "this-year" | "all-time";
 type RepublishScheduleType = "now" | "schedule";
-type Platform = "instagram" | "facebook" | "linkedin";
+type Platform = "instagram" | "facebook" | "linkedin" | "google";
 
 /* -------------------------------------------------------------------------------------------------
  * Constants / Utils
@@ -522,11 +533,13 @@ export default function Conteudo() {
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData>({
     isConnected: false,
   });
-  const [linkedinConnection, setLinkedinConnection] = useState({
+  const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData>({
     isConnected: false,
-    organizationName: "",
-    personName: "",
   });
+  const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData>({
+    isConnected: false,
+  });
+
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
@@ -563,10 +576,12 @@ export default function Conteudo() {
     setCheckingConnection(true);
 
     try {
-      const [postsResults, metaResult, instagramResult] = await Promise.all([
+      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult] = await Promise.all([
         getScheduledPosts(user.uid),
         getMetaConnection(user.uid),
         getInstagramConnection(user.uid),
+        getGoogleConnection(user.uid),
+        getLinkedInConnection(user.uid),
       ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
@@ -587,6 +602,18 @@ export default function Conteudo() {
       }
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
+      setGoogleConnection(googleResult);
+      // Community Management API só suporta org como owner — força publishTarget = "organization"
+      // sempre que houver uma org selecionada, independente do personUrn
+      if (linkedinResult.isConnected && linkedinResult.selectedOrganizationUrn && linkedinResult.publishTarget !== "organization") {
+        updateLinkedInConnection(user.uid, { publishTarget: "organization" });
+        linkedinResult.publishTarget = "organization";
+      } else if (linkedinResult.isConnected && (!linkedinResult.personUrn || !linkedinResult.personUrn.startsWith("urn:li:person:")) && linkedinResult.publishTarget !== "organization") {
+        updateLinkedInConnection(user.uid, { publishTarget: "organization" });
+        linkedinResult.publishTarget = "organization";
+      }
+      setLinkedinConnection(linkedinResult);
+
     } catch (err) {
       console.error("Failed to fetch page data:", err);
       toast({
@@ -653,6 +680,20 @@ export default function Conteudo() {
 
     const isFacebookAuth = searchParams.has("code");
     const isInstagramAuth = searchParams.has("instagram_connection_success");
+    const isLinkedInAuth = searchParams.has("linkedin_connection_success");
+    const isLinkedInError = searchParams.has("linkedin_error");
+
+    if (isLinkedInError) {
+      effectRan.current = true;
+      const errorDesc = searchParams.get("linkedin_error_description");
+      toast({
+        variant: "destructive",
+        title: "Erro no LinkedIn",
+        description: decodeURIComponent(errorDesc || "Falha na autenticação"),
+      });
+      router.replace("/dashboard/conteudo", undefined);
+      return;
+    }
 
     const runFacebookFlow = async () => {
       const code = searchParams.get("code");
@@ -742,14 +783,41 @@ export default function Conteudo() {
       router.replace("/dashboard/conteudo", undefined);
     };
 
+    const handleLinkedInCallback = async () => {
+      effectRan.current = true;
+      const linkedinName = searchParams.get("linkedin_name");
+      const uidFromState = searchParams.get("user_id_from_state");
+
+      if (uidFromState && uidFromState !== user.uid) {
+        toast({
+          variant: "destructive",
+          title: "Falha de Segurança",
+          description: "Incompatibilidade de usuários na autenticação.",
+        });
+        router.replace("/dashboard/conteudo", undefined);
+        return;
+      }
+
+      toast({
+        variant: "success",
+        title: "LinkedIn Conectado!",
+        description: `Conexão com ${linkedinName || "LinkedIn"} estabelecida.`,
+      });
+      await fetchPageData();
+      router.replace("/dashboard/conteudo", undefined);
+    };
+
     if (isInstagramAuth) {
       handleInstagramCallback();
+    } else if (isLinkedInAuth) {
+      handleLinkedInCallback();
     } else if (isFacebookAuth) {
       runFacebookFlow();
     } else {
       fetchPageData();
     }
   }, [user, searchParams, router, toast, handlePageSelection, fetchPageData]);
+
 
   const { scheduledPosts, pastPosts, calendarModifiers, postsForSelectedDay } = useMemo(() => {
     const scheduled = allPosts.filter((p) => p.status === "scheduled");
@@ -834,16 +902,38 @@ export default function Conteudo() {
   }, [fetchPageData, toast, user]);
 
   const handleConnectLinkedIn = useCallback(() => {
-    toast({
-      title: "LinkedIn",
-      description: "A conexão com o LinkedIn estará disponível em breve.",
-    });
-  }, [toast]);
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/api/linkedin/callback`;
+    const clientId = config.linkedin.clientId;
+    if (!clientId) {
+      toast({
+        variant: "destructive",
+        title: "Configuração Ausente",
+        description: "Credenciais do LinkedIn não encontradas no servidor.",
+      });
+      return;
+    }
+    const state = user?.uid || "";
+    const scope = "r_organization_social w_organization_social rw_organization_admin r_basicprofile";
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+    window.location.href = authUrl;
+  }, [user?.uid, toast]);
 
-  const handleDisconnectLinkedIn = useCallback(() => {
-    setLinkedinConnection({ isConnected: false, organizationName: "", personName: "" });
-    toast({ title: "Desconectado", description: "A conexão com o LinkedIn foi removida." });
-  }, [toast]);
+  const handleDisconnectLinkedIn = useCallback(async () => {
+    if (!user) return;
+    try {
+      await updateLinkedInConnection(user.uid, { isConnected: false });
+      await fetchPageData();
+      toast({ title: "Desconectado", description: "A conexão com o LinkedIn foi removida." });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Desconectar",
+        description: err.message || "Erro desconhecido.",
+      });
+    }
+  }, [fetchPageData, toast, user]);
+
 
   const handleDeleteRequest = useCallback((postId: string) => {
     setPostToDelete(postId);
@@ -918,6 +1008,44 @@ export default function Conteudo() {
       });
       return;
     }
+    if (republishPlatforms.includes("google") && !googleConnection.isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Google Meu Negócio não conectado",
+        description: "Conecte o Google Meu Negócio para republicar.",
+      });
+      return;
+    }
+    if (republishPlatforms.includes("linkedin")) {
+      if (!linkedinConnection.isConnected) {
+        toast({
+          variant: "destructive",
+          title: "LinkedIn não conectado",
+          description: "Conecte o LinkedIn para republicar.",
+        });
+        return;
+      }
+      const hasValidTarget =
+        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+        !!linkedinConnection.selectedOrganizationUrn;
+      if (!hasValidTarget) {
+        toast({
+          variant: "destructive",
+          title: "LinkedIn sem Destino",
+          description:
+            "Selecione uma Página Corporativa na aba 'Conexões' para poder publicar no LinkedIn.",
+        });
+        return;
+      }
+    }
+    if (republishPlatforms.includes("google") && !postToRepublish.text.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Texto Obrigatório",
+        description: "O texto da publicação é obrigatório para publicar no Google Meu Negócio.",
+      });
+      return;
+    }
 
     if (republishScheduleType === "schedule" && !republishScheduleDate) {
       toast({
@@ -956,7 +1084,16 @@ export default function Conteudo() {
       input.metaConnection = metaConnection;
     }
 
+    if (republishPlatforms.includes("google")) {
+      input.googleConnection = googleConnection;
+    }
+
+    if (republishPlatforms.includes("linkedin")) {
+      input.linkedinConnection = linkedinConnection;
+    }
+
     const result = await schedulePost(user.uid, input);
+
 
     setIsRepublishing(false);
     setIsRepublishModalOpen(false);
@@ -976,6 +1113,7 @@ export default function Conteudo() {
     fetchPageData,
     metaConnection,
     instagramConnection,
+    googleConnection,
     postToRepublish,
     republishScheduleDate,
     republishScheduleType,
@@ -1050,7 +1188,7 @@ export default function Conteudo() {
           <div className="space-y-6 py-4">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
-              <div className="mt-2 grid grid-cols-2 gap-4">
+              <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div
                   className={cn(
                     "flex items-center space-x-2 rounded-lg border p-4",
@@ -1089,6 +1227,57 @@ export default function Conteudo() {
                   >
                     <Facebook className="h-5 w-5 text-blue-600" />
                     Facebook
+                  </Label>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4",
+                    !googleConnection?.isConnected && "bg-gray-100 opacity-60"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-google"
+                    checked={republishPlatforms.includes("google")}
+                    onCheckedChange={() => handleRepublishPlatformChange("google")}
+                    disabled={!googleConnection?.isConnected}
+                  />
+                  <Label
+                    htmlFor="republish-google"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Store className="h-5 w-5 text-blue-500" />
+                    Google Meu Negócio
+                  </Label>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center space-x-2 rounded-lg border p-4",
+                    (!linkedinConnection?.isConnected ||
+                      !(
+                        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                        !!linkedinConnection.selectedOrganizationUrn
+                      )) &&
+                      "bg-gray-100 opacity-60"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-linkedin"
+                    checked={republishPlatforms.includes("linkedin")}
+                    onCheckedChange={() => handleRepublishPlatformChange("linkedin")}
+                    disabled={
+                      !linkedinConnection?.isConnected ||
+                      !(
+                        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                        !!linkedinConnection.selectedOrganizationUrn
+                      )
+                    }
+                  />
+                  <Label
+                    htmlFor="republish-linkedin"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Linkedin className="h-5 w-5 text-blue-700" />
+                    LinkedIn
                   </Label>
                 </div>
               </div>
@@ -1410,12 +1599,88 @@ export default function Conteudo() {
                   platform="linkedin"
                   isConnected={linkedinConnection.isConnected}
                   accountName={
-                    linkedinConnection.organizationName || linkedinConnection.personName
+                    linkedinConnection.publishTarget === "organization"
+                      ? linkedinConnection.selectedOrganizationName || "Página corporativa"
+                      : linkedinConnection.personName || "Perfil pessoal"
                   }
                   onConnect={handleConnectLinkedIn}
                   onDisconnect={handleDisconnectLinkedIn}
-                  isLoading={loading}
+                  isLoading={checkingConnection}
                 />
+                {linkedinConnection.isConnected && (
+                  <div className="mt-2 ml-12 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 text-xs">
+                    {linkedinConnection.personUrn && linkedinConnection.personUrn.startsWith("urn:li:person:") && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-700">Destino da Publicação:</span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className={cn(
+                              "rounded px-2 py-1 font-medium transition-colors",
+                              linkedinConnection.publishTarget === "person" || !linkedinConnection.publishTarget
+                                ? "bg-[#0083C7] text-white"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            )}
+                            onClick={async () => {
+                              await updateLinkedInConnection(user!.uid, { publishTarget: "person" });
+                              await fetchPageData();
+                            }}
+                          >
+                            Perfil
+                          </button>
+                          {linkedinConnection.organizations && linkedinConnection.organizations.length > 0 && (
+                            <button
+                              type="button"
+                              className={cn(
+                                "rounded px-2 py-1 font-medium transition-colors",
+                                linkedinConnection.publishTarget === "organization"
+                                  ? "bg-[#0083C7] text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              )}
+                              onClick={async () => {
+                                await updateLinkedInConnection(user!.uid, { publishTarget: "organization" });
+                                await fetchPageData();
+                              }}
+                            >
+                              Página
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {linkedinConnection.publishTarget === "organization" &&
+                      linkedinConnection.organizations &&
+                      linkedinConnection.organizations.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-gray-700">Selecione a Página:</span>
+                          <select
+                            className="w-full rounded border border-gray-200 bg-white p-1 text-gray-700 shadow-sm focus:border-[#0083C7] focus:outline-none"
+                            value={linkedinConnection.selectedOrganizationUrn || ""}
+                            onChange={async (e) => {
+                              const selectedUrn = e.target.value;
+                              const selectedOrg = (linkedinConnection.organizations as any[]).find(
+                                (o) => o.urn === selectedUrn
+                              );
+                              if (selectedOrg) {
+                                await updateLinkedInConnection(user!.uid, {
+                                  selectedOrganizationUrn: selectedOrg.urn,
+                                  selectedOrganizationName: selectedOrg.name,
+                                });
+                                await fetchPageData();
+                              }
+                            }}
+                          >
+                            {linkedinConnection.organizations.map((org: any) => (
+                              <option key={org.urn} value={org.urn}>
+                                {org.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                  </div>
+                )}
+
               </CardContent>
             </Card>
           </div>

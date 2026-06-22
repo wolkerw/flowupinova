@@ -28,4 +28,11 @@ export const config = {
     redirectUri:
       process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || `${aplicationURL}/api/google/callback`,
   },
+  linkedin: {
+    clientId: process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID || process.env.LINKEDIN_CLIENT_ID!,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+    redirectUri:
+      process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI || `${aplicationURL}/api/linkedin/callback`,
+  },
 };
+
