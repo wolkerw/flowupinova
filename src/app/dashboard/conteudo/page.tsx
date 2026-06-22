@@ -603,6 +603,10 @@ export default function Conteudo() {
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
       setGoogleConnection(googleResult);
+      if (linkedinResult.isConnected && (!linkedinResult.personUrn || !linkedinResult.personUrn.startsWith("urn:li:person:")) && linkedinResult.publishTarget !== "organization") {
+        updateLinkedInConnection(user.uid, { publishTarget: "organization" });
+        linkedinResult.publishTarget = "organization";
+      }
       setLinkedinConnection(linkedinResult);
 
     } catch (err) {
@@ -1575,43 +1579,45 @@ export default function Conteudo() {
                 />
                 {linkedinConnection.isConnected && (
                   <div className="mt-2 ml-12 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-700">Destino da Publicação:</span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className={cn(
-                            "rounded px-2 py-1 font-medium transition-colors",
-                            linkedinConnection.publishTarget === "person" || !linkedinConnection.publishTarget
-                              ? "bg-[#0083C7] text-white"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          )}
-                          onClick={async () => {
-                            await updateLinkedInConnection(user!.uid, { publishTarget: "person" });
-                            await fetchPageData();
-                          }}
-                        >
-                          Perfil
-                        </button>
-                        {linkedinConnection.organizations && linkedinConnection.organizations.length > 0 && (
+                    {linkedinConnection.personUrn && linkedinConnection.personUrn.startsWith("urn:li:person:") && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-700">Destino da Publicação:</span>
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             className={cn(
                               "rounded px-2 py-1 font-medium transition-colors",
-                              linkedinConnection.publishTarget === "organization"
+                              linkedinConnection.publishTarget === "person" || !linkedinConnection.publishTarget
                                 ? "bg-[#0083C7] text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             )}
                             onClick={async () => {
-                              await updateLinkedInConnection(user!.uid, { publishTarget: "organization" });
+                              await updateLinkedInConnection(user!.uid, { publishTarget: "person" });
                               await fetchPageData();
                             }}
                           >
-                            Página
+                            Perfil
                           </button>
-                        )}
+                          {linkedinConnection.organizations && linkedinConnection.organizations.length > 0 && (
+                            <button
+                              type="button"
+                              className={cn(
+                                "rounded px-2 py-1 font-medium transition-colors",
+                                linkedinConnection.publishTarget === "organization"
+                                  ? "bg-[#0083C7] text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              )}
+                              onClick={async () => {
+                                await updateLinkedInConnection(user!.uid, { publishTarget: "organization" });
+                                await fetchPageData();
+                              }}
+                            >
+                              Página
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {linkedinConnection.publishTarget === "organization" &&
                       linkedinConnection.organizations &&
                       linkedinConnection.organizations.length > 0 && (
