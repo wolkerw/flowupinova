@@ -77,19 +77,27 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) throw new Error("Token de acesso não retornado.");
 
-    // 2. Obter perfil do membro (OpenID Connect)
-    const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    // 2. Obter perfil do membro (OpenID Connect) se o escopo openid estiver autorizado
+    let personName = "LinkedIn User";
+    let personUrn = "";
+    let profilePictureUrl: string | null = null;
 
-    if (!profileResponse.ok) {
-      throw new Error("Não foi possível obter os dados do perfil do LinkedIn.");
+    try {
+      const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        personName = profileData.name || `${profileData.given_name} ${profileData.family_name}`;
+        personUrn = `urn:li:person:${profileData.sub}`;
+        profilePictureUrl = profileData.picture || null;
+      } else {
+        console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter dados do perfil via OpenID Connect. Código HTTP:", profileResponse.status);
+      }
+    } catch (profileErr: any) {
+      console.warn("[LINKEDIN_CALLBACK_WARN] Erro ao obter dados do perfil via OpenID Connect:", profileErr.message);
     }
-
-    const profileData = await profileResponse.json();
-    const personName = profileData.name || `${profileData.given_name} ${profileData.family_name}`;
-    const personUrn = `urn:li:person:${profileData.sub}`;
-    const profilePictureUrl = profileData.picture || null;
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
     const linkedinVersion = "202401"; // Versão estável da API
@@ -151,13 +159,19 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Salvar conexão no Firestore do usuário
+    const targetName = (personUrn && personName !== "LinkedIn User")
+      ? personName
+      : (organizations.length > 0 ? organizations[0].name : "LinkedIn User");
+
+    const targetUrn = personUrn || (organizations.length > 0 ? organizations[0].urn : "");
+
     const dbData = {
       isConnected: true,
       accessToken,
       refreshToken,
       expiryDate,
-      personUrn,
-      personName,
+      personUrn: targetUrn,
+      personName: targetName,
       profilePictureUrl,
       organizations,
       publishTarget: organizations.length > 0 ? "organization" : "person",
