@@ -30,7 +30,9 @@ describe("CadastroPage", () => {
   it("renders all required form fields", () => {
     render(
       <AuthProvider>
-        <Tabs value="cadastrar"><CadastroPage /></Tabs>
+        <Tabs value="cadastrar">
+          <CadastroPage />
+        </Tabs>
       </AuthProvider>
     );
 

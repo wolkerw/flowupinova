@@ -11,7 +11,9 @@ const ADMIN_EMAILS: string[] = [
   "fernando.home@hotmail.com",
   "contato@wolker.com.br",
   "bruno@muranmarketing.com.br",
-  ...(process.env.ADMIN_EMAILS?.split(",").map((e) => e.trim()).filter(Boolean) ?? []),
+  ...(process.env.ADMIN_EMAILS?.split(",")
+    .map((e) => e.trim())
+    .filter(Boolean) ?? []),
 ];
 
 export interface AdminUser {

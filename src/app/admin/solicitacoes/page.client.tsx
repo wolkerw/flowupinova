@@ -56,7 +56,11 @@ export default function AdminCnpjRequestsClient() {
         description: err.message || "Não foi possível carregar as solicitações de alteração.",
         variant: "destructive",
       });
-      if (err.message?.includes("403") || err.message?.includes("401") || err.message?.includes("permission-denied")) {
+      if (
+        err.message?.includes("403") ||
+        err.message?.includes("401") ||
+        err.message?.includes("permission-denied")
+      ) {
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       }
     } finally {
@@ -109,7 +113,7 @@ export default function AdminCnpjRequestsClient() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
             <ShieldCheck className="h-6 w-6 text-violet-500" />
             Solicitações de Alteração de CNPJ
           </h1>
@@ -122,7 +126,11 @@ export default function AdminCnpjRequestsClient() {
           disabled={loading}
           className="flex items-center gap-2 self-start rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white disabled:opacity-50"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Atualizar
         </button>
       </div>
@@ -155,23 +163,28 @@ export default function AdminCnpjRequestsClient() {
                     <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Clock className="h-8 w-8 text-slate-600" />
-                        <p className="font-medium">Nenhuma solicitação de alteração de CNPJ pendente</p>
+                        <p className="font-medium">
+                          Nenhuma solicitação de alteração de CNPJ pendente
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   requests.map((req) => (
-                    <tr key={req.id} className="transition-colors hover:bg-slate-850/30">
+                    <tr key={req.id} className="hover:bg-slate-850/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600/10 border border-violet-500/20 text-xs font-bold text-violet-400">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-violet-500/20 bg-violet-600/10 text-xs font-bold text-violet-400">
                             {req.userEmail.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 max-w-[200px]">
                             <p className="truncate font-semibold text-white" title={req.userEmail}>
                               {req.userEmail}
                             </p>
-                            <p className="truncate text-[10px] font-mono text-slate-500" title={req.userId}>
+                            <p
+                              className="truncate font-mono text-[10px] text-slate-500"
+                              title={req.userId}
+                            >
                               ID: {req.userId}
                             </p>
                           </div>
@@ -180,25 +193,25 @@ export default function AdminCnpjRequestsClient() {
                       <td className="px-6 py-4">
                         <div className="min-w-[150px]">
                           <p className="font-semibold text-slate-200">{req.currentBusinessName}</p>
-                          <p className="text-xs text-slate-400 font-mono">
+                          <p className="font-mono text-xs text-slate-400">
                             {req.currentCnpj ? formatCnpj(req.currentCnpj) : "Nenhum CNPJ"}
                           </p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="min-w-[150px] rounded-lg bg-violet-950/10 border border-violet-500/10 p-2">
+                        <div className="min-w-[150px] rounded-lg border border-violet-500/10 bg-violet-950/10 p-2">
                           <p className="font-bold text-violet-300">{req.requestedBusinessName}</p>
-                          <p className="text-xs text-violet-200 font-mono">
+                          <p className="font-mono text-xs text-violet-200">
                             {formatCnpj(req.requestedCnpj)}
                           </p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="max-w-[280px] text-xs text-slate-300 whitespace-pre-line bg-slate-950/40 rounded-lg p-2.5 border border-slate-800">
+                        <div className="max-w-[280px] whitespace-pre-line rounded-lg border border-slate-800 bg-slate-950/40 p-2.5 text-xs text-slate-300">
                           {req.reason}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400 font-medium">
+                      <td className="px-6 py-4 text-xs font-medium text-slate-400">
                         {new Date(req.createdAt).toLocaleDateString("pt-BR", {
                           day: "2-digit",
                           month: "2-digit",
@@ -216,7 +229,7 @@ export default function AdminCnpjRequestsClient() {
                               setActionType("approve");
                               setAdminNotes("Solicitação de alteração cadastral aprovada.");
                             }}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 text-xs"
+                            className="h-8 bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500"
                           >
                             Aprovar
                           </Button>
@@ -228,7 +241,7 @@ export default function AdminCnpjRequestsClient() {
                               setActionType("reject");
                               setAdminNotes("");
                             }}
-                            className="bg-red-600 hover:bg-red-500 text-white font-bold h-8 text-xs"
+                            className="h-8 bg-red-600 text-xs font-bold text-white hover:bg-red-500"
                           >
                             Recusar
                           </Button>
@@ -254,10 +267,12 @@ export default function AdminCnpjRequestsClient() {
           }
         }}
       >
-        <DialogContent className="bg-slate-900 border border-slate-800 text-white sm:max-w-[480px]">
+        <DialogContent className="border border-slate-800 bg-slate-900 text-white sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {actionType === "approve" ? "Confirmar Aprovação Jurídica" : "Justificar Recusa de Alteração"}
+              {actionType === "approve"
+                ? "Confirmar Aprovação Jurídica"
+                : "Justificar Recusa de Alteração"}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
               {actionType === "approve"
@@ -269,7 +284,9 @@ export default function AdminCnpjRequestsClient() {
           <div className="space-y-4 py-3">
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-300">
-                {actionType === "approve" ? "Notas do Administrador (Opcional)" : "Motivo do Indeferimento (Obrigatório)"}
+                {actionType === "approve"
+                  ? "Notas do Administrador (Opcional)"
+                  : "Motivo do Indeferimento (Obrigatório)"}
               </label>
               <Textarea
                 placeholder={
@@ -279,7 +296,7 @@ export default function AdminCnpjRequestsClient() {
                 }
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                className="min-h-[100px] bg-slate-950 border-slate-800 text-white"
+                className="min-h-[100px] border-slate-800 bg-slate-950 text-white"
               />
             </div>
           </div>
@@ -293,7 +310,7 @@ export default function AdminCnpjRequestsClient() {
                 setActionType(null);
                 setAdminNotes("");
               }}
-              className="border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white"
+              className="border-slate-800 bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white"
             >
               Cancelar
             </Button>
@@ -302,8 +319,8 @@ export default function AdminCnpjRequestsClient() {
               onClick={handleAction}
               className={cn(
                 actionType === "approve"
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-                  : "bg-red-600 hover:bg-red-500 text-white"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                  : "bg-red-600 text-white hover:bg-red-500"
               )}
             >
               {isProcessing ? (

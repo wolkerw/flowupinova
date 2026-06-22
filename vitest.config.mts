@@ -18,12 +18,7 @@ export default defineConfig({
         branches: 90,
         statements: 90,
       },
-      include: [
-        "src/**/*.test.ts",
-        "src/**/*.test.tsx",
-        "src/**/*.spec.ts",
-        "src/**/*.spec.tsx",
-      ],
+      include: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"],
       exclude: [
         "node_modules/**",
         ".next/**",

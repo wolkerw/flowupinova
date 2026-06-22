@@ -41,7 +41,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, postId, campaignObjective, creative, budget, durationDays, targeting } = body;
     const { headline, bodyText, imageUrl, ctaType, ctaLink } = creative || {};
-    const { address, radiusKm, ageMin, ageMax, gender, latitude: inputLat, longitude: inputLng, locType, locKey, locations, interests } = targeting || {};
+    const {
+      address,
+      radiusKm,
+      ageMin,
+      ageMax,
+      gender,
+      latitude: inputLat,
+      longitude: inputLng,
+      locType,
+      locKey,
+      locations,
+      interests,
+    } = targeting || {};
 
     if (!name || !creative || !imageUrl || !budget || !durationDays || !targeting) {
       return NextResponse.json(
@@ -73,11 +85,16 @@ export async function POST(request: NextRequest) {
           const pageInstaData = await pageInstaRes.json();
           if (pageInstaData?.instagram_business_account?.id) {
             instagramActorId = pageInstaData.instagram_business_account.id;
-            console.log(`[ORQUESTRADOR] Instagram Actor ID obtido da Página no Graph API: ${instagramActorId}`);
+            console.log(
+              `[ORQUESTRADOR] Instagram Actor ID obtido da Página no Graph API: ${instagramActorId}`
+            );
           }
         }
       } catch (err: any) {
-        console.warn("[ORQUESTRADOR] Falha ao consultar instagram_business_account da página:", err.message);
+        console.warn(
+          "[ORQUESTRADOR] Falha ao consultar instagram_business_account da página:",
+          err.message
+        );
       }
     }
 
@@ -91,13 +108,17 @@ export async function POST(request: NextRequest) {
         .get();
       const instagramData = instagramDoc.exists ? instagramDoc.data() : null;
       const dbInstaId = instagramData?.isConnected ? instagramData?.instagramId : null;
-      
+
       // Valida se o ID tem o formato esperado de uma conta empresarial do Instagram (normalmente começa com 1784 e tem 17 dígitos)
       if (dbInstaId && dbInstaId.startsWith("1784") && dbInstaId.length === 17) {
         instagramActorId = dbInstaId;
-        console.log(`[ORQUESTRADOR] Instagram Actor ID obtido do Firestore (válido): ${instagramActorId}`);
+        console.log(
+          `[ORQUESTRADOR] Instagram Actor ID obtido do Firestore (válido): ${instagramActorId}`
+        );
       } else if (dbInstaId) {
-        console.warn(`[ORQUESTRADOR] ID do Instagram no Firestore ignorado por formato inválido para anúncios: ${dbInstaId}`);
+        console.warn(
+          `[ORQUESTRADOR] ID do Instagram no Firestore ignorado por formato inválido para anúncios: ${dbInstaId}`
+        );
       }
     }
 
@@ -109,7 +130,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Nomenclatura Dinâmica
-    const postStart = bodyText ? (bodyText.replace(/[\n\r]+/g, " ").length > 25 ? `${bodyText.replace(/[\n\r]+/g, " ").substring(0, 25)}...` : bodyText.replace(/[\n\r]+/g, " ")) : "Sem descrição";
+    const postStart = bodyText
+      ? bodyText.replace(/[\n\r]+/g, " ").length > 25
+        ? `${bodyText.replace(/[\n\r]+/g, " ").substring(0, 25)}...`
+        : bodyText.replace(/[\n\r]+/g, " ")
+      : "Sem descrição";
     let campaignName = name ? name.trim().replace(/[\n\r]+/g, " ") : `[NUMVAPT] ${postStart}`;
     if (campaignName && !campaignName.startsWith("[NUMVAPT]")) {
       campaignName = `[NUMVAPT] ${campaignName}`;
@@ -122,13 +147,17 @@ export async function POST(request: NextRequest) {
     // ==========================================
     console.log("[ORQUESTRADOR] Passo 1: Criando campanha com nome dinâmico...");
     const campaignUrl = `https://graph.facebook.com/v24.0/${cleanAdAccountId}/campaigns`;
-    
+
     // Mapeamento de objetivos da campanha na Meta
     const isTraffic = campaignObjective === "TRAFFIC";
     const isWhatsApp = campaignObjective === "WHATSAPP";
     // WhatsApp (Click-to-WhatsApp) exige OUTCOME_ENGAGEMENT, não OUTCOME_TRAFFIC.
     // OUTCOME_TRAFFIC exige URL de site externo e não aceita destination_type WHATSAPP.
-    const metaObjective = isWhatsApp ? "OUTCOME_ENGAGEMENT" : (isTraffic ? "OUTCOME_TRAFFIC" : "OUTCOME_AWARENESS");
+    const metaObjective = isWhatsApp
+      ? "OUTCOME_ENGAGEMENT"
+      : isTraffic
+        ? "OUTCOME_TRAFFIC"
+        : "OUTCOME_AWARENESS";
 
     const campaignParams = new URLSearchParams({
       name: campaignName,
@@ -147,9 +176,13 @@ export async function POST(request: NextRequest) {
     const campaignData = await campaignResponse.json();
     if (!campaignResponse.ok) {
       console.error("[ORQUESTRADOR] Erro na campanha:", campaignData.error);
-      throw new Error(campaignData.error?.error_user_msg || campaignData.error?.message || "Erro ao criar campanha na Meta.");
+      throw new Error(
+        campaignData.error?.error_user_msg ||
+          campaignData.error?.message ||
+          "Erro ao criar campanha na Meta."
+      );
     }
-    
+
     createdCampaignId = campaignData.id;
     console.log(`[ORQUESTRADOR] Campanha criada: ${createdCampaignId}`);
 
@@ -157,7 +190,7 @@ export async function POST(request: NextRequest) {
     // ETAPA 2: GEOCODIFICAR ENDEREÇO & CRIAR AD SET
     // ==========================================
     console.log("[ORQUESTRADOR] Passo 2: Geocodificando endereço e criando Ad Set...");
-    
+
     let latitude: number | null = typeof inputLat === "number" ? inputLat : null;
     let longitude: number | null = typeof inputLng === "number" ? inputLng : null;
 
@@ -194,35 +227,53 @@ export async function POST(request: NextRequest) {
     }
 
     if (latitude !== null && longitude !== null) {
-      console.log(`[ORQUESTRADOR] Utilizando coordenadas pré-selecionadas pelo autocomplete: Lat: ${latitude}, Lng: ${longitude}`);
+      console.log(
+        `[ORQUESTRADOR] Utilizando coordenadas pré-selecionadas pelo autocomplete: Lat: ${latitude}, Lng: ${longitude}`
+      );
     } else {
       // 1. Tenta geocodificar o endereço customizado enviado
       let coords = await geocodeAddress(address);
       if (coords) {
         latitude = coords.lat;
         longitude = coords.lon;
-        console.log(`[ORQUESTRADOR] Geocodificação customizada com sucesso: ${address} -> Lat: ${latitude}, Lng: ${longitude}`);
+        console.log(
+          `[ORQUESTRADOR] Geocodificação customizada com sucesso: ${address} -> Lat: ${latitude}, Lng: ${longitude}`
+        );
       } else {
         // 2. Se falhar e o endereço oficial do perfil for diferente, tenta o endereço oficial
         if (profileAddress && profileAddress !== address) {
-          console.log(`[ORQUESTRADOR] Falha no endereço customizado. Tentando endereço oficial do perfil: ${profileAddress}`);
+          console.log(
+            `[ORQUESTRADOR] Falha no endereço customizado. Tentando endereço oficial do perfil: ${profileAddress}`
+          );
           coords = await geocodeAddress(profileAddress);
           if (coords) {
             latitude = coords.lat;
             longitude = coords.lon;
-            console.log(`[ORQUESTRADOR] Geocodificação de fallback do perfil com sucesso -> Lat: ${latitude}, Lng: ${longitude}`);
+            console.log(
+              `[ORQUESTRADOR] Geocodificação de fallback do perfil com sucesso -> Lat: ${latitude}, Lng: ${longitude}`
+            );
           }
         }
       }
     }
 
     const hasLocationsArray = locations && Array.isArray(locations) && locations.length > 0;
-    const isAreaTarget = locType === "País" || locType === "Estado" || (hasLocationsArray && locations.some((l: any) => l.type === "País" || l.type === "Estado"));
+    const isAreaTarget =
+      locType === "País" ||
+      locType === "Estado" ||
+      (hasLocationsArray && locations.some((l: any) => l.type === "País" || l.type === "Estado"));
 
     if (hasLocationsArray) {
-      const hasValidTarget = locations.some((l: any) => l.type === "País" || l.type === "Estado" || (typeof l.latitude === "number" && typeof l.longitude === "number"));
+      const hasValidTarget = locations.some(
+        (l: any) =>
+          l.type === "País" ||
+          l.type === "Estado" ||
+          (typeof l.latitude === "number" && typeof l.longitude === "number")
+      );
       if (!hasValidTarget) {
-        throw new Error("Nenhuma das localizações selecionadas possui coordenadas ou região válida.");
+        throw new Error(
+          "Nenhuma das localizações selecionadas possui coordenadas ou região válida."
+        );
       }
     } else if (!isAreaTarget && (latitude === null || longitude === null)) {
       throw new Error(
@@ -246,18 +297,65 @@ export async function POST(request: NextRequest) {
           let stateKey = cleanKey;
           if (!stateKey || stateKey.startsWith("nom_") || stateKey.startsWith("nom_client_")) {
             const getMetaRegionKey = (stateName: string): string | null => {
-              const normalized = stateName.toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              const normalized = stateName
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
               const stateMap: Record<string, string> = {
-                "acre": "480", "ac": "480", "alagoas": "481", "al": "481", "amazonas": "482", "am": "482",
-                "amapa": "483", "ap": "483", "bahia": "484", "ba": "484", "ceara": "485", "ce": "485",
-                "distrito federal": "486", "df": "486", "espirito santo": "487", "es": "487", "goias": "488", "go": "488",
-                "maranhao": "489", "ma": "489", "minas gerais": "490", "mg": "490", "mato grosso do sul": "491", "ms": "491",
-                "mato grosso": "492", "mt": "492", "para": "493", "pa": "493", "paraiba": "494", "pb": "494",
-                "pernambuco": "495", "pe": "495", "piaui": "496", "pi": "496", "parana": "497", "pr": "497",
-                "rio de janeiro": "498", "rj": "498", "rio grande do norte": "499", "rn": "499", "rondonia": "500", "ro": "500",
-                "roraima": "501", "rr": "501", "rio grande do sul": "456", "rs": "456", "santa catarina": "502", "sc": "502",
-                "sergipe": "503", "se": "503", "sao paulo": "504", "sp": "504", "tocantins": "505", "to": "505"
+                acre: "480",
+                ac: "480",
+                alagoas: "481",
+                al: "481",
+                amazonas: "482",
+                am: "482",
+                amapa: "483",
+                ap: "483",
+                bahia: "484",
+                ba: "484",
+                ceara: "485",
+                ce: "485",
+                "distrito federal": "486",
+                df: "486",
+                "espirito santo": "487",
+                es: "487",
+                goias: "488",
+                go: "488",
+                maranhao: "489",
+                ma: "489",
+                "minas gerais": "490",
+                mg: "490",
+                "mato grosso do sul": "491",
+                ms: "491",
+                "mato grosso": "492",
+                mt: "492",
+                para: "493",
+                pa: "493",
+                paraiba: "494",
+                pb: "494",
+                pernambuco: "495",
+                pe: "495",
+                piaui: "496",
+                pi: "496",
+                parana: "497",
+                pr: "497",
+                "rio de janeiro": "498",
+                rj: "498",
+                "rio grande do norte": "499",
+                rn: "499",
+                rondonia: "500",
+                ro: "500",
+                roraima: "501",
+                rr: "501",
+                "rio grande do sul": "456",
+                rs: "456",
+                "santa catarina": "502",
+                sc: "502",
+                sergipe: "503",
+                se: "503",
+                "sao paulo": "504",
+                sp: "504",
+                tocantins: "505",
+                to: "505",
               };
               for (const [key, value] of Object.entries(stateMap)) {
                 if (normalized.includes(key)) return value;
@@ -294,18 +392,65 @@ export async function POST(request: NextRequest) {
         let stateKey = cleanKey;
         if (!stateKey || stateKey.startsWith("nom_") || stateKey.startsWith("nom_client_")) {
           const getMetaRegionKey = (stateName: string): string | null => {
-            const normalized = stateName.toLowerCase()
-              .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const normalized = stateName
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "");
             const stateMap: Record<string, string> = {
-              "acre": "480", "ac": "480", "alagoas": "481", "al": "481", "amazonas": "482", "am": "482",
-              "amapa": "483", "ap": "483", "bahia": "484", "ba": "484", "ceara": "485", "ce": "485",
-              "distrito federal": "486", "df": "486", "espirito santo": "487", "es": "487", "goias": "488", "go": "488",
-              "maranhao": "489", "ma": "489", "minas gerais": "490", "mg": "490", "mato grosso do sul": "491", "ms": "491",
-              "mato grosso": "492", "mt": "492", "para": "493", "pa": "493", "paraiba": "494", "pb": "494",
-              "pernambuco": "495", "pe": "495", "piaui": "496", "pi": "496", "parana": "497", "pr": "497",
-              "rio de janeiro": "498", "rj": "498", "rio grande do norte": "499", "rn": "499", "rondonia": "500", "ro": "500",
-              "roraima": "501", "rr": "501", "rio grande do sul": "456", "rs": "456", "santa catarina": "502", "sc": "502",
-              "sergipe": "503", "se": "503", "sao paulo": "504", "sp": "504", "tocantins": "505", "to": "505"
+              acre: "480",
+              ac: "480",
+              alagoas: "481",
+              al: "481",
+              amazonas: "482",
+              am: "482",
+              amapa: "483",
+              ap: "483",
+              bahia: "484",
+              ba: "484",
+              ceara: "485",
+              ce: "485",
+              "distrito federal": "486",
+              df: "486",
+              "espirito santo": "487",
+              es: "487",
+              goias: "488",
+              go: "488",
+              maranhao: "489",
+              ma: "489",
+              "minas gerais": "490",
+              mg: "490",
+              "mato grosso do sul": "491",
+              ms: "491",
+              "mato grosso": "492",
+              mt: "492",
+              para: "493",
+              pa: "493",
+              paraiba: "494",
+              pb: "494",
+              pernambuco: "495",
+              pe: "495",
+              piaui: "496",
+              pi: "496",
+              parana: "497",
+              pr: "497",
+              "rio de janeiro": "498",
+              rj: "498",
+              "rio grande do norte": "499",
+              rn: "499",
+              rondonia: "500",
+              ro: "500",
+              roraima: "501",
+              rr: "501",
+              "rio grande do sul": "456",
+              rs: "456",
+              "santa catarina": "502",
+              sc: "502",
+              sergipe: "503",
+              se: "503",
+              "sao paulo": "504",
+              sp: "504",
+              tocantins: "505",
+              to: "505",
             };
             for (const [key, value] of Object.entries(stateMap)) {
               if (normalized.includes(key)) return value;
@@ -350,23 +495,28 @@ export async function POST(request: NextRequest) {
 
     if (interests && Array.isArray(interests) && interests.length > 0) {
       const flexibleGroup: any = {};
-      
+
       interests.forEach((item: any) => {
         let key = "interests";
         const itemType = String(item.type || "").toLowerCase();
-        
+
         if (itemType.includes("comportamento") || itemType.includes("behavior")) {
           key = "behaviors";
-        } else if (itemType.includes("demográfico") || itemType.includes("demographic") || itemType === "demografia" || itemType === "dados demográficos") {
+        } else if (
+          itemType.includes("demográfico") ||
+          itemType.includes("demographic") ||
+          itemType === "demografia" ||
+          itemType === "dados demográficos"
+        ) {
           key = "demographics";
         } else if (itemType.includes("relevante") || itemType.includes("life_event")) {
           key = "life_events";
         }
-        
+
         if (!flexibleGroup[key]) {
           flexibleGroup[key] = [];
         }
-        
+
         flexibleGroup[key].push({
           id: item.id,
           name: item.name,
@@ -377,7 +527,7 @@ export async function POST(request: NextRequest) {
     }
 
     const adSetUrl = `https://graph.facebook.com/v24.0/${cleanAdAccountId}/adsets`;
-    
+
     // Orçamento diário na Meta é em centavos (mínimo R$ 6 por dia)
     const dailyBudgetCents = Math.round(budget.amount * 100);
 
@@ -390,7 +540,7 @@ export async function POST(request: NextRequest) {
 
     // WhatsApp usa CONVERSATIONS como goal (otimiza para iniciar conversas).
     // Tráfego usa LINK_CLICKS, Alcance usa REACH.
-    const optimizationGoal = isWhatsApp ? "CONVERSATIONS" : (isTraffic ? "LINK_CLICKS" : "REACH");
+    const optimizationGoal = isWhatsApp ? "CONVERSATIONS" : isTraffic ? "LINK_CLICKS" : "REACH";
 
     const adSetParamsObj: Record<string, string> = {
       name: adSetName,
@@ -426,7 +576,11 @@ export async function POST(request: NextRequest) {
     const adSetData = await adSetResponse.json();
     if (!adSetResponse.ok) {
       console.error("[ORQUESTRADOR] Erro no Ad Set:", adSetData.error);
-      throw new Error(adSetData.error?.error_user_msg || adSetData.error?.message || "Erro ao criar conjunto de anúncios na Meta.");
+      throw new Error(
+        adSetData.error?.error_user_msg ||
+          adSetData.error?.message ||
+          "Erro ao criar conjunto de anúncios na Meta."
+      );
     }
 
     createdAdSetId = adSetData.id;
@@ -469,10 +623,10 @@ export async function POST(request: NextRequest) {
     // ==========================================
     console.log("[ORQUESTRADOR] Passo 4: Criando Ad Creative estruturado...");
     const creativeUrl = `https://graph.facebook.com/v24.0/${cleanAdAccountId}/adcreatives`;
-    
+
     let callToAction: any = null;
     let creativeLink = ctaLink || `https://facebook.com/${pageId}`;
-    
+
     // Configura o Call to Action com base nas regras rígidas de objetivos e faturamento da Meta
     if (isWhatsApp) {
       // Click-to-WhatsApp: usa CTA tipo WHATSAPP_MESSAGE com app_destination WHATSAPP.
@@ -491,7 +645,7 @@ export async function POST(request: NextRequest) {
       // E o link_data.link geral da imagem deve ser uma URL de fallback válida.
       let formattedPhone = ctaLink || profileData?.phone || "";
       formattedPhone = formattedPhone.replace(/\D/g, "");
-      
+
       // Garante formatação internacional com DDI brasileiro (+55)
       if (formattedPhone) {
         if (formattedPhone.startsWith("55")) {
@@ -516,7 +670,7 @@ export async function POST(request: NextRequest) {
       // Redireciona diretamente para o endereço geocodificado no Google Maps
       const mapAddress = address || profileAddress || "Centro Comercial Local, Brasil";
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`;
-      
+
       callToAction = {
         type: "GET_DIRECTIONS",
         value: {
@@ -584,30 +738,36 @@ export async function POST(request: NextRequest) {
 
     // Resiliência para erro de instagram_actor_id
     if (!creativeResponse.ok && creativeData.error?.message?.includes("instagram_actor_id")) {
-      console.warn("[ORQUESTRADOR] Falha devido a instagram_actor_id. Tentando publicação de fallback sem vincular ID do Instagram...");
-      
+      console.warn(
+        "[ORQUESTRADOR] Falha devido a instagram_actor_id. Tentando publicação de fallback sem vincular ID do Instagram..."
+      );
+
       // Remove instagram_actor_id e tenta novamente
       if (objectStorySpec.instagram_actor_id) {
         delete objectStorySpec.instagram_actor_id;
-        
+
         const retryParams = new URLSearchParams({
           name: `${adNameText} - Criativo (Fallback)`,
           object_story_spec: JSON.stringify(objectStorySpec),
           access_token: metaConnection.accessToken,
         });
-        
+
         creativeResponse = await fetch(creativeUrl, {
           method: "POST",
           body: retryParams,
         });
-        
+
         creativeData = await creativeResponse.json();
       }
     }
 
     if (!creativeResponse.ok) {
       console.error("[ORQUESTRADOR] Erro no Creative:", creativeData.error);
-      throw new Error(creativeData.error?.error_user_msg || creativeData.error?.message || "Erro ao criar criativo do anúncio na Meta.");
+      throw new Error(
+        creativeData.error?.error_user_msg ||
+          creativeData.error?.message ||
+          "Erro ao criar criativo do anúncio na Meta."
+      );
     }
 
     createdCreativeId = creativeData.id;
@@ -635,7 +795,9 @@ export async function POST(request: NextRequest) {
     const adData = await adResponse.json();
     if (!adResponse.ok) {
       console.error("[ORQUESTRADOR] Erro no anúncio final:", adData.error);
-      throw new Error(adData.error?.error_user_msg || adData.error?.message || "Erro ao publicar anúncio na Meta.");
+      throw new Error(
+        adData.error?.error_user_msg || adData.error?.message || "Erro ao publicar anúncio na Meta."
+      );
     }
 
     createdAdId = adData.id;
@@ -645,7 +807,7 @@ export async function POST(request: NextRequest) {
     // ETAPA 6: COLOCAR CONJUNTO E CAMPANHA NO AR!
     // ==========================================
     console.log("[ORQUESTRADOR] Passo 6: Ativando campanha e conjunto de anúncios...");
-    
+
     // Ativa o AdSet
     await fetch(`https://graph.facebook.com/v24.0/${createdAdSetId}`, {
       method: "POST",
@@ -674,7 +836,6 @@ export async function POST(request: NextRequest) {
       metaCreativeId: createdCreativeId,
       adAccountId: adAccountId,
     });
-
   } catch (error: any) {
     console.error("[ORQUESTRADOR] Erro geral na publicação, iniciando rollback...", error.message);
 
@@ -683,13 +844,19 @@ export async function POST(request: NextRequest) {
     if (metaConnection?.accessToken) {
       const token = metaConnection.accessToken;
       if (createdAdId) {
-        await fetch(`https://graph.facebook.com/v24.0/${createdAdId}?access_token=${token}`, { method: "DELETE" }).catch(() => null);
+        await fetch(`https://graph.facebook.com/v24.0/${createdAdId}?access_token=${token}`, {
+          method: "DELETE",
+        }).catch(() => null);
       }
       if (createdAdSetId) {
-        await fetch(`https://graph.facebook.com/v24.0/${createdAdSetId}?access_token=${token}`, { method: "DELETE" }).catch(() => null);
+        await fetch(`https://graph.facebook.com/v24.0/${createdAdSetId}?access_token=${token}`, {
+          method: "DELETE",
+        }).catch(() => null);
       }
       if (createdCampaignId) {
-        await fetch(`https://graph.facebook.com/v24.0/${createdCampaignId}?access_token=${token}`, { method: "DELETE" }).catch(() => null);
+        await fetch(`https://graph.facebook.com/v24.0/${createdCampaignId}?access_token=${token}`, {
+          method: "DELETE",
+        }).catch(() => null);
       }
     }
 

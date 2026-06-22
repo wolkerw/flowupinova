@@ -60,13 +60,7 @@ const PLAN_COLORS: Record<string, string> = {
 
 const Avatar = ({ name, email }: { name: string; email: string }) => {
   const initials = (name || email).charAt(0).toUpperCase();
-  const colors = [
-    "bg-violet-600",
-    "bg-blue-600",
-    "bg-emerald-600",
-    "bg-pink-600",
-    "bg-amber-600",
-  ];
+  const colors = ["bg-violet-600", "bg-blue-600", "bg-emerald-600", "bg-pink-600", "bg-amber-600"];
   const colorIndex =
     (name || email).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
   return (
@@ -170,10 +164,11 @@ function UserSheet({
               const cards = [
                 {
                   label: "Plano Atual",
-                  value: user.plan === "standard"
-                    ? `Standard (${user.subscriptionPlan === "anual" ? "Anual" : "Mensal"})`
-                    : PLAN_LABELS[user.plan] ?? user.plan,
-                  icon: Tag
+                  value:
+                    user.plan === "standard"
+                      ? `Standard (${user.subscriptionPlan === "anual" ? "Anual" : "Mensal"})`
+                      : (PLAN_LABELS[user.plan] ?? user.plan),
+                  icon: Tag,
                 },
                 { label: "Posts", value: `${user.postsCount}`, icon: FileText },
                 { label: "Imagens", value: `${user.imagesCount}`, icon: ImageIcon },
@@ -227,7 +222,9 @@ function UserSheet({
             {/* Ativar/Mudar para Plano Mensal */}
             {!(user.plan === "standard" && user.subscriptionPlan === "mensal") && (
               <button
-                onClick={() => doAction({ plan: "standard", subscriptionPlan: "mensal" }, "activate-mensal")}
+                onClick={() =>
+                  doAction({ plan: "standard", subscriptionPlan: "mensal" }, "activate-mensal")
+                }
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
               >
@@ -236,14 +233,18 @@ function UserSheet({
                 ) : (
                   <CheckCircle className="h-4 w-4" />
                 )}
-                {user.plan === "standard" ? "Mudar para Plano Mensal" : "Ativar Plano Mensal (30 dias)"}
+                {user.plan === "standard"
+                  ? "Mudar para Plano Mensal"
+                  : "Ativar Plano Mensal (30 dias)"}
               </button>
             )}
 
             {/* Ativar/Mudar para Plano Anual */}
             {!(user.plan === "standard" && user.subscriptionPlan === "anual") && (
               <button
-                onClick={() => doAction({ plan: "standard", subscriptionPlan: "anual" }, "activate-anual")}
+                onClick={() =>
+                  doAction({ plan: "standard", subscriptionPlan: "anual" }, "activate-anual")
+                }
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
               >
@@ -252,7 +253,9 @@ function UserSheet({
                 ) : (
                   <Crown className="h-4 w-4" />
                 )}
-                {user.plan === "standard" ? "Mudar para Plano Anual" : "Ativar Plano Anual (365 dias)"}
+                {user.plan === "standard"
+                  ? "Mudar para Plano Anual"
+                  : "Ativar Plano Anual (365 dias)"}
               </button>
             )}
 
@@ -394,8 +397,7 @@ export default function AdminUsuariosPage() {
         u.displayName.toLowerCase().includes(search.toLowerCase());
 
       const matchPlan =
-        planFilter === "all" ||
-        (planFilter === "expired" ? u.trialExpired : u.plan === planFilter);
+        planFilter === "all" || (planFilter === "expired" ? u.trialExpired : u.plan === planFilter);
 
       return matchSearch && matchPlan;
     });
@@ -514,10 +516,7 @@ export default function AdminUsuariosPage() {
                   </tr>
                 ) : (
                   filtered.map((user) => (
-                    <tr
-                      key={user.uid}
-                      className="transition-colors hover:bg-slate-800/40"
-                    >
+                    <tr key={user.uid} className="transition-colors hover:bg-slate-800/40">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <Avatar name={user.displayName} email={user.email} />
@@ -533,14 +532,14 @@ export default function AdminUsuariosPage() {
                             "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
                             user.paymentStatus === "blocked"
                               ? PLAN_COLORS.blocked
-                              : PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial
+                              : (PLAN_COLORS[user.plan] ?? PLAN_COLORS.trial)
                           )}
                         >
                           {user.paymentStatus === "blocked"
                             ? "Bloqueado"
                             : user.plan === "standard"
-                            ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
-                            : PLAN_LABELS[user.plan] ?? user.plan}
+                              ? `Standard (${user.subscriptionPlan ? (user.subscriptionPlan === "anual" ? "Anual" : "Mensal") : "Mensal"})`
+                              : (PLAN_LABELS[user.plan] ?? user.plan)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -555,7 +554,8 @@ export default function AdminUsuariosPage() {
                           </span>
                         ) : user.plan === "standard" && user.subscriptionExpiresAt ? (
                           <span className="text-xs text-emerald-400">
-                            Expira {new Date(user.subscriptionExpiresAt).toLocaleDateString("pt-BR")}
+                            Expira{" "}
+                            {new Date(user.subscriptionExpiresAt).toLocaleDateString("pt-BR")}
                           </span>
                         ) : (
                           <span className="text-xs text-slate-600">—</span>
@@ -592,7 +592,9 @@ export default function AdminUsuariosPage() {
       {selectedUser && (
         <UserSheet
           user={selectedUser}
-          onClose={() => { setSelectedUser(null); }}
+          onClose={() => {
+            setSelectedUser(null);
+          }}
           onUpdate={fetchUsers}
         />
       )}

@@ -7,7 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Sparkles, ArrowRight, Loader2, UploadCloud, X, Box, MessageSquare, FlaskConical } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  UploadCloud,
+  X,
+  Box,
+  MessageSquare,
+  FlaskConical,
+} from "lucide-react";
 
 import { useWizard } from "../context/WizardContext";
 
@@ -48,13 +57,13 @@ export const Step1Idea = () => {
     }
   };
 
-  const isButtonDisabled = isLoading || (
-    isLinkMode
-      ? (!referenceLink || !referenceImagePreview)
+  const isButtonDisabled =
+    isLoading ||
+    (isLinkMode
+      ? !referenceLink || !referenceImagePreview
       : mode === "reference-photo"
-        ? (!referenceImagePreview || !referenceDescription.trim())
-        : (!postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()))
-  );
+        ? !referenceImagePreview || !referenceDescription.trim()
+        : !postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()));
 
   return (
     <motion.div
@@ -74,31 +83,33 @@ export const Step1Idea = () => {
           {isLinkMode && (
             <div className="space-y-6">
               <p className="text-sm text-gray-600">
-                Para criar o seu post com o layout perfeito, envie o print do post que você gostou (Inspiração) e a foto do seu produto ou pessoa (Conteúdo).
+                Para criar o seu post com o layout perfeito, envie o print do post que você gostou
+                (Inspiração) e a foto do seu produto ou pessoa (Conteúdo).
               </p>
-              
+
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* 1. Print de Inspiração */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
+                    <Sparkles className="h-5 w-5 animate-pulse text-accent" />
                     <Label className="text-base font-bold">1. Print de Inspiração (Layout)</Label>
                   </div>
                   <p className="text-xs text-gray-500">
-                    O post modelo que servirá de referência para o círculo de desconto, molduras, cores e posições.
+                    O post modelo que servirá de referência para o círculo de desconto, molduras,
+                    cores e posições.
                   </p>
-                  
+
                   {!referenceLink ? (
                     <div
                       onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
                         input.onchange = (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (file) {
                             onInspirationFileChange?.(file);
-                            onReferenceLinkChange?.(URL.createObjectURL(file)); 
+                            onReferenceLinkChange?.(URL.createObjectURL(file));
                           }
                         };
                         input.click();
@@ -106,18 +117,28 @@ export const Step1Idea = () => {
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar o print de inspiração</p>
-                      <p className="mt-1 text-[10px] text-gray-400">PNG, JPG de posts do Instagram, etc.</p>
+                      <p className="text-center text-xs font-bold text-gray-700">
+                        Clique para carregar o print de inspiração
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        PNG, JPG de posts do Instagram, etc.
+                      </p>
                     </div>
                   ) : (
                     <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
                       <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
-                        <Image src={referenceLink} alt="Referência" layout="fill" objectFit="cover" unoptimized />
+                        <Image
+                          src={referenceLink}
+                          alt="Referência"
+                          layout="fill"
+                          objectFit="cover"
+                          unoptimized
+                        />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => {
                           onInspirationFileChange?.(null);
                           onReferenceLinkChange?.("");
@@ -136,7 +157,8 @@ export const Step1Idea = () => {
                     <Label className="text-base font-bold">2. Foto do seu Produto ou Pessoa</Label>
                   </div>
                   <p className="text-xs text-gray-500">
-                    A foto do seu produto real, pessoa ou modelo que será recortada e inserida na arte de destino.
+                    A foto do seu produto real, pessoa ou modelo que será recortada e inserida na
+                    arte de destino.
                   </p>
 
                   {!referenceImagePreview ? (
@@ -145,8 +167,12 @@ export const Step1Idea = () => {
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar a foto do produto/modelo</p>
-                      <p className="mt-1 text-[10px] text-gray-400">Tire uma foto nítida e bem iluminada.</p>
+                      <p className="text-center text-xs font-bold text-gray-700">
+                        Clique para carregar a foto do produto/modelo
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        Tire uma foto nítida e bem iluminada.
+                      </p>
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -166,50 +192,43 @@ export const Step1Idea = () => {
                           unoptimized
                         />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => onReferenceImageChange(null)}
                       >
                         Trocar imagem
                       </Button>
                     </div>
                   )}
-
-
                 </div>
               </div>
             </div>
           )}
 
           {mode !== "reference-photo" && (
-            <div className="space-y-2 pt-4 border-t">
+            <div className="space-y-2 border-t pt-4">
               <Label className="text-base font-semibold">
-                {isLinkMode 
-                  ? "Ideia do Conteúdo / Promoção" 
-                  : "Ideia do Conteúdo"
-                }
+                {isLinkMode ? "Ideia do Conteúdo / Promoção" : "Ideia do Conteúdo"}
               </Label>
               <p className="mb-2 text-sm text-gray-600">
                 {isLinkMode
                   ? "Descreva a sua promoção, descontos, textos importantes ou o tema que deseja destacar (ex: 'Oferecer 35% de desconto no notebook Dell'). A IA integrará isso ao layout."
-                  : "Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar."
-                }
+                  : "Escreva um resumo, uma ideia ou algumas palavras-chave sobre o conteúdo que você deseja criar."}
               </p>
               <Textarea
-                placeholder={isLinkMode
-                  ? "Ex: Cupom de 35% de desconto na compra do novo notebook Dell Inspiron neste final de semana!"
-                  : "Ex: Criar um post sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador."
+                placeholder={
+                  isLinkMode
+                    ? "Ex: Cupom de 35% de desconto na compra do novo notebook Dell Inspiron neste final de semana!"
+                    : "Ex: Criar um post sobre os benefícios do nosso novo produto X, destacando a facilidade de uso e o design inovador."
                 }
-                className="h-32 text-base bg-white"
+                className="h-32 bg-white text-base"
                 value={postSummary}
                 onChange={(e) => onPostSummaryChange(e.target.value)}
               />
             </div>
           )}
-
-
 
           {!hideImageOption && !isLinkMode && (
             <div className={!hideTextOption ? "border-t pt-4" : ""}>
@@ -223,8 +242,8 @@ export const Step1Idea = () => {
                 Deseja destacar um produto real? Envie uma foto dele para que a IA tente usá-la como
                 base para criar a imagem do post.
                 <span className="mt-1 block text-xs italic">
-                  Exemplos: Foto do seu produto físico, uma embalagem específica ou um ambiente da sua
-                  loja.
+                  Exemplos: Foto do seu produto físico, uma embalagem específica ou um ambiente da
+                  sua loja.
                 </span>
               </p>
 
@@ -235,7 +254,9 @@ export const Step1Idea = () => {
                     className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-8 transition-all hover:border-primary hover:bg-gray-50"
                   >
                     <UploadCloud className="mb-2 h-10 w-10 text-gray-400" />
-                    <p className="text-sm font-medium text-gray-700">Clique para enviar uma imagem</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      Clique para enviar uma imagem
+                    </p>
                     <p className="text-xs text-gray-500">PNG, JPG ou JPEG (Máx. 5MB)</p>
                     <input
                       type="file"
@@ -246,7 +267,7 @@ export const Step1Idea = () => {
                     />
                   </div>
                 ) : (
-                  <div className="space-y-4 pt-1 w-full">
+                  <div className="w-full space-y-4 pt-1">
                     <div className="flex flex-col items-start gap-6 md:flex-row">
                       <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-lg border shadow-sm">
                         <Image
@@ -277,9 +298,9 @@ export const Step1Idea = () => {
                             </Label>
                           </div>
                           <p className="text-xs text-gray-500">
-                            Explique o que é o produto/objeto na foto e como você gostaria que ele fosse
-                            integrado à imagem final (ex: "coloque este frasco de perfume sobre uma mesa
-                            de mármore com flores brancas ao fundo").
+                            Explique o que é o produto/objeto na foto e como você gostaria que ele
+                            fosse integrado à imagem final (ex: "coloque este frasco de perfume
+                            sobre uma mesa de mármore com flores brancas ao fundo").
                           </p>
                           <Textarea
                             placeholder="Descreva detalhes como cor, material e o cenário desejado para este item..."
@@ -291,8 +312,6 @@ export const Step1Idea = () => {
                         </motion.div>
                       </AnimatePresence>
                     </div>
-
-
                   </div>
                 )}
               </div>

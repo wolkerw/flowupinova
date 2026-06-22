@@ -6,7 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -41,6 +46,7 @@ import {
   Heart,
   Info,
   Store,
+  Linkedin,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -68,7 +74,18 @@ import {
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
 import { getGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
-import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
+import {
+  getLinkedInConnection,
+  type LinkedInConnectionData,
+} from "@/lib/services/linkedin-service";
+import {
+  getOnboardingProfile,
+  type OnboardingProfileData,
+} from "@/lib/services/onboarding-service";
+import {
+  getBusinessProfile,
+  type BusinessProfileData,
+} from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Slider } from "@/components/ui/slider";
@@ -85,7 +102,7 @@ type LogoPosition =
   | "bottom-left"
   | "bottom-center"
   | "bottom-right";
-type Platform = "instagram" | "facebook" | "google";
+type Platform = "instagram" | "facebook" | "google" | "linkedin";
 
 type MediaItem = {
   type: "image" | "video";
@@ -94,26 +111,33 @@ type MediaItem = {
   publicUrl?: string;
 };
 
-const LogoOverlay = ({ url, position, scale, opacity }: { url?: string | null, position?: LogoPosition, scale?: number, opacity?: number }) => {
+const LogoOverlay = ({
+  url,
+  position,
+  scale,
+  opacity,
+}: {
+  url?: string | null;
+  position?: LogoPosition;
+  scale?: number;
+  opacity?: number;
+}) => {
   if (!url) return null;
   return (
     <img
       src={url}
       alt="Logo Preview"
-      className={cn(
-        "absolute pointer-events-none z-10",
-        {
-          "top-4 left-4": position === "top-left",
-          "top-4 left-1/2 -translate-x-1/2": position === "top-center",
-          "top-4 right-4": position === "top-right",
-          "top-1/2 left-4 -translate-y-1/2": position === "left-center",
-          "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2": position === "center",
-          "top-1/2 right-4 -translate-y-1/2": position === "right-center",
-          "bottom-4 left-4": position === "bottom-left",
-          "bottom-4 left-1/2 -translate-x-1/2": position === "bottom-center",
-          "bottom-4 right-4": position === "bottom-right",
-        }
-      )}
+      className={cn("pointer-events-none absolute z-10", {
+        "left-4 top-4": position === "top-left",
+        "left-1/2 top-4 -translate-x-1/2": position === "top-center",
+        "right-4 top-4": position === "top-right",
+        "left-4 top-1/2 -translate-y-1/2": position === "left-center",
+        "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2": position === "center",
+        "right-4 top-1/2 -translate-y-1/2": position === "right-center",
+        "bottom-4 left-4": position === "bottom-left",
+        "bottom-4 left-1/2 -translate-x-1/2": position === "bottom-center",
+        "bottom-4 right-4": position === "bottom-right",
+      })}
       style={{
         width: `${scale || 30}%`,
         opacity: (opacity || 100) / 100,
@@ -377,14 +401,14 @@ const InstagramPreview = ({
   if (contentType === "story") {
     return (
       <div className="flex w-full flex-col items-center justify-center">
-        <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl bg-black shadow-2xl border border-gray-100">
+        <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
           {/* Fundo de acordo com o modo de adaptação */}
           {currentMedia ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
                 <>
                   {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden filter blur-xl brightness-75">
+                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                     <Image
                       src={currentMedia.publicUrl || currentMedia.previewUrl}
                       alt="Fundo Desfocado"
@@ -405,7 +429,7 @@ const InstagramPreview = ({
                   </div>
                 </>
               )}
-              
+
               {storyAdaptationMode === "crop" && (
                 <Image
                   src={currentMedia.publicUrl || currentMedia.previewUrl}
@@ -417,11 +441,11 @@ const InstagramPreview = ({
               )}
 
               {storyAdaptationMode === "solid" && (
-                <div 
+                <div
                   className="absolute inset-0 z-0 flex items-center justify-center"
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
-                  <div className="relative w-full aspect-square">
+                  <div className="relative aspect-square w-full">
                     <Image
                       src={currentMedia.publicUrl || currentMedia.previewUrl}
                       alt="Imagem Centralizada"
@@ -435,44 +459,44 @@ const InstagramPreview = ({
             </div>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-gray-500">
-              <ImageIcon className="h-12 w-12 text-gray-700 animate-pulse" />
+              <ImageIcon className="h-12 w-12 animate-pulse text-gray-700" />
               <span className="mt-2 text-xs font-semibold">Nenhuma mídia anexada</span>
             </div>
           )}
 
           {/* Overlay do logotipo da marca no preview */}
           {currentMedia && !isFinalPreview && (
-            <LogoOverlay 
-              url={logoPreviewUrl} 
-              position={logoPosition} 
-              scale={visualLogoScale} 
-              opacity={logoOpacity} 
+            <LogoOverlay
+              url={logoPreviewUrl}
+              position={logoPosition}
+              scale={visualLogoScale}
+              opacity={logoOpacity}
             />
           )}
 
           {/* Story UI Overlay (Barras superiores, Perfil, Rodapé) */}
-          <div className="absolute inset-0 z-20 flex flex-col justify-between p-3 pointer-events-none bg-gradient-to-b from-black/40 via-transparent to-black/30">
+          <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-b from-black/40 via-transparent to-black/30 p-3">
             {/* Top Area */}
             <div className="w-full space-y-2">
               {/* Barra de Progresso do Story */}
               <div className="flex w-full gap-1 px-0.5">
                 <div className="h-0.5 flex-1 rounded bg-white/90"></div>
               </div>
-              
+
               {/* Informações do Usuário */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8 border border-white/20 shadow-md">
                     <AvatarImage src={user?.photoURL || undefined} />
-                    <AvatarFallback className="bg-pink-600 text-white text-xs">{getAvatarFallback()}</AvatarFallback>
+                    <AvatarFallback className="bg-pink-600 text-xs text-white">
+                      {getAvatarFallback()}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-white drop-shadow">
                       {instagramConnection?.instagramUsername || "seu_usuario"}
                     </span>
-                    <span className="text-[10px] text-white/80 drop-shadow">
-                      Patrocinado
-                    </span>
+                    <span className="text-[10px] text-white/80 drop-shadow">Patrocinado</span>
                   </div>
                 </div>
                 <MoreHorizontal className="h-4 w-4 text-white drop-shadow" />
@@ -484,12 +508,12 @@ const InstagramPreview = ({
               <div className="flex-1 rounded-full border border-white/30 bg-black/20 px-4 py-2 backdrop-blur-sm">
                 <span className="text-[11px] text-white/70">Enviar mensagem...</span>
               </div>
-              <Heart className="h-5 w-5 text-white drop-shadow cursor-pointer" />
-              <Send className="h-5 w-5 text-white -rotate-12 drop-shadow cursor-pointer" />
+              <Heart className="h-5 w-5 cursor-pointer text-white drop-shadow" />
+              <Send className="h-5 w-5 -rotate-12 cursor-pointer text-white drop-shadow" />
             </div>
           </div>
         </div>
-        <p className="mt-2 text-xs text-gray-500 font-medium italic text-center">
+        <p className="mt-2 text-center text-xs font-medium italic text-gray-500">
           Visualização simulada de Story no Instagram (9:16)
         </p>
       </div>
@@ -526,7 +550,12 @@ const InstagramPreview = ({
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
         {currentMedia && !isFinalPreview && (
-          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+          <LogoOverlay
+            url={logoPreviewUrl}
+            position={logoPosition}
+            scale={visualLogoScale}
+            opacity={logoOpacity}
+          />
         )}
         {isCarousel && (
           <>
@@ -626,14 +655,14 @@ const FacebookPreview = ({
   if (contentType === "story") {
     return (
       <div className="flex w-full flex-col items-center justify-center">
-        <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl bg-black shadow-2xl border border-gray-100">
+        <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
           {/* Fundo de acordo com o modo de adaptação */}
           {singleItem ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
                 <>
                   {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden filter blur-xl brightness-75">
+                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                     <Image
                       src={singleItem.publicUrl || singleItem.previewUrl}
                       alt="Fundo Desfocado"
@@ -654,7 +683,7 @@ const FacebookPreview = ({
                   </div>
                 </>
               )}
-              
+
               {storyAdaptationMode === "crop" && (
                 <Image
                   src={singleItem.publicUrl || singleItem.previewUrl}
@@ -666,11 +695,11 @@ const FacebookPreview = ({
               )}
 
               {storyAdaptationMode === "solid" && (
-                <div 
+                <div
                   className="absolute inset-0 z-0 flex items-center justify-center"
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
-                  <div className="relative w-full aspect-square">
+                  <div className="relative aspect-square w-full">
                     <Image
                       src={singleItem.publicUrl || singleItem.previewUrl}
                       alt="Imagem Centralizada"
@@ -684,43 +713,45 @@ const FacebookPreview = ({
             </div>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-gray-500">
-              <ImageIcon className="h-12 w-12 text-gray-700 animate-pulse" />
+              <ImageIcon className="h-12 w-12 animate-pulse text-gray-700" />
               <span className="mt-2 text-xs font-semibold">Nenhuma mídia anexada</span>
             </div>
           )}
 
           {/* Overlay do logotipo da marca no preview */}
           {singleItem && !isFinalPreview && (
-            <LogoOverlay 
-              url={logoPreviewUrl} 
-              position={logoPosition} 
-              scale={visualLogoScale} 
-              opacity={logoOpacity} 
+            <LogoOverlay
+              url={logoPreviewUrl}
+              position={logoPosition}
+              scale={visualLogoScale}
+              opacity={logoOpacity}
             />
           )}
 
           {/* Story UI Overlay (Facebook Stories Style) */}
-          <div className="absolute inset-0 z-20 flex flex-col justify-between p-3 pointer-events-none bg-gradient-to-b from-black/40 via-transparent to-black/30">
+          <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-b from-black/40 via-transparent to-black/30 p-3">
             {/* Top Area */}
             <div className="w-full space-y-2">
               {/* Barra de Progresso do Story */}
               <div className="flex w-full gap-1 px-0.5">
                 <div className="h-0.5 flex-1 rounded bg-white/90"></div>
               </div>
-              
+
               {/* Informações do Usuário */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8 border border-white/20 shadow-md">
                     <AvatarImage src={user?.photoURL || undefined} />
-                    <AvatarFallback className="bg-blue-600 text-white text-xs">{getAvatarFallback()}</AvatarFallback>
+                    <AvatarFallback className="bg-blue-600 text-xs text-white">
+                      {getAvatarFallback()}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-white drop-shadow">
                       {metaConnection?.pageName || "Sua Página"}
                     </span>
-                    <span className="text-[10px] text-white/80 drop-shadow flex items-center gap-1">
-                      Agora mesmo · <Globe className="h-2.5 w-2.5 inline" />
+                    <span className="flex items-center gap-1 text-[10px] text-white/80 drop-shadow">
+                      Agora mesmo · <Globe className="inline h-2.5 w-2.5" />
                     </span>
                   </div>
                 </div>
@@ -730,21 +761,21 @@ const FacebookPreview = ({
 
             {/* Bottom Area (Facebook Stories Footer) */}
             <div className="flex w-full items-center justify-between bg-transparent pt-4">
-              <div className="flex-1 rounded-full border border-white/30 bg-black/30 px-3 py-1.5 backdrop-blur-sm mr-4">
+              <div className="mr-4 flex-1 rounded-full border border-white/30 bg-black/30 px-3 py-1.5 backdrop-blur-sm">
                 <span className="text-[10px] text-white/70">Responder...</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 border border-white/10 shadow">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-blue-600 shadow">
                   <ThumbsUp className="h-3.5 w-3.5 fill-white text-white" />
                 </div>
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 border border-white/10 shadow">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-red-500 shadow">
                   <Heart className="h-3.5 w-3.5 fill-white text-white" />
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <p className="mt-2 text-xs text-gray-500 font-medium italic text-center">
+        <p className="mt-2 text-center text-xs font-medium italic text-gray-500">
           Visualização simulada de Story no Facebook (9:16)
         </p>
       </div>
@@ -797,7 +828,12 @@ const FacebookPreview = ({
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
         {singleItem && !isFinalPreview && (
-          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+          <LogoOverlay
+            url={logoPreviewUrl}
+            position={logoPosition}
+            scale={visualLogoScale}
+            opacity={logoOpacity}
+          />
         )}
       </div>
       <div className="flex items-center justify-between p-2">
@@ -825,12 +861,251 @@ const FacebookPreview = ({
   );
 };
 
+const GooglePreview = ({
+  mediaItems,
+  user,
+  text,
+  googleConnection,
+  businessProfile,
+  gmbProfile = null,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
+  contentType,
+  brandKitPrimaryColor,
+  isFinalPreview,
+}: {
+  mediaItems: MediaItem[];
+  user: any;
+  text: string;
+  googleConnection: GoogleConnectionData | null;
+  businessProfile: OnboardingProfileData | null;
+  gmbProfile?: BusinessProfileData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
+  contentType?: ContentType | null;
+  brandKitPrimaryColor?: string;
+  isFinalPreview?: boolean;
+}) => {
+  const getAvatarFallback = () => {
+    if (gmbProfile?.name) return gmbProfile.name.charAt(0).toUpperCase();
+    if (businessProfile?.name) return businessProfile.name.charAt(0).toUpperCase();
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    return "G";
+  };
+
+  const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+  const isCarousel = mediaItems.length > 1;
+
+  const businessName = gmbProfile?.name || businessProfile?.name || "Minha Empresa";
+  const avatarUrl =
+    gmbProfile?.logo?.url || businessProfile?.logo?.url || user?.photoURL || undefined;
+
+  return (
+    <div className="flex w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      {isCarousel && (
+        <div className="flex items-start gap-2 border-b bg-yellow-50 p-3 text-sm text-yellow-800">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <span>
+            Apenas a primeira imagem será postada no Google Meu Negócio, pois a plataforma não
+            permite publicar carrosséis diretamente.
+          </span>
+        </div>
+      )}
+
+      {(contentType === "story" || contentType === "reels") && (
+        <div className="flex items-start gap-2 border-b bg-blue-50 p-3 text-sm text-blue-800">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          <span>
+            O formato {contentType === "story" ? "Story" : "Reels"} será publicado como uma
+            atualização padrão (post) no Google Meu Negócio.
+          </span>
+        </div>
+      )}
+
+      {/* Google Maps / Search Style Header */}
+      <div className="flex items-start justify-between p-4 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Avatar className="h-10 w-10 border border-gray-100">
+              <AvatarImage src={avatarUrl} />
+              <AvatarFallback className="bg-blue-600 font-bold text-white">
+                {getAvatarFallback()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-1.5 -right-1.5 rounded-full bg-white p-0.5 shadow-sm">
+              <svg className="h-4 w-4 text-[#1a73e8]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.7 3.1 5.51l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2L12 21.04l3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="pb-0.5 text-sm font-medium leading-none text-gray-900">
+                {businessName}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-gray-500">há 2 minutos</p>
+            </div>
+          </div>
+        </div>
+        <MoreVertical className="h-5 w-5 cursor-pointer text-gray-500" />
+      </div>
+
+      {/* Image Container with black background letterboxing */}
+      <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
+        {singleItem ? (
+          <Image
+            src={singleItem.publicUrl || singleItem.previewUrl}
+            alt="Preview Google"
+            layout="fill"
+            objectFit="contain"
+            unoptimized
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+            <ImageIcon className="mb-2 h-12 w-12 text-gray-300" />
+            <span className="text-xs">Nenhuma imagem anexada</span>
+          </div>
+        )}
+        {singleItem && !isFinalPreview && (
+          <LogoOverlay
+            url={logoPreviewUrl}
+            position={logoPosition}
+            scale={visualLogoScale}
+            opacity={logoOpacity}
+          />
+        )}
+      </div>
+
+      {/* Caption text below image */}
+      <div className="px-4 pb-4 pt-3 text-sm leading-relaxed text-gray-800">
+        <p className="whitespace-pre-wrap">{text || "legenda"}</p>
+      </div>
+    </div>
+  );
+};
+
+const LinkedInPreview = ({
+  mediaItems,
+  user,
+  text,
+  linkedinConnection,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
+  isFinalPreview,
+}: {
+  mediaItems: MediaItem[];
+  user: any;
+  text: string;
+  linkedinConnection: LinkedInConnectionData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
+  isFinalPreview?: boolean;
+}) => {
+  const getAvatarFallback = () => {
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (
+      linkedinConnection?.publishTarget === "organization" &&
+      linkedinConnection?.selectedOrganizationName
+    ) {
+      return linkedinConnection.selectedOrganizationName.charAt(0).toUpperCase();
+    }
+    if (linkedinConnection?.personName)
+      return linkedinConnection.personName.charAt(0).toUpperCase();
+    return "L";
+  };
+
+  const getDisplayName = () => {
+    if (
+      linkedinConnection?.publishTarget === "organization" &&
+      linkedinConnection?.selectedOrganizationName
+    ) {
+      return linkedinConnection.selectedOrganizationName;
+    }
+    return linkedinConnection?.personName || user?.displayName || "Seu Nome (LinkedIn)";
+  };
+
+  const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+
+  return (
+    <div className="flex w-full flex-col rounded-md border bg-white shadow-lg">
+      <div className="flex items-start justify-between p-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user?.photoURL || undefined} />
+            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <span className="block text-sm font-bold text-gray-800">{getDisplayName()}</span>
+            <div className="flex items-center gap-1">
+              <p className="text-[11px] text-gray-500">Qualquer pessoa · Agora mesmo</p>
+              <Globe className="h-3 w-3 text-gray-500" />
+            </div>
+          </div>
+        </div>
+        <MoreHorizontal className="h-5 cursor-pointer text-gray-600" />
+      </div>
+      <div className="px-3 pb-2 text-sm text-gray-800">
+        <p className="whitespace-pre-wrap">{text}</p>
+      </div>
+      <div className="relative aspect-square bg-gray-200">
+        {singleItem ? (
+          <Image
+            src={singleItem.publicUrl || singleItem.previewUrl}
+            alt="Preview"
+            layout="fill"
+            objectFit="cover"
+            unoptimized
+          />
+        ) : (
+          <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
+        )}
+        {singleItem && !isFinalPreview && (
+          <LogoOverlay
+            url={logoPreviewUrl}
+            position={logoPosition}
+            scale={visualLogoScale}
+            opacity={logoOpacity}
+          />
+        )}
+      </div>
+      <div className="flex items-center justify-between border-t p-1.5 text-xs font-medium text-gray-500">
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <ThumbsUp className="h-4 w-4" />
+          <span>Gostei</span>
+        </button>
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <MessageCircle className="h-4 w-4" />
+          <span>Comentar</span>
+        </button>
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <Share2 className="h-4 w-4" />
+          <span>Compartilhar</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const FinalPreview = ({
   mediaItems,
   user,
   text,
   metaConnection,
   instagramConnection,
+  googleConnection,
+  linkedinConnection,
+  businessProfile,
+  gmbProfile = null,
   contentType,
   storyAdaptationMode,
   brandKitPrimaryColor,
@@ -844,6 +1119,10 @@ const FinalPreview = ({
   text: string;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
+  googleConnection: GoogleConnectionData | null;
+  linkedinConnection: LinkedInConnectionData | null;
+  businessProfile: OnboardingProfileData | null;
+  gmbProfile?: BusinessProfileData | null;
   contentType?: ContentType | null;
   storyAdaptationMode?: "blur" | "crop" | "solid";
   brandKitPrimaryColor?: string;
@@ -855,14 +1134,22 @@ const FinalPreview = ({
   return (
     <div className="w-full max-w-sm">
       <Tabs defaultValue="instagram">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="instagram">
-            <Instagram className="mr-2 h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="instagram" className="px-1 text-xs">
+            <Instagram className="mr-1 h-3.5 w-3.5" />
             Instagram
           </TabsTrigger>
-          <TabsTrigger value="facebook">
-            <Facebook className="mr-2 h-4 w-4" />
+          <TabsTrigger value="facebook" className="px-1 text-xs">
+            <Facebook className="mr-1 h-3.5 w-3.5" />
             Facebook
+          </TabsTrigger>
+          <TabsTrigger value="google" className="px-1 text-xs">
+            <Store className="mr-1 h-3.5 w-3.5" />
+            Google
+          </TabsTrigger>
+          <TabsTrigger value="linkedin" className="px-1 text-xs">
+            <Linkedin className="mr-1 h-3.5 w-3.5" />
+            LinkedIn
           </TabsTrigger>
         </TabsList>
         <TabsContent value="instagram" className="mt-4">
@@ -897,6 +1184,36 @@ const FinalPreview = ({
             isFinalPreview={true}
           />
         </TabsContent>
+        <TabsContent value="google" className="mt-4">
+          <GooglePreview
+            mediaItems={mediaItems}
+            user={user}
+            text={text}
+            googleConnection={googleConnection}
+            businessProfile={businessProfile}
+            gmbProfile={gmbProfile}
+            logoPreviewUrl={logoPreviewUrl}
+            logoPosition={logoPosition}
+            visualLogoScale={visualLogoScale}
+            logoOpacity={logoOpacity}
+            contentType={contentType}
+            brandKitPrimaryColor={brandKitPrimaryColor}
+            isFinalPreview={true}
+          />
+        </TabsContent>
+        <TabsContent value="linkedin" className="mt-4">
+          <LinkedInPreview
+            mediaItems={mediaItems}
+            user={user}
+            text={text}
+            linkedinConnection={linkedinConnection}
+            logoPreviewUrl={logoPreviewUrl}
+            logoPosition={logoPosition}
+            visualLogoScale={visualLogoScale}
+            logoOpacity={logoOpacity}
+            isFinalPreview={true}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -918,7 +1235,7 @@ export default function CriarConteudoPage() {
   const [collaborators, setCollaborators] = useState<string[]>([]);
 
   const [userTagsInput, setUserTagsInput] = useState("");
-  const [userTags, setUserTags] = useState<{username: string, x: number, y: number}[]>([]);  
+  const [userTags, setUserTags] = useState<{ username: string; x: number; y: number }[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [logoPosition, setLogoPosition] = useState<LogoPosition>("bottom-right");
@@ -938,6 +1255,8 @@ export default function CriarConteudoPage() {
     null
   );
   const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
+  const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
+  const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -962,41 +1281,49 @@ export default function CriarConteudoPage() {
       getMetaConnection(user.uid),
       getInstagramConnection(user.uid),
       getGoogleConnection(user.uid),
-      getOnboardingProfile(user.uid)
-    ]).then(([metaConn, instaConn, googleConn, profile]) => {
+      getLinkedInConnection(user.uid),
+      getOnboardingProfile(user.uid),
+      getBusinessProfile(user.uid),
+    ]).then(([metaConn, instaConn, googleConn, linkedinConn, profile, gmbProf]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
       setGoogleConnection(googleConn);
+      setLinkedinConnection(linkedinConn);
       setBusinessProfile(profile);
-      
+      setGmbProfile(gmbProf);
+
       const initialPlatforms: Platform[] = [];
       if (metaConn?.isConnected) initialPlatforms.push("facebook");
       if (instaConn?.isConnected) initialPlatforms.push("instagram");
       if (googleConn?.isConnected) initialPlatforms.push("google");
+      if (linkedinConn?.isConnected) initialPlatforms.push("linkedin");
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
       if (profile?.logo?.url && !logoPreviewUrlRef.current) {
         setLogoPreviewUrl(profile.logo.url);
-        
+
         const logoUrlToFetch = profile.logo.url.startsWith("http")
           ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(profile.logo.url)}`
           : profile.logo.url;
 
         // Converter a URL/Base64 do logotipo do Brand Kit de volta para File
         fetch(logoUrlToFetch)
-          .then(res => {
+          .then((res) => {
             if (!res.ok) {
               throw new Error(`HTTP error! status: ${res.status}`);
             }
             return res.blob();
           })
-          .then(blob => {
+          .then((blob) => {
             const file = new File([blob], "logo-brandkit.png", { type: blob.type || "image/png" });
             setLogoFile(file);
           })
-          .catch(err => {
-            console.warn("Aviso: Não foi possível carregar a logo do Brand Kit como File (CORS/Rede), usando apenas URL de visualização:", err.message || err);
+          .catch((err) => {
+            console.warn(
+              "Aviso: Não foi possível carregar a logo do Brand Kit como File (CORS/Rede), usando apenas URL de visualização:",
+              err.message || err
+            );
           });
       }
     });
@@ -1075,24 +1402,24 @@ export default function CriarConteudoPage() {
       const storedImage = sessionStorage.getItem("preloaded_gallery_image");
       if (storedImage) {
         const item = JSON.parse(storedImage);
-        
+
         const newMediaItem: MediaItem = {
           file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
           previewUrl: item.url,
           publicUrl: item.url,
-          type: "image"
+          type: "image",
         };
-        
+
         setMediaItems([newMediaItem]);
         setSelectedType("single_post");
         setStep(2);
-        
+
         if (item.caption) {
           setText(item.caption);
         }
-        
+
         sessionStorage.removeItem("preloaded_gallery_image");
-        
+
         toast({
           variant: "success",
           title: "Imagem Importada!",
@@ -1109,7 +1436,7 @@ export default function CriarConteudoPage() {
       file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
       previewUrl: item.url,
       publicUrl: item.url,
-      type: "image"
+      type: "image",
     };
 
     if (selectedType === "carousel") {
@@ -1161,7 +1488,9 @@ export default function CriarConteudoPage() {
 
     // Se não há logotipo e a imagem já possui publicUrl (veio da galeria), retornamos a URL do storage de imediato
     if (!logoFile && mediaItem.publicUrl) {
-      console.log("[MANUAL_GALLERY] Imagem sem logo importada da galeria: pulando webhook e usando URL direta.");
+      console.log(
+        "[MANUAL_GALLERY] Imagem sem logo importada da galeria: pulando webhook e usando URL direta."
+      );
       return mediaItem.publicUrl;
     }
 
@@ -1172,7 +1501,9 @@ export default function CriarConteudoPage() {
       try {
         const response = await fetch(mediaItem.publicUrl);
         const blob = await response.blob();
-        imageFile = new File([blob], mediaItem.file.name || "gallery-image.jpg", { type: blob.type });
+        imageFile = new File([blob], mediaItem.file.name || "gallery-image.jpg", {
+          type: blob.type,
+        });
       } catch (e) {
         console.error("Erro ao baixar imagem da galeria para aplicar logo:", e);
         throw new Error("Não foi possível processar o logotipo nesta imagem da galeria.");
@@ -1188,10 +1519,9 @@ export default function CriarConteudoPage() {
       webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
       const { width: mainImageWidth, height: mainImageHeight } =
         await getImageDimensions(imageFile);
-      
+
       // Obter proporções reais da logomarca para evitar deformações ou posicionamento incorreto
-      const { width: logoOrigWidth, height: logoOrigHeight } =
-        await getImageDimensions(logoFile);
+      const { width: logoOrigWidth, height: logoOrigHeight } = await getImageDimensions(logoFile);
       const logoAspectRatio = logoOrigHeight / logoOrigWidth;
 
       formData.append("logo", logoFile);
@@ -1203,7 +1533,7 @@ export default function CriarConteudoPage() {
 
       let positionX = 0,
         positionY = 0;
-      
+
       // Margem proporcional à largura da imagem real (16px relativos aos 400px de largura do preview da interface)
       const margin = mainImageWidth * (16 / 400);
 
@@ -1277,9 +1607,9 @@ export default function CriarConteudoPage() {
   };
 
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      const val = collaboratorsInput.trim().replace('@', '');
+      const val = collaboratorsInput.trim().replace("@", "");
       if (val && collaborators.length < 3 && !collaborators.includes(val)) {
         setCollaborators([...collaborators, val]);
       }
@@ -1288,10 +1618,10 @@ export default function CriarConteudoPage() {
   };
 
   const handleAddUserTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      const val = userTagsInput.trim().replace('@', '');
-      if (val && !userTags.some(t => t.username === val)) {
+      const val = userTagsInput.trim().replace("@", "");
+      if (val && !userTags.some((t) => t.username === val)) {
         setUserTags([...userTags, { username: val, x: 0.5, y: 0.5 }]);
       }
       setUserTagsInput("");
@@ -1314,7 +1644,8 @@ export default function CriarConteudoPage() {
             // Fazer backup da mídia original quadrada 1:1
             setOriginalStoryMedia(item);
 
-            const primaryColor = businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000";
+            const primaryColor =
+              businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000";
             const imageUrlToProcess = item.publicUrl || item.previewUrl;
 
             const blob = await adaptImageToStory(
@@ -1327,15 +1658,19 @@ export default function CriarConteudoPage() {
               logoOpacity
             );
 
-            const adaptedFile = new File([blob], item.file.name || "adapted_story.jpg", { type: "image/jpeg" });
+            const adaptedFile = new File([blob], item.file.name || "adapted_story.jpg", {
+              type: "image/jpeg",
+            });
             const adaptedUrl = URL.createObjectURL(blob);
 
-            setMediaItems([{
-              type: "image",
-              file: adaptedFile,
-              previewUrl: adaptedUrl,
-              publicUrl: adaptedUrl,
-            }]);
+            setMediaItems([
+              {
+                type: "image",
+                file: adaptedFile,
+                previewUrl: adaptedUrl,
+                publicUrl: adaptedUrl,
+              },
+            ]);
           }
 
           toast({
@@ -1584,6 +1919,9 @@ export default function CriarConteudoPage() {
     if (platforms.includes("google") && googleConnection?.isConnected) {
       postInput.googleConnection = googleConnection;
     }
+    if (platforms.includes("linkedin") && linkedinConnection?.isConnected) {
+      postInput.linkedinConnection = linkedinConnection;
+    }
 
     const result = await schedulePost(user.uid, postInput);
 
@@ -1592,7 +1930,10 @@ export default function CriarConteudoPage() {
     if (result.success) {
       toast({
         title: "Publicação realizada com sucesso!",
-        description: scheduleType === "now" ? "Seu post foi enviado para as redes sociais." : "Seu post foi agendado com sucesso.",
+        description:
+          scheduleType === "now"
+            ? "Seu post foi enviado para as redes sociais."
+            : "Seu post foi agendado com sucesso.",
       });
       router.push("/dashboard/conteudo");
     } else {
@@ -1612,6 +1953,7 @@ export default function CriarConteudoPage() {
     platforms.length === 0 ||
     (platforms.includes("facebook") && !metaConnection?.isConnected) ||
     (platforms.includes("instagram") && !instagramConnection?.isConnected) ||
+    (platforms.includes("linkedin") && !linkedinConnection?.isConnected) ||
     (scheduleType === "schedule" && !scheduleDate);
 
   // Cleanup de URLs de blob executado estritamente na desmontagem real da página
@@ -1777,41 +2119,48 @@ export default function CriarConteudoPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full flex items-center justify-center gap-2 border-dashed border-blue-300 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50 text-blue-700 font-semibold transition-all"
+                      className="flex w-full items-center justify-center gap-2 border-dashed border-blue-300 bg-blue-50/30 font-semibold text-blue-700 transition-all hover:border-blue-400 hover:bg-blue-50"
                       onClick={() => setIsGalleryOpen(true)}
                       disabled={isUploading}
                     >
-                      <Sparkles className="h-4 w-4 text-blue-500 animate-pulse" />
+                      <Sparkles className="h-4 w-4 animate-pulse text-blue-500" />
                       Importar da Galeria NumVapt
                     </Button>
                   </div>
 
                   <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white">
+                    <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto bg-white">
                       <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900 border-b pb-3">
+                        <DialogTitle className="flex items-center gap-2 border-b pb-3 text-xl font-bold text-gray-900">
                           <Sparkles className="h-6 w-6 text-blue-500" />
                           Minha Galeria NumVapt (Mídias Livres)
                         </DialogTitle>
                       </DialogHeader>
-                      
+
                       {isGalleryLoading ? (
                         <div className="flex h-64 flex-col items-center justify-center gap-2">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                          <p className="text-sm text-gray-500 font-medium">Carregando acervo livre de imagens...</p>
+                          <p className="text-sm font-medium text-gray-500">
+                            Carregando acervo livre de imagens...
+                          </p>
                         </div>
                       ) : galleryImages.length === 0 ? (
-                        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center py-6">
+                        <div className="flex h-48 flex-col items-center justify-center gap-2 py-6 text-center">
                           <ImageIcon className="h-10 w-10 text-gray-400" />
-                          <p className="text-sm font-semibold text-gray-900">Nenhuma imagem disponível na sua galeria</p>
-                          <p className="text-xs text-gray-500 max-w-sm">
-                            Todas as imagens geradas por IA já foram publicadas ou seu acervo está vazio. Gere novos posts com o assistente inteligente para alimentar sua galeria!
+                          <p className="text-sm font-semibold text-gray-900">
+                            Nenhuma imagem disponível na sua galeria
+                          </p>
+                          <p className="max-w-sm text-xs text-gray-500">
+                            Todas as imagens geradas por IA já foram publicadas ou seu acervo está
+                            vazio. Gere novos posts com o assistente inteligente para alimentar sua
+                            galeria!
                           </p>
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <p className="text-xs text-gray-500 font-medium">
-                            Selecione uma imagem do seu acervo para importá-la instantaneamente. Essas mídias não gastarão novas cotas de geração!
+                          <p className="text-xs font-medium text-gray-500">
+                            Selecione uma imagem do seu acervo para importá-la instantaneamente.
+                            Essas mídias não gastarão novas cotas de geração!
                           </p>
                           <div className="grid grid-cols-2 gap-4 py-2 sm:grid-cols-3">
                             {galleryImages.map((item) => (
@@ -1827,7 +2176,7 @@ export default function CriarConteudoPage() {
                                   objectFit="cover"
                                   unoptimized
                                 />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                                   <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md">
                                     Selecionar Imagem
                                   </span>
@@ -1844,70 +2193,78 @@ export default function CriarConteudoPage() {
                 {selectedType === "story" && (
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-500 animate-pulse" />
-                      <Label className="font-bold text-gray-900">Adaptação de Tela (Proporção 9:16)</Label>
+                      <Sparkles className="h-5 w-5 animate-pulse text-blue-500" />
+                      <Label className="font-bold text-gray-900">
+                        Adaptação de Tela (Proporção 9:16)
+                      </Label>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Como sua imagem quadrada original será convertida para o formato vertical de Stories?
+                      Como sua imagem quadrada original será convertida para o formato vertical de
+                      Stories?
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         type="button"
                         onClick={() => setStoryAdaptationMode("blur")}
                         className={cn(
-                          "flex flex-col items-center justify-between rounded-xl border p-3.5 transition-all text-center hover:scale-[1.02] hover:shadow-sm",
+                          "flex flex-col items-center justify-between rounded-xl border p-3.5 text-center transition-all hover:scale-[1.02] hover:shadow-sm",
                           storyAdaptationMode === "blur"
-                            ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20 text-blue-900"
+                            ? "border-blue-500 bg-blue-50/50 text-blue-900 ring-2 ring-blue-500/20"
                             : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                         )}
                       >
-                        <div className="flex h-10 w-8 flex-col gap-0.5 rounded border border-dashed border-current p-1 justify-between items-center opacity-80 mb-2">
-                          <div className="h-1 w-full bg-current/25 rounded-sm"></div>
-                          <div className="h-4 w-4 bg-current rounded-sm"></div>
-                          <div className="h-1 w-full bg-current/25 rounded-sm"></div>
+                        <div className="mb-2 flex h-10 w-8 flex-col items-center justify-between gap-0.5 rounded border border-dashed border-current p-1 opacity-80">
+                          <div className="bg-current/25 h-1 w-full rounded-sm"></div>
+                          <div className="h-4 w-4 rounded-sm bg-current"></div>
+                          <div className="bg-current/25 h-1 w-full rounded-sm"></div>
                         </div>
                         <span className="text-xs font-bold leading-tight">Fundo Borrado</span>
-                        <span className="text-[10px] text-gray-500 mt-1">Premium (Padrão)</span>
+                        <span className="mt-1 text-[10px] text-gray-500">Premium (Padrão)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setStoryAdaptationMode("crop")}
                         className={cn(
-                          "flex flex-col items-center justify-between rounded-xl border p-3.5 transition-all text-center hover:scale-[1.02] hover:shadow-sm",
+                          "flex flex-col items-center justify-between rounded-xl border p-3.5 text-center transition-all hover:scale-[1.02] hover:shadow-sm",
                           storyAdaptationMode === "crop"
-                            ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20 text-blue-900"
+                            ? "border-blue-500 bg-blue-50/50 text-blue-900 ring-2 ring-blue-500/20"
                             : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                         )}
                       >
-                        <div className="flex h-10 w-8 items-center justify-center rounded border border-dashed border-current p-1 opacity-80 mb-2">
-                          <div className="h-8 w-6 bg-current rounded-sm"></div>
+                        <div className="mb-2 flex h-10 w-8 items-center justify-center rounded border border-dashed border-current p-1 opacity-80">
+                          <div className="h-8 w-6 rounded-sm bg-current"></div>
                         </div>
                         <span className="text-xs font-bold leading-tight">Corte Central</span>
-                        <span className="text-[10px] text-gray-500 mt-1">Zoom (Preencher)</span>
+                        <span className="mt-1 text-[10px] text-gray-500">Zoom (Preencher)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setStoryAdaptationMode("solid")}
                         className={cn(
-                          "flex flex-col items-center justify-between rounded-xl border p-3.5 transition-all text-center hover:scale-[1.02] hover:shadow-sm",
+                          "flex flex-col items-center justify-between rounded-xl border p-3.5 text-center transition-all hover:scale-[1.02] hover:shadow-sm",
                           storyAdaptationMode === "solid"
-                            ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20 text-blue-900"
+                            ? "border-blue-500 bg-blue-50/50 text-blue-900 ring-2 ring-blue-500/20"
                             : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                         )}
                       >
-                        <div className="flex h-10 w-8 flex-col gap-0.5 rounded border border-dashed border-current p-1 justify-between items-center opacity-80 mb-2">
-                          <div className="h-1 w-full bg-current/10 rounded-sm"></div>
-                          <div className="h-4 w-4 bg-current rounded-sm"></div>
-                          <div className="h-1 w-full bg-current/10 rounded-sm"></div>
+                        <div className="mb-2 flex h-10 w-8 flex-col items-center justify-between gap-0.5 rounded border border-dashed border-current p-1 opacity-80">
+                          <div className="bg-current/10 h-1 w-full rounded-sm"></div>
+                          <div className="h-4 w-4 rounded-sm bg-current"></div>
+                          <div className="bg-current/10 h-1 w-full rounded-sm"></div>
                         </div>
                         <span className="text-xs font-bold leading-tight">Fundo Sólido</span>
-                        <span className="text-[10px] text-gray-500 mt-1 flex items-center gap-1 justify-center">
+                        <span className="mt-1 flex items-center justify-center gap-1 text-[10px] text-gray-500">
                           Brand Kit
-                          <span 
-                            className="inline-block h-2.5 w-2.5 rounded-full border border-gray-300 shadow-sm shrink-0" 
-                            style={{ backgroundColor: businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000" }}
+                          <span
+                            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-gray-300 shadow-sm"
+                            style={{
+                              backgroundColor:
+                                businessProfile?.brandKit?.primaryColor ||
+                                businessProfile?.primaryColor ||
+                                "#000000",
+                            }}
                           />
                         </span>
                       </button>
@@ -2057,7 +2414,7 @@ export default function CriarConteudoPage() {
               <div className="sticky top-24 w-full">
                 <div className="w-full max-w-sm">
                   <Tabs defaultValue="instagram">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="instagram">
                         <Instagram className="mr-2 h-4 w-4" />
                         Instagram
@@ -2065,6 +2422,10 @@ export default function CriarConteudoPage() {
                       <TabsTrigger value="facebook">
                         <Facebook className="mr-2 h-4 w-4" />
                         Facebook
+                      </TabsTrigger>
+                      <TabsTrigger value="google">
+                        <Store className="mr-2 h-4 w-4" />
+                        Google
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="instagram" className="mt-4">
@@ -2079,7 +2440,11 @@ export default function CriarConteudoPage() {
                         logoOpacity={logoOpacity}
                         contentType={selectedType}
                         storyAdaptationMode={storyAdaptationMode}
-                        brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}
+                        brandKitPrimaryColor={
+                          businessProfile?.brandKit?.primaryColor ||
+                          businessProfile?.primaryColor ||
+                          "#000000"
+                        }
                       />
                     </TabsContent>
                     <TabsContent value="facebook" className="mt-4">
@@ -2094,7 +2459,31 @@ export default function CriarConteudoPage() {
                         logoOpacity={logoOpacity}
                         contentType={selectedType}
                         storyAdaptationMode={storyAdaptationMode}
-                        brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}
+                        brandKitPrimaryColor={
+                          businessProfile?.brandKit?.primaryColor ||
+                          businessProfile?.primaryColor ||
+                          "#000000"
+                        }
+                      />
+                    </TabsContent>
+                    <TabsContent value="google" className="mt-4">
+                      <GooglePreview
+                        mediaItems={mediaItems}
+                        user={user}
+                        text={text}
+                        googleConnection={googleConnection}
+                        businessProfile={businessProfile}
+                        gmbProfile={gmbProfile}
+                        logoPreviewUrl={logoPreviewUrl}
+                        logoPosition={logoPosition}
+                        visualLogoScale={visualLogoScale}
+                        logoOpacity={logoOpacity}
+                        contentType={selectedType}
+                        brandKitPrimaryColor={
+                          businessProfile?.brandKit?.primaryColor ||
+                          businessProfile?.primaryColor ||
+                          "#000000"
+                        }
                       />
                     </TabsContent>
                   </Tabs>
@@ -2141,9 +2530,16 @@ export default function CriarConteudoPage() {
                     text={text}
                     metaConnection={metaConnection}
                     instagramConnection={instagramConnection}
+                    googleConnection={googleConnection}
+                    linkedinConnection={linkedinConnection}
+                    businessProfile={businessProfile}
                     contentType={selectedType}
                     storyAdaptationMode={storyAdaptationMode}
-                    brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor || "#000000"}
+                    brandKitPrimaryColor={
+                      businessProfile?.brandKit?.primaryColor ||
+                      businessProfile?.primaryColor ||
+                      "#000000"
+                    }
                     logoPreviewUrl={logoPreviewUrl}
                     logoPosition={logoPosition}
                     visualLogoScale={visualLogoScale}
@@ -2161,26 +2557,32 @@ export default function CriarConteudoPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                 <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Label className="font-semibold">Onde Publicar?</Label>
+                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-4">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !metaConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !metaConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-facebook"
-                            checked={platforms.includes("facebook") && !!metaConnection?.isConnected}
+                            checked={
+                              platforms.includes("facebook") && !!metaConnection?.isConnected
+                            }
                             onCheckedChange={() => handlePlatformChange("facebook")}
                             disabled={!metaConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-facebook"
-                            className={cn("flex cursor-pointer items-center gap-2", !metaConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !metaConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Facebook className="h-5 w-5 text-blue-600" />
                             Facebook
@@ -2201,18 +2603,24 @@ export default function CriarConteudoPage() {
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !instagramConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !instagramConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-instagram"
-                            checked={platforms.includes("instagram") && !!instagramConnection?.isConnected}
+                            checked={
+                              platforms.includes("instagram") && !!instagramConnection?.isConnected
+                            }
                             onCheckedChange={() => handlePlatformChange("instagram")}
                             disabled={!instagramConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-instagram"
-                            className={cn("flex cursor-pointer items-center gap-2", !instagramConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !instagramConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Instagram className="h-5 w-5 text-pink-500" />
                             Instagram
@@ -2233,18 +2641,24 @@ export default function CriarConteudoPage() {
                         <div
                           className={cn(
                             "flex items-center space-x-2 rounded-lg border p-4",
-                            !googleConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                            !googleConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
                           )}
                         >
                           <Checkbox
                             id="platform-google"
-                            checked={platforms.includes("google") && !!googleConnection?.isConnected}
+                            checked={
+                              platforms.includes("google") && !!googleConnection?.isConnected
+                            }
                             onCheckedChange={() => handlePlatformChange("google")}
                             disabled={!googleConnection?.isConnected}
                           />
                           <Label
                             htmlFor="platform-google"
-                            className={cn("flex cursor-pointer items-center gap-2", !googleConnection?.isConnected && "cursor-not-allowed")}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !googleConnection?.isConnected && "cursor-not-allowed"
+                            )}
                           >
                             <Store className="h-5 w-5 text-blue-500" />
                             Google Meu Negócio
@@ -2254,6 +2668,44 @@ export default function CriarConteudoPage() {
                       {!googleConnection?.isConnected && (
                         <TooltipContent>
                           <p>Conecte seu Perfil no Google na aba 'Meu Negócio' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !linkedinConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-linkedin"
+                            checked={
+                              platforms.includes("linkedin") && !!linkedinConnection?.isConnected
+                            }
+                            onCheckedChange={() => handlePlatformChange("linkedin")}
+                            disabled={!linkedinConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-linkedin"
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2",
+                              !linkedinConnection?.isConnected && "cursor-not-allowed"
+                            )}
+                          >
+                            <Linkedin className="h-5 w-5 text-blue-700" />
+                            LinkedIn
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!linkedinConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -2319,17 +2771,29 @@ export default function CriarConteudoPage() {
                 <div className="space-y-6 border-t pt-4">
                   {/* Collabs */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Dividir postagem com parceiro (Collab)</h4>
-                    <p className="text-xs text-muted-foreground">A postagem também aparecerá no perfil desta pessoa se ela aceitar.</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <h4 className="text-sm font-semibold">
+                      Dividir postagem com parceiro (Collab)
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      A postagem também aparecerá no perfil desta pessoa se ela aceitar.
+                    </p>
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {collaborators.map((username) => (
-                        <div key={username} className="flex items-center gap-1 bg-pink-50 text-pink-700 border border-pink-200 px-2 py-1 rounded-full text-xs">
+                        <div
+                          key={username}
+                          className="flex items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-1 text-xs text-pink-700"
+                        >
                           @{username}
-                          <X className="h-3 w-3 cursor-pointer hover:text-pink-900" onClick={() => setCollaborators(collaborators.filter(c => c !== username))} />
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-pink-900"
+                            onClick={() =>
+                              setCollaborators(collaborators.filter((c) => c !== username))
+                            }
+                          />
                         </div>
                       ))}
                     </div>
-                    <input 
+                    <input
                       type="text"
                       value={collaboratorsInput}
                       onChange={(e) => setCollaboratorsInput(e.target.value)}
@@ -2342,17 +2806,27 @@ export default function CriarConteudoPage() {
 
                   {/* User Tags */}
                   <div className="space-y-2 border-t pt-4">
-                    <h4 className="font-semibold text-sm">Marcar na foto</h4>
-                    <p className="text-xs text-muted-foreground">A pessoa apenas receberá uma notificação de que foi marcada.</p>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <h4 className="text-sm font-semibold">Marcar na foto</h4>
+                    <p className="text-xs text-muted-foreground">
+                      A pessoa apenas receberá uma notificação de que foi marcada.
+                    </p>
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {userTags.map((tag) => (
-                        <div key={tag.username} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs">
+                        <div
+                          key={tag.username}
+                          className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700"
+                        >
                           @{tag.username}
-                          <X className="h-3 w-3 cursor-pointer hover:text-blue-900" onClick={() => setUserTags(userTags.filter(t => t.username !== tag.username))} />
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-blue-900"
+                            onClick={() =>
+                              setUserTags(userTags.filter((t) => t.username !== tag.username))
+                            }
+                          />
                         </div>
                       ))}
                     </div>
-                    <input 
+                    <input
                       type="text"
                       value={userTagsInput}
                       onChange={(e) => setUserTagsInput(e.target.value)}
@@ -2382,12 +2856,14 @@ export default function CriarConteudoPage() {
                     ? "Publicar Post"
                     : "Agendar Post"}
               </Button>
-              {!metaConnection?.isConnected && !instagramConnection?.isConnected && (
-                <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
-                  <AlertTriangle className="h-4 w-4" /> Conecte suas contas na página de Conteúdo
-                  para publicar.
-                </p>
-              )}
+              {!metaConnection?.isConnected &&
+                !instagramConnection?.isConnected &&
+                !linkedinConnection?.isConnected && (
+                  <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
+                    <AlertTriangle className="h-4 w-4" /> Conecte suas contas na página de Conteúdo
+                    ou Conexões para publicar.
+                  </p>
+                )}
             </CardFooter>
           </Card>
 

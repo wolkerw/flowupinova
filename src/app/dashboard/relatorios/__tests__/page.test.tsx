@@ -19,16 +19,20 @@ vi.mock("@/lib/services/meta-service", () => ({
 
 // Mock Recharts to prevent errors during server-side rendering in tests
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
-  BarChart: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  BarChart: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
   Bar: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
-  LineChart: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  LineChart: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
   Line: () => null,
-  PieChart: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  PieChart: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
   Pie: () => null,
   Cell: () => null,
 }));

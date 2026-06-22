@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     // 1. Obter chaves do ambiente e configurar Fal SDK
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
     if (falKey) {
-      const rawFalKey = falKey.trim().startsWith("Key ") 
-        ? falKey.trim().replace(/^Key\s+/i, "") 
+      const rawFalKey = falKey.trim().startsWith("Key ")
+        ? falKey.trim().replace(/^Key\s+/i, "")
         : falKey.trim();
       fal.config({
         credentials: rawFalKey,
@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
 
     if (!file || (!prompt.trim() && !styleFile) || !userId) {
       return NextResponse.json(
-        { error: "Campos obrigatórios ausentes: selfie de referência ausente, ou informe uma descrição em texto, ou envie uma foto de estilo profissional." },
+        {
+          error:
+            "Campos obrigatórios ausentes: selfie de referência ausente, ou informe uma descrição em texto, ou envie uma foto de estilo profissional.",
+        },
         { status: 400 }
       );
     }
@@ -39,10 +42,10 @@ export async function POST(request: NextRequest) {
     // 3. Fazer o upload do arquivo de referência para o Firebase Storage
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
+
     const projectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";
     const bucket = admin.storage().bucket(`${projectId}.firebasestorage.app`);
-    
+
     const refId = crypto.randomUUID();
     const refFileRef = bucket.file(`users/${userId}/avatar_references/${refId}_ref.jpg`);
     const refDownloadToken = crypto.randomUUID();
@@ -67,7 +70,11 @@ export async function POST(request: NextRequest) {
     let generatedBy = "";
 
     // 5. Tentar chamar o webhook do n8n
-    if (webhookUrl && webhookUrl.startsWith("http") && !webhookUrl.includes("gerador_avatar_twin")) {
+    if (
+      webhookUrl &&
+      webhookUrl.startsWith("http") &&
+      !webhookUrl.includes("gerador_avatar_twin")
+    ) {
       console.log(`[AVATAR_GENERATE] Disparando webhook do n8n: ${webhookUrl}`);
       try {
         const response = await fetch(webhookUrl, {
@@ -89,7 +96,8 @@ export async function POST(request: NextRequest) {
           try {
             const data = JSON.parse(resText);
             // Procurar por uma URL nos formatos comuns de retorno do n8n/webhook
-            generatedImageUrl = data.imageUrl || data.url || data.generatedImageUrl || data.data?.image?.url || "";
+            generatedImageUrl =
+              data.imageUrl || data.url || data.generatedImageUrl || data.data?.image?.url || "";
             if (generatedImageUrl) {
               generatedBy = "n8n_webhook";
               console.log(`[AVATAR_GENERATE] Sucesso via webhook do n8n: ${generatedImageUrl}`);
@@ -98,7 +106,9 @@ export async function POST(request: NextRequest) {
             console.warn("[AVATAR_GENERATE] Resposta do webhook não era JSON válido:", resText);
           }
         } else {
-          console.warn(`[AVATAR_GENERATE] Webhook retornou status ${response.status}. Acionando fallback...`);
+          console.warn(
+            `[AVATAR_GENERATE] Webhook retornou status ${response.status}. Acionando fallback...`
+          );
         }
       } catch (webhookErr) {
         console.error("[AVATAR_GENERATE] Erro ao conectar com o webhook:", webhookErr);
@@ -110,7 +120,9 @@ export async function POST(request: NextRequest) {
 
     // 6. Fallback Nativo: Chamar o Nano Banana Pro (Gemini 3 Pro Image) se o webhook não respondeu
     if (!generatedImageUrl) {
-      console.log("[AVATAR_GENERATE] Iniciando fallback nativo via Nano Banana Pro (Gemini 3 Pro Image)...");
+      console.log(
+        "[AVATAR_GENERATE] Iniciando fallback nativo via Nano Banana Pro (Gemini 3 Pro Image)..."
+      );
       try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
@@ -123,7 +135,9 @@ export async function POST(request: NextRequest) {
         let styleJson: any = null;
 
         if (styleFile) {
-          console.log("[AVATAR_GENERATE] Imagem de estilo profissional fornecida. Analisando com Gemini 2.5 Flash Vision...");
+          console.log(
+            "[AVATAR_GENERATE] Imagem de estilo profissional fornecida. Analisando com Gemini 2.5 Flash Vision..."
+          );
           const styleArrayBuffer = await styleFile.arrayBuffer();
           const styleBuffer = Buffer.from(styleArrayBuffer);
           const styleBase64 = styleBuffer.toString("base64");
@@ -145,21 +159,23 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    { text: visionPrompt },
-                    {
-                      inlineData: {
-                        mimeType: styleMime,
-                        data: styleBase64
-                      }
-                    }
-                  ]
-                }],
+                contents: [
+                  {
+                    parts: [
+                      { text: visionPrompt },
+                      {
+                        inlineData: {
+                          mimeType: styleMime,
+                          data: styleBase64,
+                        },
+                      },
+                    ],
+                  },
+                ],
                 generationConfig: {
-                  responseMimeType: "application/json"
-                }
-              })
+                  responseMimeType: "application/json",
+                },
+              }),
             });
 
             if (geminiVisionResponse.ok) {
@@ -172,7 +188,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                 const pTokens = usage.promptTokenCount || 0;
                 const cTokens = usage.candidatesTokenCount || 0;
                 const costInput = pTokens * (0.075 / 1_000_000);
-                const costOutput = cTokens * (0.30 / 1_000_000);
+                const costOutput = cTokens * (0.3 / 1_000_000);
                 const totalCost = costInput + costOutput;
 
                 logApiUsage({
@@ -184,20 +200,33 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   tokens: {
                     promptTokens: pTokens,
                     completionTokens: cTokens,
-                    totalTokens: pTokens + cTokens
-                  }
+                    totalTokens: pTokens + cTokens,
+                  },
                 });
               }
 
               try {
-                const cleanJsonText = rawText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+                const cleanJsonText = rawText
+                  .replace(/^```json\s*/i, "")
+                  .replace(/```$/, "")
+                  .trim();
                 styleJson = JSON.parse(cleanJsonText);
-                console.log("[AVATAR_GENERATE] Estilo extraído com sucesso via Gemini Vision:", styleJson);
+                console.log(
+                  "[AVATAR_GENERATE] Estilo extraído com sucesso via Gemini Vision:",
+                  styleJson
+                );
               } catch (jsonErr) {
-                console.warn("[AVATAR_GENERATE] Erro ao analisar JSON do Gemini Vision:", jsonErr, rawText);
+                console.warn(
+                  "[AVATAR_GENERATE] Erro ao analisar JSON do Gemini Vision:",
+                  jsonErr,
+                  rawText
+                );
               }
             } else {
-              console.warn("[AVATAR_GENERATE] API do Gemini Vision retornou status de erro:", geminiVisionResponse.status);
+              console.warn(
+                "[AVATAR_GENERATE] API do Gemini Vision retornou status de erro:",
+                geminiVisionResponse.status
+              );
             }
           } catch (geminiVisionErr) {
             console.error("[AVATAR_GENERATE] Erro ao chamar Gemini Vision:", geminiVisionErr);
@@ -226,7 +255,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         const NANOBANANA_MODELS = [
           "gemini-3-pro-image",
           "gemini-3.1-flash-image",
-          "gemini-2.5-flash-image"
+          "gemini-2.5-flash-image",
         ];
 
         let clothingSection = `DIRETRIZES DE VESTUÁRIO: Vista a pessoa conforme as instruções fornecidas no prompt do usuário: "${prompt}".`;
@@ -266,23 +295,25 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
           try {
             console.log(`[AVATAR_GENERATE] Tentando Nano Banana Pro com modelo ${model}...`);
             const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            
+
             const response = await fetch(nanobananaUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    { text: nanobananaPrompt },
-                    {
-                      inlineData: {
-                        mimeType: mimeType,
-                        data: base64Image
-                      }
-                    }
-                  ]
-                }]
-              })
+                contents: [
+                  {
+                    parts: [
+                      { text: nanobananaPrompt },
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }),
             });
 
             if (response.ok) {
@@ -291,7 +322,9 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
               if (bytes) {
                 imageBytes = bytes;
                 modelUsed = model;
-                console.log(`[AVATAR_GENERATE] ✅ Sucesso total com o modelo Nano Banana ${model}!`);
+                console.log(
+                  `[AVATAR_GENERATE] ✅ Sucesso total com o modelo Nano Banana ${model}!`
+                );
                 break;
               }
             }
@@ -301,7 +334,9 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
         }
 
         if (!imageBytes) {
-          throw new Error("Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração do avatar.");
+          throw new Error(
+            "Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração do avatar."
+          );
         }
 
         imgBuffer = Buffer.from(imageBytes, "base64");
@@ -315,9 +350,8 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
           type: "avatar_generation",
           provider: "google_gemini",
           model: modelUsed,
-          costUsd: 0.03
+          costUsd: 0.03,
         });
-
       } catch (bananaErr: any) {
         console.error("[AVATAR_GENERATE] Falha catastrófica no Nano Banana Pro:", bananaErr);
         return NextResponse.json(
@@ -374,7 +408,9 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
       referenceImageUrl: faceImageUrl,
     });
 
-    console.log(`[AVATAR_GENERATE] Avatar catalogado com sucesso na subcoleção mediaGallery: ${galleryDocId}`);
+    console.log(
+      `[AVATAR_GENERATE] Avatar catalogado com sucesso na subcoleção mediaGallery: ${galleryDocId}`
+    );
 
     return NextResponse.json({
       success: true,
@@ -382,7 +418,6 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
       url: finalFirebaseUrl,
       source,
     });
-
   } catch (error: any) {
     console.error("[AVATAR_GENERATE_ERROR] Erro interno:", error);
     return NextResponse.json(

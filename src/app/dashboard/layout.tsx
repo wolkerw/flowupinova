@@ -68,7 +68,12 @@ import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const allNavigationItems: { title: string; url: string; icon: React.ComponentType<any>; disabled?: boolean }[] = [
+const allNavigationItems: {
+  title: string;
+  url: string;
+  icon: React.ComponentType<any>;
+  disabled?: boolean;
+}[] = [
   {
     title: "Início",
     url: "/dashboard",
@@ -171,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (user) {
       fetchAndProcessNotifications();
-      
+
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
       const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -194,9 +199,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             mainBenefits: [],
             ...data,
           } as OnboardingProfileData;
-          
+
           setBusinessProfile(profile);
-          
+
           const isDashboardHome = pathname === "/dashboard";
           if (profile.onboardingCompleted !== true && isDashboardHome) {
             setShowOnboarding(true);
@@ -313,17 +318,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </SidebarMenuItem>
                   ))}
                   <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild
-                    className="hover:bg-primary/10 hover:text-primary transition-colors"
-                  >
-                    <Link href="/dashboard/configuracoes" className="flex w-full items-center gap-3">
-                      <Settings2 className="h-4 w-4" />
-                      <span>Configurações</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+                    <SidebarMenuButton
+                      asChild
+                      className="transition-colors hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Link
+                        href="/dashboard/configuracoes"
+                        className="flex w-full items-center gap-3"
+                      >
+                        <Settings2 className="h-4 w-4" />
+                        <span>Configurações</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
@@ -411,7 +419,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={businessProfile?.logos?.avatar?.url || businessProfile?.logo?.url || user.photoURL || undefined}
+                          src={
+                            businessProfile?.logos?.avatar?.url ||
+                            businessProfile?.logo?.url ||
+                            user.photoURL ||
+                            undefined
+                          }
                           alt={businessProfile?.name || user.displayName || ""}
                         />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
@@ -425,15 +438,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
                         {businessProfile?.primaryColor && (
                           <div className="mt-2 flex gap-1">
-                            <div className="h-2 w-full rounded-full" style={{ backgroundColor: businessProfile.primaryColor }} />
-                            <div className="h-2 w-full rounded-full" style={{ backgroundColor: businessProfile.secondaryColor }} />
+                            <div
+                              className="h-2 w-full rounded-full"
+                              style={{ backgroundColor: businessProfile.primaryColor }}
+                            />
+                            <div
+                              className="h-2 w-full rounded-full"
+                              style={{ backgroundColor: businessProfile.secondaryColor }}
+                            />
                           </div>
                         )}
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/configuracoes" className="flex w-full items-center cursor-pointer">
+                      <Link
+                        href="/dashboard/configuracoes"
+                        className="flex w-full cursor-pointer items-center"
+                      >
                         <Settings2 className="mr-2 h-4 w-4" />
                         Configurações do Negócio
                       </Link>

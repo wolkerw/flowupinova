@@ -41,10 +41,7 @@ export async function processPendingNotifications(userId: string): Promise<void>
 
   // Query for pending notifications.
   // We avoid the composite index requirement by filtering status first and sorting/filtering time on the client-side.
-  const q = query(
-    notificationsRef,
-    where("status", "==", "pending")
-  );
+  const q = query(notificationsRef, where("status", "==", "pending"));
 
   try {
     const querySnapshot = await getDocs(q);

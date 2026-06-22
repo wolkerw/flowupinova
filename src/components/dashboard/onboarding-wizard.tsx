@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,8 +81,10 @@ export function OnboardingWizard({
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) return numbers;
     if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
-    if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
-    if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    if (numbers.length <= 8)
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    if (numbers.length <= 12)
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
     return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`;
   };
 
@@ -122,11 +119,19 @@ export function OnboardingWizard({
     if (step === 2) {
       const cleanCnpj = formData.cnpj.replace(/\D/g, "");
       if (!formData.name.trim()) {
-        toast({ title: "Nome fantasia obrigatório", description: "Por favor, insira o nome fantasia da empresa.", variant: "destructive" });
+        toast({
+          title: "Nome fantasia obrigatório",
+          description: "Por favor, insira o nome fantasia da empresa.",
+          variant: "destructive",
+        });
         return;
       }
       if (cleanCnpj.length !== 14) {
-        toast({ title: "CNPJ obrigatório", description: "Por favor, informe um CNPJ válido de 14 dígitos.", variant: "destructive" });
+        toast({
+          title: "CNPJ obrigatório",
+          description: "Por favor, informe um CNPJ válido de 14 dígitos.",
+          variant: "destructive",
+        });
         return;
       }
     }
@@ -237,8 +242,13 @@ export function OnboardingWizard({
             ...prev,
             name: extractedData.name || extractedData.nome || prev.name,
             category: extractedData.category || extractedData.categoria || prev.category,
-            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || prev.phone,
-            address: extractedData.address || extractedData.endereco || extractedData.localizacao || prev.address,
+            phone:
+              extractedData.phone || extractedData.telefone || extractedData.whatsapp || prev.phone,
+            address:
+              extractedData.address ||
+              extractedData.endereco ||
+              extractedData.localizacao ||
+              prev.address,
             description:
               extractedData.description ||
               extractedData.descricao ||
@@ -249,16 +259,26 @@ export function OnboardingWizard({
             secondaryColor:
               extractedData.secondaryColor || extractedData.cor_secundaria || prev.secondaryColor,
             slogan: extractedData.slogan || prev.slogan,
-            targetAudience: extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
-            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
+            targetAudience:
+              extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
+            toneOfVoice:
+              extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
           }));
 
           // Salvar de imediato no Firestore para garantir persistência à prova de falhas após análise de IA bem sucedida
           const updatedFields = {
             name: extractedData.name || extractedData.nome || formData.name,
             category: extractedData.category || extractedData.categoria || formData.category,
-            phone: extractedData.phone || extractedData.telefone || extractedData.whatsapp || formData.phone,
-            address: extractedData.address || extractedData.endereco || extractedData.localizacao || formData.address,
+            phone:
+              extractedData.phone ||
+              extractedData.telefone ||
+              extractedData.whatsapp ||
+              formData.phone,
+            address:
+              extractedData.address ||
+              extractedData.endereco ||
+              extractedData.localizacao ||
+              formData.address,
             description:
               extractedData.description ||
               extractedData.descricao ||
@@ -267,10 +287,16 @@ export function OnboardingWizard({
             primaryColor:
               extractedData.primaryColor || extractedData.cor_primaria || formData.primaryColor,
             secondaryColor:
-              extractedData.secondaryColor || extractedData.cor_secundaria || formData.secondaryColor,
+              extractedData.secondaryColor ||
+              extractedData.cor_secundaria ||
+              formData.secondaryColor,
             slogan: extractedData.slogan || formData.slogan,
-            targetAudience: extractedData.target_audience || extractedData.targetAudience || formData.targetAudience,
-            toneOfVoice: extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
+            targetAudience:
+              extractedData.target_audience ||
+              extractedData.targetAudience ||
+              formData.targetAudience,
+            toneOfVoice:
+              extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
           };
 
           updateOnboardingProfile(userId, updatedFields).catch((err) =>
@@ -291,7 +317,8 @@ export function OnboardingWizard({
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.details || errorData.error || "Erro de conexão com o servidor";
+        const errorMessage =
+          errorData.details || errorData.error || "Erro de conexão com o servidor";
         console.error("NumVapt IA - Erro na resposta do Webhook:", response.status, errorData);
         throw new Error(errorMessage);
       }
@@ -340,7 +367,7 @@ export function OnboardingWizard({
       if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
         toast({ title: "Migrando logomarca..." });
         finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
-        setFormData(prev => ({ ...prev, logoUrl: finalLogoUrl }));
+        setFormData((prev) => ({ ...prev, logoUrl: finalLogoUrl }));
       }
 
       let finalHorizontalUrl = initialData?.logos?.horizontal?.url || "";
@@ -392,7 +419,7 @@ export function OnboardingWizard({
           },
         },
       });
-      
+
       setIsFinished(true);
       setTimeout(() => {
         onComplete();
@@ -424,7 +451,7 @@ export function OnboardingWizard({
       let finalLogoUrl = formData.logoUrl;
       if (formData.logoUrl && formData.logoUrl.startsWith("data:image")) {
         finalLogoUrl = await uploadBase64ToStorage(formData.logoUrl, "vertical");
-        setFormData(prev => ({ ...prev, logoUrl: finalLogoUrl }));
+        setFormData((prev) => ({ ...prev, logoUrl: finalLogoUrl }));
       }
 
       let finalHorizontalUrl = initialData?.logos?.horizontal?.url || "";
@@ -499,12 +526,12 @@ export function OnboardingWizard({
       // 2. Ler as dimensões da imagem localmente para consistência de aspect-ratio
       const img = document.createElement("img");
       const reader = new FileReader();
-      
+
       reader.onloadend = () => {
         img.onload = () => {
           const w = img.naturalWidth || img.width || 0;
           const h = img.naturalHeight || img.height || 0;
-          
+
           setLogoPreview(downloadUrl);
           setFormData({
             ...formData,
@@ -512,12 +539,15 @@ export function OnboardingWizard({
             logoWidth: w,
             logoHeight: h,
           });
-          toast({ title: "Logomarca carregada!", description: "Imagem salva com sucesso no servidor.", variant: "success" });
+          toast({
+            title: "Logomarca carregada!",
+            description: "Imagem salva com sucesso no servidor.",
+            variant: "success",
+          });
         };
         img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
-
     } catch (err: any) {
       console.error("Erro no upload da logomarca:", err);
       toast({
@@ -550,41 +580,44 @@ export function OnboardingWizard({
   if (isFinished) {
     return (
       <Dialog open={isOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 border-none bg-white overflow-hidden shadow-2xl rounded-[40px]">
+        <DialogContent className="overflow-hidden rounded-[40px] border-none bg-white p-0 shadow-2xl sm:max-w-[500px]">
           <DialogTitle className="sr-only">Onboarding Concluído com Sucesso</DialogTitle>
-          <DialogDescription className="sr-only">Suas configurações foram salvas com sucesso!</DialogDescription>
-          <div className="py-20 flex flex-col items-center justify-center text-center px-10">
+          <DialogDescription className="sr-only">
+            Suas configurações foram salvas com sucesso!
+          </DialogDescription>
+          <div className="flex flex-col items-center justify-center px-10 py-20 text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1, rotate: 360 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="w-24 h-24 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mb-8 shadow-xl shadow-blue-100"
+              className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-xl shadow-blue-100"
             >
-              <CheckCircle2 className="w-12 h-12 text-white" />
+              <CheckCircle2 className="h-12 w-12 text-white" />
             </motion.div>
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-4xl font-black text-slate-900 mb-4 tracking-tight"
+              className="mb-4 text-4xl font-black tracking-tight text-slate-900"
             >
               Sensacional!
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-slate-500 text-lg mb-8 leading-relaxed"
+              className="mb-8 text-lg leading-relaxed text-slate-500"
             >
-              As configurações foram salvas. O <strong>NumVapt</strong> agora está totalmente sintonizado com sua marca.
+              As configurações foram salvas. O <strong>NumVapt</strong> agora está totalmente
+              sintonizado com sua marca.
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex items-center gap-2 text-cyan-600 font-bold bg-cyan-50 px-6 py-3 rounded-full"
+              className="flex items-center gap-2 rounded-full bg-cyan-50 px-6 py-3 font-bold text-cyan-600"
             >
-              <Rocket className="w-5 h-5" /> Decolando em instantes...
+              <Rocket className="h-5 w-5" /> Decolando em instantes...
             </motion.div>
           </div>
         </DialogContent>
@@ -594,119 +627,137 @@ export function OnboardingWizard({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[850px] w-[95vw] max-h-[95vh] md:h-auto md:min-h-[600px] p-0 overflow-hidden border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] bg-white rounded-[32px] flex flex-col">
+      <DialogContent className="flex max-h-[95vh] w-[95vw] flex-col overflow-hidden rounded-[32px] border-none bg-white p-0 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] sm:max-w-[850px] md:h-auto md:min-h-[600px]">
         <DialogTitle className="sr-only">Configuração Inicial do Negócio (Onboarding)</DialogTitle>
-        <DialogDescription className="sr-only">Preencha as informações do seu negócio para personalizar as gerações de posts com IA.</DialogDescription>
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <DialogDescription className="sr-only">
+          Preencha as informações do seu negócio para personalizar as gerações de posts com IA.
+        </DialogDescription>
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
           {/* Sidebar Left */}
-          <div className="w-full md:w-[280px] bg-[#030712] relative overflow-y-auto md:overflow-hidden p-6 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/5 shrink-0">
+          <div className="relative flex w-full shrink-0 flex-col justify-between overflow-y-auto border-b border-white/5 bg-[#030712] p-6 md:w-[280px] md:overflow-hidden md:border-b-0 md:border-r md:p-10">
             <div className="absolute inset-0 opacity-40">
-              <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-blue-700 rounded-full blur-[120px]" />
-              <div className="absolute bottom-[-10%] right-[-10%] w-[120%] h-[120%] bg-cyan-500 rounded-full blur-[120px]" />
+              <div className="absolute left-[-10%] top-[-10%] h-[120%] w-[120%] rounded-full bg-blue-700 blur-[120px]" />
+              <div className="absolute bottom-[-10%] right-[-10%] h-[120%] w-[120%] rounded-full bg-cyan-500 blur-[120px]" />
             </div>
 
             <div className="relative z-10">
               <div className="mb-14">
-                <Image 
-                  src="/logo-numvapt.png" 
-                  alt="NumVapt Logo" 
-                  width={160} 
-                  height={40} 
+                <Image
+                  src="/logo-numvapt.png"
+                  alt="NumVapt Logo"
+                  width={160}
+                  height={40}
                   priority
-                  className="brightness-0 invert h-auto w-auto max-w-[180px]" 
+                  className="h-auto w-auto max-w-[180px] brightness-0 invert"
                 />
               </div>
 
               <div className="space-y-7">
                 {stepsInfo.map((s) => (
-                  <div key={s.id} className="flex items-center gap-4 group">
-                    <div className={cn(
-                      "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500 border relative",
-                      s.id === step 
-                        ? "bg-cyan-500 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.5)] scale-110" 
-                        : s.id < step 
-                          ? "bg-emerald-500 border-emerald-400" 
-                          : "bg-white/5 border-white/10 group-hover:bg-white/10"
-                    )}>
+                  <div key={s.id} className="group flex items-center gap-4">
+                    <div
+                      className={cn(
+                        "relative flex h-11 w-11 items-center justify-center rounded-2xl border transition-all duration-500",
+                        s.id === step
+                          ? "scale-110 border-cyan-400 bg-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.5)]"
+                          : s.id < step
+                            ? "border-emerald-400 bg-emerald-500"
+                            : "border-white/10 bg-white/5 group-hover:bg-white/10"
+                      )}
+                    >
                       {s.id < step ? (
-                        <CheckCircle2 className="w-5 h-5 text-white" />
+                        <CheckCircle2 className="h-5 w-5 text-white" />
                       ) : (
-                        <s.icon className={cn("w-5 h-5", s.id === step ? "text-white" : "text-white/30")} />
+                        <s.icon
+                          className={cn("h-5 w-5", s.id === step ? "text-white" : "text-white/30")}
+                        />
                       )}
                       {s.id === step && (
-                        <motion.div 
+                        <motion.div
                           layoutId="active-glow"
                           className="absolute inset-0 rounded-2xl bg-cyan-400/20 blur-md"
                         />
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase tracking-[0.2em]",
-                        s.id <= step ? "text-cyan-400" : "text-white/20"
-                      )}>Etapa {s.id}</span>
-                      <span className={cn(
-                        "text-base font-bold transition-colors tracking-tight",
-                        s.id <= step ? "text-white" : "text-white/30"
-                      )}>{s.title}</span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-[0.2em]",
+                          s.id <= step ? "text-cyan-400" : "text-white/20"
+                        )}
+                      >
+                        Etapa {s.id}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-base font-bold tracking-tight transition-colors",
+                          s.id <= step ? "text-white" : "text-white/30"
+                        )}
+                      >
+                        {s.title}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="relative z-10 pt-10 border-t border-white/10">
-              <div className="flex items-center gap-2 text-white/40 mb-2">
-                <Sparkles className="w-3 h-3" />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Inteligência Artificial</span>
+            <div className="relative z-10 border-t border-white/10 pt-10">
+              <div className="mb-2 flex items-center gap-2 text-white/40">
+                <Sparkles className="h-3 w-3" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Inteligência Artificial
+                </span>
               </div>
-              <p className="text-[11px] text-white/50 leading-relaxed font-medium">
+              <p className="text-[11px] font-medium leading-relaxed text-white/50">
                 Conecte seu site e deixe a IA cuidar do preenchimento para você.
               </p>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 p-6 md:p-12 flex flex-col bg-slate-50/40 relative overflow-hidden">
+          <div className="relative flex flex-1 flex-col overflow-hidden bg-slate-50/40 p-6 md:p-12">
             {/* Analysis Overlay */}
             <AnimatePresence>
               {isAnalyzing && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-12 text-center"
+                  className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 p-12 text-center backdrop-blur-sm"
                 >
-                  <div className="relative w-32 h-32 mb-8">
-                    <motion.div 
+                  <div className="relative mb-8 h-32 w-32">
+                    <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                       className="absolute inset-0 rounded-full border-4 border-cyan-100 border-t-cyan-500"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Search className="w-10 h-10 text-cyan-500 animate-pulse" />
+                      <Search className="h-10 w-10 animate-pulse text-cyan-500" />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">Analisando seu Negócio...</h3>
-                  <p className="text-slate-500 max-w-xs mx-auto">
+                  <h3 className="mb-2 text-2xl font-black text-slate-900">
+                    Analisando seu Negócio...
+                  </h3>
+                  <p className="mx-auto max-w-xs text-slate-500">
                     Nossa IA está visitando seus canais para extrair sua identidade e essência.
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="flex justify-between items-start mb-6">
+            <div className="mb-6 flex items-start justify-between">
               <div className="space-y-1 pr-8">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                  {stepsInfo[step-1].title}
+                <h2 className="text-3xl font-black leading-none tracking-tight text-slate-900">
+                  {stepsInfo[step - 1].title}
                 </h2>
-                <p className="text-slate-500 font-semibold text-base">
-                  {stepsInfo[step-1].subtitle}
+                <p className="text-base font-semibold text-slate-500">
+                  {stepsInfo[step - 1].subtitle}
                 </p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto pr-2">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div
@@ -719,49 +770,62 @@ export function OnboardingWizard({
                   >
                     <div className="space-y-4">
                       <div className="space-y-3">
-                        <Label htmlFor="website" className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Website URL</Label>
-                        <div className="relative group">
-                          <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-cyan-500 transition-colors" />
-                          <Input 
-                            id="website" 
-                            placeholder="www.suaempresa.com.br" 
+                        <Label
+                          htmlFor="website"
+                          className="ml-1 text-sm font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Website URL
+                        </Label>
+                        <div className="group relative">
+                          <Globe className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-cyan-500" />
+                          <Input
+                            id="website"
+                            placeholder="www.suaempresa.com.br"
                             value={formData.website}
-                            onChange={(e) => setFormData({...formData, website: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm"
+                            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                            className="h-14 rounded-2xl border-slate-200 bg-white pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                           />
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="instagram" className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Instagram (@usuario)</Label>
-                        <div className="relative group">
-                          <Instagram className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-cyan-500 transition-colors" />
-                          <Input 
-                            id="instagram" 
-                            placeholder="@seuinsta" 
+                        <Label
+                          htmlFor="instagram"
+                          className="ml-1 text-sm font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Instagram (@usuario)
+                        </Label>
+                        <div className="group relative">
+                          <Instagram className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-cyan-500" />
+                          <Input
+                            id="instagram"
+                            placeholder="@seuinsta"
                             value={formData.instagram}
-                            onChange={(e) => setFormData({...formData, instagram: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm"
+                            onChange={(e) =>
+                              setFormData({ ...formData, instagram: e.target.value })
+                            }
+                            className="h-14 rounded-2xl border-slate-200 bg-white pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-6 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-xl shadow-cyan-200/50 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                        <Sparkles className="w-20 h-20" />
+                    <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 p-6 text-white shadow-xl shadow-cyan-200/50">
+                      <div className="absolute right-0 top-0 p-6 opacity-10 transition-transform duration-700 group-hover:scale-125">
+                        <Sparkles className="h-20 w-20" />
                       </div>
                       <div className="relative z-10">
-                        <h4 className="text-xl font-black mb-2 flex items-center gap-2">
+                        <h4 className="mb-2 flex items-center gap-2 text-xl font-black">
                           Poupe tempo com IA
                         </h4>
-                        <p className="text-cyan-50 text-sm mb-4 leading-relaxed max-w-sm">
-                          Nossa IA analisará seu site ou Instagram para preencher automaticamente seu nome, categoria e descrição.
+                        <p className="mb-4 max-w-sm text-sm leading-relaxed text-cyan-50">
+                          Nossa IA analisará seu site ou Instagram para preencher automaticamente
+                          seu nome, categoria e descrição.
                         </p>
-                        <Button 
+                        <Button
                           onClick={handleAnalyzeWithIA}
-                          className="w-full bg-white text-cyan-600 hover:bg-cyan-50 h-14 rounded-xl font-black text-lg gap-2 shadow-lg"
+                          className="h-14 w-full gap-2 rounded-xl bg-white text-lg font-black text-cyan-600 shadow-lg hover:bg-cyan-50"
                         >
-                          <Zap className="w-5 h-5 fill-cyan-600" /> Analisar Agora
+                          <Zap className="h-5 w-5 fill-cyan-600" /> Analisar Agora
                         </Button>
                       </div>
                     </div>
@@ -779,51 +843,72 @@ export function OnboardingWizard({
                   >
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Fantasia (Obrigatório)</Label>
-                        <Input 
-                          id="name" 
-                          placeholder="Nome da sua empresa" 
+                        <Label
+                          htmlFor="name"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Nome Fantasia (Obrigatório)
+                        </Label>
+                        <Input
+                          id="name"
+                          placeholder="Nome da sua empresa"
                           value={formData.name}
-                          onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="cnpj" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">CNPJ (Obrigatório)</Label>
-                        <Input 
-                          id="cnpj" 
-                          placeholder="00.000.000/0000-00" 
+                        <Label
+                          htmlFor="cnpj"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          CNPJ (Obrigatório)
+                        </Label>
+                        <Input
+                          id="cnpj"
+                          placeholder="00.000.000/0000-00"
                           value={formData.cnpj}
-                          onChange={(e) => setFormData({...formData, cnpj: formatCnpj(e.target.value)})}
-                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                          onChange={(e) =>
+                            setFormData({ ...formData, cnpj: formatCnpj(e.target.value) })
+                          }
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                           disabled={formData.cnpjLocked}
                           maxLength={18}
                         />
-                        <p className="text-[10px] text-slate-400 ml-1">
-                          {formData.cnpjLocked 
+                        <p className="ml-1 text-[10px] text-slate-400">
+                          {formData.cnpjLocked
                             ? "O CNPJ está travado para proteção jurídica da assinatura. Solicite alteração se necessário."
-                            : "O CNPJ vincula sua assinatura e não poderá ser alterado livremente após o Onboarding."
-                          }
+                            : "O CNPJ vincula sua assinatura e não poderá ser alterado livremente após o Onboarding."}
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="category" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Ramo de Atividade</Label>
-                        <Input 
-                          id="category" 
-                          placeholder="Ex: Restaurante, Consultoria Jurídica..." 
+                        <Label
+                          htmlFor="category"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Ramo de Atividade
+                        </Label>
+                        <Input
+                          id="category"
+                          placeholder="Ex: Restaurante, Consultoria Jurídica..."
                           value={formData.category}
-                          onChange={(e) => setFormData({...formData, category: e.target.value})}
-                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="slogan" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Slogan da Marca (Opcional)</Label>
-                        <Input 
-                          id="slogan" 
-                          placeholder="Ex: O sabor que transforma o seu dia" 
+                        <Label
+                          htmlFor="slogan"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Slogan da Marca (Opcional)
+                        </Label>
+                        <Input
+                          id="slogan"
+                          placeholder="Ex: O sabor que transforma o seu dia"
                           value={formData.slogan}
-                          onChange={(e) => setFormData({...formData, slogan: e.target.value})}
-                          className="h-14 text-lg border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                          onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-lg focus:ring-primary/20"
                         />
                       </div>
                     </div>
@@ -841,28 +926,38 @@ export function OnboardingWizard({
                   >
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">WhatsApp de Contato</Label>
+                        <Label
+                          htmlFor="phone"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          WhatsApp de Contato
+                        </Label>
                         <div className="relative">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                          <Input 
-                            id="phone" 
-                            placeholder="(00) 00000-0000" 
+                          <Phone className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+                          <Input
+                            id="phone"
+                            placeholder="(00) 00000-0000"
                             value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="h-14 rounded-2xl border-slate-200 bg-white px-5 pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Endereço Físico</Label>
+                        <Label
+                          htmlFor="address"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Endereço Físico
+                        </Label>
                         <div className="relative">
-                          <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                          <Input 
-                            id="address" 
-                            placeholder="Rua, Número, Bairro, Cidade..." 
+                          <MapPin className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+                          <Input
+                            id="address"
+                            placeholder="Rua, Número, Bairro, Cidade..."
                             value={formData.address}
-                            onChange={(e) => setFormData({...formData, address: e.target.value})}
-                            className="pl-14 h-14 text-lg border-slate-200 bg-white rounded-2xl focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all shadow-sm px-5"
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            className="h-14 rounded-2xl border-slate-200 bg-white px-5 pl-14 text-lg shadow-sm transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                           />
                         </div>
                       </div>
@@ -879,33 +974,52 @@ export function OnboardingWizard({
                     exit="exit"
                     className="space-y-4"
                   >
-                    <Label htmlFor="description" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Bio do Negócio</Label>
-                    <Textarea 
-                      id="description" 
-                      placeholder="Descreva o que seu negócio oferece e qual seu diferencial..." 
+                    <Label
+                      htmlFor="description"
+                      className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                    >
+                      Bio do Negócio
+                    </Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Descreva o que seu negócio oferece e qual seu diferencial..."
                       value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="min-h-[220px] text-lg p-7 border-slate-200 bg-white rounded-[32px] focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0 transition-all resize-none leading-relaxed shadow-inner"
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="min-h-[220px] resize-none rounded-[32px] border-slate-200 bg-white p-7 text-lg leading-relaxed shadow-inner transition-all focus-visible:border-cyan-500 focus-visible:ring-4 focus-visible:ring-cyan-500/20 focus-visible:ring-offset-0"
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="targetAudience" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Público-alvo</Label>
-                        <Input 
-                          id="targetAudience" 
-                          placeholder="Ex: Jovens profissionais" 
+                        <Label
+                          htmlFor="targetAudience"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Público-alvo
+                        </Label>
+                        <Input
+                          id="targetAudience"
+                          placeholder="Ex: Jovens profissionais"
                           value={formData.targetAudience}
-                          onChange={(e) => setFormData({...formData, targetAudience: e.target.value})}
-                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                          onChange={(e) =>
+                            setFormData({ ...formData, targetAudience: e.target.value })
+                          }
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-base focus:ring-primary/20"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="toneOfVoice" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tom de Voz</Label>
-                        <Input 
-                          id="toneOfVoice" 
-                          placeholder="Ex: Casual e amigável" 
+                        <Label
+                          htmlFor="toneOfVoice"
+                          className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+                        >
+                          Tom de Voz
+                        </Label>
+                        <Input
+                          id="toneOfVoice"
+                          placeholder="Ex: Casual e amigável"
                           value={formData.toneOfVoice}
-                          onChange={(e) => setFormData({...formData, toneOfVoice: e.target.value})}
-                          className="h-14 text-base border-slate-200 bg-white rounded-2xl focus:ring-primary/20 px-5"
+                          onChange={(e) =>
+                            setFormData({ ...formData, toneOfVoice: e.target.value })
+                          }
+                          className="h-14 rounded-2xl border-slate-200 bg-white px-5 text-base focus:ring-primary/20"
                         />
                       </div>
                     </div>
@@ -921,60 +1035,95 @@ export function OnboardingWizard({
                     exit="exit"
                     className="space-y-8"
                   >
-                    <div className="flex flex-col sm:flex-row gap-8">
+                    <div className="flex flex-col gap-8 sm:flex-row">
                       <div className="flex-1 space-y-3">
-                        <Label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Sua Logo</Label>
-                        <div 
-                          className="relative aspect-square rounded-[40px] border-2 border-dashed border-slate-200 hover:border-cyan-500 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden bg-slate-100/50 group shadow-inner"
-                          onClick={() => !isUploadingLogo && document.getElementById('logo-upload')?.click()}
+                        <Label className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400">
+                          Sua Logo
+                        </Label>
+                        <div
+                          className="group relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[40px] border-2 border-dashed border-slate-200 bg-slate-100/50 shadow-inner transition-all hover:border-cyan-500 hover:bg-white"
+                          onClick={() =>
+                            !isUploadingLogo && document.getElementById("logo-upload")?.click()
+                          }
                         >
                           {isUploadingLogo ? (
                             <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="w-10 h-10 animate-spin text-cyan-500" />
-                              <span className="text-[10px] font-black uppercase text-cyan-500 tracking-tighter animate-pulse">Enviando logo...</span>
+                              <Loader2 className="h-10 w-10 animate-spin text-cyan-500" />
+                              <span className="animate-pulse text-[10px] font-black uppercase tracking-tighter text-cyan-500">
+                                Enviando logo...
+                              </span>
                             </div>
                           ) : logoPreview ? (
-                            <div className="relative w-full h-full p-8">
-                              <Image src={logoPreview} alt="Logo" fill style={{ objectFit: 'contain' }} className="p-4 transition-transform group-hover:scale-105" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Camera className="w-8 h-8 text-white" />
+                            <div className="relative h-full w-full p-8">
+                              <Image
+                                src={logoPreview}
+                                alt="Logo"
+                                fill
+                                style={{ objectFit: "contain" }}
+                                className="p-4 transition-transform group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                                <Camera className="h-8 w-8 text-white" />
                               </div>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-2">
-                              <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-cyan-500 transition-colors" />
-                              <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Upload PNG/JPG</span>
+                              <UploadCloud className="h-10 w-10 text-slate-300 transition-colors group-hover:text-cyan-500" />
+                              <span className="text-[10px] font-black uppercase tracking-tighter text-slate-400">
+                                Upload PNG/JPG
+                              </span>
                             </div>
                           )}
-                          <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={isUploadingLogo} />
+                          <input
+                            id="logo-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            disabled={isUploadingLogo}
+                          />
                         </div>
                       </div>
 
                       <div className="flex-1 space-y-6">
-                        <Label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Cores da Marca</Label>
+                        <Label className="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400">
+                          Cores da Marca
+                        </Label>
                         <div className="space-y-4">
-                          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5">
-                            <input 
-                              type="color" 
+                          <div className="flex items-center gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <input
+                              type="color"
                               value={formData.primaryColor}
-                              onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
-                              className="w-16 h-16 rounded-2xl cursor-pointer border-4 border-slate-50 p-0 bg-transparent shadow-lg"
+                              onChange={(e) =>
+                                setFormData({ ...formData, primaryColor: e.target.value })
+                              }
+                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg"
                             />
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cor Principal</span>
-                              <span className="text-base font-mono font-black text-slate-900">{formData.primaryColor.toUpperCase()}</span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Cor Principal
+                              </span>
+                              <span className="font-mono text-base font-black text-slate-900">
+                                {formData.primaryColor.toUpperCase()}
+                              </span>
                             </div>
                           </div>
-                          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5">
-                            <input 
-                              type="color" 
+                          <div className="flex items-center gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <input
+                              type="color"
                               value={formData.secondaryColor}
-                              onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
-                              className="w-16 h-16 rounded-2xl cursor-pointer border-4 border-slate-50 p-0 bg-transparent shadow-lg"
+                              onChange={(e) =>
+                                setFormData({ ...formData, secondaryColor: e.target.value })
+                              }
+                              className="h-16 w-16 cursor-pointer rounded-2xl border-4 border-slate-50 bg-transparent p-0 shadow-lg"
                             />
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cor Secundária</span>
-                              <span className="text-base font-mono font-black text-slate-900">{formData.secondaryColor.toUpperCase()}</span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Cor Secundária
+                              </span>
+                              <span className="font-mono text-base font-black text-slate-900">
+                                {formData.secondaryColor.toUpperCase()}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -986,32 +1135,32 @@ export function OnboardingWizard({
             </div>
 
             {/* Navigation Footer */}
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200/60">
-              <Button 
-                variant="ghost" 
-                onClick={step === 1 ? handleSkip : handleBack} 
-                className="text-slate-400 hover:text-slate-900 font-bold transition-colors h-14 px-6 rounded-2xl"
+            <div className="mt-6 flex items-center justify-between border-t border-slate-200/60 pt-6">
+              <Button
+                variant="ghost"
+                onClick={step === 1 ? handleSkip : handleBack}
+                className="h-14 rounded-2xl px-6 font-bold text-slate-400 transition-colors hover:text-slate-900"
               >
                 {step === 1 ? "Pular agora" : "Voltar"}
               </Button>
 
-              <Button 
-                onClick={handleNext} 
+              <Button
+                onClick={handleNext}
                 disabled={isSaving || isAnalyzing}
                 className={cn(
-                  "h-16 px-12 rounded-2xl font-black text-xl shadow-2xl shadow-blue-200/50 transition-all hover:scale-[1.03] active:scale-95",
-                  step === totalSteps 
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white" 
-                    : "bg-slate-900 hover:bg-slate-800 text-white"
+                  "h-16 rounded-2xl px-12 text-xl font-black shadow-2xl shadow-blue-200/50 transition-all hover:scale-[1.03] active:scale-95",
+                  step === totalSteps
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                    : "bg-slate-900 text-white hover:bg-slate-800"
                 )}
               >
                 {isSaving ? (
-                  <Loader2 className="w-7 h-7 animate-spin" />
+                  <Loader2 className="h-7 w-7 animate-spin" />
                 ) : step === totalSteps ? (
                   "Salvar Tudo"
                 ) : (
                   <div className="flex items-center gap-3">
-                    Continuar <ArrowRight className="w-6 h-6" />
+                    Continuar <ArrowRight className="h-6 w-6" />
                   </div>
                 )}
               </Button>

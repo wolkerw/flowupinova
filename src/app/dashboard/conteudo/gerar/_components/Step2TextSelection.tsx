@@ -76,14 +76,14 @@ export const Step2TextSelection = () => {
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-gray-600">Selecione uma das opções geradas para o seu post.</p>
-          
+
           {generatedContent.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Bot className="mb-4 h-12 w-12 text-gray-300" />
               <p className="mb-6 text-gray-500">Ainda não há conteúdo de texto para esta imagem.</p>
               {onGenerateContent && (
-                <Button 
-                  onClick={() => onGenerateContent()} 
+                <Button
+                  onClick={() => onGenerateContent()}
                   disabled={isLoadingContent}
                   className="bg-primary text-white"
                 >
@@ -108,7 +108,11 @@ export const Step2TextSelection = () => {
                   key={index}
                   className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-gray-50"
                 >
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} className="mt-1" />
+                  <RadioGroupItem
+                    value={index.toString()}
+                    id={`option-${index}`}
+                    className="mt-1"
+                  />
                   <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                     <h4 className="text-base font-bold text-gray-900">{content.titulo}</h4>
                     <p className="mt-1 text-sm text-gray-600">{content.subtitulo}</p>
@@ -128,7 +132,10 @@ export const Step2TextSelection = () => {
           </Button>
           <Button
             onClick={() => onNext()}
-            disabled={!selectedContentId || (mode === "reference-photo" && (!selectedImage || isGeneratingImages))}
+            disabled={
+              !selectedContentId ||
+              (mode === "reference-photo" && (!selectedImage || isGeneratingImages))
+            }
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >
             Avançar
@@ -138,11 +145,11 @@ export const Step2TextSelection = () => {
       </Card>
 
       {mode === "reference-photo" ? (
-        <div className="flex flex-col items-center justify-start h-full w-full gap-4">
-          <Card className="w-full max-w-md border-none shadow-lg overflow-hidden">
+        <div className="flex h-full w-full flex-col items-center justify-start gap-4">
+          <Card className="w-full max-w-md overflow-hidden border-none shadow-lg">
             <CardContent className="pt-6">
               {isGeneratingImages ? (
-                <div className="relative flex min-h-[300px] flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
+                <div className="relative flex min-h-[300px] flex-col items-center justify-center rounded-lg bg-gray-50 p-6">
                   <CircularProgressLoader isActive={isGeneratingImages} />
                 </div>
               ) : generatedImages.length > 0 ? (
@@ -187,15 +194,13 @@ export const Step2TextSelection = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex min-h-[300px] flex-col items-center justify-center bg-gray-50 rounded-lg p-6 border-2 border-dashed text-gray-400">
+                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 p-6 text-gray-400">
                   <Loader2 className="h-8 w-8 animate-spin text-accent" />
                   <p className="mt-2 text-xs font-semibold">Aguardando geração da imagem...</p>
                 </div>
               )}
             </CardContent>
           </Card>
-
-
         </div>
       ) : (
         <div className="flex items-center justify-center">
@@ -213,11 +218,11 @@ export const Step2TextSelection = () => {
                 {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
               </span>
             </div>
-            <div className="relative flex aspect-square w-full items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+            <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-gray-100 text-gray-400">
               {generatedContent[0]?.url_da_imagem ? (
-                <img 
-                  src={generatedContent[0].url_da_imagem} 
-                  alt="Post" 
+                <img
+                  src={generatedContent[0].url_da_imagem}
+                  alt="Post"
                   className="h-full w-full object-cover"
                 />
               ) : (

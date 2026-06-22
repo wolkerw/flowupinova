@@ -70,7 +70,9 @@ export const Step4BrandCustomization = () => {
                 <Sparkles className="h-6 w-6 text-accent" />
                 Etapa 3: Personalize com sua Marca
               </CardTitle>
-              <p className="text-sm text-gray-600">Adicione sua logomarca e o título à imagem selecionada.</p>
+              <p className="text-sm text-gray-600">
+                Adicione sua logomarca e o título à imagem selecionada.
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Logo Section */}
@@ -118,7 +120,11 @@ export const Step4BrandCustomization = () => {
                       >
                         {positions.map((pos) => (
                           <div key={`logo-${pos}`}>
-                            <RadioGroupItem value={pos} id={`logo-${pos}`} className="peer sr-only" />
+                            <RadioGroupItem
+                              value={pos}
+                              id={`logo-${pos}`}
+                              className="peer sr-only"
+                            />
                             <Label
                               htmlFor={`logo-${pos}`}
                               className="flex cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover p-2 text-xs capitalize hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary"
@@ -131,7 +137,9 @@ export const Step4BrandCustomization = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="logo-scale" className="text-sm">Tamanho ({logoScale}%)</Label>
+                        <Label htmlFor="logo-scale" className="text-sm">
+                          Tamanho ({logoScale}%)
+                        </Label>
                         <Slider
                           id="logo-scale"
                           min={10}
@@ -142,7 +150,9 @@ export const Step4BrandCustomization = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="logo-opacity" className="text-sm">Opacidade ({logoOpacity}%)</Label>
+                        <Label htmlFor="logo-opacity" className="text-sm">
+                          Opacidade ({logoOpacity}%)
+                        </Label>
                         <Slider
                           id="logo-opacity"
                           min={10}
@@ -156,8 +166,6 @@ export const Step4BrandCustomization = () => {
                   </div>
                 )}
               </div>
-
-
             </CardContent>
           </Card>
         </div>
@@ -165,9 +173,9 @@ export const Step4BrandCustomization = () => {
         <div className="group flex h-full flex-col items-center justify-start">
           <div className="sticky top-24 w-full">
             <div className="mx-auto w-full max-w-sm">
-              <div className="relative aspect-square overflow-hidden rounded-lg border bg-gray-200 shadow-md flex items-center justify-center">
+              <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-gray-200 shadow-md">
                 {isGeneratingImages && !selectedImage ? (
-                  <div className="flex flex-col items-center gap-4 text-gray-500 p-8 text-center">
+                  <div className="flex flex-col items-center gap-4 p-8 text-center text-gray-500">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     <div>
                       <p className="font-bold">Gerando sua arte...</p>
@@ -210,11 +218,9 @@ export const Step4BrandCustomization = () => {
                         />
                       </div>
                     )}
-
-
                   </>
                 ) : (
-                  <div className="text-gray-400 p-8 text-center">
+                  <div className="p-8 text-center text-gray-400">
                     <p>Nenhuma imagem gerada.</p>
                   </div>
                 )}

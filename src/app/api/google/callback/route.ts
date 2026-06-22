@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
         "name,title,categories,storefrontAddress,phoneNumbers,websiteUri,metadata,profile,openInfo,regularHours";
       let locationsNextPageToken = "";
       do {
-        const locationsUrl = new URL(`https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations`);
+        const locationsUrl = new URL(
+          `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations`
+        );
         locationsUrl.searchParams.append("readMask", readMask);
         locationsUrl.searchParams.append("pageSize", "100");
         if (locationsNextPageToken) {
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
             });
           }
         }
-        
+
         locationsNextPageToken = data.nextPageToken || "";
       } while (locationsNextPageToken);
     }

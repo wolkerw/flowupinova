@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
       publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
       console.log(`[BRAND_KIT_PDF] Manual em PDF salvo no Storage com sucesso: ${fileName}`);
     } catch (storageError) {
-      console.warn("[BRAND_KIT_PDF] Falha ao salvar arquivo físico no Firebase Storage (prosseguindo com análise do Gemini):", storageError);
+      console.warn(
+        "[BRAND_KIT_PDF] Falha ao salvar arquivo físico no Firebase Storage (prosseguindo com análise do Gemini):",
+        storageError
+      );
     }
 
     // 3. Montar prompt do Gemini para leitura e extração do manual
@@ -100,7 +103,9 @@ Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 
     // 4. Invocar a API do Gemini 2.5 Flash
     let parsedData = null;
     try {
-      console.log(`[BRAND_KIT_PDF] Enviando PDF (${(buffer.length / 1024 / 1024).toFixed(2)} MB) para extração via Gemini 2.5 Flash...`);
+      console.log(
+        `[BRAND_KIT_PDF] Enviando PDF (${(buffer.length / 1024 / 1024).toFixed(2)} MB) para extração via Gemini 2.5 Flash...`
+      );
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
       const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
@@ -113,16 +118,16 @@ Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 
                 {
                   inlineData: {
                     mimeType: "application/pdf",
-                    data: base64Pdf
-                  }
-                }
-              ]
-            }
+                    data: base64Pdf,
+                  },
+                },
+              ],
+            },
           ],
           generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
+            responseMimeType: "application/json",
+          },
+        }),
       });
 
       if (!geminiResponse.ok) {
@@ -132,7 +137,7 @@ Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 
 
       const resData = await geminiResponse.json();
       const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-      
+
       if (!rawJson) {
         throw new Error("O Gemini retornou uma resposta sem texto.");
       }
@@ -142,7 +147,11 @@ Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 
     } catch (geminiError: any) {
       console.error("[BRAND_KIT_PDF] Erro ao extrair dados via Gemini 2.5 Flash:", geminiError);
       return NextResponse.json(
-        { error: "Falha na análise do PDF via IA. Verifique se o arquivo está corrompido ou excede o limite.", details: geminiError.message },
+        {
+          error:
+            "Falha na análise do PDF via IA. Verifique se o arquivo está corrompido ou excede o limite.",
+          details: geminiError.message,
+        },
         { status: 500 }
       );
     }
@@ -154,10 +163,9 @@ Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 
         ...parsedData,
         pdfManualPath: storagePath,
         pdfManualUrl: publicUrl,
-        pdfUploadedAt: new Date().toISOString()
-      }
+        pdfUploadedAt: new Date().toISOString(),
+      },
     });
-
   } catch (error: any) {
     console.error("[BRAND_KIT_PDF] Erro geral na rota de API:", error);
     return NextResponse.json(

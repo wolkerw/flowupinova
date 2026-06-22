@@ -89,17 +89,17 @@ describe("DashboardLayout", () => {
     const anunciosLink = screen.getByText("Anúncios").closest("a");
     expect(anunciosLink).toBeInTheDocument();
     expect(anunciosLink).toHaveAttribute("href", "/dashboard/anuncios");
-    
+
     // O link ou seu container SidebarMenuButton NÃO deve possuir as classes de disabled
     await waitFor(() => {
       const hasDisabledClasses = !!(
-        anunciosLink?.className?.includes("cursor-not-allowed") || 
+        anunciosLink?.className?.includes("cursor-not-allowed") ||
         anunciosLink?.parentElement?.className?.includes("cursor-not-allowed") ||
         screen.getByText("Anúncios").closest("button")?.className?.includes("cursor-not-allowed")
       );
       expect(hasDisabledClasses).toBe(false);
     });
-    
+
     // Não deve exibir o badge "Em breve" ao lado de Anúncios
     expect(screen.queryByText("Em breve")).not.toBeInTheDocument();
   });

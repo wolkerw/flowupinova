@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getUidFromCookie, adminDb } from "@/lib/firebase-admin";
-import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
+import { getUidFromCookie } from "@/lib/firebase-admin";
+import { publishToGoogle } from "@/lib/services/publisher-service";
 
 export const dynamic = "force-dynamic";
 
@@ -40,105 +40,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Carrega dados de conexão e perfil do Firestore
-    const connRef = adminDb.collection("users").doc(targetUid).collection("connections").doc("google");
-    const profileRef = adminDb.collection("users").doc(targetUid).collection("business").doc("profile");
+    const publishedMediaId = await publishToGoogle(targetUid, postData.text, postData.imageUrl);
 
-    const [connDoc, profileDoc] = await Promise.all([connRef.get(), profileRef.get()]);
-
-    if (!connDoc.exists) {
-      return NextResponse.json(
-        { success: false, error: "A conta Google do usuário não está conectada." },
-        { status: 400 }
-      );
-    }
-
-    if (!profileDoc.exists) {
-      return NextResponse.json(
-        { success: false, error: "Perfil de negócios do usuário não encontrado." },
-        { status: 400 }
-      );
-    }
-
-    const accountId = connDoc.data()?.accountId;
-    const googleName = profileDoc.data()?.googleName; // Formato: "locations/{locationId}"
-    const website = profileDoc.data()?.website || profileDoc.data()?.instagram || "";
-
-    if (!accountId || !googleName) {
-      return NextResponse.json(
-        { success: false, error: "Configuração do Google Meu Negócio incompleta. Verifique se o local foi selecionado." },
-        { status: 400 }
-      );
-    }
-
-    // 2. Autentica o cliente e gera token de acesso (efetua refresh automaticamente se expirado)
-    const oauth2Client = await getAuthenticatedGoogleClient(targetUid);
-    const { token } = await oauth2Client.getAccessToken();
-
-    if (!token) {
-      throw new Error("Não foi possível gerar um token de acesso válido com o Google.");
-    }
-
-    // 3. Monta a chamada para o endpoint localPosts v4 da API
-    // Endpoint: accounts/{accountId}/locations/{locationId}/localPosts
-    const googleApiUrl = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/${googleName}/localPosts`;
-
-    const postPayload: any = {
-      languageCode: "pt-BR",
-      summary: postData.text.slice(0, 1500), // Limite razoável para postagens do Google Meu Negócio
-      topicType: "STANDARD",
-    };
-
-    // Imagem da publicação
-    if (postData.imageUrl) {
-      postPayload.media = [
-        {
-          mediaFormat: "PHOTO",
-          sourceUrl: postData.imageUrl,
-        },
-      ];
-    }
-
-    // Botão de Call to Action (Saiba Mais redirecionando para o site do cliente)
-    if (website) {
-      const targetUrl = website.startsWith("http") ? website : `https://${website}`;
-      postPayload.callToAction = {
-        actionType: "LEARN_MORE",
-        url: targetUrl,
-      };
-    }
-
-    console.log(`[GOOGLE_PUBLISH] Enviando post para ${googleName}...`);
-    const apiResponse = await fetch(googleApiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(postPayload),
-    });
-
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error("[GOOGLE_PUBLISH_API_ERROR]", errorText);
-      let errorMessage = `Erro da API do Google Meu Negócio: ${apiResponse.statusText}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.message) {
-          errorMessage = errorJson.error.message;
-        }
-      } catch (parseErr) {
-        // Ignora
-      }
-      throw new Error(errorMessage);
-    }
-
-    const resultData = await apiResponse.json();
-    console.log("[GOOGLE_PUBLISH_SUCCESS] Post publicado no Google Meu Negócio:", resultData.name);
+    console.log("[GOOGLE_PUBLISH_SUCCESS] Post publicado no Google Meu Negócio:", publishedMediaId);
 
     return NextResponse.json({
       success: true,
-      publishedMediaId: resultData.name, // ID completo retornado pelo Google
+      publishedMediaId,
     });
   } catch (error: any) {
     console.error("[GOOGLE_PUBLISH_ERROR]", error);

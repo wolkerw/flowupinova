@@ -138,7 +138,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       } else if (data.provider === "google_vertex") {
         estimatedCostImagen4 += cost;
       } else if (
-        data.model === "imagen-3.0-generate-002" || 
+        data.model === "imagen-3.0-generate-002" ||
         data.source === "nanobanana_ref" ||
         (data.provider === "google_gemini" && data.type === "avatar_generation") ||
         (data.provider === "google_gemini" && data.type === "image_generation")
@@ -171,7 +171,8 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     estimatedCostImagen4,
     estimatedCostNanoBanana,
     estimatedCostGemini,
-    estimatedCostTotal: estimatedCostFalai + estimatedCostImagen4 + estimatedCostNanoBanana + estimatedCostGemini,
+    estimatedCostTotal:
+      estimatedCostFalai + estimatedCostImagen4 + estimatedCostNanoBanana + estimatedCostGemini,
   };
 }
 
@@ -204,7 +205,10 @@ export async function getAllUsersWithStats(): Promise<UserSummary[]> {
       const plan = (data.plan ?? "trial") as UserSummary["plan"];
 
       const trialDaysLeft = createdAt
-        ? Math.max(0, Math.ceil((createdAt.getTime() + trialDuration - now.getTime()) / (24 * 60 * 60 * 1000)))
+        ? Math.max(
+            0,
+            Math.ceil((createdAt.getTime() + trialDuration - now.getTime()) / (24 * 60 * 60 * 1000))
+          )
         : 0;
       const trialExpired = plan === "trial" && trialDaysLeft === 0;
 
@@ -278,16 +282,15 @@ export async function getRecentSignups(days = 30): Promise<SignupDataPoint[]> {
   return Object.entries(countByDay).map(([date, count]) => ({ date, count }));
 }
 
-export async function getFailedPosts(limit = 50): Promise<
+export async function getFailedPosts(
+  limit = 50
+): Promise<
   { uid: string; postId: string; reason: string; scheduledAt: string; platforms: string[] }[]
 > {
   try {
     const usersSnap = await adminDb.collection("users").get();
     const allFailedPostsPromises = usersSnap.docs.map((userDoc) => {
-      return adminDb
-        .collection(`users/${userDoc.id}/posts`)
-        .where("status", "==", "failed")
-        .get();
+      return adminDb.collection(`users/${userDoc.id}/posts`).where("status", "==", "failed").get();
     });
 
     const results = await Promise.all(allFailedPostsPromises);

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const usersSnapshot = await adminDb.collection("users").get();
-    
+
     if (usersSnapshot.empty) {
       console.log("[CRON_SYNC_ADS] Nenhum usuário encontrado no banco de dados.");
       return NextResponse.json({ success: true, message: "Nenhum usuário no sistema." });
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     for (const userDoc of usersSnapshot.docs) {
       const userId = userDoc.id;
-      
+
       // Buscar dados da conexão do usuário
       const metaConnDoc = await adminDb
         .collection("users")
@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
 
       if (adsSnapshot.empty) continue;
 
-      console.log(`[CRON_SYNC_ADS] Sincronizando ${adsSnapshot.size} campanhas ativas para o usuário: ${userId}`);
+      console.log(
+        `[CRON_SYNC_ADS] Sincronizando ${adsSnapshot.size} campanhas ativas para o usuário: ${userId}`
+      );
 
       for (const adDoc of adsSnapshot.docs) {
         const adData = adDoc.data();
@@ -71,7 +73,9 @@ export async function POST(request: NextRequest) {
 
             let actions = clicks;
             if (insight.actions) {
-              const linkClicksAction = insight.actions.find((act: any) => act.action_type === "link_click");
+              const linkClicksAction = insight.actions.find(
+                (act: any) => act.action_type === "link_click"
+              );
               if (linkClicksAction) {
                 actions = parseInt(linkClicksAction.value || "0");
               }
@@ -103,16 +107,18 @@ export async function POST(request: NextRequest) {
             totalSyncedCampaigns++;
           }
         } catch (adErr: any) {
-          console.error(`[CRON_SYNC_ADS] Erro ao sincronizar campanha ${metaCampaignId} de ${userId}:`, adErr.message);
+          console.error(
+            `[CRON_SYNC_ADS] Erro ao sincronizar campanha ${metaCampaignId} de ${userId}:`,
+            adErr.message
+          );
         }
       }
     }
 
     const summaryMsg = `[CRON_SYNC_ADS] Sincronização global concluída. Total de campanhas atualizadas: ${totalSyncedCampaigns}`;
     console.log(summaryMsg);
-    
-    return NextResponse.json({ success: true, message: summaryMsg });
 
+    return NextResponse.json({ success: true, message: summaryMsg });
   } catch (error: any) {
     console.error("[CRON_SYNC_ADS] Erro crítico no cron de sincronização:", error.message);
     return NextResponse.json(

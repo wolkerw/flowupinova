@@ -13,7 +13,9 @@ describe("Configuração de Metadados e SEO", () => {
         default: "NumVapt - Marketing com Inteligência Artificial",
         template: "%s | NumVapt",
       });
-      expect(layoutMetadata.description).toContain("plataforma definitiva para criação de conteúdo");
+      expect(layoutMetadata.description).toContain(
+        "plataforma definitiva para criação de conteúdo"
+      );
     });
 
     it("deve possuir palavras-chave e informações do autor configuradas", () => {

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade",
-  description: "Política de privacidade e proteção de dados pessoais dos usuários da plataforma NumVapt.",
+  description:
+    "Política de privacidade e proteção de dados pessoais dos usuários da plataforma NumVapt.",
 };
 
 export default function PrivacidadePage() {

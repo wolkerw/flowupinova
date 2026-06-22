@@ -4,36 +4,27 @@ import type { NextRequest } from "next/server";
 import { getDueScheduledPosts, updatePostStatus } from "@/lib/services/posts-service-admin";
 import type { PostData } from "@/lib/services/posts-service";
 import { FieldValue } from "firebase-admin/firestore";
-import { config } from "@/lib/config";
+import {
+  publishToFacebook,
+  publishToInstagram,
+  publishToGoogle,
+  publishToLinkedIn,
+} from "@/lib/services/publisher-service";
 
 /**
  * Tenta publicar um post em uma plataforma específica.
  */
 async function publishToPlatform(
-  platform: "instagram" | "facebook" | "google",
+  platform: "instagram" | "facebook" | "google" | "linkedin",
   post: PostData & { _parentPath?: string }
 ): Promise<string> {
   const isInstagram = platform === "instagram";
   const isFacebook = platform === "facebook";
-
-  // Usa a URL canônica definida no arquivo de configuração.
-  const baseUrl = config.aplicationURL;
-
-  let apiPath: string;
-  if (isInstagram) {
-    apiPath = "/api/instagram/v2/publish";
-  } else if (isFacebook) {
-    apiPath = "/api/facebook/publish";
-  } else {
-    apiPath = "/api/google/publish";
-  }
-  const requestUrl = new URL(apiPath, baseUrl);
+  const isGoogle = platform === "google";
 
   if (!post?.text) throw new Error(`Post sem texto (post.id=${post.id}).`);
   if (!post?.imageUrls || post.imageUrls.length === 0)
     throw new Error(`Post sem imageUrls (post.id=${post.id}).`);
-
-  let payload: any;
 
   if (isInstagram) {
     const accessToken = post.connections.igUserAccessToken;
@@ -43,17 +34,16 @@ async function publishToPlatform(
       throw new Error(`Conexão do Instagram incompleta para o post ${post.id}.`);
     }
 
-    payload = {
-      postData: {
-        text: post.text,
-        imageUrls: post.imageUrls,
-        isCarousel: post.isCarousel,
-        accessToken,
-        instagramId,
-      },
-    };
+    return publishToInstagram(
+      instagramId,
+      accessToken,
+      post.imageUrls,
+      post.isCarousel,
+      post.text,
+      post.collaborators,
+      post.userTags
+    );
   } else if (isFacebook) {
-    // Facebook
     const accessToken = post.connections.fbPageAccessToken;
     const pageId = post.connections.pageId;
 
@@ -61,76 +51,31 @@ async function publishToPlatform(
       throw new Error(`Conexão do Facebook incompleta para o post ${post.id}.`);
     }
 
-    // Facebook API for /photos doesn't support carousels directly, so we post the first image
     if (post.isCarousel) {
       console.warn(
         `[CRON_V2_WARN] Publicação em carrossel para Facebook não é suportada diretamente. Publicando a primeira imagem do post ${post.id}.`
       );
     }
 
-    payload = {
-      postData: {
-        text: post.text,
-        imageUrl: post.imageUrls[0],
-        metaConnection: {
-          accessToken,
-          pageId,
-        },
-      },
-    };
-  } else {
-    // Google Meu Negócio
+    const caption = post.text.slice(0, 2200);
+    return publishToFacebook(pageId, accessToken, post.imageUrls[0], caption);
+  } else if (isGoogle) {
     const userId = post._parentPath ? post._parentPath.split("/")[1] : "";
     if (!userId) {
       throw new Error(`Impossível identificar o proprietário do post (post.id=${post.id}).`);
     }
 
-    payload = {
-      postData: {
-        text: post.text,
-        imageUrl: post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls[0] : undefined,
-        userId,
-      },
-    };
-  }
-
-  console.log(
-    `[CRON_V2] Iniciando fetch para ${platform.toUpperCase()} em ${requestUrl.toString()}`
-  );
-
-  let response: Response;
-  try {
-    response = await fetch(requestUrl.toString(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (networkErr: any) {
-    console.error(`[CRON_V2] ERRO DE REDE ao chamar a API de ${platform}:`, networkErr?.message);
-    throw new Error(
-      `Falha de rede ao tentar publicar no ${platform}. Verifique se a API interna está acessível.`
-    );
-  }
-
-  const responseText = await response.text();
-  console.log(
-    `[CRON_V2] Resposta da API de ${platform}: status ${response.status}, corpo: ${responseText}`
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `A API de publicação de ${platform} retornou um erro: HTTP ${response.status} - ${responseText}`
-    );
-  }
-
-  try {
-    const resultJson = JSON.parse(responseText);
-    if (!resultJson.success) {
-      throw new Error(`A API de ${platform} retornou uma falha lógica: ${resultJson.error}`);
+    const imageUrl = post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls[0] : undefined;
+    return publishToGoogle(userId, post.text, imageUrl);
+  } else {
+    // LinkedIn
+    const userId = post._parentPath ? post._parentPath.split("/")[1] : "";
+    if (!userId) {
+      throw new Error(`Impossível identificar o proprietário do post (post.id=${post.id}).`);
     }
-    return resultJson.publishedMediaId;
-  } catch (e: any) {
-    throw new Error(`A resposta da API de ${platform} não era um JSON válido.`);
+
+    const imageUrl = post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls[0] : undefined;
+    return publishToLinkedIn(userId, post.text, imageUrl);
   }
 }
 

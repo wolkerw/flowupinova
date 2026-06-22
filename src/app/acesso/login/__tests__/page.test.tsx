@@ -30,7 +30,9 @@ describe("LoginPage", () => {
   it("renders email and password fields", () => {
     render(
       <AuthProvider>
-        <Tabs value="login"><LoginPage /></Tabs>
+        <Tabs value="login">
+          <LoginPage />
+        </Tabs>
       </AuthProvider>
     );
 

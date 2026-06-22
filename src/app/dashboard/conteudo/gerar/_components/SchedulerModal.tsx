@@ -37,7 +37,7 @@ export const SchedulerModal = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-md w-full rounded-xl bg-white shadow-2xl max-w-md"
+        className="max-md w-full max-w-md rounded-xl bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b p-6">
           <h3 className="flex items-center gap-2 text-xl font-bold">
@@ -57,11 +57,7 @@ export const SchedulerModal = ({
           />
         </div>
         <div className="flex justify-end gap-3 border-t bg-gray-50 p-6">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isPublishing}
-          >
+          <Button variant="outline" onClick={onClose} disabled={isPublishing}>
             Cancelar
           </Button>
           <Button

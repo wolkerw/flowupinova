@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
         if (nomRes.ok) {
           const nomData = await nomRes.json();
-          
+
           // Extração inteligente de número de rua se o usuário digitou (Ex: "Rua X, 2533")
           let extractedNumber = "";
           const numberMatch = q.match(/,\s*(\d+)/) || q.match(/\s+(\d+)$/);
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
             extractedNumber = numberMatch[1];
           }
 
-            const nomLocations = (nomData || [])
+          const nomLocations = (nomData || [])
             .filter((item: any) => item.type !== "postcode" && item.class !== "postcode")
             .map((item: any, index: number) => {
               const address = item.address || {};
@@ -137,11 +137,22 @@ export async function GET(request: NextRequest) {
               } else if (["road", "street"].includes(addrType)) {
                 ptType = "Rua/Avenida";
               } else {
-                if (address.country && !address.state && !address.city && !address.suburb && !address.road) {
+                if (
+                  address.country &&
+                  !address.state &&
+                  !address.city &&
+                  !address.suburb &&
+                  !address.road
+                ) {
                   ptType = "País";
                 } else if (address.state && !address.city && !address.suburb && !address.road) {
                   ptType = "Estado";
-                } else if (address.city || address.town || address.village || address.municipality) {
+                } else if (
+                  address.city ||
+                  address.town ||
+                  address.village ||
+                  address.municipality
+                ) {
                   if (!address.suburb && !address.road) {
                     ptType = "Cidade";
                   } else if (address.suburb && !address.road) {
@@ -159,7 +170,8 @@ export async function GET(request: NextRequest) {
               // Enriquecer visualmente o nome de estados para evitar confusão com cidades homônimas
               if (ptType === "Estado" && !displayName.includes("(Estado)")) {
                 const firstComma = displayName.indexOf(",");
-                const cleanStateName = firstComma !== -1 ? displayName.substring(0, firstComma) : displayName;
+                const cleanStateName =
+                  firstComma !== -1 ? displayName.substring(0, firstComma) : displayName;
                 displayName = `${cleanStateName} (Estado)`;
               }
 
@@ -183,12 +195,14 @@ export async function GET(request: NextRequest) {
                 region: address.state || "",
                 osmId: item.osm_id,
                 osmType: item.osm_type,
-                boundingBox: item.boundingbox ? [
-                  parseFloat(item.boundingbox[0]),
-                  parseFloat(item.boundingbox[1]),
-                  parseFloat(item.boundingbox[2]),
-                  parseFloat(item.boundingbox[3])
-                ] : undefined,
+                boundingBox: item.boundingbox
+                  ? [
+                      parseFloat(item.boundingbox[0]),
+                      parseFloat(item.boundingbox[1]),
+                      parseFloat(item.boundingbox[2]),
+                      parseFloat(item.boundingbox[3]),
+                    ]
+                  : undefined,
               };
             });
 
@@ -206,8 +220,11 @@ export async function GET(request: NextRequest) {
 
     for (const loc of locations) {
       // Normaliza o nome do local (ignora acentos, espaços, caixa e o sufixo (Estado))
-      const normalizedName = loc.name.toLowerCase().trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      const normalizedName = loc.name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(" (estado)", "");
       const uniqKey = `${normalizedName}_${loc.type}`;
 

@@ -202,7 +202,9 @@ export default function Dashboard() {
   const [instagramMetrics, setInstagramMetrics] = useState<PlatformMetrics | null>(null);
   const [facebookMetrics, setFacebookMetrics] = useState<PlatformMetrics | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [logoDimensions, setLogoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [logoDimensions, setLogoDimensions] = useState<{ width: number; height: number } | null>(
+    null
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [trialEnded, setTrialEnded] = useState(false);
   const [trialLoading, setTrialLoading] = useState(true);
@@ -323,7 +325,8 @@ export default function Dashboard() {
           }
 
           if (userData.plan === "trial") {
-            const createdAt = userData.createdAt?.toDate?.() || 
+            const createdAt =
+              userData.createdAt?.toDate?.() ||
               (userData.createdAt?.seconds ? new Date(userData.createdAt.seconds * 1000) : null);
             if (createdAt) {
               const trialEndDate = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -359,7 +362,7 @@ export default function Dashboard() {
       setInstagramConnection(instaConn);
       setBusinessProfile(profile);
       setGmbProfile(gmb);
-      
+
       if (metaConn.isConnected || instaConn.isConnected) {
         fetchPlatformMetrics(metaConn, instaConn);
       } else {
@@ -409,7 +412,23 @@ export default function Dashboard() {
             createdAt: msg.createdAt, // Preservar a data de criação original lida do Firestore
           }));
           setMessages(historyMessages);
+        } else {
+          // Usuário já usou o chat antes, mas sem conversas hoje. Exibe saudação amigável de retorno.
+          setMessages([
+            {
+              sender: "ai",
+              text: "Olá! Que prazer ter você aqui de novo. Como posso ajudar você a decolar hoje? ✨",
+            }
+          ]);
         }
+      } else {
+        // Primeiro acesso absoluto do usuário no chat. Exibe mensagem de boas-vindas introdutória.
+        setMessages([
+          {
+            sender: "ai",
+            text: "Olá! Sou o **Vapti**, e a partir de hoje serei o seu braço direito no marketing para decolar o seu negócio. Como posso ajudar você hoje? 🚀",
+          }
+        ]);
       }
     };
 
@@ -441,7 +460,7 @@ export default function Dashboard() {
     if (businessProfile?.logo?.url) {
       const width = businessProfile.logo.width || 0;
       const height = businessProfile.logo.height || 0;
-      
+
       if (width > 0 && height > 0) {
         setLogoDimensions({ width, height });
       } else {
@@ -450,7 +469,7 @@ export default function Dashboard() {
         img.onload = () => {
           const w = img.naturalWidth || img.width || 0;
           const h = img.naturalHeight || img.height || 0;
-          
+
           if (w > 0 && h > 0) {
             setLogoDimensions({ width: w, height: h });
             // Atualiza silenciosamente no Firestore para corrigir os dados do usuário legado para sempre!
@@ -460,11 +479,16 @@ export default function Dashboard() {
                   url: businessProfile.logo.url,
                   width: w,
                   height: h,
-                }
-              }).catch(err => console.error("Erro ao corrigir dimensões da logo no Firestore:", err));
+                },
+              }).catch((err) =>
+                console.error("Erro ao corrigir dimensões da logo no Firestore:", err)
+              );
             }
           } else {
-            console.warn("Autocorreção: Calculou dimensão como 0x0 para a imagem do onboarding:", businessProfile.logo.url.substring(0, 50));
+            console.warn(
+              "Autocorreção: Calculou dimensão como 0x0 para a imagem do onboarding:",
+              businessProfile.logo.url.substring(0, 50)
+            );
           }
         };
         img.onerror = (err: any) => {
@@ -475,7 +499,12 @@ export default function Dashboard() {
     } else {
       setLogoDimensions(null);
     }
-  }, [businessProfile?.logo?.url, businessProfile?.logo?.width, businessProfile?.logo?.height, user]);
+  }, [
+    businessProfile?.logo?.url,
+    businessProfile?.logo?.width,
+    businessProfile?.logo?.height,
+    user,
+  ]);
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || loading) return;
@@ -494,10 +523,10 @@ export default function Dashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: currentPrompt,
           history: currentHistory,
-          userId: user?.uid
+          userId: user?.uid,
         }),
       });
 
@@ -655,21 +684,21 @@ export default function Dashboard() {
             <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                  <Clock className="h-6 w-6 text-white animate-pulse" />
+                  <Clock className="h-6 w-6 animate-pulse text-white" />
                 </div>
                 <div className="space-y-1">
-                  <h2 className="text-lg font-bold">
-                    Comprovante de pagamento em análise! ⏳
-                  </h2>
-                  <p className="max-w-2xl text-xs md:text-sm text-white/90">
-                    Recebemos seu comprovante e nossa equipe está validando a transação. Sua assinatura PRO será ativada automaticamente em alguns minutos. Você receberá uma notificação assim que for aprovado.
+                  <h2 className="text-lg font-bold">Comprovante de pagamento em análise! ⏳</h2>
+                  <p className="max-w-2xl text-xs text-white/90 md:text-sm">
+                    Recebemos seu comprovante e nossa equipe está validando a transação. Sua
+                    assinatura PRO será ativada automaticamente em alguns minutos. Você receberá uma
+                    notificação assim que for aprovado.
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center">
                 <Button
                   variant="outline"
-                  className="w-full md:w-auto border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold"
+                  className="w-full border-white/40 bg-white/10 font-bold text-white hover:bg-white/20 md:w-auto"
                   onClick={() => setIsSubModalOpen(true)}
                 >
                   Ver Comprovante / Detalhes
@@ -930,7 +959,10 @@ export default function Dashboard() {
                             <div>
                               <h5 className="font-semibold text-green-800">Logomarca Salva!</h5>
                               <p className="text-xs text-green-700">
-                                Dimensões: {logoDimensions ? `${logoDimensions.width}x${logoDimensions.height}` : "Calculando..."}
+                                Dimensões:{" "}
+                                {logoDimensions
+                                  ? `${logoDimensions.width}x${logoDimensions.height}`
+                                  : "Calculando..."}
                               </p>
                             </div>
                           </div>

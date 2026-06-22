@@ -83,10 +83,12 @@ export default function AdminLogsPage() {
             <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
             <div>
               <p className="text-sm font-semibold text-red-300">
-                {failedPosts.length} post{failedPosts.length > 1 ? "s" : ""} com falha encontrado{failedPosts.length > 1 ? "s" : ""}
+                {failedPosts.length} post{failedPosts.length > 1 ? "s" : ""} com falha encontrado
+                {failedPosts.length > 1 ? "s" : ""}
               </p>
               <p className="mt-0.5 text-xs text-red-400/80">
-                Verifique os motivos abaixo e entre em contato com os usuários afetados se necessário.
+                Verifique os motivos abaixo e entre em contato com os usuários afetados se
+                necessário.
               </p>
             </div>
           </>

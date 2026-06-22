@@ -167,9 +167,7 @@ export default function AdminConfiguracoesPage() {
                   <input
                     type="url"
                     value={settings[key]}
-                    onChange={(e) =>
-                      setSettings((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
+                    onChange={(e) => setSettings((prev) => ({ ...prev, [key]: e.target.value }))}
                     className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-200 focus:border-violet-500 focus:outline-none"
                     placeholder="https://..."
                   />

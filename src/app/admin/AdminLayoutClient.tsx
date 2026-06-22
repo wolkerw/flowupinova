@@ -175,9 +175,7 @@ export default function AdminLayoutClient({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto bg-slate-950 p-6">{children}</main>
       </div>
     </div>
   );

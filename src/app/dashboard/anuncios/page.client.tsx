@@ -51,6 +51,15 @@ import type { BusinessProfileData } from "@/lib/services/business-profile-servic
 import { getScheduledPosts } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection } from "@/lib/services/meta-service";
 import {
+  getGoogleAdsConnection,
+  updateGoogleAdsConnection,
+  type GoogleAdsConnectionData,
+} from "@/lib/services/google-ads-service";
+import {
+  getGoogleAdsCampaigns,
+  updateGoogleAdsCampaignStatus,
+} from "@/lib/services/google-ads-service-admin";
+import {
   createAdCampaign,
   getUserAdCampaigns,
   updateAdCampaignStatus,
@@ -108,17 +117,19 @@ function SearchableSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-800 shadow-sm hover:bg-slate-50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200"
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-800 shadow-sm transition-all duration-200 hover:bg-slate-50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       >
         <span className="truncate font-medium text-slate-700">
           {selectedOption ? selectedOption.name : placeholder}
         </span>
-        <ChevronDown className={`h-4 w-4 text-slate-500 shrink-0 ml-2 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1.5 max-h-64 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
+        <div className="absolute z-50 mt-1.5 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl duration-200 animate-in fade-in slide-in-from-top-1">
+          <div className="shrink-0 border-b border-slate-100 bg-slate-50 p-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <input
@@ -131,9 +142,9 @@ function SearchableSelect({
               />
             </div>
           </div>
-          <div className="overflow-y-auto max-h-48 py-1 scrollbar-thin">
+          <div className="scrollbar-thin max-h-48 overflow-y-auto py-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500 text-center italic">
+              <div className="px-3 py-3 text-center text-xs italic text-slate-500">
                 {emptyMessage}
               </div>
             ) : (
@@ -147,15 +158,17 @@ function SearchableSelect({
                       onChange(opt.id);
                       setIsOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors ${
-                      isSelected ? "bg-primary/5 text-primary font-semibold" : "text-slate-700"
+                    className={`flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs transition-colors hover:bg-slate-50 ${
+                      isSelected ? "bg-primary/5 font-semibold text-primary" : "text-slate-700"
                     }`}
                   >
                     <div className="flex flex-col truncate pr-2">
                       <span className="truncate">{opt.name}</span>
-                      <span className="text-[10px] text-slate-400 font-normal mt-0.5">ID: {opt.id}</span>
+                      <span className="mt-0.5 text-[10px] font-normal text-slate-400">
+                        ID: {opt.id}
+                      </span>
                     </div>
-                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0 ml-1" />}
+                    {isSelected && <Check className="ml-1 h-4 w-4 shrink-0 text-primary" />}
                   </button>
                 );
               })
@@ -197,7 +210,9 @@ const DEFAULT_PRESETS = [
 ];
 
 const getCategoryPresets = (category?: string) => {
-  const cat = String(category || "").toLowerCase().trim();
+  const cat = String(category || "")
+    .toLowerCase()
+    .trim();
   if (cat.includes("alimento") || cat.includes("restaurante") || cat.includes("comida")) {
     return CATEGORY_PRESETS.alimentacao;
   }
@@ -225,7 +240,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [activeDashboardTab, setActiveDashboardTab] = useState<"active" | "history">("active");
   const [loading, setLoading] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(initialProfile);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(
+    initialProfile
+  );
   const [adAccountId, setAdAccountId] = useState<string>("");
   const [adAccountName, setAdAccountName] = useState<string>("");
 
@@ -244,6 +261,29 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
 
+  // Conexão Google Ads Pago
+  const [googleAdsConnection, setGoogleAdsConnection] = useState<GoogleAdsConnectionData>({
+    isConnected: false,
+  });
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [googleAccounts, setGoogleAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  const [isGoogleAccountModalOpen, setIsGoogleAccountModalOpen] = useState(false);
+  const [googleCampaigns, setGoogleCampaigns] = useState<any[]>([]);
+  const [activePlatformTab, setActivePlatformTab] = useState<"meta" | "google">("meta");
+  const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false);
+
+  // Estados do Wizard do Google Ads
+  const [isCreatingGoogleAd, setIsCreatingGoogleAd] = useState(false);
+  const [googleHeadline1, setGoogleHeadline1] = useState("");
+  const [googleHeadline2, setGoogleHeadline2] = useState("");
+  const [googleHeadline3, setGoogleHeadline3] = useState("");
+  const [googleDescription1, setGoogleDescription1] = useState("");
+  const [googleDescription2, setGoogleDescription2] = useState("");
+  const [googleKeywordsText, setGoogleKeywordsText] = useState("");
+  const [googleDailyBudget, setGoogleDailyBudget] = useState(15);
+  const [googleDurationDays, setGoogleDurationDays] = useState(7);
+  const [googleAdName, setGoogleAdName] = useState("");
+
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -259,7 +299,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [headline, setHeadline] = useState("");
   const [bodyText, setBodyText] = useState("");
   const [ctaType, setCtaType] = useState<any>("WHATSAPP");
-  const [platforms, setPlatforms] = useState<Array<"instagram" | "facebook">>(["instagram", "facebook"]);
+  const [platforms, setPlatforms] = useState<Array<"instagram" | "facebook">>([
+    "instagram",
+    "facebook",
+  ]);
   const [radius, setRadius] = useState<number>(5);
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 55]);
   const [gender, setGender] = useState<"all" | "male" | "female">("all");
@@ -267,7 +310,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [duration, setDuration] = useState<number>(7);
   const [addressInput, setAddressInput] = useState("");
   const [customDestination, setCustomDestination] = useState("");
-  const [campaignObjective, setCampaignObjective] = useState<"REACH" | "TRAFFIC" | "WHATSAPP">("REACH");
+  const [campaignObjective, setCampaignObjective] = useState<"REACH" | "TRAFFIC" | "WHATSAPP">(
+    "REACH"
+  );
   const [isCheckingWhatsApp, setIsCheckingWhatsApp] = useState(false);
   const [hasWhatsAppConnected, setHasWhatsAppConnected] = useState<boolean | null>(null);
   const [whatsAppPageId, setWhatsAppPageId] = useState("");
@@ -289,7 +334,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [billingGuideStep, setBillingGuideStep] = useState(1);
 
   // Estados para Interesses e Público
-  const [selectedInterests, setSelectedInterests] = useState<Array<{ id: string; name: string; type?: string }>>([]);
+  const [selectedInterests, setSelectedInterests] = useState<
+    Array<{ id: string; name: string; type?: string }>
+  >([]);
   const [interestsSearchQuery, setInterestsSearchQuery] = useState("");
   const [searchedInterests, setSearchedInterests] = useState<any[]>([]);
   const [isLoadingInterests, setIsLoadingInterests] = useState(false);
@@ -299,7 +346,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const isDuplicate = prev.some(
         (l) =>
           (l.key && l.key === newLoc.key && l.key !== "") ||
-          (typeof l.latitude === "number" && l.latitude === newLoc.latitude && l.longitude === newLoc.longitude)
+          (typeof l.latitude === "number" &&
+            l.latitude === newLoc.latitude &&
+            l.longitude === newLoc.longitude)
       );
       if (isDuplicate) return prev;
       return [...prev, newLoc];
@@ -324,14 +373,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       try {
         const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(val)}`);
         const data = await res.json();
-        let suggestions = data.success ? (data.locations || []) : [];
+        let suggestions = data.success ? data.locations || [] : [];
 
         // Fallback Client-side Nominatim if server returned few or no results
         if (suggestions.length === 0) {
           try {
             const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val.toLowerCase().includes("brasil") || val.toLowerCase().includes("brazil") ? val : val + ", Brasil")}&format=json&limit=5&countrycodes=br&addressdetails=1`;
             const nomRes = await fetch(nomUrl, {
-              headers: { "Accept-Language": "pt-BR,pt;q=0.9" }
+              headers: { "Accept-Language": "pt-BR,pt;q=0.9" },
             });
             if (nomRes.ok) {
               const nomData = await nomRes.json();
@@ -339,10 +388,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 .filter((item: any) => item.type !== "postcode" && item.class !== "postcode")
                 .map((item: any, index: number) => {
                   const address = item.address || {};
-                  let displayName = item.display_name.replace(", Brasil", "").replace(", Brazil", "");
+                  let displayName = item.display_name
+                    .replace(", Brasil", "")
+                    .replace(", Brazil", "");
                   let ptType = "Endereço";
-                  if (address.country && !address.state && !address.city && !address.suburb && !address.road) ptType = "País";
-                  else if (address.state && !address.city && !address.suburb && !address.road) ptType = "Estado";
+                  if (
+                    address.country &&
+                    !address.state &&
+                    !address.city &&
+                    !address.suburb &&
+                    !address.road
+                  )
+                    ptType = "País";
+                  else if (address.state && !address.city && !address.suburb && !address.road)
+                    ptType = "Estado";
                   else if (address.city || address.town || address.village) {
                     if (!address.suburb && !address.road) ptType = "Cidade";
                     else if (address.suburb && !address.road) ptType = "Bairro";
@@ -356,12 +415,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     latitude: parseFloat(item.lat),
                     longitude: parseFloat(item.lon),
                     region: address.state || "",
-                    boundingBox: item.boundingbox ? [
-                      parseFloat(item.boundingbox[0]),
-                      parseFloat(item.boundingbox[1]),
-                      parseFloat(item.boundingbox[2]),
-                      parseFloat(item.boundingbox[3])
-                    ] : undefined,
+                    boundingBox: item.boundingbox
+                      ? [
+                          parseFloat(item.boundingbox[0]),
+                          parseFloat(item.boundingbox[1]),
+                          parseFloat(item.boundingbox[2]),
+                          parseFloat(item.boundingbox[3]),
+                        ]
+                      : undefined,
                   };
                 });
               suggestions = [...suggestions, ...nomSuggestions];
@@ -451,20 +512,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     if (currentStep === 3 && selectedLocations.length === 0 && businessProfile?.address) {
       const geocodeProfileAddress = async () => {
         try {
-          const res = await fetch(`/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`);
+          const res = await fetch(
+            `/api/ads/locations?q=${encodeURIComponent(businessProfile.address)}`
+          );
           if (res.ok) {
             const data = await res.json();
             if (data.locations && data.locations.length > 0) {
               const loc = data.locations[0];
-              setSelectedLocations([{
-                name: loc.name,
-                type: loc.type,
-                key: loc.key || "",
-                latitude: loc.latitude,
-                longitude: loc.longitude,
-                boundingBox: loc.boundingBox || null,
-                geoJson: null
-              }]);
+              setSelectedLocations([
+                {
+                  name: loc.name,
+                  type: loc.type,
+                  key: loc.key || "",
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  boundingBox: loc.boundingBox || null,
+                  geoJson: null,
+                },
+              ]);
               setAddressInput("");
             }
           }
@@ -522,8 +587,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 color: "#0284c7",
                 fillColor: "#0284c7",
                 fillOpacity: 0.15,
-                weight: 2
-              }
+                weight: 2,
+              },
             }).addTo(map);
             mapLayersRef.current.push(geoJsonLayer);
             bounds.extend(geoJsonLayer.getBounds());
@@ -531,13 +596,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           } else if (loc.boundingBox) {
             const b = [
               [loc.boundingBox[0], loc.boundingBox[2]],
-              [loc.boundingBox[1], loc.boundingBox[3]]
+              [loc.boundingBox[1], loc.boundingBox[3]],
             ];
             const rect = L.rectangle(b, {
               color: "#0284c7",
               fillColor: "#0284c7",
               fillOpacity: 0.2,
-              weight: 2
+              weight: 2,
             }).addTo(map);
             mapLayersRef.current.push(rect);
             bounds.extend(b);
@@ -548,7 +613,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             const latLng = new L.LatLng(loc.latitude, loc.longitude);
             const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0284c7" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
             const customPinIcon = L.icon({
-              iconUrl: 'data:image/svg+xml;base64,' + btoa(pinSvg),
+              iconUrl: "data:image/svg+xml;base64," + btoa(pinSvg),
               iconSize: [36, 36],
               iconAnchor: [18, 36],
             });
@@ -663,6 +728,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       } else {
         setCampaigns([]);
       }
+
+      // Buscar conexão do Google Ads
+      const googleAdsConn = await getGoogleAdsConnection(userId);
+      setGoogleAdsConnection(googleAdsConn);
+      if (googleAdsConn.isConnected && googleAdsConn.adAccountId) {
+        const googleCampaignsResult = await getGoogleAdsCampaigns(
+          userId,
+          googleAdsConn.adAccountId
+        );
+        setGoogleCampaigns(googleCampaignsResult || []);
+      } else {
+        setGoogleCampaigns([]);
+      }
     } catch (err) {
       console.error("Erro ao carregar dados da página:", err);
       toast({
@@ -685,7 +763,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
     const origin = window.location.origin;
     const redirectUri = `${origin}/dashboard/anuncios`;
-    
+
     let authUrl = "";
     if (configId) {
       // Usando Facebook Login para Empresas com ID de Configuração
@@ -700,11 +778,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         "pages_show_list",
         "business_management",
         "ads_management",
-        "ads_read"
+        "ads_read",
       ].join(",");
       authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${scope}&response_type=code`;
     }
-    
+
     window.location.href = authUrl;
   };
 
@@ -721,10 +799,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       const tokenResponse = await fetch("/api/meta/callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          code, 
+        body: JSON.stringify({
+          code,
           origin: `${window.location.origin}/dashboard/anuncios`,
-          redirectUri: `${window.location.origin}/dashboard/anuncios`
+          redirectUri: `${window.location.origin}/dashboard/anuncios`,
         }),
       });
       const tokenResult = await tokenResponse.json();
@@ -764,7 +842,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       // Abrir o Modal Unificado de Configuração
       setIsSetupModalOpen(true);
-
     } catch (err: any) {
       console.error("Erro na conexão Meta Ads:", err);
       toast({
@@ -815,7 +892,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       setIsSetupModalOpen(false);
       fetchData();
-
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -845,7 +921,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           toast({
             variant: "destructive",
             title: "Nenhuma conta de anúncios encontrada",
-            description: "Certifique-se de que concluiu a criação da conta na Meta antes de tentar atualizar.",
+            description:
+              "Certifique-se de que concluiu a criação da conta na Meta antes de tentar atualizar.",
           });
         }
       } else {
@@ -865,7 +942,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   const handleDisconnectMetaAds = async () => {
     if (!user) return;
-    if (confirm("Tem certeza que deseja desconectar a conta de anúncios da Meta? Isso removerá a visualização das métricas.")) {
+    if (
+      confirm(
+        "Tem certeza que deseja desconectar a conta de anúncios da Meta? Isso removerá a visualização das métricas."
+      )
+    ) {
       await updateMetaConnection(user.uid, { isConnected: false });
       setAdAccountId("");
       setAdAccountName("");
@@ -875,13 +956,216 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   };
 
+  // Conexão Google Ads
+  const handleConnectGoogleAds = () => {
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      "569130702994-a9gjs7gopkquehcui77s58umbdrupql5.apps.googleusercontent.com";
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/dashboard/anuncios`;
+
+    const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    googleAuthUrl.searchParams.append("client_id", clientId);
+    googleAuthUrl.searchParams.append("redirect_uri", redirectUri);
+    googleAuthUrl.searchParams.append("response_type", "code");
+    googleAuthUrl.searchParams.append("scope", "https://www.googleapis.com/auth/adwords");
+    googleAuthUrl.searchParams.append("access_type", "offline");
+    googleAuthUrl.searchParams.append("prompt", "consent");
+    googleAuthUrl.searchParams.append("state", `google_ads:${user?.uid}`);
+
+    window.location.href = googleAuthUrl.toString();
+  };
+
+  const runGoogleAdsConnectionFlow = async (code: string, state: string) => {
+    if (!user) return;
+    setIsConnectingGoogle(true);
+    try {
+      toast({
+        title: "Autenticando com o Google",
+        description: "Buscando contas de anúncios qualificadas.",
+      });
+
+      const response = await fetch("/api/google-ads/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          state,
+          origin: window.location.origin,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Erro desconhecido ao conectar com Google Ads.");
+      }
+
+      if (result.accounts && result.accounts.length > 0) {
+        setGoogleAccounts(result.accounts);
+        if (result.accounts.length === 1) {
+          await handleSelectGoogleAdsAccount(result.accounts[0].id, result.accounts[0].name);
+        } else {
+          setIsGoogleAccountModalOpen(true);
+        }
+      } else {
+        throw new Error("Nenhuma conta de anúncios vinculada a este perfil Google.");
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Falha de Conexão",
+        description: err.message,
+      });
+    } finally {
+      setIsConnectingGoogle(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  const handleSelectGoogleAdsAccount = async (accountId: string, accountName: string) => {
+    if (!user) return;
+    try {
+      await updateGoogleAdsConnection(user.uid, {
+        isConnected: true,
+        adAccountId: accountId,
+        adAccountName: accountName,
+      });
+      toast({
+        title: "Conectado!",
+        description: `Sua conta "${accountName}" foi associada com sucesso.`,
+      });
+      setIsGoogleAccountModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Selecionar Conta",
+        description: err.message,
+      });
+    }
+  };
+
+  const handleDisconnectGoogleAds = async () => {
+    if (!user) return;
+    if (
+      confirm(
+        "Tem certeza que deseja desconectar o Google Ads? Isso ocultará o painel de campanhas locais."
+      )
+    ) {
+      await updateGoogleAdsConnection(user.uid, { isConnected: false });
+      setGoogleCampaigns([]);
+      setGoogleAdsConnection({ isConnected: false });
+      fetchData();
+      toast({ title: "Desconectado", description: "A integração com o Google Ads foi removida." });
+    }
+  };
+
+  const handlePublishGoogleCampaign = async () => {
+    if (!user || !googleAdsConnection.adAccountId) return;
+    setIsSubmittingGoogle(true);
+    try {
+      const keywords = googleKeywordsText
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+
+      const response = await fetch("/api/google-ads/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          customerId: googleAdsConnection.adAccountId,
+          name: googleAdName,
+          dailyBudget: googleDailyBudget,
+          durationDays: googleDurationDays,
+          headline1: googleHeadline1,
+          headline2: googleHeadline2,
+          headline3: googleHeadline3,
+          description1: googleDescription1,
+          description2: googleDescription2,
+          keywords,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Falha ao publicar anúncio no Google Ads.");
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Sua campanha foi publicada com sucesso no Google Ads.",
+      });
+
+      setIsCreatingGoogleAd(false);
+      // Limpa formulário
+      setGoogleAdName("");
+      setGoogleHeadline1("");
+      setGoogleHeadline2("");
+      setGoogleHeadline3("");
+      setGoogleDescription1("");
+      setGoogleDescription2("");
+      setGoogleKeywordsText("");
+
+      fetchData();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Publicar Campanha",
+        description: err.message,
+      });
+    } finally {
+      setIsSubmittingGoogle(false);
+    }
+  };
+
+  const handleToggleGoogleStatus = async (campaign: any) => {
+    if (!user || !googleAdsConnection.adAccountId || !campaign.id) return;
+    const originalStatus = campaign.status;
+    const newStatus = originalStatus === "active" ? "PAUSED" : "ENABLED";
+    try {
+      toast({
+        title: "Atualizando status...",
+        description: "Enviando alteração para o Google Ads.",
+      });
+
+      const success = await updateGoogleAdsCampaignStatus(
+        user.uid,
+        googleAdsConnection.adAccountId,
+        campaign.id,
+        newStatus
+      );
+
+      if (success && (success as any).success) {
+        toast({
+          title: "Status Atualizado",
+          description: `A campanha foi ${newStatus === "ENABLED" ? "ativada" : "pausada"} no Google Ads.`,
+        });
+        fetchData();
+      } else {
+        throw new Error((success as any).error || "Falha ao sincronizar status.");
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Atualizar",
+        description: err.message,
+      });
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined" && user) {
       const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get("code");
+      const state = searchParams.get("state");
       if (code && !effectRan.current) {
         effectRan.current = true;
-        runMetaAdsConnectionFlow(code);
+        if (state && state.startsWith("google_ads:")) {
+          runGoogleAdsConnectionFlow(code, state);
+        } else {
+          runMetaAdsConnectionFlow(code);
+        }
       }
     }
   }, [user]);
@@ -924,20 +1208,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       toast({
         variant: "destructive",
         title: "Limite de interesses atingido",
-        description: "Você pode selecionar no máximo 5 interesses para manter o público qualificado."
+        description:
+          "Você pode selecionar no máximo 5 interesses para manter o público qualificado.",
       });
       return;
     }
-    if (selectedInterests.some(i => i.id === interest.id)) {
+    if (selectedInterests.some((i) => i.id === interest.id)) {
       return;
     }
-    setSelectedInterests(prev => [...prev, interest]);
+    setSelectedInterests((prev) => [...prev, interest]);
     setInterestsSearchQuery("");
     setSearchedInterests([]);
   };
 
   const removeInterest = (id: string) => {
-    setSelectedInterests(prev => prev.filter(i => i.id !== id));
+    setSelectedInterests((prev) => prev.filter((i) => i.id !== id));
   };
 
   // Função para chamar o Ad Copilot (Gemini)
@@ -1001,7 +1286,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       toast({
         variant: "destructive",
         title: "Conta de Anúncios Requerida",
-        description: "Selecione uma conta de anúncios ativa nas configurações antes de ativar o anúncio.",
+        description:
+          "Selecione uma conta de anúncios ativa nas configurações antes de ativar o anúncio.",
       });
       return;
     }
@@ -1010,7 +1296,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
     try {
       // Nomenclatura dinâmica automática baseada no início da descrição se o nome estiver vazio
-      const finalAdName = adName || (bodyText ? (bodyText.length > 25 ? `${bodyText.substring(0, 25)}...` : bodyText) : "Impulsionamento Rápido Meta");
+      const finalAdName =
+        adName ||
+        (bodyText
+          ? bodyText.length > 25
+            ? `${bodyText.substring(0, 25)}...`
+            : bodyText
+          : "Impulsionamento Rápido Meta");
 
       // Mapeia e prepara o link de destino e tipo de CTA para compatibilidade total Meta Ads
       let backendCtaType = "NONE";
@@ -1051,19 +1343,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           },
           durationDays: duration,
           targeting: {
-            address: selectedLocations.map(l => l.name).join(", ") || "Centro Comercial Local",
+            address: selectedLocations.map((l) => l.name).join(", ") || "Centro Comercial Local",
             radiusKm: radius,
             ageMin: ageRange[0],
             ageMax: ageRange[1],
             gender,
-            interests: selectedInterests.map(i => ({ id: i.id, name: i.name, type: i.type || "" })),
-            locations: selectedLocations.map(l => ({
+            interests: selectedInterests.map((i) => ({
+              id: i.id,
+              name: i.name,
+              type: i.type || "",
+            })),
+            locations: selectedLocations.map((l) => ({
               name: l.name,
               type: l.type,
               key: l.key,
               latitude: l.latitude || null,
-              longitude: l.longitude || null
-            }))
+              longitude: l.longitude || null,
+            })),
           },
         }),
       });
@@ -1099,19 +1395,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         startDate: Timestamp.now(),
         endDate: Timestamp.fromMillis(Date.now() + duration * 24 * 60 * 60 * 1000),
         targeting: {
-          address: selectedLocations.map(l => l.name).join(", ") || "Centro Comercial Local",
+          address: selectedLocations.map((l) => l.name).join(", ") || "Centro Comercial Local",
           radiusKm: radius,
           ageMin: ageRange[0],
           ageMax: ageRange[1],
           gender,
-          interests: selectedInterests.map(i => ({ id: i.id, name: i.name, type: i.type || "" })),
-          locations: selectedLocations.map(l => ({
+          interests: selectedInterests.map((i) => ({ id: i.id, name: i.name, type: i.type || "" })),
+          locations: selectedLocations.map((l) => ({
             name: l.name,
             type: l.type,
             key: l.key,
             latitude: l.latitude || null,
-            longitude: l.longitude || null
-          }))
+            longitude: l.longitude || null,
+          })),
         },
         metrics: {
           impressions: 0,
@@ -1138,7 +1434,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       toast({
         variant: "destructive",
         title: "Erro ao Publicar na Meta",
-        description: err.message || "Não conseguimos enviar os criativos para a Meta. Tente novamente.",
+        description:
+          err.message || "Não conseguimos enviar os criativos para a Meta. Tente novamente.",
       });
     } finally {
       setIsSubmitting(false);
@@ -1181,11 +1478,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   // Exclui a campanha de anúncio na Meta e no Firestore
   const handleDeleteCampaign = async (campaign: AdCampaignData) => {
     if (!user || !campaign.metaCampaignId) return;
-    if (confirm("Tem certeza que deseja remover esta campanha de anúncio da Meta e do seu histórico?")) {
+    if (
+      confirm("Tem certeza que deseja remover esta campanha de anúncio da Meta e do seu histórico?")
+    ) {
       try {
-        const res = await fetch(`/api/ads/campaigns?campaignId=${campaign.id}&metaCampaignId=${campaign.metaCampaignId}`, {
-          method: "DELETE",
-        });
+        const res = await fetch(
+          `/api/ads/campaigns?campaignId=${campaign.id}&metaCampaignId=${campaign.metaCampaignId}`,
+          {
+            method: "DELETE",
+          }
+        );
         const data = await res.json();
         if (data.success) {
           toast({
@@ -1220,7 +1522,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       pending_payment: { label: "Aguardando", color: "bg-orange-500 text-white" },
     };
     const c = configs[status] || { label: status, color: "bg-slate-500 text-white" };
-    return <Badge className={`${c.color} border-none font-semibold px-2 py-0.5`}>{c.label}</Badge>;
+    return <Badge className={`${c.color} border-none px-2 py-0.5 font-semibold`}>{c.label}</Badge>;
   };
 
   // Nome abreviado do avatar fallback
@@ -1243,172 +1545,170 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     };
     return ctas[cta] || "Saiba Mais";
   };
+  const isMetaActive = !!(metaConnection.isConnected && metaConnection.adAccountId);
+  const isGoogleActive = !!(googleAdsConnection.isConnected && googleAdsConnection.adAccountId);
+  const isAnyActive = isMetaActive || isGoogleActive;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl font-sans text-slate-800">
+    <div className="container mx-auto max-w-7xl p-6 font-sans text-slate-800">
       {/* HEADER PRINCIPAL */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          {metaConnection.isConnected && metaConnection.adAccountId ? (
-            <>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
-                <Megaphone className="h-8 w-8 text-primary" />
-                Seus Impulsionamentos
-              </h1>
-              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
-                Gerencie anúncios locais e acompanhe seus resultados reais no Instagram e Facebook.
-              </p>
-              <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-3xl text-left">
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* Informação da Conta */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                      <Megaphone className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Conta de Anúncios</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-0.5">
-                        {adAccountName}
-                      </span>
-                    </div>
-                  </div>
+      <div className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-100 pb-6 md:flex-row md:items-center">
+        <div className="max-w-3xl text-left">
+          <h1 className="font-poppins flex items-center gap-2.5 text-2xl font-extrabold tracking-tight text-slate-900">
+            <Megaphone className="h-7 w-7 text-primary" />
+            Central de Anúncios Locais
+          </h1>
+          <p className="font-inter mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
+            Atraia novos clientes para o seu negócio impulsionando publicações no Instagram/Facebook
+            ou aparecendo no topo das buscas do Google.
+          </p>
 
-                  {/* Divisor vertical no desktop */}
-                  <div className="hidden sm:block h-8 w-px bg-slate-200"></div>
-
-                  {/* Informação de Cobrança */}
-                  {billingStatus && (
-                    <button 
-                      onClick={() => {
-                        setBillingGuideActive(false);
-                        setIsBillingModalOpen(true);
-                      }}
-                      className="group flex items-center gap-3 text-left transition-all active:scale-98 duration-100"
-                    >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1
-                          ? "bg-green-50 text-green-600 border border-green-200/20"
-                          : "bg-amber-50 text-amber-600 border border-amber-200/20"
-                      }`}>
-                        <CreditCard className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                          Status Financeiro
-                          <Settings className="h-3 w-3 opacity-60 group-hover:rotate-45 transition-transform duration-200" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-700 block mt-0.5 flex items-center gap-1.5 font-inter">
-                          <span className="relative flex h-1.5 w-1.5">
-                            {!(billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1) && (
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            )}
-                            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
-                              billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1 ? "bg-green-500" : "bg-amber-500"
-                            }`}></span>
-                          </span>
-                          {billingStatus.hasPaymentMethod 
-                            ? (billingStatus.isPrepaid && billingStatus.balance > 0 
-                                ? `Saldo R$ ${billingStatus.balance.toFixed(2)}` 
-                                : `Ativa (${billingStatus.fundingSourceDetails?.display_string || "Cartão"})`) 
-                            : "Pendente"}
-                        </span>
-                      </div>
-                    </button>
-                  )}
-                </div>
-
+          {/* Status compactos de conexões */}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {isMetaActive ? (
+              <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#1877F2]">
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
+                <span>Meta Ads Conectado: </span>
+                <span className="font-inter font-semibold text-slate-600">{adAccountName}</span>
                 <button
                   onClick={handleDisconnectMetaAds}
-                  className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted"
+                  className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
+                  title="Desconectar conta da Meta"
                 >
-                  Desconectar Conta
+                  (desconectar)
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
-                <Megaphone className="h-8 w-8 text-primary" />
-                Anúncios Pagos (Meta Ads)
-              </h1>
-              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
-                Atraia clientes ideais na sua vizinhança! Impulsione suas melhores publicações no Instagram e Facebook de forma descomplicada, inteligente e sem jargões complexos.
-              </p>
-            </>
-          )}
+            ) : (
+              <button
+                onClick={handleConnectMetaAds}
+                className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                🔌 Conectar Meta Ads
+              </button>
+            )}
+
+            {isGoogleActive ? (
+              <div className="shadow-2xs inline-flex items-center gap-2 rounded-xl border border-blue-100/50 bg-blue-50/50 px-3 py-1.5 text-xs font-bold text-[#4285F4]">
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500"></span>
+                <span>Google Ads Conectado: </span>
+                <span className="font-inter font-semibold text-slate-600">
+                  {googleAdsConnection.adAccountName || "Conta Local"}
+                </span>
+                <button
+                  onClick={handleDisconnectGoogleAds}
+                  className="font-inter ml-1.5 text-[10px] font-semibold text-slate-400 underline decoration-dotted transition-colors hover:text-red-500"
+                  title="Desconectar conta do Google"
+                >
+                  (desconectar)
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnectGoogleAds}
+                className="shadow-2xs inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                🔌 Conectar Google Ads
+              </button>
+            )}
+          </div>
         </div>
-        {!isCreating &&
-          metaConnection.isConnected &&
-          metaConnection.adAccountId &&
-          publishedPosts.length > 0 &&
-          (campaigns.filter((c) => c.status === "active").length > 0 || activeDashboardTab === "history") && (
-            <Button
-              onClick={() => setIsChoosePostModalOpen(true)}
-              className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95 shrink-0"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Impulsionar Post
-            </Button>
-          )}
+
+        {/* Botão de Ação Primária da Plataforma Ativa */}
+        {!isCreating && (
+          <div className="shrink-0 self-start md:self-center">
+            {activePlatformTab === "meta" && isMetaActive && publishedPosts.length > 0 && (
+              <Button
+                onClick={() => setIsChoosePostModalOpen(true)}
+                className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-xs font-bold text-white shadow-sm transition-transform duration-200 hover:bg-primary/95 active:scale-95"
+              >
+                <Sparkles className="h-4 w-4" />
+                Impulsionar Publicação
+              </Button>
+            )}
+            {activePlatformTab === "google" && isGoogleActive && (
+              <Button
+                onClick={() => setIsCreatingGoogleAd(true)}
+                className="font-poppins flex items-center gap-2 rounded-lg bg-[#4285F4] px-5 py-3 text-xs font-bold text-white shadow-sm transition-transform duration-200 hover:bg-[#4285F4]/95 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                Criar Anúncio Google
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* BANNER DE PREVENÇÃO DE COBRANÇA PENDENTE */}
-      {!isCreating && metaConnection.isConnected && metaConnection.adAccountId && billingStatus && !billingStatus.hasPaymentMethod && (
-        <div className="mb-6 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-start gap-3 text-left">
-            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <h5 className="text-xs font-bold text-slate-900 font-poppins">Forma de pagamento pendente</h5>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                Você precisa configurar uma forma de faturamento (cartão, Pix ou boleto) na Meta para ativar novos anúncios. Seus anúncios atuais podem ser pausados se não houver saldo.
-              </p>
+      {!isCreating &&
+        metaConnection.isConnected &&
+        metaConnection.adAccountId &&
+        billingStatus &&
+        !billingStatus.hasPaymentMethod && (
+          <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 duration-300 animate-in fade-in slide-in-from-top-2 md:flex-row md:items-center">
+            <div className="flex items-start gap-3 text-left">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <div>
+                <h5 className="font-poppins text-xs font-bold text-slate-900">
+                  Forma de pagamento pendente
+                </h5>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                  Você precisa configurar uma forma de faturamento (cartão, Pix ou boleto) na Meta
+                  para ativar novos anúncios. Seus anúncios atuais podem ser pausados se não houver
+                  saldo.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                onClick={() => {
+                  setBillingGuideActive(false);
+                  setIsBillingModalOpen(true);
+                }}
+                size="sm"
+                className="h-8 rounded-lg bg-amber-600 text-[10px] font-bold text-white hover:bg-amber-700"
+              >
+                Configurar Faturamento
+              </Button>
+              <Button
+                onClick={() => {
+                  setBillingGuideActive(true);
+                  setBillingGuideStep(1);
+                  setIsBillingModalOpen(true);
+                }}
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg border-amber-200 text-[10px] font-bold text-amber-700 hover:bg-amber-50"
+              >
+                Recarregar Saldo
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              onClick={() => {
-                setBillingGuideActive(false);
-                setIsBillingModalOpen(true);
-              }}
-              size="sm"
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] h-8 rounded-lg"
-            >
-              Configurar Faturamento
-            </Button>
-            <Button
-              onClick={() => {
-                setBillingGuideActive(true);
-                setBillingGuideStep(1);
-                setIsBillingModalOpen(true);
-              }}
-              size="sm"
-              variant="outline"
-              className="border-amber-200 hover:bg-amber-50 text-amber-700 font-bold text-[10px] h-8 rounded-lg"
-            >
-              Recarregar Saldo
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* ONBOARDING / CONFIGURAÇÃO DE CONEXÃO META ADS */}
       {!isCreating && user && (
         <div className="mb-8">
           {isConnectingMeta ? (
-            <div className="p-6 rounded-xl border border-slate-200 bg-white shadow-sm flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="text-sm font-semibold text-slate-600">Processando conexão com a Meta...</span>
+              <span className="text-sm font-semibold text-slate-600">
+                Processando conexão com a Meta...
+              </span>
             </div>
-          ) : metaConnection.isConnected && metaConnection.adAccountId ? null : metaConnection.isConnected ? (
-            <div className="p-6 rounded-xl border border-blue-500/15 bg-blue-50/10 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg">
-              <div className="flex items-start md:items-center gap-4">
-                <div className="bg-blue-500/10 text-blue-600 p-3 rounded-xl animate-pulse">
+          ) : metaConnection.isConnected &&
+            metaConnection.adAccountId ? null : metaConnection.isConnected ? (
+            <div className="flex flex-col items-start justify-between gap-6 rounded-xl border border-blue-500/15 bg-blue-50/10 p-6 shadow-md transition-all duration-300 hover:shadow-lg md:flex-row md:items-center">
+              <div className="flex items-start gap-4 md:items-center">
+                <div className="animate-pulse rounded-xl bg-blue-500/10 p-3 text-blue-600">
                   <Megaphone className="h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="text-base font-extrabold text-slate-900 leading-tight">Facebook Conectado</h4>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
-                    Sua conta do Facebook está conectada. Agora, selecione qual conta de anúncios ativa receberá as cobranças e os seus impulsionamentos.
+                  <h4 className="text-base font-extrabold leading-tight text-slate-900">
+                    Facebook Conectado
+                  </h4>
+                  <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500">
+                    Sua conta do Facebook está conectada. Agora, selecione qual conta de anúncios
+                    ativa receberá as cobranças e os seus impulsionamentos.
                   </p>
                 </div>
               </div>
@@ -1420,102 +1720,97 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     fetch("/api/meta/callback", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ userAccessToken: metaConnection.userAccessToken || metaConnection.accessToken })
+                      body: JSON.stringify({
+                        userAccessToken:
+                          metaConnection.userAccessToken || metaConnection.accessToken,
+                      }),
                     })
-                    .then(res => res.json())
-                    .then(pagesResult => {
-                      if (pagesResult.success) {
-                        setMetaPages(pagesResult.pages || []);
-                        if (pagesResult.pages?.length > 0) setSelectedPageId(pagesResult.pages[0].id);
-                      }
-                      return fetch("/api/ads/accounts");
-                    })
-                    .then(res => res.json())
-                    .then(accountsResult => {
-                      if (accountsResult.success) {
-                        setMetaAdAccounts(accountsResult.accounts || []);
-                        if (accountsResult.accounts?.length > 0) setSelectedAdAccountIdState(accountsResult.accounts[0].id);
-                      }
-                    })
-                    .catch(e => console.error("Erro ao buscar ativos:", e))
-                    .finally(() => setIsConnectingMeta(false));
+                      .then((res) => res.json())
+                      .then((pagesResult) => {
+                        if (pagesResult.success) {
+                          setMetaPages(pagesResult.pages || []);
+                          if (pagesResult.pages?.length > 0)
+                            setSelectedPageId(pagesResult.pages[0].id);
+                        }
+                        return fetch("/api/ads/accounts");
+                      })
+                      .then((res) => res.json())
+                      .then((accountsResult) => {
+                        if (accountsResult.success) {
+                          setMetaAdAccounts(accountsResult.accounts || []);
+                          if (accountsResult.accounts?.length > 0)
+                            setSelectedAdAccountIdState(accountsResult.accounts[0].id);
+                        }
+                      })
+                      .catch((e) => console.error("Erro ao buscar ativos:", e))
+                      .finally(() => setIsConnectingMeta(false));
                   }
                 }}
-                className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-sm font-poppins transition-transform duration-200 active:scale-95 flex items-center gap-2"
+                className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-xs font-bold text-white shadow-sm transition-transform duration-200 hover:bg-primary/95 active:scale-95"
               >
                 Configurar Conta de Cobrança
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+            <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
               {/* Card Meta Ads (Vendas/Pago) */}
-              <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between gap-6 transition-all duration-300 hover:shadow-md text-left">
+              <div className="flex flex-col justify-between gap-6 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-all duration-300 hover:shadow-md">
                 <div className="space-y-4">
-                  <div className="bg-primary/10 text-primary p-3 rounded-xl w-fit">
+                  <div className="w-fit rounded-xl bg-primary/10 p-3 text-primary">
                     <Megaphone className="h-6 w-6" />
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold text-slate-900 leading-tight">Impulsionar no Instagram e Facebook</h4>
-                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                      Atraia mais clientes e aumente suas vendas! Promova seus melhores posts e interaja com moradores da sua região com segmentação precisa.
+                    <h4 className="text-base font-extrabold leading-tight text-slate-900">
+                      Impulsionar no Instagram e Facebook
+                    </h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                      Atraia mais clientes e aumente suas vendas! Promova seus melhores posts e
+                      interaja com moradores da sua região com segmentação precisa.
                     </p>
                   </div>
                 </div>
-                <div className="pt-5 mt-5 border-t border-slate-100">
+                <div className="mt-5 border-t border-slate-100 pt-5">
                   <Button
                     onClick={handleConnectMetaAds}
-                    className="bg-primary hover:bg-primary/95 text-white font-bold text-xs py-4 px-6 rounded-xl w-full flex items-center justify-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-xs font-bold text-white hover:bg-primary/95"
                   >
                     <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
                     Conectar Facebook e Instagram
                   </Button>
                 </div>
               </div>
 
-              {/* Card Google Ads (Em Breve) */}
-              <div className="p-6 rounded-2xl border border-slate-200 bg-slate-50/50 shadow-sm flex flex-col justify-between gap-6 transition-all duration-300 opacity-90 text-left">
+              {/* Card Google Ads */}
+              <div className="flex flex-col justify-between gap-6 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-all duration-300 hover:shadow-md">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="bg-slate-200 text-slate-650 p-2.5 rounded-xl">
-                      <svg className="h-5 w-5" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
+                    <div className="w-fit rounded-xl bg-[#4285F4]/10 p-3 text-[#4285F4]">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                       </svg>
                     </div>
-                    <Badge className="bg-slate-200/80 hover:bg-slate-200/80 text-slate-500 font-bold text-[9px] scale-90 border-none shrink-0 ml-1 uppercase tracking-wider">
-                      Em Breve
-                    </Badge>
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold text-slate-700 leading-tight">Anúncios no Google Ads</h4>
-                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                      Apareça no topo das buscas locais e no Google Mapas para quem já está procurando ativamente seus serviços na vizinhança.
+                    <h4 className="text-base font-extrabold leading-tight text-slate-900">
+                      Anúncios no Google Ads
+                    </h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                      Apareça no topo das buscas locais e no Google Mapas para quem já está
+                      procurando ativamente seus serviços na vizinhança.
                     </p>
                   </div>
                 </div>
-                <div className="pt-5 mt-5 border-t border-slate-200/60">
+                <div className="mt-5 border-t border-slate-100 pt-5">
                   <Button
-                    disabled
-                    variant="outline"
-                    className="border-slate-200 text-slate-400 font-bold text-xs py-4 px-6 rounded-xl w-full cursor-not-allowed bg-slate-100/50"
+                    onClick={handleConnectGoogleAds}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4285F4] px-6 py-4 text-xs font-bold text-white hover:bg-[#4285F4]/95"
                   >
-                    Em Breve
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    </svg>
+                    Conectar Google Ads
                   </Button>
                 </div>
               </div>
@@ -1528,21 +1823,25 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       <Dialog open={isSetupModalOpen} onOpenChange={setIsSetupModalOpen}>
         <DialogContent className="max-w-md font-sans">
           <DialogHeader>
-            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
               Configurar Conta do Meta Ads
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-xs">
-              Conexão com a Meta realizada! Agora selecione a página e a conta de anúncios que você deseja usar para promover seus posts.
+            <DialogDescription className="text-xs text-slate-500">
+              Conexão com a Meta realizada! Agora selecione a página e a conta de anúncios que você
+              deseja usar para promover seus posts.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 my-4">
+          <div className="my-4 space-y-5">
             {/* Seletor de Página */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700">1. Selecione a Página comercial do Facebook</Label>
+              <Label className="text-xs font-bold text-slate-700">
+                1. Selecione a Página comercial do Facebook
+              </Label>
               {metaPages.length === 0 ? (
-                <p className="text-xs text-red-500 bg-red-50 p-2.5 rounded-lg">
-                  Nenhuma página comercial encontrada. Certifique-se de que você é administrador de alguma página no Facebook.
+                <p className="rounded-lg bg-red-50 p-2.5 text-xs text-red-500">
+                  Nenhuma página comercial encontrada. Certifique-se de que você é administrador de
+                  alguma página no Facebook.
                 </p>
               ) : (
                 <SearchableSelect
@@ -1558,40 +1857,52 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
             {/* Seletor de Ad Account */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-700">2. Selecione a sua Conta de Anúncios (Cobrança)</Label>
+              <Label className="text-xs font-bold text-slate-700">
+                2. Selecione a sua Conta de Anúncios (Cobrança)
+              </Label>
               {metaAdAccounts.length === 0 ? (
-                <div className="bg-blue-50/40 border border-blue-100/70 rounded-xl p-3.5 space-y-3 text-left">
+                <div className="space-y-3 rounded-xl border border-blue-100/70 bg-blue-50/40 p-3.5 text-left">
                   <div className="flex items-start gap-2 text-blue-700">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                     <div>
-                      <h6 className="text-[11.5px] font-bold">Crie sua Conta de Anúncios na Meta</h6>
-                      <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                        Sua página foi conectada com sucesso, mas não encontramos nenhuma conta de faturamento ativa associada ao seu perfil.
+                      <h6 className="text-[11.5px] font-bold">
+                        Crie sua Conta de Anúncios na Meta
+                      </h6>
+                      <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+                        Sua página foi conectada com sucesso, mas não encontramos nenhuma conta de
+                        faturamento ativa associada ao seu perfil.
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="pl-6 space-y-1.5 text-[10px] text-slate-600">
-                    <p className="leading-relaxed">1. Acesse o painel de criação da Meta: 
-                      <a 
-                        href="https://business.facebook.com/settings/ad-accounts" 
-                        target="_blank" 
+
+                  <div className="space-y-1.5 pl-6 text-[10px] text-slate-600">
+                    <p className="leading-relaxed">
+                      1. Acesse o painel de criação da Meta:
+                      <a
+                        href="https://business.facebook.com/settings/ad-accounts"
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
+                        className="ml-1 inline-flex items-center gap-0.5 font-bold text-primary hover:underline"
                       >
                         Abrir Configurações Meta ↗
                       </a>
                     </p>
-                    <p className="leading-relaxed">2. No painel, clique em <strong>Adicionar</strong> e depois em <strong>Criar uma nova conta de anúncios</strong>.</p>
-                    <p className="leading-relaxed">3. Configure a moeda como <strong>Real Brasileiro (BRL)</strong> e o fuso horário como <strong>São Paulo (GMT-3)</strong>.</p>
+                    <p className="leading-relaxed">
+                      2. No painel, clique em <strong>Adicionar</strong> e depois em{" "}
+                      <strong>Criar uma nova conta de anúncios</strong>.
+                    </p>
+                    <p className="leading-relaxed">
+                      3. Configure a moeda como <strong>Real Brasileiro (BRL)</strong> e o fuso
+                      horário como <strong>São Paulo (GMT-3)</strong>.
+                    </p>
                   </div>
 
-                  <div className="pt-1 pl-6">
+                  <div className="pl-6 pt-1">
                     <Button
                       size="sm"
                       onClick={handleRefreshAdAccounts}
                       disabled={isRefreshingAccounts}
-                      className="bg-primary hover:bg-primary/95 text-white font-bold text-[9.5px] h-7 rounded-lg px-3 flex items-center gap-1.5"
+                      className="flex h-7 items-center gap-1.5 rounded-lg bg-primary px-3 text-[9.5px] font-bold text-white hover:bg-primary/95"
                     >
                       {isRefreshingAccounts ? (
                         <>
@@ -1631,7 +1942,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             <Button
               onClick={handleSaveMetaAdsConnection}
               disabled={isConnectingMeta || metaPages.length === 0 || metaAdAccounts.length === 0}
-              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2 rounded-lg"
+              className="rounded-lg bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary/95"
             >
               {isConnectingMeta ? "Salvando..." : "Concluir Integração"}
             </Button>
@@ -1643,11 +1954,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       <Dialog open={isBillingModalOpen} onOpenChange={setIsBillingModalOpen}>
         <DialogContent className="max-w-md font-sans">
           <DialogHeader>
-            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
               <CreditCard className="h-5 w-5 text-primary" />
               Faturamento e Cobrança
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-xs">
+            <DialogDescription className="text-xs text-slate-500">
               Gerencie as formas de pagamento ou adicione saldo para veicular seus anúncios locais.
             </DialogDescription>
           </DialogHeader>
@@ -1655,26 +1966,30 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           {billingGuideActive ? (
             /* Guia Passo a Passo de Pix / Boleto */
             <div className="my-4 space-y-4 text-center">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60 min-h-[160px] flex flex-col justify-center">
+              <div className="flex min-h-[160px] flex-col justify-center rounded-xl border border-slate-200/60 bg-slate-50 p-4">
                 {billingGuideStep === 1 && (
                   <div className="space-y-3">
-                    <div className="bg-primary/10 text-primary p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 p-3 text-primary">
                       <Megaphone className="h-5 w-5" />
                     </div>
-                    <h5 className="font-bold text-slate-800 text-sm">1. Acessar Configurações de Pagamento</h5>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Clique no botão abaixo para abrir a página oficial de faturamento da sua conta de anúncios da Meta em uma nova aba.
+                    <h5 className="text-sm font-bold text-slate-800">
+                      1. Acessar Configurações de Pagamento
+                    </h5>
+                    <p className="mx-auto max-w-sm text-xs leading-relaxed text-slate-500">
+                      Clique no botão abaixo para abrir a página oficial de faturamento da sua conta
+                      de anúncios da Meta em uma nova aba.
                     </p>
                     <Button
                       onClick={() => {
                         const cleanId = adAccountId.replace("act_", "");
-                        const businessId = billingStatus?.businessId || metaConnection?.businessId || "";
+                        const businessId =
+                          billingStatus?.businessId || metaConnection?.businessId || "";
                         const url = businessId
                           ? `https://business.facebook.com/billing_hub/accounts/details/?business_id=${businessId}&asset_id=${cleanId}`
                           : `https://adsmanager.facebook.com/adsmanager/manage/billing?act=${cleanId}`;
                         window.open(url, "_blank");
                       }}
-                      className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-2 rounded-lg mt-2 mx-auto flex items-center gap-1.5"
+                      className="mx-auto mt-2 flex items-center gap-1.5 rounded-lg bg-primary px-6 py-2 text-xs font-bold text-white hover:bg-primary/95"
                     >
                       Abrir Página da Meta ↗
                     </Button>
@@ -1683,36 +1998,39 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                 {billingGuideStep === 2 && (
                   <div className="space-y-3">
-                    <div className="bg-primary/10 text-primary p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 p-3 text-primary">
                       <DollarSign className="h-5 w-5" />
                     </div>
-                    <h5 className="font-bold text-slate-800 text-sm">2. Adicionar Fundos</h5>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Na página da Meta que acabou de abrir, localize e clique no botão **Adicionar Fundos** (Add Funds) na seção de saldo.
+                    <h5 className="text-sm font-bold text-slate-800">2. Adicionar Fundos</h5>
+                    <p className="mx-auto max-w-sm text-xs leading-relaxed text-slate-500">
+                      Na página da Meta que acabou de abrir, localize e clique no botão **Adicionar
+                      Fundos** (Add Funds) na seção de saldo.
                     </p>
                   </div>
                 )}
 
                 {billingGuideStep === 3 && (
                   <div className="space-y-3">
-                    <div className="bg-primary/10 text-primary p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 p-3 text-primary">
                       <Check className="h-5 w-5" />
                     </div>
-                    <h5 className="font-bold text-slate-800 text-sm">3. Escolher Pix ou Boleto</h5>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Selecione a opção **Pix** ou **Boleto Bancário**, defina o valor que deseja recarregar e gere o QR Code Pix ou boleto.
+                    <h5 className="text-sm font-bold text-slate-800">3. Escolher Pix ou Boleto</h5>
+                    <p className="mx-auto max-w-sm text-xs leading-relaxed text-slate-500">
+                      Selecione a opção **Pix** ou **Boleto Bancário**, defina o valor que deseja
+                      recarregar e gere o QR Code Pix ou boleto.
                     </p>
                   </div>
                 )}
 
                 {billingGuideStep === 4 && (
                   <div className="space-y-3">
-                    <div className="bg-primary/10 text-primary p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 p-3 text-primary">
                       <RefreshCw className="h-5 w-5 animate-pulse" />
                     </div>
-                    <h5 className="font-bold text-slate-800 text-sm">4. Concluir Recarga</h5>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Realize o pagamento do QR Code Pix gerado. Quando terminar, clique no botão abaixo para atualizar seu saldo aqui no NumVapt!
+                    <h5 className="text-sm font-bold text-slate-800">4. Concluir Recarga</h5>
+                    <p className="mx-auto max-w-sm text-xs leading-relaxed text-slate-500">
+                      Realize o pagamento do QR Code Pix gerado. Quando terminar, clique no botão
+                      abaixo para atualizar seu saldo aqui no NumVapt!
                     </p>
                     <Button
                       onClick={async () => {
@@ -1720,7 +2038,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         setBillingGuideActive(false);
                         setIsBillingModalOpen(false);
                       }}
-                      className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-6 py-2 rounded-lg mt-2 mx-auto"
+                      className="mx-auto mt-2 rounded-lg bg-primary px-6 py-2 text-xs font-bold text-white hover:bg-primary/95"
                     >
                       Pronto, já paguei!
                     </Button>
@@ -1729,20 +2047,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
 
               {/* Controles de Navegação do Guia */}
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex items-center justify-between pt-2">
                 <Button
                   variant="outline"
                   disabled={billingGuideStep === 1}
                   onClick={() => setBillingGuideStep((prev) => prev - 1)}
-                  className="text-xs font-bold border-slate-200 px-4 py-1.5 h-auto rounded-lg"
+                  className="h-auto rounded-lg border-slate-200 px-4 py-1.5 text-xs font-bold"
                 >
                   Anterior
                 </Button>
-                <span className="text-[11px] font-bold text-slate-400">Passo {billingGuideStep} de 4</span>
+                <span className="text-[11px] font-bold text-slate-400">
+                  Passo {billingGuideStep} de 4
+                </span>
                 {billingGuideStep < 4 ? (
                   <Button
                     onClick={() => setBillingGuideStep((prev) => prev + 1)}
-                    className="bg-primary hover:bg-primary/95 text-white text-xs font-bold px-4 py-1.5 h-auto rounded-lg"
+                    className="h-auto rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-primary/95"
                   >
                     Próximo
                   </Button>
@@ -1750,7 +2070,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <Button
                     variant="ghost"
                     onClick={() => setBillingGuideActive(false)}
-                    className="text-xs font-bold text-slate-400 px-4 py-1.5 h-auto rounded-lg"
+                    className="h-auto rounded-lg px-4 py-1.5 text-xs font-bold text-slate-400"
                   >
                     Sair do Guia
                   </Button>
@@ -1760,8 +2080,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           ) : (
             /* Menu Inicial de Escolha */
             <div className="my-4 space-y-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-650 leading-relaxed text-left">
-                Selecione uma das opções abaixo para gerenciar como você pagará pelos impulsionamentos. Suas cobranças serão feitas diretamente pela Meta Ads.
+              <div className="text-slate-650 rounded-xl border border-slate-200/60 bg-slate-50 p-4 text-left text-xs leading-relaxed">
+                Selecione uma das opções abaixo para gerenciar como você pagará pelos
+                impulsionamentos. Suas cobranças serão feitas diretamente pela Meta Ads.
               </div>
 
               <div className="grid grid-cols-1 gap-3">
@@ -1769,24 +2090,29 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 <button
                   onClick={() => {
                     const cleanId = adAccountId.replace("act_", "");
-                    const businessId = billingStatus?.businessId || metaConnection?.businessId || "";
+                    const businessId =
+                      billingStatus?.businessId || metaConnection?.businessId || "";
                     const url = businessId
                       ? `https://business.facebook.com/billing_hub/accounts/details/?business_id=${businessId}&asset_id=${cleanId}`
                       : `https://adsmanager.facebook.com/adsmanager/manage/billing?act=${cleanId}`;
                     window.open(url, "_blank");
                   }}
-                  className="p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50/50 shadow-xs flex items-center justify-between text-left transition-all active:scale-[0.99]"
+                  className="shadow-xs flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition-all hover:bg-slate-50/50 active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <CreditCard className="h-5 w-5" />
                     </div>
                     <div>
-                      <h6 className="text-xs font-bold text-slate-800">Cartão de Crédito (Meta Ads)</h6>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Cadastre ou edite cartões na página de cobrança oficial da Meta.</p>
+                      <h6 className="text-xs font-bold text-slate-800">
+                        Cartão de Crédito (Meta Ads)
+                      </h6>
+                      <p className="mt-0.5 text-[10px] text-slate-400">
+                        Cadastre ou edite cartões na página de cobrança oficial da Meta.
+                      </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-slate-350" />
+                  <ArrowRight className="text-slate-350 h-4 w-4" />
                 </button>
 
                 {/* Opção Pix / Boleto (Guia) */}
@@ -1795,25 +2121,29 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     setBillingGuideActive(true);
                     setBillingGuideStep(1);
                   }}
-                  className="p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50/50 shadow-xs flex items-center justify-between text-left transition-all active:scale-[0.99]"
+                  className="shadow-xs flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition-all hover:bg-slate-50/50 active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <RefreshCw className="h-5 w-5" />
                     </div>
                     <div>
-                      <h6 className="text-xs font-bold text-slate-800">Adicionar Saldo com Pix / Boleto</h6>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Veja o passo a passo para gerar Pix ou Boleto no painel de anúncios.</p>
+                      <h6 className="text-xs font-bold text-slate-800">
+                        Adicionar Saldo com Pix / Boleto
+                      </h6>
+                      <p className="mt-0.5 text-[10px] text-slate-400">
+                        Veja o passo a passo para gerar Pix ou Boleto no painel de anúncios.
+                      </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-slate-350" />
+                  <ArrowRight className="text-slate-350 h-4 w-4" />
                 </button>
               </div>
 
-              <DialogFooter className="pt-2 border-t border-slate-100">
+              <DialogFooter className="border-t border-slate-100 pt-2">
                 <Button
                   onClick={() => setIsBillingModalOpen(false)}
-                  className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2 rounded-lg"
+                  className="rounded-lg bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary/95"
                 >
                   Fechar
                 </Button>
@@ -1825,21 +2155,25 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       {/* MODAL DE TUTORIAL: COMO ALTERNAR PERFIL NO FACEBOOK */}
       <Dialog open={isProfileSwitchTutorialOpen} onOpenChange={setIsProfileSwitchTutorialOpen}>
-        <DialogContent className="max-w-xl font-sans text-slate-800 bg-[#18191a] border-slate-800 text-white rounded-2xl">
+        <DialogContent className="max-w-xl rounded-2xl border-slate-800 bg-[#18191a] font-sans text-slate-800 text-white">
           <DialogHeader className="text-left">
-            <DialogTitle className="font-poppins font-bold text-white text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-white">
+              <Sparkles className="h-5 w-5 animate-pulse text-amber-500" />
               Apareceu a tela errada no Facebook?
             </DialogTitle>
             <DialogDescription className="text-slate-455 text-xs leading-relaxed">
-              Se você caiu em uma tela com configurações pessoais e sem a opção do WhatsApp, você precisa alternar para o perfil da sua Página comercial no topo do Facebook. Veja abaixo como fazer:
+              Se você caiu em uma tela com configurações pessoais e sem a opção do WhatsApp, você
+              precisa alternar para o perfil da sua Página comercial no topo do Facebook. Veja
+              abaixo como fazer:
             </DialogDescription>
           </DialogHeader>
 
           {/* SIMULAÇÃO ANIMADA CSS */}
-          <div className="relative border border-[#3e4042]/50 rounded-xl overflow-hidden bg-[#18191a] my-4 shadow-2xl select-none">
+          <div className="relative my-4 select-none overflow-hidden rounded-xl border border-[#3e4042]/50 bg-[#18191a] shadow-2xl">
             {/* ESTILOS INLINE DE ANIMAÇÃO */}
-            <style dangerouslySetInnerHTML={{__html: `
+            <style
+              dangerouslySetInnerHTML={{
+                __html: `
               @keyframes cursorMovement {
                 0% { left: 40%; top: 110px; }
                 18% { left: calc(100% - 24px); top: 20px; } /* Move para a foto do perfil */
@@ -1902,62 +2236,72 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               .sim-whatsapp-view {
                 animation: whatsAppViewFade 11s infinite ease-in-out;
               }
-            `}} />
+            `,
+              }}
+            />
 
             {/* Simulação da Barra Superior do Facebook */}
-            <div className="bg-[#242526] h-10 border-b border-[#393a3b] px-3 flex items-center justify-between text-white relative sim-switch-page z-30">
+            <div className="sim-switch-page relative z-30 flex h-10 items-center justify-between border-b border-[#393a3b] bg-[#242526] px-3 text-white">
               {/* Logo e Busca */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="h-6 w-6 bg-[#1877f2] rounded-full flex items-center justify-center font-bold text-sm text-white select-none">f</div>
-                <div className="bg-[#3a3b3c] h-5 rounded-full px-2.5 flex items-center gap-1 text-[#b0b3b8] text-[8px] w-28 max-sm:w-20">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex h-6 w-6 select-none items-center justify-center rounded-full bg-[#1877f2] text-sm font-bold text-white">
+                  f
+                </div>
+                <div className="flex h-5 w-28 items-center gap-1 rounded-full bg-[#3a3b3c] px-2.5 text-[8px] text-[#b0b3b8] max-sm:w-20">
                   <span>🔍</span>
                   <span className="truncate">Pesquisar no Facebook</span>
                 </div>
               </div>
-              
+
               {/* Ícones de Navegação */}
-              <div className="flex items-center gap-4 text-slate-400 text-[10px] max-sm:hidden">
-                <div className="h-7 px-2 border-b-2 border-[#1877f2] text-[#1877f2] flex items-center justify-center">🏠</div>
-                <div className="h-7 px-2 flex items-center justify-center">📺</div>
-                <div className="h-7 px-2 flex items-center justify-center">🏪</div>
-                <div className="h-7 px-2 flex items-center justify-center">👥</div>
-                <div className="h-7 px-2 flex items-center justify-center">🎮</div>
+              <div className="flex items-center gap-4 text-[10px] text-slate-400 max-sm:hidden">
+                <div className="flex h-7 items-center justify-center border-b-2 border-[#1877f2] px-2 text-[#1877f2]">
+                  🏠
+                </div>
+                <div className="flex h-7 items-center justify-center px-2">📺</div>
+                <div className="flex h-7 items-center justify-center px-2">🏪</div>
+                <div className="flex h-7 items-center justify-center px-2">👥</div>
+                <div className="flex h-7 items-center justify-center px-2">🎮</div>
               </div>
 
               {/* Botões da Direita */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="h-6 w-6 rounded-full bg-[#3a3b3c] flex items-center justify-center text-[9px] text-[#e4e6eb]">💬</div>
-                <div className="h-6 w-6 rounded-full bg-[#3a3b3c] flex items-center justify-center text-[9px] text-[#e4e6eb] relative">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3a3b3c] text-[9px] text-[#e4e6eb]">
+                  💬
+                </div>
+                <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-[#3a3b3c] text-[9px] text-[#e4e6eb]">
                   🔔
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-[6px] text-white rounded-full h-3 w-3 flex items-center justify-center font-bold">2</div>
+                  <div className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[6px] font-bold text-white">
+                    2
+                  </div>
                 </div>
                 {/* Foto do perfil na barra superior (Alterna entre Pessoal e Página) */}
-                <div className="h-6 w-6 rounded-full overflow-hidden cursor-pointer relative shrink-0">
+                <div className="relative h-6 w-6 shrink-0 cursor-pointer overflow-hidden rounded-full">
                   {/* Avatar Pessoal (Fase 1 e 2) */}
-                  <div className="absolute inset-0 z-10 sim-personal-view">
+                  <div className="sim-personal-view absolute inset-0 z-10">
                     <img
                       src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
                       alt="Perfil"
                       className="h-full w-full object-cover"
                     />
-                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
+                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-white bg-green-500"></div>
                   </div>
                   {/* Avatar Página (Fase 3) */}
-                  <div className="absolute inset-0 z-20 sim-whatsapp-view">
-                    <div className="h-full w-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] border border-white/10 rounded-full">
+                  <div className="sim-whatsapp-view absolute inset-0 z-20">
+                    <div className="flex h-full w-full items-center justify-center rounded-full border border-white/10 bg-[#0083C7] text-[8px] font-bold text-white">
                       PN
                     </div>
-                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 bg-green-500 rounded-full border border-white"></div>
+                    <div className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-white bg-green-500"></div>
                   </div>
                 </div>
               </div>
 
               {/* Dropdown de Perfis Simulado */}
-              <div className="absolute top-9 right-2 bg-[#242526] w-52 border border-[#393a3b] rounded-lg shadow-2xl p-2 z-50 text-left space-y-1.5 sim-dropdown">
+              <div className="sim-dropdown absolute right-2 top-9 z-50 w-52 space-y-1.5 rounded-lg border border-[#393a3b] bg-[#242526] p-2 text-left shadow-2xl">
                 {/* Perfil Pessoal */}
-                <div className="p-1 hover:bg-[#3a3b3c]/50 rounded-md transition-colors">
+                <div className="rounded-md p-1 transition-colors hover:bg-[#3a3b3c]/50">
                   <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-full overflow-hidden shrink-0">
+                    <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full">
                       <img
                         src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80"
                         alt="Perfil"
@@ -1965,24 +2309,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold text-white truncate">Seu Perfil</p>
+                      <p className="truncate text-[9px] font-bold text-white">Seu Perfil</p>
                       <p className="text-[7px] text-[#b0b3b8]">Perfil pessoal</p>
                     </div>
                   </div>
                 </div>
-                <div className="border-b border-[#393a3b] my-1"></div>
+                <div className="my-1 border-b border-[#393a3b]"></div>
 
                 {/* Páginas do Usuário */}
                 <div className="space-y-1">
                   {/* Página Comercial Principal */}
-                  <div className="p-1.5 rounded-md bg-[#3a3b3c] flex items-center justify-between cursor-pointer border border-[#4e4f50]">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 rounded-full bg-[#0083C7] flex items-center justify-center font-bold text-white text-[8px] shrink-0 shadow-sm border border-white/10">
+                  <div className="flex cursor-pointer items-center justify-between rounded-md border border-[#4e4f50] bg-[#3a3b3c] p-1.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0083C7] text-[8px] font-bold text-white shadow-sm">
                         PN
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold text-white truncate">Página Numvapt</p>
-                        <p className="text-[7px] text-[#1877f2] font-semibold flex items-center gap-0.5">
+                        <p className="truncate text-[9px] font-bold text-white">Página Numvapt</p>
+                        <p className="flex items-center gap-0.5 text-[7px] font-semibold text-[#1877f2]">
                           <span>🔄</span> Alternar para Página
                         </p>
                       </div>
@@ -1990,15 +2334,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   </div>
                 </div>
 
-                <div className="border-b border-[#393a3b] my-1"></div>
-                <div className="w-full text-center py-1 bg-[#3a3b3c]/50 hover:bg-[#3a3b3c]/80 rounded-md text-[8px] font-bold text-white cursor-pointer select-none">
+                <div className="my-1 border-b border-[#393a3b]"></div>
+                <div className="w-full cursor-pointer select-none rounded-md bg-[#3a3b3c]/50 py-1 text-center text-[8px] font-bold text-white hover:bg-[#3a3b3c]/80">
                   👥 Ver todos os perfis
                 </div>
 
                 {/* Links Adicionais */}
-                <div className="pt-1.5 space-y-1.5 text-[8px] text-slate-300">
+                <div className="space-y-1.5 pt-1.5 text-[8px] text-slate-300">
                   <div className="flex items-center justify-between px-1">
-                    <span className="flex items-center gap-1.5">⚙️ Configurações e privacidade</span>
+                    <span className="flex items-center gap-1.5">
+                      ⚙️ Configurações e privacidade
+                    </span>
                     <span>❯</span>
                   </div>
                   <div className="flex items-center justify-between px-1">
@@ -2014,70 +2360,100 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
 
             {/* Simulação do Corpo do Facebook */}
-            <div className="relative h-44 flex overflow-hidden bg-[#18191a] sim-switch-page">
-              
+            <div className="sim-switch-page relative flex h-44 overflow-hidden bg-[#18191a]">
               {/* === VIEW 1: CONFIGURAÇÕES PESSOAIS === */}
-              <div className="absolute inset-0 flex w-full h-full sim-personal-view z-10 bg-[#18191a]">
+              <div className="sim-personal-view absolute inset-0 z-10 flex h-full w-full bg-[#18191a]">
                 {/* Sidebar Lateral */}
-                <div className="w-1/3 border-r border-[#393a3b] bg-[#18191a] p-2 flex flex-col gap-1.5 text-[8px] overflow-hidden select-none shrink-0 text-left">
-                  <p className="font-bold text-white text-[10px]">Configurações</p>
-                  <div className="bg-[#3a3b3c] h-5 rounded-full px-2 flex items-center text-[#b0b3b8] text-[7px] w-full mb-1">
+                <div className="flex w-1/3 shrink-0 select-none flex-col gap-1.5 overflow-hidden border-r border-[#393a3b] bg-[#18191a] p-2 text-left text-[8px]">
+                  <p className="text-[10px] font-bold text-white">Configurações</p>
+                  <div className="mb-1 flex h-5 w-full items-center rounded-full bg-[#3a3b3c] px-2 text-[7px] text-[#b0b3b8]">
                     🔍 Pesquisar configurações
                   </div>
-                  <p className="font-semibold text-slate-300 text-[8px]">Configurações e privacidade</p>
-                  
+                  <p className="text-[8px] font-semibold text-slate-300">
+                    Configurações e privacidade
+                  </p>
+
                   {/* Meta Accounts Center */}
-                  <div className="border border-[#3e4042] bg-[#242526] rounded-lg p-1.5 space-y-1">
+                  <div className="space-y-1 rounded-lg border border-[#3e4042] bg-[#242526] p-1.5">
                     <div className="flex items-center gap-1 text-[7px] font-bold text-white">
-                      <span className="text-blue-400 font-extrabold text-[8px]">∞</span> Meta
+                      <span className="text-[8px] font-extrabold text-blue-400">∞</span> Meta
                     </div>
-                    <p className="font-bold text-white text-[7px]">Central de Contas</p>
-                    <p className="text-[6px] text-slate-400 leading-tight">Gerencie suas experiências conectadas e configurações de conta nas tecnologias da Meta.</p>
-                    <div className="text-[6px] text-slate-300 space-y-0.5 pt-0.5">
+                    <p className="text-[7px] font-bold text-white">Central de Contas</p>
+                    <p className="text-[6px] leading-tight text-slate-400">
+                      Gerencie suas experiências conectadas e configurações de conta nas tecnologias
+                      da Meta.
+                    </p>
+                    <div className="space-y-0.5 pt-0.5 text-[6px] text-slate-300">
                       <p>🪪 Dados pessoais</p>
                       <p>🔒 Senha e segurança</p>
                       <p>📢 Preferências de anúncios</p>
                       <p>✔️ Verificação</p>
                     </div>
-                    <p className="text-[6px] text-[#1877f2] font-semibold cursor-pointer pt-0.5">Ver mais na Central de Contas</p>
+                    <p className="cursor-pointer pt-0.5 text-[6px] font-semibold text-[#1877f2]">
+                      Ver mais na Central de Contas
+                    </p>
                   </div>
 
-                  <p className="font-semibold text-slate-450 pt-1 border-t border-[#393a3b]">Ferramentas e recursos</p>
+                  <p className="text-slate-450 border-t border-[#393a3b] pt-1 font-semibold">
+                    Ferramentas e recursos
+                  </p>
                   <p className="text-slate-400">🛡️ Checkup de Privacidade</p>
                   <p className="text-slate-400">👨‍👩‍👦 Central da Família</p>
                 </div>
 
                 {/* Painel Central */}
-                <div className="w-2/3 p-3 bg-[#18191a] flex flex-col gap-2 overflow-hidden text-left">
+                <div className="flex w-2/3 flex-col gap-2 overflow-hidden bg-[#18191a] p-3 text-left">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-extrabold text-white">Encontre a configuração de que você precisa</p>
-                    <div className="bg-[#242526] border border-[#393a3b] h-6 rounded-md px-2 flex items-center text-[#b0b3b8] text-[8px] w-full">
+                    <p className="text-[10px] font-extrabold text-white">
+                      Encontre a configuração de que você precisa
+                    </p>
+                    <div className="flex h-6 w-full items-center rounded-md border border-[#393a3b] bg-[#242526] px-2 text-[8px] text-[#b0b3b8]">
                       🔍 Pesquisar configurações
                     </div>
                   </div>
 
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-[8px] font-bold text-slate-350">Configurações mais acessadas</p>
+                    <p className="text-slate-350 text-[8px] font-bold">
+                      Configurações mais acessadas
+                    </p>
                     <div className="grid grid-cols-3 gap-1.5">
                       {/* Card 1 */}
-                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
-                        <div className="h-6 w-6 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-[10px] font-bold">🚫</div>
-                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Bloqueio</p>
-                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Veja quem bloqueou</p>
+                      <div className="h-18 flex flex-col items-center justify-center rounded-md border border-[#393a3b] bg-[#242526] p-1.5 text-center">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 text-[10px] font-bold text-amber-500">
+                          🚫
+                        </div>
+                        <p className="mt-1 w-full truncate text-[7px] font-bold text-white">
+                          Bloqueio
+                        </p>
+                        <p className="mt-0.5 w-full truncate text-[5px] leading-none text-slate-400">
+                          Veja quem bloqueou
+                        </p>
                       </div>
 
                       {/* Card 2 */}
-                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
-                        <div className="h-6 w-6 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-[10px] font-bold">📝</div>
-                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Atividades</p>
-                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Gerencie histórico</p>
+                      <div className="h-18 flex flex-col items-center justify-center rounded-md border border-[#393a3b] bg-[#242526] p-1.5 text-center">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10 text-[10px] font-bold text-blue-400">
+                          📝
+                        </div>
+                        <p className="mt-1 w-full truncate text-[7px] font-bold text-white">
+                          Atividades
+                        </p>
+                        <p className="mt-0.5 w-full truncate text-[5px] leading-none text-slate-400">
+                          Gerencie histórico
+                        </p>
                       </div>
 
                       {/* Card 3 */}
-                      <div className="bg-[#242526] rounded-md p-1.5 flex flex-col items-center justify-center text-center border border-[#393a3b] h-18">
-                        <div className="h-6 w-6 rounded-full bg-slate-500/10 text-slate-300 flex items-center justify-center text-[10px] font-bold">💡</div>
-                        <p className="text-[7px] font-bold text-white truncate w-full mt-1">Modo escuro</p>
-                        <p className="text-[5px] text-slate-400 leading-none truncate w-full mt-0.5">Tema de tela</p>
+                      <div className="h-18 flex flex-col items-center justify-center rounded-md border border-[#393a3b] bg-[#242526] p-1.5 text-center">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-500/10 text-[10px] font-bold text-slate-300">
+                          💡
+                        </div>
+                        <p className="mt-1 w-full truncate text-[7px] font-bold text-white">
+                          Modo escuro
+                        </p>
+                        <p className="mt-0.5 w-full truncate text-[5px] leading-none text-slate-400">
+                          Tema de tela
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2085,67 +2461,84 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
 
               {/* === VIEW 2: TELA DE CONEXÃO DO WHATSAPP === */}
-              <div className="absolute inset-0 flex w-full h-full sim-whatsapp-view bg-[#18191a] z-20">
+              <div className="sim-whatsapp-view absolute inset-0 z-20 flex h-full w-full bg-[#18191a]">
                 {/* Sidebar Lateral Página */}
-                <div className="w-1/3 border-r border-[#393a3b] bg-[#18191a] p-2 flex flex-col gap-1 text-[7px] overflow-hidden select-none shrink-0 text-left">
-                  <p className="font-bold text-white text-[9px]">Configurações da Página</p>
-                  <p className="font-bold text-slate-300 pt-1 mt-0.5 border-t border-[#393a3b]">Preferências</p>
+                <div className="flex w-1/3 shrink-0 select-none flex-col gap-1 overflow-hidden border-r border-[#393a3b] bg-[#18191a] p-2 text-left text-[7px]">
+                  <p className="text-[9px] font-bold text-white">Configurações da Página</p>
+                  <p className="mt-0.5 border-t border-[#393a3b] pt-1 font-bold text-slate-300">
+                    Preferências
+                  </p>
                   <p className="text-slate-400">⭐ Preferências de reação</p>
                   <p className="text-slate-400">🔔 Notificações</p>
                   <p className="text-slate-400">♿ Acessibilidade</p>
                   <p className="text-slate-400">🎬 Mídia</p>
                   <p className="text-slate-400">🌙 Modo escuro</p>
 
-                  <p className="font-bold text-slate-300 pt-1 mt-0.5 border-t border-[#393a3b]">Público e visibilidade</p>
+                  <p className="mt-0.5 border-t border-[#393a3b] pt-1 font-bold text-slate-300">
+                    Público e visibilidade
+                  </p>
                   <p className="text-slate-400">📄 Detalhes da Página</p>
-                  <p className="text-[#1877f2] font-semibold bg-[#1877f2]/10 p-0.5 rounded">💬 WhatsApp Conectado</p>
+                  <p className="rounded bg-[#1877f2]/10 p-0.5 font-semibold text-[#1877f2]">
+                    💬 WhatsApp Conectado
+                  </p>
                   <p className="text-slate-400">📝 Posts e Stories</p>
                 </div>
 
                 {/* Painel Central WhatsApp */}
-                <div className="w-2/3 p-3 bg-[#18191a] flex flex-col items-center justify-start overflow-hidden relative text-left">
+                <div className="relative flex w-2/3 flex-col items-center justify-start overflow-hidden bg-[#18191a] p-3 text-left">
                   {/* Ícone de WhatsApp grande */}
-                  <div className="h-8 w-8 rounded-full bg-[#25d366] flex items-center justify-center shadow-md select-none shrink-0 mb-1 border border-white/10">
+                  <div className="mb-1 flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full border border-white/10 bg-[#25d366] shadow-md">
                     <svg viewBox="0 0 32 32" className="h-5 w-5 text-white" fill="currentColor">
-                      <path d="M16 3C9.373 3 4 8.373 4 15c0 2.127.553 4.174 1.604 5.99L4 29l8.187-1.574A12.94 12.94 0 0016 28c6.627 0 12-5.373 12-12S22.627 3 16 3zm6.39 17.39c-.27.76-1.59 1.45-2.18 1.49-.56.04-1.08.26-3.65-.76-3.11-1.23-5.08-4.43-5.24-4.64-.15-.2-1.26-1.67-1.26-3.19s.79-2.26 1.08-2.57c.27-.3.6-.37.8-.37s.4.01.57.01c.19.01.44-.07.68.52.27.63.9 2.2.98 2.36.08.16.13.35.03.55-.11.21-.16.33-.32.51-.15.18-.33.4-.47.53-.15.15-.31.31-.13.61.18.3.78 1.28 1.67 2.08 1.15 1.03 2.12 1.35 2.42 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.19 1.42z"/>
+                      <path d="M16 3C9.373 3 4 8.373 4 15c0 2.127.553 4.174 1.604 5.99L4 29l8.187-1.574A12.94 12.94 0 0016 28c6.627 0 12-5.373 12-12S22.627 3 16 3zm6.39 17.39c-.27.76-1.59 1.45-2.18 1.49-.56.04-1.08.26-3.65-.76-3.11-1.23-5.08-4.43-5.24-4.64-.15-.2-1.26-1.67-1.26-3.19s.79-2.26 1.08-2.57c.27-.3.6-.37.8-.37s.4.01.57.01c.19.01.44-.07.68.52.27.63.9 2.2.98 2.36.08.16.13.35.03.55-.11.21-.16.33-.32.51-.15.18-.33.4-.47.53-.15.15-.31.31-.13.61.18.3.78 1.28 1.67 2.08 1.15 1.03 2.12 1.35 2.42 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.19 1.42z" />
                     </svg>
                   </div>
 
-                  <p className="text-[7px] text-[#b0b3b8] text-center max-w-[210px] leading-tight mb-1 select-none">
-                    Insira o número do WhatsApp de <strong>Página Numvapt</strong> e depois veja se você recebeu um código de confirmação.
+                  <p className="mb-1 max-w-[210px] select-none text-center text-[7px] leading-tight text-[#b0b3b8]">
+                    Insira o número do WhatsApp de <strong>Página Numvapt</strong> e depois veja se
+                    você recebeu um código de confirmação.
                   </p>
 
                   {/* Form Simulador */}
-                  <div className="flex gap-1 items-center justify-center w-full max-w-[210px] select-none shrink-0 mb-1">
-                    <div className="bg-[#242526] border border-[#393a3b] rounded-md h-5 px-1.5 flex items-center text-white text-[7px] shrink-0 font-medium">
+                  <div className="mb-1 flex w-full max-w-[210px] shrink-0 select-none items-center justify-center gap-1">
+                    <div className="flex h-5 shrink-0 items-center rounded-md border border-[#393a3b] bg-[#242526] px-1.5 text-[7px] font-medium text-white">
                       BR +55 ▾
                     </div>
-                    <div className="bg-[#242526] border border-[#393a3b] rounded-md h-5 px-1.5 flex items-center text-slate-500 text-[7px] flex-1">
+                    <div className="flex h-5 flex-1 items-center rounded-md border border-[#393a3b] bg-[#242526] px-1.5 text-[7px] text-slate-500">
                       Número do WhatsApp
                     </div>
                   </div>
-                  
-                  <div className="bg-[#3a3b3c] text-[#727477] border-0 rounded-md h-5 px-4 flex items-center justify-center text-[7px] font-bold w-full max-w-[210px] select-none shrink-0 mb-1.5 cursor-not-allowed">
+
+                  <div className="mb-1.5 flex h-5 w-full max-w-[210px] shrink-0 cursor-not-allowed select-none items-center justify-center rounded-md border-0 bg-[#3a3b3c] px-4 text-[7px] font-bold text-[#727477]">
                     Enviar código do WhatsApp
                   </div>
 
                   {/* Benefícios */}
-                  <div className="w-full border-t border-[#393a3b] pt-1.5 text-left space-y-1">
-                    <p className="text-[7.5px] font-extrabold text-white">Conecte sua Página do Facebook ao WhatsApp</p>
-                    
+                  <div className="w-full space-y-1 border-t border-[#393a3b] pt-1.5 text-left">
+                    <p className="text-[7.5px] font-extrabold text-white">
+                      Conecte sua Página do Facebook ao WhatsApp
+                    </p>
+
                     <div className="grid grid-cols-2 gap-2 text-[6px]">
                       <div className="flex items-start gap-1">
-                        <span className="text-[8px] leading-none text-[#25d366] shrink-0 mt-0.5">💬</span>
+                        <span className="mt-0.5 shrink-0 text-[8px] leading-none text-[#25d366]">
+                          💬
+                        </span>
                         <div>
                           <p className="font-bold text-white">Receber mais mensagens</p>
-                          <p className="text-slate-450 leading-tight">Adicione um botão do WhatsApp à sua página comercial.</p>
+                          <p className="text-slate-450 leading-tight">
+                            Adicione um botão do WhatsApp à sua página comercial.
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-1">
-                        <span className="text-[8px] leading-none text-blue-400 shrink-0 mt-0.5">📢</span>
+                        <span className="mt-0.5 shrink-0 text-[8px] leading-none text-blue-400">
+                          📢
+                        </span>
                         <div>
                           <p className="font-bold text-white">Criar anúncios do WhatsApp</p>
-                          <p className="text-slate-450 leading-tight">Redirecione as pessoas para o seu WhatsApp nos anúncios.</p>
+                          <p className="text-slate-450 leading-tight">
+                            Redirecione as pessoas para o seu WhatsApp nos anúncios.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -2155,38 +2548,59 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
 
             {/* Cursor Simulado */}
-            <div className="absolute top-0 left-0 pointer-events-none z-50 sim-cursor">
+            <div className="sim-cursor pointer-events-none absolute left-0 top-0 z-50">
               {/* Círculo do clique */}
-              <div className="absolute -top-3.5 -left-3.5 w-8 h-8 rounded-full bg-red-500 border border-red-400 sim-click-ring"></div>
+              <div className="sim-click-ring absolute -left-3.5 -top-3.5 h-8 w-8 rounded-full border border-red-400 bg-red-500"></div>
               {/* Ícone de cursor de mouse */}
-              <svg className="w-5 h-5 text-white filter drop-shadow-md" viewBox="0 0 24 24" fill="black" stroke="white" strokeWidth="1.5">
+              <svg
+                className="h-5 w-5 text-white drop-shadow-md filter"
+                viewBox="0 0 24 24"
+                fill="black"
+                stroke="white"
+                strokeWidth="1.5"
+              >
                 <path d="M5.5 3.5l14 7-6 1.5 4 5.5-2.5 1.5-4-5.5-5.5 4v-14z" />
               </svg>
             </div>
           </div>
 
           {/* Passos do Tutorial */}
-          <div className="space-y-3 text-slate-350 text-left">
+          <div className="text-slate-350 space-y-3 text-left">
             <div className="flex items-start gap-2.5">
-              <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
-              <p className="text-xs leading-relaxed">No canto superior direito da tela de configurações, clique na <strong>foto do seu perfil pessoal</strong>.</p>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                1
+              </span>
+              <p className="text-xs leading-relaxed">
+                No canto superior direito da tela de configurações, clique na{" "}
+                <strong>foto do seu perfil pessoal</strong>.
+              </p>
             </div>
             <div className="flex items-start gap-2.5">
-              <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
-              <p className="text-xs leading-relaxed">No menu que se abrir, clique sobre a <strong>Página Numvapt</strong> para alternar o perfil de acesso.</p>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                2
+              </span>
+              <p className="text-xs leading-relaxed">
+                No menu que se abrir, clique sobre a <strong>Página Numvapt</strong> para alternar o
+                perfil de acesso.
+              </p>
             </div>
             <div className="flex items-start gap-2.5">
-              <span className="h-5 w-5 rounded-full bg-green-500/20 text-green-450 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 font-sans">✓</span>
-              <p className="text-xs leading-relaxed">A página recarregará automaticamente e mostrará a tela certa para você <strong>conectar o WhatsApp Business</strong>.</p>
+              <span className="text-green-450 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500/20 font-sans text-xs font-bold">
+                ✓
+              </span>
+              <p className="text-xs leading-relaxed">
+                A página recarregará automaticamente e mostrará a tela certa para você{" "}
+                <strong>conectar o WhatsApp Business</strong>.
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-slate-800 gap-2 items-center justify-end">
-            <div className="flex gap-2 shrink-0">
+          <DialogFooter className="items-center justify-end gap-2 border-t border-slate-800 pt-2">
+            <div className="flex shrink-0 gap-2">
               <Button
                 variant="ghost"
                 onClick={() => setIsProfileSwitchTutorialOpen(false)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 font-bold text-xs px-4 py-2 rounded-lg"
+                className="rounded-lg px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white"
               >
                 Voltar
               </Button>
@@ -2195,7 +2609,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   window.open(tutorialRedirectUrl, "_blank");
                   setIsProfileSwitchTutorialOpen(false);
                 }}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-5 py-2 rounded-lg flex items-center gap-1.5 border-0 transition-all active:scale-95 cursor-pointer shadow-md"
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-green-600 px-5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-green-700 active:scale-95"
               >
                 Prosseguir para o Facebook ↗
               </Button>
@@ -2206,16 +2620,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       {/* TELA DE CRIAÇÃO (WIZARD GUIADO) */}
       {isCreating && selectedPost && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
-          
+        <div className="mb-8 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {/* Cabeçalho do Wizard */}
-          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
             <div className="flex items-center gap-3">
-              <span className="bg-primary/10 text-primary h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                 {currentStep}
               </span>
               <div>
-                <h3 className="font-bold text-slate-900 font-poppins text-base">Impulsionando Post</h3>
+                <h3 className="font-poppins text-base font-bold text-slate-900">
+                  Impulsionando Post
+                </h3>
                 <p className="text-xs text-slate-500">Passo {currentStep} de 5</p>
               </div>
             </div>
@@ -2223,14 +2638,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               variant="ghost"
               size="icon"
               onClick={() => setIsCreating(false)}
-              className="text-slate-400 hover:text-slate-600 rounded-full"
+              className="rounded-full text-slate-400 hover:text-slate-600"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Barra de Progresso Visível e Sutil */}
-          <div className="h-1 bg-slate-100 w-full">
+          <div className="h-1 w-full bg-slate-100">
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${(currentStep / 5) * 100}%` }}
@@ -2238,48 +2653,53 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12">
-            
             {/* COLUNA ESQUERDA: FORMULÁRIO (7 colunas) */}
-            <div className="lg:col-span-7 p-6 border-r border-slate-200">
-              
+            <div className="border-r border-slate-200 p-6 lg:col-span-7">
               {/* PASSO 1: ESCOLHER OBJETIVO PRINCIPAL */}
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
                       <Target className="h-5 w-5 text-primary" />
                       1. Qual é o objetivo do seu impulsionamento?
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Selecione o principal resultado desejado. O NumVapt otimizará as configurações técnicas de forma personalizada.
+                    <p className="mt-1 text-xs text-slate-500">
+                      Selecione o principal resultado desejado. O NumVapt otimizará as configurações
+                      técnicas de forma personalizada.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 mt-2">
+                  <div className="mt-2 grid grid-cols-1 gap-4">
                     {/* Opção Alcance */}
                     <div
                       onClick={() => setCampaignObjective("REACH")}
-                      className={`p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between text-left group relative overflow-hidden shadow-sm ${
+                      className={`group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border p-5 text-left shadow-sm transition-all ${
                         campaignObjective === "REACH"
                           ? "border-primary bg-primary/5 ring-1 ring-primary"
                           : "border-slate-200 bg-white hover:border-primary/50 hover:bg-slate-50/50"
                       }`}
                     >
-                      <div className="flex gap-4 items-start z-10">
-                        <div className={`p-3 rounded-xl ${campaignObjective === "REACH" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}>
+                      <div className="z-10 flex items-start gap-4">
+                        <div
+                          className={`rounded-xl p-3 ${campaignObjective === "REACH" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}
+                        >
                           <Megaphone className="h-6 w-6" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-primary transition-colors">
+                            <span className="text-sm font-extrabold text-slate-900 transition-colors group-hover:text-primary">
                               Mais Visualizações (Alcance)
                             </span>
                             {campaignObjective === "REACH" && (
-                              <Badge className="bg-primary hover:bg-primary text-white text-[9px] scale-90 py-0 font-medium">Ativo</Badge>
+                              <Badge className="scale-90 bg-primary py-0 text-[9px] font-medium text-white hover:bg-primary">
+                                Ativo
+                              </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
-                            Exiba seu anúncio para o maior número possível de pessoas, aumentando a visibilidade e o reconhecimento do seu negócio ou marca na região selecionada.
+                          <p className="max-w-lg text-xs leading-relaxed text-slate-500">
+                            Exiba seu anúncio para o maior número possível de pessoas, aumentando a
+                            visibilidade e o reconhecimento do seu negócio ou marca na região
+                            selecionada.
                           </p>
                         </div>
                       </div>
@@ -2288,27 +2708,32 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     {/* Opção Tráfego */}
                     <div
                       onClick={() => setCampaignObjective("TRAFFIC")}
-                      className={`p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between text-left group relative overflow-hidden shadow-sm ${
+                      className={`group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border p-5 text-left shadow-sm transition-all ${
                         campaignObjective === "TRAFFIC"
                           ? "border-primary bg-primary/5 ring-1 ring-primary"
                           : "border-slate-200 bg-white hover:border-primary/50 hover:bg-slate-50/50"
                       }`}
                     >
-                      <div className="flex gap-4 items-start z-10">
-                        <div className={`p-3 rounded-xl ${campaignObjective === "TRAFFIC" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}>
+                      <div className="z-10 flex items-start gap-4">
+                        <div
+                          className={`rounded-xl p-3 ${campaignObjective === "TRAFFIC" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}
+                        >
                           <TrendingUp className="h-6 w-6" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-primary transition-colors">
+                            <span className="text-sm font-extrabold text-slate-900 transition-colors group-hover:text-primary">
                               Mais Cliques no Link (Tráfego)
                             </span>
                             {campaignObjective === "TRAFFIC" && (
-                              <Badge className="bg-primary hover:bg-primary text-white text-[9px] scale-90 py-0 font-medium">Ativo</Badge>
+                              <Badge className="scale-90 bg-primary py-0 text-[9px] font-medium text-white hover:bg-primary">
+                                Ativo
+                              </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
-                            Otimizado para gerar o máximo de cliques qualificados no seu anúncio. Ideal para direcionar potenciais clientes para o seu site ou perfil.
+                          <p className="max-w-lg text-xs leading-relaxed text-slate-500">
+                            Otimizado para gerar o máximo de cliques qualificados no seu anúncio.
+                            Ideal para direcionar potenciais clientes para o seu site ou perfil.
                           </p>
                         </div>
                       </div>
@@ -2317,27 +2742,32 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     {/* Opção WhatsApp */}
                     <div
                       onClick={() => setCampaignObjective("WHATSAPP")}
-                      className={`p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between text-left group relative overflow-hidden shadow-sm ${
+                      className={`group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border p-5 text-left shadow-sm transition-all ${
                         campaignObjective === "WHATSAPP"
                           ? "border-primary bg-primary/5 ring-1 ring-primary"
                           : "border-slate-200 bg-white hover:border-primary/50 hover:bg-slate-50/50"
                       }`}
                     >
-                      <div className="flex gap-4 items-start z-10">
-                        <div className={`p-3 rounded-xl ${campaignObjective === "WHATSAPP" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}>
+                      <div className="z-10 flex items-start gap-4">
+                        <div
+                          className={`rounded-xl p-3 ${campaignObjective === "WHATSAPP" ? "bg-primary/20 text-primary" : "bg-slate-100 text-slate-600"}`}
+                        >
                           <MessageSquare className="h-6 w-6" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-extrabold text-slate-900 group-hover:text-primary transition-colors">
+                            <span className="text-sm font-extrabold text-slate-900 transition-colors group-hover:text-primary">
                               Mensagens no WhatsApp
                             </span>
                             {campaignObjective === "WHATSAPP" && (
-                              <Badge className="bg-primary hover:bg-primary text-white text-[9px] scale-90 py-0 font-medium">Ativo</Badge>
+                              <Badge className="scale-90 bg-primary py-0 text-[9px] font-medium text-white hover:bg-primary">
+                                Ativo
+                              </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
-                            Otimizado para direcionar potenciais clientes diretamente para o WhatsApp comercial da sua empresa para iniciar conversas.
+                          <p className="max-w-lg text-xs leading-relaxed text-slate-500">
+                            Otimizado para direcionar potenciais clientes diretamente para o
+                            WhatsApp comercial da sua empresa para iniciar conversas.
                           </p>
                         </div>
                       </div>
@@ -2345,67 +2775,89 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   </div>
 
                   {campaignObjective === "WHATSAPP" && (
-                    <div className="mt-4 border-t border-slate-100 pt-4 animate-in fade-in duration-200">
+                    <div className="mt-4 border-t border-slate-100 pt-4 duration-200 animate-in fade-in">
                       {isCheckingWhatsApp ? (
-                        <div className="p-5 rounded-xl border border-slate-200 bg-slate-50/80 flex items-center justify-center gap-3">
+                        <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-5">
                           <Loader2 className="h-5 w-5 animate-spin text-green-500" />
-                          <span className="text-sm text-slate-600 font-medium">Verificando vinculação do WhatsApp...</span>
+                          <span className="text-sm font-medium text-slate-600">
+                            Verificando vinculação do WhatsApp...
+                          </span>
                         </div>
                       ) : hasWhatsAppConnected === true ? (
-                        <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50/80 to-emerald-50/50 overflow-hidden">
+                        <div className="overflow-hidden rounded-xl border border-green-200 bg-gradient-to-br from-green-50/80 to-emerald-50/50">
                           {/* Header */}
-                          <div className="px-4 py-3 bg-green-500/10 border-b border-green-200/60 flex items-center justify-between">
+                          <div className="flex items-center justify-between border-b border-green-200/60 bg-green-500/10 px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 shadow-sm">
                                 <Check className="h-4 w-4 text-white" />
                               </div>
                               <div>
-                                <h6 className="text-sm font-bold text-green-800">WhatsApp Conectado</h6>
-                                <p className="text-[10px] text-green-600/80 font-medium">Pronto para receber mensagens de anúncios</p>
+                                <h6 className="text-sm font-bold text-green-800">
+                                  WhatsApp Conectado
+                                </h6>
+                                <p className="text-[10px] font-medium text-green-600/80">
+                                  Pronto para receber mensagens de anúncios
+                                </p>
                               </div>
                             </div>
-                            <Badge className="bg-green-500/15 hover:bg-green-500/15 text-green-700 text-[9px] font-bold border-0 py-0.5">Ativo</Badge>
+                            <Badge className="border-0 bg-green-500/15 py-0.5 text-[9px] font-bold text-green-700 hover:bg-green-500/15">
+                              Ativo
+                            </Badge>
                           </div>
 
                           {/* Body */}
-                          <div className="p-4 space-y-3">
+                          <div className="space-y-3 p-4">
                             {/* Page info with real logo */}
-                            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/70 border border-green-100">
-                              {(whatsAppPageId || metaConnection?.pageId) ? (
+                            <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-white/70 p-3">
+                              {whatsAppPageId || metaConnection?.pageId ? (
                                 <img
-                                  src={`https://graph.facebook.com/${whatsAppPageId || metaConnection.pageId}/picture?type=small${(metaConnection?.accessToken || metaConnection?.userAccessToken) ? `&access_token=${metaConnection.accessToken || metaConnection.userAccessToken}` : ""}`}
+                                  src={`https://graph.facebook.com/${whatsAppPageId || metaConnection.pageId}/picture?type=small${metaConnection?.accessToken || metaConnection?.userAccessToken ? `&access_token=${metaConnection.accessToken || metaConnection.userAccessToken}` : ""}`}
                                   alt={whatsAppPageName || "Página"}
-                                  className="h-9 w-9 rounded-full object-cover shadow-sm border border-green-100"
+                                  className="h-9 w-9 rounded-full border border-green-100 object-cover shadow-sm"
                                 />
                               ) : (
-                                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xs font-bold text-white shadow-sm">
                                   {whatsAppPageName?.charAt(0)?.toUpperCase() || "P"}
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-800 truncate">{whatsAppPageName || "Página do Facebook"}</p>
-                                <p className="text-[10px] text-slate-500">Página comercial do Facebook</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-bold text-slate-800">
+                                  {whatsAppPageName || "Página do Facebook"}
+                                </p>
+                                <p className="text-[10px] text-slate-500">
+                                  Página comercial do Facebook
+                                </p>
                               </div>
                             </div>
 
                             {/* Phone number with WhatsApp icon + inline change link */}
-                            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/70 border border-green-100">
-                              <div className="h-9 w-9 rounded-full bg-[#25D366] flex items-center justify-center shadow-sm shrink-0">
-                                <svg viewBox="0 0 32 32" className="h-5 w-5 text-white" fill="currentColor">
-                                  <path d="M16 3C9.373 3 4 8.373 4 15c0 2.127.553 4.174 1.604 5.99L4 29l8.187-1.574A12.94 12.94 0 0016 28c6.627 0 12-5.373 12-12S22.627 3 16 3zm6.39 17.39c-.27.76-1.59 1.45-2.18 1.49-.56.04-1.08.26-3.65-.76-3.11-1.23-5.08-4.43-5.24-4.64-.15-.2-1.26-1.67-1.26-3.19s.79-2.26 1.08-2.57c.27-.3.6-.37.8-.37s.4.01.57.01c.19.01.44-.07.68.52.27.63.9 2.2.98 2.36.08.16.13.35.03.55-.11.21-.16.33-.32.51-.15.18-.33.4-.47.53-.15.15-.31.31-.13.61.18.3.78 1.28 1.67 2.08 1.15 1.03 2.12 1.35 2.42 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.19 1.42z"/>
+                            <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-white/70 p-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25D366] shadow-sm">
+                                <svg
+                                  viewBox="0 0 32 32"
+                                  className="h-5 w-5 text-white"
+                                  fill="currentColor"
+                                >
+                                  <path d="M16 3C9.373 3 4 8.373 4 15c0 2.127.553 4.174 1.604 5.99L4 29l8.187-1.574A12.94 12.94 0 0016 28c6.627 0 12-5.373 12-12S22.627 3 16 3zm6.39 17.39c-.27.76-1.59 1.45-2.18 1.49-.56.04-1.08.26-3.65-.76-3.11-1.23-5.08-4.43-5.24-4.64-.15-.2-1.26-1.67-1.26-3.19s.79-2.26 1.08-2.57c.27-.3.6-.37.8-.37s.4.01.57.01c.19.01.44-.07.68.52.27.63.9 2.2.98 2.36.08.16.13.35.03.55-.11.21-.16.33-.32.51-.15.18-.33.4-.47.53-.15.15-.31.31-.13.61.18.3.78 1.28 1.67 2.08 1.15 1.03 2.12 1.35 2.42 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.74.82 2.04.97.3.15.5.22.57.35.08.12.08.72-.19 1.42z" />
                                 </svg>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-800">WhatsApp Business</p>
-                                <p className="text-[10px] text-slate-500">WhatsApp conectado à página</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-800">
+                                  WhatsApp Business
+                                </p>
+                                <p className="text-[10px] text-slate-500">
+                                  WhatsApp conectado à página
+                                </p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setTutorialRedirectUrl("https://www.facebook.com/settings/?tab=linked_whatsapp");
+                                  setTutorialRedirectUrl(
+                                    "https://www.facebook.com/settings/?tab=linked_whatsapp"
+                                  );
                                   setIsProfileSwitchTutorialOpen(true);
                                 }}
-                                className="text-[10px] text-green-600 hover:text-green-700 font-semibold underline underline-offset-2 decoration-green-300 hover:decoration-green-500 transition-colors whitespace-nowrap shrink-0"
+                                className="shrink-0 whitespace-nowrap text-[10px] font-semibold text-green-600 underline decoration-green-300 underline-offset-2 transition-colors hover:text-green-700 hover:decoration-green-500"
                               >
                                 Alterar número →
                               </button>
@@ -2413,26 +2865,41 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50/80 to-orange-50/30 overflow-hidden">
+                        <div className="overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50/80 to-orange-50/30">
                           {/* Header */}
-                          <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-200/60 flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
+                          <div className="flex items-center gap-2.5 border-b border-amber-200/60 bg-amber-500/10 px-4 py-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 shadow-sm">
                               <AlertCircle className="h-4 w-4 text-white" />
                             </div>
                             <div>
-                              <h6 className="text-sm font-bold text-amber-800">WhatsApp Não Vinculado</h6>
-                              <p className="text-[10px] text-amber-600/80 font-medium">Vincule um número para criar anúncios</p>
+                              <h6 className="text-sm font-bold text-amber-800">
+                                WhatsApp Não Vinculado
+                              </h6>
+                              <p className="text-[10px] font-medium text-amber-600/80">
+                                Vincule um número para criar anúncios
+                              </p>
                             </div>
                           </div>
 
                           {/* Body */}
-                          <div className="p-4 space-y-3">
-                            <div className="bg-white/80 border border-amber-100 rounded-lg p-3.5 space-y-2.5">
-                              <p className="text-xs font-bold text-slate-700">Como conectar em 1 minuto:</p>
-                              <ol className="text-[11px] text-slate-600 list-decimal pl-4 space-y-1.5 font-medium leading-relaxed">
-                                <li>Clique em <strong>"Vincular no Facebook"</strong> abaixo para abrir as configurações.</li>
-                                <li>Digite seu número de WhatsApp Business e envie o código de verificação.</li>
-                                <li>Confirme o código recebido no celular e clique em <strong>"Verificar conexão"</strong> aqui.</li>
+                          <div className="space-y-3 p-4">
+                            <div className="space-y-2.5 rounded-lg border border-amber-100 bg-white/80 p-3.5">
+                              <p className="text-xs font-bold text-slate-700">
+                                Como conectar em 1 minuto:
+                              </p>
+                              <ol className="list-decimal space-y-1.5 pl-4 text-[11px] font-medium leading-relaxed text-slate-600">
+                                <li>
+                                  Clique em <strong>"Vincular no Facebook"</strong> abaixo para
+                                  abrir as configurações.
+                                </li>
+                                <li>
+                                  Digite seu número de WhatsApp Business e envie o código de
+                                  verificação.
+                                </li>
+                                <li>
+                                  Confirme o código recebido no celular e clique em{" "}
+                                  <strong>"Verificar conexão"</strong> aqui.
+                                </li>
                               </ol>
                             </div>
 
@@ -2440,10 +2907,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               <Button
                                 type="button"
                                 onClick={() => {
-                                  setTutorialRedirectUrl(whatsAppSettingsUrl || (metaConnection?.pageId ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp` : "https://www.facebook.com"));
+                                  setTutorialRedirectUrl(
+                                    whatsAppSettingsUrl ||
+                                      (metaConnection?.pageId
+                                        ? `https://www.facebook.com/${metaConnection.pageId}/settings/?tab=whatsapp`
+                                        : "https://www.facebook.com")
+                                  );
                                   setIsProfileSwitchTutorialOpen(true);
                                 }}
-                                className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] h-8 px-4 rounded-lg active:scale-95 transition-all shadow-sm gap-1.5 border-0"
+                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border-0 bg-amber-500 px-4 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-95"
                               >
                                 <ExternalLink className="h-3 w-3" />
                                 Vincular no Facebook
@@ -2452,7 +2924,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 type="button"
                                 onClick={checkWhatsAppConnection}
                                 variant="outline"
-                                className="font-bold text-[11px] h-8 px-3 rounded-lg gap-1.5"
+                                className="h-8 gap-1.5 rounded-lg px-3 text-[11px] font-bold"
                               >
                                 <RefreshCw className="h-3 w-3" />
                                 Verificar conexão
@@ -2469,18 +2941,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
                       <Sparkles className="h-5 w-5 text-primary" />
                       2. O que seu anúncio vai dizer?
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Escreva ou use nossa inteligência artificial para criar legendas de alta performance que engajam moradores locais!
+                    <p className="mt-1 text-xs text-slate-500">
+                      Escreva ou use nossa inteligência artificial para criar legendas de alta
+                      performance que engajam moradores locais!
                     </p>
                   </div>
 
                   {/* Nome Interno */}
                   <div className="space-y-2">
-                    <Label htmlFor="ad-name" className="text-sm font-bold text-slate-700">Nome da Campanha (Apenas para seu controle)</Label>
+                    <Label htmlFor="ad-name" className="text-sm font-bold text-slate-700">
+                      Nome da Campanha (Apenas para seu controle)
+                    </Label>
                     <Input
                       id="ad-name"
                       value={adName}
@@ -2488,7 +2963,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       onFocus={() => setFocusedField("adName")}
                       onBlur={() => setFocusedField(null)}
                       placeholder="Ex: [NUMVAPT] Promoção de Inverno"
-                      className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                      className="rounded-lg border-slate-200 text-sm focus:border-primary focus:ring-primary"
                     />
                     <p className="text-[10px] text-slate-400">
                       Este nome é 100% interno e não aparecerá para os clientes nas redes sociais.
@@ -2497,7 +2972,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                   {/* Legenda (Texto Principal) */}
                   <div className="space-y-2">
-                    <Label htmlFor="ad-body" className="text-sm font-bold text-slate-700">Texto Principal do Anúncio (Legenda)</Label>
+                    <Label htmlFor="ad-body" className="text-sm font-bold text-slate-700">
+                      Texto Principal do Anúncio (Legenda)
+                    </Label>
                     <Textarea
                       id="ad-body"
                       value={bodyText}
@@ -2506,77 +2983,98 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       onBlur={() => setFocusedField(null)}
                       placeholder="Escreva a legenda atrativa que aparecerá acima da imagem do anúncio..."
                       rows={5}
-                      className="rounded-lg border-slate-200 text-sm resize-none focus:ring-primary focus:border-primary"
+                      className="resize-none rounded-lg border-slate-200 text-sm focus:border-primary focus:ring-primary"
                     />
                   </div>
-
-
 
                   {/* Link de Destino Opcional (Alcance), Obrigatório (Tráfego), ou WhatsApp (automático) */}
                   <div className="space-y-4 pt-2">
                     {campaignObjective === "WHATSAPP" ? (
-                      <div className="p-3.5 rounded-lg bg-green-50/50 border border-green-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 text-green-600" fill="currentColor">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                      <div className="rounded-lg border border-green-200 bg-green-50/50 p-3.5">
+                        <div className="mb-1 flex items-center gap-2">
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4 text-green-600"
+                            fill="currentColor"
+                          >
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" />
                           </svg>
-                          <span className="text-xs font-bold text-green-700">Destino: WhatsApp</span>
+                          <span className="text-xs font-bold text-green-700">
+                            Destino: WhatsApp
+                          </span>
                         </div>
-                        <p className="text-[11px] text-green-600/80 leading-relaxed">
-                          O anúncio incluirá automaticamente o botão <strong>"Enviar mensagem pelo WhatsApp"</strong> que direcionará os clientes para uma conversa no WhatsApp vinculado à sua Página do Facebook.
+                        <p className="text-[11px] leading-relaxed text-green-600/80">
+                          O anúncio incluirá automaticamente o botão{" "}
+                          <strong>"Enviar mensagem pelo WhatsApp"</strong> que direcionará os
+                          clientes para uma conversa no WhatsApp vinculado à sua Página do Facebook.
                         </p>
                       </div>
                     ) : campaignObjective === "REACH" ? (
-                      <div className="space-y-2 p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
                         <div className="flex items-center space-x-3">
                           <input
                             type="checkbox"
                             id="toggle-destination"
                             checked={hasDestination}
                             onChange={(e) => setHasDestination(e.target.checked)}
-                            className="h-4.5 w-4.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                            className="h-4.5 w-4.5 cursor-pointer rounded border-slate-300 text-primary focus:ring-primary"
                           />
-                          <Label htmlFor="toggle-destination" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                          <Label
+                            htmlFor="toggle-destination"
+                            className="cursor-pointer select-none text-xs font-bold text-slate-700"
+                          >
                             Adicionar link do seu site
                           </Label>
                         </div>
-                        <p className="text-[11px] text-slate-500 leading-normal pl-7.5">
-                          Ao ativar, adicionamos o botão <strong>"Saiba mais"</strong> no seu anúncio para levar as pessoas diretamente ao seu site. Se preferir deixar desativado, o anúncio será exibido sem botão, focando exclusivamente em alcançar e ser visto pelo maior número possível de pessoas na sua região.
+                        <p className="pl-7.5 text-[11px] leading-normal text-slate-500">
+                          Ao ativar, adicionamos o botão <strong>"Saiba mais"</strong> no seu
+                          anúncio para levar as pessoas diretamente ao seu site. Se preferir deixar
+                          desativado, o anúncio será exibido sem botão, focando exclusivamente em
+                          alcançar e ser visto pelo maior número possível de pessoas na sua região.
                         </p>
                       </div>
                     ) : (
-                      <div className="p-3.5 rounded-lg bg-blue-50/20 border border-blue-500/10">
-                        <p className="text-[11px] text-slate-500 leading-relaxed">
-                          O link do seu site é obrigatório nesta campanha para habilitar o botão <strong>"Saiba mais"</strong> e direcionar os potenciais clientes.
+                      <div className="rounded-lg border border-blue-500/10 bg-blue-50/20 p-3.5">
+                        <p className="text-[11px] leading-relaxed text-slate-500">
+                          O link do seu site é obrigatório nesta campanha para habilitar o botão{" "}
+                          <strong>"Saiba mais"</strong> e direcionar os potenciais clientes.
                         </p>
                       </div>
                     )}
 
                     {/* Input de URL de Destino (não exibido para WhatsApp) */}
-                    {campaignObjective !== "WHATSAPP" && (hasDestination || campaignObjective === "TRAFFIC") && (
-                      <div className="space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
-                        <Label htmlFor="destination-url" className="text-xs font-bold text-slate-800">
-                          Link do seu site
-                        </Label>
-                        <Input
-                          id="destination-url"
-                          value={customDestination}
-                          onChange={(e) => setCustomDestination(e.target.value)}
-                          onFocus={() => setFocusedField("destinationUrl")}
-                          onBlur={() => setFocusedField(null)}
-                          placeholder="seusite.com.br"
-                          className="bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary"
-                        />
-                      </div>
-                    )}
+                    {campaignObjective !== "WHATSAPP" &&
+                      (hasDestination || campaignObjective === "TRAFFIC") && (
+                        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm duration-200 animate-in fade-in slide-in-from-top-1">
+                          <Label
+                            htmlFor="destination-url"
+                            className="text-xs font-bold text-slate-800"
+                          >
+                            Link do seu site
+                          </Label>
+                          <Input
+                            id="destination-url"
+                            value={customDestination}
+                            onChange={(e) => setCustomDestination(e.target.value)}
+                            onFocus={() => setFocusedField("destinationUrl")}
+                            onBlur={() => setFocusedField(null)}
+                            placeholder="seusite.com.br"
+                            className="border-slate-200 bg-white text-sm focus:border-primary focus:ring-primary"
+                          />
+                        </div>
+                      )}
                   </div>
 
                   {/* Título Chamativo (Exibido quando tem destino/botão ativo ou WhatsApp) */}
-                  {(hasDestination || campaignObjective === "TRAFFIC" || campaignObjective === "WHATSAPP") && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor="ad-headline" className="text-sm font-bold text-slate-700">Título do Anúncio (Fica abaixo da imagem)</Label>
+                  {(hasDestination ||
+                    campaignObjective === "TRAFFIC" ||
+                    campaignObjective === "WHATSAPP") && (
+                    <div className="space-y-2 duration-200 animate-in fade-in slide-in-from-top-1">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="ad-headline" className="text-sm font-bold text-slate-700">
+                          Título do Anúncio (Fica abaixo da imagem)
+                        </Label>
                         <span className="text-[10px] text-slate-400">
                           {headline.length}/40 caracteres
                         </span>
@@ -2587,12 +3085,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         onChange={(e) => setHeadline(e.target.value)}
                         onFocus={() => setFocusedField("headline")}
                         onBlur={() => setFocusedField(null)}
-                        placeholder={campaignObjective === "WHATSAPP" ? "Ex: Fale conosco agora pelo WhatsApp!" : "Ex: Hambúrguer Artesanal Perto de Você!"}
+                        placeholder={
+                          campaignObjective === "WHATSAPP"
+                            ? "Ex: Fale conosco agora pelo WhatsApp!"
+                            : "Ex: Hambúrguer Artesanal Perto de Você!"
+                        }
                         maxLength={40}
-                        className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                        className="rounded-lg border-slate-200 text-sm focus:border-primary focus:ring-primary"
                       />
                       <p className="text-[10px] text-slate-400">
-                        Este título será exibido em destaque no anúncio, ao lado do botão <strong>{campaignObjective === "WHATSAPP" ? "\"Enviar mensagem\"" : "\"Saiba mais\""}</strong>.
+                        Este título será exibido em destaque no anúncio, ao lado do botão{" "}
+                        <strong>
+                          {campaignObjective === "WHATSAPP" ? '"Enviar mensagem"' : '"Saiba mais"'}
+                        </strong>
+                        .
                       </p>
                     </div>
                   )}
@@ -2603,39 +3109,42 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
                       <Target className="h-5 w-5 text-primary" />
                       3. Onde seu anúncio vai aparecer?
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Moradores próximos do seu negócio físico são os que mais geram vendas! Defina o raio ao redor da sua loja.
+                    <p className="mt-1 text-xs text-slate-500">
+                      Moradores próximos do seu negócio físico são os que mais geram vendas! Defina
+                      o raio ao redor da sua loja.
                     </p>
                   </div>
 
                   <div className="space-y-4">
-                    
                     {/* Localização Híbrida (Qualquer endereço, rua, bairro, cidade ou estado) */}
-                    <div className="space-y-2 relative">
-                      <Label className="text-sm font-bold text-slate-700 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 font-poppins">
-                          <MapPin className="h-4 w-4 text-primary" /> Onde seu anúncio vai aparecer? (Região ou Endereço)
+                    <div className="relative space-y-2">
+                      <Label className="flex items-center justify-between text-sm font-bold text-slate-700">
+                        <span className="font-poppins flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4 text-primary" /> Onde seu anúncio vai aparecer?
+                          (Região ou Endereço)
                         </span>
                       </Label>
-                      <p className="text-[11px] text-slate-500 leading-normal mb-1">
-                        Você pode digitar um <strong>endereço exato (rua/avenida)</strong>, <strong>bairro</strong>, <strong>cidade</strong> ou <strong>estado</strong> e selecionar na lista recomendada.
+                      <p className="mb-1 text-[11px] leading-normal text-slate-500">
+                        Você pode digitar um <strong>endereço exato (rua/avenida)</strong>,{" "}
+                        <strong>bairro</strong>, <strong>cidade</strong> ou <strong>estado</strong>{" "}
+                        e selecionar na lista recomendada.
                       </p>
                       <div className="relative">
                         <Input
                           value={addressInput}
                           onChange={(e) => handleAddressInputChange(e.target.value)}
                           placeholder="Digite a rua, bairro, cidade ou estado (Ex: Copacabana, Rio de Janeiro)..."
-                          className={`bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary pr-9 ${selectedLocations.length > 0 ? 'border-green-300 ring-green-100' : ''}`}
+                          className={`border-slate-200 bg-white pr-9 text-sm focus:border-primary focus:ring-primary ${selectedLocations.length > 0 ? "border-green-300 ring-green-100" : ""}`}
                         />
                         <div className="absolute right-3 top-3 flex items-center gap-1 text-slate-400">
                           {isSearchingLocations ? (
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           ) : selectedLocations.length > 0 ? (
-                            <Check className="h-4 w-4 text-green-500 font-extrabold" />
+                            <Check className="h-4 w-4 font-extrabold text-green-500" />
                           ) : (
                             <Search className="h-4 w-4 text-slate-400" />
                           )}
@@ -2644,11 +3153,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                       {/* Dropdown flutuante de sugestões */}
                       {metaLocationsSuggestions.length > 0 && (
-                        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
-                          <div className="p-1.5 border-b border-slate-100 bg-slate-50 text-[10px] text-slate-500 font-bold px-3 uppercase tracking-wider shrink-0">
+                        <div className="absolute z-50 mt-1 flex w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl duration-200 animate-in fade-in slide-in-from-top-1">
+                          <div className="shrink-0 border-b border-slate-100 bg-slate-50 p-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                             Localidades Recomendadas
                           </div>
-                          <div className="overflow-y-auto max-h-48 py-1 scrollbar-thin">
+                          <div className="scrollbar-thin max-h-48 overflow-y-auto py-1">
                             {metaLocationsSuggestions.map((loc) => (
                               <button
                                 key={loc.key}
@@ -2661,7 +3170,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                     try {
                                       const lowerName = loc.name.toLowerCase();
                                       let searchQ = loc.name;
-                                      if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                      if (
+                                        !lowerName.includes("brasil") &&
+                                        !lowerName.includes("brazil")
+                                      ) {
                                         searchQ = `${loc.name}, Brasil`;
                                       }
                                       const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1&polygon_geojson=1&polygon_threshold=0.01`;
@@ -2669,19 +3181,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         headers: {
                                           "User-Agent": "NumVaptAdsApp/1.0",
                                           "Accept-Language": "pt-BR,pt;q=0.9",
-                                        }
+                                        },
                                       });
                                       if (nomRes.ok) {
                                         const nomData = await nomRes.json();
                                         if (nomData && nomData.length > 0) {
                                           const lat = parseFloat(nomData[0].lat);
                                           const lng = parseFloat(nomData[0].lon);
-                                          const bbox = nomData[0].boundingbox ? [
-                                            parseFloat(nomData[0].boundingbox[0]),
-                                            parseFloat(nomData[0].boundingbox[1]),
-                                            parseFloat(nomData[0].boundingbox[2]),
-                                            parseFloat(nomData[0].boundingbox[3])
-                                          ] : null;
+                                          const bbox = nomData[0].boundingbox
+                                            ? [
+                                                parseFloat(nomData[0].boundingbox[0]),
+                                                parseFloat(nomData[0].boundingbox[1]),
+                                                parseFloat(nomData[0].boundingbox[2]),
+                                                parseFloat(nomData[0].boundingbox[3]),
+                                              ]
+                                            : null;
 
                                           addLocation({
                                             name: loc.name,
@@ -2690,7 +3204,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                             latitude: lat,
                                             longitude: lng,
                                             boundingBox: bbox,
-                                            geoJson: nomData[0].geojson || null
+                                            geoJson: nomData[0].geojson || null,
                                           });
                                         } else {
                                           throw new Error("Dados da região não encontrados.");
@@ -2708,7 +3222,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         latitude: loc.latitude,
                                         longitude: loc.longitude,
                                         boundingBox: loc.boundingBox || null,
-                                        geoJson: null
+                                        geoJson: null,
                                       });
                                     } finally {
                                       setIsSearchingLocations(false);
@@ -2723,7 +3237,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         latitude: loc.latitude,
                                         longitude: loc.longitude,
                                         boundingBox: loc.boundingBox || null,
-                                        geoJson: null
+                                        geoJson: null,
                                       });
                                     } else {
                                       // Geocodificação sob demanda no cliente para endereços/regiões sem coordenadas nativas
@@ -2731,7 +3245,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                       try {
                                         const lowerName = loc.name.toLowerCase();
                                         let searchQ = loc.name;
-                                        if (!lowerName.includes("brasil") && !lowerName.includes("brazil")) {
+                                        if (
+                                          !lowerName.includes("brasil") &&
+                                          !lowerName.includes("brazil")
+                                        ) {
                                           searchQ = `${loc.name}, Brasil`;
                                         }
                                         const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQ)}&format=json&limit=1`;
@@ -2739,19 +3256,21 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                           headers: {
                                             "User-Agent": "NumVaptAdsApp/1.0",
                                             "Accept-Language": "pt-BR,pt;q=0.9",
-                                          }
+                                          },
                                         });
                                         if (nomRes.ok) {
                                           const nomData = await nomRes.json();
                                           if (nomData && nomData.length > 0) {
                                             const lat = parseFloat(nomData[0].lat);
                                             const lng = parseFloat(nomData[0].lon);
-                                            const bbox = nomData[0].boundingbox ? [
-                                              parseFloat(nomData[0].boundingbox[0]),
-                                              parseFloat(nomData[0].boundingbox[1]),
-                                              parseFloat(nomData[0].boundingbox[2]),
-                                              parseFloat(nomData[0].boundingbox[3])
-                                            ] : null;
+                                            const bbox = nomData[0].boundingbox
+                                              ? [
+                                                  parseFloat(nomData[0].boundingbox[0]),
+                                                  parseFloat(nomData[0].boundingbox[1]),
+                                                  parseFloat(nomData[0].boundingbox[2]),
+                                                  parseFloat(nomData[0].boundingbox[3]),
+                                                ]
+                                              : null;
 
                                             addLocation({
                                               name: loc.name,
@@ -2760,7 +3279,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                               latitude: lat,
                                               longitude: lng,
                                               boundingBox: bbox,
-                                              geoJson: null
+                                              geoJson: null,
                                             });
                                           } else {
                                             throw new Error("Coordenadas não encontradas.");
@@ -2773,7 +3292,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         toast({
                                           variant: "destructive",
                                           title: "Erro de Localização",
-                                          description: "Não conseguimos obter o ponto exato no mapa para esta região.",
+                                          description:
+                                            "Não conseguimos obter o ponto exato no mapa para esta região.",
                                         });
                                       } finally {
                                         setIsSearchingLocations(false);
@@ -2781,15 +3301,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                     }
                                   }
                                 }}
-                                className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+                                className="flex w-full items-center justify-between border-b border-slate-50 px-3.5 py-2.5 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50"
                               >
                                 <div className="flex flex-col truncate pr-2">
-                                  <span className="truncate font-bold text-slate-700">{loc.name}</span>
-                                  <span className="text-[10px] text-slate-400 font-normal mt-0.5 capitalize">
+                                  <span className="truncate font-bold text-slate-700">
+                                    {loc.name}
+                                  </span>
+                                  <span className="mt-0.5 text-[10px] font-normal capitalize text-slate-400">
                                     Tipo: {loc.type} • {loc.region || "Brasil"}
                                   </span>
                                 </div>
-                                <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 font-semibold text-[9px] scale-90 border-none shrink-0 ml-1 capitalize">
+                                <Badge className="ml-1 shrink-0 scale-90 border-none bg-slate-100 text-[9px] font-semibold capitalize text-slate-500 hover:bg-slate-100">
                                   {loc.type}
                                 </Badge>
                               </button>
@@ -2799,21 +3321,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       )}
                       {/* Lista de Localidades Selecionadas */}
                       {selectedLocations.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200/50">
+                        <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-slate-200/50 bg-slate-50 p-3">
                           {selectedLocations.map((loc, idx) => (
-                            <div 
-                              key={`${loc.key || 'loc'}_${idx}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-xs text-xs text-slate-700 font-medium animate-in zoom-in duration-200"
+                            <div
+                              key={`${loc.key || "loc"}_${idx}`}
+                              className="shadow-xs inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 duration-200 animate-in zoom-in"
                             >
                               <MapPin className="h-3 w-3 text-primary" />
                               <span>{loc.name}</span>
-                              <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold ml-0.5">({loc.type})</span>
+                              <span className="ml-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                                ({loc.type})
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedLocations(prev => prev.filter((_, i) => i !== idx));
+                                  setSelectedLocations((prev) => prev.filter((_, i) => i !== idx));
                                 }}
-                                className="ml-1 text-slate-400 hover:text-red-500 focus:outline-none transition-colors"
+                                className="ml-1 text-slate-400 transition-colors hover:text-red-500 focus:outline-none"
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -2823,7 +3347,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       )}
 
                       {addressInput.length > 0 && selectedLocations.length === 0 && (
-                        <p className="text-[11px] text-amber-600 font-semibold mt-1 flex items-center gap-1">
+                        <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-amber-600">
                           Digite o endereço e selecione uma das opções recomendadas da lista.
                         </p>
                       )}
@@ -2831,38 +3355,50 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                     {/* MAPA VISUAL INTERATIVO */}
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-500 block">Mapa de Segmentação Geográfica</Label>
-                      <div className="text-[11px] text-slate-500 leading-normal flex items-start gap-1.5 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/30">
-                        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <Label className="block text-xs font-bold text-slate-500">
+                        Mapa de Segmentação Geográfica
+                      </Label>
+                      <div className="flex items-start gap-1.5 rounded-lg border border-blue-100/30 bg-blue-50/50 p-2.5 text-[11px] leading-normal text-slate-500">
+                        <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                         <span>
-                          O mapa exibe visualmente todas as regiões, cidades ou endereços que você adicionou acima.
+                          O mapa exibe visualmente todas as regiões, cidades ou endereços que você
+                          adicionou acima.
                         </span>
                       </div>
-                      <div 
-                        id="targeting-map" 
-                        className="h-72 w-full rounded-xl border border-slate-200/80 shadow-xs relative overflow-hidden z-10 bg-slate-50"
-                        style={{ minHeight: '280px' }}
+                      <div
+                        id="targeting-map"
+                        className="shadow-xs relative z-10 h-72 w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50"
+                        style={{ minHeight: "280px" }}
                       />
                     </div>
 
                     {/* Lógica de Área de Cobertura Inteligente e Condicional */}
                     {selectedLocations.length > 0 && (
-                      <div className="animate-in fade-in duration-300 space-y-4">
-                        {selectedLocations.some((l) => l.type === "País" || l.type === "Estado") && (
-                          <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3 shadow-sm">
-                            <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                            <div className="text-[12px] text-slate-600 leading-relaxed">
-                              <strong>Cobertura Ampla (País/Estado):</strong> O seu anúncio será veiculado em todo o território das regiões selecionadas.
+                      <div className="space-y-4 duration-300 animate-in fade-in">
+                        {selectedLocations.some(
+                          (l) => l.type === "País" || l.type === "Estado"
+                        ) && (
+                          <div className="mt-2 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                            <div className="text-[12px] leading-relaxed text-slate-600">
+                              <strong>Cobertura Ampla (País/Estado):</strong> O seu anúncio será
+                              veiculado em todo o território das regiões selecionadas.
                             </div>
                           </div>
                         )}
-                        
-                        {selectedLocations.some((l) => l.type !== "País" && l.type !== "Estado") && (
+
+                        {selectedLocations.some(
+                          (l) => l.type !== "País" && l.type !== "Estado"
+                        ) && (
                           <div className="space-y-4 pt-2">
-                            <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-slate-700">Área de Cobertura do Anúncio (Raio ao redor de locais)</span>
-                                <span className="text-base font-extrabold text-primary font-poppins">{radius} km</span>
+                            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-700">
+                                  Área de Cobertura do Anúncio (Raio ao redor de locais)
+                                </span>
+                                <span className="font-poppins text-base font-extrabold text-primary">
+                                  {radius} km
+                                </span>
                               </div>
                               <Slider
                                 defaultValue={[radius]}
@@ -2878,10 +3414,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <span>20 km (Área ampla)</span>
                               </div>
 
-                              <div className="mt-3 flex items-start gap-2 bg-white rounded p-2.5 border border-slate-100 shadow-xs">
-                                <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                                <p className="text-[11px] text-slate-500 leading-normal">
-                                  <span><strong>Indicado para negócios locais:</strong> O raio de <strong>{radius} km</strong> será aplicado ao redor das cidades e endereços selecionados para atrair clientes da vizinhança.</span>
+                              <div className="shadow-xs mt-3 flex items-start gap-2 rounded border border-slate-100 bg-white p-2.5">
+                                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
+                                <p className="text-[11px] leading-normal text-slate-500">
+                                  <span>
+                                    <strong>Indicado para negócios locais:</strong> O raio de{" "}
+                                    <strong>{radius} km</strong> será aplicado ao redor das cidades
+                                    e endereços selecionados para atrair clientes da vizinhança.
+                                  </span>
                                 </p>
                               </div>
                             </div>
@@ -2895,14 +3435,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
               {/* PASSO 4: PÚBLICO-ALVO E INTERESSES */}
               {currentStep === 4 && (
-                <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="space-y-6 duration-300 animate-in fade-in">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
                       <Users className="h-5 w-5 text-primary" />
                       4. Quem deve ver seu anúncio?
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Refine o público demográfico e adicione interesses de alta relevância para direcionar seu anúncio.
+                    <p className="mt-1 text-xs text-slate-500">
+                      Refine o público demográfico e adicione interesses de alta relevância para
+                      direcionar seu anúncio.
                     </p>
                   </div>
 
@@ -2915,7 +3456,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           type="button"
                           variant={gender === "all" ? "default" : "outline"}
                           onClick={() => setGender("all")}
-                          className={`text-xs py-2 h-auto rounded-lg font-medium border-slate-200 ${gender === "all" ? "bg-primary text-white" : "bg-white text-slate-650"}`}
+                          className={`h-auto rounded-lg border-slate-200 py-2 text-xs font-medium ${gender === "all" ? "bg-primary text-white" : "text-slate-650 bg-white"}`}
                         >
                           Todos
                         </Button>
@@ -2923,7 +3464,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           type="button"
                           variant={gender === "male" ? "default" : "outline"}
                           onClick={() => setGender("male")}
-                          className={`text-xs py-2 h-auto rounded-lg font-medium border-slate-200 ${gender === "male" ? "bg-primary text-white" : "bg-white text-slate-650"}`}
+                          className={`h-auto rounded-lg border-slate-200 py-2 text-xs font-medium ${gender === "male" ? "bg-primary text-white" : "text-slate-650 bg-white"}`}
                         >
                           Homens
                         </Button>
@@ -2931,7 +3472,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           type="button"
                           variant={gender === "female" ? "default" : "outline"}
                           onClick={() => setGender("female")}
-                          className={`text-xs py-2 h-auto rounded-lg font-medium border-slate-200 ${gender === "female" ? "bg-primary text-white" : "bg-white text-slate-650"}`}
+                          className={`h-auto rounded-lg border-slate-200 py-2 text-xs font-medium ${gender === "female" ? "bg-primary text-white" : "text-slate-650 bg-white"}`}
                         >
                           Mulheres
                         </Button>
@@ -2939,12 +3480,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     </div>
 
                     {/* Idades Seletores Dropdowns Lado a Lado */}
-                    <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <Label className="text-xs font-bold text-slate-700 block">Faixa Etária Recomendada</Label>
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <Label className="block text-xs font-bold text-slate-700">
+                        Faixa Etária Recomendada
+                      </Label>
                       <div className="grid grid-cols-2 gap-4">
                         {/* Idade Mínima */}
                         <div className="space-y-1.5">
-                          <Label htmlFor="age-min" className="text-[11px] font-bold text-slate-500">Mínima (Anos)</Label>
+                          <Label htmlFor="age-min" className="text-[11px] font-bold text-slate-500">
+                            Mínima (Anos)
+                          </Label>
                           <select
                             id="age-min"
                             value={ageRange[0]}
@@ -2953,7 +3498,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               const newMax = ageRange[1] < newMin ? newMin : ageRange[1];
                               setAgeRange([newMin, newMax]);
                             }}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                           >
                             {Array.from({ length: 48 }, (_, i) => 18 + i).map((age) => (
                               <option key={age} value={age}>
@@ -2965,7 +3510,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                         {/* Idade Máxima */}
                         <div className="space-y-1.5">
-                          <Label htmlFor="age-max" className="text-[11px] font-bold text-slate-500">Máxima (Anos)</Label>
+                          <Label htmlFor="age-max" className="text-[11px] font-bold text-slate-500">
+                            Máxima (Anos)
+                          </Label>
                           <select
                             id="age-max"
                             value={ageRange[1]}
@@ -2974,7 +3521,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               const newMin = ageRange[0] > newMax ? newMax : ageRange[0];
                               setAgeRange([newMin, newMax]);
                             }}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                           >
                             {Array.from({ length: 48 }, (_, i) => 18 + i).map((age) => (
                               <option key={age} value={age} disabled={age < ageRange[0]}>
@@ -2984,27 +3531,33 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           </select>
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-normal">
+                      <p className="text-[10px] leading-normal text-slate-400">
                         * Meta Ads exige idade mínima de pelo menos 18 anos para campanhas
                       </p>
                     </div>
 
                     {/* Campo de Interesses por Autocomplete */}
-                    <div className="space-y-2 relative">
-                      <Label htmlFor="interests-search" className="text-sm font-bold text-slate-700">Interesses Recomendados (Opcional)</Label>
-                      <p className="text-[11px] text-slate-500 leading-normal">
-                        Adicione palavras-chave relacionadas ao seu público para encontrar pessoas com maior potencial de compra (ex: hambúrguer, pizza, cosméticos).
+                    <div className="relative space-y-2">
+                      <Label
+                        htmlFor="interests-search"
+                        className="text-sm font-bold text-slate-700"
+                      >
+                        Interesses Recomendados (Opcional)
+                      </Label>
+                      <p className="text-[11px] leading-normal text-slate-500">
+                        Adicione palavras-chave relacionadas ao seu público para encontrar pessoas
+                        com maior potencial de compra (ex: hambúrguer, pizza, cosméticos).
                       </p>
-                      
+
                       <div className="relative">
                         <Input
                           id="interests-search"
                           value={interestsSearchQuery}
                           onChange={(e) => setInterestsSearchQuery(e.target.value)}
                           placeholder="Digite para buscar interesses... (Ex: Pizza, Beleza, Moda)"
-                          className="bg-white border-slate-200 text-sm focus:ring-primary focus:border-primary pr-9"
+                          className="border-slate-200 bg-white pr-9 text-sm focus:border-primary focus:ring-primary"
                         />
-                        <div className="absolute right-3 top-3 text-slate-450">
+                        <div className="text-slate-450 absolute right-3 top-3">
                           {isLoadingInterests ? (
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           ) : (
@@ -3015,19 +3568,25 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                       {/* Sugestões do Autocomplete da Meta */}
                       {searchedInterests.length > 0 && (
-                        <div className="absolute z-55 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col animate-in fade-in duration-200">
-                          <div className="overflow-y-auto max-h-48 py-1 scrollbar-thin">
+                        <div className="z-55 absolute mt-1 flex w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl duration-200 animate-in fade-in">
+                          <div className="scrollbar-thin max-h-48 overflow-y-auto py-1">
                             {searchedInterests.map((interest) => (
                               <button
                                 key={interest.id}
                                 type="button"
-                                onClick={() => addInterest({ id: interest.id, name: interest.name, type: interest.type })}
-                                className="flex w-full items-center justify-between px-3.5 py-2.5 text-left text-xs hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+                                onClick={() =>
+                                  addInterest({
+                                    id: interest.id,
+                                    name: interest.name,
+                                    type: interest.type,
+                                  })
+                                }
+                                className="flex w-full items-center justify-between border-b border-slate-50 px-3.5 py-2.5 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50"
                               >
                                 <div className="flex flex-col truncate pr-2">
-                                  <span className="font-bold text-slate-755">{interest.name}</span>
+                                  <span className="text-slate-755 font-bold">{interest.name}</span>
                                   {interest.path && (
-                                    <span className="text-[10px] text-slate-400 font-normal mt-0.5 truncate">
+                                    <span className="mt-0.5 truncate text-[10px] font-normal text-slate-400">
                                       {interest.path.join(" > ")}
                                     </span>
                                   )}
@@ -3041,17 +3600,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                       {/* Lista de Interesses Selecionados (Tags) */}
                       {selectedInterests.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="mt-2 flex flex-wrap gap-2">
                           {selectedInterests.map((interest) => (
-                            <div 
+                            <div
                               key={interest.id}
-                              className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium animate-in zoom-in duration-150"
+                              className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary duration-150 animate-in zoom-in"
                             >
                               <span>{interest.name}</span>
                               <button
                                 type="button"
                                 onClick={() => removeInterest(interest.id)}
-                                className="ml-1 text-primary/70 hover:text-red-500 focus:outline-none transition-colors"
+                                className="ml-1 text-primary/70 transition-colors hover:text-red-500 focus:outline-none"
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -3062,20 +3621,22 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                       {/* Chips de Sugestão Estática Baseada na Categoria do Perfil */}
                       <div className="mt-3 space-y-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-poppins">Sugestões Rápidas:</span>
+                        <span className="font-poppins block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Sugestões Rápidas:
+                        </span>
                         <div className="flex flex-wrap gap-1.5">
                           {getCategoryPresets(initialProfile?.category).map((preset) => {
-                            const isSelected = selectedInterests.some(i => i.id === preset.id);
+                            const isSelected = selectedInterests.some((i) => i.id === preset.id);
                             return (
                               <button
                                 key={preset.id}
                                 type="button"
                                 disabled={isSelected}
                                 onClick={() => addInterest(preset)}
-                                className={`text-[11px] px-2.5 py-1 rounded-lg border font-medium transition-all ${
-                                  isSelected 
-                                    ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" 
-                                    : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:bg-slate-50/50 active:scale-98"
+                                className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                                  isSelected
+                                    ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                    : "active:scale-98 border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:bg-slate-50/50"
                                 }`}
                               >
                                 + {preset.name}
@@ -3087,10 +3648,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                       {/* Alerta de Público Muito Restrito */}
                       {selectedInterests.length > 0 && radius <= 5 && (
-                        <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-2.5 text-left mt-3 animate-in slide-in-from-top-1">
-                          <AlertCircle className="h-4.5 w-4.5 text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-[11px] text-slate-650 leading-relaxed">
-                            <strong>Público muito restrito:</strong> Você selecionou interesses específicos com um raio de apenas {radius} km. Isso pode reduzir muito a entrega do seu anúncio. Considere aumentar o raio ou remover os interesses se o anúncio demorar para rodar.
+                        <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 text-left animate-in slide-in-from-top-1">
+                          <AlertCircle className="h-4.5 w-4.5 mt-0.5 shrink-0 text-amber-500" />
+                          <p className="text-slate-650 text-[11px] leading-relaxed">
+                            <strong>Público muito restrito:</strong> Você selecionou interesses
+                            específicos com um raio de apenas {radius} km. Isso pode reduzir muito a
+                            entrega do seu anúncio. Considere aumentar o raio ou remover os
+                            interesses se o anúncio demorar para rodar.
                           </p>
                         </div>
                       )}
@@ -3103,23 +3667,28 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               {currentStep === 5 && (
                 <div className="space-y-6">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 font-poppins flex items-center gap-2">
+                    <h4 className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
                       <DollarSign className="h-5 w-5 text-primary" />
                       5. Quanto deseja investir?
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Defina seu orçamento diário. Quanto mais você investe, para mais pessoas próximas a Meta exibirá seu post!
+                    <p className="mt-1 text-xs text-slate-500">
+                      Defina seu orçamento diário. Quanto mais você investe, para mais pessoas
+                      próximas a Meta exibirá seu post!
                     </p>
                   </div>
 
                   {/* Alerta de Cobrança Pendente no Wizard */}
                   {billingStatus && !billingStatus.hasPaymentMethod && (
-                    <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-3 text-left animate-in slide-in-from-top-1">
-                      <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-left animate-in slide-in-from-top-1">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                       <div className="space-y-1">
-                        <h6 className="text-xs font-bold text-slate-800 font-poppins">Forma de pagamento obrigatória</h6>
-                        <p className="text-[11px] text-slate-500 leading-relaxed">
-                          Sua conta de anúncios da Meta ainda não possui uma forma de pagamento cadastrada. Adicione um cartão de crédito ou realize uma recarga via Pix/Boleto para poder ativar este anúncio.
+                        <h6 className="font-poppins text-xs font-bold text-slate-800">
+                          Forma de pagamento obrigatória
+                        </h6>
+                        <p className="text-[11px] leading-relaxed text-slate-500">
+                          Sua conta de anúncios da Meta ainda não possui uma forma de pagamento
+                          cadastrada. Adicione um cartão de crédito ou realize uma recarga via
+                          Pix/Boleto para poder ativar este anúncio.
                         </p>
                         <Button
                           type="button"
@@ -3127,7 +3696,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             setBillingGuideActive(false);
                             setIsBillingModalOpen(true);
                           }}
-                          className="bg-primary hover:bg-primary/95 text-white font-bold text-[10px] h-8 px-3 rounded-lg mt-1"
+                          className="mt-1 h-8 rounded-lg bg-primary px-3 text-[10px] font-bold text-white hover:bg-primary/95"
                         >
                           Configurar Faturamento
                         </Button>
@@ -3136,17 +3705,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   )}
 
                   <div className="space-y-5">
-                    
                     {/* Investimento Diário */}
-                    <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <div className="flex justify-between items-start">
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700">Investimento Diário</span>
-                          <span className="text-[10px] text-slate-400 font-normal">Valor diário debitado do seu saldo Meta</span>
+                          <span className="text-sm font-bold text-slate-700">
+                            Investimento Diário
+                          </span>
+                          <span className="text-[10px] font-normal text-slate-400">
+                            Valor diário debitado do seu saldo Meta
+                          </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-base font-extrabold text-primary font-poppins">R$ {dailyBudget} / dia</span>
-                          <span className="text-xs text-slate-500 font-bold block mt-0.5">Total: R$ {(dailyBudget * duration).toFixed(2)}</span>
+                          <span className="font-poppins text-base font-extrabold text-primary">
+                            R$ {dailyBudget} / dia
+                          </span>
+                          <span className="mt-0.5 block text-xs font-bold text-slate-500">
+                            Total: R$ {(dailyBudget * duration).toFixed(2)}
+                          </span>
                         </div>
                       </div>
                       <Slider
@@ -3160,13 +3736,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     </div>
 
                     {/* Duração da Campanha */}
-                    <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                      <div className="flex justify-between items-center">
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700">Duração dos Anúncios</span>
-                          <span className="text-[10px] text-slate-400 font-normal">Período de veiculação da campanha</span>
+                          <span className="text-sm font-bold text-slate-700">
+                            Duração dos Anúncios
+                          </span>
+                          <span className="text-[10px] font-normal text-slate-400">
+                            Período de veiculação da campanha
+                          </span>
                         </div>
-                        <span className="text-base font-extrabold text-primary font-poppins">{duration} dias</span>
+                        <span className="font-poppins text-base font-extrabold text-primary">
+                          {duration} dias
+                        </span>
                       </div>
                       <Slider
                         defaultValue={[duration]}
@@ -3179,42 +3761,46 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     </div>
 
                     {/* WIDGET DE RESULTADO DITÁDICO (WOW FACTOR) */}
-                    <div className="p-5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-orange-500/20 rounded-xl relative overflow-hidden">
-                      <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-5 pointer-events-none">
+                    <div className="relative overflow-hidden rounded-xl border-2 border-orange-500/20 bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-5">
+                      <div className="pointer-events-none absolute right-0 top-0 -translate-y-4 translate-x-4 opacity-5">
                         <Megaphone className="h-32 w-32" />
                       </div>
-                      <h5 className="text-xs font-bold text-orange-600 font-poppins uppercase tracking-wide flex items-center gap-1">
+                      <h5 className="font-poppins flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-orange-600">
                         <TrendingUp className="h-4 w-4" /> Resultados Estimados na Sua Região
                       </h5>
-                      
+
                       <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="bg-white rounded-lg p-3 border border-orange-500/10 shadow-sm">
-                          <span className="text-[10px] text-slate-400 block font-medium">Pessoas que verão o anúncio:</span>
-                          <span className="text-lg font-extrabold text-orange-600 font-poppins mt-0.5 block">
-                            {reach.minReach.toLocaleString("pt-BR")} a {reach.maxReach.toLocaleString("pt-BR")}
+                        <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
+                          <span className="block text-[10px] font-medium text-slate-400">
+                            Pessoas que verão o anúncio:
+                          </span>
+                          <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
+                            {reach.minReach.toLocaleString("pt-BR")} a{" "}
+                            {reach.maxReach.toLocaleString("pt-BR")}
                           </span>
                         </div>
-                        <div className="bg-white rounded-lg p-3 border border-orange-500/10 shadow-sm">
-                          <span className="text-[10px] text-slate-400 block font-medium">Cliques de interesse gerados:</span>
-                          <span className="text-lg font-extrabold text-orange-600 font-poppins mt-0.5 block">
-                            {reach.minClicks.toLocaleString("pt-BR")} a {reach.maxClicks.toLocaleString("pt-BR")}
+                        <div className="rounded-lg border border-orange-500/10 bg-white p-3 shadow-sm">
+                          <span className="block text-[10px] font-medium text-slate-400">
+                            Cliques de interesse gerados:
+                          </span>
+                          <span className="font-poppins mt-0.5 block text-lg font-extrabold text-orange-600">
+                            {reach.minClicks.toLocaleString("pt-BR")} a{" "}
+                            {reach.maxClicks.toLocaleString("pt-BR")}
                           </span>
                         </div>
                       </div>
 
-                      <p className="text-[11px] text-slate-500 leading-relaxed mt-4 italic">
-                        Essas estimativas são baseadas em históricos de anúncios na Meta e podem variar
+                      <p className="mt-4 text-[11px] italic leading-relaxed text-slate-500">
+                        Essas estimativas são baseadas em históricos de anúncios na Meta e podem
+                        variar
                       </p>
                     </div>
-
-
-
                   </div>
                 </div>
               )}
 
               {/* Botões de Ação do Wizard */}
-              <div className="mt-8 pt-4 border-t border-slate-200 flex justify-between">
+              <div className="mt-8 flex justify-between border-t border-slate-200 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -3222,7 +3808,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
                     else setIsCreating(false);
                   }}
-                  className="rounded-lg text-xs font-bold border-slate-200"
+                  className="rounded-lg border-slate-200 text-xs font-bold"
                 >
                   {currentStep === 1 ? "Cancelar" : "Voltar"}
                 </Button>
@@ -3231,11 +3817,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <Button
                     type="button"
                     onClick={() => {
-                      if (currentStep === 1 && campaignObjective === "WHATSAPP" && !hasWhatsAppConnected) {
+                      if (
+                        currentStep === 1 &&
+                        campaignObjective === "WHATSAPP" &&
+                        !hasWhatsAppConnected
+                      ) {
                         toast({
                           variant: "destructive",
                           title: "WhatsApp não conectado",
-                          description: "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
+                          description:
+                            "Por favor, vincule seu WhatsApp comercial e atualize a conexão antes de prosseguir.",
                         });
                         return;
                       }
@@ -3243,17 +3834,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         toast({
                           variant: "destructive",
                           title: "Selecione uma localização oficial",
-                          description: "Digite o endereço e selecione uma das opções sugeridas na lista flutuante.",
+                          description:
+                            "Digite o endereço e selecione uma das opções sugeridas na lista flutuante.",
                         });
                         return;
                       }
                       setCurrentStep((prev) => prev + 1);
                     }}
-                    disabled={currentStep === 1 && campaignObjective === "WHATSAPP" && hasWhatsAppConnected !== true}
-                    className={`font-bold text-xs px-6 py-2 rounded-lg ${
-                      currentStep === 1 && campaignObjective === "WHATSAPP" && hasWhatsAppConnected !== true
-                        ? "bg-slate-200 text-slate-400 cursor-not-allowed border-none"
-                        : "bg-primary hover:bg-primary/95 text-white shadow-sm active:scale-98"
+                    disabled={
+                      currentStep === 1 &&
+                      campaignObjective === "WHATSAPP" &&
+                      hasWhatsAppConnected !== true
+                    }
+                    className={`rounded-lg px-6 py-2 text-xs font-bold ${
+                      currentStep === 1 &&
+                      campaignObjective === "WHATSAPP" &&
+                      hasWhatsAppConnected !== true
+                        ? "cursor-not-allowed border-none bg-slate-200 text-slate-400"
+                        : "active:scale-98 bg-primary text-white shadow-sm hover:bg-primary/95"
                     }`}
                   >
                     Próximo Passo
@@ -3270,13 +3868,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             toast({
                               variant: "destructive",
                               title: "Faturamento necessário",
-                              description: "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
+                              description:
+                                "Por favor, cadastre uma forma de pagamento para poder ativar a campanha.",
                             });
                           }
                         : handleActivateCampaign
                     }
                     disabled={isSubmitting}
-                    className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-8 py-2.5 rounded-lg active:scale-95 transition-all shadow-sm"
+                    className="rounded-lg bg-primary px-8 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary/95 active:scale-95"
                   >
                     {isSubmitting ? (
                       <>
@@ -3292,13 +3891,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   </Button>
                 )}
               </div>
-
             </div>
 
             {/* COLUNA DIREITA: PREVIEW DO FEED REAL (5 colunas) */}
-            <div className="lg:col-span-5 p-6 bg-slate-50 flex flex-col justify-start items-center">
+            <div className="flex flex-col items-center justify-start bg-slate-50 p-6 lg:col-span-5">
               <div className="sticky top-6 w-full max-w-[340px]">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block text-center">
+                <p className="mb-3 block text-center text-xs font-bold uppercase tracking-wider text-slate-400">
                   📱 Prévia em tempo real (Meta Feed)
                 </p>
 
@@ -3306,38 +3904,39 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 <div className="relative">
                   {/* Alerta de Nome da Campanha Interno e Privado */}
                   {focusedField === "adName" && (
-                    <div className="mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 font-medium flex items-start gap-2 shadow-sm animate-in slide-in-from-top-2 duration-200">
+                    <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] font-medium text-amber-800 shadow-sm duration-200 animate-in slide-in-from-top-2">
                       <span>
-                        O <strong>Nome da Campanha</strong> é 100% privado. Ele serve apenas para você se organizar e nunca será visto pelos seus clientes nas redes sociais.
+                        O <strong>Nome da Campanha</strong> é 100% privado. Ele serve apenas para
+                        você se organizar e nunca será visto pelos seus clientes nas redes sociais.
                       </span>
                     </div>
                   )}
 
-                  <div className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden text-left">
+                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white text-left shadow-md">
                     {/* Topo do Post */}
-                    <div className="p-3 flex items-center justify-between">
+                    <div className="flex items-center justify-between p-3">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-9 w-9 border border-slate-100">
                           <AvatarImage src={businessProfile?.logo?.url || ""} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                             {getAvatarFallback()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <span className="text-xs font-bold text-slate-900 block leading-tight">
+                          <span className="block text-xs font-bold leading-tight text-slate-900">
                             {businessProfile?.name || "Meu Negócio"}
                           </span>
-                          <span className="text-[10px] text-primary font-semibold block leading-tight mt-0.5">
+                          <span className="mt-0.5 block text-[10px] font-semibold leading-tight text-primary">
                             Patrocinado
                           </span>
                         </div>
                       </div>
-                      <span className="text-slate-400 text-sm font-bold cursor-default">•••</span>
+                      <span className="cursor-default text-sm font-bold text-slate-400">•••</span>
                     </div>
 
                     {/* Foto do Post */}
-                    <div className="relative aspect-square w-full bg-slate-100 border-y border-slate-100">
-                      {(selectedPost.imageUrl || selectedPost.imageUrls?.[0]) ? (
+                    <div className="relative aspect-square w-full border-y border-slate-100 bg-slate-100">
+                      {selectedPost.imageUrl || selectedPost.imageUrls?.[0] ? (
                         <Image
                           src={selectedPost.imageUrl || selectedPost.imageUrls?.[0]}
                           alt="Criativo Anúncio"
@@ -3345,38 +3944,50 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           className="object-cover"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-slate-300">
+                        <div className="flex h-full items-center justify-center text-slate-300">
                           <Eye className="h-10 w-10" />
                         </div>
                       )}
                     </div>
 
                     {/* Barra de Ação de Conversão (CTA) */}
-                    {(hasDestination || campaignObjective === "TRAFFIC" || campaignObjective === "WHATSAPP") && (
-                      <div className={`px-3.5 py-2.5 bg-[#F2F4F7] border-b border-slate-100 flex justify-between items-center gap-3 relative transition-all duration-300 ${focusedField === 'headline' || focusedField === 'destinationUrl' ? 'bg-primary/5 ring-2 ring-primary/50 scale-[1.01] z-10' : ''}`}>
-                        {focusedField === 'headline' && (
-                          <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                    {(hasDestination ||
+                      campaignObjective === "TRAFFIC" ||
+                      campaignObjective === "WHATSAPP") && (
+                      <div
+                        className={`relative flex items-center justify-between gap-3 border-b border-slate-100 bg-[#F2F4F7] px-3.5 py-2.5 transition-all duration-300 ${focusedField === "headline" || focusedField === "destinationUrl" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
+                      >
+                        {focusedField === "headline" && (
+                          <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
                             Título do Anúncio
                           </span>
                         )}
-                        {focusedField === 'destinationUrl' && (
-                          <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                        {focusedField === "destinationUrl" && (
+                          <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
                             Link do Site (Botão)
                           </span>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[9px] text-slate-500 uppercase tracking-wide font-semibold block truncate leading-none">
-                            {campaignObjective === "WHATSAPP" 
-                              ? "WHATSAPP" 
-                              : (customDestination ? customDestination.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0].toUpperCase() : "SEUSITE.COM.BR")}
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-[9px] font-semibold uppercase leading-none tracking-wide text-slate-500">
+                            {campaignObjective === "WHATSAPP"
+                              ? "WHATSAPP"
+                              : customDestination
+                                ? customDestination
+                                    .replace(/^(https?:\/\/)?(www\.)?/, "")
+                                    .split("/")[0]
+                                    .toUpperCase()
+                                : "SEUSITE.COM.BR"}
                           </span>
-                          <span className="text-xs font-bold text-slate-800 truncate block mt-1 leading-snug">
-                            {headline || (campaignObjective === "WHATSAPP" ? "Fale conosco pelo WhatsApp!" : "Aproveite nossa oferta local!")}
+                          <span className="mt-1 block truncate text-xs font-bold leading-snug text-slate-800">
+                            {headline ||
+                              (campaignObjective === "WHATSAPP"
+                                ? "Fale conosco pelo WhatsApp!"
+                                : "Aproveite nossa oferta local!")}
                           </span>
                         </div>
                         <Button
                           size="sm"
-                          className={`${campaignObjective === "WHATSAPP" ? 'bg-green-500 hover:bg-green-600' : 'bg-primary hover:bg-primary'} text-white text-[10px] font-bold h-7 px-3 rounded pointer-events-none`}
+                          className={`${campaignObjective === "WHATSAPP" ? "bg-green-500 hover:bg-green-600" : "bg-primary hover:bg-primary"} pointer-events-none h-7 rounded px-3 text-[10px] font-bold text-white`}
                         >
                           {campaignObjective === "WHATSAPP" ? "Enviar mensagem" : "Saiba Mais"}
                         </Button>
@@ -3384,113 +3995,264 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     )}
 
                     {/* Legenda/Corpo */}
-                    <div className={`p-3 relative transition-all duration-300 ${focusedField === 'bodyText' ? 'bg-primary/5 ring-2 ring-primary/50 scale-[1.01] z-10' : ''}`}>
-                      {focusedField === 'bodyText' && (
-                        <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow animate-bounce">
+                    <div
+                      className={`relative p-3 transition-all duration-300 ${focusedField === "bodyText" ? "z-10 scale-[1.01] bg-primary/5 ring-2 ring-primary/50" : ""}`}
+                    >
+                      {focusedField === "bodyText" && (
+                        <span className="absolute -top-2.5 right-3 animate-bounce rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white shadow">
                           Texto Principal (Legenda)
                         </span>
                       )}
-                      <p className="text-xs text-slate-700 leading-relaxed font-inter line-clamp-4">
-                        <span className="font-bold text-slate-900 mr-1.5">{businessProfile?.name || "Meu Negócio"}</span>
+                      <p className="font-inter line-clamp-4 text-xs leading-relaxed text-slate-700">
+                        <span className="mr-1.5 font-bold text-slate-900">
+                          {businessProfile?.name || "Meu Negócio"}
+                        </span>
                         {bodyText || selectedPost.text}
                       </p>
                     </div>
                   </div>
                 </div>
-
-
               </div>
             </div>
-
           </div>
         </div>
       )}
 
       {/* DASHBOARD PRINCIPAL (MÉTRICAS E LISTAS) */}
-      {!isCreating && metaConnection.isConnected && metaConnection.adAccountId && (
-        <div className="space-y-8 animate-in fade-in duration-300">
-          
+      {!isCreating && (isMetaActive || isGoogleActive) && (
+        <div className="space-y-8 duration-300 animate-in fade-in">
+          {/* Seletor de Plataforma se ambas estiverem conectadas */}
+          {isMetaActive && isGoogleActive && (
+            <div className="shadow-xs mb-6 flex w-full flex-col gap-3 rounded-2xl border border-slate-200/60 bg-slate-100/40 p-1.5 sm:w-fit sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePlatformTab("meta");
+                  setActiveDashboardTab("active");
+                }}
+                className={`font-poppins flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs font-extrabold transition-all duration-300 ${
+                  activePlatformTab === "meta"
+                    ? "scale-105 bg-[#1877F2] text-white shadow-md shadow-blue-500/10"
+                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-800"
+                }`}
+              >
+                <Megaphone className="h-4 w-4" />
+                Meta (Instagram e Facebook)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePlatformTab("google");
+                  setActiveDashboardTab("active");
+                }}
+                className={`font-poppins flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs font-extrabold transition-all duration-300 ${
+                  activePlatformTab === "google"
+                    ? "scale-105 bg-[#4285F4] text-white shadow-md shadow-blue-600/10"
+                    : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-800"
+                }`}
+              >
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                </svg>
+                Google Ads (Pesquisa Local)
+              </button>
+            </div>
+          )}
+
+          {/* Banner auxiliar se apenas uma plataforma estiver conectada */}
+          {!isMetaActive && (
+            <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-left sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <Megaphone className="h-5 w-5 text-slate-400" />
+                <div>
+                  <h6 className="text-xs font-bold text-slate-800">
+                    Impulsione também no Instagram e Facebook
+                  </h6>
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    Conecte sua página do Facebook para criar campanhas sociais locais com
+                    facilidade.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleConnectMetaAds}
+                className="h-8 rounded-lg bg-primary px-4 text-[10px] font-bold text-white"
+              >
+                Conectar Meta Ads
+              </Button>
+            </div>
+          )}
+          {!isGoogleActive && (
+            <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-left sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                </svg>
+                <div>
+                  <h6 className="text-xs font-bold text-slate-800">Anuncie também no Google Ads</h6>
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    Apareça no topo das buscas locais e no Google Mapas para clientes na sua região.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleConnectGoogleAds}
+                className="h-8 rounded-lg bg-[#4285F4] px-4 text-[10px] font-bold text-white hover:bg-[#4285F4]/95"
+              >
+                Conectar Google Ads
+              </Button>
+            </div>
+          )}
+
           {/* PAINEL DE MÉTRICAS GERAIS SIMPLIFICADAS (TOPO) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
-              <div className="bg-primary/5 p-3.5 rounded-xl text-primary shrink-0">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div
+              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
+                activePlatformTab === "meta"
+                  ? "border-slate-100 hover:border-[#1877F2]/30"
+                  : "border-slate-100 hover:border-[#4285F4]/30"
+              }`}
+            >
+              <div
+                className={`shrink-0 rounded-xl p-3.5 transition-colors duration-300 ${
+                  activePlatformTab === "meta"
+                    ? "bg-[#1877F2]/5 text-[#1877F2]"
+                    : "bg-[#4285F4]/5 text-[#4285F4]"
+                }`}
+              >
                 <DollarSign className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-slate-500 block">Valor Investido</span>
-                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  R$ {campaigns.reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0).toFixed(2)}
+                <span className="block text-xs font-semibold text-slate-500">Valor Investido</span>
+                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
+                  R${" "}
+                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
+                    .reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0)
+                    .toFixed(2)}
                 </span>
-                <span className="text-xs text-slate-400 block truncate mt-0.5">Valor usado nos últimos 30 dias</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-400">
+                  Valor usado nos últimos 30 dias
+                </span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
-              <div className="bg-emerald-500/5 p-3.5 rounded-xl text-emerald-600 shrink-0">
+            <div
+              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
+                activePlatformTab === "meta"
+                  ? "border-slate-100 hover:border-[#1877F2]/30"
+                  : "border-slate-100 hover:border-[#4285F4]/30"
+              }`}
+            >
+              <div className="shrink-0 rounded-xl bg-emerald-500/5 p-3.5 text-emerald-600">
                 <Users className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-slate-500 block">Visualizações</span>
-                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  {campaigns.reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0).toLocaleString("pt-BR")}
+                <span className="block text-xs font-semibold text-slate-500">Visualizações</span>
+                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
+                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
+                    .reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0)
+                    .toLocaleString("pt-BR")}
                 </span>
-                <span className="text-xs text-slate-400 block truncate mt-0.5">Visualizações nos últimos 30 dias</span>
+                <span className="font-inter mt-0.5 block truncate text-xs text-slate-400">
+                  Visualizações estimadas de público
+                </span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
-              <div className="bg-blue-500/5 p-3.5 rounded-xl text-blue-600 shrink-0">
+            <div
+              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
+                activePlatformTab === "meta"
+                  ? "border-slate-100 hover:border-[#1877F2]/30"
+                  : "border-slate-100 hover:border-[#4285F4]/30"
+              }`}
+            >
+              <div
+                className={`shrink-0 rounded-xl p-3.5 transition-colors duration-300 ${
+                  activePlatformTab === "meta"
+                    ? "bg-indigo-500/5 text-indigo-600"
+                    : "bg-amber-500/5 text-amber-600"
+                }`}
+              >
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-slate-500 block">Cliques</span>
-                <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  {campaigns.reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0).toLocaleString("pt-BR")}
+                <span className="block text-xs font-semibold text-slate-500">Cliques</span>
+                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
+                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
+                    .reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0)
+                    .toLocaleString("pt-BR")}
                 </span>
-                <span className="text-xs text-slate-400 block truncate mt-0.5">Cliques (todos) nos últimos 30 dias</span>
+                <span className="font-inter mt-0.5 block truncate text-xs text-slate-400">
+                  Cliques nos links / ações do anúncio
+                </span>
               </div>
             </div>
           </div>
 
           {/* GERENCIAMENTO DE CAMPANHAS EM VEICULAÇÃO OU HISTÓRICO */}
-          <div className="space-y-5">
+          <div className="space-y-5 text-left">
+            <div className="rounded-r-lg border-l-4 border-slate-200 bg-slate-50/50 p-1 pl-3 transition-all duration-300">
+              <h3 className="font-poppins text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                {activePlatformTab === "meta"
+                  ? "📱 Histórico de Campanhas Sociais (Meta)"
+                  : "🔎 Histórico de Campanhas de Busca (Google)"}
+              </h3>
+            </div>
             {/* SELETOR DE ABAS SEGMENT CONTROL */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-slate-100 pb-3">
-              <div className="bg-slate-100/80 p-1 rounded-xl inline-flex gap-1 border border-slate-200/50">
+            <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="inline-flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100/80 p-1">
                 <button
                   type="button"
                   onClick={() => setActiveDashboardTab("active")}
-                  className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all duration-200 font-poppins flex items-center gap-2 ${
+                  className={`font-poppins flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold transition-all duration-200 ${
                     activeDashboardTab === "active"
-                      ? "bg-white text-slate-900 shadow-xs"
+                      ? "shadow-xs bg-white text-slate-900"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   <span>Em Veiculação</span>
-                  <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
-                    activeDashboardTab === "active" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
-                  }`}>
-                    {campaigns.filter((c) => c.status === "active").length}
+                  <span
+                    className={`rounded-full px-2 py-0 text-[10px] font-bold ${
+                      activeDashboardTab === "active"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {
+                      (activePlatformTab === "meta" ? campaigns : googleCampaigns).filter(
+                        (c) => c.status === "active"
+                      ).length
+                    }
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveDashboardTab("history")}
-                  className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all duration-200 font-poppins flex items-center gap-2 ${
+                  className={`font-poppins flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold transition-all duration-200 ${
                     activeDashboardTab === "history"
-                      ? "bg-white text-slate-900 shadow-xs"
+                      ? "shadow-xs bg-white text-slate-900"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   <span>Histórico de Anúncios</span>
-                  <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
-                    activeDashboardTab === "history" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
-                  }`}>
-                    {campaigns.filter((c) => c.status !== "active").length}
+                  <span
+                    className={`rounded-full px-2 py-0 text-[10px] font-bold ${
+                      activeDashboardTab === "history"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {
+                      (activePlatformTab === "meta" ? campaigns : googleCampaigns).filter(
+                        (c) => c.status !== "active"
+                      ).length
+                    }
                   </span>
                 </button>
               </div>
-              <span className="text-xs text-slate-400 font-medium font-inter flex items-center gap-1.5 self-end sm:self-center">
+              <span className="font-inter flex items-center gap-1.5 self-end text-xs font-medium text-slate-400 sm:self-center">
                 <Calendar className="h-3.5 w-3.5 text-slate-400" />
                 Relatórios considerando os últimos 30 dias
               </span>
@@ -3498,19 +4260,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
             {/* LISTA EM TABELA PREMIUM */}
             {loading ? (
-              <div className="flex justify-center items-center py-12 bg-white rounded-xl border border-slate-200/80">
+              <div className="flex items-center justify-center rounded-xl border border-slate-200/80 bg-white py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
               (() => {
-                const filteredCampaigns = campaigns.filter((c) => {
-                  return activeDashboardTab === "active" ? c.status === "active" : c.status !== "active";
+                const currentPlatformCampaigns =
+                  activePlatformTab === "meta" ? campaigns : googleCampaigns;
+                const filteredCampaigns = currentPlatformCampaigns.filter((c) => {
+                  return activeDashboardTab === "active"
+                    ? c.status === "active"
+                    : c.status !== "active";
                 });
 
                 if (filteredCampaigns.length === 0) {
                   return (
-                    <div className="bg-slate-50 border border-slate-200/80 border-dashed rounded-xl p-10 text-center text-slate-400 animate-in fade-in duration-300">
-                      <Megaphone className="h-10 w-10 text-slate-300 mx-auto mb-3 animate-pulse" />
+                    <div className="rounded-xl border border-dashed border-slate-200/80 bg-slate-50 p-10 text-center text-slate-400 duration-300 animate-in fade-in">
+                      <Megaphone className="mx-auto mb-3 h-10 w-10 animate-pulse text-slate-300" />
                       <p className="text-xs font-semibold text-slate-500">
                         {activeDashboardTab === "active"
                           ? "Você não possui nenhuma campanha ativa no momento."
@@ -3518,21 +4284,34 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       </p>
                       {activeDashboardTab === "active" && (
                         <div className="mt-3.5 flex flex-col items-center gap-4">
-                          <p className="text-[11.5px] text-slate-400 max-w-md mx-auto leading-relaxed">
-                            Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.
+                          <p className="mx-auto max-w-md text-[11.5px] leading-relaxed text-slate-400">
+                            {activePlatformTab === "meta"
+                              ? "Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região."
+                              : "Crie campanhas de busca qualificadas para posicionar o seu negócio no topo dos resultados do Google Ads."}
                           </p>
-                          {publishedPosts.length > 0 ? (
-                            <Button
-                              onClick={() => setIsChoosePostModalOpen(true)}
-                              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
-                            >
-                              <Sparkles className="h-3.5 w-3.5" />
-                              Impulsionar um Post
-                            </Button>
+                          {activePlatformTab === "meta" ? (
+                            publishedPosts.length > 0 ? (
+                              <Button
+                                onClick={() => setIsChoosePostModalOpen(true)}
+                                className="font-poppins flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-primary/95 active:scale-95"
+                              >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Impulsionar um Post
+                              </Button>
+                            ) : (
+                              <p className="rounded-lg border border-amber-100/60 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-600">
+                                Crie e programe um post na aba <strong>Conteúdo</strong> antes de
+                                impulsioná-lo!
+                              </p>
+                            )
                           ) : (
-                            <p className="text-[11px] text-amber-600 font-medium bg-amber-50 border border-amber-100/60 rounded-lg px-3 py-1.5">
-                              Crie e programe um post na aba <strong>Conteúdo</strong> antes de impulsioná-lo!
-                            </p>
+                            <Button
+                              onClick={() => setIsCreatingGoogleAd(true)}
+                              className="font-poppins flex items-center gap-1.5 rounded-lg bg-[#4285F4] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-[#4285F4]/95 active:scale-95"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Nova Campanha Google
+                            </Button>
                           )}
                         </div>
                       )}
@@ -3541,11 +4320,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 }
 
                 return (
-                  <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="shadow-xs overflow-hidden rounded-xl border border-slate-200/80 bg-white duration-300 animate-in fade-in slide-in-from-bottom-2">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full border-collapse text-left">
                         <thead>
-                          <tr className="border-b border-slate-200/60 bg-slate-50/50 text-xs text-slate-500 font-semibold normal-case tracking-normal font-poppins">
+                          <tr className="font-poppins border-b border-slate-200/60 bg-slate-50/50 text-xs font-semibold normal-case tracking-normal text-slate-500">
                             <th className="px-5 py-3.5 font-semibold">Anúncio</th>
                             <th className="px-5 py-3.5 font-semibold">Status</th>
                             <th className="px-5 py-3.5 font-semibold">Duração</th>
@@ -3553,15 +4332,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             <th className="px-5 py-3.5 font-semibold text-primary">Investido</th>
                             <th className="px-5 py-3.5 font-semibold">Visualizações</th>
                             <th className="px-5 py-3.5 font-semibold">Cliques</th>
-                            <th className="px-5 py-3.5 font-semibold text-right">Gerenciar</th>
+                            <th className="px-5 py-3.5 text-right font-semibold">Gerenciar</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-150/40 text-xs font-inter text-slate-650">
+                        <tbody className="divide-slate-150/40 font-inter text-slate-650 divide-y text-xs">
                           {filteredCampaigns.map((c) => {
                             const totalDays = c.durationDays || 7;
                             let daysPassed = 1;
                             if (c.createdAt) {
-                              const createdDate = (c.createdAt as any).toDate ? (c.createdAt as any).toDate() : new Date(c.createdAt as any);
+                              const createdDate = (c.createdAt as any).toDate
+                                ? (c.createdAt as any).toDate()
+                                : new Date(c.createdAt as any);
                               const diffTime = Math.abs(Date.now() - createdDate.getTime());
                               daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                             }
@@ -3570,18 +4351,59 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             const progressPercentage = Math.round((daysPassed / totalDays) * 100);
 
                             return (
-                              <tr key={c.id} className="hover:bg-slate-50/30 transition-colors">
+                              <tr key={c.id} className="transition-colors hover:bg-slate-50/30">
                                 {/* ANÚNCIO (FOTO + NOME) */}
                                 <td className="px-5 py-3.5">
-                                  <div className="flex items-center gap-3">
-                                    {c.creative.imageUrl && (
-                                      <div className="relative h-14 w-14 rounded-lg border border-slate-150 overflow-hidden flex-shrink-0 bg-slate-50 shadow-xs">
-                                        <Image src={c.creative.imageUrl} alt="creative thumb" fill className="object-cover" />
-                                      </div>
-                                    )}
+                                  <div className="flex items-center gap-3 text-left">
+                                    <div className="relative shrink-0">
+                                      {c.creative?.imageUrl ? (
+                                        <div className="border-slate-150 shadow-xs relative h-14 w-14 overflow-hidden rounded-lg border bg-slate-50">
+                                          <Image
+                                            src={c.creative.imageUrl}
+                                            alt="creative thumb"
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div className="border-slate-150 flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border bg-slate-50">
+                                          <svg
+                                            className="h-6 w-6 text-[#4285F4]"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                          >
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                          </svg>
+                                        </div>
+                                      )}
+
+                                      {/* Platform badge overlay */}
+                                      <span
+                                        className={`shadow-xs absolute -left-1.5 -top-1.5 rounded-md p-0.5 text-white ${
+                                          activePlatformTab === "meta"
+                                            ? "bg-[#1877F2]"
+                                            : "bg-[#4285F4]"
+                                        }`}
+                                      >
+                                        {activePlatformTab === "meta" ? (
+                                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                          </svg>
+                                        ) : (
+                                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                          </svg>
+                                        )}
+                                      </span>
+                                    </div>
                                     <div className="min-w-0">
-                                      <span className="block font-bold text-slate-900 text-xs leading-snug truncate max-w-[220px]">
+                                      <span className="block max-w-[220px] truncate text-xs font-bold leading-snug text-slate-900">
                                         {c.name}
+                                      </span>
+                                      <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                                        {activePlatformTab === "meta"
+                                          ? "Meta Ads (Sociais)"
+                                          : "Google Ads (Pesquisa)"}
                                       </span>
                                     </div>
                                   </div>
@@ -3589,18 +4411,24 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                                 {/* STATUS BADGE */}
                                 <td className="px-5 py-3.5">
-                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                    c.status === "active"
-                                      ? "bg-emerald-50/50 text-emerald-700 border-emerald-100"
-                                      : "bg-slate-50 text-slate-500 border-slate-100"
-                                  }`}>
+                                  <span
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                      c.status === "active"
+                                        ? "border-emerald-100 bg-emerald-50/50 text-emerald-700"
+                                        : "border-slate-100 bg-slate-50 text-slate-500"
+                                    }`}
+                                  >
                                     {c.status === "active" && (
                                       <span className="relative flex h-1.5 w-1.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                                       </span>
                                     )}
-                                    {c.status === "active" ? "No Ar" : c.status === "paused" ? "Pausado" : "Concluído"}
+                                    {c.status === "active"
+                                      ? "No Ar"
+                                      : c.status === "paused"
+                                        ? "Pausado"
+                                        : "Concluído"}
                                   </span>
                                 </td>
 
@@ -3608,39 +4436,55 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 <td className="px-5 py-3.5">
                                   {c.status === "active" ? (
                                     <div className="min-w-[120px] max-w-[150px] space-y-1">
-                                      <div className="flex justify-between text-[10px] text-slate-500 font-medium leading-none">
-                                        <span>Dia {daysPassed}/{totalDays}</span>
+                                      <div className="flex justify-between text-[10px] font-medium leading-none text-slate-500">
+                                        <span>
+                                          Dia {daysPassed}/{totalDays}
+                                        </span>
                                         <span>{progressPercentage}%</span>
                                       </div>
-                                      <div className="w-full bg-slate-100/70 rounded-full h-1 overflow-hidden">
-                                        <div className="bg-primary h-1 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+                                      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100/70">
+                                        <div
+                                          className={`h-1 rounded-full transition-all duration-500 ${
+                                            activePlatformTab === "meta"
+                                              ? "bg-[#1877F2]"
+                                              : "bg-[#4285F4]"
+                                          }`}
+                                          style={{ width: `${progressPercentage}%` }}
+                                        ></div>
                                       </div>
                                     </div>
                                   ) : (
-                                    <span className="text-slate-400 font-medium font-poppins text-xs px-2">-</span>
+                                    <span className="font-poppins px-2 text-xs font-medium text-slate-400">
+                                      -
+                                    </span>
                                   )}
                                 </td>
 
                                 {/* VERBA / ORÇAMENTO */}
                                 <td className="px-5 py-3.5">
-                                  <span className="font-semibold text-slate-800 text-xs">R$ {c.budget.amount.toFixed(2)}/dia</span>
+                                  <span className="text-xs font-semibold text-slate-800">
+                                    R$ {c.budget?.amount?.toFixed(2) || "0.00"}/
+                                    {c.budget?.type === "daily" ? "dia" : "total"}
+                                  </span>
                                 </td>
 
                                 {/* INVESTIDO */}
                                 <td className="px-5 py-3.5">
-                                  <span className="font-bold text-slate-900 text-xs">R$ {(c.metrics?.amountSpent || 0).toFixed(2)}</span>
+                                  <span className="text-xs font-bold text-slate-900">
+                                    R$ {(c.metrics?.amountSpent || 0).toFixed(2)}
+                                  </span>
                                 </td>
 
                                 {/* VISUALIZAÇÕES */}
                                 <td className="px-5 py-3.5">
-                                  <span className="font-semibold text-slate-800 text-xs">
+                                  <span className="text-xs font-semibold text-slate-800">
                                     {c.metrics?.impressions?.toLocaleString("pt-BR") || 0}
                                   </span>
                                 </td>
 
                                 {/* CLIQUES */}
                                 <td className="px-5 py-3.5">
-                                  <span className="font-semibold text-slate-800 text-xs">
+                                  <span className="text-xs font-semibold text-slate-800">
                                     {c.metrics?.clicks?.toLocaleString("pt-BR") || 0}
                                   </span>
                                 </td>
@@ -3652,9 +4496,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
-                                        title="Pausar anúncio na Meta"
+                                        onClick={() =>
+                                          activePlatformTab === "meta"
+                                            ? handleToggleStatus(c)
+                                            : handleToggleGoogleStatus(c)
+                                        }
+                                        className="shadow-xs flex h-8 items-center gap-1 rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-yellow-600 transition-all duration-200 hover:border-yellow-200 hover:bg-yellow-50 hover:text-yellow-700"
+                                        title={
+                                          activePlatformTab === "meta"
+                                            ? "Pausar anúncio na Meta"
+                                            : "Pausar anúncio no Google"
+                                        }
                                       >
                                         <Pause className="h-3 w-3" />
                                         Pausar
@@ -3663,23 +4515,33 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleToggleStatus(c)}
-                                        className="h-8 border-slate-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
-                                        title="Ativar anúncio na Meta"
+                                        onClick={() =>
+                                          activePlatformTab === "meta"
+                                            ? handleToggleStatus(c)
+                                            : handleToggleGoogleStatus(c)
+                                        }
+                                        className="shadow-xs flex h-8 items-center gap-1 rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-green-600 transition-all duration-200 hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                                        title={
+                                          activePlatformTab === "meta"
+                                            ? "Ativar anúncio na Meta"
+                                            : "Ativar anúncio no Google"
+                                        }
                                       >
                                         <Play className="h-3 w-3" />
                                         Ativar
                                       </Button>
                                     ) : null}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDeleteCampaign(c)}
-                                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-650 rounded-lg transition-colors"
-                                      title="Excluir campanha da Meta"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    {activePlatformTab === "meta" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDeleteCampaign(c)}
+                                        className="hover:text-red-650 h-8 w-8 rounded-lg text-red-500 transition-colors hover:bg-red-50"
+                                        title="Excluir campanha da Meta"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -3695,66 +4557,70 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           </div>
 
           {/* O grid de posts foi movido para o Dialog de seleção */}
-
         </div>
       )}
 
       {/* MODAL DE SELEÇÃO DE PUBLICIDADE (CHOOSE POST) */}
       <Dialog open={isChoosePostModalOpen} onOpenChange={setIsChoosePostModalOpen}>
-        <DialogContent className="max-w-4xl font-sans max-h-[85vh] flex flex-col p-6">
-          <DialogHeader className="pb-3 border-b border-slate-100">
-            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+        <DialogContent className="flex max-h-[85vh] max-w-4xl flex-col p-6 font-sans">
+          <DialogHeader className="border-b border-slate-100 pb-3">
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
               Escolher Publicação para Impulsionar
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-xs">
-              Selecione uma de suas publicações abaixo para iniciar o processo de impulsionamento local.
+            <DialogDescription className="text-xs text-slate-500">
+              Selecione uma de suas publicações abaixo para iniciar o processo de impulsionamento
+              local.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">
+          <div className="scrollbar-thin flex-1 overflow-y-auto py-4">
             {loadingPosts ? (
-              <div className="flex justify-center items-center py-12">
+              <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : publishedPosts.length === 0 ? (
-              <div className="bg-slate-50 border border-slate-200/80 border-dashed rounded-xl p-10 text-center text-slate-400">
-                <p className="text-xs font-semibold text-slate-500">Nenhum post publicado encontrado no feed do Instagram/Facebook.</p>
-                <p className="text-[11px] text-slate-400 mt-1">Crie e programe um post na aba Conteúdo antes de impulsioná-lo!</p>
+              <div className="rounded-xl border border-dashed border-slate-200/80 bg-slate-50 p-10 text-center text-slate-400">
+                <p className="text-xs font-semibold text-slate-500">
+                  Nenhum post publicado encontrado no feed do Instagram/Facebook.
+                </p>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Crie e programe um post na aba Conteúdo antes de impulsioná-lo!
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
                 {publishedPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col group hover:border-primary/40 hover:shadow transition-all duration-300"
+                    className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow"
                   >
-                    <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
-                      {(post.imageUrl || post.imageUrls?.[0]) ? (
+                    <div className="relative aspect-square w-full overflow-hidden bg-slate-50">
+                      {post.imageUrl || post.imageUrls?.[0] ? (
                         <Image
                           src={post.imageUrl || post.imageUrls?.[0]}
                           alt="Thumbnail post"
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-slate-300">
+                        <div className="flex h-full items-center justify-center text-slate-300">
                           <Eye className="h-8 w-8" />
                         </div>
                       )}
                     </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-white">
-                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed font-inter">
+                    <div className="flex flex-1 flex-col justify-between gap-3 bg-white p-4">
+                      <p className="font-inter line-clamp-3 text-xs leading-relaxed text-slate-600">
                         {post.text}
                       </p>
-                      
-                      <div className="border-t border-slate-100 pt-3.5 flex justify-between items-center mt-auto">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 leading-none">
+
+                      <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3.5">
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase leading-none tracking-wider text-slate-400">
                           Pronto
                         </span>
                         <Button
                           size="sm"
                           onClick={() => handleSelectPostToBoost(post)}
-                          className="bg-primary hover:bg-primary/95 text-white font-extrabold text-[11px] h-8 px-3 rounded-lg shadow-sm font-poppins"
+                          className="font-poppins h-8 rounded-lg bg-primary px-3 text-[11px] font-extrabold text-white shadow-sm hover:bg-primary/95"
                         >
                           <Sparkles className="mr-1 h-3.5 w-3.5" />
                           Impulsionar
@@ -3769,6 +4635,215 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         </DialogContent>
       </Dialog>
 
+      {/* MODAL DE SELEÇÃO DE CONTA DO GOOGLE ADS */}
+      <Dialog open={isGoogleAccountModalOpen} onOpenChange={setIsGoogleAccountModalOpen}>
+        <DialogContent className="max-w-md font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
+              <Target className="h-5 w-5 text-primary" />
+              Selecionar Conta do Google Ads
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Selecione qual conta de anúncios do Google Ads você deseja vincular para gerenciar
+              suas campanhas locais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-4 max-h-[300px] space-y-3 overflow-y-auto pr-1">
+            {googleAccounts.map((acc) => (
+              <button
+                key={acc.id}
+                type="button"
+                onClick={() => handleSelectGoogleAdsAccount(acc.id, acc.name)}
+                className="group flex w-full items-center justify-between rounded-xl border border-slate-200 p-4 text-left transition-all duration-200 hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+              >
+                <div className="min-w-0">
+                  <span className="block text-xs font-bold text-slate-800 transition-colors group-hover:text-primary">
+                    {acc.name}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] font-medium text-slate-400">
+                    ID da Conta: {acc.id}
+                  </span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-slate-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* WIZARD DE CRIAÇÃO DE ANÚNCIO GOOGLE ADS */}
+      <Dialog open={isCreatingGoogleAd} onOpenChange={setIsCreatingGoogleAd}>
+        <DialogContent className="max-w-lg font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
+              <Sparkles className="h-5 w-5 text-[#4285F4]" />
+              Criar Campanha no Google Ads
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Configure seu anúncio para aparecer no topo das pesquisas locais do Google.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-4 space-y-4">
+            {/* Nome da Campanha */}
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="g-campaign-name" className="text-xs font-bold text-slate-700">
+                Nome da Campanha
+              </Label>
+              <Input
+                id="g-campaign-name"
+                placeholder="Ex: Campanha Promoção Sorvetes"
+                value={googleAdName}
+                onChange={(e) => setGoogleAdName(e.target.value)}
+                className="h-10 rounded-lg text-xs"
+              />
+            </div>
+
+            {/* Títulos do Anúncio */}
+            <div className="space-y-2 text-left">
+              <span className="block text-xs font-bold text-slate-700">
+                Títulos do Anúncio (Exibidos no topo)
+              </span>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Título 1 (Ex: Sorvetes Artesanais)"
+                    maxLength={30}
+                    value={googleHeadline1}
+                    onChange={(e) => setGoogleHeadline1(e.target.value)}
+                    className="h-10 rounded-lg pr-12 text-xs"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
+                    {googleHeadline1.length}/30
+                  </span>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Título 2 (Ex: Feitos à Mão Diariamente)"
+                    maxLength={30}
+                    value={googleHeadline2}
+                    onChange={(e) => setGoogleHeadline2(e.target.value)}
+                    className="h-10 rounded-lg pr-12 text-xs"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
+                    {googleHeadline2.length}/30
+                  </span>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Título 3 (Ex: Compre 1 Leve 2)"
+                    maxLength={30}
+                    value={googleHeadline3}
+                    onChange={(e) => setGoogleHeadline3(e.target.value)}
+                    className="h-10 rounded-lg pr-12 text-xs"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
+                    {googleHeadline3.length}/30
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Descrições */}
+            <div className="space-y-2 text-left">
+              <span className="block text-xs font-bold text-slate-700">
+                Descrições (Texto complementar)
+              </span>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="relative">
+                  <Textarea
+                    placeholder="Descrição 1 (Ex: Venha saborear os melhores sorvetes da região feitos com ingredientes selecionados.)"
+                    maxLength={90}
+                    value={googleDescription1}
+                    onChange={(e) => setGoogleDescription1(e.target.value)}
+                    className="min-h-[60px] rounded-lg pr-12 text-xs"
+                  />
+                  <span className="absolute bottom-2 right-3 text-[9px] font-bold text-slate-400">
+                    {googleDescription1.length}/90
+                  </span>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    placeholder="Descrição 2 (Ex: Aberto todos os dias das 10h às 22h. Estacionamento gratuito no local.)"
+                    maxLength={90}
+                    value={googleDescription2}
+                    onChange={(e) => setGoogleDescription2(e.target.value)}
+                    className="min-h-[60px] rounded-lg pr-12 text-xs"
+                  />
+                  <span className="absolute bottom-2 right-3 text-[9px] font-bold text-slate-400">
+                    {googleDescription2.length}/90
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Palavras-chave */}
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="g-keywords" className="text-xs font-bold text-slate-700">
+                Palavras-chave (Termos de busca - separadas por vírgula)
+              </Label>
+              <Input
+                id="g-keywords"
+                placeholder="Ex: sorveteria, melhor sorvete, doceria perto de mim"
+                value={googleKeywordsText}
+                onChange={(e) => setGoogleKeywordsText(e.target.value)}
+                className="h-10 rounded-lg text-xs"
+              />
+            </div>
+
+            {/* Orçamento e Duração */}
+            <div className="grid grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Orçamento Diário (R$)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  value={googleDailyBudget}
+                  onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
+                  className="h-10 rounded-lg text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Duração (Dias)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={googleDurationDays}
+                  onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
+                  className="h-10 rounded-lg text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setIsCreatingGoogleAd(false)}
+              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handlePublishGoogleCampaign}
+              disabled={
+                isSubmittingGoogle || !googleAdName || !googleHeadline1 || !googleDescription1
+              }
+              className="h-10 rounded-lg bg-primary px-6 text-xs font-bold text-white"
+            >
+              {isSubmittingGoogle ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Publicando...
+                </>
+              ) : (
+                "Publicar Campanha"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

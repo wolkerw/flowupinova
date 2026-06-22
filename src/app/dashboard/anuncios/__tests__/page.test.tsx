@@ -64,7 +64,9 @@ vi.mock("@/lib/services/posts-service", () => ({
   getScheduledPosts: vi.fn().mockResolvedValue([]),
 }));
 
-
+vi.mock("@/lib/services/google-ads-service", () => ({
+  getGoogleAdsConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
 
 describe("Anuncios Page", () => {
   it("renders the main title", async () => {
@@ -76,6 +78,6 @@ describe("Anuncios Page", () => {
         {jsx}
       </AuthProvider>
     );
-    expect(screen.getByText("Anúncios Pagos (Meta Ads)")).toBeInTheDocument();
+    expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
   });
 });

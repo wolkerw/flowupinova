@@ -31,7 +31,9 @@ const defaultOnboardingProfile: OnboardingProfileData = {
  * Busca as configurações de onboarding usando o Firebase Admin SDK (Server Components).
  * @param userId - O ID do usuário.
  */
-export async function getOnboardingProfileAdmin(userId: string | null): Promise<OnboardingProfileData> {
+export async function getOnboardingProfileAdmin(
+  userId: string | null
+): Promise<OnboardingProfileData> {
   if (!userId) {
     console.warn("getOnboardingProfileAdmin chamado sem userId.");
     return defaultOnboardingProfile;
@@ -82,7 +84,9 @@ export async function updateOnboardingProfileAdmin(
       .collection("business")
       .doc("onboarding");
     await onboardingDocRef.set(data, { merge: true });
-    console.log(`Atualização do onboarding para o usuário ${userId} via Admin SDK concluída com sucesso.`);
+    console.log(
+      `Atualização do onboarding para o usuário ${userId} via Admin SDK concluída com sucesso.`
+    );
   } catch (error: any) {
     console.error(`Erro ao atualizar o onboarding para o usuário ${userId} via Admin SDK:`, error);
     throw new Error(`Falha ao atualizar o onboarding via Admin SDK: ${error.message}`);

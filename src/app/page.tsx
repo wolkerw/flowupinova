@@ -33,22 +33,22 @@ export default function HomePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "NumVapt",
-    "operatingSystem": "All",
-    "applicationCategory": "BusinessApplication",
-    "description":
+    name: "NumVapt",
+    operatingSystem: "All",
+    applicationCategory: "BusinessApplication",
+    description:
       "A primeira plataforma com IA que cria textos brilhantes, gera imagens com a sua marca e agenda seus posts automaticamente.",
-    "offers": {
+    offers: {
       "@type": "AggregateOffer",
-      "priceCurrency": "BRL",
-      "lowPrice": "0",
-      "highPrice": "490",
-      "offerCount": "2",
+      priceCurrency: "BRL",
+      lowPrice: "0",
+      highPrice: "490",
+      offerCount: "2",
     },
-    "aggregateRating": {
+    aggregateRating: {
       "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "142",
+      ratingValue: "4.9",
+      ratingCount: "142",
     },
   };
 

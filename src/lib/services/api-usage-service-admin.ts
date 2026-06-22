@@ -3,7 +3,12 @@ import * as admin from "firebase-admin";
 
 export interface ApiUsageLogInput {
   userId: string;
-  type: "image_generation" | "avatar_generation" | "chat" | "vision_analysis" | "background_removal";
+  type:
+    | "image_generation"
+    | "avatar_generation"
+    | "chat"
+    | "vision_analysis"
+    | "background_removal";
   provider: "falai" | "google_vertex" | "google_gemini";
   model: string;
   costUsd: number;
@@ -29,9 +34,11 @@ export async function logApiUsage(input: ApiUsageLogInput): Promise<void> {
       model: input.model,
       costUsd: input.costUsd,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      ...(input.tokens ? { tokens: input.tokens } : {})
+      ...(input.tokens ? { tokens: input.tokens } : {}),
     });
-    console.log(`[API_USAGE_LOG] Registrado com sucesso: ${input.type} (${input.model}) para o usuário ${input.userId}. Custo: $${input.costUsd.toFixed(6)}`);
+    console.log(
+      `[API_USAGE_LOG] Registrado com sucesso: ${input.type} (${input.model}) para o usuário ${input.userId}. Custo: $${input.costUsd.toFixed(6)}`
+    );
   } catch (error) {
     console.error("[API_USAGE_LOG_ERROR] Falha ao registrar log de consumo:", error);
   }

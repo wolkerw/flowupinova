@@ -26,8 +26,8 @@ vi.mock("@/hooks/use-toast", () => ({
 
 describe("Step2TextSelection", () => {
   it("renders correctly when content is available", () => {
-    // We would ideally set the state in the context here, 
-    // but for unit tests of the component, we can just ensure it doesn't crash 
+    // We would ideally set the state in the context here,
+    // but for unit tests of the component, we can just ensure it doesn't crash
     // and correctly displays what's in the context.
     render(
       <WizardProvider>

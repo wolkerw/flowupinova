@@ -12,9 +12,14 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("[GENERATE_TEXT_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente.");
+      console.error(
+        "[GENERATE_TEXT_ERROR] Chave GEMINI_API_KEY não encontrada no arquivo de ambiente."
+      );
       return NextResponse.json(
-        { error: "Configure a chave GEMINI_API_KEY no arquivo .env.local para habilitar a geração de texto." },
+        {
+          error:
+            "Configure a chave GEMINI_API_KEY no arquivo .env.local para habilitar a geração de texto.",
+        },
         { status: 500 }
       );
     }
@@ -24,11 +29,15 @@ export async function POST(request: Request) {
     if (businessProfile) {
       const parts = [];
       if (businessProfile.name) parts.push(`- **Nome da Marca/Empresa**: ${businessProfile.name}`);
-      if (businessProfile.category) parts.push(`- **Nicho/Categoria**: ${businessProfile.category}`);
-      if (businessProfile.description) parts.push(`- **Descrição do Negócio**: ${businessProfile.description}`);
+      if (businessProfile.category)
+        parts.push(`- **Nicho/Categoria**: ${businessProfile.category}`);
+      if (businessProfile.description)
+        parts.push(`- **Descrição do Negócio**: ${businessProfile.description}`);
       if (businessProfile.slogan) parts.push(`- **Slogan**: ${businessProfile.slogan}`);
-      if (businessProfile.targetAudience) parts.push(`- **Público-Alvo**: ${businessProfile.targetAudience}`);
-      if (businessProfile.toneOfVoice) parts.push(`- **Tom de Voz**: ${businessProfile.toneOfVoice}`);
+      if (businessProfile.targetAudience)
+        parts.push(`- **Público-Alvo**: ${businessProfile.targetAudience}`);
+      if (businessProfile.toneOfVoice)
+        parts.push(`- **Tom de Voz**: ${businessProfile.toneOfVoice}`);
       if (businessProfile.mainBenefits && businessProfile.mainBenefits.length > 0) {
         parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
       }
@@ -38,8 +47,10 @@ export async function POST(request: Request) {
       if (brandKit) {
         if (brandKit.fonts) {
           const fontsInfo = [];
-          if (brandKit.fonts.primaryFont) fontsInfo.push(`Principal/Títulos: ${brandKit.fonts.primaryFont}`);
-          if (brandKit.fonts.secondaryFont) fontsInfo.push(`Secundária/Corpo: ${brandKit.fonts.secondaryFont}`);
+          if (brandKit.fonts.primaryFont)
+            fontsInfo.push(`Principal/Títulos: ${brandKit.fonts.primaryFont}`);
+          if (brandKit.fonts.secondaryFont)
+            fontsInfo.push(`Secundária/Corpo: ${brandKit.fonts.secondaryFont}`);
           if (brandKit.fonts.style) fontsInfo.push(`Estilo Geral: ${brandKit.fonts.style}`);
           if (fontsInfo.length > 0) {
             parts.push(`- **Tipografia da Marca**: ${fontsInfo.join(" | ")}`);
@@ -48,20 +59,24 @@ export async function POST(request: Request) {
 
         if (brandKit.extendedColors) {
           const colorsInfo = [];
-          if (brandKit.extendedColors.complementary) colorsInfo.push(`Complementar/Apoio: ${brandKit.extendedColors.complementary}`);
-          if (brandKit.extendedColors.background) colorsInfo.push(`Cenário/Fundo: ${brandKit.extendedColors.background}`);
+          if (brandKit.extendedColors.complementary)
+            colorsInfo.push(`Complementar/Apoio: ${brandKit.extendedColors.complementary}`);
+          if (brandKit.extendedColors.background)
+            colorsInfo.push(`Cenário/Fundo: ${brandKit.extendedColors.background}`);
           if (colorsInfo.length > 0) {
             parts.push(`- **Paleta de Cores Estendida**: ${colorsInfo.join(" | ")}`);
           }
         }
 
         if (brandKit.personas && brandKit.personas.length > 0) {
-          const personasInfo = brandKit.personas.map((p: any, idx: number) => {
-            return `Persona ${idx + 1} (${p.name || "Sem nome"}):
+          const personasInfo = brandKit.personas
+            .map((p: any, idx: number) => {
+              return `Persona ${idx + 1} (${p.name || "Sem nome"}):
     * Perfil: ${p.profile || "N/A"}
     * Dores/Desafios: ${p.painPoints || "N/A"}
     * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
-          }).join("\n");
+            })
+            .join("\n");
           parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
         }
       }
@@ -138,8 +153,10 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
     for (const model of modelsToTry) {
       try {
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        console.log(`[GENERATE_TEXT] Enviando requisição para a API do Gemini usando modelo: ${model}...`);
-        
+        console.log(
+          `[GENERATE_TEXT] Enviando requisição para a API do Gemini usando modelo: ${model}...`
+        );
+
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: {
@@ -147,19 +164,19 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
           },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: systemInstructionText }]
+              parts: [{ text: systemInstructionText }],
             },
             contents: [
               {
                 role: "user",
-                parts: [{ text: `Tema/Resumo do post: ${summary}` }]
-              }
+                parts: [{ text: `Tema/Resumo do post: ${summary}` }],
+              },
             ],
             generationConfig: {
               temperature: 0.7,
-              responseMimeType: "application/json"
-            }
-          })
+              responseMimeType: "application/json",
+            },
+          }),
         });
 
         if (!response.ok) {
@@ -183,7 +200,9 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
     }
 
     if (!aiResponseText) {
-      throw new Error(`Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`);
+      throw new Error(
+        `Todos os modelos do Gemini falharam. Último erro: ${lastError?.message || lastError}`
+      );
     }
 
     // 3. Processar e estruturar o JSON de retorno
@@ -203,12 +222,18 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
 
     const processedData = publicacoes.map((item: any) => {
       const title = item.titulo || item.título;
-      
+
       let hashtags = item.hashtags;
       if (typeof hashtags === "string") {
-        hashtags = hashtags.split(/[ ,]+/).filter(Boolean).map((h: string) => (h.startsWith("#") ? h : `#${h}`));
+        hashtags = hashtags
+          .split(/[ ,]+/)
+          .filter(Boolean)
+          .map((h: string) => (h.startsWith("#") ? h : `#${h}`));
       } else if (Array.isArray(hashtags)) {
-        hashtags = hashtags.map((h: any) => String(h)).filter(Boolean).map((h: string) => (h.startsWith("#") ? h : `#${h}`));
+        hashtags = hashtags
+          .map((h: any) => String(h))
+          .filter(Boolean)
+          .map((h: string) => (h.startsWith("#") ? h : `#${h}`));
       } else {
         hashtags = [];
       }
@@ -220,7 +245,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
         subtitulo: item.subtitulo || "Subtítulo não gerado",
         hashtags: hashtags,
         url_da_imagem: null,
-        aprovado_por_humano: false
+        aprovado_por_humano: false,
       };
     });
 

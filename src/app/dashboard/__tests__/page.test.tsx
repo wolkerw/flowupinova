@@ -52,7 +52,7 @@ vi.mock("firebase/firestore", () => ({
             subscriptionStatus: "",
             createdAt: { toDate: () => new Date() },
             name: "Test Business",
-            logo: { url: "test-logo-url", width: 100, height: 100 }
+            logo: { url: "test-logo-url", width: 100, height: 100 },
           }),
         });
       }, 0);
