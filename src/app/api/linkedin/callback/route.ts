@@ -100,8 +100,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
-    const linkedinVersion = "202401"; // Versão estável da API
-    const orgsUrl = "https://api.linkedin.com/rest/organizationalAccessControl?q=roleAssignee";
+    // O endpoint correto é /organizationAcls (não /organizationalAccessControl que retorna 404)
+    const linkedinVersion = "202501";
+    const orgsUrl = "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee";
     const orgsResponse = await fetch(orgsUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -109,6 +110,8 @@ export async function GET(request: NextRequest) {
         "X-Restli-Protocol-Version": "2.0.0",
       },
     });
+
+    console.log("[LINKEDIN_CALLBACK_DEBUG] organizationAcls status:", orgsResponse.status);
 
     const organizations: { urn: string; name: string }[] = [];
 
