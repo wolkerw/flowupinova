@@ -59,9 +59,7 @@ export async function updateMetaConnectionAdmin(
  * @param userId The UID of the user.
  * @returns The connection data.
  */
-export async function getMetaConnectionAdmin(
-  userId: string
-): Promise<
+export async function getMetaConnectionAdmin(userId: string): Promise<
   Partial<MetaConnectionAdminData> & {
     isConnected: boolean;
     userAccessToken?: string;
@@ -97,9 +95,7 @@ export async function getMetaConnectionAdmin(
  * This is server-side only.
  * @param userId The UID of the user.
  */
-export async function getMetaAdsConnectionAdmin(
-  userId: string
-): Promise<
+export async function getMetaAdsConnectionAdmin(userId: string): Promise<
   Partial<MetaConnectionAdminData> & {
     isConnected: boolean;
     userAccessToken?: string;

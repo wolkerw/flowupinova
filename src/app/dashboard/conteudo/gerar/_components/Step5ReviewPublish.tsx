@@ -205,15 +205,18 @@ export const Step5ReviewPublish = () => {
 
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "flex items-center space-x-2 rounded-lg border p-4",
+                            "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                            platforms.includes("instagram") && instagramConnection?.isConnected
+                              ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                              : "border-gray-200 hover:bg-gray-50",
                             !instagramConnection?.isConnected &&
-                              "cursor-not-allowed bg-gray-100 opacity-60"
+                              "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                           )}
                         >
                           <Checkbox
@@ -227,7 +230,7 @@ export const Step5ReviewPublish = () => {
                           <Label
                             htmlFor="platform-instagram"
                             className={cn(
-                              "flex cursor-pointer items-center gap-2",
+                              "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
                               !instagramConnection?.isConnected && "cursor-not-allowed"
                             )}
                           >
@@ -249,9 +252,12 @@ export const Step5ReviewPublish = () => {
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "flex items-center space-x-2 rounded-lg border p-4",
+                            "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                            platforms.includes("facebook") && metaConnection?.isConnected
+                              ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                              : "border-gray-200 hover:bg-gray-50",
                             !metaConnection?.isConnected &&
-                              "cursor-not-allowed bg-gray-100 opacity-60"
+                              "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                           )}
                         >
                           <Checkbox
@@ -265,7 +271,7 @@ export const Step5ReviewPublish = () => {
                           <Label
                             htmlFor="platform-facebook"
                             className={cn(
-                              "flex cursor-pointer items-center gap-2",
+                              "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
                               !metaConnection?.isConnected && "cursor-not-allowed"
                             )}
                           >
@@ -287,9 +293,12 @@ export const Step5ReviewPublish = () => {
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "flex items-center space-x-2 rounded-lg border p-4",
+                            "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                            platforms.includes("linkedin") && linkedinConnection?.isConnected
+                              ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                              : "border-gray-200 hover:bg-gray-50",
                             !linkedinConnection?.isConnected &&
-                              "cursor-not-allowed bg-gray-100 opacity-60"
+                              "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                           )}
                         >
                           <Checkbox
@@ -303,7 +312,7 @@ export const Step5ReviewPublish = () => {
                           <Label
                             htmlFor="platform-linkedin"
                             className={cn(
-                              "flex cursor-pointer items-center gap-2",
+                              "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
                               !linkedinConnection?.isConnected && "cursor-not-allowed"
                             )}
                           >

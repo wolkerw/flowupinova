@@ -418,7 +418,7 @@ export default function Dashboard() {
             {
               sender: "ai",
               text: "Olá! Que prazer ter você aqui de novo. Como posso ajudar você a decolar hoje? ✨",
-            }
+            },
           ]);
         }
       } else {
@@ -427,7 +427,7 @@ export default function Dashboard() {
           {
             sender: "ai",
             text: "Olá! Sou o **Vapti**, e a partir de hoje serei o seu braço direito no marketing para decolar o seu negócio. Como posso ajudar você hoje? 🚀",
-          }
+          },
         ]);
       }
     };
