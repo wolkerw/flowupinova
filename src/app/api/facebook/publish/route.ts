@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { publishToFacebook } from "@/lib/services/publisher-service";
 
 export const dynamic = "force-dynamic";
 
@@ -11,30 +12,6 @@ interface PublishRequestBody {
       pageId: string;
     };
   };
-}
-
-async function publishToFacebookPage(
-  pageId: string,
-  accessToken: string,
-  imageUrl: string,
-  caption: string
-): Promise<string> {
-  const url = `https://graph.facebook.com/v20.0/${pageId}/photos`;
-  const params = new URLSearchParams({
-    url: imageUrl,
-    caption: caption,
-    access_token: accessToken,
-  });
-
-  const response = await fetch(`${url}?${params.toString()}`, { method: "POST" });
-  const data = await response.json();
-
-  if (!response.ok || !data.id) {
-    console.error("[META_API_ERROR] Falha ao publicar na Página do Facebook:", data.error);
-    throw new Error(data.error?.message || "Falha ao publicar a foto na Página do Facebook.");
-  }
-
-  return data.id; // Retorna o ID do post criado
 }
 
 export async function POST(request: NextRequest) {
@@ -57,9 +34,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const caption = postData.text.slice(0, 2200); // Facebook has a higher limit, but let's be safe
+    const caption = postData.text.slice(0, 2200);
 
-    const publishedPostId = await publishToFacebookPage(
+    const publishedPostId = await publishToFacebook(
       postData.metaConnection.pageId,
       postData.metaConnection.accessToken,
       postData.imageUrl,
@@ -82,3 +59,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

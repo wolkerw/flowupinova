@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromCookie } from "@/lib/firebase-admin";
-import { publishToGoogle } from "@/lib/services/publisher-service";
+import { publishToLinkedIn } from "@/lib/services/publisher-service";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     try {
       uid = await getUidFromCookie();
     } catch (e) {
-      // Chamada em segundo plano (cron job) sem cookie de sessão
+      // Background call or token validation fallback
     }
 
     const body: PublishRequestBody = await request.json();
@@ -40,22 +40,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const publishedMediaId = await publishToGoogle(
+    const publishedMediaId = await publishToLinkedIn(
       targetUid,
       postData.text,
       postData.imageUrl
     );
 
-    console.log("[GOOGLE_PUBLISH_SUCCESS] Post publicado no Google Meu Negócio:", publishedMediaId);
+    console.log("[LINKEDIN_PUBLISH_SUCCESS] Post publicado com sucesso no LinkedIn:", publishedMediaId);
 
     return NextResponse.json({
       success: true,
       publishedMediaId,
     });
   } catch (error: any) {
-    console.error("[GOOGLE_PUBLISH_ERROR]", error);
+    console.error("[LINKEDIN_PUBLISH_ERROR]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Erro desconhecido ao publicar no Google." },
+      { success: false, error: error.message || "Erro desconhecido ao publicar no LinkedIn." },
       { status: 500 }
     );
   }

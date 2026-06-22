@@ -41,6 +41,7 @@ import {
   Heart,
   Info,
   Store,
+  Linkedin,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -68,6 +69,7 @@ import {
   type InstagramConnectionData,
 } from "@/lib/services/instagram-service";
 import { getGoogleConnection, type GoogleConnectionData } from "@/lib/services/google-service";
+import { getLinkedInConnection, type LinkedInConnectionData } from "@/lib/services/linkedin-service";
 import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
 import { getBusinessProfile, type BusinessProfileData } from "@/lib/services/business-profile-service";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -86,7 +88,7 @@ type LogoPosition =
   | "bottom-left"
   | "bottom-center"
   | "bottom-right";
-type Platform = "instagram" | "facebook" | "google";
+type Platform = "instagram" | "facebook" | "google" | "linkedin";
 
 type MediaItem = {
   type: "image" | "video";
@@ -946,6 +948,102 @@ const GooglePreview = ({
   );
 };
 
+const LinkedInPreview = ({
+  mediaItems,
+  user,
+  text,
+  linkedinConnection,
+  logoPreviewUrl,
+  logoPosition,
+  visualLogoScale,
+  logoOpacity,
+  isFinalPreview,
+}: {
+  mediaItems: MediaItem[];
+  user: any;
+  text: string;
+  linkedinConnection: LinkedInConnectionData | null;
+  logoPreviewUrl?: string | null;
+  logoPosition?: LogoPosition;
+  visualLogoScale?: number;
+  logoOpacity?: number;
+  isFinalPreview?: boolean;
+}) => {
+  const getAvatarFallback = () => {
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (linkedinConnection?.publishTarget === "organization" && linkedinConnection?.selectedOrganizationName) {
+      return linkedinConnection.selectedOrganizationName.charAt(0).toUpperCase();
+    }
+    if (linkedinConnection?.personName) return linkedinConnection.personName.charAt(0).toUpperCase();
+    return "L";
+  };
+
+  const getDisplayName = () => {
+    if (linkedinConnection?.publishTarget === "organization" && linkedinConnection?.selectedOrganizationName) {
+      return linkedinConnection.selectedOrganizationName;
+    }
+    return linkedinConnection?.personName || user?.displayName || "Seu Nome (LinkedIn)";
+  };
+
+  const singleItem = mediaItems.length > 0 ? mediaItems[0] : null;
+
+  return (
+    <div className="flex w-full flex-col rounded-md border bg-white shadow-lg">
+      <div className="flex items-start justify-between p-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user?.photoURL || undefined} />
+            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <span className="text-sm font-bold text-gray-800 block">
+              {getDisplayName()}
+            </span>
+            <div className="flex items-center gap-1">
+              <p className="text-[11px] text-gray-500">Qualquer pessoa · Agora mesmo</p>
+              <Globe className="h-3 w-3 text-gray-500" />
+            </div>
+          </div>
+        </div>
+        <MoreHorizontal className="h-5 cursor-pointer text-gray-600" />
+      </div>
+      <div className="px-3 pb-2 text-sm text-gray-800">
+        <p className="whitespace-pre-wrap">{text}</p>
+      </div>
+      <div className="relative aspect-square bg-gray-200">
+        {singleItem ? (
+          <Image
+            src={singleItem.publicUrl || singleItem.previewUrl}
+            alt="Preview"
+            layout="fill"
+            objectFit="cover"
+            unoptimized
+          />
+        ) : (
+          <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
+        )}
+        {singleItem && !isFinalPreview && (
+          <LogoOverlay url={logoPreviewUrl} position={logoPosition} scale={visualLogoScale} opacity={logoOpacity} />
+        )}
+      </div>
+      <div className="flex items-center justify-between border-t p-1.5 text-xs text-gray-500 font-medium">
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <ThumbsUp className="h-4 w-4" />
+          <span>Gostei</span>
+        </button>
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <MessageCircle className="h-4 w-4" />
+          <span>Comentar</span>
+        </button>
+        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
+          <Share2 className="h-4 w-4" />
+          <span>Compartilhar</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const FinalPreview = ({
   mediaItems,
   user,
@@ -953,6 +1051,7 @@ const FinalPreview = ({
   metaConnection,
   instagramConnection,
   googleConnection,
+  linkedinConnection,
   businessProfile,
   gmbProfile = null,
   contentType,
@@ -969,6 +1068,7 @@ const FinalPreview = ({
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
   googleConnection: GoogleConnectionData | null;
+  linkedinConnection: LinkedInConnectionData | null;
   businessProfile: OnboardingProfileData | null;
   gmbProfile?: BusinessProfileData | null;
   contentType?: ContentType | null;
@@ -982,18 +1082,22 @@ const FinalPreview = ({
   return (
     <div className="w-full max-w-sm">
       <Tabs defaultValue="instagram">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="instagram">
-            <Instagram className="mr-2 h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="instagram" className="text-xs px-1">
+            <Instagram className="mr-1 h-3.5 w-3.5" />
             Instagram
           </TabsTrigger>
-          <TabsTrigger value="facebook">
-            <Facebook className="mr-2 h-4 w-4" />
+          <TabsTrigger value="facebook" className="text-xs px-1">
+            <Facebook className="mr-1 h-3.5 w-3.5" />
             Facebook
           </TabsTrigger>
-          <TabsTrigger value="google">
-            <Store className="mr-2 h-4 w-4" />
+          <TabsTrigger value="google" className="text-xs px-1">
+            <Store className="mr-1 h-3.5 w-3.5" />
             Google
+          </TabsTrigger>
+          <TabsTrigger value="linkedin" className="text-xs px-1">
+            <Linkedin className="mr-1 h-3.5 w-3.5" />
+            LinkedIn
           </TabsTrigger>
         </TabsList>
         <TabsContent value="instagram" className="mt-4">
@@ -1045,6 +1149,19 @@ const FinalPreview = ({
             isFinalPreview={true}
           />
         </TabsContent>
+        <TabsContent value="linkedin" className="mt-4">
+          <LinkedInPreview
+            mediaItems={mediaItems}
+            user={user}
+            text={text}
+            linkedinConnection={linkedinConnection}
+            logoPreviewUrl={logoPreviewUrl}
+            logoPosition={logoPosition}
+            visualLogoScale={visualLogoScale}
+            logoOpacity={logoOpacity}
+            isFinalPreview={true}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -1086,6 +1203,7 @@ export default function CriarConteudoPage() {
     null
   );
   const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
+  const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
   const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -1111,12 +1229,14 @@ export default function CriarConteudoPage() {
       getMetaConnection(user.uid),
       getInstagramConnection(user.uid),
       getGoogleConnection(user.uid),
+      getLinkedInConnection(user.uid),
       getOnboardingProfile(user.uid),
       getBusinessProfile(user.uid)
-    ]).then(([metaConn, instaConn, googleConn, profile, gmbProf]) => {
+    ]).then(([metaConn, instaConn, googleConn, linkedinConn, profile, gmbProf]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
       setGoogleConnection(googleConn);
+      setLinkedinConnection(linkedinConn);
       setBusinessProfile(profile);
       setGmbProfile(gmbProf);
       
@@ -1124,6 +1244,7 @@ export default function CriarConteudoPage() {
       if (metaConn?.isConnected) initialPlatforms.push("facebook");
       if (instaConn?.isConnected) initialPlatforms.push("instagram");
       if (googleConn?.isConnected) initialPlatforms.push("google");
+      if (linkedinConn?.isConnected) initialPlatforms.push("linkedin");
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
@@ -1735,6 +1856,9 @@ export default function CriarConteudoPage() {
     if (platforms.includes("google") && googleConnection?.isConnected) {
       postInput.googleConnection = googleConnection;
     }
+    if (platforms.includes("linkedin") && linkedinConnection?.isConnected) {
+      postInput.linkedinConnection = linkedinConnection;
+    }
 
     const result = await schedulePost(user.uid, postInput);
 
@@ -1763,6 +1887,7 @@ export default function CriarConteudoPage() {
     platforms.length === 0 ||
     (platforms.includes("facebook") && !metaConnection?.isConnected) ||
     (platforms.includes("instagram") && !instagramConnection?.isConnected) ||
+    (platforms.includes("linkedin") && !linkedinConnection?.isConnected) ||
     (scheduleType === "schedule" && !scheduleDate);
 
   // Cleanup de URLs de blob executado estritamente na desmontagem real da página
@@ -2313,6 +2438,7 @@ export default function CriarConteudoPage() {
                     metaConnection={metaConnection}
                     instagramConnection={instagramConnection}
                     googleConnection={googleConnection}
+                    linkedinConnection={linkedinConnection}
                     businessProfile={businessProfile}
                     contentType={selectedType}
                     storyAdaptationMode={storyAdaptationMode}
@@ -2335,7 +2461,7 @@ export default function CriarConteudoPage() {
             <CardContent className="space-y-6">
               <div>
                  <Label className="font-semibold">Onde Publicar?</Label>
-                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-4">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -2427,6 +2553,38 @@ export default function CriarConteudoPage() {
                       {!googleConnection?.isConnected && (
                         <TooltipContent>
                           <p>Conecte seu Perfil no Google na aba 'Meu Negócio' para publicar.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center space-x-2 rounded-lg border p-4",
+                            !linkedinConnection?.isConnected && "bg-gray-100 opacity-60 cursor-not-allowed"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-linkedin"
+                            checked={platforms.includes("linkedin") && !!linkedinConnection?.isConnected}
+                            onCheckedChange={() => handlePlatformChange("linkedin")}
+                            disabled={!linkedinConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-linkedin"
+                            className={cn("flex cursor-pointer items-center gap-2", !linkedinConnection?.isConnected && "cursor-not-allowed")}
+                          >
+                            <Linkedin className="h-5 w-5 text-blue-700" />
+                            LinkedIn
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!linkedinConnection?.isConnected && (
+                        <TooltipContent>
+                          <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -2555,9 +2713,9 @@ export default function CriarConteudoPage() {
                     ? "Publicar Post"
                     : "Agendar Post"}
               </Button>
-              {!metaConnection?.isConnected && !instagramConnection?.isConnected && (
+              {!metaConnection?.isConnected && !instagramConnection?.isConnected && !linkedinConnection?.isConnected && (
                 <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
-                  <AlertTriangle className="h-4 w-4" /> Conecte suas contas na página de Conteúdo
+                  <AlertTriangle className="h-4 w-4" /> Conecte suas contas na página de Conteúdo ou Conexões
                   para publicar.
                 </p>
               )}

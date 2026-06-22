@@ -21,11 +21,13 @@ export interface AdCampaignData {
   postId?: string; // ID do post do feed que foi impulsionado
   name: string;
   status: "draft" | "pending_payment" | "active" | "paused" | "completed" | "failed";
-  platforms: Array<"instagram" | "facebook">;
+  platforms: Array<"instagram" | "facebook" | "google">;
   metaCampaignId?: string;
   metaAdSetId?: string;
   metaAdId?: string;
   adAccountId?: string;
+  googleCampaignId?: string;
+  googleCustomerId?: string;
   
   creative: {
     headline: string;

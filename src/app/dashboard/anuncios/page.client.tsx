@@ -50,6 +50,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { BusinessProfileData } from "@/lib/services/business-profile-service";
 import { getScheduledPosts } from "@/lib/services/posts-service";
 import { getMetaConnection, updateMetaConnection } from "@/lib/services/meta-service";
+import { getGoogleAdsConnection, updateGoogleAdsConnection, type GoogleAdsConnectionData } from "@/lib/services/google-ads-service";
+import { getGoogleAdsCampaigns, updateGoogleAdsCampaignStatus } from "@/lib/services/google-ads-service-admin";
 import {
   createAdCampaign,
   getUserAdCampaigns,
@@ -243,6 +245,27 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [exchangeToken, setExchangeToken] = useState("");
   const [pageSearchTerm, setPageSearchTerm] = useState("");
   const [adAccountSearchTerm, setAdAccountSearchTerm] = useState("");
+
+  // Conexão Google Ads Pago
+  const [googleAdsConnection, setGoogleAdsConnection] = useState<GoogleAdsConnectionData>({ isConnected: false });
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [googleAccounts, setGoogleAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  const [isGoogleAccountModalOpen, setIsGoogleAccountModalOpen] = useState(false);
+  const [googleCampaigns, setGoogleCampaigns] = useState<any[]>([]);
+  const [activePlatformTab, setActivePlatformTab] = useState<"meta" | "google">("meta");
+  const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false);
+  
+  // Estados do Wizard do Google Ads
+  const [isCreatingGoogleAd, setIsCreatingGoogleAd] = useState(false);
+  const [googleHeadline1, setGoogleHeadline1] = useState("");
+  const [googleHeadline2, setGoogleHeadline2] = useState("");
+  const [googleHeadline3, setGoogleHeadline3] = useState("");
+  const [googleDescription1, setGoogleDescription1] = useState("");
+  const [googleDescription2, setGoogleDescription2] = useState("");
+  const [googleKeywordsText, setGoogleKeywordsText] = useState("");
+  const [googleDailyBudget, setGoogleDailyBudget] = useState(15);
+  const [googleDurationDays, setGoogleDurationDays] = useState(7);
+  const [googleAdName, setGoogleAdName] = useState("");
 
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -663,6 +686,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       } else {
         setCampaigns([]);
       }
+
+      // Buscar conexão do Google Ads
+      const googleAdsConn = await getGoogleAdsConnection(userId);
+      setGoogleAdsConnection(googleAdsConn);
+      if (googleAdsConn.isConnected && googleAdsConn.adAccountId) {
+        const googleCampaignsResult = await getGoogleAdsCampaigns(userId, googleAdsConn.adAccountId);
+        setGoogleCampaigns(googleCampaignsResult || []);
+      } else {
+        setGoogleCampaigns([]);
+      }
     } catch (err) {
       console.error("Erro ao carregar dados da página:", err);
       toast({
@@ -875,13 +908,210 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   };
 
+  // Conexão Google Ads
+  const handleConnectGoogleAds = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "569130702994-a9gjs7gopkquehcui77s58umbdrupql5.apps.googleusercontent.com";
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/dashboard/anuncios`;
+    
+    const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    googleAuthUrl.searchParams.append("client_id", clientId);
+    googleAuthUrl.searchParams.append("redirect_uri", redirectUri);
+    googleAuthUrl.searchParams.append("response_type", "code");
+    googleAuthUrl.searchParams.append("scope", "https://www.googleapis.com/auth/adwords");
+    googleAuthUrl.searchParams.append("access_type", "offline");
+    googleAuthUrl.searchParams.append("prompt", "consent");
+    googleAuthUrl.searchParams.append("state", `google_ads:${user?.uid}`);
+
+    window.location.href = googleAuthUrl.toString();
+  };
+
+  const runGoogleAdsConnectionFlow = async (code: string, state: string) => {
+    if (!user) return;
+    setIsConnectingGoogle(true);
+    try {
+      toast({
+        title: "Autenticando com o Google",
+        description: "Buscando contas de anúncios qualificadas.",
+      });
+
+      const response = await fetch("/api/google-ads/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          state,
+          origin: window.location.origin,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Erro desconhecido ao conectar com Google Ads.");
+      }
+
+      if (result.accounts && result.accounts.length > 0) {
+        setGoogleAccounts(result.accounts);
+        if (result.accounts.length === 1) {
+          await handleSelectGoogleAdsAccount(result.accounts[0].id, result.accounts[0].name);
+        } else {
+          setIsGoogleAccountModalOpen(true);
+        }
+      } else {
+        throw new Error("Nenhuma conta de anúncios vinculada a este perfil Google.");
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Falha de Conexão",
+        description: err.message,
+      });
+    } finally {
+      setIsConnectingGoogle(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  const handleSelectGoogleAdsAccount = async (accountId: string, accountName: string) => {
+    if (!user) return;
+    try {
+      await updateGoogleAdsConnection(user.uid, {
+        isConnected: true,
+        adAccountId: accountId,
+        adAccountName: accountName,
+      });
+      toast({
+        title: "Conectado!",
+        description: `Sua conta "${accountName}" foi associada com sucesso.`,
+      });
+      setIsGoogleAccountModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Selecionar Conta",
+        description: err.message,
+      });
+    }
+  };
+
+  const handleDisconnectGoogleAds = async () => {
+    if (!user) return;
+    if (confirm("Tem certeza que deseja desconectar o Google Ads? Isso ocultará o painel de campanhas locais.")) {
+      await updateGoogleAdsConnection(user.uid, { isConnected: false });
+      setGoogleCampaigns([]);
+      setGoogleAdsConnection({ isConnected: false });
+      fetchData();
+      toast({ title: "Desconectado", description: "A integração com o Google Ads foi removida." });
+    }
+  };
+
+  const handlePublishGoogleCampaign = async () => {
+    if (!user || !googleAdsConnection.adAccountId) return;
+    setIsSubmittingGoogle(true);
+    try {
+      const keywords = googleKeywordsText
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+
+      const response = await fetch("/api/google-ads/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          customerId: googleAdsConnection.adAccountId,
+          name: googleAdName,
+          dailyBudget: googleDailyBudget,
+          durationDays: googleDurationDays,
+          headline1: googleHeadline1,
+          headline2: googleHeadline2,
+          headline3: googleHeadline3,
+          description1: googleDescription1,
+          description2: googleDescription2,
+          keywords,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Falha ao publicar anúncio no Google Ads.");
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Sua campanha foi publicada com sucesso no Google Ads.",
+      });
+
+      setIsCreatingGoogleAd(false);
+      // Limpa formulário
+      setGoogleAdName("");
+      setGoogleHeadline1("");
+      setGoogleHeadline2("");
+      setGoogleHeadline3("");
+      setGoogleDescription1("");
+      setGoogleDescription2("");
+      setGoogleKeywordsText("");
+      
+      fetchData();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Publicar Campanha",
+        description: err.message,
+      });
+    } finally {
+      setIsSubmittingGoogle(false);
+    }
+  };
+
+  const handleToggleGoogleStatus = async (campaign: any) => {
+    if (!user || !googleAdsConnection.adAccountId || !campaign.id) return;
+    const originalStatus = campaign.status;
+    const newStatus = originalStatus === "active" ? "PAUSED" : "ENABLED";
+    try {
+      toast({
+        title: "Atualizando status...",
+        description: "Enviando alteração para o Google Ads.",
+      });
+
+      const success = await updateGoogleAdsCampaignStatus(
+        user.uid,
+        googleAdsConnection.adAccountId,
+        campaign.id,
+        newStatus
+      );
+
+      if (success && (success as any).success) {
+        toast({
+          title: "Status Atualizado",
+          description: `A campanha foi ${newStatus === "ENABLED" ? "ativada" : "pausada"} no Google Ads.`,
+        });
+        fetchData();
+      } else {
+        throw new Error((success as any).error || "Falha ao sincronizar status.");
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Atualizar",
+        description: err.message,
+      });
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined" && user) {
       const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get("code");
+      const state = searchParams.get("state");
       if (code && !effectRan.current) {
         effectRan.current = true;
-        runMetaAdsConnectionFlow(code);
+        if (state && state.startsWith("google_ads:")) {
+          runGoogleAdsConnectionFlow(code, state);
+        } else {
+          runMetaAdsConnectionFlow(code);
+        }
       }
     }
   }, [user]);
@@ -1243,113 +1473,94 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     };
     return ctas[cta] || "Saiba Mais";
   };
+  const isMetaActive = !!(metaConnection.isConnected && metaConnection.adAccountId);
+  const isGoogleActive = !!(googleAdsConnection.isConnected && googleAdsConnection.adAccountId);
+  const isAnyActive = isMetaActive || isGoogleActive;
 
   return (
     <div className="container mx-auto p-6 max-w-7xl font-sans text-slate-800">
       {/* HEADER PRINCIPAL */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          {metaConnection.isConnected && metaConnection.adAccountId ? (
-            <>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
-                <Megaphone className="h-8 w-8 text-primary" />
-                Seus Impulsionamentos
-              </h1>
-              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
-                Gerencie anúncios locais e acompanhe seus resultados reais no Instagram e Facebook.
-              </p>
-              <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-3xl text-left">
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* Informação da Conta */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                      <Megaphone className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Conta de Anúncios</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-0.5">
-                        {adAccountName}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Divisor vertical no desktop */}
-                  <div className="hidden sm:block h-8 w-px bg-slate-200"></div>
-
-                  {/* Informação de Cobrança */}
-                  {billingStatus && (
-                    <button 
-                      onClick={() => {
-                        setBillingGuideActive(false);
-                        setIsBillingModalOpen(true);
-                      }}
-                      className="group flex items-center gap-3 text-left transition-all active:scale-98 duration-100"
-                    >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1
-                          ? "bg-green-50 text-green-600 border border-green-200/20"
-                          : "bg-amber-50 text-amber-600 border border-amber-200/20"
-                      }`}>
-                        <CreditCard className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                          Status Financeiro
-                          <Settings className="h-3 w-3 opacity-60 group-hover:rotate-45 transition-transform duration-200" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-700 block mt-0.5 flex items-center gap-1.5 font-inter">
-                          <span className="relative flex h-1.5 w-1.5">
-                            {!(billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1) && (
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            )}
-                            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
-                              billingStatus.hasPaymentMethod && billingStatus.accountStatus === 1 ? "bg-green-500" : "bg-amber-500"
-                            }`}></span>
-                          </span>
-                          {billingStatus.hasPaymentMethod 
-                            ? (billingStatus.isPrepaid && billingStatus.balance > 0 
-                                ? `Saldo R$ ${billingStatus.balance.toFixed(2)}` 
-                                : `Ativa (${billingStatus.fundingSourceDetails?.display_string || "Cartão"})`) 
-                            : "Pendente"}
-                        </span>
-                      </div>
-                    </button>
-                  )}
-                </div>
-
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-6 border-b border-slate-100">
+        <div className="text-left max-w-3xl">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-2.5">
+            <Megaphone className="h-7 w-7 text-primary" />
+            Central de Anúncios Locais
+          </h1>
+          <p className="text-slate-500 mt-1 max-w-2xl font-inter text-xs leading-relaxed">
+            Atraia novos clientes para o seu negócio impulsionando publicações no Instagram/Facebook ou aparecendo no topo das buscas do Google.
+          </p>
+          
+          {/* Status compactos de conexões */}
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            {isMetaActive ? (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50/50 text-xs font-bold text-[#1877F2] border border-blue-100/50 shadow-2xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <span>Meta Ads Conectado: </span>
+                <span className="text-slate-600 font-semibold font-inter">{adAccountName}</span>
                 <button
                   onClick={handleDisconnectMetaAds}
-                  className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted"
+                  className="text-[10px] font-semibold text-slate-400 hover:text-red-500 ml-1.5 transition-colors underline decoration-dotted font-inter"
+                  title="Desconectar conta da Meta"
                 >
-                  Desconectar Conta
+                  (desconectar)
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-poppins flex items-center gap-3">
-                <Megaphone className="h-8 w-8 text-primary" />
-                Anúncios Pagos (Meta Ads)
-              </h1>
-              <p className="text-slate-500 mt-1 max-w-2xl font-inter text-sm">
-                Atraia clientes ideais na sua vizinhança! Impulsione suas melhores publicações no Instagram e Facebook de forma descomplicada, inteligente e sem jargões complexos.
-              </p>
-            </>
-          )}
+            ) : (
+              <button 
+                onClick={handleConnectMetaAds} 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 border border-slate-200 shadow-2xs transition-colors"
+              >
+                🔌 Conectar Meta Ads
+              </button>
+            )}
+            
+            {isGoogleActive ? (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50/50 text-xs font-bold text-[#4285F4] border border-blue-100/50 shadow-2xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <span>Google Ads Conectado: </span>
+                <span className="text-slate-600 font-semibold font-inter">{googleAdsConnection.adAccountName || "Conta Local"}</span>
+                <button
+                  onClick={handleDisconnectGoogleAds}
+                  className="text-[10px] font-semibold text-slate-400 hover:text-red-500 ml-1.5 transition-colors underline decoration-dotted font-inter"
+                  title="Desconectar conta do Google"
+                >
+                  (desconectar)
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={handleConnectGoogleAds} 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 border border-slate-200 shadow-2xs transition-colors"
+              >
+                🔌 Conectar Google Ads
+              </button>
+            )}
+          </div>
         </div>
-        {!isCreating &&
-          metaConnection.isConnected &&
-          metaConnection.adAccountId &&
-          publishedPosts.length > 0 &&
-          (campaigns.filter((c) => c.status === "active").length > 0 || activeDashboardTab === "history") && (
-            <Button
-              onClick={() => setIsChoosePostModalOpen(true)}
-              className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3 rounded-lg shadow-sm font-poppins text-sm transition-transform duration-200 active:scale-95 shrink-0"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Impulsionar Post
-            </Button>
-          )}
+
+        {/* Botão de Ação Primária da Plataforma Ativa */}
+        {!isCreating && (
+          <div className="shrink-0 self-start md:self-center">
+            {activePlatformTab === "meta" && isMetaActive && publishedPosts.length > 0 && (
+              <Button
+                onClick={() => setIsChoosePostModalOpen(true)}
+                className="bg-primary hover:bg-primary/95 text-white font-bold px-5 py-3 rounded-lg shadow-sm font-poppins text-xs transition-transform duration-200 active:scale-95 flex items-center gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Impulsionar Publicação
+              </Button>
+            )}
+            {activePlatformTab === "google" && isGoogleActive && (
+              <Button
+                onClick={() => setIsCreatingGoogleAd(true)}
+                className="bg-[#4285F4] hover:bg-[#4285F4]/95 text-white font-bold px-5 py-3 rounded-lg shadow-sm font-poppins text-xs transition-transform duration-200 active:scale-95 flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Criar Anúncio Google
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* BANNER DE PREVENÇÃO DE COBRANÇA PENDENTE */}
@@ -1474,48 +1685,32 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 </div>
               </div>
 
-              {/* Card Google Ads (Em Breve) */}
-              <div className="p-6 rounded-2xl border border-slate-200 bg-slate-50/50 shadow-sm flex flex-col justify-between gap-6 transition-all duration-300 opacity-90 text-left">
+              {/* Card Google Ads */}
+              <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between gap-6 transition-all duration-300 hover:shadow-md text-left">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="bg-slate-200 text-slate-650 p-2.5 rounded-xl">
-                      <svg className="h-5 w-5" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.77c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
+                    <div className="bg-[#4285F4]/10 text-[#4285F4] p-3 rounded-xl w-fit">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       </svg>
                     </div>
-                    <Badge className="bg-slate-200/80 hover:bg-slate-200/80 text-slate-500 font-bold text-[9px] scale-90 border-none shrink-0 ml-1 uppercase tracking-wider">
-                      Em Breve
-                    </Badge>
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold text-slate-700 leading-tight">Anúncios no Google Ads</h4>
+                    <h4 className="text-base font-extrabold text-slate-900 leading-tight">Anúncios no Google Ads</h4>
                     <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                       Apareça no topo das buscas locais e no Google Mapas para quem já está procurando ativamente seus serviços na vizinhança.
                     </p>
                   </div>
                 </div>
-                <div className="pt-5 mt-5 border-t border-slate-200/60">
+                <div className="pt-5 mt-5 border-t border-slate-100">
                   <Button
-                    disabled
-                    variant="outline"
-                    className="border-slate-200 text-slate-400 font-bold text-xs py-4 px-6 rounded-xl w-full cursor-not-allowed bg-slate-100/50"
+                    onClick={handleConnectGoogleAds}
+                    className="bg-[#4285F4] hover:bg-[#4285F4]/95 text-white font-bold text-xs py-4 px-6 rounded-xl w-full flex items-center justify-center gap-2"
                   >
-                    Em Breve
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    </svg>
+                    Conectar Google Ads
                   </Button>
                 </div>
               </div>
@@ -3407,53 +3602,139 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       )}
 
       {/* DASHBOARD PRINCIPAL (MÉTRICAS E LISTAS) */}
-      {!isCreating && metaConnection.isConnected && metaConnection.adAccountId && (
+      {!isCreating && (isMetaActive || isGoogleActive) && (
         <div className="space-y-8 animate-in fade-in duration-300">
           
+          {/* Seletor de Plataforma se ambas estiverem conectadas */}
+          {isMetaActive && isGoogleActive && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-100/40 p-1.5 rounded-2xl w-full sm:w-fit border border-slate-200/60 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePlatformTab("meta");
+                  setActiveDashboardTab("active");
+                }}
+                className={`flex items-center justify-center gap-2 px-5 py-3 text-xs font-extrabold font-poppins rounded-xl transition-all duration-300 ${
+                  activePlatformTab === "meta"
+                    ? "bg-[#1877F2] text-white shadow-md shadow-blue-500/10 scale-105"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                }`}
+              >
+                <Megaphone className="h-4 w-4" />
+                Meta (Instagram e Facebook)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePlatformTab("google");
+                  setActiveDashboardTab("active");
+                }}
+                className={`flex items-center justify-center gap-2 px-5 py-3 text-xs font-extrabold font-poppins rounded-xl transition-all duration-300 ${
+                  activePlatformTab === "google"
+                    ? "bg-[#4285F4] text-white shadow-md shadow-blue-600/10 scale-105"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                }`}
+              >
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                </svg>
+                Google Ads (Pesquisa Local)
+              </button>
+            </div>
+          )}
+
+
+          {/* Banner auxiliar se apenas uma plataforma estiver conectada */}
+          {!isMetaActive && (
+            <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+              <div className="flex items-center gap-3">
+                <Megaphone className="h-5 w-5 text-slate-400" />
+                <div>
+                  <h6 className="text-xs font-bold text-slate-800">Impulsione também no Instagram e Facebook</h6>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Conecte sua página do Facebook para criar campanhas sociais locais com facilidade.</p>
+                </div>
+              </div>
+              <Button size="sm" onClick={handleConnectMetaAds} className="bg-primary text-white text-[10px] font-bold h-8 px-4 rounded-lg">
+                Conectar Meta Ads
+              </Button>
+            </div>
+          )}
+          {!isGoogleActive && (
+            <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                </svg>
+                <div>
+                  <h6 className="text-xs font-bold text-slate-800">Anuncie também no Google Ads</h6>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Apareça no topo das buscas locais e no Google Mapas para clientes na sua região.</p>
+                </div>
+              </div>
+              <Button size="sm" onClick={handleConnectGoogleAds} className="bg-[#4285F4] hover:bg-[#4285F4]/95 text-white text-[10px] font-bold h-8 px-4 rounded-lg">
+                Conectar Google Ads
+              </Button>
+            </div>
+          )}
+
           {/* PAINEL DE MÉTRICAS GERAIS SIMPLIFICADAS (TOPO) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
-              <div className="bg-primary/5 p-3.5 rounded-xl text-primary shrink-0">
+            <div className={`bg-white rounded-2xl border p-6 shadow-xs flex items-center gap-5 transition-all duration-300 ${
+              activePlatformTab === "meta" ? "border-slate-100 hover:border-[#1877F2]/30" : "border-slate-100 hover:border-[#4285F4]/30"
+            }`}>
+              <div className={`p-3.5 rounded-xl shrink-0 transition-colors duration-300 ${
+                activePlatformTab === "meta" ? "bg-[#1877F2]/5 text-[#1877F2]" : "bg-[#4285F4]/5 text-[#4285F4]"
+              }`}>
                 <DollarSign className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-slate-500 block">Valor Investido</span>
                 <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  R$ {campaigns.reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0).toFixed(2)}
+                  R$ {(activePlatformTab === "meta" ? campaigns : googleCampaigns).reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0).toFixed(2)}
                 </span>
                 <span className="text-xs text-slate-400 block truncate mt-0.5">Valor usado nos últimos 30 dias</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
+            <div className={`bg-white rounded-2xl border p-6 shadow-xs flex items-center gap-5 transition-all duration-300 ${
+              activePlatformTab === "meta" ? "border-slate-100 hover:border-[#1877F2]/30" : "border-slate-100 hover:border-[#4285F4]/30"
+            }`}>
               <div className="bg-emerald-500/5 p-3.5 rounded-xl text-emerald-600 shrink-0">
                 <Users className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-slate-500 block">Visualizações</span>
                 <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  {campaigns.reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0).toLocaleString("pt-BR")}
+                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns).reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0).toLocaleString("pt-BR")}
                 </span>
-                <span className="text-xs text-slate-400 block truncate mt-0.5">Visualizações nos últimos 30 dias</span>
+                <span className="text-xs text-slate-400 block truncate mt-0.5 font-inter">Visualizações estimadas de público</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs flex items-center gap-5 hover:shadow-sm transition-all duration-300">
-              <div className="bg-blue-500/5 p-3.5 rounded-xl text-blue-600 shrink-0">
+            <div className={`bg-white rounded-2xl border p-6 shadow-xs flex items-center gap-5 transition-all duration-300 ${
+              activePlatformTab === "meta" ? "border-slate-100 hover:border-[#1877F2]/30" : "border-slate-100 hover:border-[#4285F4]/30"
+            }`}>
+              <div className={`p-3.5 rounded-xl shrink-0 transition-colors duration-300 ${
+                activePlatformTab === "meta" ? "bg-indigo-500/5 text-indigo-600" : "bg-amber-500/5 text-amber-600"
+              }`}>
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-slate-500 block">Cliques</span>
                 <span className="text-3xl font-bold tracking-tight text-slate-900 font-poppins mt-0.5 block truncate">
-                  {campaigns.reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0).toLocaleString("pt-BR")}
+                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns).reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0).toLocaleString("pt-BR")}
                 </span>
-                <span className="text-xs text-slate-400 block truncate mt-0.5">Cliques (todos) nos últimos 30 dias</span>
+                <span className="text-xs text-slate-400 block truncate mt-0.5 font-inter">Cliques nos links / ações do anúncio</span>
               </div>
             </div>
           </div>
 
           {/* GERENCIAMENTO DE CAMPANHAS EM VEICULAÇÃO OU HISTÓRICO */}
-          <div className="space-y-5">
+          <div className="space-y-5 text-left">
+            <div className="border-l-4 p-1 pl-3 rounded-r-lg transition-all duration-300 bg-slate-50/50 border-slate-200">
+              <h3 className="text-xs font-extrabold text-slate-800 font-poppins tracking-wider uppercase">
+                {activePlatformTab === "meta" ? "📱 Histórico de Campanhas Sociais (Meta)" : "🔎 Histórico de Campanhas de Busca (Google)"}
+              </h3>
+            </div>
             {/* SELETOR DE ABAS SEGMENT CONTROL */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-slate-100 pb-3">
               <div className="bg-slate-100/80 p-1 rounded-xl inline-flex gap-1 border border-slate-200/50">
@@ -3470,7 +3751,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
                     activeDashboardTab === "active" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
                   }`}>
-                    {campaigns.filter((c) => c.status === "active").length}
+                    {(activePlatformTab === "meta" ? campaigns : googleCampaigns).filter((c) => c.status === "active").length}
                   </span>
                 </button>
                 <button
@@ -3486,7 +3767,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <span className={`text-[10px] py-0 px-2 rounded-full font-bold ${
                     activeDashboardTab === "history" ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-500"
                   }`}>
-                    {campaigns.filter((c) => c.status !== "active").length}
+                    {(activePlatformTab === "meta" ? campaigns : googleCampaigns).filter((c) => c.status !== "active").length}
                   </span>
                 </button>
               </div>
@@ -3503,7 +3784,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
             ) : (
               (() => {
-                const filteredCampaigns = campaigns.filter((c) => {
+                const currentPlatformCampaigns = activePlatformTab === "meta" ? campaigns : googleCampaigns;
+                const filteredCampaigns = currentPlatformCampaigns.filter((c) => {
                   return activeDashboardTab === "active" ? c.status === "active" : c.status !== "active";
                 });
 
@@ -3519,20 +3801,32 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       {activeDashboardTab === "active" && (
                         <div className="mt-3.5 flex flex-col items-center gap-4">
                           <p className="text-[11.5px] text-slate-400 max-w-md mx-auto leading-relaxed">
-                            Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região.
+                            {activePlatformTab === "meta"
+                              ? "Selecione um de seus posts publicados e configure o raio e orçamento do seu anúncio local para começar a atrair novos clientes na sua região."
+                              : "Crie campanhas de busca qualificadas para posicionar o seu negócio no topo dos resultados do Google Ads."}
                           </p>
-                          {publishedPosts.length > 0 ? (
-                            <Button
-                              onClick={() => setIsChoosePostModalOpen(true)}
-                              className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
-                            >
-                              <Sparkles className="h-3.5 w-3.5" />
-                              Impulsionar um Post
-                            </Button>
+                          {activePlatformTab === "meta" ? (
+                            publishedPosts.length > 0 ? (
+                              <Button
+                                onClick={() => setIsChoosePostModalOpen(true)}
+                                className="bg-primary hover:bg-primary/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
+                              >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Impulsionar um Post
+                              </Button>
+                            ) : (
+                              <p className="text-[11px] text-amber-600 font-medium bg-amber-50 border border-amber-100/60 rounded-lg px-3 py-1.5">
+                                Crie e programe um post na aba <strong>Conteúdo</strong> antes de impulsioná-lo!
+                              </p>
+                            )
                           ) : (
-                            <p className="text-[11px] text-amber-600 font-medium bg-amber-50 border border-amber-100/60 rounded-lg px-3 py-1.5">
-                              Crie e programe um post na aba <strong>Conteúdo</strong> antes de impulsioná-lo!
-                            </p>
+                            <Button
+                              onClick={() => setIsCreatingGoogleAd(true)}
+                              className="bg-[#4285F4] hover:bg-[#4285F4]/95 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm font-poppins transition-transform active:scale-95 flex items-center gap-1.5"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Nova Campanha Google
+                            </Button>
                           )}
                         </div>
                       )}
@@ -3573,15 +3867,41 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                               <tr key={c.id} className="hover:bg-slate-50/30 transition-colors">
                                 {/* ANÚNCIO (FOTO + NOME) */}
                                 <td className="px-5 py-3.5">
-                                  <div className="flex items-center gap-3">
-                                    {c.creative.imageUrl && (
-                                      <div className="relative h-14 w-14 rounded-lg border border-slate-150 overflow-hidden flex-shrink-0 bg-slate-50 shadow-xs">
-                                        <Image src={c.creative.imageUrl} alt="creative thumb" fill className="object-cover" />
-                                      </div>
-                                    )}
+                                  <div className="flex items-center gap-3 text-left">
+                                    <div className="relative shrink-0">
+                                      {c.creative?.imageUrl ? (
+                                        <div className="relative h-14 w-14 rounded-lg border border-slate-150 overflow-hidden bg-slate-50 shadow-xs">
+                                          <Image src={c.creative.imageUrl} alt="creative thumb" fill className="object-cover" />
+                                        </div>
+                                      ) : (
+                                        <div className="h-14 w-14 rounded-lg border border-slate-150 overflow-hidden bg-slate-50 flex items-center justify-center">
+                                          <svg className="h-6 w-6 text-[#4285F4]" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                          </svg>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Platform badge overlay */}
+                                      <span className={`absolute -top-1.5 -left-1.5 p-0.5 rounded-md shadow-xs text-white ${
+                                        activePlatformTab === "meta" ? "bg-[#1877F2]" : "bg-[#4285F4]"
+                                      }`}>
+                                        {activePlatformTab === "meta" ? (
+                                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                          </svg>
+                                        ) : (
+                                          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                          </svg>
+                                        )}
+                                      </span>
+                                    </div>
                                     <div className="min-w-0">
                                       <span className="block font-bold text-slate-900 text-xs leading-snug truncate max-w-[220px]">
                                         {c.name}
+                                      </span>
+                                      <span className="text-[9px] font-semibold text-slate-400 block mt-0.5 uppercase tracking-wide">
+                                        {activePlatformTab === "meta" ? "Meta Ads (Sociais)" : "Google Ads (Pesquisa)"}
                                       </span>
                                     </div>
                                   </div>
@@ -3613,7 +3933,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                         <span>{progressPercentage}%</span>
                                       </div>
                                       <div className="w-full bg-slate-100/70 rounded-full h-1 overflow-hidden">
-                                        <div className="bg-primary h-1 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+                                        <div className={`h-1 rounded-full transition-all duration-500 ${
+                                          activePlatformTab === "meta" ? "bg-[#1877F2]" : "bg-[#4285F4]"
+                                        }`} style={{ width: `${progressPercentage}%` }}></div>
                                       </div>
                                     </div>
                                   ) : (
@@ -3623,7 +3945,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
                                 {/* VERBA / ORÇAMENTO */}
                                 <td className="px-5 py-3.5">
-                                  <span className="font-semibold text-slate-800 text-xs">R$ {c.budget.amount.toFixed(2)}/dia</span>
+                                  <span className="font-semibold text-slate-800 text-xs">
+                                    R$ {c.budget?.amount?.toFixed(2) || "0.00"}/{c.budget?.type === "daily" ? "dia" : "total"}
+                                  </span>
                                 </td>
 
                                 {/* INVESTIDO */}
@@ -3652,9 +3976,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleToggleStatus(c)}
+                                        onClick={() => activePlatformTab === "meta" ? handleToggleStatus(c) : handleToggleGoogleStatus(c)}
                                         className="h-8 border-slate-200 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
-                                        title="Pausar anúncio na Meta"
+                                        title={activePlatformTab === "meta" ? "Pausar anúncio na Meta" : "Pausar anúncio no Google"}
                                       >
                                         <Pause className="h-3 w-3" />
                                         Pausar
@@ -3663,23 +3987,25 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleToggleStatus(c)}
+                                        onClick={() => activePlatformTab === "meta" ? handleToggleStatus(c) : handleToggleGoogleStatus(c)}
                                         className="h-8 border-slate-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 font-bold text-[10px] rounded-lg px-2.5 flex items-center gap-1 transition-all duration-200 shadow-xs"
-                                        title="Ativar anúncio na Meta"
+                                        title={activePlatformTab === "meta" ? "Ativar anúncio na Meta" : "Ativar anúncio no Google"}
                                       >
                                         <Play className="h-3 w-3" />
                                         Ativar
                                       </Button>
                                     ) : null}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDeleteCampaign(c)}
-                                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-650 rounded-lg transition-colors"
-                                      title="Excluir campanha da Meta"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    {activePlatformTab === "meta" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDeleteCampaign(c)}
+                                        className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-650 rounded-lg transition-colors"
+                                        title="Excluir campanha da Meta"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -3766,6 +4092,195 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE SELEÇÃO DE CONTA DO GOOGLE ADS */}
+      <Dialog open={isGoogleAccountModalOpen} onOpenChange={setIsGoogleAccountModalOpen}>
+        <DialogContent className="max-w-md font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Selecionar Conta do Google Ads
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
+              Selecione qual conta de anúncios do Google Ads você deseja vincular para gerenciar suas campanhas locais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 my-4 max-h-[300px] overflow-y-auto pr-1">
+            {googleAccounts.map((acc) => (
+              <button
+                key={acc.id}
+                type="button"
+                onClick={() => handleSelectGoogleAdsAccount(acc.id, acc.name)}
+                className="w-full p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-primary/5 text-left transition-all duration-200 flex items-center justify-between group active:scale-[0.98]"
+              >
+                <div className="min-w-0">
+                  <span className="block font-bold text-xs text-slate-800 group-hover:text-primary transition-colors">
+                    {acc.name}
+                  </span>
+                  <span className="block text-[10px] text-slate-400 font-medium mt-0.5">
+                    ID da Conta: {acc.id}
+                  </span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* WIZARD DE CRIAÇÃO DE ANÚNCIO GOOGLE ADS */}
+      <Dialog open={isCreatingGoogleAd} onOpenChange={setIsCreatingGoogleAd}>
+        <DialogContent className="max-w-lg font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold text-slate-900 text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#4285F4]" />
+              Criar Campanha no Google Ads
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
+              Configure seu anúncio para aparecer no topo das pesquisas locais do Google.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-4">
+            {/* Nome da Campanha */}
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="g-campaign-name" className="text-xs font-bold text-slate-700">Nome da Campanha</Label>
+              <Input
+                id="g-campaign-name"
+                placeholder="Ex: Campanha Promoção Sorvetes"
+                value={googleAdName}
+                onChange={(e) => setGoogleAdName(e.target.value)}
+                className="h-10 text-xs rounded-lg"
+              />
+            </div>
+
+            {/* Títulos do Anúncio */}
+            <div className="space-y-2 text-left">
+              <span className="text-xs font-bold text-slate-700 block">Títulos do Anúncio (Exibidos no topo)</span>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Título 1 (Ex: Sorvetes Artesanais)"
+                    maxLength={30}
+                    value={googleHeadline1}
+                    onChange={(e) => setGoogleHeadline1(e.target.value)}
+                    className="h-10 text-xs rounded-lg pr-12"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">{googleHeadline1.length}/30</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Título 2 (Ex: Feitos à Mão Diariamente)"
+                    maxLength={30}
+                    value={googleHeadline2}
+                    onChange={(e) => setGoogleHeadline2(e.target.value)}
+                    className="h-10 text-xs rounded-lg pr-12"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">{googleHeadline2.length}/30</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Título 3 (Ex: Compre 1 Leve 2)"
+                    maxLength={30}
+                    value={googleHeadline3}
+                    onChange={(e) => setGoogleHeadline3(e.target.value)}
+                    className="h-10 text-xs rounded-lg pr-12"
+                  />
+                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">{googleHeadline3.length}/30</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Descrições */}
+            <div className="space-y-2 text-left">
+              <span className="text-xs font-bold text-slate-700 block">Descrições (Texto complementar)</span>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="relative">
+                  <Textarea
+                    placeholder="Descrição 1 (Ex: Venha saborear os melhores sorvetes da região feitos com ingredientes selecionados.)"
+                    maxLength={90}
+                    value={googleDescription1}
+                    onChange={(e) => setGoogleDescription1(e.target.value)}
+                    className="text-xs rounded-lg min-h-[60px] pr-12"
+                  />
+                  <span className="absolute right-3 bottom-2 text-[9px] font-bold text-slate-400">{googleDescription1.length}/90</span>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    placeholder="Descrição 2 (Ex: Aberto todos os dias das 10h às 22h. Estacionamento gratuito no local.)"
+                    maxLength={90}
+                    value={googleDescription2}
+                    onChange={(e) => setGoogleDescription2(e.target.value)}
+                    className="text-xs rounded-lg min-h-[60px] pr-12"
+                  />
+                  <span className="absolute right-3 bottom-2 text-[9px] font-bold text-slate-400">{googleDescription2.length}/90</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Palavras-chave */}
+            <div className="space-y-1.5 text-left">
+              <Label htmlFor="g-keywords" className="text-xs font-bold text-slate-700">Palavras-chave (Termos de busca - separadas por vírgula)</Label>
+              <Input
+                id="g-keywords"
+                placeholder="Ex: sorveteria, melhor sorvete, doceria perto de mim"
+                value={googleKeywordsText}
+                onChange={(e) => setGoogleKeywordsText(e.target.value)}
+                className="h-10 text-xs rounded-lg"
+              />
+            </div>
+
+            {/* Orçamento e Duração */}
+            <div className="grid grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Orçamento Diário (R$)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  value={googleDailyBudget}
+                  onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
+                  className="h-10 text-xs rounded-lg"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Duração (Dias)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={googleDurationDays}
+                  onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
+                  className="h-10 text-xs rounded-lg"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setIsCreatingGoogleAd(false)}
+              className="text-xs h-10 px-4 rounded-lg font-bold border-slate-200"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handlePublishGoogleCampaign}
+              disabled={isSubmittingGoogle || !googleAdName || !googleHeadline1 || !googleDescription1}
+              className="text-xs h-10 px-6 rounded-lg font-bold bg-primary text-white"
+            >
+              {isSubmittingGoogle ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  Publicando...
+                </>
+              ) : (
+                "Publicar Campanha"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

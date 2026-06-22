@@ -11,6 +11,7 @@ import { getFriendlyErrorMessage } from "@/lib/utils";
 import { schedulePost, deletePost } from "@/lib/services/posts-service";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
 import { getInstagramConnection, type InstagramConnectionData } from "@/lib/services/instagram-service";
+import { getLinkedInConnection, type LinkedInConnectionData } from "@/lib/services/linkedin-service";
 import { getOnboardingProfile, type OnboardingProfileData } from "@/lib/services/onboarding-service";
 import { getUnusedImages, saveUnusedImages, getContentHistory, saveContentHistory } from "@/lib/services/user-data-service";
 import { GeneratedContent, Platform, LogoPosition } from "../types";
@@ -110,6 +111,7 @@ interface WizardContextType {
   user: any;
   metaConnection: MetaConnectionData | null;
   instagramConnection: InstagramConnectionData | null;
+  linkedinConnection: LinkedInConnectionData | null;
   businessProfile: OnboardingProfileData | null;
   currentPostId: string | null;
   visualLogoScale: number;
@@ -174,6 +176,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(null);
+  const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
 
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
@@ -266,18 +269,21 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     async function loadInitialData() {
       try {
         if (!user) return;
-        const [metaConn, instaConn, busProfile] = await Promise.all([
+        const [metaConn, instaConn, linkedinConn, busProfile] = await Promise.all([
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
+          getLinkedInConnection(user.uid),
           getOnboardingProfile(user.uid),
         ]);
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
+        setLinkedinConnection(linkedinConn);
         setBusinessProfile(busProfile);
         
         const initialPlatforms: Platform[] = [];
         if (metaConn?.isConnected) initialPlatforms.push("facebook");
         if (instaConn?.isConnected) initialPlatforms.push("instagram");
+        if (linkedinConn?.isConnected) initialPlatforms.push("linkedin");
         setPlatforms(initialPlatforms);
 
         // Inicializar a logomarca do Brand Kit se existir e nenhuma estiver selecionada
@@ -717,6 +723,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         connections: {
           instagramUsername: instagramConnection?.instagramUsername || null,
           pageName: metaConnection?.pageName || null,
+          linkedinName: linkedinConnection?.isConnected
+            ? (linkedinConnection.publishTarget === "organization"
+                ? linkedinConnection.selectedOrganizationName || "Página corporativa"
+                : linkedinConnection.personName || "Perfil pessoal")
+            : null,
         },
       });
       const postId = docRef.id;
@@ -1357,6 +1368,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         userTags: userTags.length > 0 ? userTags : undefined,
         metaConnection: metaConnection || undefined,
         instagramConnection: instagramConnection || undefined,
+        linkedinConnection: linkedinConnection || undefined,
       });
 
       if (result.success) {
@@ -1503,7 +1515,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
       showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
       fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
-      mode, user, metaConnection, instagramConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
+      mode, user, metaConnection, instagramConnection, linkedinConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
       logoInputRef, foundFilesRef,
       customPrompt, setCustomPrompt, handleSubmitImageGeneration,
       isRetailStyle, setIsRetailStyle,
