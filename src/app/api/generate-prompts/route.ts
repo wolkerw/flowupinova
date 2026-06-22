@@ -55,10 +55,16 @@ The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
 - Secondary Color Hex: ${secondaryHex}
 ${extendedColorsText}
-Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided) into the scenic environment of ALL 3 image concepts:
+
+CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
+1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").
+2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or "#373435") in the generated prompts. The image generator will literally write these hex codes on the visual artwork, which is strictly prohibited.
+3. Do NOT include technical variables or labels (like "primary color", "secondary color", "brand color") in the generated prompts. Refer to the colors only by their plain English names.
+
+Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided, translated to descriptive names) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
 2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors.
-3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery. If a Background/Studio Color Hex is specified, use that exact shade for the backdrop/studio setup.
+3. **Harmonious Backgrounds:** Blend these colors in abstract canvas backgrounds, soft wall paint, studio backdrops, or modern organic drapery. If a Background/Studio Color Hex is specified, use its plain color name for the backdrop/studio setup.
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
 
 ${fontsText ? `
@@ -90,30 +96,41 @@ COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving s
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 2 — PRODUCT / MACRO / DETAIL (MANDATORY RULE: ABSOLUTELY NO PEOPLE OR HUMAN BODY PARTS)
+## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED 3D GRAPHICS/VECTORS)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: The physical product, tool, equipment, object, or material most directly associated with the post topic — shown in EXTREME close-up detail.
-CAMERA: Macro photography or extreme close-up. Camera angle: dramatic 15–25 degree side view OR direct overhead.
-LENS: 100mm macro lens, ultra-sharp focus on the key textural detail (metallic grooves, liquid drops, fabric texture, food surface, circuit board, etc.). Shallow depth of field with creamy bokeh on edges.
-SETTING: A professional studio setup with a gradient or contrasting background — NOT outdoors.
-LIGHTING: Describe high-contrast studio lighting that creates hard specular highlights and deep dramatic shadows on the object's surface (e.g., "split studio lighting with a hard key light at 45 degrees creating deep texture shadows on the stainless steel surface, cold blue rim light on the far edge").
-COMPOSITION: Object fills 70–80% of the frame. The remaining 20–30% is background space where text is placed.
-MANDATORY PROHIBITION: Do NOT include any human body part (hands, arms, face, feet). Do NOT include natural outdoor environments.
+SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium 3D graphics, interface vectors, or conceptual icons related to the post topic (e.g., if about growth, show floating 3D growth charts and upward arrows; if about social media, show modern holographic like/message bubbles; if about finance, show abstract glowing coin shapes or charts).
+STYLE & LAYOUT:
+- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean 3D graphic design assets. The graphics must look like physical or holographic objects floating naturally in the air, casting soft reflections and realistic shadows on the person or environment.
+- **Modern Corporate Tech Aesthetic:** Clean, premium composition inspired by high-end SaaS or tech startup campaigns (e.g., Stripe, Notion, Apple design style).
+- **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
+CAMERA & LENS:
+- Medium shot (waist up) or close-up portrait.
+- 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
+LIGHTING:
+- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the 3D graphics for a seamless visual blend.
+BRAND KIT ALIGNMENT (MANDATORY):
+- The 3D graphics, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The text overlay must match the brand's typography.
+MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. The graphics must have 3D depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI DESIGN STYLE)
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI STYLE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A premium, modern graphic design composition representing the post's concept, styled like a top-trending visual project on Dribbble and Behance.
+SUBJECT: A premium, modern graphic design composition focusing on a stylized object, equipment, or conceptual symbol DIRECTLY associated with the post's topic (e.g., if the post is about audio, show a sleek retro microphone or 3D audio waves; if about video, show a camera lens or stylized film clapperboard; if about engineering, show modern gears).
 STYLE & LAYOUT:
-- **Dribbble & Behance Aesthetics:** Incorporate trendy graphic elements like frosted glass panels (glassmorphism), clean 3D shapes with soft clay-like textures (claymorphism), floating geometric shapes (spheres, cubes, toruses), or premium styled isometric platforms/pedestals. Use smooth, high-end color gradients in the background.
-- **Designi Commercial Standard:** Follow a clean commercial banner structure with a clear visual hierarchy. Use soft, realistic contact shadows beneath objects to create depth and realism.
-- **Negative Space:** Leave 45-55% of the frame as empty space (clean solid wall, brushed concrete backdrop, or smooth gradient) to give the text maximum readability and graphic impact.
+- **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements like translucent frosted glass panels (glassmorphism), floating smooth 3D geometric shapes (spheres, rings, cubes), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
+- **Designi Commercial Standard:** Organize the scene with a clean advertising layout, maintaining a strong visual hierarchy. Add soft, realistic contact shadows cast by the object and platforms to ground them naturally.
+- **Negative Space:** Maintain 45-55% of the frame as clean negative space (smooth backdrop) for text placement.
 CAMERA & LENS:
 - Front-facing flat graphic composition OR elegant 30-degree isometric view.
 - Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
 LIGHTING:
-- Soft, even, diffused studio lighting with zero harsh shadows (large overhead softbox look). OR dramatic single-color gel-lit studio background using the complementary brand color.
-MANDATORY PROHIBITION: Do NOT include real people. Keep it abstract, symbolic, and graphic-design oriented. Do NOT include the actual physical product being sold; represent it metaphorically.
+- Soft, even, diffused studio lighting. Use subtle colored gel lights matching the brand's complementary color to cast elegant rim highlights on the object and glass panels.
+BRAND KIT ALIGNMENT (MANDATORY):
+- The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The text overlay must match the brand's typography.
+MANDATORY PROHIBITION: Do NOT include real people. Do NOT use random abstract shapes that have no connection to the post's topic.
+
 
 ${brandingInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -122,10 +139,13 @@ ${brandingInstruction}
 1. LANGUAGE: Write all visual descriptions in English only.
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
    - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
+   - PORTUGUESE ACCENTUATION RULE (CRITICAL): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô), you MUST explicitly describe the accent marks in the prompt.
+     - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
    - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
 3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
 4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 3 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
 5. MINIMUM LENGTH: Each prompt must be at least 120 words to ensure sufficient detail.
+6. NO HEX CODES OR TECHNICAL LABELS: Do NOT output hex color codes (e.g. #FFCC29, #373435), CSS terms, or technical brand variables (like "Primary Color", "Secondary Color", "Brand Kit") in the prompt. All colors must be described using natural descriptive color words in English (e.g., "rich yellow", "warm orange", "deep gray"). If you include hash symbols (#) or hex codes, the image generator will literally print these texts on the visual art, which is strictly forbidden.
 
 # REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {

@@ -48,6 +48,7 @@ interface PostItem {
   text: string;
   imageUrl: string | null;
   imageUrls: string[];
+  conceptUrls?: string[];
   status: "scheduled" | "publishing" | "published" | "failed" | "completed";
   platforms: string[];
   createdAt: string | null;
@@ -69,6 +70,7 @@ export default function AdminConteudoPage() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
+  const [activeImageMap, setActiveImageMap] = useState<Record<string, string>>({});
 
   // Pesquisa/Filtros de Posts
   const [searchTerm, setSearchTerm] = useState("");
@@ -483,8 +485,16 @@ export default function AdminConteudoPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredPosts.map((post) => {
                 const creator = getUserInfo(post.userId);
-                const hasImages = (post.imageUrls && post.imageUrls.length > 0) || post.imageUrl;
-                const imagesArray = post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : []);
+                
+                // Reunir todas as imagens únicas (finais, rascunhos e conceitos)
+                const allImages = Array.from(new Set([
+                  ...(post.imageUrls || []),
+                  ...(post.imageUrl ? [post.imageUrl] : []),
+                  ...(post.conceptUrls || [])
+                ])).filter(Boolean);
+
+                const hasImages = allImages.length > 0;
+                const currentImage = activeImageMap[post.id] || allImages[0];
 
                 return (
                   <div
@@ -496,24 +506,18 @@ export default function AdminConteudoPage() {
                       {hasImages ? (
                         <>
                           <img
-                            src={imagesArray[0]}
+                            src={currentImage}
                             alt="Preview"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                           {/* Botão de Zoom */}
                           <button
-                            onClick={() => setZoomImageUrl(imagesArray[0])}
+                            onClick={() => setZoomImageUrl(currentImage)}
                             className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/80"
                             title="Ampliar Imagem"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
-                          {/* Indicador de Carrossel */}
-                          {imagesArray.length > 1 && (
-                            <span className="absolute left-2 top-2 rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white uppercase">
-                              +{imagesArray.length - 1} fotos
-                            </span>
-                          )}
                         </>
                       ) : (
                         <div className="flex h-full w-full flex-col items-center justify-center text-slate-600">
@@ -543,6 +547,31 @@ export default function AdminConteudoPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Exibir Miniaturas Interativas do Carrossel de Imagens */}
+                    {allImages.length > 1 && (
+                      <div className="flex gap-2 p-2.5 bg-slate-950/40 border-b border-slate-800/60 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800">
+                        {allImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveImageMap((prev) => ({ ...prev, [post.id]: imgUrl }))}
+                            className={`relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150 ${
+                              currentImage === imgUrl 
+                                ? "border-violet-500 scale-105 shadow-md shadow-violet-500/20" 
+                                : "border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700"
+                            }`}
+                          >
+                            <img src={imgUrl} className="h-full w-full object-cover" />
+                            {idx === 0 && (
+                              <span className="absolute bottom-0 right-0 left-0 bg-violet-600/90 text-[7px] font-bold text-white text-center py-0.5 uppercase tracking-wider">
+                                Ativa
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Dados do Criador */}
                     <div className="border-b border-slate-800/80 px-4 py-3 bg-slate-900/20">

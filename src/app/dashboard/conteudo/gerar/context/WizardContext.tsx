@@ -1141,6 +1141,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           const postDocRef = doc(db, "users", user.uid, "posts", activePostId);
           await setDoc(postDocRef, {
             imageUrls: imageUrls,
+            conceptUrls: imageUrls,
             status: "completed"
           }, { merge: true });
         } catch (firestoreError) {
