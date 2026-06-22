@@ -34,12 +34,18 @@ export const Step1Idea = () => {
     referenceLink,
     setReferenceLink: onReferenceLinkChange,
     setInspirationFile: onInspirationFileChange,
+    secondaryReferenceImagePreview,
+    handleSecondaryReferenceImageChange: onSecondaryReferenceImageChange,
+    secondaryReferenceDescription,
+    setSecondaryReferenceDescription: onSecondaryReferenceDescriptionChange,
   } = useWizard();
 
   const hideImageOption = mode === "concept";
   const hideTextOption = mode === "reference-photo";
   const isLinkMode = mode === "reference-link";
+  const isHybridMode = mode === "reference-hybrid";
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const secondaryFileInputRef = useRef<HTMLInputElement>(null);
 
   // Preenche a descrição padrão automaticamente se estiver em branco no modo de referência
   React.useEffect(() => {
@@ -62,8 +68,11 @@ export const Step1Idea = () => {
     (isLinkMode
       ? !referenceLink || !referenceImagePreview
       : mode === "reference-photo"
-        ? !referenceImagePreview || !referenceDescription.trim()
-        : !postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()));
+        ? (!referenceImagePreview || !referenceDescription.trim())
+        : isHybridMode
+          ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
+          : (!postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()))
+  );
 
   return (
     <motion.div
@@ -207,8 +216,115 @@ export const Step1Idea = () => {
             </div>
           )}
 
-          {mode !== "reference-photo" && (
-            <div className="space-y-2 border-t pt-4">
+          {isHybridMode && (
+            <div className="space-y-6">
+              <p className="text-sm text-gray-600">
+                Gere uma imagem combinando o rosto de uma pessoa (selfie) com um produto ou projeto em um cenário realista.
+              </p>
+              
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* 1. Foto da Pessoa (Selfie) */}
+                <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
+                    <Label className="text-base font-bold">1. Foto da Pessoa (Selfie)</Label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Selfie nítida e bem iluminada para preservar a fidelidade do rosto.
+                  </p>
+                  
+                  {!referenceImagePreview ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
+                    >
+                      <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar a selfie</p>
+                      <p className="mt-1 text-[10px] text-gray-400">PNG, JPG com boa iluminação.</p>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                      <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                        <Image src={referenceImagePreview} alt="Selfie da Pessoa" layout="fill" objectFit="cover" unoptimized />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => onReferenceImageChange(null)}
+                      >
+                        Trocar imagem
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Foto do Produto ou Projeto */}
+                <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Box className="h-5 w-5 text-blue-500" />
+                    <Label className="text-base font-bold">2. Foto do Produto ou Projeto</Label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Foto do produto, projeto, casa ou cenário complementar.
+                  </p>
+
+                  {!secondaryReferenceImagePreview ? (
+                    <div
+                      onClick={() => secondaryFileInputRef.current?.click()}
+                      className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
+                    >
+                      <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar o produto/projeto</p>
+                      <p className="mt-1 text-[10px] text-gray-400">PNG, JPG do produto ou arquitetura.</p>
+                      <input
+                        type="file"
+                        ref={secondaryFileInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            onSecondaryReferenceImageChange(file);
+                          }
+                        }}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                      <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                        <Image
+                          src={secondaryReferenceImagePreview}
+                          alt="Produto/Projeto"
+                          layout="fill"
+                          objectFit="cover"
+                          unoptimized
+                        />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => onSecondaryReferenceImageChange(null)}
+                      >
+                        Trocar imagem
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mode !== "reference-photo" && !isHybridMode && (
+            <div className="space-y-2 pt-4 border-t">
               <Label className="text-base font-semibold">
                 {isLinkMode ? "Ideia do Conteúdo / Promoção" : "Ideia do Conteúdo"}
               </Label>
@@ -230,7 +346,25 @@ export const Step1Idea = () => {
             </div>
           )}
 
-          {!hideImageOption && !isLinkMode && (
+          {isHybridMode && (
+            <div className="space-y-2 pt-4 border-t">
+              <Label className="text-base font-semibold">
+                Descrição do Cenário e Ideias Promocionais
+              </Label>
+              <p className="mb-2 text-sm text-gray-600">
+                Explique detalhadamente como deseja combinar a pessoa e o produto/projeto na imagem final. Seja específico sobre roupas, pose, cenário de fundo, iluminação ou texto promocional se houver.
+              </p>
+              <Textarea
+                placeholder="Ex: Coloque o arquiteto da Foto 1 de terno azul escuro e braços cruzados sorrindo, posicionado em frente à casa moderna da Foto 2 durante o pôr do sol."
+                className="h-32 text-base bg-white"
+                value={referenceDescription}
+                onChange={(e) => onReferenceDescriptionChange(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          {!hideImageOption && !isLinkMode && !isHybridMode && (
             <div className={!hideTextOption ? "border-t pt-4" : ""}>
               <div className="mb-2 flex items-center gap-2">
                 <Box className="h-5 w-5 text-blue-500" />
@@ -298,9 +432,9 @@ export const Step1Idea = () => {
                             </Label>
                           </div>
                           <p className="text-xs text-gray-500">
-                            Explique o que é o produto/objeto na foto e como você gostaria que ele
-                            fosse integrado à imagem final (ex: "coloque este frasco de perfume
-                            sobre uma mesa de mármore com flores brancas ao fundo").
+                            Explique o que é o produto/objeto na foto e como você gostaria que ele fosse
+                            integrado à imagem final (ex: "coloque este frasco de perfume sobre uma mesa
+                            de mármore com flores brancas ao fundo").
                           </p>
                           <Textarea
                             placeholder="Descreva detalhes como cor, material e o cenário desejado para este item..."

@@ -108,7 +108,13 @@ interface WizardContextType {
   setReferenceDescription: (desc: string) => void;
   referenceLink: string;
   setReferenceLink: (link: string) => void;
-
+  secondaryReferenceImageFile: File | null;
+  setSecondaryReferenceImageFile: (file: File | null) => void;
+  secondaryReferenceImagePreview: string | null;
+  setSecondaryReferenceImagePreview: (preview: string | null) => void;
+  secondaryReferenceDescription: string;
+  setSecondaryReferenceDescription: (desc: string) => void;
+  
   // Customization States
   logoFile: File | null;
   setLogoFile: (file: File | null) => void;
@@ -156,6 +162,7 @@ interface WizardContextType {
   handleLogoProcessing: () => Promise<void>;
   handlePublish: (publishMode: "now" | "schedule") => Promise<void>;
   handleReferenceImageChange: (file: File | null) => void;
+  handleSecondaryReferenceImageChange: (file: File | null) => void;
   handleDownloadImage: (url: string) => Promise<void>;
   handleLogoFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isGeneratingCaption: boolean;
@@ -229,6 +236,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [inspirationFile, setInspirationFile] = useState<File | null>(null);
   const [referenceDescription, setReferenceDescription] = useState("");
   const [referenceLink, setReferenceLink] = useState("");
+  const [secondaryReferenceImageFile, setSecondaryReferenceImageFile] = useState<File | null>(null);
+  const [secondaryReferenceImagePreview, setSecondaryReferenceImagePreview] = useState<string | null>(null);
+  const [secondaryReferenceDescription, setSecondaryReferenceDescription] = useState("");
 
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -485,8 +495,21 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleSecondaryReferenceImageChange = (file: File | null) => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      blobURLsRef.current.add(url);
+      setSecondaryReferenceImageFile(file);
+      setSecondaryReferenceImagePreview(url);
+    } else {
+      setSecondaryReferenceImageFile(null);
+      setSecondaryReferenceImagePreview(null);
+      setSecondaryReferenceDescription("");
+    }
+  };
+
   const handleGenerateText = async (summary?: any) => {
-    if (mode === "reference-photo") {
+    if (mode === "reference-photo" || mode === "reference-hybrid") {
       let textToGenerate = referenceDescription;
       if (!textToGenerate.trim() || isLoading || !user) return null;
       setIsLoading(true);
@@ -609,7 +632,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    if (mode === "reference-photo" && !textToGenerate.trim() && referenceDescription.trim()) {
+    if ((mode === "reference-photo" || mode === "reference-hybrid") && !textToGenerate.trim() && referenceDescription.trim()) {
       textToGenerate = referenceDescription;
     }
 
@@ -783,6 +806,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         const analyzeFormData = new FormData();
         analyzeFormData.append("file", referenceImageFile);
+        if (secondaryReferenceImageFile) {
+          analyzeFormData.append("secondaryFile", secondaryReferenceImageFile);
+        }
 
         const analyzeResponse = await fetch("/api/conteudo/gerar-referencia?action=analyze", {
           method: "POST",
@@ -805,10 +831,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         promptFormData.append("isRetailStyle", String(isRetailStyle));
 
         const combinedDescription = postSummary.trim()
-          ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
-          : referenceDescription;
-
+          ? `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
+          : `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""}`;
+          
         promptFormData.append("description", combinedDescription);
+        if (selContent?.titulo) {
+          promptFormData.append("title", selContent.titulo);
+        }
         if (businessProfile) {
           promptFormData.append("businessProfile", JSON.stringify(businessProfile));
         }
@@ -834,7 +863,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("[WIZARD] Prompt UGC criado:", fluxPrompt);
 
         setCustomPrompt(fluxPrompt);
-        setStep(mode === "reference-photo" ? 2 : 3);
+        setStep(mode === "reference-photo" || mode === "reference-hybrid" ? 2 : 3);
         handleSubmitImageGeneration(fluxPrompt, postId, selContent);
       } else {
         // Modo conceito (sem referenceImageFile)
@@ -876,6 +905,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     contentOverride?: GeneratedContent
   ) => {
     const promptToUse = customPromptOverride || customPrompt;
+    const promptString = Array.isArray(promptToUse) ? promptToUse.join(" ") : (promptToUse || "");
     const activePostId = (postIdOverride || currentPostId) as string;
     const selContent =
       contentOverride ||
@@ -910,7 +940,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         const submitFormData = new FormData();
         submitFormData.append("file", referenceImageFile);
-        submitFormData.append("prompt", promptToUse);
+        if (secondaryReferenceImageFile) {
+          submitFormData.append("secondaryFile", secondaryReferenceImageFile);
+        }
+        submitFormData.append("prompt", promptString);
         submitFormData.append("postId", activePostId);
         submitFormData.append("userId", user.uid);
 
@@ -918,7 +951,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (useImagen4Ref) {
           console.log("[WIZARD] 🧪 Modo BENCHMARK Imagen 4 ativado — chamada síncrona.");
           const img4FormData = new FormData();
-          img4FormData.append("prompt", promptToUse);
+          img4FormData.append("prompt", promptString);
           img4FormData.append("postId", activePostId);
           img4FormData.append("userId", user.uid);
           img4FormData.append("caption", fullCaption);
@@ -961,7 +994,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           try {
             const nanobananaFormData = new FormData();
             nanobananaFormData.append("file", referenceImageFile);
-            nanobananaFormData.append("prompt", promptToUse);
+            if (secondaryReferenceImageFile) {
+              nanobananaFormData.append("secondaryFile", secondaryReferenceImageFile);
+            }
+            nanobananaFormData.append("prompt", promptString);
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
@@ -1682,115 +1718,32 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <WizardContext.Provider
-      value={{
-        step,
-        setStep,
-        postSummary,
-        setPostSummary,
-        isLoading,
-        generatedContent,
-        setGeneratedContent,
-        selectedContentId,
-        setSelectedContentId: handleSelectedContentIdChange,
-        generatedImages,
-        setGeneratedImages,
-        selectedImage,
-        setSelectedImage: handleSelectedImageChange,
-        processedImageUrl,
-        setProcessedImageUrl,
-        showSchedulerModal,
-        setShowSchedulerModal,
-        isPublishing,
-        scheduleDateTime,
-        setScheduleDateTime,
-        platforms,
-        setPlatforms,
-        collaborators,
-        setCollaborators,
-        collaboratorsInput,
-        setCollaboratorsInput,
-        userTags,
-        setUserTags,
-        userTagsInput,
-        setUserTagsInput,
-        isGeneratingImages,
-        setIsGeneratingImages,
-        canStartPolling,
-        contentHistory,
-        unusedImagesHistory,
-        referenceImageFile,
-        setReferenceImageFile,
-        referenceImagePreview,
-        setReferenceImagePreview,
-        inspirationFile,
-        setInspirationFile,
-        referenceDescription,
-        setReferenceDescription,
-        referenceLink,
-        setReferenceLink,
-        logoFile,
-        setLogoFile,
-        logoPreviewUrl,
-        setLogoPreviewUrl,
-        logoPosition,
-        setLogoPosition,
-        logoScale,
-        setLogoScale,
-        logoOpacity,
-        setLogoOpacity,
-        showTextOverlay,
-        setShowTextOverlay,
-        textPosition,
-        setTextPosition,
-        textScale,
-        setTextScale,
-        textColor,
-        setTextColor,
-        fontFamily,
-        setFontFamily,
-        fontWeight,
-        setFontWeight,
-        isItalic,
-        setIsItalic,
-        isUploading,
-        mode,
-        user,
-        metaConnection,
-        instagramConnection,
-        linkedinConnection,
-        businessProfile,
-        currentPostId,
-        visualLogoScale,
-        selectedContent,
-        logoInputRef,
-        foundFilesRef,
-        customPrompt,
-        setCustomPrompt,
-        handleSubmitImageGeneration,
-        isRetailStyle,
-        setIsRetailStyle,
-        useDalle,
-        setUseDalle,
-        useImagen4Ref,
-        setUseImagen4Ref,
-        useNanoBananaRef,
-        setUseNanoBananaRef,
-        isGeneratingCaption,
-        handleGenerateCaption,
-        fluxImageUrl,
-        setFluxImageUrl,
+    <WizardContext.Provider value={{
+      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId: handleSelectedContentIdChange,
+      generatedImages, setGeneratedImages, selectedImage, setSelectedImage: handleSelectedImageChange, processedImageUrl, setProcessedImageUrl,
+      showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
+      collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
+      isGeneratingImages, setIsGeneratingImages, canStartPolling, contentHistory, unusedImagesHistory,
+      referenceImageFile, setReferenceImageFile, referenceImagePreview, setReferenceImagePreview, inspirationFile, setInspirationFile,
+      referenceDescription, setReferenceDescription, referenceLink, setReferenceLink,
+      secondaryReferenceImageFile, setSecondaryReferenceImageFile, secondaryReferenceImagePreview, setSecondaryReferenceImagePreview,
+      secondaryReferenceDescription, setSecondaryReferenceDescription,
+      logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
+      showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
+      fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
+      mode, user, metaConnection, instagramConnection, linkedinConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
+      logoInputRef, foundFilesRef,
+      customPrompt, setCustomPrompt, handleSubmitImageGeneration,
+      isRetailStyle, setIsRetailStyle,
+      useDalle, setUseDalle,
+      useImagen4Ref, setUseImagen4Ref,
+      useNanoBananaRef, setUseNanoBananaRef,
+      isGeneratingCaption, handleGenerateCaption,
+      fluxImageUrl, setFluxImageUrl,
 
-        handleGenerateText,
-        handleGeneratePostContent,
-        handleGeneratePrompts,
-        handleLogoProcessing,
-        handlePublish,
-        handleReferenceImageChange,
-        handleDownloadImage,
-        handleLogoFileChange,
-      }}
-    >
+      handleGenerateText, handleGeneratePostContent, handleGeneratePrompts, handleLogoProcessing, handlePublish,
+      handleReferenceImageChange, handleSecondaryReferenceImageChange, handleDownloadImage, handleLogoFileChange
+    }}>
       {children}
     </WizardContext.Provider>
   );
