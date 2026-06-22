@@ -129,17 +129,26 @@ export async function GET(request: NextRequest) {
       const orgsData = await orgsResponse.ok ? await orgsResponse.json() : { elements: [] };
       const elements = orgsData.elements || [];
 
-      // Log diagnóstico: lista todos os roles retornados pela API para facilitar debugging
+      // Log diagnóstico: loga o primeiro elemento completo para identificar os campos corretos
+      console.log(
+        "[LINKEDIN_CALLBACK_DEBUG] Primeiro elemento completo:",
+        JSON.stringify(elements[0] || {})
+      );
       console.log(
         "[LINKEDIN_CALLBACK_DEBUG] Roles retornados pela API:",
-        JSON.stringify(elements.map((el: any) => ({ role: el.role, target: el.organizationalTarget })))
+        JSON.stringify(elements.map((el: any) => ({
+          role: el.role,
+          organization: el.organization,
+          organizationalTarget: el.organizationalTarget,
+          roleAssignee: el.roleAssignee,
+          state: el.state,
+        })))
       );
 
-      // Aceita qualquer organização com target definido (não filtra por role específico)
-      // pois o LinkedIn pode usar diferentes nomes de role dependendo do plano e da região
+      // O campo correto na API organizationAcls é "organization" (não "organizationalTarget")
       const orgUrns = elements
-        .filter((el: any) => el.organizationalTarget)
-        .map((el: any) => el.organizationalTarget);
+        .filter((el: any) => el.organization)
+        .map((el: any) => el.organization as string);
 
       // Remove duplicatas (caso o usuário tenha múltiplos roles na mesma org)
       const uniqueOrgUrns = [...new Set<string>(orgUrns)];
