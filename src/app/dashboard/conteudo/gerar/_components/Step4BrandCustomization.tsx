@@ -39,7 +39,9 @@ export const Step4BrandCustomization = () => {
     mode,
   } = useWizard();
 
-  const onBack = () => setStep(mode === "reference-photo" ? 2 : 3);
+  const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
+
+  const onBack = () => setStep(isSyncImageMode ? 2 : 3);
   const onLogoRemove = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);

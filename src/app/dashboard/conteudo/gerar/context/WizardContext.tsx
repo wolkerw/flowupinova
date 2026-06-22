@@ -174,6 +174,7 @@ const WizardContext = createContext<WizardContextType | undefined>(undefined);
 export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
+  const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
   const [step, setStep] = useState(1);
   const [postSummary, setPostSummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -737,7 +738,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         ? generatedContent[parseInt(selectedContentId, 10)]
         : generatedContent[0]);
     if (!user) return;
-    if (mode !== "reference-photo" && !selContent) return;
+    if (!isSyncImageMode && !selContent) return;
 
     // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
     if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
@@ -919,7 +920,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return;
     }
-    if (mode !== "reference-photo" && !selContent) {
+    if (!isSyncImageMode && !selContent) {
       console.warn("[WIZARD] Abortando geração. Falta legenda para este modo.");
       return;
     }
@@ -1330,7 +1331,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if (!logoFile) {
       if (!selectedImage.startsWith("blob:")) {
         setProcessedImageUrl(null);
-        setStep(mode === "reference-photo" ? 4 : 5);
+        setStep(isSyncImageMode ? 4 : 5);
         return;
       }
       setIsUploading(true);
@@ -1370,7 +1371,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
 
-          setStep(mode === "reference-photo" ? 4 : 5);
+          setStep(isSyncImageMode ? 4 : 5);
         }
       } catch (error) {
         console.error(error);
@@ -1503,7 +1504,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      setStep(mode === "reference-photo" ? 4 : 5);
+      setStep(isSyncImageMode ? 4 : 5);
     } catch (error: any) {
       toast({
         variant: "destructive",
