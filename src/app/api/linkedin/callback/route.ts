@@ -116,14 +116,23 @@ export async function GET(request: NextRequest) {
       const orgsData = await orgsResponse.ok ? await orgsResponse.json() : { elements: [] };
       const elements = orgsData.elements || [];
 
-      // Filtra por funções administrativas (como ADMINISTRATOR)
-      const adminRoles = ["ADMINISTRATOR", "DIRECT_SPONSORED_CONTENT_POSTER"];
+      // Log diagnóstico: lista todos os roles retornados pela API para facilitar debugging
+      console.log(
+        "[LINKEDIN_CALLBACK_DEBUG] Roles retornados pela API:",
+        JSON.stringify(elements.map((el: any) => ({ role: el.role, target: el.organizationalTarget })))
+      );
+
+      // Aceita qualquer organização com target definido (não filtra por role específico)
+      // pois o LinkedIn pode usar diferentes nomes de role dependendo do plano e da região
       const orgUrns = elements
-        .filter((el: any) => adminRoles.includes(el.role) && el.organizationalTarget)
+        .filter((el: any) => el.organizationalTarget)
         .map((el: any) => el.organizationalTarget);
 
+      // Remove duplicatas (caso o usuário tenha múltiplos roles na mesma org)
+      const uniqueOrgUrns = [...new Set<string>(orgUrns)];
+
       // Busca o nome detalhado de cada organização
-      const orgDetailsPromises = orgUrns.map(async (urn: string) => {
+      const orgDetailsPromises = uniqueOrgUrns.map(async (urn: string) => {
         try {
           const orgId = urn.split(":").pop();
           const detailUrl = `https://api.linkedin.com/rest/organizations/${orgId}`;
