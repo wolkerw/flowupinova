@@ -1011,13 +1011,27 @@ export default function Conteudo() {
       });
       return;
     }
-    if (republishPlatforms.includes("linkedin") && !linkedinConnection.isConnected) {
-      toast({
-        variant: "destructive",
-        title: "LinkedIn não conectado",
-        description: "Conecte o LinkedIn para republicar.",
-      });
-      return;
+    if (republishPlatforms.includes("linkedin")) {
+      if (!linkedinConnection.isConnected) {
+        toast({
+          variant: "destructive",
+          title: "LinkedIn não conectado",
+          description: "Conecte o LinkedIn para republicar.",
+        });
+        return;
+      }
+      const hasValidTarget =
+        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+        !!linkedinConnection.selectedOrganizationUrn;
+      if (!hasValidTarget) {
+        toast({
+          variant: "destructive",
+          title: "LinkedIn sem Destino",
+          description:
+            "Selecione uma Página Corporativa na aba 'Conexões' para poder publicar no LinkedIn.",
+        });
+        return;
+      }
     }
     if (republishPlatforms.includes("google") && !postToRepublish.text.trim()) {
       toast({
@@ -1233,14 +1247,25 @@ export default function Conteudo() {
                 <div
                   className={cn(
                     "flex items-center space-x-2 rounded-lg border p-4",
-                    !linkedinConnection?.isConnected && "bg-gray-100 opacity-60"
+                    (!linkedinConnection?.isConnected ||
+                      !(
+                        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                        !!linkedinConnection.selectedOrganizationUrn
+                      )) &&
+                      "bg-gray-100 opacity-60"
                   )}
                 >
                   <Checkbox
                     id="republish-linkedin"
                     checked={republishPlatforms.includes("linkedin")}
                     onCheckedChange={() => handleRepublishPlatformChange("linkedin")}
-                    disabled={!linkedinConnection?.isConnected}
+                    disabled={
+                      !linkedinConnection?.isConnected ||
+                      !(
+                        linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                        !!linkedinConnection.selectedOrganizationUrn
+                      )
+                    }
                   />
                   <Label
                     htmlFor="republish-linkedin"

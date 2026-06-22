@@ -413,7 +413,9 @@ export async function publishToLinkedIn(
 
   const owner = publishTarget === "organization" ? selectedOrganizationUrn : personUrn;
   if (!owner) {
-    throw new Error("Destino de publicação (Owner URN) não identificado no LinkedIn.");
+    throw new Error(
+      "Nenhum destino de publicação (Página Corporativa ou Perfil) foi selecionado para o LinkedIn. Por favor, acesse a página de Conexões e selecione a página corporativa de destino."
+    );
   }
 
   const linkedinVersion = "202401";
