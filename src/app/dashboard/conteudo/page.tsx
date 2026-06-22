@@ -1343,11 +1343,15 @@ export default function Conteudo() {
           <div className="space-y-6 py-4">
             <div>
               <Label className="font-semibold">Onde Publicar?</Label>
-              <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div
                   className={cn(
-                    "flex items-center space-x-2 rounded-lg border p-4",
-                    !instagramConnection?.isConnected && "bg-gray-100 opacity-60"
+                    "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                    republishPlatforms.includes("instagram") && instagramConnection?.isConnected
+                      ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                      : "border-gray-200 hover:bg-gray-50",
+                    !instagramConnection?.isConnected &&
+                      "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                   )}
                 >
                   <Checkbox
@@ -1358,7 +1362,10 @@ export default function Conteudo() {
                   />
                   <Label
                     htmlFor="republish-instagram"
-                    className="flex cursor-pointer items-center gap-2"
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                      !instagramConnection?.isConnected && "cursor-not-allowed"
+                    )}
                   >
                     <Instagram className="h-5 w-5 text-pink-500" />
                     Instagram
@@ -1366,8 +1373,12 @@ export default function Conteudo() {
                 </div>
                 <div
                   className={cn(
-                    "flex items-center space-x-2 rounded-lg border p-4",
-                    !metaConnection?.isConnected && "bg-gray-100 opacity-60"
+                    "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                    republishPlatforms.includes("facebook") && metaConnection?.isConnected
+                      ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                      : "border-gray-200 hover:bg-gray-50",
+                    !metaConnection?.isConnected &&
+                      "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                   )}
                 >
                   <Checkbox
@@ -1378,7 +1389,10 @@ export default function Conteudo() {
                   />
                   <Label
                     htmlFor="republish-facebook"
-                    className="flex cursor-pointer items-center gap-2"
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                      !metaConnection?.isConnected && "cursor-not-allowed"
+                    )}
                   >
                     <Facebook className="h-5 w-5 text-blue-600" />
                     Facebook
@@ -1386,8 +1400,12 @@ export default function Conteudo() {
                 </div>
                 <div
                   className={cn(
-                    "flex items-center space-x-2 rounded-lg border p-4",
-                    !googleConnection?.isConnected && "bg-gray-100 opacity-60"
+                    "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                    republishPlatforms.includes("google") && googleConnection?.isConnected
+                      ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                      : "border-gray-200 hover:bg-gray-50",
+                    !googleConnection?.isConnected &&
+                      "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                   )}
                 >
                   <Checkbox
@@ -1398,7 +1416,10 @@ export default function Conteudo() {
                   />
                   <Label
                     htmlFor="republish-google"
-                    className="flex cursor-pointer items-center gap-2"
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                      !googleConnection?.isConnected && "cursor-not-allowed"
+                    )}
                   >
                     <Store className="h-5 w-5 text-blue-500" />
                     Google Meu Negócio
@@ -1406,13 +1427,19 @@ export default function Conteudo() {
                 </div>
                 <div
                   className={cn(
-                    "flex items-center space-x-2 rounded-lg border p-4",
+                    "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                    republishPlatforms.includes("linkedin") &&
+                      linkedinConnection?.isConnected &&
+                      (linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                        !!linkedinConnection.selectedOrganizationUrn)
+                      ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                      : "border-gray-200 hover:bg-gray-50",
                     (!linkedinConnection?.isConnected ||
                       !(
                         linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
                         !!linkedinConnection.selectedOrganizationUrn
                       )) &&
-                      "bg-gray-100 opacity-60"
+                      "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                   )}
                 >
                   <Checkbox
@@ -1429,7 +1456,15 @@ export default function Conteudo() {
                   />
                   <Label
                     htmlFor="republish-linkedin"
-                    className="flex cursor-pointer items-center gap-2"
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                      (!linkedinConnection?.isConnected ||
+                        !(
+                          linkedinConnection.personUrn?.startsWith("urn:li:person:") ||
+                          !!linkedinConnection.selectedOrganizationUrn
+                        )) &&
+                        "cursor-not-allowed"
+                    )}
                   >
                     <Linkedin className="h-5 w-5 text-blue-700" />
                     LinkedIn
