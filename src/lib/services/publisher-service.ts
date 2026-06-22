@@ -418,7 +418,7 @@ export async function publishToLinkedIn(
     );
   }
 
-  const linkedinVersion = "202401";
+  const linkedinVersion = "202507";
   let imageUrn: string | null = null;
 
   // Se houver uma imagem, faz o fluxo de upload

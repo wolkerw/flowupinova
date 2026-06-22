@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       const profileResponse = await fetch("https://api.linkedin.com/rest/me", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "LinkedIn-Version": "202505",
+          "LinkedIn-Version": "202507",
           "X-Restli-Protocol-Version": "2.0.0",
         },
       });
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
     // Endpoint: /rest/organizationAcls com scope rw_organization_admin (versão 202505)
-    const linkedinVersion = "202505";
+    const linkedinVersion = "202507";
     const orgsUrl = "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee";
     const orgsResponse = await fetch(orgsUrl, {
       headers: {
