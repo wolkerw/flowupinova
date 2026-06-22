@@ -47,6 +47,7 @@ import {
   Info,
   Store,
   Linkedin,
+  ChevronDown,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -1044,15 +1045,21 @@ const LinkedInPreview = ({
             <AvatarImage src={user?.photoURL || undefined} />
             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
           </Avatar>
-          <div>
-            <span className="block text-sm font-bold text-gray-800">{getDisplayName()}</span>
-            <div className="flex items-center gap-1">
-              <p className="text-[11px] text-gray-500">Qualquer pessoa · Agora mesmo</p>
-              <Globe className="h-3 w-3 text-gray-500" />
+          <div className="flex flex-col">
+            <span className="block cursor-pointer text-sm font-bold text-gray-800 hover:text-blue-700 hover:underline">
+              {getDisplayName()}
+            </span>
+            <div className="flex items-center gap-1 text-[11px] text-gray-500">
+              <span>Agora mesmo</span>
+              <span>·</span>
+              <Globe className="h-3 w-3" />
             </div>
           </div>
         </div>
-        <MoreHorizontal className="h-5 cursor-pointer text-gray-600" />
+        <div className="flex items-center gap-2 text-gray-400">
+          <MoreHorizontal className="h-5 w-5 cursor-pointer hover:text-gray-700" />
+          <X className="h-5 w-5 cursor-pointer hover:text-gray-700" />
+        </div>
       </div>
       <div className="px-3 pb-2 text-sm text-gray-800">
         <p className="whitespace-pre-wrap">{text}</p>
@@ -1078,18 +1085,25 @@ const LinkedInPreview = ({
           />
         )}
       </div>
-      <div className="flex items-center justify-between border-t p-1.5 text-xs font-medium text-gray-500">
-        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-          <ThumbsUp className="h-4 w-4" />
-          <span>Gostei</span>
+      <div className="flex items-center gap-6 border-t p-3 text-gray-500">
+        <div className="flex cursor-pointer items-center gap-1">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={user?.photoURL || undefined} />
+            <AvatarFallback className="text-[10px]">{getAvatarFallback()}</AvatarFallback>
+          </Avatar>
+          <ChevronDown className="h-3 w-3 text-gray-500" />
+        </div>
+        <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+          <ThumbsUp className="h-5 w-5" />
         </button>
-        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-          <MessageCircle className="h-4 w-4" />
-          <span>Comentar</span>
+        <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+          <MessageCircle className="h-5 w-5" />
         </button>
-        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-          <Share2 className="h-4 w-4" />
-          <span>Compartilhar</span>
+        <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+          <Repeat className="h-5 w-5" />
+        </button>
+        <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+          <Send className="h-5 w-5" />
         </button>
       </div>
     </div>
@@ -2414,17 +2428,21 @@ export default function CriarConteudoPage() {
               <div className="sticky top-24 w-full">
                 <div className="w-full max-w-sm">
                   <Tabs defaultValue="instagram">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="instagram">
-                        <Instagram className="mr-2 h-4 w-4" />
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="instagram" className="px-1 text-xs">
+                        <Instagram className="mr-1 h-3.5 w-3.5" />
                         Instagram
                       </TabsTrigger>
-                      <TabsTrigger value="facebook">
-                        <Facebook className="mr-2 h-4 w-4" />
+                      <TabsTrigger value="facebook" className="px-1 text-xs">
+                        <Facebook className="mr-1 h-3.5 w-3.5" />
                         Facebook
                       </TabsTrigger>
-                      <TabsTrigger value="google">
-                        <Store className="mr-2 h-4 w-4" />
+                      <TabsTrigger value="linkedin" className="px-1 text-xs">
+                        <Linkedin className="mr-1 h-3.5 w-3.5" />
+                        LinkedIn
+                      </TabsTrigger>
+                      <TabsTrigger value="google" className="px-1 text-xs">
+                        <Store className="mr-1 h-3.5 w-3.5" />
                         Google
                       </TabsTrigger>
                     </TabsList>
@@ -2464,6 +2482,19 @@ export default function CriarConteudoPage() {
                           businessProfile?.primaryColor ||
                           "#000000"
                         }
+                      />
+                    </TabsContent>
+                    <TabsContent value="linkedin" className="mt-4">
+                      <LinkedInPreview
+                        mediaItems={mediaItems}
+                        user={user}
+                        text={text}
+                        linkedinConnection={linkedinConnection}
+                        logoPreviewUrl={logoPreviewUrl}
+                        logoPosition={logoPosition}
+                        visualLogoScale={visualLogoScale}
+                        logoOpacity={logoOpacity}
+                        isFinalPreview={false}
                       />
                     </TabsContent>
                     <TabsContent value="google" className="mt-4">

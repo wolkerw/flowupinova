@@ -16,6 +16,10 @@ import {
   ThumbsUp,
   MessageCircle,
   Share2,
+  X,
+  ChevronDown,
+  Repeat,
+  Send,
 } from "lucide-react";
 import { GeneratedContent, Platform } from "../types";
 import { MetaConnectionData } from "@/lib/services/meta-service";
@@ -232,15 +236,21 @@ export const PostPreview = ({
               <AvatarImage src={user?.photoURL || undefined} />
               <AvatarFallback>{getAvatarFallback("linkedin")}</AvatarFallback>
             </Avatar>
-            <div>
-              <span className="block text-sm font-bold text-gray-800">{getDisplayName()}</span>
-              <div className="flex items-center gap-1">
-                <p className="text-[11px] text-gray-500">Qualquer pessoa · Agora mesmo</p>
-                <Globe className="h-3 w-3 text-gray-500" />
+            <div className="flex flex-col">
+              <span className="block cursor-pointer text-sm font-bold text-gray-800 hover:text-blue-700 hover:underline">
+                {getDisplayName()}
+              </span>
+              <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                <span>Agora mesmo</span>
+                <span>·</span>
+                <Globe className="h-3 w-3" />
               </div>
             </div>
           </div>
-          <MoreHorizontal className="h-5 cursor-pointer text-gray-600" />
+          <div className="flex items-center gap-2 text-gray-400">
+            <MoreHorizontal className="h-5 w-5 cursor-pointer hover:text-gray-700" />
+            <X className="h-5 w-5 cursor-pointer hover:text-gray-700" />
+          </div>
         </div>
         <div className="px-3 pb-2 text-sm text-gray-800">
           <p className="whitespace-pre-wrap">
@@ -269,18 +279,27 @@ export const PostPreview = ({
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between border-t p-1.5 text-xs font-medium text-gray-500">
-          <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-            <ThumbsUp className="h-4 w-4" />
-            <span>Gostei</span>
+        <div className="flex items-center gap-6 border-t p-3 text-gray-500">
+          <div className="flex cursor-pointer items-center gap-1">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={user?.photoURL || undefined} />
+              <AvatarFallback className="text-[10px]">
+                {getAvatarFallback("linkedin")}
+              </AvatarFallback>
+            </Avatar>
+            <ChevronDown className="h-3 w-3 text-gray-500" />
+          </div>
+          <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+            <ThumbsUp className="h-5 w-5" />
           </button>
-          <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-            <MessageCircle className="h-4 w-4" />
-            <span>Comentar</span>
+          <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+            <MessageCircle className="h-5 w-5" />
           </button>
-          <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100">
-            <Share2 className="h-4 w-4" />
-            <span>Compartilhar</span>
+          <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+            <Repeat className="h-5 w-5" />
+          </button>
+          <button className="flex items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:bg-gray-100">
+            <Send className="h-5 w-5" />
           </button>
         </div>
       </div>
