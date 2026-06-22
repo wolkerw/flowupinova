@@ -322,12 +322,14 @@ function PostItem({
               onClick={() => onRepublish(post)}
               disabled={isRepublishing || post.status === "publishing"}
             >
-              {isRepublishing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Republicar
+              <span className="flex items-center gap-2">
+                {isRepublishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span>Republicar</span>
+              </span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -1297,7 +1299,10 @@ export default function Conteudo() {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Excluir
+              <span className="flex items-center gap-2">
+                {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>Excluir</span>
+              </span>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1491,12 +1496,14 @@ export default function Conteudo() {
                 (republishScheduleType === "schedule" && !republishScheduleDate)
               }
             >
-              {isRepublishing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              {republishScheduleType === "now" ? "Republicar" : "Agendar"}
+              <span className="flex items-center gap-2">
+                {isRepublishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span>{republishScheduleType === "now" ? "Republicar" : "Agendar"}</span>
+              </span>
             </Button>
           </DialogFooter>
         </DialogContent>
