@@ -411,10 +411,13 @@ export async function publishToLinkedIn(
     throw new Error("Token de acesso do LinkedIn não encontrado.");
   }
 
-  const owner = publishTarget === "organization" ? selectedOrganizationUrn : personUrn;
+  // A Community Management API (scope w_organization_social) só permite publicar
+  // em páginas corporativas — nunca em perfis pessoais (isso exigiria w_member_social).
+  // Portanto, sempre usamos selectedOrganizationUrn como owner.
+  const owner = selectedOrganizationUrn;
   if (!owner) {
     throw new Error(
-      "Nenhum destino de publicação (Página Corporativa ou Perfil) foi selecionado para o LinkedIn. Por favor, acesse a página de Conexões e selecione a página corporativa de destino."
+      "Nenhuma Página Corporativa do LinkedIn foi selecionada. Por favor, acesse Conexões, desconecte e reconecte o LinkedIn com uma conta que administre uma Página Corporativa."
     );
   }
 

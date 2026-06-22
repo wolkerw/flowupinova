@@ -603,7 +603,12 @@ export default function Conteudo() {
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
       setGoogleConnection(googleResult);
-      if (linkedinResult.isConnected && (!linkedinResult.personUrn || !linkedinResult.personUrn.startsWith("urn:li:person:")) && linkedinResult.publishTarget !== "organization") {
+      // Community Management API só suporta org como owner — força publishTarget = "organization"
+      // sempre que houver uma org selecionada, independente do personUrn
+      if (linkedinResult.isConnected && linkedinResult.selectedOrganizationUrn && linkedinResult.publishTarget !== "organization") {
+        updateLinkedInConnection(user.uid, { publishTarget: "organization" });
+        linkedinResult.publishTarget = "organization";
+      } else if (linkedinResult.isConnected && (!linkedinResult.personUrn || !linkedinResult.personUrn.startsWith("urn:li:person:")) && linkedinResult.publishTarget !== "organization") {
         updateLinkedInConnection(user.uid, { publishTarget: "organization" });
         linkedinResult.publishTarget = "organization";
       }
