@@ -63,8 +63,8 @@ ${extendedColorsText}
 
 CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
 1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").
-2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or "#373435") in the generated prompts. The image generator will literally write these hex codes on the visual artwork, which is strictly prohibited.
-3. Do NOT include technical variables or labels (like "primary color", "secondary color", "brand color") in the generated prompts. Refer to the colors only by their plain English names.
+2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any other color hex), the hash symbol (#), or words like "hexadecimal", "hex", "hex code", "primary color", "secondary color", "brand kit", or "brand color" in the generated prompts. The image generator will literally print these hex codes or technical words on the visual artwork, which is strictly prohibited.
+3. Do NOT include technical variables, labels, or CSS terms (like "primary color", "secondary color", "brand color", "color value") in the generated prompts. Refer to the colors only by their plain English names.
 
 Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided, translated to descriptive names) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
@@ -148,13 +148,19 @@ ${brandingInstruction}
 1. LANGUAGE: Write all visual descriptions in English only.
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
    - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
-   - PORTUGUESE ACCENTUATION RULE (CRITICAL): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô), you MUST explicitly describe the accent marks in the prompt.
+   - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
+     - You MUST check every letter with an accent in the title (like á, é, í, ó, ú, ç, ã, õ, ê, ô) and describe it explicitly in English so the image generator doesn't make mistakes.
      - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
+     - NEVER output raw text without describing the accentuation system to the model.
    - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
 3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
 4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 3 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
 5. MINIMUM LENGTH: Each prompt must be at least 120 words to ensure sufficient detail.
-6. NO HEX CODES OR TECHNICAL LABELS: Do NOT output hex color codes (e.g. #FFCC29, #373435), CSS terms, or technical brand variables (like "Primary Color", "Secondary Color", "Brand Kit") in the prompt. All colors must be described using natural descriptive color words in English (e.g., "rich yellow", "warm orange", "deep gray"). If you include hash symbols (#) or hex codes, the image generator will literally print these texts on the visual art, which is strictly forbidden.
+6. ZERO TOLERANCE ON HEX CODES, HASH SYMBOLS AND TECHNICAL LABELS (CRITICAL):
+   - You MUST NOT output any hexadecimal color codes (e.g. #FFCC29, #373435, #000, #FFFFFF, etc.), the hash symbol (#), or CSS terms.
+   - You MUST NOT output words like "hexadecimal", "hex", "hex code", "RGB", "HSL", "primary color", "secondary color", "brand kit", or "brand color".
+   - If you include any of these technical words, symbols (#) or hex codes, the image generator will literally print them on the image, ruining the artwork.
+   - All colors must be described using natural descriptive color words in English (e.g., "rich sky blue", "elegant forest green", "warm pastel pink", "minimalist dark gray").
 
 # REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {

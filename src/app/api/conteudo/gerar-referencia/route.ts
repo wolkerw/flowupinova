@@ -382,6 +382,7 @@ If the image depicts a CHARACTER:
       let businessProfile: any = null;
       let inspirationFile: File | null = null;
       let isRetailStyle = false;
+      let hybridPriority = "balanced";
 
       const contentType = request.headers.get("content-type") || "";
       if (contentType.includes("multipart/form-data")) {
@@ -390,6 +391,7 @@ If the image depicts a CHARACTER:
         description = formData.get("description") as string || "";
         title = formData.get("title") as string || "";
         isRetailStyle = formData.get("isRetailStyle") === "true";
+        hybridPriority = formData.get("hybridPriority") as string || "balanced";
         const profileStr = formData.get("businessProfile") as string;
         if (profileStr) {
           try {
@@ -403,6 +405,7 @@ If the image depicts a CHARACTER:
         description = body.description || "";
         title = body.title || "";
         isRetailStyle = body.isRetailStyle === true || body.isRetailStyle === "true";
+        hybridPriority = body.hybridPriority || "balanced";
         businessProfile = body.businessProfile || null;
       }
 
@@ -503,6 +506,36 @@ ${fontsText ? `
 `;
       }
 
+      let priorityInstruction = "";
+      if (hybridPriority === "scenario") {
+        priorityInstruction = `
+# STRICT SCENARIO FIDELITY & ASYMMETRIC FRAMING RULE (CRITICAL FOR IMMOVABLES / SCENARIOS):
+- The background, architecture, building, rooms, or garden from Photo 2 (described in SECONDARY_PRODUCT_ANALYSIS) are the absolute subject and setting of the scene.
+- You MUST describe this physical scenario with high fidelity (materials, layout, lights, doors, windows, textures). Do NOT replace the backdrop with a generic scene.
+- COMPOSITION & PLACEMENT: The person from Photo 1 must be placed off-center, positioned on the far-left or far-right of the frame (applying the photographic rule of thirds). The center of the image must remain completely open and unobstructed to beautifully display the main entrance, facade, or central architecture of the property in Photo 2.
+`;
+      } else if (hybridPriority === "packshot") {
+        priorityInstruction = `
+# STRICT PRODUCT SWAP & PACKSHOT COMPOSITION RULE (CRITICAL FOR PACKSHOTS):
+- The product from Photo 1 (described in PRIMARY_PERSON_ANALYSIS) is the main subject to be highlighted.
+- The environment, background, styling, decoration, and composition from Photo 2 (described in SECONDARY_PRODUCT_ANALYSIS) must be recreated with high fidelity as the backdrop.
+- PRODUCT SWAP & PLACEMENT: Identify the main product/object positioned in the foreground of Photo 2, and replace it entirely with the product from Photo 1. Place the product from Photo 1 in the exact same position, scale, and angle as the original product in Photo 2.
+- INTEGRATION: Keep the original surface (e.g. table, stone, shelf), shadows, reflections, and ambient lighting of Photo 2, ensuring the product from Photo 1 integrates naturally as if it was originally photographed there.
+`;
+      } else if (hybridPriority === "person") {
+        priorityInstruction = `
+# STRICT FOREGROUND PERSON FIDELITY RULE (CRITICAL FOR MODEL/RETRAIT FOCUS):
+- The person from Photo 1 (described in PRIMARY_PERSON_ANALYSIS) is the primary focal point of the portrait. Focus heavily on their face, posture, clothes, and skin textures.
+- The scenario from Photo 2 is used only as a loose visual reference or backdrop inspiration. You are allowed to simplify, crop, blur (using shallow depth of field / bokeh), or adjust the background layout of Photo 2 freely to make the person stand out as the hero of the image.
+`;
+      } else {
+        priorityInstruction = `
+# BALANCED FUSION RULE:
+- Balance the visual presence of both the person from Photo 1 and the product/project/scenario from Photo 2.
+- Describe a composition where the person is interacting naturally with the product/project, ensuring both elements are recognizable, in sharp focus, and lit under the same environment.
+`;
+      }
+
       const geminiSystemInstruction = `# ROLE
 You are an elite Creative Art Director, Ad Designer, and Prompt Engineer specialized in User-Generated Content (UGC) advertising and premium photographic product placement for image generation models (specifically Flux Kontext).
 
@@ -522,6 +555,7 @@ This prompt MUST describe a realistic photorealistic scene, detailing the produc
 4. TEXT RENDERING CONTROL (CRITICAL):
    ${textRenderingInstruction}
 5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
+${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
 # UGC PHOTOGRAPHY & ESTHETIC PREMIUM
@@ -948,6 +982,7 @@ ${yamlAnalysis}`;
       const postId = formData.get("postId") as string || "";
       const userId = formData.get("userId") as string || "";
       const caption = formData.get("caption") as string || null;
+      const hybridPriority = formData.get("hybridPriority") as string || "balanced";
 
       if (!file || !prompt || !postId || !userId) {
         return NextResponse.json({ error: "Campos obrigatórios ausentes: file, prompt, postId, userId." }, { status: 400 });
@@ -1005,6 +1040,41 @@ ${yamlAnalysis}`;
       let base64Image2 = "";
       let mimeType2 = "";
 
+      let transparentGarmentUrl = garmentPublicUrl;
+      if (hybridPriority === "packshot" && garmentPublicUrl) {
+        try {
+          console.log(`[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`);
+          const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
+            method: "POST",
+            headers: {
+              "Authorization": `Key ${rawFalKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              image_url: garmentPublicUrl
+            })
+          });
+
+          if (briaResponse.ok) {
+            const briaData = await briaResponse.json();
+            const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
+            if (briaUrl) {
+              transparentGarmentUrl = briaUrl;
+              console.log(`[NANOBANANA_REF] Fundo da Foto 1 removido via Bria: ${transparentGarmentUrl}`);
+              logApiUsage({
+                userId,
+                type: "background_removal",
+                provider: "falai",
+                model: "bria",
+                costUsd: 0.006
+              });
+            }
+          }
+        } catch (briaError) {
+          console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
+        }
+      }
+
       if (secondaryFile) {
         // 2. Processar Foto 2 (Produto/Projeto)
         console.log("[NANOBANANA_REF] Processando Foto 2 (Produto/Projeto)...");
@@ -1019,9 +1089,9 @@ ${yamlAnalysis}`;
           console.error("[NANOBANANA_REF] Erro no upload da Foto 2 para o Fal.ai Storage:", uploadErr);
         }
 
-        // Remoção de fundo da Foto 2 (Produto) via Bria API
+        // Remoção de fundo da Foto 2 (Produto) via Bria API (apenas se a prioridade NÃO for foco em cenário)
         transparentProductUrl = secondaryGarmentPublicUrl;
-        if (secondaryGarmentPublicUrl) {
+        if (secondaryGarmentPublicUrl && hybridPriority !== "scenario" && hybridPriority !== "packshot") {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto 2 (Produto) via Bria API...`);
             const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
@@ -1094,7 +1164,7 @@ ${yamlAnalysis}`;
       } else {
         // Se NÃO houver secondaryFile, a Foto 1 (file) é tratada como o produto no fluxo original
         // Então passamos ela pelo Bria se configurado
-        transparentProductUrl = garmentPublicUrl;
+        transparentGarmentUrl = garmentPublicUrl;
         if (garmentPublicUrl) {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto única via Bria API...`);
@@ -1113,8 +1183,8 @@ ${yamlAnalysis}`;
               const briaData = await briaResponse.json();
               const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
               if (briaUrl) {
-                transparentProductUrl = briaUrl;
-                console.log(`[NANOBANANA_REF] Fundo removido via Bria: ${transparentProductUrl}`);
+                transparentGarmentUrl = briaUrl;
+                console.log(`[NANOBANANA_REF] Fundo removido via Bria: ${transparentGarmentUrl}`);
                 logApiUsage({
                   userId,
                   type: "background_removal",
@@ -1134,10 +1204,10 @@ ${yamlAnalysis}`;
       let finalBase64Image1 = buffer1.toString("base64");
       let finalMimeType1 = mimeType1;
 
-      if (!secondaryFile && transparentProductUrl && transparentProductUrl !== garmentPublicUrl) {
+      if (transparentGarmentUrl && transparentGarmentUrl !== garmentPublicUrl) {
         try {
-          console.log(`[NANOBANANA_REF] Baixando Foto única sem fundo de ${transparentProductUrl} para base64...`);
-          const imgRes = await fetch(transparentProductUrl);
+          console.log(`[NANOBANANA_REF] Baixando Foto 1 sem fundo de ${transparentGarmentUrl} para base64...`);
+          const imgRes = await fetch(transparentGarmentUrl);
           if (imgRes.ok) {
             const imgArrayBuffer = await imgRes.arrayBuffer();
             let imgBuffer = Buffer.from(imgArrayBuffer);
@@ -1152,14 +1222,14 @@ ${yamlAnalysis}`;
               imgBuffer = await jimpImg.getBuffer("image/png");
               mimeTypeDownloaded = "image/png";
             } catch (jimpError) {
-              console.warn("[NANOBANANA_REF] Falha ao re-processar Foto única com Jimp:", jimpError);
+              console.warn("[NANOBANANA_REF] Falha ao re-processar Foto 1 com Jimp:", jimpError);
             }
 
             finalBase64Image1 = imgBuffer.toString("base64");
             finalMimeType1 = mimeTypeDownloaded;
           }
         } catch (fetchErr) {
-          console.error("[NANOBANANA_REF] Erro ao baixar Foto única do Bria:", fetchErr);
+          console.error("[NANOBANANA_REF] Erro ao baixar Foto 1 sem fundo:", fetchErr);
         }
       }
 
@@ -1175,14 +1245,35 @@ ${yamlAnalysis}`;
 
       if (secondaryFile) {
         // Prompt Híbrido Avançado
-        nanobananaPrompt = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior.
-Com base nas duas imagens de referência fornecidas (Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto), gere uma imagem comercial profissional de altíssima qualidade integrando ambos perfeitamente na cena solicitada no prompt do usuário.
+        let priorityRule = "";
+        if (hybridPriority === "scenario") {
+          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 de forma nítida e reconhecível (foco facial básico).
+2. RECRIAÇÃO DE CORPO E ROUPAS: Vista a pessoa da Foto 1 com vestimentas elegantes e de alto nível apropriadas para o ambiente da Foto 2 (como blazer ou trajes corporativos refinados).
+3. PRESERVAÇÃO RÍGIDA DO CENÁRIO (CRÍTICO): O cenário, a casa, o interior ou a arquitetura da Foto 2 são o assunto principal de fundo. Você deve reproduzir este cenário físico com máxima fidelidade.
+4. POSICIONAMENTO LATERAL ASSIMÉTRICO (REGRA DOS TERÇOS): Posicione a pessoa da Foto 1 de forma deslocada para a lateral esquerda ou lateral direita da imagem (não centralizada). O centro do enquadramento deve permanecer totalmente livre e desimpedido para exibir a fachada da casa, a porta ou os detalhes estruturais da Foto 2.`;
+        } else if (hybridPriority === "packshot") {
+          priorityRule = `1. TROCA DE PRODUTO (PRODUCT SWAP): Identifique o produto central de primeiro plano na Foto 2 e substitua-o inteiramente pelo produto da Foto 1. Coloque o produto da Foto 1 na exata mesma posição, escala e ângulo do original.
+2. FIDELIDADE DO PRODUTO: Preserve com máxima precisão o formato, cores, rótulos, logo, textos e marcas do produto da Foto 1. Ele deve continuar legível e idêntico à referência.
+3. PRESERVAÇÃO RÍGIDA DO CENÁRIO DE FUNDO: O cenário de fundo, decorações, superfícies (como mesa, gelo, etc.) e o ambiente da Foto 2 devem ser recriados com máxima fidelidade. Não o substitua por um cenário genérico.
+4. FUSÃO DE ILUMINAÇÃO E REFLEXOS: O novo produto deve absorver de forma realista a luz (direção, cor e brilho), reflexos de superfície e as sombras de contato que o produto original tinha na Foto 2.`;
+        } else if (hybridPriority === "person") {
+          priorityRule = `1. FIDELIDADE MÁXIMA DA PESSOA (FOCO PRINCIPAL): Retrate a pessoa da Foto 1 com altíssima fidelidade de detalhes faciais, fisionomia, expressão e pele. Ela é a heroína absoluta da foto.
+2. RECRIAÇÃO DE CORPO E ROUPAS: Desenhe poses corporais naturais e roupas sofisticadas que combinem com a fisionomia e o tema.
+3. ADAPTAÇÃO FLEXÍVEL DO CENÁRIO: O produto/cenário da Foto 2 serve apenas de contexto geral e ambientação de fundo. Você tem total liberdade criativa para simplificar, recortar ou desfocar (efeito bokeh) o fundo da Foto 2 para dar total destaque à pessoa.
+4. FUSÃO DE ILUMINAÇÃO: Integre a pessoa e o cenário de fundo com uma iluminação artística e profissional direcionada ao sujeito principal.`;
+        } else {
+          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 com máxima fidelidade fisionômica (rosto, barba/cabelo, cor dos olhos e pele). ela deve ser claramente identificável.
+2. RECRIAÇÃO DE CORPO E ROUPAS: Estenda o corpo e desenhe poses naturais com vestimentas refinadas e de alta qualidade que harmonizem com o cenário.
+3. INTEGRIDADE DO PRODUTO/PROJETO: Preserve o produto ou projeto da Foto 2 com suas características físicas, cores e proporções originais.
+4. INTEGRAÇÃO TRIDIMENSIONAL: Posicione o produto/projeto e a pessoa na cena de forma integrada com iluminação, sombras e reflexos realistas. O cenário de fundo deve mesclá-los de forma natural.`;
+        }
 
-REGRAS DE PRESERVAÇÃO E CRIAÇÃO HÍBRIDA:
-1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 com máxima fidelidade fisionômica (mesmo rosto, expressão, barba/cabelo, estrutura dos olhos e cor da pele). Ela deve ser claramente identificável.
-2. RECRIAÇÃO DE CORPO E ROUPAS: Você tem total liberdade para estender o corpo e recriar as vestimentas da pessoa (vista-a com roupas de alto nível que combinem com o cenário e a profissão, como ternos modernos, blazers elegantes ou trajes casuais premium).
-3. INTEGRIDADE DO PRODUTO: Preserve o produto ou projeto da Foto 2 com suas características físicas, cores, rótulos e proporções originais.
-4. INTEGRAÇÃO TRIDIMENSIONAL: Posicione o produto/projeto e a pessoa na cena de forma integrada com iluminação, sombras e reflexos realistas. O cenário de fundo deve mesclá-los de forma natural.
+        const inputIsPackshot = hybridPriority === "packshot";
+        nanobananaPrompt = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior.
+Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial profissional de altíssima qualidade integrando ambos na cena descrita no final.
+
+DIRETRIZES DE CRIAÇÃO HÍBRIDA A SEREM SEGUIDAS RIGOROSAMENTE:
+${priorityRule}
 
 Cenário e estilo desejados: ${prompt}`;
 

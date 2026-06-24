@@ -114,6 +114,10 @@ interface WizardContextType {
   setSecondaryReferenceImagePreview: (preview: string | null) => void;
   secondaryReferenceDescription: string;
   setSecondaryReferenceDescription: (desc: string) => void;
+  hybridPriority: "person" | "scenario" | "balanced";
+  setHybridPriority: (priority: "person" | "scenario" | "balanced") => void;
+  productWorkflow: "text-ambientation" | "packshot-hybrid" | null;
+  setProductWorkflow: (workflow: "text-ambientation" | "packshot-hybrid" | null) => void;
   
   // Customization States
   logoFile: File | null;
@@ -240,6 +244,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [secondaryReferenceImageFile, setSecondaryReferenceImageFile] = useState<File | null>(null);
   const [secondaryReferenceImagePreview, setSecondaryReferenceImagePreview] = useState<string | null>(null);
   const [secondaryReferenceDescription, setSecondaryReferenceDescription] = useState("");
+  const [hybridPriority, setHybridPriority] = useState<"person" | "scenario" | "balanced">("balanced");
+  const [productWorkflow, setProductWorkflow] = useState<"text-ambientation" | "packshot-hybrid" | null>(null);
 
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -830,6 +836,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const promptFormData = new FormData();
         promptFormData.append("yamlAnalysis", yamlAnalysis);
         promptFormData.append("isRetailStyle", String(isRetailStyle));
+        promptFormData.append("hybridPriority", mode === "reference-photo" && productWorkflow === "packshot-hybrid" ? "packshot" : hybridPriority);
 
         const combinedDescription = postSummary.trim()
           ? `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
@@ -947,6 +954,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         submitFormData.append("prompt", promptString);
         submitFormData.append("postId", activePostId);
         submitFormData.append("userId", user.uid);
+        submitFormData.append("hybridPriority", hybridPriority);
 
         // 🧪 Rota de BENCHMARK: Imagen 4 (síncrono, sem polling, texto apenas)
         if (useImagen4Ref) {
@@ -1002,6 +1010,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
+            nanobananaFormData.append("hybridPriority", mode === "reference-photo" && productWorkflow === "packshot-hybrid" ? "packshot" : hybridPriority);
 
             const nanobananaResponse = await fetch(
               "/api/conteudo/gerar-referencia?action=submit-nanobanana-ref",
@@ -1729,6 +1738,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       referenceDescription, setReferenceDescription, referenceLink, setReferenceLink,
       secondaryReferenceImageFile, setSecondaryReferenceImageFile, secondaryReferenceImagePreview, setSecondaryReferenceImagePreview,
       secondaryReferenceDescription, setSecondaryReferenceDescription,
+      hybridPriority, setHybridPriority,
+      productWorkflow, setProductWorkflow,
       logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
       showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
       fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
