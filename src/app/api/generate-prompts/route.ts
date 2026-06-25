@@ -122,6 +122,7 @@ STYLE & LAYOUT:
 - **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
 - **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
 - **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
+- **Typographic Integration (Differentiated Text Layout):** The literal text/title must NOT just be placed in a straight line at the bottom. Instead, integrate it dynamically into the scene. For example, render the text using a combination of a bold heading font for the main word and a light font for the secondary words (typographic contrast). Place the text aligned to the negative space side, using the brand's primary color for the key highlighted word and white or the secondary color for the rest.
 CAMERA & LENS:
 - Medium shot (waist up) or close-up portrait.
 - 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
@@ -140,6 +141,10 @@ STYLE & LAYOUT:
 - **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements (such as frosted glass panels, floating geometric shapes, flat vectors, or thin lines representing the brand's niche), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
 - **Designi Commercial Standard:** Organize the scene with a clean advertising layout, maintaining a strong visual hierarchy. Add soft, realistic contact shadows cast by the object and platforms to ground them naturally.
 - **Negative Space:** Maintain 45-55% of the frame as clean negative space (smooth backdrop) for text placement.
+- **High-End Typographic Design (Differentiated Text Layout):** The literal text/title must be treated as a premium graphic design piece, integrated creatively into the composition. Choose one of these styles:
+  1. *Editorial Magazine Style:* Make the main word of the title gigantic, bold, and in uppercase, aligned to a side, while the rest of the text is smaller and elegant, creating a layout that looks like a luxury design portfolio (Behance) or a premium magazine cover.
+  2. *3D Spatial Depth:* Position the 3D-styled text so it sits behind some floating glassmorphism panels or behind the central object, intersecting naturally to build visual depth.
+  3. *Badge/Pill Accent:* Frame the main keyword of the title inside a clean geometric shape (like a colored pill capsule, rounded rectangle badge, or a minimalist border outline) using the brand's primary color, giving it a strong sticker/advertising pop.
 CAMERA & LENS:
 - Front-facing flat graphic composition OR elegant 30-degree isometric view.
 - Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
@@ -156,8 +161,9 @@ ${brandingInstruction}
 # CRITICAL PROMPT ENGINEERING RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. LANGUAGE: Write all visual descriptions in English only.
-2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
-   - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
+2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
+   - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
+   - Correct format example: ...with the literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in a high-end editorial layout, where the word "DESTAQUE" is in massive bold uppercase using the brand's primary color, and the rest of the text is aligned cleanly below it in white...
    - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
      - You MUST check every letter with an accent in the title (like á, é, í, ó, ú, ç, ã, õ, ê, ô) and describe it explicitly in English so the image generator doesn't make mistakes.
      - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
