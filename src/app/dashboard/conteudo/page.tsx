@@ -1614,27 +1614,20 @@ export default function Conteudo() {
                   </p>
                 </button>
 
-                {/* Botão 3 - Referência Link */}
+                {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
                 <button
-                  disabled
-                  className="group relative flex cursor-not-allowed flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-gray-400 to-gray-500 p-6 text-left text-white/90 opacity-60 shadow-xl shadow-gray-100 transition-all"
+                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-hybrid")}
+                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500 to-orange-600 rounded-[24px] text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
                 >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10">
-                    <LinkIcon size={120} />
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <RefreshCw size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3">
-                    <MousePointer2 className="h-6 w-6 text-white" />
+                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
+                    <Sparkles className="w-6 h-6 text-white" />
                   </div>
-                  <div className="mb-2 flex items-center gap-2">
-                    <h3 className="text-xl font-black leading-tight">
-                      Gerar Conteúdo com Imagem de referência
-                    </h3>
-                    <span className="rounded-full bg-white/35 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">
-                      Offline
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Envie a imagem de um post que gostou e criaremos algo similar para seu negócio.
+                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Híbrido (Pessoa + Produto)</h3>
+                  <p className="text-white/80 text-sm font-medium leading-relaxed">
+                    Combine o rosto de uma pessoa (selfie) com um produto/projeto em um cenário avançado.
                   </p>
                 </button>
 

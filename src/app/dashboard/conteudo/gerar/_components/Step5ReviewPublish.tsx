@@ -66,6 +66,8 @@ export const Step5ReviewPublish = () => {
     businessProfile,
   } = useWizard();
 
+  const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
+
   const selectedContent =
     selectedContentId !== undefined ? generatedContent[parseInt(selectedContentId, 10)] : null;
 
@@ -75,7 +77,7 @@ export const Step5ReviewPublish = () => {
     setGeneratedContent((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
   };
 
-  const onBack = () => setStep(mode === "reference-photo" ? 3 : 4);
+  const onBack = () => setStep(isSyncImageMode ? 3 : 4);
   const onPlatformChange = (p: Platform) =>
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
 

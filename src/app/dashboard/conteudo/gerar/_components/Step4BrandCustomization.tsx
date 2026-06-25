@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
+import { CircularProgressLoader } from "./CircularProgressLoader";
 
 import { useWizard } from "../context/WizardContext";
 
@@ -38,7 +39,9 @@ export const Step4BrandCustomization = () => {
     mode,
   } = useWizard();
 
-  const onBack = () => setStep(mode === "reference-photo" ? 2 : 3);
+  const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
+
+  const onBack = () => setStep(isSyncImageMode ? 2 : 3);
   const onLogoRemove = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);
@@ -175,13 +178,7 @@ export const Step4BrandCustomization = () => {
             <div className="mx-auto w-full max-w-sm">
               <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-gray-200 shadow-md">
                 {isGeneratingImages && !selectedImage ? (
-                  <div className="flex flex-col items-center gap-4 p-8 text-center text-gray-500">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <div>
-                      <p className="font-bold">Gerando sua arte...</p>
-                      <p className="text-xs">Isso pode levar alguns segundos.</p>
-                    </div>
-                  </div>
+                  <CircularProgressLoader isActive={isGeneratingImages} />
                 ) : selectedImage ? (
                   <>
                     <Image
