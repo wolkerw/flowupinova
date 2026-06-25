@@ -145,6 +145,9 @@ STYLE & LAYOUT:
   1. *Editorial Magazine Style:* Make the main word of the title gigantic, bold, and in uppercase, aligned to a side, while the rest of the text is smaller and elegant, creating a layout that looks like a luxury design portfolio (Behance) or a premium magazine cover.
   2. *3D Spatial Depth:* Position the 3D-styled text so it sits behind some floating glassmorphism panels or behind the central object, intersecting naturally to build visual depth.
   3. *Badge/Pill Accent:* Frame the main keyword of the title inside a clean geometric shape (like a colored pill capsule, rounded rectangle badge, or a minimalist border outline) using the brand's primary color, giving it a strong sticker/advertising pop.
+  4. *Float Card with Giant Background Text:* Frame the message inside a rounded white/light floating card. Directly behind this card, place massive, bold background text (the main keyword) in a vibrant brand color, partially cropped/cut off by the image borders, creating a strong multi-layered advertising look (like a modern notice/reminder).
+  5. *Asymmetrical Contrast Style (Sports/Promo):* Render the title with extreme contrast. Make one key letter (like a giant letter "X") much larger, tilted, and colored in the brand's primary yellow or orange, while the remaining words are stacked in clean, thick, white block lines. Add small decorative badges (like tiny flag icons or badges) next to the text.
+  6. *Neon Event Style:* Render the text with a gorgeous vertical color gradient (such as vibrant orange-to-pink or electric blue-to-purple) with a soft glowing backlight behind the letters, making the typography pop out dynamically.
 CAMERA & LENS:
 - Front-facing flat graphic composition OR elegant 30-degree isometric view.
 - Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
