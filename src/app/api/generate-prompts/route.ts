@@ -66,6 +66,16 @@ CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
 2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any other color hex), the hash symbol (#), or words like "hexadecimal", "hex", "hex code", "primary color", "secondary color", "brand kit", or "brand color" in the generated prompts. The image generator will literally print these hex codes or technical words on the visual artwork, which is strictly prohibited.
 3. Do NOT include technical variables, labels, or CSS terms (like "primary color", "secondary color", "brand color", "color value") in the generated prompts. Refer to the colors only by their plain English names.
 
+CRITICAL NICHE & PRODUCT ALIGNMENT RULE (MANDATORY FOR GRAPHICS & METAPHORS):
+You MUST ensure that the graphics, floating elements, icons, props, and visual metaphors are DIRECTLY and explicitly related to the brand's niche ("${category || "general"}") and the products it sells.
+- DO NOT generate generic corporate tech startup elements (like financial growth bar charts, upward arrows, security shields, or molecular data grids) unless the brand's niche is literally finance, security, or data science.
+- STYLE VARIETY: The graphics do NOT always have to be 3D. You should vary the style: use 3D objects in some concepts, flat 2D vector art, minimal outlines/line art, or sleek illustrative details in others, depending on what looks most sophisticated.
+- EVERY single visual metaphor or graphic detail must remind the viewer of what the brand sells:
+  - If the brand sells Blinds/Shades/Curtains (Persianas e Cortinas), the floating graphic elements and props MUST look like modern stylized blinds, elegant curtain fabric folds, window frames, or golden sun rays filtering through slats.
+  - If the brand is in real estate or construction, the elements must be houses, keys, blueprints, or building blocks.
+  - If the brand is in dentistry, the elements must be teeth, smiles, or healthcare icons.
+- If you use floating elements, they must represent the tools, products, or core theme of the business. Never generic dashboard metrics.
+
 Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided, translated to descriptive names) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
 2. **Prop Integration:** Place subtle and elegant props within the scene that carry these colors.
@@ -105,29 +115,29 @@ COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving s
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED 3D GRAPHICS/VECTORS)
+## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium 3D graphics, interface vectors, or conceptual icons related to the post topic (e.g., if about growth, show floating 3D growth charts and upward arrows; if about social media, show modern holographic like/message bubbles; if about finance, show abstract glowing coin shapes or charts).
+SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
 STYLE & LAYOUT:
-- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean 3D graphic design assets. The graphics must look like physical or holographic objects floating naturally in the air, casting soft reflections and realistic shadows on the person or environment.
-- **Modern Corporate Tech Aesthetic:** Clean, premium composition inspired by high-end SaaS or tech startup campaigns (e.g., Stripe, Notion, Apple design style).
+- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
+- **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
 - **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
 CAMERA & LENS:
 - Medium shot (waist up) or close-up portrait.
 - 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
 LIGHTING:
-- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the 3D graphics for a seamless visual blend.
+- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the graphics for a seamless visual blend.
 BRAND KIT ALIGNMENT (MANDATORY):
-- The 3D graphics, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The graphic shapes, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
 - The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. The graphics must have 3D depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
-
+MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
+ 
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI STYLE ALIGNED TO NICHE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI STYLE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A premium, modern graphic design composition focusing on a stylized object, equipment, or conceptual symbol DIRECTLY associated with the post's topic (e.g., if the post is about audio, show a sleek retro microphone or 3D audio waves; if about video, show a camera lens or stylized film clapperboard; if about engineering, show modern gears).
+SUBJECT: A premium, modern graphic design composition focusing on a stylized object, equipment, or conceptual symbol DIRECTLY associated with the brand's niche and products (CRITICAL: Do NOT show random abstract shapes. For blinds/curtains, show a stylized designer blind panel, decorative curtain rods, or window frames. For audio, show a sleek retro microphone. For dental, show a stylized tooth model. The central elements can be represented as a 3D object, a clean flat 2D layout, or an elegant line art composition).
 STYLE & LAYOUT:
-- **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements like translucent frosted glass panels (glassmorphism), floating smooth 3D geometric shapes (spheres, rings, cubes), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
+- **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements (such as frosted glass panels, floating geometric shapes, flat vectors, or thin lines representing the brand's niche), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
 - **Designi Commercial Standard:** Organize the scene with a clean advertising layout, maintaining a strong visual hierarchy. Add soft, realistic contact shadows cast by the object and platforms to ground them naturally.
 - **Negative Space:** Maintain 45-55% of the frame as clean negative space (smooth backdrop) for text placement.
 CAMERA & LENS:
