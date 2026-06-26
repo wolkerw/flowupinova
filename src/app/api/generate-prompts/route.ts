@@ -159,7 +159,7 @@ MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art
 ## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SUBJECT & STYLE SELECTION:
-You MUST review the 15 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, etc.).
+You MUST review the 20 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, #16 for religious/church themes, etc.).
 
 # VISUAL DESIGN REFERENCE CATALOG:
 - REFERENCE #01: "Card de Aviso Tridimensional" (Card Clean com Fundo de Texto Gigante)
@@ -192,9 +192,19 @@ You MUST review the 15 visual design references below. Analyze the topic, title,
   Description: A retail promo style layout with a vertical stack of compact, rectangular colored text blocks of high contrast (e.g. purple text on a yellow block). Surrounded by floating realistic foods/products (like pizza or burger models) and 3D sports balls.
 - REFERENCE #15: "Ofertas do Dia Supermercado" (Tipografia de Plástico Inflado 3D Brilhante)
   Description: The main title is rendered in giant, glossy 3D volumetric letters that look like inflated soft plastic or vinyl toys (e.g. vibrant blue and yellow). The letters are surrounded by cartoony 3D elements (like golden coins, small shopping carts, or stars).
+- REFERENCE #16: "Quarta da Bênção" (Card Translúcido com Blur e Texto Curvo)
+  Description: A portrait of a speaker or pastor in the center, encircled by a thin, glowing ring of repetitive curved text. At the top, a semi-transparent purple rounded box with background blur (glassmorphism) contains subtitle text. The main title features high typographic contrast, with the main word written in a giant, elegant golden serif font.
+- REFERENCE #17: "Dia do Apicultor" (Foto Realista com Balão 3D e Caixas de Texto)
+  Description: Photorealistic hands holding a dripping honeycomb under warm sunset lighting. A realistic, glossy 3D heart-shaped balloon with black and yellow bee stripes floats in the center, overlapping the honeycomb. The text labels are placed in clean, solid white rectangular boxes, and the main title is rendered in a heavy geometric ultra-bold white font casting realistic contact shadows.
+- REFERENCE #18: "Culto de Natal" (Condensada Stacked com Iluminação Dramática)
+  Description: A dramatic close-up portrait of a speaker or singer under warm, intense side lighting with floating dust bokeh particles. The main title is stacked vertically in massive, ultra-bold, condensed sans-serif letters, using contrasting colors (e.g., solid white and soft pastel peach), paired with small vertical line markers on top indicating the date.
+- REFERENCE #19: "Cesta de Amor (Dia dos Namorados)" (Varejo Clean com Balões Foil 3D)
+  Description: A clean retail/lifestyle composition showing a smiling person holding a realistic, beautifully decorated gift basket full of chocolates and ribbons. Glossy, red 3D inflated metallic foil heart-shaped balloons float in the background. The title is written in a casual, rounded font in white and yellow, with a dark, semi-transparent footer banner at the bottom.
+- REFERENCE #20: "Hoje tem Brasil (Mascote)" (Mascote 3D com Interface Flutuante 3D)
+  Description: A friendly, highly detailed 3D cartoon mascot in a dynamic pose at the center of a blurred soccer stadium background. The mascot is surrounded by floating green and yellow hearts inside glossy 3D social media dialog bubbles. The bottom title is written in a highly fluid, expressive brush-painted script font.
 
 GENERATION RULES FOR OPTION 3:
-1. Select the single Reference ID (#01 to #15) that fits the post context best.
+1. Select the single Reference ID (#01 to #20) that fits the post context best.
 2. Build the entire prompt composition strictly following the selected reference's Visual Description.
 3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
 4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
