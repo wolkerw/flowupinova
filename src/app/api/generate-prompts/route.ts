@@ -202,7 +202,7 @@ MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art
 ## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SUBJECT & STYLE SELECTION:
-You MUST review the 20 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, #16 for religious/church themes, etc.).
+You MUST review the 25 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, #16 for religious/church themes, #21 for sticker/collectible sports themes, #22 for music playlists, #23 for elegant profile portraits, #24 for car wash/split layout, #25 for pizza/food themes, etc.).
 
 # VISUAL DESIGN REFERENCE CATALOG:
 - REFERENCE #01: "Card de Aviso Tridimensional" (Card Clean com Fundo de Texto Gigante)
@@ -245,9 +245,19 @@ You MUST review the 20 visual design references below. Analyze the topic, title,
   Description: A clean retail/lifestyle composition showing a smiling person holding a realistic, beautifully decorated gift basket full of chocolates and ribbons. Glossy, red 3D inflated metallic foil heart-shaped balloons float in the background. The title is written in a casual, rounded font in white and yellow, with a dark, semi-transparent footer banner at the bottom.
 - REFERENCE #20: "Hoje tem Brasil (Mascote)" (Mascote 3D com Interface Flutuante 3D)
   Description: A friendly, highly detailed 3D cartoon mascot in a dynamic pose at the center of a blurred soccer stadium background. The mascot is surrounded by floating green and yellow hearts inside glossy 3D social media dialog bubbles. The bottom title is written in a highly fluid, expressive brush-painted script font.
+- REFERENCE #21: "Figurinha de Jogador Confirmado (Neymar)" (Figurinha Colecionável com Grafismo de Fundo)
+  Description: A centered cut-out photo portrait of a professional soccer player or subject. The background is a solid turquoise/teal canvas featuring a massive, thick green number "26" with rounded corners. Small official-looking cup badges/logos are placed on the top right, and circular country flag icons are stacked on the bottom right. The main title is displayed at the bottom in an extended, bold sans-serif font inside a dark rounded rectangular badge.
+- REFERENCE #22: "Playlist de Hamburgueria" (Visual Escuro com Smartphone e Elementos 3D)
+  Description: A deep burgundy/dark red background with thin beige circular border outlines. On the right, a realistic smartphone displays a music streaming playlist with album art. An inflated, glossy 3D red play button floats over the screen. The main title is rendered on the left in a heavy, textured cream and pink sans-serif font, accompanied by a quick hand-drawn scribble line on top and pill-shaped call-to-action buttons.
+- REFERENCE #23: "Dia do Pastor" (Sobreposição de Fontes Serifada e Cursiva com Luz Quente)
+  Description: A close-up side profile of a speaker or singer in low-key lighting with a warm orange glow illuminating from the right edge. The title in the center combines a massive serif font in solid white with a thin, expressive handwritten script font in orange/gold overlapping it. A small date badge is placed at the top left in clean, elegant uppercase lettering.
+- REFERENCE #24: "Brilho ao seu Carro (Lava Rápido)" (Antes e Depois com Moldura Circular e Ícones 3D)
+  Description: A dark blue background with abstract gradient shapes. In the center, a photorealistic SUV is displayed with a split "before and after" dirty/clean wash effect, surrounded by a glowing green neon circle. Metallic blue 3D icons representing a car wash (car wash nozzles with water droplets) float in the scene. A green circular price badge and buttons are positioned at the bottom.
+- REFERENCE #25: "Dia da Pizza" (Perspectiva de Produto em Primeiro Plano com Tipografia Expressiva)
+  Description: A close-up of a crispy pepperoni pizza in perspective on a dark flour-dusted table in the foreground. The background is a clean black chalkboard texture. The main title at the top is tilted and rendered in a combination of thick gestural white script and bold sans-serif block letters, accented by red ribbon-style banners.
 
 GENERATION RULES FOR OPTION 3:
-1. Select the single Reference ID (#01 to #20) that fits the post context best.
+1. Select the single Reference ID (#01 to #25) that fits the post context best.
 2. Build the entire prompt composition strictly following the selected reference's Visual Description.
 3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
 4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
