@@ -199,7 +199,7 @@ GENERATION RULES FOR OPTION 3:
 3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
 4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
 5. Apply the brand's primary and secondary colors (translated to plain English names) to the key elements, backgrounds, or gradients.
-6. MANDATORY PROHIBITION: Do NOT include real people unless specified in the selected reference (e.g. references #03, #10, #13 allow subjects, but most references do not). Do not use generic corporate layouts.
+6. HUMAN & PRODUCT FLEXIBILITY: You are encouraged to decide whether to include a human subject (like a real person interacting, a professional, or a customer), realistic products, or strictly 3D/2D graphics in the scene. Vary this decision randomly across generations. In some generations, make it strictly graphic/minimalist; in other generations, organically integrate real human elements or realistic products into the selected design reference composition. Do not use generic corporate layouts.
 
 CAMERA & LENS:
 - Front-facing flat graphic composition OR elegant 30-degree isometric view.
