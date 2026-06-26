@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { content: selContent, businessProfile } = await request.json();
+    const { content: selContent, businessProfile, userId } = await request.json();
 
     if (!selContent) {
       return NextResponse.json({ error: "Conteúdo da publicação não enviado" }, { status: 400 });
@@ -22,6 +23,48 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    let approvedPromptsExamples = "";
+    if (userId) {
+      try {
+        console.log(`[GENERATE_PROMPTS] Buscando prompts de sucesso do mediaGallery para o usuário ${userId}...`);
+        const gallerySnap = await adminDb
+          .collection(`users/${userId}/mediaGallery`)
+          .limit(50)
+          .get();
+
+        const approvedItems: { prompt: string; createdAt: any }[] = [];
+        gallerySnap.forEach((doc: any) => {
+          const data = doc.data();
+          if (data.usedInPostId && data.prompt && data.source === "wizard_generation") {
+            approvedItems.push({
+              prompt: data.prompt,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || 0)
+            });
+          }
+        });
+
+        // Ordenar em memória pela data de criação decrescente
+        approvedItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+        // Pegar os 5 prompts mais recentes aprovados pelo usuário
+        const topApproved = approvedItems.slice(0, 5).map(item => item.prompt);
+
+        if (topApproved.length > 0) {
+          approvedPromptsExamples = `
+# SUCCESSFUL PROMPTING SAMPLES (FEW-SHOT LEARNING)
+The following are examples of image prompts that the user previously approved, loved, and successfully published/scheduled.
+Analyze their structure, level of detail, and stylistic cues, and use them as reference/inspiration to generate the new concepts:
+${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
+`;
+          console.log(`[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning.`);
+        } else {
+          console.log(`[GENERATE_PROMPTS] Nenhum prompt de sucesso anterior encontrado para este usuário.`);
+        }
+      } catch (err: any) {
+        console.warn(`[GENERATE_PROMPTS_WARN] Falha ao buscar prompts aprovados do Firestore:`, err.message || err);
+      }
     }
 
     let brandingInstruction = "";
@@ -220,6 +263,8 @@ BRAND KIT ALIGNMENT (MANDATORY):
 - The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
 - The text overlay must match the brand's typography.
 
+
+${approvedPromptsExamples}
 
 ${brandingInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -882,6 +882,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           body: JSON.stringify({
             content: selContent,
             businessProfile: businessProfile,
+            userId: user.uid,
           }),
         });
         const data = await response.json();
