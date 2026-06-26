@@ -60,6 +60,11 @@ export interface OnboardingProfileData {
     personas?: OnboardingPersona[];
     [key: string]: any;
   };
+  onboardingSource?: string;
+  brandPositioning?: string;
+  keyProducts?: string;
+  clientProfile?: string;
+  stylisticPreferences?: string;
 }
 
 const defaultLogo: OnboardingLogoData = {

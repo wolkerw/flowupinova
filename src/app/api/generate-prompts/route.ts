@@ -26,7 +26,17 @@ export async function POST(request: Request) {
 
     let brandingInstruction = "";
     if (businessProfile) {
-      const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+      const { 
+        name, 
+        category, 
+        primaryColor, 
+        secondaryColor, 
+        brandKit,
+        brandPositioning,
+        keyProducts,
+        clientProfile,
+        stylisticPreferences
+      } = businessProfile;
       const primaryHex = primaryColor || "#000000";
       const secondaryHex = secondaryColor || "#FFFFFF";
 
@@ -39,6 +49,12 @@ export async function POST(request: Request) {
           extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
         }
       }
+
+      let memoryText = "";
+      if (brandPositioning) memoryText += `- Brand Positioning / Value Proposition: ${brandPositioning}\n`;
+      if (keyProducts) memoryText += `- Key Products/Services to Feature: ${keyProducts}\n`;
+      if (clientProfile) memoryText += `- Target Client/Audience Persona: ${clientProfile}\n`;
+      if (stylisticPreferences) memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
       let fontsText = "";
       if (brandKit?.fonts) {
@@ -60,6 +76,12 @@ The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
 - Secondary Color Hex: ${secondaryHex}
 ${extendedColorsText}
+${memoryText ? `\n# ADAPTIVE BRAND MEMORY & STRATEGIC INSIGHTS (CRITICAL):
+The following details were learned about the business's positioning and target style. You MUST strictly apply these guidelines to the imagery, style, and props:
+${memoryText}
+- If a Stylistic Preference is defined (e.g. "luxury", "rustic", "neon/vibrant", "clean/minimalist"), shape the lighting, props, and overall scene composition to reflect this specific vibe.
+- Ensure any key products listed are organically integrated or metaphorically referenced as the main visual focus.
+` : ""}
 
 CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
 1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").

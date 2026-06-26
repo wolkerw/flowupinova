@@ -41,6 +41,18 @@ export async function POST(request: Request) {
       if (businessProfile.mainBenefits && businessProfile.mainBenefits.length > 0) {
         parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
       }
+      if (businessProfile.brandPositioning) {
+        parts.push(`- **Diferencial / Posicionamento (Memória)**: ${businessProfile.brandPositioning}`);
+      }
+      if (businessProfile.keyProducts) {
+        parts.push(`- **Produtos e Serviços de Destaque (Memória)**: ${businessProfile.keyProducts}`);
+      }
+      if (businessProfile.clientProfile) {
+        parts.push(`- **Perfil do Cliente / Persona (Memória)**: ${businessProfile.clientProfile}`);
+      }
+      if (businessProfile.stylisticPreferences) {
+        parts.push(`- **Preferências Estilísticas/Vibe (Memória)**: ${businessProfile.stylisticPreferences}`);
+      }
 
       // Adicionar novas informações do Brand Kit profissional (fontes, cores e personas)
       const brandKit = businessProfile.brandKit;
@@ -89,8 +101,8 @@ ${parts.join("\n")}
 
 DIRETRIZES DE PERSONALIZAÇÃO:
 1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
-2. **Tom de Voz**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
-3. **Foco e Benefícios**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo e realce os Diferenciais/Benefícios da marca.
+2. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo (ex: se for luxuoso, use linguagem mais refinada, sofisticada e exclusiva; se for rústico/casual/afetivo, use algo mais acolhedor, simples e próximo).
+3. **Foco, Diferenciais e Produtos**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo / Perfil do Cliente ideal da memória. Destaque fortemente o Diferencial/Posicionamento da Marca (se presente na memória) e cite ou crie ganchos baseados nos Produtos/Serviços Principais coletados na memória.
 4. **Hashtags do Nicho**: Suas sugestões de hashtags devem incluir de 2 a 3 hashtags exclusivas e relevantes ao nicho de atuação (${businessProfile.category || "negócios"}).
 5. **Segmentação por Personas**: Como você deve propor exatamente 3 postagens (Ideias 1, 2 e 3):
    - Se houver **Personas da Marca** descritas no contexto acima, você DEVE direcionar cada uma das 3 propostas de post de forma personalizada para uma das personas cadastradas.

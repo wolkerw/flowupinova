@@ -206,6 +206,11 @@ export async function POST(request: NextRequest) {
             if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
               parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);
             }
+            if (bizData.onboardingSource) parts.push(`- Origem do Onboarding: ${bizData.onboardingSource}`);
+            if (bizData.brandPositioning) parts.push(`- Diferencial / Posicionamento (Memória): ${bizData.brandPositioning}`);
+            if (bizData.keyProducts) parts.push(`- Produtos e Serviços de Destaque (Memória): ${bizData.keyProducts}`);
+            if (bizData.clientProfile) parts.push(`- Perfil do Cliente / Persona (Memória): ${bizData.clientProfile}`);
+            if (bizData.stylisticPreferences) parts.push(`- Preferências Estilísticas e Visuais (Memória): ${bizData.stylisticPreferences}`);
 
             if (parts.length > 0) {
               businessContext = `\nINFORMAÇÕES REAIS DO NEGÓCIO DO USUÁRIO (CADASTRADAS NA PLATAFORMA):\n${parts.join("\n")}\nUse estas informações reais acima para personalizar todas as suas respostas, ideias de campanhas e sugerões de cores para a marca do usuário. Demonstre de forma sutil que você conhece profundamente o negócio dele!\n`;
@@ -257,8 +262,22 @@ CONTEXTO TEMPORAL E COMEMORATIVO REAL:
 - Mês da Campanha Sazonal: ${mesNome} (Mês ${mesNumero} de ${ano})
 - Dia da Semana: ${semanaDia}, Dia ${diaMes}
 ${proximaCampanhaInfo}
+
+PIVOTAGEM DE ENTREVISTADOR ADAPTATIVO (REJEIÇÃO DE SAZONALIDADE/DICAS COMUNS):
+- Se o usuário rejeitar, criticar ou mostrar insatisfação com a sua sugestão de campanha sazonal ou com posts/sugestões comuns (ex: "não quero falar sobre o feriado", "isso não serve para mim", "quero focar no meu produto", "não gostei", "me dá outra coisa"), você deve pivotar IMEDIATAMENTE.
+- Não insista na sugestão rejeitada. Em vez disso, mude de tom suavemente e assuma o papel de um "Entrevistador Estratégico".
+- Faça uma pergunta de negócio profunda e estratégica de forma sutil e natural no meio da conversa para colher o posicionamento único dele.
+- Exemplos de ganchos de negócio estratégico para questionar:
+  * "Qual é o seu principal diferencial competitivo hoje (o que te faz único e melhor que a concorrência)?"
+  * "Qual é o seu produto ou serviço de maior destaque e que gera mais retorno?"
+  * "Quem é exatamente o perfil do seu cliente ideal/persona hoje?"
+  * "Visualmente, que estética de design você prefere que represente sua marca nas redes sociais (ex: clean/minimalista, luxo/sofisticado, rústico/acolhedor, colorido/vibrante)?"
+- IMPORTANTE: Faça apenas UMA pergunta estratégica por vez. Nunca diga que está preenchendo um cadastro ou rodando um onboarding. A entrevista deve ser 100% fluida, natural e disfarçada de diálogo criativo amigável.
+- Assim que o usuário responder fornecendo essas informações, você DEVE disparar a ferramenta "save_brand_insights" com os parâmetros correspondentes para registrar esses insights de forma invisível.
+- Na próxima resposta, após registrar os insights, parabenize a visão do lojista e crie uma nova sugestão criativa baseada diretamente nos dados aprendidos, demonstrando que você agora compreende e se adaptou perfeitamente ao negócio dele.
+
 PROATIVIDADE SAZONAL E MARKETING ESTILO "GROWTH HACKER" (CRÍTICO):
-1. Seja Ultra Proativo: Não espere o usuário pedir ideias genéricas. Se for o início do chat ou a primeira oportunidade, traga imediatamente o gancho do seu próximo alvo comercial sazonal detalhado acima e sugira 1 ideia de campanha cirúrgica e explosiva para o momento!
+1. Seja Ultra Proativo: Se o usuário estiver aberto ou for o início do chat, traga imediatamente o gancho do seu próximo alvo comercial sazonal detalhado acima e sugira 1 ideia de campanha cirúrgica e explosiva para o momento!
 2. Pense como Especialista: Ao sugerir posts ou legendas, utilize formatos estratégicos de redes sociais de alta performance (ex: "Carrossel de 3 slides (Gancho forte + Conteúdo prático + Chamada para Ação)", "Post com gatilho mental de urgência/exclusividade", "Ideia de Reels de bastidores com áudio em alta").
 3. Estruturação em Bloco de Resposta (Tamanho Conciso, Máx. 400 caracteres):
    - Conexão e Elogio: "Que nicho fantástico! 🚀" ou "Amei essa ideia de campanha!"
@@ -304,7 +323,40 @@ DIRETRIZES DE ESTILO:
       parts: [{ text: message }],
     });
 
-    // 4. Disparar chamada REST com Fallback Automático Resiliente
+    // Declaração de Tools para o Gemini
+    const tools = [
+      {
+        functionDeclarations: [
+          {
+            name: "save_brand_insights",
+            description: "Salva insights sobre a marca, público, diferenciais e estilo extraídos do chat de forma invisível e persistente.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                brandPositioning: { 
+                  type: "STRING", 
+                  description: "Diferencial de valor, proposta única de vendas ou posicionamento de mercado do negócio do usuário." 
+                },
+                keyProducts: { 
+                  type: "STRING", 
+                  description: "Lista ou descrição dos principais produtos ou serviços em destaque." 
+                },
+                clientProfile: { 
+                  type: "STRING", 
+                  description: "Informações sobre o público-alvo ideal, persona ou perfil de clientes." 
+                },
+                stylisticPreferences: { 
+                  type: "STRING", 
+                  description: "Estilo de design preferido, estética visual e tom visual da marca (ex: luxuoso, rústico, minimalista, vibrante)." 
+                }
+              }
+            }
+          }
+        ]
+      }
+    ];
+
+    // 5. Disparar chamada REST com Fallback Automático Resiliente
     const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
     let aiResponseText = "";
     let lastError: any = null;
@@ -329,6 +381,7 @@ DIRETRIZES DE ESTILO:
             generationConfig: {
               temperature: 0.7,
             },
+            tools: tools
           }),
         });
 
@@ -338,45 +391,166 @@ DIRETRIZES DE ESTILO:
         }
 
         const resData = await response.json();
-        const candidateText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const candidate = resData?.candidates?.[0];
+        const firstPart = candidate?.content?.parts?.[0];
 
-        if (!candidateText) {
-          throw new Error(`Resposta do Gemini vazia ou em formato inesperado`);
-        }
+        if (firstPart?.functionCall) {
+          const { name: funcName, args } = firstPart.functionCall;
+          console.log(`[CHAT_VAPTI] Gemini solicitou chamada da função: ${funcName}`, args);
 
-        aiResponseText = candidateText.trim();
+          if (funcName === "save_brand_insights") {
+            // Executar gravação invisível no Firestore
+            try {
+              if (userId) {
+                const dataToSave: any = {};
+                if (args.brandPositioning) dataToSave.brandPositioning = args.brandPositioning;
+                if (args.keyProducts) dataToSave.keyProducts = args.keyProducts;
+                if (args.clientProfile) dataToSave.clientProfile = args.clientProfile;
+                if (args.stylisticPreferences) dataToSave.stylisticPreferences = args.stylisticPreferences;
 
-        // Registrar custo e consumo real se houver metadados e userId
-        const usage = resData?.usageMetadata;
-        if (usage && userId) {
-          const pTokens = usage.promptTokenCount || 0;
-          const cTokens = usage.candidatesTokenCount || 0;
+                if (Object.keys(dataToSave).length > 0) {
+                  console.log(`[CHAT_VAPTI] Salvando insights no Firestore para o usuário ${userId}:`, dataToSave);
+                  // Salvar em onboarding e profile
+                  await adminDb.doc(`users/${userId}/business/onboarding`).set(dataToSave, { merge: true });
+                  await adminDb.doc(`users/${userId}/business/profile`).set(dataToSave, { merge: true });
+                }
+              }
+            } catch (fsErr) {
+              console.error(`[CHAT_VAPTI] Erro ao salvar insights no Firestore:`, fsErr);
+            }
 
-          let inputPrice = 0.075;
-          let outputPrice = 0.3;
+            // Enviar resposta de volta ao Gemini REST
+            const updatedContents = [
+              ...formattedContents,
+              {
+                role: "model",
+                parts: [
+                  {
+                    functionCall: {
+                      name: funcName,
+                      args: args
+                    }
+                  }
+                ]
+              },
+              {
+                role: "function",
+                parts: [
+                  {
+                    functionResponse: {
+                      name: funcName,
+                      response: {
+                        status: "success",
+                        message: "Brand insights successfully saved in database."
+                      }
+                    }
+                  }
+                ]
+              }
+            ];
 
-          if (model === "gemini-2.5-flash-lite") {
-            inputPrice = 0.0375;
-            outputPrice = 0.15;
+            console.log(`[CHAT_VAPTI] Realizando segunda chamada de acompanhamento para obter o texto final...`);
+            const secondResponse = await fetch(geminiUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                systemInstruction: {
+                  parts: [{ text: systemInstructionText }],
+                },
+                contents: updatedContents,
+                generationConfig: {
+                  temperature: 0.7,
+                },
+                tools: tools
+              }),
+            });
+
+            if (!secondResponse.ok) {
+              const secondErrorText = await secondResponse.text();
+              throw new Error(`Erro na segunda chamada do Gemini (status ${secondResponse.status}): ${secondErrorText}`);
+            }
+
+            const secondResData = await secondResponse.json();
+            const secondCandidate = secondResData?.candidates?.[0];
+            const secondPart = secondCandidate?.content?.parts?.[0];
+            const secondCandidateText = secondPart?.text;
+
+            if (!secondCandidateText) {
+              throw new Error(`Resposta da segunda chamada do Gemini vazia ou em formato inesperado`);
+            }
+
+            aiResponseText = secondCandidateText.trim();
+
+            // Registrar consumo usando o usageMetadata da segunda resposta
+            const usage = secondResData?.usageMetadata;
+            if (usage && userId) {
+              const pTokens = usage.promptTokenCount || 0;
+              const cTokens = usage.candidatesTokenCount || 0;
+
+              let inputPrice = 0.075;
+              let outputPrice = 0.3;
+              if (model === "gemini-2.5-flash-lite") {
+                inputPrice = 0.0375;
+                outputPrice = 0.15;
+              }
+
+              const totalCost = (pTokens * inputPrice + cTokens * outputPrice) / 1_000_000;
+
+              logApiUsage({
+                userId,
+                type: "chat",
+                provider: "google_gemini",
+                model: model,
+                costUsd: totalCost,
+                tokens: {
+                  promptTokens: pTokens,
+                  completionTokens: cTokens,
+                  totalTokens: pTokens + cTokens,
+                },
+              });
+            }
+          }
+        } else {
+          const candidateText = firstPart?.text;
+          if (!candidateText) {
+            throw new Error(`Resposta do Gemini vazia ou em formato inesperado`);
           }
 
-          const costInput = pTokens * (inputPrice / 1_000_000);
-          const costOutput = cTokens * (outputPrice / 1_000_000);
-          const totalCost = costInput + costOutput;
+          aiResponseText = candidateText.trim();
 
-          // Executa em background
-          logApiUsage({
-            userId,
-            type: "chat",
-            provider: "google_gemini",
-            model: model,
-            costUsd: totalCost,
-            tokens: {
-              promptTokens: pTokens,
-              completionTokens: cTokens,
-              totalTokens: pTokens + cTokens,
-            },
-          });
+          // Registrar custo e consumo real se houver metadados e userId
+          const usage = resData?.usageMetadata;
+          if (usage && userId) {
+            const pTokens = usage.promptTokenCount || 0;
+            const cTokens = usage.candidatesTokenCount || 0;
+
+            let inputPrice = 0.075;
+            let outputPrice = 0.3;
+
+            if (model === "gemini-2.5-flash-lite") {
+              inputPrice = 0.0375;
+              outputPrice = 0.15;
+            }
+
+            const costInput = pTokens * (inputPrice / 1_000_000);
+            const costOutput = cTokens * (outputPrice / 1_000_000);
+            const totalCost = costInput + costOutput;
+
+            logApiUsage({
+              userId,
+              type: "chat",
+              provider: "google_gemini",
+              model: model,
+              costUsd: totalCost,
+              tokens: {
+                promptTokens: pTokens,
+                completionTokens: cTokens,
+                totalTokens: pTokens + cTokens,
+              },
+            });
+          }
         }
 
         // Se conseguiu responder com sucesso, interrompe o loop!
