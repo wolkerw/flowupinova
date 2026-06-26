@@ -202,7 +202,7 @@ MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art
 ## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SUBJECT & STYLE SELECTION:
-You MUST review the 25 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, #16 for religious/church themes, #21 for sticker/collectible sports themes, #22 for music playlists, #23 for elegant profile portraits, #24 for car wash/split layout, #25 for pizza/food themes, etc.).
+You MUST review the 30 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 or #26 for romantic/dating/couple themes, #05 or #06 for traditional/São João themes, #02, #08, #29 or #30 for sports/competition, #15 for bright cartoonish retail promos, #10 or #27 for hiring/recruitment/imobiliaria, #16 for religious/church themes, #21 for sticker/collectible sports themes, #22 for music playlists, #23 for elegant profile portraits, #24 for car wash/split layout, #25 for pizza/food themes, #28 for birthdays, etc.).
 
 # VISUAL DESIGN REFERENCE CATALOG:
 - REFERENCE #01: "Card de Aviso Tridimensional" (Card Clean com Fundo de Texto Gigante)
@@ -255,9 +255,19 @@ You MUST review the 25 visual design references below. Analyze the topic, title,
   Description: A dark blue background with abstract gradient shapes. In the center, a photorealistic SUV is displayed with a split "before and after" dirty/clean wash effect, surrounded by a glowing green neon circle. Metallic blue 3D icons representing a car wash (car wash nozzles with water droplets) float in the scene. A green circular price badge and buttons are positioned at the bottom.
 - REFERENCE #25: "Dia da Pizza" (Perspectiva de Produto em Primeiro Plano com Tipografia Expressiva)
   Description: A close-up of a crispy pepperoni pizza in perspective on a dark flour-dusted table in the foreground. The background is a clean black chalkboard texture. The main title at the top is tilted and rendered in a combination of thick gestural white script and bold sans-serif block letters, accented by red ribbon-style banners.
+- REFERENCE #26: "Dia dos Namorados Romântico Elegante" (Classic Romance Poster/Editorial Layout)
+  Description: A couple in a romantic dance or embrace pose in the center. The background is a smooth vignette gradient from deep burgundy-wine red to black at the edges. Small romantic text block aligned to the left. The main title features high typographic contrast: the word "Feliz" in a classic white cursive script font, and "Namorados" in an extended, tilted soft pink rounded font, with the date in clean uppercase below.
+- REFERENCE #27: "Localização Certa (Imóveis)" (Asymmetrical Real Estate Layout with Card and Portrait)
+  Description: A smiling professional holding keys on the left, with a modern illuminated house in the background. On the right, a dark matte navy-blue rounded rectangular card overlays the scene, containing the title in clean white and golden sans-serif typography, accompanied by a beige CTA pill button. Brand footer info at the bottom.
+- REFERENCE #28: "Feliz Aniversário Carla Silva" (Modern Festive Design with Tilted Ribbons)
+  Description: Centered portrait of a smiling person wearing a golden cone party hat, with a shiny silver 3D heart-foil balloon. The background features a giant, cropped, high-contrast block text of "PARABÉNS". The bottom title is composed of tilted rectangular ribbon banners in high contrast (white and purple) holding the bold text "FELIZ ANIVERSÁRIO" and the name in a heavy sans-serif font.
+- REFERENCE #29: "Copa em Ofertas" (3D June Festival and Sports Thematic Composition)
+  Description: At the top, a 3D wooden-textured sign reading "Copa em Ofertas" decorated with a 3D June festival balloon, bonfire, and flags on one side, and a 3D soccer ball and golden trophy on the other. Yellow textured soccer field lines background. Below, photos of smiling fans in Brazil soccer jerseys with face paint holding a remote control.
+- REFERENCE #30: "Dia da Grande Final (Copa)" (Minimalist Sports Poster with Trophy Spotlight)
+  Description: Dark green textured background with a massive, very low-contrast text of "BRASIL ARGENTINA". In the center, a highly detailed 3D golden World Cup trophy with realistic contact shadows, flanked by flags of Brazil and Argentina. At the top, the title "DIA DA GRANDE FINAL" in a vibrant neon lime-green and white condensed sans-serif font, and date footer at the bottom.
 
 GENERATION RULES FOR OPTION 3:
-1. Select the single Reference ID (#01 to #25) that fits the post context best.
+1. Select the single Reference ID (#01 to #30) that fits the post context best.
 2. Build the entire prompt composition strictly following the selected reference's Visual Description.
 3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
 4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
