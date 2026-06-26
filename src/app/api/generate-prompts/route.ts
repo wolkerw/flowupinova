@@ -156,30 +156,51 @@ BRAND KIT ALIGNMENT (MANDATORY):
 MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
  
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI STYLE ALIGNED TO NICHE)
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A premium, modern graphic design composition focusing on a stylized object, equipment, or conceptual symbol DIRECTLY associated with the brand's niche and products (CRITICAL: Do NOT show random abstract shapes. For blinds/curtains, show a stylized designer blind panel, decorative curtain rods, or window frames. For audio, show a sleek retro microphone. For dental, show a stylized tooth model. The central elements can be represented as a 3D object, a clean flat 2D layout, or an elegant line art composition).
-STYLE & LAYOUT:
-- **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements (such as frosted glass panels, floating geometric shapes, flat vectors, or thin lines representing the brand's niche), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
-- **Designi Commercial Standard:** Organize the scene with a clean advertising layout, maintaining a strong visual hierarchy. Add soft, realistic contact shadows cast by the object and platforms to ground them naturally.
-- **Negative Space:** Maintain 45-55% of the frame as clean negative space (smooth backdrop) for text placement.
-- **High-End Typographic Design (Differentiated Text Layout):** The literal text/title must be treated as a premium graphic design piece, integrated creatively into the composition. Choose one of these styles:
-  1. *Editorial Magazine Style:* Make the main word of the title gigantic, bold, and in uppercase, aligned to a side, while the rest of the text is smaller and elegant, creating a layout that looks like a luxury design portfolio (Behance) or a premium magazine cover.
-  2. *3D Spatial Depth:* Position the 3D-styled text so it sits behind some floating glassmorphism panels or behind the central object, intersecting naturally to build visual depth.
-  3. *Badge/Pill Accent:* Frame the main keyword of the title inside a clean geometric shape (like a colored pill capsule, rounded rectangle badge, or a minimalist border outline) using the brand's primary color, giving it a strong sticker/advertising pop.
-  4. *Float Card with Giant Background Text:* Frame the message inside a rounded white/light floating card. Directly behind this card, place massive, bold background text (the main keyword) in a vibrant brand color, partially cropped/cut off by the image borders, creating a strong multi-layered advertising look (like a modern notice/reminder).
-  5. *Asymmetrical Contrast Style (Sports/Promo):* Render the title with extreme contrast. Make one key letter (like a giant letter "X") much larger, tilted, and colored in the brand's primary yellow or orange, while the remaining words are stacked in clean, thick, white block lines. Add small decorative badges (like tiny flag icons or badges) next to the text.
-  6. *Neon Event Style:* Render the text with a gorgeous vertical color gradient (such as vibrant orange-to-pink or electric blue-to-purple) with a soft glowing backlight behind the letters, making the typography pop out dynamically.
-  7. *3D Physical Material Style:* Render the main words of the literal text using a highly detailed, volumetric cursive font resembling realistic physical materials aligned with the niche (e.g. for a rustic/festive theme, render the text as a thick, detailed brown and blue braided rope with realistic fiber textures and contact shadows).
-  8. *High-Fashion Serif Contrast:* Display the main word of the title in a massive, elegant modern Serif typeface with high stroke contrast, rendered in a soft pastel coral/orange color, while the secondary words are styled small and clean. Add subtle 3D shapes (like heart/star models) floating gently on the image edges.
-  9. *Asymmetrical Compact Stack:* Stack the words of the title vertically in a tight, asymmetric block using ultra-bold, condensed sans-serif letters, alternating colors between the brand's primary yellow and secondary blue, paired with iconic 3D elements (like a golden trophy or shield).
-  10. *Clean Info Card with 3D Props:* Present the dates or key text organized inside distinct, realistic 3D calendar sheet cards or geometric badges, combined with sleek 3D graphic accents (like stars, checkmarks, or calendars) on a clean, modern backdrop.
-  11. *Split-Layout with Giant Lateral Title:* Place a vertical blue/brand colored card/container on one side holding the details of the post, while a massive keyword of the title is placed in the background in a bold color, extending out and cropped by the image borders.
-  12. *3D Intersecting Object Text:* Position the central 3D thematic object (like a colored ribbon, a product model, or an icon) right in the center of the image, overlapping and partially cutting through a massive, bold title text placed in the background, creating strong spatial depth.
-  13. *Tilted Polaroid with 3D Balloon Accents:* Place the main photo/subject inside a white tilted photo frame (Polaroid border). Frame the scene with highly realistic, shiny 3D inflated foil star/heart balloons floating near the image edges, casting soft shadows.
-  14. *Stacked Thematic Vertical Cards:* Present the key selling points or text within distinct, vertical rounded dark/light blue cards overlapping each other, combined with clean minimal icons and a doctor/subject photo on the right.
-  15. *Compact Retail Text Boxes:* Render the title stacked as compact, rectangular colored text blocks of high contrast (like purple text on a yellow block). Surround the layout with floating realistic foods/products (like pizza or burger models) and 3D soccer balls for a dynamic promo style.
-  16. *3D Inflated Plastic Toy Typography:* Render the main title in giant, glossy 3D volumetric letters that look like inflated soft plastic or vinyl toys (vibrant blue and yellow). Accompany the text with matching cartoony 3D elements (like golden coins, small shopping carts, or stars).
+SUBJECT & STYLE SELECTION:
+You MUST review the 15 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 for romantic/dating themes, #05 or #06 for traditional/São João themes, #02 or #08 for sports/competition, #15 for bright cartoonish retail promos, #10 for hiring/recruitment, etc.).
+
+# VISUAL DESIGN REFERENCE CATALOG:
+- REFERENCE #01: "Card de Aviso Tridimensional" (Card Clean com Fundo de Texto Gigante)
+  Description: A clean floating white card with rounded corners containing the message. Behind the card, there is a giant background title (e.g. "AVISO" in a vibrant color) partially cropped. A small 3D alert warning element sits on top of the card, and a yellow pill-shaped button is at the bottom.
+- REFERENCE #02: "Confronto Esportivo Minimalista" (Tipografia Assimétrica de Alto Contraste)
+  Description: A highly asymmetrical and contrast-heavy title with a giant tilted "X" character in the brand's primary color (e.g. yellow or orange) separating two stacked team/brand names. The stacked names are rendered in thick, bold, clean white block letters with small country flags or minimal badges placed right next to them.
+- REFERENCE #03: "Flyer Esportivo Vibrante" (Composição Multicamadas de Colagem)
+  Description: A multi-layered collage/stencil style banner. Cut-out silhouettes of subjects or products layered with sharp high-contrast geometric borders. The main title is rendered in thick, solid, uppercase geometric letters at the top, accompanied by dates or tags enclosed in small green and yellow badges.
+- REFERENCE #04: "Banner de Eventos Noturnos" (Texto com Gradiente de Neon e Luz)
+  Description: A main title rendered in a bold condensed sans-serif font featuring a vibrant vertical color gradient (e.g., orange-to-pink or peach) with a soft glowing backlight behind the letters, casting atmospheric rim light on surrounding props or subjects.
+- REFERENCE #05: "Design Festivo Temático" (Fonte Orgânica Bold de Alto Impacto)
+  Description: A thick organic, playful sans-serif font for the main title, alternating colors between white and a bright brand color. Characterized by decorative elements integrated into the text (like a small hat, star, or banner overlaying a letter). Placed on a high-contrast background pattern (like checkered fabric or stripes) with decorative flags hanging from the top.
+- REFERENCE #06: "Viva São João Tridimensional" (Texto de Material Físico Realista - Corda)
+  Description: Main title written in a volumetric 3D script/cursive font mimicking a realistic braided rope (brown and blue fibers) with realistic fiber textures, casting soft contact shadows on the background. Surrounded by matching 3D thematic elements (e.g. small bonfires or lanterns) on the sides.
+- REFERENCE #07: "Story Dia dos Namorados" (Serifada Elegante de Alta Moda / Luxo)
+  Description: A high-fashion modern serif typeface for the main word of the title, showing high stroke contrast, rendered in a soft pastel coral/orange color. The background is clean and light, with a few delicate 3D heart or star models floating gently near the screen edges.
+- REFERENCE #08: "Vista a sua Camisa" (Blocos de Texto Condensados Empilhados)
+  Description: The title words are stacked vertically in a tight, compact, asymmetric block using ultra-bold condensed sans-serif letters, alternating colors between the brand's primary yellow and secondary blue, accompanied by iconic 3D props (like a golden trophy or shield).
+- REFERENCE #09: "Informativo Decreto Municipal" (Visual Limpo com Folhas de Calendário 3D)
+  Description: A clean informational layout with structured 3D calendar sheets or rounded geometric cards displaying dates/text in high detail, combined with glossy 3D stars, checkmarks, or calendar accents on a clean, modern solid-color backdrop.
+- REFERENCE #10: "Vagas Abertas Vendedor" (Layout Dividido com Texto Gigante Lateral)
+  Description: An asymmetrical split layout featuring a vertical colored container (holding text/bullet points) on one side, and a clean professional photo/subject on the other. In the background, a massive keyword of the title is rendered in a bold brand color, extending out and cropped by the image borders.
+- REFERENCE #11: "Conceito Orgulho Autista" (Texto de Fundo com Objeto 3D Interseccionado)
+  Description: A textured paper backdrop with a central, highly detailed 3D thematic symbol (like a colorful infinity loop or ribbon). Positioned right in the center of the image, the 3D symbol intersects and overlaps a massive, bold title text placed directly in the background, creating strong spatial depth.
+- REFERENCE #12: "Aniversariante Sarah Silva" (Polaroid Inclinada com Balões Estrelas 3D)
+  Description: A central tilted white photo frame (Polaroid style) displaying the portrait/subject. The scene is framed by realistic, highly shiny 3D inflated foil star/heart balloons floating near the edges, casting soft shadows, and giant background text peeking from the side.
+- REFERENCE #13: "Cuidado da Saúde" (Cards de Tópicos Flutuantes Sobrepostos)
+  Description: A subject photo positioned on one side. On the other side, multiple vertical, rounded, overlapping card panels holding the text, paired with clean minimalist vector icons inside colored circular badges. The backdrop features subtle medical/abstract line graphics.
+- REFERENCE #14: "Torça com Muita Pizza" (Caixas Retangulares Alinhadas - Promo/Varejo)
+  Description: A retail promo style layout with a vertical stack of compact, rectangular colored text blocks of high contrast (e.g. purple text on a yellow block). Surrounded by floating realistic foods/products (like pizza or burger models) and 3D sports balls.
+- REFERENCE #15: "Ofertas do Dia Supermercado" (Tipografia de Plástico Inflado 3D Brilhante)
+  Description: The main title is rendered in giant, glossy 3D volumetric letters that look like inflated soft plastic or vinyl toys (e.g. vibrant blue and yellow). The letters are surrounded by cartoony 3D elements (like golden coins, small shopping carts, or stars).
+
+GENERATION RULES FOR OPTION 3:
+1. Select the single Reference ID (#01 to #15) that fits the post context best.
+2. Build the entire prompt composition strictly following the selected reference's Visual Description.
+3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
+4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
+5. Apply the brand's primary and secondary colors (translated to plain English names) to the key elements, backgrounds, or gradients.
+6. MANDATORY PROHIBITION: Do NOT include real people unless specified in the selected reference (e.g. references #03, #10, #13 allow subjects, but most references do not). Do not use generic corporate layouts.
+
 CAMERA & LENS:
 - Front-facing flat graphic composition OR elegant 30-degree isometric view.
 - Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
@@ -188,7 +209,6 @@ LIGHTING:
 BRAND KIT ALIGNMENT (MANDATORY):
 - The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
 - The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT include real people. Do NOT use random abstract shapes that have no connection to the post's topic.
 
 
 ${brandingInstruction}
