@@ -255,6 +255,7 @@ ${inspirationYaml}
 - SCENARIO & LIGHTING: Mimic the lighting style (e.g., studio soft lights, warm gel accents), scene details, textures, and backdrop of the inspiration reference.
 - BRAND PERSONALIZATION: Stylize the scene with the brand's primary and secondary colors (e.g. golden yellow, deep blue) in props, backgrounds, or lighting accents.
 - CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
+- ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo || ""}"), which must be printed exactly once. Copying text from the reference print is strictly prohibited.
 - NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.
 `;
     } else {
