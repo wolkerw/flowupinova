@@ -21,6 +21,7 @@ import {
   User,
 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { useWizard } from "../context/WizardContext";
 
 const PackshotAnimationDemo = () => {
@@ -771,14 +772,18 @@ export const Step1Idea = () => {
 
   const hideImageOption = mode === "concept";
   const hideTextOption = mode === "reference-photo";
-  const isLinkMode = mode === "reference-link";
+  const isLinkMode = mode === "reference-link" || mode === "reference-inspiration";
   const isHybridMode = mode === "reference-hybrid";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const secondaryFileInputRef = useRef<HTMLInputElement>(null);
 
   // Preenche a descrição padrão automaticamente se estiver em branco no modo de referência
   React.useEffect(() => {
-    if (isLinkMode && !referenceDescription.trim()) {
+    if (mode === "reference-inspiration" && !referenceDescription.trim()) {
+      onReferenceDescriptionChange(
+        "Criar um post profissional mantendo fielmente o layout, as cores, o cenário e a estrutura da referência de inspiração, adaptando a arte conceitualmente para as características de negócios da minha marca."
+      );
+    } else if (isLinkMode && !referenceDescription.trim()) {
       onReferenceDescriptionChange(
         "Criar um post profissional mantendo fielmente o layout, as cores e a estrutura da referência de inspiração, integrando o meu produto ou pessoa de forma perfeitamente harmônica."
       );
@@ -789,6 +794,72 @@ export const Step1Idea = () => {
     }
   }, [isLinkMode, mode, productWorkflow, referenceDescription, onReferenceDescriptionChange]);
 
+  React.useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            imageFile = file;
+            break;
+          }
+        }
+      }
+
+      if (!imageFile) return;
+
+      // Direcionar inteligentemente com base no modo ativo
+      if (mode === "concept") {
+        onInspirationFileChange?.(imageFile);
+        onReferenceLinkChange?.(URL.createObjectURL(imageFile));
+      } else if (isLinkMode) {
+        if (!referenceLink) {
+          onInspirationFileChange?.(imageFile);
+          onReferenceLinkChange?.(URL.createObjectURL(imageFile));
+        } else if (!referenceImagePreview) {
+          onReferenceImageChange(imageFile);
+        }
+      } else if (mode === "reference-photo") {
+        if (!referenceImagePreview) {
+          onReferenceImageChange(imageFile);
+        } else if (productWorkflow === "packshot-hybrid" && !secondaryReferenceImagePreview) {
+          onSecondaryReferenceImageChange(imageFile);
+        }
+      } else if (isHybridMode) {
+        if (!referenceImagePreview) {
+          onReferenceImageChange(imageFile);
+        } else if (!secondaryReferenceImagePreview) {
+          onSecondaryReferenceImageChange(imageFile);
+        }
+      } else {
+        if (!referenceImagePreview) {
+          onReferenceImageChange(imageFile);
+        }
+      }
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, [
+    mode,
+    isLinkMode,
+    isHybridMode,
+    productWorkflow,
+    referenceLink,
+    referenceImagePreview,
+    secondaryReferenceImagePreview,
+    onInspirationFileChange,
+    onReferenceLinkChange,
+    onReferenceImageChange,
+    onSecondaryReferenceImageChange,
+  ]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -798,17 +869,19 @@ export const Step1Idea = () => {
 
   const isButtonDisabled =
     isLoading ||
-    (isLinkMode
-      ? !referenceLink || !referenceImagePreview
-      : mode === "reference-photo"
-        ? (!productWorkflow
-          ? true
-          : productWorkflow === "packshot-hybrid"
+    (mode === "reference-inspiration"
+      ? !referenceLink
+      : isLinkMode
+        ? !referenceLink || !referenceImagePreview
+        : mode === "reference-photo"
+          ? (!productWorkflow
+            ? true
+            : productWorkflow === "packshot-hybrid"
+              ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
+              : (!referenceImagePreview || !referenceDescription.trim()))
+          : isHybridMode
             ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
-            : (!referenceImagePreview || !referenceDescription.trim()))
-        : isHybridMode
-          ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
-          : (!postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()))
+            : (!postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()))
   );
 
   return (
@@ -891,12 +964,16 @@ export const Step1Idea = () => {
 
           {isLinkMode && (
             <div className="space-y-6">
-              <p className="text-sm text-gray-600">
-                Para criar o seu post com o layout perfeito, envie o print do post que você gostou
-                (Inspiração) e a foto do seu produto ou pessoa (Conteúdo).
+              <p className="text-sm text-gray-600 text-center">
+                {mode === "reference-inspiration"
+                  ? "Para criar o seu post conceitual, envie o print do post que você gostou como inspiração."
+                  : "Para criar o seu post com o layout perfeito, envie o print do post que você gostou (Inspiração) E a foto do seu produto ou pessoa (Conteúdo)."}
               </p>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className={cn(
+                "grid grid-cols-1 gap-6",
+                mode === "reference-inspiration" ? "max-w-xl mx-auto w-full" : "md:grid-cols-2"
+              )}>
                 {/* 1. Print de Inspiração */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
@@ -927,7 +1004,7 @@ export const Step1Idea = () => {
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
                       <p className="text-center text-xs font-bold text-gray-700">
-                        Clique para carregar o print de inspiração
+                        Clique para carregar ou cole (Ctrl+V) o print de inspiração
                       </p>
                       <p className="mt-1 text-[10px] text-gray-400">
                         PNG, JPG de posts do Instagram, etc.
@@ -959,59 +1036,61 @@ export const Step1Idea = () => {
                   )}
                 </div>
 
-                {/* 2. Foto do Produto ou Pessoa */}
-                <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Box className="h-5 w-5 text-blue-500" />
-                    <Label className="text-base font-bold">2. Foto do seu Produto ou Pessoa</Label>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    A foto do seu produto real, pessoa ou modelo que será recortada e inserida na
-                    arte de destino.
-                  </p>
-
-                  {!referenceImagePreview ? (
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
-                    >
-                      <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-center text-xs font-bold text-gray-700">
-                        Clique para carregar a foto do produto/modelo
-                      </p>
-                      <p className="mt-1 text-[10px] text-gray-400">
-                        Tire uma foto nítida e bem iluminada.
-                      </p>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
+                {/* 2. Foto do Produto ou Pessoa (apenas se não for modo inspiração puro) */}
+                {mode !== "reference-inspiration" && (
+                  <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Box className="h-5 w-5 text-blue-500" />
+                      <Label className="text-base font-bold">2. Foto do seu Produto ou Pessoa</Label>
                     </div>
-                  ) : (
-                    <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                      <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
-                        <Image
-                          src={referenceImagePreview}
-                          alt="Produto"
-                          layout="fill"
-                          objectFit="cover"
-                          unoptimized
+                    <p className="text-xs text-gray-500">
+                      A foto do seu produto real, pessoa ou modelo que será recortada e inserida na
+                      arte de destino.
+                    </p>
+
+                    {!referenceImagePreview ? (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
+                      >
+                        <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                        <p className="text-center text-xs font-bold text-gray-700">
+                          Clique para carregar ou cole (Ctrl+V) a foto do produto/modelo
+                        </p>
+                        <p className="mt-1 text-[10px] text-gray-400">
+                          Tire uma foto nítida e bem iluminada.
+                        </p>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
                         />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => onReferenceImageChange(null)}
-                      >
-                        Trocar imagem
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                        <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                          <Image
+                            src={referenceImagePreview}
+                            alt="Produto"
+                            layout="fill"
+                            objectFit="cover"
+                            unoptimized
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => onReferenceImageChange(null)}
+                        >
+                          Trocar imagem
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1043,7 +1122,7 @@ export const Step1Idea = () => {
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar a selfie</p>
+                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar ou cole (Ctrl+V) a selfie</p>
                       <p className="mt-1 text-[10px] text-gray-400">PNG, JPG com boa iluminação.</p>
                       <input
                         type="file"
@@ -1086,7 +1165,7 @@ export const Step1Idea = () => {
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar o produto/projeto</p>
+                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar ou cole (Ctrl+V) o produto/projeto</p>
                       <p className="mt-1 text-[10px] text-gray-400">PNG, JPG do produto ou arquitetura.</p>
                       <input
                         type="file"
@@ -1147,6 +1226,69 @@ export const Step1Idea = () => {
                 value={postSummary}
                 onChange={(e) => onPostSummaryChange(e.target.value)}
               />
+
+              {/* Seção opcional de Print de Inspiração para o modo conceito */}
+              {mode === "concept" && (
+                <div className="mt-6 space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm max-w-xl mx-auto w-full">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
+                    <Label className="text-base font-bold">Print de Inspiração / Referência Visual (Opcional)</Label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Gostou de alguma postagem nas redes sociais? Envie o print dela e a IA gerará uma opção de imagem inspirada no mesmo layout, cenário e cores de composição.
+                  </p>
+
+                  {!referenceLink ? (
+                    <div
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            onInspirationFileChange?.(file);
+                            onReferenceLinkChange?.(URL.createObjectURL(file));
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
+                    >
+                      <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                      <p className="text-center text-xs font-bold text-gray-700">
+                        Clique para carregar ou cole (Ctrl+V) o print de inspiração
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        PNG, JPG de posts do Instagram, etc. (Opcional)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative flex h-40 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                      <div className="relative h-24 w-24 overflow-hidden rounded border shadow-sm">
+                        <Image
+                          src={referenceLink}
+                          alt="Print de Referência"
+                          layout="fill"
+                          objectFit="cover"
+                          unoptimized
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => {
+                          onInspirationFileChange?.(null);
+                          onReferenceLinkChange?.("");
+                        }}
+                      >
+                        Remover print
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

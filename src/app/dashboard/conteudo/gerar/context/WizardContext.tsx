@@ -571,22 +571,36 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     let textToGenerate = (typeof summary === "string" ? summary : null) || postSummary;
 
-    if (mode === "reference-link" && !summary) {
-      if (!inspirationFile || !referenceDescription.trim()) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, envie uma imagem de inspiração e descreva o que deseja.",
-        });
-        return null;
+    if ((mode === "reference-link" || (mode === "concept" && inspirationFile)) && !summary) {
+      if (mode === "concept") {
+        if (!postSummary.trim()) {
+          toast({
+            title: "Campos obrigatórios",
+            description: "Por favor, descreva a ideia do seu conteúdo.",
+          });
+          return null;
+        }
+      } else {
+        if (!inspirationFile || !referenceDescription.trim()) {
+          toast({
+            title: "Campos obrigatórios",
+            description: "Por favor, envie uma imagem de inspiração e descreva o que deseja.",
+          });
+          return null;
+        }
       }
       setIsLoading(true);
       try {
         const formData = new FormData();
-        formData.append("inspiration_file", inspirationFile);
+        if (inspirationFile) {
+          formData.append("inspiration_file", inspirationFile);
+        }
 
-        const combinedDescription = postSummary.trim()
-          ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
-          : referenceDescription;
+        const combinedDescription = mode === "concept"
+          ? postSummary.trim()
+          : postSummary.trim()
+            ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
+            : referenceDescription;
 
         formData.append("description", combinedDescription);
         formData.append("user_id", user?.uid || "");
@@ -876,15 +890,31 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         // Modo conceito (sem referenceImageFile)
         console.log("[WIZARD] Gerando prompts para o modo conceito...");
-        const response = await fetch("/api/generate-prompts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: selContent,
-            businessProfile: businessProfile,
-            userId: user.uid,
-          }),
-        });
+        let response;
+        if (inspirationFile) {
+          const formData = new FormData();
+          formData.append("content", JSON.stringify(selContent));
+          if (businessProfile) {
+            formData.append("businessProfile", JSON.stringify(businessProfile));
+          }
+          formData.append("userId", user.uid);
+          formData.append("inspiration_file", inspirationFile);
+
+          response = await fetch("/api/generate-prompts", {
+            method: "POST",
+            body: formData,
+          });
+        } else {
+          response = await fetch("/api/generate-prompts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: selContent,
+              businessProfile: businessProfile,
+              userId: user.uid,
+            }),
+          });
+        }
         const data = await response.json();
         const generatedPrompts = data?.[0]?.output?.prompt;
 

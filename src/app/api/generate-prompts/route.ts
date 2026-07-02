@@ -5,7 +5,26 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { content: selContent, businessProfile, userId } = await request.json();
+    let selContent: any = null;
+    let businessProfile: any = null;
+    let userId = "";
+    let inspirationFile: File | null = null;
+
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const contentStr = formData.get("content") as string;
+      if (contentStr) selContent = JSON.parse(contentStr);
+      const profileStr = formData.get("businessProfile") as string;
+      if (profileStr) businessProfile = JSON.parse(profileStr);
+      userId = formData.get("userId") as string || "";
+      inspirationFile = formData.get("inspiration_file") as File | null;
+    } else {
+      const body = await request.json();
+      selContent = body.content;
+      businessProfile = body.businessProfile;
+      userId = body.userId;
+    }
 
     if (!selContent) {
       return NextResponse.json({ error: "Conteúdo da publicação não enviado" }, { status: 400 });
@@ -64,6 +83,69 @@ ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
         }
       } catch (err: any) {
         console.warn(`[GENERATE_PROMPTS_WARN] Falha ao buscar prompts aprovados do Firestore:`, err.message || err);
+      }
+    }
+
+    let inspirationYaml = "";
+    let inlineDataPart: any = null;
+    let base64Image = "";
+    let mimeType = "";
+
+    if (inspirationFile) {
+      try {
+        console.log("[GENERATE_PROMPTS] Processando arquivo de inspiração para análise visual...");
+        const arrayBuffer = await inspirationFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        mimeType = inspirationFile.type || "image/jpeg";
+        base64Image = buffer.toString("base64");
+
+        inlineDataPart = {
+          inlineData: {
+            mimeType: mimeType,
+            data: base64Image
+          }
+        };
+
+        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
+Determine the composition layout, model poses (if any), colors, scenery, lighting types, text placement areas, and other stylistic features.
+Return the description strictly in YAML format containing:
+  composition_layout: (e.g. split screen, center focus, overlapping card)
+  lighting_style: (e.g. warm side light, studio soft lights)
+  color_palette: (describe prominent color names and tones)
+  scene_details: (describe textures, background elements, furniture, outdoor/indoor setting)
+  text_areas: (where the text is positioned)
+  visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: geminiAnalysisPrompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Image
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          console.log("[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso.");
+        } else {
+          console.error("[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:", await response.text());
+        }
+      } catch (e: any) {
+        console.warn("[GENERATE_PROMPTS_WARN] Falha ao processar arquivo de inspiração:", e.message || e);
       }
     }
 
@@ -160,45 +242,24 @@ Instruct the typography to be rendered using the specified Primary Font for titl
 `;
     }
 
-    // 1. Prompt do Diretor de Arte Otimizador de Prompts
-    const systemInstructionText = `
-You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
+    let option3Text = "";
+    if (inspirationYaml) {
+      option3Text = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You MUST analyze the provided YAML description and visual cues of the user's inspiration reference print (which is provided in the input image):
+${inspirationYaml}
 
-# CORE MISSION
-Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
-CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 3 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
-
+- DECONSTRUCT COMPOSITION & LAYOUT: Replicate the layout, camera angle, subject placement, and scene structure described in the YAML and visible in the input image.
+- SCENARIO & LIGHTING: Mimic the lighting style (e.g., studio soft lights, warm gel accents), scene details, textures, and backdrop of the inspiration reference.
+- BRAND PERSONALIZATION: Stylize the scene with the brand's primary and secondary colors (e.g. golden yellow, deep blue) in props, backgrounds, or lighting accents.
+- CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
+- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.
+`;
+    } else {
+      option3Text = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: One or two REAL people (professional workers, satisfied customers, athletes, entrepreneurs — chosen based on the post topic) with confident, natural body language and expressions.
-CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slightly low angle for authority, OR eye-level for approachability.
-LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
-SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
-LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
-COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
-MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
-STYLE & LAYOUT:
-- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
-- **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
-- **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
-- **Typographic Integration (Differentiated Text Layout):** The literal text/title must NOT just be placed in a straight line at the bottom. Instead, integrate it dynamically into the scene. For example, render the text using a combination of a bold heading font for the main word and a light font for the secondary words (typographic contrast). Place the text aligned to the negative space side, using the brand's primary color for the key highlighted word and white or the secondary color for the rest.
-CAMERA & LENS:
-- Medium shot (waist up) or close-up portrait.
-- 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
-LIGHTING:
-- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the graphics for a seamless visual blend.
-BRAND KIT ALIGNMENT (MANDATORY):
-- The graphic shapes, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
-- The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
- 
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SUBJECT & STYLE SELECTION:
@@ -282,7 +343,48 @@ LIGHTING:
 BRAND KIT ALIGNMENT (MANDATORY):
 - The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
 - The text overlay must match the brand's typography.
+`;
+    }
 
+    // 1. Prompt do Diretor de Arte Otimizador de Prompts
+    const systemInstructionText = `
+You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
+
+# CORE MISSION
+Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
+CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 3 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: One or two REAL people (professional workers, satisfied customers, athletes, entrepreneurs — chosen based on the post topic) with confident, natural body language and expressions.
+CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slightly low angle for authority, OR eye-level for approachability.
+LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
+SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
+LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
+COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
+MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
+STYLE & LAYOUT:
+- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
+- **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
+- **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
+- **Typographic Integration (Differentiated Text Layout):** The literal text/title must NOT just be placed in a straight line at the bottom. Instead, integrate it dynamically into the scene. For example, render the text using a combination of a bold heading font for the main word and a light font for the secondary words (typographic contrast). Place the text aligned to the negative space side, using the brand's primary color for the key highlighted word and white or the secondary color for the rest.
+CAMERA & LENS:
+- Medium shot (waist up) or close-up portrait.
+- 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
+LIGHTING:
+- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the graphics for a seamless visual blend.
+BRAND KIT ALIGNMENT (MANDATORY):
+- The graphic shapes, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The text overlay must match the brand's typography.
+MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
+ 
+${option3Text}
 
 ${approvedPromptsExamples}
 
@@ -294,7 +396,7 @@ ${brandingInstruction}
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
    - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
    - Correct format example: ...with the literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in a high-end editorial layout, where the word "DESTAQUE" (which is already inside the title) is styled in massive bold uppercase using the brand's primary color, and the rest of the title text is aligned cleanly below it in white...
-   - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title, and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" in bold.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once."
+   - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${selContent.titulo}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word (such as the company name or the word 'empresa') is written or repeated twice on the canvas. The text must read exactly '${selContent.titulo}' and nothing else."
    - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
      - You MUST check every letter with an accent in the title (like á, é, í, ó, ú, ç, ã, õ, ê, ô) and describe it explicitly in English so the image generator doesn't make mistakes.
      - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
@@ -333,6 +435,11 @@ ${brandingInstruction}
           `[GENERATE_PROMPTS] Enviando requisição para a API do Gemini usando modelo: ${model}...`
         );
 
+        const userParts: any[] = [{ text: `Conteúdo da publicação:\n${summaryText}` }];
+        if (inlineDataPart) {
+          userParts.push(inlineDataPart);
+        }
+
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: {
@@ -345,7 +452,7 @@ ${brandingInstruction}
             contents: [
               {
                 role: "user",
-                parts: [{ text: `Conteúdo da publicação:\n${summaryText}` }],
+                parts: userParts,
               },
             ],
             generationConfig: {

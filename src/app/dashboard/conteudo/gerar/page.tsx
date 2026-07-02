@@ -25,7 +25,7 @@ function WizardContent() {
     mode,
   } = useWizard();
 
-  const isReferenceMode = mode === "reference-photo" || mode === "reference-link" || mode === "reference-hybrid";
+  const isReferenceMode = mode === "reference-photo" || mode === "reference-link" || mode === "reference-hybrid" || mode === "reference-inspiration";
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
   const wizardSteps = isSyncImageMode
