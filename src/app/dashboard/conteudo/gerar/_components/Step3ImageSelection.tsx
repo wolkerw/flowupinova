@@ -41,9 +41,7 @@ export const Step3ImageSelection = () => {
   const maxImages = inspirationFile ? 1 : 2;
 
   // Texto pré-carregado da Etapa 2 para o editor de textos
-  const initialTextForEditor = selectedContent
-    ? `${selectedContent.titulo}\n\n${selectedContent.subtitulo}`
-    : "";
+  const initialTextForEditor = selectedContent?.titulo || "";
 
   // Slot name da imagem selecionada para o inpainting
   const selectedSlotName = selectedImage
