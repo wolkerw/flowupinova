@@ -7,10 +7,16 @@ export async function POST(request: NextRequest) {
   const target = request.nextUrl.searchParams.get("target");
   let webhookUrl = "";
 
-  if (target === "gerador_imagem_referencia") {
-    webhookUrl = `${request.nextUrl.origin}/api/conteudo/gerar-referencia`;
-  } else if (target === "gerador_link_referencia") {
-    webhookUrl = `${request.nextUrl.origin}/api/conteudo/gerar-referencia?action=generate-ideas`;
+  if (target === "gerador_imagem_referencia" || target === "gerador_link_referencia") {
+    const isProd = process.env.NODE_ENV === "production";
+    const port = process.env.PORT || "3000";
+    const baseUrl = isProd ? `http://127.0.0.1:${port}` : request.nextUrl.origin;
+
+    if (target === "gerador_imagem_referencia") {
+      webhookUrl = `${baseUrl}/api/conteudo/gerar-referencia`;
+    } else {
+      webhookUrl = `${baseUrl}/api/conteudo/gerar-referencia?action=generate-ideas`;
+    }
   } else {
     try {
       const settings = await getGlobalSettings();
