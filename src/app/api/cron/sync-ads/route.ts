@@ -4,6 +4,10 @@ import { Timestamp } from "firebase-admin/firestore";
 
 export const dynamic = "force-dynamic";
 
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
   console.log("==============================================");
   console.log("[CRON_SYNC_ADS] Iniciando tarefa agendada global...");
