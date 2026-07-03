@@ -45,7 +45,11 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       setImageLoaded(false);
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = imageUrl;
+      
+      // Usar a rota de download local como proxy para evitar restrições de CORS no canvas
+      const proxyUrl = `/api/download?url=${encodeURIComponent(imageUrl)}`;
+      img.src = proxyUrl;
+
       img.onload = () => {
         imageRef.current = img;
         
@@ -62,6 +66,12 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
         setCanvasDimensions({ width: displayWidth, height: displayHeight });
         setImageLoaded(true);
+      };
+
+      img.onerror = (err) => {
+        console.error("[INPAINT_IMAGE_LOAD_ERROR] Falha ao carregar imagem para o canvas:", err);
+        alert("Não foi possível carregar a imagem para edição. Por favor, tente novamente.");
+        onClose();
       };
     }
   }, [isOpen, imageUrl]);
