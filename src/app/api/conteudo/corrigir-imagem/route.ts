@@ -83,9 +83,9 @@ export async function POST(request: Request) {
     const resultImageUrl = falData?.images?.[0]?.url;
 
     if (!resultImageUrl) {
-      console.error("[CORRIGIR_IMAGEM_ERROR] Fal AI não retornou a URL da imagem corrigida.");
+      console.error("[CORRIGIR_IMAGEM_ERROR] Fal AI não retornou a URL da imagem corrigida. Resposta recebida:", JSON.stringify(falData));
       return NextResponse.json(
-        { success: false, error: "Fal AI não retornou a URL da imagem corrigida." },
+        { success: false, error: "Fal AI não retornou a URL da imagem corrigida.", details: JSON.stringify(falData) },
         { status: 500 }
       );
     }

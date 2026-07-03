@@ -201,7 +201,8 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
         onSuccess(data.imageUrl);
         onClose();
       } else {
-        alert(data.error || "Erro ao corrigir a imagem.");
+        const detailMsg = data.details ? `\n\nDetalhes: ${data.details}` : "";
+        alert(`${data.error || "Erro ao corrigir a imagem."}${detailMsg}`);
       }
     } catch (err: any) {
       console.error("[INPAINT_SUBMIT_ERROR]", err);
