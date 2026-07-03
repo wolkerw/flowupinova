@@ -1,25 +1,34 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, ArrowLeft, ArrowRight, Check, Download } from "lucide-react";
+import { ImageIcon, ArrowLeft, ArrowRight, Check, Download, Paintbrush } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
+import { ImageInpaintModal } from "./ImageInpaintModal";
 
 export const Step3ImageSelection = () => {
   const {
     generatedImages,
+    setGeneratedImages,
     selectedImage,
     setSelectedImage: onSelectedImageChange,
     setStep,
     isGeneratingImages,
     handleDownloadImage: onDownload,
     mode,
+    currentPostId,
+    user,
+    selectedContent,
   } = useWizard();
+
+  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
+  const [activeSlotName, setActiveSlotName] = useState<string>("");
 
   const onBack = () => setStep(2);
   const onNext = () => setStep(4);
@@ -100,6 +109,21 @@ export const Step3ImageSelection = () => {
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
+                {/* Botão de Corrigir Escrita */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageToCorrect(imgSrc);
+                    setActiveSlotName(String(index + 1));
+                    setIsCorrectionOpen(true);
+                  }}
+                  className="absolute left-2 top-2 z-10 h-8 gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 text-[10px] font-semibold bg-slate-900/85 hover:bg-slate-900 text-slate-100 border-none shadow-md"
+                >
+                  <Paintbrush className="h-3.5 w-3.5 text-violet-400" />
+                  Corrigir Escrita
+                </Button>
               </motion.div>
             ))}
 
@@ -190,6 +214,34 @@ export const Step3ImageSelection = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {isCorrectionOpen && activeImageToCorrect && (
+        <ImageInpaintModal
+          isOpen={isCorrectionOpen}
+          onClose={() => {
+            setIsCorrectionOpen(false);
+            setActiveImageToCorrect(null);
+            setActiveSlotName("");
+          }}
+          imageUrl={activeImageToCorrect}
+          postId={currentPostId || ""}
+          userId={user?.uid || ""}
+          fileName={activeSlotName}
+          onSuccess={(newImageUrl) => {
+            setGeneratedImages((prev) => {
+              const updated = [...prev];
+              const idx = parseInt(activeSlotName, 10) - 1;
+              if (idx >= 0 && idx < updated.length) {
+                updated[idx] = newImageUrl;
+              }
+              return updated;
+            });
+            if (selectedImage === activeImageToCorrect) {
+              onSelectedImageChange(newImageUrl);
+            }
+          }}
+        />
+      )}
     </motion.div>
   );
 };
