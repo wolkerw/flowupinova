@@ -52,17 +52,14 @@ export async function POST(request: Request) {
     console.log(`[CORRIGIR_IMAGEM] Iniciando inpainting com Fal AI para post ${postId} (Slot: ${fileName})...`);
     console.log(`[CORRIGIR_IMAGEM] Prompt de Inpainting: ${inpaintPrompt}`);
 
-    // 2. Chamar o SDK do Flux Dev Inpainting da Fal AI (gerenciamento automático de fila)
+    // 2. Chamar o SDK do FLUX.1 [pro] Fill da Fal AI (modelo de inpainting profissional de altíssima qualidade)
     let falData: any = null;
     try {
-      falData = await fal.subscribe("fal-ai/flux/dev/inpainting", {
+      falData = await fal.subscribe("fal-ai/flux-pro/v1/fill", {
         input: {
           image_url: imageUrl,
           mask_url: maskBase64,
           prompt: inpaintPrompt,
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-          strength: 0.95,
         }
       });
     } catch (sdkError: any) {
@@ -73,7 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const resultImageUrl = falData?.images?.[0]?.url;
+    const resultImageUrl = falData?.image?.url || falData?.images?.[0]?.url;
 
     if (!resultImageUrl) {
       console.error("[CORRIGIR_IMAGEM_ERROR] Fal AI não retornou a URL da imagem corrigida. Resposta recebida:", JSON.stringify(falData));
@@ -121,12 +118,13 @@ export async function POST(request: Request) {
         .collection("mediaGallery");
       const galleryMediaId = `${postId}_concept_${fileName}`;
 
-      await galleryRef.doc(galleryMediaId).update({
+      await galleryRef.doc(galleryMediaId).set({
+        id: galleryMediaId,
         url: firebaseDownloadUrl,
         prompt: cleanPrompt,
         correctedPrompt: inpaintPrompt,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
       console.log(`[CORRIGIR_IMAGEM] Firestore catalog atualizado: ${galleryMediaId}`);
 
       // Registrar consumo na API Usage

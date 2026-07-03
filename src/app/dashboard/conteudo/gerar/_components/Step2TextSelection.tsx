@@ -44,6 +44,8 @@ export const Step2TextSelection = () => {
     handleDownloadImage: onDownload,
     mode,
     fluxImageUrl,
+    insertTextOnImage,
+    setInsertTextOnImage,
   } = useWizard();
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
@@ -126,6 +128,39 @@ export const Step2TextSelection = () => {
               ))}
             </RadioGroup>
           )}
+
+          {selectedContentId && generatedContent.length > 0 && (
+            <div className="mt-6 rounded-lg border-2 border-accent/20 bg-accent/5 p-4">
+              <h4 className="mb-2 text-sm font-bold text-gray-900">
+                Deseja inserir este texto na imagem gerada?
+              </h4>
+              <p className="mb-4 text-xs text-gray-600">
+                Você poderá ajustar a posição, fonte e cor do texto após a geração da imagem.
+              </p>
+              <div className="flex gap-4">
+                <Button
+                  variant={insertTextOnImage === true ? "default" : "outline"}
+                  onClick={() => setInsertTextOnImage(true)}
+                  className={cn(
+                    "flex-1 border-accent/50 text-accent hover:bg-accent/10",
+                    insertTextOnImage === true && "bg-accent text-white hover:bg-accent/90"
+                  )}
+                >
+                  Sim, inserir texto
+                </Button>
+                <Button
+                  variant={insertTextOnImage === false ? "default" : "outline"}
+                  onClick={() => setInsertTextOnImage(false)}
+                  className={cn(
+                    "flex-1 border-gray-300 text-gray-700",
+                    insertTextOnImage === false && "bg-gray-800 text-white hover:bg-gray-900 border-transparent"
+                  )}
+                >
+                  Não, apenas a imagem
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex items-end justify-between">
           <Button variant="outline" onClick={() => onBack()}>
@@ -136,6 +171,7 @@ export const Step2TextSelection = () => {
             onClick={() => onNext()}
             disabled={
               !selectedContentId ||
+              insertTextOnImage === null ||
               (isSyncImageMode && (!selectedImage || isGeneratingImages))
             }
             className="bg-accent text-white shadow-md hover:bg-accent/90"
@@ -221,9 +257,9 @@ export const Step2TextSelection = () => {
               </span>
             </div>
             <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-gray-100 text-gray-400">
-              {generatedContent[0]?.url_da_imagem ? (
+              {selectedImage || generatedContent[0]?.url_da_imagem ? (
                 <img
-                  src={generatedContent[0].url_da_imagem}
+                  src={selectedImage || generatedContent[0].url_da_imagem}
                   alt="Post"
                   className="h-full w-full object-cover"
                 />

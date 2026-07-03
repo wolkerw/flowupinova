@@ -48,6 +48,7 @@ import {
   Store,
   Linkedin,
   ChevronDown,
+  Paintbrush,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -60,6 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { ImageInpaintModal } from "../gerar/_components/ImageInpaintModal";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -1359,6 +1361,12 @@ export default function CriarConteudoPage() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isGalleryLoading, setIsGalleryLoading] = useState(false);
 
+  // Estados para correção localizada de escrita (Inpainting) do Post Manual
+  const [manualPostId] = useState(() => "manual_" + Math.random().toString(36).substring(2, 15));
+  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
+  const [activeIndexToCorrect, setActiveIndexToCorrect] = useState<number>(-1);
+
   // Buscar imagens livres da galeria no Firestore
   const fetchGalleryImages = async () => {
     if (!user) return;
@@ -1500,28 +1508,40 @@ export default function CriarConteudoPage() {
       return mediaItem.previewUrl;
     }
 
-    // Se não há logotipo e a imagem já possui publicUrl (veio da galeria), retornamos a URL do storage de imediato
-    if (!logoFile && mediaItem.publicUrl) {
+    const isUrl = (url: string) => url && (url.startsWith("http://") || url.startsWith("https://"));
+    const imageUrl = mediaItem.publicUrl || (isUrl(mediaItem.previewUrl) ? mediaItem.previewUrl : "");
+
+    // Se não há logotipo e a imagem já possui URL remota, retornamos ela de imediato
+    if (!logoFile && imageUrl) {
       console.log(
-        "[MANUAL_GALLERY] Imagem sem logo importada da galeria: pulando webhook e usando URL direta."
+        "[MANUAL_GALLERY] Imagem sem logo com URL remota existente: pulando webhook e usando URL direta."
       );
-      return mediaItem.publicUrl;
+      return imageUrl;
     }
 
     let imageFile = mediaItem.file;
 
-    // Se veio da galeria (size === 0 mas tem publicUrl) e precisa aplicar logo, baixamos os bytes de volta do Storage
-    if (imageFile.size === 0 && mediaItem.publicUrl && logoFile) {
+    // Se veio da galeria ou inpainting (nulo ou sem tamanho, mas com URL) e precisa aplicar logo, baixamos os bytes de volta usando o proxy
+    if ((!imageFile || imageFile.size === 0) && imageUrl && logoFile) {
       try {
-        const response = await fetch(mediaItem.publicUrl);
+        const proxyUrl = `/api/download?url=${encodeURIComponent(imageUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+          throw new Error(`Erro na resposta do proxy: ${response.status}`);
+        }
         const blob = await response.blob();
-        imageFile = new File([blob], mediaItem.file.name || "gallery-image.jpg", {
-          type: blob.type,
+        const name = (mediaItem.file && mediaItem.file.name) || "gallery-image.jpg";
+        imageFile = new File([blob], name, {
+          type: blob.type || "image/jpeg",
         });
       } catch (e) {
-        console.error("Erro ao baixar imagem da galeria para aplicar logo:", e);
+        console.error("Erro ao baixar imagem remota para aplicar logo:", e);
         throw new Error("Não foi possível processar o logotipo nesta imagem da galeria.");
       }
+    }
+
+    if (!imageFile) {
+      throw new Error("Arquivo de imagem inválido para processamento.");
     }
 
     const formData = new FormData();
@@ -2070,11 +2090,28 @@ export default function CriarConteudoPage() {
                             objectFit="cover"
                             className="rounded-md"
                           />
+                          {item.type === "image" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveImageToCorrect(item.previewUrl);
+                                setActiveIndexToCorrect(index);
+                                setIsCorrectionOpen(true);
+                              }}
+                              className="absolute left-1 top-1 rounded-full bg-violet-600 hover:bg-violet-500 p-1.5 text-white shadow-md transition-colors"
+                              title="Editor de Texto"
+                            >
+                              <Paintbrush className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
+                            type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            className="absolute right-1 top-1 rounded-full bg-red-600 hover:bg-red-500 p-1.5 text-white shadow-md transition-colors"
+                            title="Remover imagem"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       ))}
@@ -2917,6 +2954,41 @@ export default function CriarConteudoPage() {
             </Button>
           </div>
         </motion.div>
+      )}
+
+      {isCorrectionOpen && activeImageToCorrect && (
+        <ImageInpaintModal
+          isOpen={isCorrectionOpen}
+          onClose={() => {
+            setIsCorrectionOpen(false);
+            setActiveImageToCorrect(null);
+            setActiveIndexToCorrect(-1);
+          }}
+          imageUrl={activeImageToCorrect}
+          postId={manualPostId}
+          userId={user?.uid || ""}
+          fileName={String(activeIndexToCorrect + 1)}
+          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
+          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          onSuccess={(newUrl) => {
+            if (activeIndexToCorrect !== -1) {
+              setMediaItems((prev) => {
+                const updated = [...prev];
+                updated[activeIndexToCorrect] = {
+                  ...updated[activeIndexToCorrect],
+                  previewUrl: newUrl,
+                  url: newUrl,
+                  publicUrl: newUrl, // Atualiza também o publicUrl para atualizar o preview lateral imediatamente na Etapa 2
+                  file: null as any,
+                };
+                return updated;
+              });
+            }
+            setIsCorrectionOpen(false);
+            setActiveImageToCorrect(null);
+            setActiveIndexToCorrect(-1);
+          }}
+        />
       )}
     </div>
   );
