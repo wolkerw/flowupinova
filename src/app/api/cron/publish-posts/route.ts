@@ -7,6 +7,10 @@ export const dynamic = "force-dynamic";
  * Ponto de entrada da API para o CRON Job.
  * Delega toda a lógica de execução para o cron-service.
  */
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
   console.log("==============================================");
   console.log("[CRON_V2] Rota de CRON recebida.");
