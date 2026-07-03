@@ -144,6 +144,8 @@ interface WizardContextType {
   setFontWeight: (weight: string) => void;
   isItalic: boolean;
   setIsItalic: (italic: boolean) => void;
+  insertTextOnImage: boolean | null;
+  setInsertTextOnImage: (val: boolean | null) => void;
   isUploading: boolean;
 
   // Computed & Refs
@@ -262,6 +264,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontWeight, setFontWeight] = useState("bold");
   const [isItalic, setIsItalic] = useState(false);
+  const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -407,7 +410,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if ((step === 3 || step === 4) && currentPostId && !referenceImageFile && canStartPolling) {
       const poll = async () => {
         attempts++;
-        const filenamesToCheck = ["1", "2", "3"].filter((f) => !foundFilesRef.current.has(f));
+        const targetCount = inspirationFile ? 1 : 2;
+        const baseFilenames = inspirationFile ? ["1"] : ["1", "2"];
+        const filenamesToCheck = baseFilenames.filter((f) => !foundFilesRef.current.has(f));
 
         if (filenamesToCheck.length === 0) {
           setIsGeneratingImages(false);
@@ -459,7 +464,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         await Promise.all(fetchPromises);
 
-        if (foundFilesRef.current.size === 3) {
+        if (foundFilesRef.current.size === targetCount) {
           setIsGeneratingImages(false);
           return true;
         }
@@ -762,7 +767,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
     if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
-      const hasImages = generatedImages && generatedImages.length === 3;
+      const expectedLength = inspirationFile ? 1 : 2;
+      const hasImages = generatedImages && generatedImages.length === expectedLength;
       const hasNoChanges =
         hasImages &&
         postSummary.trim() === lastConceptPromptUsed.trim() &&
@@ -857,7 +863,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           : `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""}`;
           
         promptFormData.append("description", combinedDescription);
-        if (selContent?.titulo) {
+        if (selContent?.titulo && insertTextOnImage !== false) {
           promptFormData.append("title", selContent.titulo);
         }
         if (businessProfile) {
@@ -889,11 +895,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         handleSubmitImageGeneration(fluxPrompt, postId, selContent);
       } else {
         // Modo conceito (sem referenceImageFile)
-        console.log("[WIZARD] Gerando prompts para o modo conceito...");
         let response;
+        const contentForPrompt = insertTextOnImage === false ? { ...selContent, titulo: "", subtitulo: "" } : selContent;
+
         if (inspirationFile) {
           const formData = new FormData();
-          formData.append("content", JSON.stringify(selContent));
+          formData.append("content", JSON.stringify(contentForPrompt));
           if (businessProfile) {
             formData.append("businessProfile", JSON.stringify(businessProfile));
           }
@@ -909,7 +916,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              content: selContent,
+              content: contentForPrompt,
               businessProfile: businessProfile,
               userId: user.uid,
             }),
@@ -1282,13 +1289,14 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           "[WIZARD] Iniciando geração das imagens de forma sequencial via Google Imagen..."
         );
 
-        const filenames = ["1", "2", "3"];
+        const filenames = inspirationFile ? ["1"] : ["1", "2"];
         const imageUrls: string[] = [];
 
         for (let i = 0; i < filenames.length; i++) {
           const fname = filenames[i];
+          const promptIndex = inspirationFile ? 2 : i;
           const singlePrompt = Array.isArray(promptToUse)
-            ? promptToUse[i] || promptToUse[0] || ""
+            ? promptToUse[promptIndex] || promptToUse[0] || ""
             : promptToUse;
 
           console.log(
@@ -1302,7 +1310,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               postId: activePostId,
               fileName: fname,
               userId: user.uid,
-              content: selContent,
+              content: insertTextOnImage === false ? { ...selContent, titulo: "", subtitulo: "" } : selContent,
             }),
           });
 
@@ -1324,12 +1332,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           });
 
           // Delay de 4s entre requisições sequenciais para aliviar taxa de cota do Gemini API para o Imagen 4 Ultra
-          if (fname !== "3") {
+          if (fname !== "2") {
             await new Promise((resolve) => setTimeout(resolve, 4000));
           }
         }
         console.log(
-          "[WIZARD] Sucesso absoluto! As 3 imagens foram geradas e salvas no Firebase Storage:",
+          `[WIZARD] Sucesso absoluto! As ${filenames.length} imagens foram geradas e salvas no Firebase Storage:`,
           imageUrls
         );
 
@@ -1773,7 +1781,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       productWorkflow, setProductWorkflow,
       logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
       showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
-      fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, isUploading,
+      fontFamily, setFontFamily, fontWeight, setFontWeight, isItalic, setIsItalic, insertTextOnImage, setInsertTextOnImage, isUploading,
       mode, user, metaConnection, instagramConnection, linkedinConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
       logoInputRef, foundFilesRef,
       customPrompt, setCustomPrompt, handleSubmitImageGeneration,

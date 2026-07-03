@@ -1,31 +1,52 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, ArrowLeft, ArrowRight, Check, Download } from "lucide-react";
+import { ImageIcon, ArrowLeft, ArrowRight, Check, Download, Paintbrush, Type, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
+import { ImageInpaintModal } from "./ImageInpaintModal";
 
 export const Step3ImageSelection = () => {
   const {
     generatedImages,
+    setGeneratedImages,
     selectedImage,
     setSelectedImage: onSelectedImageChange,
     setStep,
     isGeneratingImages,
     handleDownloadImage: onDownload,
     mode,
+    currentPostId,
+    user,
+    selectedContent,
+    businessProfile,
+    insertTextOnImage,
+    inspirationFile,
   } = useWizard();
 
-  const onBack = () => setStep(2);
-  const onNext = () => setStep(4);
+  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
+  const [activeSlotName, setActiveSlotName] = useState<string>("");
 
-  const isReferenceMode = mode === "reference-photo" || mode === "reference-link";
-  const maxImages = isReferenceMode ? 1 : 3;
+  const onBack = () => setStep(2);
+  const onNext = () => {
+    setStep(4);
+  };
+
+  const maxImages = inspirationFile ? 1 : 2;
+
+  // Texto pré-carregado da Etapa 2 para o editor de textos
+  const initialTextForEditor = selectedContent?.titulo || "";
+
+  // Slot name da imagem selecionada para o inpainting
+  const selectedSlotName = selectedImage
+    ? String((generatedImages.indexOf(selectedImage) + 1) || 1)
+    : "1";
 
   return (
     <motion.div
@@ -48,16 +69,17 @@ export const Step3ImageSelection = () => {
                   ? "Sua imagem publicitária foi criada a partir do seu produto!"
                   : "Aguarde enquanto nossa IA desenha a imagem ideal para o seu post."
                 : generatedImages.length > 0
-                  ? "Selecione a imagem gerada pela IA para usar no seu post."
+                  ? "Selecione uma das imagens geradas pela IA para usar no seu post."
                   : "Clique no botão abaixo para gerar as opções de imagem para o seu post."}
             </p>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Grid de imagens */}
           <div
             className={cn(
               "grid grid-cols-1 gap-4",
-              maxImages === 1 ? "mx-auto w-full max-w-md md:grid-cols-1" : "md:grid-cols-3"
+              maxImages === 1 ? "mx-auto w-full max-w-md md:grid-cols-1" : "md:grid-cols-2"
             )}
           >
             {/* Imagens já geradas com sucesso */}
@@ -76,12 +98,16 @@ export const Step3ImageSelection = () => {
               >
                 <Image
                   src={imgSrc}
-                  alt={`Imagem gerada ${index + 1}`}
+                  alt={`Opção ${index + 1}`}
                   layout="fill"
                   objectFit="cover"
                   className="transition-transform duration-300 group-hover:scale-105"
                   unoptimized
                 />
+                {/* Badge de opção */}
+                <div className="absolute left-2 bottom-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                  Opção {index + 1}
+                </div>
                 {selectedImage === imgSrc && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                     <Check className="h-12 w-12 text-white" />
@@ -100,6 +126,21 @@ export const Step3ImageSelection = () => {
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
+                {/* Botão de Corrigir Escrita */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageToCorrect(imgSrc);
+                    setActiveSlotName(String(index + 1));
+                    setIsCorrectionOpen(true);
+                  }}
+                  className="absolute left-2 top-2 z-10 h-8 gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 text-[10px] font-semibold bg-slate-900/85 hover:bg-slate-900 text-slate-100 border-none shadow-md"
+                >
+                  <Paintbrush className="h-3.5 w-3.5 text-violet-400" />
+                  Editar Texto
+                </Button>
               </motion.div>
             ))}
 
@@ -149,7 +190,7 @@ export const Step3ImageSelection = () => {
                             transition={{ duration: 1.5, repeat: Infinity }}
                             className="text-center text-xs font-semibold leading-tight text-accent"
                           >
-                            Gerando imagem {slotNumber}...
+                            Gerando opção {slotNumber}...
                           </motion.span>
                           <span className="text-center text-[10px] text-muted-foreground">
                             Nossa IA está criando algo especial ✨
@@ -162,7 +203,7 @@ export const Step3ImageSelection = () => {
                             <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
                           </div>
                           <span className="text-center text-xs font-medium text-muted-foreground">
-                            Imagem {slotNumber}
+                            Opção {slotNumber}
                           </span>
                           <span className="text-center text-[10px] text-muted-foreground/60">
                             Na fila...
@@ -175,6 +216,7 @@ export const Step3ImageSelection = () => {
               })}
           </div>
         </CardContent>
+
         <CardFooter className="flex justify-between">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -190,6 +232,39 @@ export const Step3ImageSelection = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Modal de edição de texto sobre imagem (botão hover em cada imagem) */}
+      {isCorrectionOpen && activeImageToCorrect && (
+        <ImageInpaintModal
+          isOpen={isCorrectionOpen}
+          onClose={() => {
+            setIsCorrectionOpen(false);
+            setActiveImageToCorrect(null);
+            setActiveSlotName("");
+          }}
+          imageUrl={activeImageToCorrect}
+          postId={currentPostId || ""}
+          userId={user?.uid || ""}
+          fileName={activeSlotName}
+          initialText={insertTextOnImage ? initialTextForEditor : undefined}
+          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
+          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          onSuccess={(newImageUrl) => {
+            setGeneratedImages((prev) => {
+              const updated = [...prev];
+              const idx = parseInt(activeSlotName, 10) - 1;
+              if (idx >= 0 && idx < updated.length) {
+                updated[idx] = newImageUrl;
+              }
+              return updated;
+            });
+            if (selectedImage === activeImageToCorrect) {
+              onSelectedImageChange(newImageUrl);
+            }
+          }}
+        />
+      )}
+
     </motion.div>
   );
 };
