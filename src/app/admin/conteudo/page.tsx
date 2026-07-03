@@ -18,7 +18,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from "recharts";
 
 interface UserSummary {
   uid: string;
@@ -71,6 +71,16 @@ export default function AdminConteudoPage() {
   // Modais de Visualização
   const [selectedPost, setSelectedPost] = useState<PostItem | null>(null);
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+
+  // Filtros de Gerações Diárias
+  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterDay, setFilterDay] = useState<string>("all");
+
+  // Estatísticas Reais de Gerações (do Firestore apiUsageLogs via API dedicada)
+  const [dailyStats, setDailyStats] = useState<{ date: string; geracoes: number }[]>([]);
+  const [dailyStatsTotal, setDailyStatsTotal] = useState<number>(0);
+  const [dailyStatsLoading, setDailyStatsLoading] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -130,16 +140,43 @@ export default function AdminConteudoPage() {
     }
   }, []);
 
+  const fetchDailyStats = useCallback(async () => {
+    setDailyStatsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterYear !== "all") params.append("year", filterYear);
+      if (filterMonth !== "all") params.append("month", filterMonth);
+      if (filterDay !== "all") params.append("day", filterDay);
+
+      const res = await fetch(`/api/admin/daily-stats?${params.toString()}`);
+
+      if (res.status === 403 || res.status === 401) {
+        window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("Falha ao buscar estatísticas diárias");
+      }
+
+      const data = await res.json();
+      setDailyStats(data.stats ?? []);
+      setDailyStatsTotal(data.total ?? 0);
+    } catch (err: any) {
+      console.error("[FETCH_DAILY_STATS] Erro:", err);
+    } finally {
+      setDailyStatsLoading(false);
+    }
+  }, [filterYear, filterMonth, filterDay]);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchPosts();
+  }, [fetchData, fetchPosts]);
 
-  // Buscar posts sempre que trocar para a aba de explorar
   useEffect(() => {
-    if (activeTab === "explore") {
-      fetchPosts();
-    }
-  }, [activeTab, fetchPosts]);
+    fetchDailyStats();
+  }, [fetchDailyStats]);
 
   // Rankings e Gráficos da aba Stats
   const topImageUsers = [...users].sort((a, b) => b.imagesCount - a.imagesCount).slice(0, 10);
@@ -158,6 +195,9 @@ export default function AdminConteudoPage() {
           (stats.totalPostsPublished / (stats.totalPostsPublished + stats.totalPostsFailed)) * 100
         )
       : null;
+
+  // Processamento de Gerações Diárias com Filtros (Substituído pela API para fidelidade de 100%)
+  const availableYears = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
 
   // Mapeador de usuário para exibir no grid de posts
   const getUserInfo = (userId: string) => {
@@ -207,7 +247,10 @@ export default function AdminConteudoPage() {
             </button>
           )}
           <button
-            onClick={fetchData}
+            onClick={() => {
+              fetchData();
+              fetchDailyStats();
+            }}
             className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
           >
             <RefreshCw className="h-4 w-4" />
@@ -331,6 +374,172 @@ export default function AdminConteudoPage() {
               </ResponsiveContainer>
             </div>
           )}
+
+          {/* Histórico de Gerações por Dia */}
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5 space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-700/40 pb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Histórico de Gerações por Dia
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Acompanhe a quantidade exata de imagens e posts gerados por período.
+                </p>
+              </div>
+
+              {/* Filtros */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Filtro Dia */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Dia</label>
+                  <select
+                    value={filterDay}
+                    onChange={(e) => setFilterDay(e.target.value)}
+                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[70px]"
+                  >
+                    <option value="all">Todos</option>
+                    {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0")).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro Mês */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Mês</label>
+                  <select
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[100px]"
+                  >
+                    <option value="all">Todos</option>
+                    {[
+                      { val: "01", name: "Janeiro" },
+                      { val: "02", name: "Fevereiro" },
+                      { val: "03", name: "Março" },
+                      { val: "04", name: "Abril" },
+                      { val: "05", name: "Maio" },
+                      { val: "06", name: "Junho" },
+                      { val: "07", name: "Julho" },
+                      { val: "08", name: "Agosto" },
+                      { val: "09", name: "Setembro" },
+                      { val: "10", name: "Outubro" },
+                      { val: "11", name: "Novembro" },
+                      { val: "12", name: "Dezembro" },
+                    ].map((m) => (
+                      <option key={m.val} value={m.val}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro Ano */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ano</label>
+                  <select
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[80px]"
+                  >
+                    <option value="all">Todos</option>
+                    {availableYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Limpar Filtros */}
+                {(filterYear !== "all" || filterMonth !== "all" || filterDay !== "all") && (
+                  <button
+                    onClick={() => {
+                      setFilterYear("all");
+                      setFilterMonth("all");
+                      setFilterDay("all");
+                    }}
+                    className="mt-5 rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {dailyStatsLoading ? (
+              <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900/20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-violet-500" />
+                <p className="text-sm text-slate-400">Atualizando histórico de gerações...</p>
+              </div>
+            ) : dailyStats.length > 0 ? (
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Gráfico */}
+                <div className="xl:col-span-2">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={dailyStats}>
+                      <defs>
+                        <linearGradient id="colorGeracoes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#1e293b",
+                          border: "1px solid #334155",
+                          borderRadius: "8px",
+                          color: "#f1f5f9",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="geracoes"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorGeracoes)"
+                        name="Gerações"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Tabela Detalhada com Informações Precisas */}
+                <div className="rounded-lg border border-slate-700 bg-slate-950/40 overflow-hidden flex flex-col max-h-[260px]">
+                  <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 py-2 text-xs font-bold text-slate-300">
+                    <span>Data</span>
+                    <span>Qtd. Gerações</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-800 scrollbar-thin scrollbar-thumb-slate-800">
+                    {dailyStats.map((item) => (
+                      <div key={item.date} className="flex items-center justify-between px-4 py-2 text-xs text-slate-300">
+                        <span className="font-mono">{item.date}</span>
+                        <span className="font-bold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
+                          {item.geracoes} {item.geracoes === 1 ? 'geração' : 'gerações'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-slate-800 bg-slate-900/30 px-4 py-2 flex justify-between text-[10px] text-slate-400 font-medium">
+                    <span>Total do período:</span>
+                    <span className="font-bold text-white">
+                      {dailyStatsTotal} {dailyStatsTotal === 1 ? 'geração' : 'gerações'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-slate-700/60 bg-slate-900/20">
+                <ImageIcon className="h-8 w-8 text-slate-600 mb-2 opacity-50" />
+                <p className="text-slate-400 text-sm font-medium">
+                  Nenhuma geração encontrada
+                </p>
+                <p className="text-xs text-slate-500 max-w-[280px] mt-1 leading-normal">
+                  Não houve registros de criação para o período de filtros selecionados.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Ranking de imagens */}

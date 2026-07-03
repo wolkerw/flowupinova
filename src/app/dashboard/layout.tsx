@@ -80,14 +80,14 @@ const allNavigationItems: {
     icon: LayoutDashboard,
   },
   {
-    title: "Meu Negócio",
-    url: "/dashboard/meu-negocio",
-    icon: Building2,
-  },
-  {
     title: "Conteúdo",
     url: "/dashboard/conteudo",
     icon: FileText,
+  },
+  {
+    title: "Meu Negócio",
+    url: "/dashboard/meu-negocio",
+    icon: Building2,
   },
   {
     title: "Avatar IA",

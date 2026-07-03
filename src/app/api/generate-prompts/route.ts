@@ -1,10 +1,30 @@
 import { NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { content: selContent, businessProfile } = await request.json();
+    let selContent: any = null;
+    let businessProfile: any = null;
+    let userId = "";
+    let inspirationFile: File | null = null;
+
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const contentStr = formData.get("content") as string;
+      if (contentStr) selContent = JSON.parse(contentStr);
+      const profileStr = formData.get("businessProfile") as string;
+      if (profileStr) businessProfile = JSON.parse(profileStr);
+      userId = formData.get("userId") as string || "";
+      inspirationFile = formData.get("inspiration_file") as File | null;
+    } else {
+      const body = await request.json();
+      selContent = body.content;
+      businessProfile = body.businessProfile;
+      userId = body.userId;
+    }
 
     if (!selContent) {
       return NextResponse.json({ error: "Conteúdo da publicação não enviado" }, { status: 400 });
@@ -24,9 +44,124 @@ export async function POST(request: Request) {
       );
     }
 
+    let approvedPromptsExamples = "";
+    if (userId) {
+      try {
+        console.log(`[GENERATE_PROMPTS] Buscando prompts de sucesso do mediaGallery para o usuário ${userId}...`);
+        const gallerySnap = await adminDb
+          .collection(`users/${userId}/mediaGallery`)
+          .limit(50)
+          .get();
+
+        const approvedItems: { prompt: string; createdAt: any }[] = [];
+        gallerySnap.forEach((doc: any) => {
+          const data = doc.data();
+          if (data.usedInPostId && data.prompt && data.source === "wizard_generation") {
+            approvedItems.push({
+              prompt: data.prompt,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || 0)
+            });
+          }
+        });
+
+        // Ordenar em memória pela data de criação decrescente
+        approvedItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+        // Pegar os 5 prompts mais recentes aprovados pelo usuário
+        const topApproved = approvedItems.slice(0, 5).map(item => item.prompt);
+
+        if (topApproved.length > 0) {
+          approvedPromptsExamples = `
+# SUCCESSFUL PROMPTING SAMPLES (FEW-SHOT LEARNING)
+The following are examples of image prompts that the user previously approved, loved, and successfully published/scheduled.
+Analyze their structure, level of detail, and stylistic cues, and use them as reference/inspiration to generate the new concepts:
+${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
+`;
+          console.log(`[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning.`);
+        } else {
+          console.log(`[GENERATE_PROMPTS] Nenhum prompt de sucesso anterior encontrado para este usuário.`);
+        }
+      } catch (err: any) {
+        console.warn(`[GENERATE_PROMPTS_WARN] Falha ao buscar prompts aprovados do Firestore:`, err.message || err);
+      }
+    }
+
+    let inspirationYaml = "";
+    let inlineDataPart: any = null;
+    let base64Image = "";
+    let mimeType = "";
+
+    if (inspirationFile) {
+      try {
+        console.log("[GENERATE_PROMPTS] Processando arquivo de inspiração para análise visual...");
+        const arrayBuffer = await inspirationFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        mimeType = inspirationFile.type || "image/jpeg";
+        base64Image = buffer.toString("base64");
+
+        inlineDataPart = {
+          inlineData: {
+            mimeType: mimeType,
+            data: base64Image
+          }
+        };
+
+        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
+Determine the composition layout, model poses (if any), colors, scenery, lighting types, text placement areas, and other stylistic features.
+Return the description strictly in YAML format containing:
+  composition_layout: (e.g. split screen, center focus, overlapping card)
+  lighting_style: (e.g. warm side light, studio soft lights)
+  color_palette: (describe prominent color names and tones)
+  scene_details: (describe textures, background elements, furniture, outdoor/indoor setting)
+  text_areas: (where the text is positioned)
+  visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: geminiAnalysisPrompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Image
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          console.log("[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso.");
+        } else {
+          console.error("[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:", await response.text());
+        }
+      } catch (e: any) {
+        console.warn("[GENERATE_PROMPTS_WARN] Falha ao processar arquivo de inspiração:", e.message || e);
+      }
+    }
+
     let brandingInstruction = "";
     if (businessProfile) {
-      const { name, category, primaryColor, secondaryColor, brandKit } = businessProfile;
+      const { 
+        name, 
+        category, 
+        primaryColor, 
+        secondaryColor, 
+        brandKit,
+        brandPositioning,
+        keyProducts,
+        clientProfile,
+        stylisticPreferences
+      } = businessProfile;
       const primaryHex = primaryColor || "#000000";
       const secondaryHex = secondaryColor || "#FFFFFF";
 
@@ -39,6 +174,12 @@ export async function POST(request: Request) {
           extendedColorsText += `- Background/Studio Color Hex: ${brandKit.extendedColors.background}\n`;
         }
       }
+
+      let memoryText = "";
+      if (brandPositioning) memoryText += `- Brand Positioning / Value Proposition: ${brandPositioning}\n`;
+      if (keyProducts) memoryText += `- Key Products/Services to Feature: ${keyProducts}\n`;
+      if (clientProfile) memoryText += `- Target Client/Audience Persona: ${clientProfile}\n`;
+      if (stylisticPreferences) memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
       let fontsText = "";
       if (brandKit?.fonts) {
@@ -60,11 +201,27 @@ The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
 - Secondary Color Hex: ${secondaryHex}
 ${extendedColorsText}
+${memoryText ? `\n# ADAPTIVE BRAND MEMORY & STRATEGIC INSIGHTS (CRITICAL):
+The following details were learned about the business's positioning and target style. You MUST strictly apply these guidelines to the imagery, style, and props:
+${memoryText}
+- If a Stylistic Preference is defined (e.g. "luxury", "rustic", "neon/vibrant", "clean/minimalist"), shape the lighting, props, and overall scene composition to reflect this specific vibe.
+- Ensure any key products listed are organically integrated or metaphorically referenced as the main visual focus.
+` : ""}
 
 CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
 1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").
 2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any other color hex), the hash symbol (#), or words like "hexadecimal", "hex", "hex code", "primary color", "secondary color", "brand kit", or "brand color" in the generated prompts. The image generator will literally print these hex codes or technical words on the visual artwork, which is strictly prohibited.
 3. Do NOT include technical variables, labels, or CSS terms (like "primary color", "secondary color", "brand color", "color value") in the generated prompts. Refer to the colors only by their plain English names.
+
+CRITICAL NICHE & PRODUCT ALIGNMENT RULE (MANDATORY FOR GRAPHICS & METAPHORS):
+You MUST ensure that the graphics, floating elements, icons, props, and visual metaphors are DIRECTLY and explicitly related to the brand's niche ("${category || "general"}") and the products it sells.
+- DO NOT generate generic corporate tech startup elements (like financial growth bar charts, upward arrows, security shields, or molecular data grids) unless the brand's niche is literally finance, security, or data science.
+- STYLE VARIETY: The graphics do NOT always have to be 3D. You should vary the style: use 3D objects in some concepts, flat 2D vector art, minimal outlines/line art, or sleek illustrative details in others, depending on what looks most sophisticated.
+- EVERY single visual metaphor or graphic detail must remind the viewer of what the brand sells:
+  - If the brand sells Blinds/Shades/Curtains (Persianas e Cortinas), the floating graphic elements and props MUST look like modern stylized blinds, elegant curtain fabric folds, window frames, or golden sun rays filtering through slats.
+  - If the brand is in real estate or construction, the elements must be houses, keys, blueprints, or building blocks.
+  - If the brand is in dentistry, the elements must be teeth, smiles, or healthcare icons.
+- If you use floating elements, they must represent the tools, products, or core theme of the business. Never generic dashboard metrics.
 
 Your CRITICAL mission is to strategically and organically blend these brand colors (primary, secondary, and complementary if provided, translated to descriptive names) into the scenic environment of ALL 3 image concepts:
 1. **Scenic Lighting Accent:** Use these colors in atmospheric lighting, neon signs, glowing bokeh circles, or soft rim light reflecting on the edges of the main subject.
@@ -82,6 +239,111 @@ Instruct the typography to be rendered using the specified Primary Font for titl
 `
     : ""
 }
+`;
+    }
+
+    let option3Text = "";
+    if (inspirationYaml) {
+      option3Text = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You MUST analyze the provided YAML description and visual cues of the user's inspiration reference print (which is provided in the input image):
+${inspirationYaml}
+
+- DECONSTRUCT COMPOSITION & LAYOUT: Replicate the layout, camera angle, subject placement, and scene structure described in the YAML and visible in the input image.
+- SCENARIO & LIGHTING: Mimic the lighting style (e.g., studio soft lights, warm gel accents), scene details, textures, and backdrop of the inspiration reference.
+- BRAND PERSONALIZATION: Stylize the scene with the brand's primary and secondary colors (e.g. golden yellow, deep blue) in props, backgrounds, or lighting accents.
+- CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
+- ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo || ""}"), which must be printed exactly once. Copying text from the reference print is strictly prohibited.
+- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.
+`;
+    } else {
+      option3Text = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT & STYLE SELECTION:
+You MUST review the 30 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 or #26 for romantic/dating/couple themes, #05 or #06 for traditional/São João themes, #02, #08, #29 or #30 for sports/competition, #15 for bright cartoonish retail promos, #10 or #27 for hiring/recruitment/imobiliaria, #16 for religious/church themes, #21 for sticker/collectible sports themes, #22 for music playlists, #23 for elegant profile portraits, #24 for car wash/split layout, #25 for pizza/food themes, #28 for birthdays, etc.).
+
+# VISUAL DESIGN REFERENCE CATALOG:
+- REFERENCE #01: "Card de Aviso Tridimensional" (Card Clean com Fundo de Texto Gigante)
+  Description: A clean floating white card with rounded corners containing the message. Behind the card, there is a giant background title (e.g. "AVISO" in a vibrant color) partially cropped. A small 3D alert warning element sits on top of the card, and a yellow pill-shaped button is at the bottom.
+- REFERENCE #02: "Confronto Esportivo Minimalista" (Tipografia Assimétrica de Alto Contraste)
+  Description: A highly asymmetrical and contrast-heavy title with a giant tilted "X" character in the brand's primary color (e.g. yellow or orange) separating two stacked team/brand names. The stacked names are rendered in thick, bold, clean white block letters with small country flags or minimal badges placed right next to them.
+- REFERENCE #03: "Flyer Esportivo Vibrante" (Composição Multicamadas de Colagem)
+  Description: A multi-layered collage/stencil style banner. Cut-out silhouettes of subjects or products layered with sharp high-contrast geometric borders. The main title is rendered in thick, solid, uppercase geometric letters at the top, accompanied by dates or tags enclosed in small green and yellow badges.
+- REFERENCE #04: "Banner de Eventos Noturnos" (Texto com Gradiente de Neon e Luz)
+  Description: A main title rendered in a bold condensed sans-serif font featuring a vibrant vertical color gradient (e.g., orange-to-pink or peach) with a soft glowing backlight behind the letters, casting atmospheric rim light on surrounding props or subjects.
+- REFERENCE #05: "Design Festivo Temático" (Fonte Orgânica Bold de Alto Impacto)
+  Description: A thick organic, playful sans-serif font for the main title, alternating colors between white and a bright brand color. Characterized by decorative elements integrated into the text (like a small hat, star, or banner overlaying a letter). Placed on a high-contrast background pattern (like checkered fabric or stripes) with decorative flags hanging from the top.
+- REFERENCE #06: "Viva São João Tridimensional" (Texto de Material Físico Realista - Corda)
+  Description: Main title written in a volumetric 3D script/cursive font mimicking a realistic braided rope (brown and blue fibers) with realistic fiber textures, casting soft contact shadows on the background. Surrounded by matching 3D thematic elements (e.g. small bonfires or lanterns) on the sides.
+- REFERENCE #07: "Story Dia dos Namorados" (Serifada Elegante de Alta Moda / Luxo)
+  Description: A high-fashion modern serif typeface for the main word of the title, showing high stroke contrast, rendered in a soft pastel coral/orange color. The background is clean and light, with a few delicate 3D heart or star models floating gently near the screen edges.
+- REFERENCE #08: "Vista a sua Camisa" (Blocos de Texto Condensados Empilhados)
+  Description: The title words are stacked vertically in a tight, compact, asymmetric block using ultra-bold condensed sans-serif letters, alternating colors between the brand's primary yellow and secondary blue, accompanied by iconic 3D props (like a golden trophy or shield).
+- REFERENCE #09: "Informativo Decreto Municipal" (Visual Limpo com Folhas de Calendário 3D)
+  Description: A clean informational layout with structured 3D calendar sheets or rounded geometric cards displaying dates/text in high detail, combined with glossy 3D stars, checkmarks, or calendar accents on a clean, modern solid-color backdrop.
+- REFERENCE #10: "Vagas Abertas Vendedor" (Layout Dividido com Texto Gigante Lateral)
+  Description: An asymmetrical split layout featuring a vertical colored container (holding text/bullet points) on one side, and a clean professional photo/subject on the other. In the background, a massive keyword of the title is rendered in a bold brand color, extending out and cropped by the image borders.
+- REFERENCE #11: "Conceito Orgulho Autista" (Texto de Fundo com Objeto 3D Interseccionado)
+  Description: A textured paper backdrop with a central, highly detailed 3D thematic symbol (like a colorful infinity loop or ribbon). Positioned right in the center of the image, the 3D symbol intersects and overlaps a massive, bold title text placed directly in the background, creating strong spatial depth.
+- REFERENCE #12: "Aniversariante Sarah Silva" (Polaroid Inclinada com Balões Estrelas 3D)
+  Description: A central tilted white photo frame (Polaroid style) displaying the portrait/subject. The scene is framed by realistic, highly shiny 3D inflated foil star/heart balloons floating near the edges, casting soft shadows, and giant background text peeking from the side.
+- REFERENCE #13: "Cuidado da Saúde" (Cards de Tópicos Flutuantes Sobrepostos)
+  Description: A subject photo positioned on one side. On the other side, multiple vertical, rounded, overlapping card panels holding the text, paired with clean minimalist vector icons inside colored circular badges. The backdrop features subtle medical/abstract line graphics.
+- REFERENCE #14: "Torça com Muita Pizza" (Caixas Retangulares Alinhadas - Promo/Varejo)
+  Description: A retail promo style layout with a vertical stack of compact, rectangular colored text blocks of high contrast (e.g. purple text on a yellow block). Surrounded by floating realistic foods/products (like pizza or burger models) and 3D sports balls.
+- REFERENCE #15: "Ofertas do Dia Supermercado" (Tipografia de Plástico Inflado 3D Brilhante)
+  Description: The main title is rendered in giant, glossy 3D volumetric letters that look like inflated soft plastic or vinyl toys (e.g. vibrant blue and yellow). The letters are surrounded by cartoony 3D elements (like golden coins, small shopping carts, or stars).
+- REFERENCE #16: "Quarta da Bênção" (Card Translúcido com Blur e Texto Curvo)
+  Description: A portrait of a speaker or pastor in the center, encircled by a thin, glowing ring of repetitive curved text. At the top, a semi-transparent purple rounded box with background blur (glassmorphism) contains subtitle text. The main title features high typographic contrast, with the main word written in a giant, elegant golden serif font.
+- REFERENCE #17: "Dia do Apicultor" (Foto Realista com Balão 3D e Caixas de Texto)
+  Description: Photorealistic hands holding a dripping honeycomb under warm sunset lighting. A realistic, glossy 3D heart-shaped balloon with black and yellow bee stripes floats in the center, overlapping the honeycomb. The text labels are placed in clean, solid white rectangular boxes, and the main title is rendered in a heavy geometric ultra-bold white font casting realistic contact shadows.
+- REFERENCE #18: "Culto de Natal" (Condensada Stacked com Iluminação Dramática)
+  Description: A dramatic close-up portrait of a speaker or singer under warm, intense side lighting with floating dust bokeh particles. The main title is stacked vertically in massive, ultra-bold, condensed sans-serif letters, using contrasting colors (e.g., solid white and soft pastel peach), paired with small vertical line markers on top indicating the date.
+- REFERENCE #19: "Cesta de Amor (Dia dos Namorados)" (Varejo Clean com Balões Foil 3D)
+  Description: A clean retail/lifestyle composition showing a smiling person holding a realistic, beautifully decorated gift basket full of chocolates and ribbons. Glossy, red 3D inflated metallic foil heart-shaped balloons float in the background. The title is written in a casual, rounded font in white and yellow, with a dark, semi-transparent footer banner at the bottom.
+- REFERENCE #20: "Hoje tem Brasil (Mascote)" (Mascote 3D com Interface Flutuante 3D)
+  Description: A friendly, highly detailed 3D cartoon mascot in a dynamic pose at the center of a blurred soccer stadium background. The mascot is surrounded by floating green and yellow hearts inside glossy 3D social media dialog bubbles. The bottom title is written in a highly fluid, expressive brush-painted script font.
+- REFERENCE #21: "Figurinha de Jogador Confirmado (Neymar)" (Figurinha Colecionável com Grafismo de Fundo)
+  Description: A centered cut-out photo portrait of a professional soccer player or subject. The background is a solid turquoise/teal canvas featuring a massive, thick green number "26" with rounded corners. Small official-looking cup badges/logos are placed on the top right, and circular country flag icons are stacked on the bottom right. The main title is displayed at the bottom in an extended, bold sans-serif font inside a dark rounded rectangular badge.
+- REFERENCE #22: "Playlist de Hamburgueria" (Visual Escuro com Smartphone e Elementos 3D)
+  Description: A deep burgundy/dark red background with thin beige circular border outlines. On the right, a realistic smartphone displays a music streaming playlist with album art. An inflated, glossy 3D red play button floats over the screen. The main title is rendered on the left in a heavy, textured cream and pink sans-serif font, accompanied by a quick hand-drawn scribble line on top and pill-shaped call-to-action buttons.
+- REFERENCE #23: "Dia do Pastor" (Sobreposição de Fontes Serifada e Cursiva com Luz Quente)
+  Description: A close-up side profile of a speaker or singer in low-key lighting with a warm orange glow illuminating from the right edge. The title in the center combines a massive serif font in solid white with a thin, expressive handwritten script font in orange/gold overlapping it. A small date badge is placed at the top left in clean, elegant uppercase lettering.
+- REFERENCE #24: "Brilho ao seu Carro (Lava Rápido)" (Antes e Depois com Moldura Circular e Ícones 3D)
+  Description: A dark blue background with abstract gradient shapes. In the center, a photorealistic SUV is displayed with a split "before and after" dirty/clean wash effect, surrounded by a glowing green neon circle. Metallic blue 3D icons representing a car wash (car wash nozzles with water droplets) float in the scene. A green circular price badge and buttons are positioned at the bottom.
+- REFERENCE #25: "Dia da Pizza" (Perspectiva de Produto em Primeiro Plano com Tipografia Expressiva)
+  Description: A close-up of a crispy pepperoni pizza in perspective on a dark flour-dusted table in the foreground. The background is a clean black chalkboard texture. The main title at the top is tilted and rendered in a combination of thick gestural white script and bold sans-serif block letters, accented by red ribbon-style banners.
+- REFERENCE #26: "Dia dos Namorados Romântico Elegante" (Classic Romance Poster/Editorial Layout)
+  Description: A couple in a romantic dance or embrace pose in the center. The background is a smooth vignette gradient from deep burgundy-wine red to black at the edges. Small romantic text block aligned to the left. The main title features high typographic contrast: the word "Feliz" in a classic white cursive script font, and "Namorados" in an extended, tilted soft pink rounded font, with the date in clean uppercase below.
+- REFERENCE #27: "Localização Certa (Imóveis)" (Asymmetrical Real Estate Layout with Card and Portrait)
+  Description: A smiling professional holding keys on the left, with a modern illuminated house in the background. On the right, a dark matte navy-blue rounded rectangular card overlays the scene, containing the title in clean white and golden sans-serif typography, accompanied by a beige CTA pill button. Brand footer info at the bottom.
+- REFERENCE #28: "Feliz Aniversário Carla Silva" (Modern Festive Design with Tilted Ribbons)
+  Description: Centered portrait of a smiling person wearing a golden cone party hat, with a shiny silver 3D heart-foil balloon. The background features a giant, cropped, high-contrast block text of "PARABÉNS". The bottom title is composed of tilted rectangular ribbon banners in high contrast (white and purple) holding the bold text "FELIZ ANIVERSÁRIO" and the name in a heavy sans-serif font.
+- REFERENCE #29: "Copa em Ofertas" (3D June Festival and Sports Thematic Composition)
+  Description: At the top, a 3D wooden-textured sign reading "Copa em Ofertas" decorated with a 3D June festival balloon, bonfire, and flags on one side, and a 3D soccer ball and golden trophy on the other. Yellow textured soccer field lines background. Below, photos of smiling fans in Brazil soccer jerseys with face paint holding a remote control.
+- REFERENCE #30: "Dia da Grande Final (Copa)" (Minimalist Sports Poster with Trophy Spotlight)
+  Description: Dark green textured background with a massive, very low-contrast text of "BRASIL ARGENTINA". In the center, a highly detailed 3D golden World Cup trophy with realistic contact shadows, flanked by flags of Brazil and Argentina. At the top, the title "DIA DA GRANDE FINAL" in a vibrant neon lime-green and white condensed sans-serif font, and date footer at the bottom.
+
+GENERATION RULES FOR OPTION 3:
+1. Select the single Reference ID (#01 to #30) that fits the post context best.
+2. Build the entire prompt composition strictly following the selected reference's Visual Description.
+3. You must prefix your generated Option 3 prompt with "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #XX]" substituting "#XX" with the chosen Reference ID (e.g. "[OPTION 3 — CONCEPTUAL MINIMALIST / SELECTED REFERENCE #07] A high-fashion...").
+4. Keep the composition clean and maintain 45-55% of the frame as clean negative space for text placement.
+5. Apply the brand's primary and secondary colors (translated to plain English names) to the key elements, backgrounds, or gradients.
+6. HUMAN & PRODUCT FLEXIBILITY: You are encouraged to decide whether to include a human subject (like a real person interacting, a professional, or a customer), realistic products, or strictly 3D/2D graphics in the scene. Vary this decision randomly across generations. In some generations, make it strictly graphic/minimalist; in other generations, organically integrate real human elements or realistic products into the selected design reference composition. Do not use generic corporate layouts.
+
+CAMERA & LENS:
+- Front-facing flat graphic composition OR elegant 30-degree isometric view.
+- Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
+LIGHTING:
+- Soft, even, diffused studio lighting. Use subtle colored gel lights matching the brand's complementary color to cast elegant rim highlights on the object and glass panels.
+BRAND KIT ALIGNMENT (MANDATORY):
+- The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The text overlay must match the brand's typography.
 `;
     }
 
@@ -105,49 +367,37 @@ COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving s
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED 3D GRAPHICS/VECTORS)
+## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium 3D graphics, interface vectors, or conceptual icons related to the post topic (e.g., if about growth, show floating 3D growth charts and upward arrows; if about social media, show modern holographic like/message bubbles; if about finance, show abstract glowing coin shapes or charts).
+SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
 STYLE & LAYOUT:
-- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean 3D graphic design assets. The graphics must look like physical or holographic objects floating naturally in the air, casting soft reflections and realistic shadows on the person or environment.
-- **Modern Corporate Tech Aesthetic:** Clean, premium composition inspired by high-end SaaS or tech startup campaigns (e.g., Stripe, Notion, Apple design style).
+- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
+- **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
 - **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
+- **Typographic Integration (Differentiated Text Layout):** The literal text/title must NOT just be placed in a straight line at the bottom. Instead, integrate it dynamically into the scene. For example, render the text using a combination of a bold heading font for the main word and a light font for the secondary words (typographic contrast). Place the text aligned to the negative space side, using the brand's primary color for the key highlighted word and white or the secondary color for the rest.
 CAMERA & LENS:
 - Medium shot (waist up) or close-up portrait.
 - 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
 LIGHTING:
-- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the 3D graphics for a seamless visual blend.
+- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the graphics for a seamless visual blend.
 BRAND KIT ALIGNMENT (MANDATORY):
-- The 3D graphics, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
+- The graphic shapes, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
 - The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. The graphics must have 3D depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
+MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
+ 
+${option3Text}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: BEHANCE / DRIBBBLE / DESIGNI STYLE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A premium, modern graphic design composition focusing on a stylized object, equipment, or conceptual symbol DIRECTLY associated with the post's topic (e.g., if the post is about audio, show a sleek retro microphone or 3D audio waves; if about video, show a camera lens or stylized film clapperboard; if about engineering, show modern gears).
-STYLE & LAYOUT:
-- **Dribbble & Behance Aesthetics:** Embed the central topic object inside a trendy design portfolio setup. Surround the object with accent elements like translucent frosted glass panels (glassmorphism), floating smooth 3D geometric shapes (spheres, rings, cubes), and place it on a clean geometric platform/pedestal. The background must feature a smooth, luxury color gradient.
-- **Designi Commercial Standard:** Organize the scene with a clean advertising layout, maintaining a strong visual hierarchy. Add soft, realistic contact shadows cast by the object and platforms to ground them naturally.
-- **Negative Space:** Maintain 45-55% of the frame as clean negative space (smooth backdrop) for text placement.
-CAMERA & LENS:
-- Front-facing flat graphic composition OR elegant 30-degree isometric view.
-- Wide angle 24mm or tilt-shift for a clean, sharp, architectural look. Everything in sharp focus (f/8–f/11).
-LIGHTING:
-- Soft, even, diffused studio lighting. Use subtle colored gel lights matching the brand's complementary color to cast elegant rim highlights on the object and glass panels.
-BRAND KIT ALIGNMENT (MANDATORY):
-- The background gradient, geometric accent shapes, and gel highlights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
-- The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT include real people. Do NOT use random abstract shapes that have no connection to the post's topic.
-
+${approvedPromptsExamples}
 
 ${brandingInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CRITICAL PROMPT ENGINEERING RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. LANGUAGE: Write all visual descriptions in English only.
-2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as styled text on the image.
-   - Correct format: ...with the bold literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in large, modern sans-serif typography centered at the bottom...
+2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
+   - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
+   - Correct format example: ...with the literal text "TÍTULO EXATO EM PORTUGUÊS" rendered in a high-end editorial layout, where the word "DESTAQUE" (which is already inside the title) is styled in massive bold uppercase using the brand's primary color, and the rest of the title text is aligned cleanly below it in white...
+   - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${selContent.titulo}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word (such as the company name or the word 'empresa') is written or repeated twice on the canvas. The text must read exactly '${selContent.titulo}' and nothing else."
    - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
      - You MUST check every letter with an accent in the title (like á, é, í, ó, ú, ç, ã, õ, ê, ô) and describe it explicitly in English so the image generator doesn't make mistakes.
      - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
@@ -186,6 +436,11 @@ ${brandingInstruction}
           `[GENERATE_PROMPTS] Enviando requisição para a API do Gemini usando modelo: ${model}...`
         );
 
+        const userParts: any[] = [{ text: `Conteúdo da publicação:\n${summaryText}` }];
+        if (inlineDataPart) {
+          userParts.push(inlineDataPart);
+        }
+
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: {
@@ -198,7 +453,7 @@ ${brandingInstruction}
             contents: [
               {
                 role: "user",
-                parts: [{ text: `Conteúdo da publicação:\n${summaryText}` }],
+                parts: userParts,
               },
             ],
             generationConfig: {
