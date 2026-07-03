@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { fal } from "@fal-ai/client";
 
 export const maxDuration = 300;
 
@@ -51,35 +52,27 @@ export async function POST(request: Request) {
     console.log(`[CORRIGIR_IMAGEM] Iniciando inpainting com Fal AI para post ${postId} (Slot: ${fileName})...`);
     console.log(`[CORRIGIR_IMAGEM] Prompt de Inpainting: ${inpaintPrompt}`);
 
-    // 2. Chamar endpoint do Flux Dev Inpainting da Fal AI
-    const falUrl = "https://queue.fal.run/fal-ai/flux/dev/inpainting?sync_mode=true";
-    const falResponse = await fetch(falUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Key ${falKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        mask_url: maskBase64,
-        prompt: inpaintPrompt,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-        strength: 0.95,
-        sync_mode: true
-      })
-    });
-
-    if (!falResponse.ok) {
-      const errorText = await falResponse.text();
-      console.error(`[CORRIGIR_IMAGEM_ERROR] Erro na Fal AI (${falResponse.status}):`, errorText);
+    // 2. Chamar o SDK do Flux Dev Inpainting da Fal AI (gerenciamento automático de fila)
+    let falData: any = null;
+    try {
+      falData = await fal.subscribe("fal-ai/flux/dev/inpainting", {
+        input: {
+          image_url: imageUrl,
+          mask_url: maskBase64,
+          prompt: inpaintPrompt,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          strength: 0.95,
+        }
+      });
+    } catch (sdkError: any) {
+      console.error("[CORRIGIR_IMAGEM_ERROR] Falha na chamada do SDK da Fal AI:", sdkError);
       return NextResponse.json(
-        { success: false, error: `Fal AI retornou status ${falResponse.status}`, details: errorText },
-        { status: falResponse.status }
+        { success: false, error: "Erro de processamento da IA", details: sdkError.message || sdkError },
+        { status: 500 }
       );
     }
 
-    const falData = await falResponse.json();
     const resultImageUrl = falData?.images?.[0]?.url;
 
     if (!resultImageUrl) {
