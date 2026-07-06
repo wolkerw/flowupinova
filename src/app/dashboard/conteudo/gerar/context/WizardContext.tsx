@@ -1513,7 +1513,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
         : selectedImage;
       const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
-      formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
+      formData.append("image", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
       formData.append("logo", logoFile);
       formData.append("logoScale", logoScale.toString());
       formData.append("logoOpacity", logoOpacity.toString());
@@ -1589,7 +1589,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const imageBlob = await fetch(finalImageUrl).then((r) => r.blob());
         const formData = new FormData();
-        formData.append("file", new File([imageBlob], "post-image.jpg", { type: imageBlob.type }));
+        formData.append("image", new File([imageBlob], "post-image.jpg", { type: imageBlob.type }));
         const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", {
           method: "POST",
           body: formData,
