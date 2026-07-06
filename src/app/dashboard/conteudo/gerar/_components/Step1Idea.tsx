@@ -25,17 +25,21 @@ import { cn } from "@/lib/utils";
 import { useWizard } from "../context/WizardContext";
 
 const PackshotAnimationDemo = () => {
-  const [activeDemoTab, setActiveDemoTab] = React.useState<"text-ambientation" | "packshot-hybrid">("text-ambientation");
-  
+  const [activeDemoTab, setActiveDemoTab] = React.useState<"text-ambientation" | "packshot-hybrid">(
+    "text-ambientation"
+  );
+
   // Digitação do prompt para a Opção A
   const [typedText, setTypedText] = React.useState("");
   const [loopTrigger, setLoopTrigger] = React.useState(0);
-  const fullTextA = "Modelo profissional vestindo esta jaqueta em Tóquio à noite, com luzes de neon...";
+  const fullTextA =
+    "Modelo profissional vestindo esta jaqueta em Tóquio à noite, com luzes de neon...";
 
   // Digitação do prompt para a Opção B
   const [typedTextB, setTypedTextB] = React.useState("");
   const [loopTriggerB, setLoopTriggerB] = React.useState(0);
-  const fullTextB = "Substitua o produto da foto de referência pelo meu produto, mantendo o cenário fiel...";
+  const fullTextB =
+    "Substitua o produto da foto de referência pelo meu produto, mantendo o cenário fiel...";
 
   React.useEffect(() => {
     if (activeDemoTab !== "text-ambientation") {
@@ -120,91 +124,110 @@ const PackshotAnimationDemo = () => {
             className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner"
           >
             {/* LADO ESQUERDO: Foto 1 - Sua Roupa */}
-            <div className="flex flex-col gap-4 z-10">
-              <div className="relative flex h-36 w-32 flex-col items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900 text-center overflow-hidden">
-                <span className="absolute top-1.5 left-1.5 text-[7px] font-bold text-white bg-black/50 px-1 py-0.5 rounded uppercase tracking-wider z-20">
+            <div className="z-10 flex flex-col gap-4">
+              <div className="relative flex h-36 w-32 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+                <span className="absolute left-1.5 top-1.5 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
                   Foto 1: Sua Roupa
                 </span>
-                
+
                 {/* Fundo de estúdio plano cinza */}
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900 z-0" />
+                <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
 
                 {/* Jaqueta puffer que esmaece durante a fusão */}
                 <motion.div
                   className="z-10 cursor-default"
                   animate={{
-                    opacity: [1, 0.25, 0.25, 1, 1]
+                    opacity: [1, 0.25, 0.25, 1, 1],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1]
+                    times: [0, 0.15, 0.85, 0.95, 1],
                   }}
                 >
-                  <img 
-                    src="/demo-clothing-isolated.png" 
-                    alt="Roupa Isolada" 
-                    className="w-20 h-24 object-contain"
+                  <img
+                    src="/demo-clothing-isolated.png"
+                    alt="Roupa Isolada"
+                    className="h-24 w-20 object-contain"
                   />
                 </motion.div>
               </div>
             </div>
 
             {/* CENTRO: Caixa do Prompt de Texto Animado */}
-            <div className="flex flex-col items-center justify-center flex-1 z-10 px-2">
-              <span className="text-[7px] font-extrabold text-accent uppercase tracking-widest mb-2 text-center animate-pulse">
+            <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
+              <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-accent">
                 Input da Ideia (Texto)
               </span>
-              
+
               <div className="relative w-full max-w-[200px] rounded-lg border border-slate-700 bg-slate-950/80 p-2.5 text-left shadow-lg">
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
-                  <span className="text-[7px] text-slate-500 font-bold uppercase">Prompt de IA</span>
+                <div className="mb-1 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-accent" />
+                  <span className="text-[7px] font-bold uppercase text-slate-500">
+                    Prompt de IA
+                  </span>
                 </div>
-                <div className="min-h-[44px] text-[9px] font-mono text-slate-300 leading-snug break-words">
+                <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
                   {typedText}
-                  <span className="inline-block w-1 h-3 ml-0.5 bg-accent animate-pulse" style={{ verticalAlign: 'middle' }} />
+                  <span
+                    className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-accent"
+                    style={{ verticalAlign: "middle" }}
+                  />
                 </div>
               </div>
 
               {/* Conector de fluxo */}
-              <div className="relative w-16 h-8 flex items-center justify-center mt-2">
+              <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
                 <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
-                  <path d="M2 12 H 58" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-                  <path d="M50 8L58 12L50 16" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M2 12 H 58"
+                    stroke="#6366f1"
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M50 8L58 12L50 16"
+                    stroke="#6366f1"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
             </div>
 
             {/* LADO DIREITO: Foto 3 - Exemplo da Modelo Vestindo a Roupa */}
-            <div className="relative flex h-52 w-64 flex-col items-center justify-center rounded-xl border border-slate-700 bg-slate-950 overflow-hidden">
-              <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded uppercase tracking-wider z-20">
+            <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+              <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
                 Foto 3: Imagem Gerada
               </span>
 
               {/* Fundo do Cenário Vazio antes da fusão */}
-              <div className="absolute inset-0 bg-slate-900/60 z-10 flex flex-col items-center justify-center" />
-              
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/60" />
+
               <motion.div
-                className="absolute z-15 flex flex-col items-center justify-center opacity-40 border border-dashed border-white/50 p-2 rounded-lg bg-black/40"
+                className="z-15 absolute flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
                 animate={{
-                  opacity: [0.5, 0.5, 0, 0, 0.5]
+                  opacity: [0.5, 0.5, 0, 0, 0.5],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
-                  times: [0, 0.15, 0.45, 0.85, 1]
+                  times: [0, 0.15, 0.45, 0.85, 1],
                 }}
               >
-                <Sparkles className="w-5 h-5 text-white animate-spin" />
-                <span className="text-[7px] text-white font-bold leading-none mt-1">Vestindo modelo...</span>
+                <Sparkles className="h-5 w-5 animate-spin text-white" />
+                <span className="mt-1 text-[7px] font-bold leading-none text-white">
+                  Vestindo modelo...
+                </span>
               </motion.div>
 
               {/* Roupa da Foto 1 que viaja em direção à Foto 3 */}
               <motion.div
-                className="absolute z-20 flex flex-col items-center pointer-events-none"
-                style={{ 
-                  top: "15%"
+                className="pointer-events-none absolute z-20 flex flex-col items-center"
+                style={{
+                  top: "15%",
                 }}
                 animate={{
                   x: [-240, -240, 0, 0, -240],
@@ -216,67 +239,67 @@ const PackshotAnimationDemo = () => {
                     "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
                     "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
                     "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))"
-                  ]
+                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
+                  ],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1]
+                  times: [0, 0.15, 0.45, 0.55, 1],
                 }}
               >
-                <div className="absolute -top-7 bg-accent text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md whitespace-nowrap animate-bounce z-30">
+                <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
                   Vestindo Roupa...
                 </div>
-                
-                <img 
-                  src="/demo-clothing-isolated.png" 
-                  alt="Roupa em Viagem" 
-                  className="w-20 h-24 object-contain"
+
+                <img
+                  src="/demo-clothing-isolated.png"
+                  alt="Roupa em Viagem"
+                  className="h-24 w-20 object-contain"
                 />
               </motion.div>
 
               {/* Imagem real da modelo vestindo a jaqueta puffer vermelha */}
               <motion.div
-                className="absolute inset-0 z-30 pointer-events-none"
+                className="pointer-events-none absolute inset-0 z-30"
                 animate={{
-                  opacity: [0, 0, 0, 1, 1, 0]
+                  opacity: [0, 0, 0, 1, 1, 0],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
-                  times: [0, 0.2, 0.45, 0.55, 0.93, 1]
+                  times: [0, 0.2, 0.45, 0.55, 0.93, 1],
                 }}
               >
-                <img 
-                  src="/demo-clothing-model.png" 
-                  alt="Modelo de IA no Cenário" 
-                  className="w-full h-full object-cover"
+                <img
+                  src="/demo-clothing-model.png"
+                  alt="Modelo de IA no Cenário"
+                  className="h-full w-full object-cover"
                 />
-                
+
                 {/* Banner didático */}
-                <div className="absolute top-2 left-2 bg-emerald-500/90 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-sm z-45">
+                <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
                   Modelo Real + Roupa
                 </div>
 
                 {/* Efeito de flash na fusão */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 z-40"
+                  className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                   animate={{
-                    left: ["-100%", "-100%", "200%", "200%", "-100%"]
+                    left: ["-100%", "-100%", "200%", "200%", "-100%"],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
                     times: [0, 0.55, 0.75, 0.85, 1],
-                    ease: "easeOut"
+                    ease: "easeOut",
                   }}
                 />
               </motion.div>
-              
-              <span className="absolute bottom-2 right-2 text-[9px] font-bold text-white bg-emerald-500/90 px-2 py-0.5 rounded z-40 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+
+              <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
+                <span className="h-2 w-2 animate-ping rounded-full bg-white" />
                 Fusão Pronta
               </span>
             </div>
@@ -291,123 +314,142 @@ const PackshotAnimationDemo = () => {
             className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner"
           >
             {/* Lado Esquerdo: Fotos de Entrada (1 e 2) empilhadas */}
-            <div className="flex flex-col gap-4 z-10">
+            <div className="z-10 flex flex-col gap-4">
               {/* Caixa 1: Foto 1 - Seu Produto */}
-              <div className="relative flex h-24 w-28 flex-col items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900 text-center overflow-hidden">
-                <span className="absolute top-1 left-1.5 text-[7px] font-bold text-white bg-black/50 px-1 py-0.5 rounded uppercase tracking-wider z-20">
+              <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+                <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
                   Foto 1: Produto
                 </span>
-                
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900 z-0" />
+
+                <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
 
                 <motion.div
                   className="z-10 cursor-default"
                   animate={{
-                    opacity: [1, 0.25, 0.25, 1, 1]
+                    opacity: [1, 0.25, 0.25, 1, 1],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1]
+                    times: [0, 0.15, 0.85, 0.95, 1],
                   }}
                 >
-                  <img 
-                    src="/demo-product-isolated.png" 
-                    alt="Seu Produto" 
-                    className="w-16 h-20 object-contain scale-[0.9]"
+                  <img
+                    src="/demo-product-isolated.png"
+                    alt="Seu Produto"
+                    className="h-20 w-16 scale-[0.9] object-contain"
                   />
                 </motion.div>
               </div>
 
               {/* Caixa 2: Foto 2 - Cenário Referência */}
-              <div className="relative flex h-24 w-28 flex-col items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900 text-center overflow-hidden">
-                <span className="absolute top-1 left-1.5 text-[7px] font-bold text-white bg-black/50 px-1 py-0.5 rounded uppercase tracking-wider z-20">
+              <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+                <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
                   Foto 2: Referência
                 </span>
-                
+
                 <div className="absolute inset-0 z-0">
-                  <img 
-                    src="/demo-scenario.png" 
-                    alt="Cenário Referência" 
-                    className="w-full h-full object-cover opacity-80"
+                  <img
+                    src="/demo-scenario.png"
+                    alt="Cenário Referência"
+                    className="h-full w-full object-cover opacity-80"
                   />
                 </div>
 
                 <motion.div
-                  className="absolute z-10 w-2 h-2 rounded-full bg-cyan-400 blur-[2px]"
+                  className="absolute z-10 h-2 w-2 rounded-full bg-cyan-400 blur-[2px]"
                   animate={{
-                    opacity: [1, 0.3, 0.3, 1, 1]
+                    opacity: [1, 0.3, 0.3, 1, 1],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
-                    times: [0, 0.15, 0.85, 0.95, 1]
+                    times: [0, 0.15, 0.85, 0.95, 1],
                   }}
                 />
               </div>
             </div>
 
             {/* CENTRO: Caixa do Prompt de Texto Animado (Opção B) */}
-            <div className="flex flex-col items-center justify-center flex-1 z-10 px-2">
-              <span className="text-[7px] font-extrabold text-blue-400 uppercase tracking-widest mb-2 text-center animate-pulse">
+            <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
+              <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-blue-400">
                 Instrução de Troca
               </span>
-              
+
               <div className="relative w-full max-w-[200px] rounded-lg border border-blue-900/60 bg-slate-950/80 p-2.5 text-left shadow-lg">
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-ping" />
-                  <span className="text-[7px] text-slate-500 font-bold uppercase">Prompt de IA</span>
+                <div className="mb-1 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-blue-500" />
+                  <span className="text-[7px] font-bold uppercase text-slate-500">
+                    Prompt de IA
+                  </span>
                 </div>
-                <div className="min-h-[44px] text-[9px] font-mono text-slate-300 leading-snug break-words">
+                <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
                   {typedTextB}
-                  <span className="inline-block w-1 h-3 ml-0.5 bg-blue-500 animate-pulse" style={{ verticalAlign: 'middle' }} />
+                  <span
+                    className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-blue-500"
+                    style={{ verticalAlign: "middle" }}
+                  />
                 </div>
               </div>
 
               {/* Conector de fluxo */}
-              <div className="relative w-16 h-8 flex items-center justify-center mt-2">
+              <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
                 <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
-                  <path d="M2 12 H 58" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-                  <path d="M50 8L58 12L50 16" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M2 12 H 58"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M50 8L58 12L50 16"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
             </div>
 
             {/* Lado Direito: Foto 3 - Exemplo Real */}
-            <div className="relative flex h-52 w-64 flex-col items-center justify-center rounded-xl border border-slate-700 bg-slate-950 overflow-hidden">
-              <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded uppercase tracking-wider z-20">
+            <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+              <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
                 Foto 3: Imagem Gerada
               </span>
-              
+
               <div className="absolute inset-0 z-0">
-                <img 
-                  src="/demo-scenario.png" 
-                  alt="Cenário de Estúdio" 
-                  className="w-full h-full object-cover"
+                <img
+                  src="/demo-scenario.png"
+                  alt="Cenário de Estúdio"
+                  className="h-full w-full object-cover"
                 />
               </div>
 
               <motion.div
-                className="absolute z-10 flex flex-col items-center justify-center opacity-40 border border-dashed border-white/50 p-2 rounded-lg bg-black/40"
+                className="absolute z-10 flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
                 animate={{
-                  opacity: [0.5, 0.5, 0, 0, 0.5]
+                  opacity: [0.5, 0.5, 0, 0, 0.5],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
-                  times: [0, 0.15, 0.45, 0.85, 1]
+                  times: [0, 0.15, 0.45, 0.85, 1],
                 }}
               >
-                <Sparkles className="w-5 h-5 text-white animate-spin" />
-                <span className="text-[7px] text-white font-bold leading-none mt-1">Gerando...</span>
+                <Sparkles className="h-5 w-5 animate-spin text-white" />
+                <span className="mt-1 text-[7px] font-bold leading-none text-white">
+                  Gerando...
+                </span>
               </motion.div>
 
               {/* Produto que viaja */}
               <motion.div
-                className="absolute z-20 flex flex-col items-center pointer-events-none"
-                style={{ 
+                className="pointer-events-none absolute z-20 flex flex-col items-center"
+                style={{
                   mixBlendMode: "screen",
-                  top: "10%"
+                  top: "10%",
                 }}
                 animate={{
                   x: [-240, -240, 0, 0, -240],
@@ -419,83 +461,83 @@ const PackshotAnimationDemo = () => {
                     "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
                     "drop-shadow(0 0 10px rgba(99,102,241,0.9))",
                     "drop-shadow(0 0 0px rgba(99,102,241,0))",
-                    "drop-shadow(0 0 0px rgba(99,102,241,0))"
-                  ]
+                    "drop-shadow(0 0 0px rgba(99,102,241,0))",
+                  ],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1]
+                  times: [0, 0.15, 0.45, 0.55, 1],
                 }}
               >
-                <div className="absolute -top-7 bg-accent text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md whitespace-nowrap animate-bounce z-30">
+                <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
                   Copiando Produto...
                 </div>
-                
-                <img 
-                  src="/demo-product-isolated.png" 
-                  alt="Produto em Viagem" 
-                  className="w-24 h-32 object-contain"
+
+                <img
+                  src="/demo-product-isolated.png"
+                  alt="Produto em Viagem"
+                  className="h-32 w-24 object-contain"
                 />
               </motion.div>
 
               {/* Brilho do Cenário */}
               <motion.div
-                className="absolute z-20 w-8 h-8 rounded-full bg-cyan-400/30 blur-md pointer-events-none"
+                className="pointer-events-none absolute z-20 h-8 w-8 rounded-full bg-cyan-400/30 blur-md"
                 style={{ bottom: "10%" }}
                 animate={{
                   x: [-240, -240, 0, 0, -240],
                   y: [52, 52, -10, -10, 52],
                   scale: [1, 1.2, 1, 0, 1],
-                  opacity: [0, 0.8, 0.8, 0, 0]
+                  opacity: [0, 0.8, 0.8, 0, 0],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  times: [0, 0.15, 0.45, 0.55, 1]
+                  times: [0, 0.15, 0.45, 0.55, 1],
                 }}
               />
 
               {/* Foto 3: Imagem Completa Fundida */}
               <motion.div
-                className="absolute inset-0 z-30 pointer-events-none"
+                className="pointer-events-none absolute inset-0 z-30"
                 animate={{
-                  opacity: [0, 0, 0, 1, 1, 0]
+                  opacity: [0, 0, 0, 1, 1, 0],
                 }}
                 transition={{
                   duration: 8,
                   repeat: Infinity,
-                  times: [0, 0.2, 0.45, 0.55, 0.93, 1]
+                  times: [0, 0.2, 0.45, 0.55, 0.93, 1],
                 }}
               >
-                <img 
-                  src="/demo-result.png" 
-                  alt="Resultado Final Comercial" 
-                  className="w-full h-full object-cover"
+                <img
+                  src="/demo-result.png"
+                  alt="Resultado Final Comercial"
+                  className="h-full w-full object-cover"
                 />
-                
-                <div className="absolute top-2 left-2 bg-emerald-500/90 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-sm z-45">
+
+                <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
                   Cenário Completo + Produto
                 </div>
 
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 z-40"
+                  className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                   animate={{
-                    left: ["-100%", "-100%", "200%", "200%", "-100%"]
+                    left: ["-100%", "-100%", "200%", "200%", "-100%"],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
                     times: [0, 0.55, 0.75, 0.85, 1],
-                    ease: "easeOut"
+                    ease: "easeOut",
                   }}
                 />
               </motion.div>
-              
-              <span className="absolute bottom-2 right-2 text-[9px] font-bold text-white bg-emerald-500/90 px-2 py-0.5 rounded z-40 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+
+              <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
+                <span className="h-2 w-2 animate-ping rounded-full bg-white" />
                 Fusão Pronta
               </span>
             </div>
@@ -509,7 +551,8 @@ const PackshotAnimationDemo = () => {
 const HybridAnimationDemo = () => {
   const [typedText, setTypedText] = React.useState("");
   const [loopTrigger, setLoopTrigger] = React.useState(0);
-  const fullText = "Combine o rosto da Foto 1 de forma natural em frente à casa moderna da Foto 2 durante o pôr do sol...";
+  const fullText =
+    "Combine o rosto da Foto 1 de forma natural em frente à casa moderna da Foto 2 durante o pôr do sol...";
 
   React.useEffect(() => {
     let index = 0;
@@ -529,128 +572,143 @@ const HybridAnimationDemo = () => {
   }, [loopTrigger]);
 
   return (
-    <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm mb-6">
+    <div className="relative mx-auto mb-6 w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm">
       <div className="mb-4 flex flex-col items-center">
         <span className="rounded-full bg-pink-500/10 px-3 py-1 text-xs font-bold text-pink-600">
           Demonstração do Fluxo Híbrido
         </span>
-        <h4 className="mt-1.5 text-sm font-semibold text-gray-800 text-center">
+        <h4 className="mt-1.5 text-center text-sm font-semibold text-gray-800">
           Veja como a IA mescla seu rosto com o cenário do projeto:
         </h4>
       </div>
 
       <div className="relative flex h-60 items-center justify-between gap-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-inner">
         {/* Lado Esquerdo: Selfie (1) + Projeto (2) empilhados */}
-        <div className="flex flex-col gap-4 z-10">
+        <div className="z-10 flex flex-col gap-4">
           {/* Foto 1: Sua Selfie */}
-          <div className="relative flex h-24 w-28 flex-col items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900 text-center overflow-hidden">
-            <span className="absolute top-1 left-1.5 text-[7px] font-bold text-white bg-black/50 px-1 py-0.5 rounded uppercase tracking-wider z-20">
+          <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+            <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
               Foto 1: Selfie (Rosto)
             </span>
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900 z-0" />
+            <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
             <motion.div
               className="z-10 cursor-default"
               animate={{
-                opacity: [1, 0.25, 0.25, 1, 1]
+                opacity: [1, 0.25, 0.25, 1, 1],
               }}
               transition={{
                 duration: 8,
                 repeat: Infinity,
-                times: [0, 0.15, 0.85, 0.95, 1]
+                times: [0, 0.15, 0.85, 0.95, 1],
               }}
             >
-              <img 
-                src="/demo-hybrid-selfie.png" 
-                alt="Sua Selfie" 
-                className="w-16 h-20 object-cover rounded-md"
+              <img
+                src="/demo-hybrid-selfie.png"
+                alt="Sua Selfie"
+                className="h-20 w-16 rounded-md object-cover"
               />
             </motion.div>
           </div>
 
           {/* Foto 2: Foto do Projeto */}
-          <div className="relative flex h-24 w-28 flex-col items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900 text-center overflow-hidden">
-            <span className="absolute top-1 left-1.5 text-[7px] font-bold text-white bg-black/50 px-1 py-0.5 rounded uppercase tracking-wider z-20">
+          <div className="relative flex h-24 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
+            <span className="absolute left-1.5 top-1 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
               Foto 2: Projeto/Cenário
             </span>
             <div className="absolute inset-0 z-0">
-              <img 
-                src="/demo-hybrid-project.png" 
-                alt="Projeto" 
-                className="w-full h-full object-cover opacity-80"
+              <img
+                src="/demo-hybrid-project.png"
+                alt="Projeto"
+                className="h-full w-full object-cover opacity-80"
               />
             </div>
             <motion.div
-              className="absolute z-10 w-2 h-2 rounded-full bg-pink-400 blur-[2px]"
+              className="absolute z-10 h-2 w-2 rounded-full bg-pink-400 blur-[2px]"
               animate={{
-                opacity: [1, 0.3, 0.3, 1, 1]
+                opacity: [1, 0.3, 0.3, 1, 1],
               }}
               transition={{
                 duration: 8,
                 repeat: Infinity,
-                times: [0, 0.15, 0.85, 0.95, 1]
+                times: [0, 0.15, 0.85, 0.95, 1],
               }}
             />
           </div>
         </div>
 
         {/* CENTRO: Caixa do Prompt de Fusão Híbrida */}
-        <div className="flex flex-col items-center justify-center flex-1 z-10 px-2">
-          <span className="text-[7px] font-extrabold text-pink-400 uppercase tracking-widest mb-2 text-center animate-pulse">
+        <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
+          <span className="mb-2 animate-pulse text-center text-[7px] font-extrabold uppercase tracking-widest text-pink-400">
             Instruções de Mesclagem
           </span>
           <div className="relative w-full max-w-[200px] rounded-lg border border-pink-900/60 bg-slate-950/80 p-2.5 text-left shadow-lg">
-            <div className="flex items-center gap-1 mb-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-ping" />
-              <span className="text-[7px] text-slate-500 font-bold uppercase">Prompt de IA</span>
+            <div className="mb-1 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-pink-500" />
+              <span className="text-[7px] font-bold uppercase text-slate-500">Prompt de IA</span>
             </div>
-            <div className="min-h-[44px] text-[9px] font-mono text-slate-300 leading-snug break-words">
+            <div className="min-h-[44px] break-words font-mono text-[9px] leading-snug text-slate-300">
               {typedText}
-              <span className="inline-block w-1 h-3 ml-0.5 bg-pink-500 animate-pulse" style={{ verticalAlign: 'middle' }} />
+              <span
+                className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-pink-500"
+                style={{ verticalAlign: "middle" }}
+              />
             </div>
           </div>
 
           {/* Conector de fluxo */}
-          <div className="relative w-16 h-8 flex items-center justify-center mt-2">
+          <div className="relative mt-2 flex h-8 w-16 items-center justify-center">
             <svg width="64" height="24" viewBox="0 0 64 24" fill="none">
-              <path d="M2 12 H 58" stroke="#ec4899" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-              <path d="M50 8L58 12L50 16" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M2 12 H 58"
+                stroke="#ec4899"
+                strokeWidth="2"
+                strokeDasharray="4 4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M50 8L58 12L50 16"
+                stroke="#ec4899"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
         </div>
 
         {/* Lado Direito: Foto 3 - Resultado Final Híbrido */}
-        <div className="relative flex h-52 w-64 flex-col items-center justify-center rounded-xl border border-slate-700 bg-slate-950 overflow-hidden">
-          <span className="absolute top-2 right-2 text-[9px] font-bold text-white bg-black/50 px-1.5 py-0.5 rounded uppercase tracking-wider z-20">
+        <div className="relative flex h-52 w-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+          <span className="absolute right-2 top-2 z-20 rounded bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
             Foto 3: Imagem Gerada
           </span>
           <div className="absolute inset-0 z-0">
-            <img 
-              src="/demo-hybrid-project.png" 
-              alt="Fundo Casa" 
-              className="w-full h-full object-cover"
+            <img
+              src="/demo-hybrid-project.png"
+              alt="Fundo Casa"
+              className="h-full w-full object-cover"
             />
           </div>
 
           <motion.div
-            className="absolute z-10 flex flex-col items-center justify-center opacity-40 border border-dashed border-white/50 p-2 rounded-lg bg-black/40"
+            className="absolute z-10 flex flex-col items-center justify-center rounded-lg border border-dashed border-white/50 bg-black/40 p-2 opacity-40"
             animate={{
-              opacity: [0.5, 0.5, 0, 0, 0.5]
+              opacity: [0.5, 0.5, 0, 0, 0.5],
             }}
             transition={{
               duration: 8,
               repeat: Infinity,
-              times: [0, 0.15, 0.45, 0.85, 1]
+              times: [0, 0.15, 0.45, 0.85, 1],
             }}
           >
-            <Sparkles className="w-5 h-5 text-white animate-spin" />
-            <span className="text-[7px] text-white font-bold leading-none mt-1">Combinando...</span>
+            <Sparkles className="h-5 w-5 animate-spin text-white" />
+            <span className="mt-1 text-[7px] font-bold leading-none text-white">Combinando...</span>
           </motion.div>
 
           {/* Rosto que viaja */}
           <motion.div
-            className="absolute z-20 flex flex-col items-center pointer-events-none"
-            style={{ 
-              top: "12%"
+            className="pointer-events-none absolute z-20 flex flex-col items-center"
+            style={{
+              top: "12%",
             }}
             animate={{
               x: [-240, -240, 0, 0, -240],
@@ -662,82 +720,82 @@ const HybridAnimationDemo = () => {
                 "drop-shadow(0 0 10px rgba(236,72,153,0.9))",
                 "drop-shadow(0 0 10px rgba(236,72,153,0.9))",
                 "drop-shadow(0 0 0px rgba(236,72,153,0))",
-                "drop-shadow(0 0 0px rgba(236,72,153,0))"
-              ]
+                "drop-shadow(0 0 0px rgba(236,72,153,0))",
+              ],
             }}
             transition={{
               duration: 8,
               repeat: Infinity,
               ease: "easeInOut",
-              times: [0, 0.15, 0.45, 0.55, 1]
+              times: [0, 0.15, 0.45, 0.55, 1],
             }}
           >
-            <div className="absolute -top-7 bg-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md whitespace-nowrap animate-bounce z-30">
+            <div className="absolute -top-7 z-30 animate-bounce whitespace-nowrap rounded-full bg-pink-500 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md">
               Mesclando Rosto...
             </div>
-            <img 
-              src="/demo-hybrid-selfie.png" 
-              alt="Rosto em Viagem" 
-              className="w-16 h-20 object-cover rounded-full border-2 border-pink-500"
+            <img
+              src="/demo-hybrid-selfie.png"
+              alt="Rosto em Viagem"
+              className="h-20 w-16 rounded-full border-2 border-pink-500 object-cover"
             />
           </motion.div>
 
           {/* Brilho da fusão */}
           <motion.div
-            className="absolute z-20 w-8 h-8 rounded-full bg-pink-500/30 blur-md pointer-events-none"
+            className="pointer-events-none absolute z-20 h-8 w-8 rounded-full bg-pink-500/30 blur-md"
             style={{ bottom: "10%" }}
             animate={{
               x: [-240, -240, 0, 0, -240],
               y: [52, 52, -10, -10, 52],
               scale: [1, 1.2, 1, 0, 1],
-              opacity: [0, 0.8, 0.8, 0, 0]
+              opacity: [0, 0.8, 0.8, 0, 0],
             }}
             transition={{
               duration: 8,
               repeat: Infinity,
               ease: "easeInOut",
-              times: [0, 0.15, 0.45, 0.55, 1]
+              times: [0, 0.15, 0.45, 0.55, 1],
             }}
           />
 
           {/* Foto 3: Imagem Completa Fundida */}
           <motion.div
-            className="absolute inset-0 z-30 pointer-events-none"
+            className="pointer-events-none absolute inset-0 z-30"
             animate={{
-              opacity: [0, 0, 0, 1, 1, 0]
+              opacity: [0, 0, 0, 1, 1, 0],
             }}
             transition={{
               duration: 8,
               repeat: Infinity,
-              times: [0, 0.2, 0.45, 0.55, 0.93, 1]
+              times: [0, 0.2, 0.45, 0.55, 0.93, 1],
             }}
           >
-            <img 
-              src="/demo-hybrid-result.png" 
-              alt="Resultado Final Híbrido" 
-              className="w-full h-full object-cover"
+            <img
+              src="/demo-hybrid-result.png"
+              alt="Resultado Final Híbrido"
+              className="h-full w-full object-cover"
             />
-            
-            <div className="absolute top-2 left-2 bg-emerald-500/90 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-sm z-45">
+
+            <div className="z-45 absolute left-2 top-2 rounded bg-emerald-500/90 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
               Rosto + Projeto Integrados
             </div>
 
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 z-40"
+              className="absolute inset-0 z-40 skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
               animate={{
-                left: ["-100%", "-100%", "200%", "200%", "-100%"]
+                left: ["-100%", "-100%", "200%", "200%", "-100%"],
               }}
               transition={{
                 duration: 8,
                 repeat: Infinity,
                 times: [0, 0.55, 0.75, 0.85, 1],
-                ease: "easeOut"
+                ease: "easeOut",
               }}
             />
           </motion.div>
-          
-          <span className="absolute bottom-2 right-2 text-[9px] font-bold text-white bg-emerald-500/90 px-2 py-0.5 rounded z-40 flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+
+          <span className="absolute bottom-2 right-2 z-40 flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white">
+            <span className="h-2 w-2 animate-ping rounded-full bg-white" />
             Fusão Pronta
           </span>
         </div>
@@ -787,7 +845,11 @@ export const Step1Idea = () => {
       onReferenceDescriptionChange(
         "Criar um post profissional mantendo fielmente o layout, as cores e a estrutura da referência de inspiração, integrando o meu produto ou pessoa de forma perfeitamente harmônica."
       );
-    } else if (mode === "reference-photo" && productWorkflow === "packshot-hybrid" && !referenceDescription.trim()) {
+    } else if (
+      mode === "reference-photo" &&
+      productWorkflow === "packshot-hybrid" &&
+      !referenceDescription.trim()
+    ) {
       onReferenceDescriptionChange(
         "Substituir o produto principal da foto de referência profissional pelo meu produto de forma realista, integrando sombras, iluminação e reflexos do ambiente de fundo."
       );
@@ -874,15 +936,18 @@ export const Step1Idea = () => {
       : isLinkMode
         ? !referenceLink || !referenceImagePreview
         : mode === "reference-photo"
-          ? (!productWorkflow
+          ? !productWorkflow
             ? true
             : productWorkflow === "packshot-hybrid"
-              ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
-              : (!referenceImagePreview || !referenceDescription.trim()))
+              ? !referenceImagePreview ||
+                !secondaryReferenceImagePreview ||
+                !referenceDescription.trim()
+              : !referenceImagePreview || !referenceDescription.trim()
           : isHybridMode
-            ? (!referenceImagePreview || !secondaryReferenceImagePreview || !referenceDescription.trim())
-            : (!postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()))
-  );
+            ? !referenceImagePreview ||
+              !secondaryReferenceImagePreview ||
+              !referenceDescription.trim()
+            : !postSummary.trim() || (!!referenceImagePreview && !referenceDescription.trim()));
 
   return (
     <motion.div
@@ -929,8 +994,10 @@ export const Step1Idea = () => {
                   <div className="mb-3 rounded-xl bg-accent/10 p-2 text-accent">
                     <Sparkles className="h-6 w-6" />
                   </div>
-                  <span className="text-base font-bold text-gray-800">Opção A — Produto em Uso</span>
-                  <span className="mt-1 text-xs text-gray-500 leading-relaxed">
+                  <span className="text-base font-bold text-gray-800">
+                    Opção A — Produto em Uso
+                  </span>
+                  <span className="mt-1 text-xs leading-relaxed text-gray-500">
                     Ideal para colocar o seu produto sendo usado por uma pessoa.
                   </span>
                   <span className="mt-2 rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-600">
@@ -950,8 +1017,10 @@ export const Step1Idea = () => {
                   <div className="mb-3 rounded-xl bg-blue-500/10 p-2 text-blue-500">
                     <Box className="h-6 w-6" />
                   </div>
-                  <span className="text-base font-bold text-gray-800">Opção B — Produto em Uso com Referência</span>
-                  <span className="mt-1 text-xs text-gray-500 leading-relaxed">
+                  <span className="text-base font-bold text-gray-800">
+                    Opção B — Produto em Uso com Referência
+                  </span>
+                  <span className="mt-1 text-xs leading-relaxed text-gray-500">
                     Ideal para colocar o seu produto no cenário da referência enviada.
                   </span>
                   <span className="mt-2 rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600">
@@ -964,16 +1033,18 @@ export const Step1Idea = () => {
 
           {isLinkMode && (
             <div className="space-y-6">
-              <p className="text-sm text-gray-600 text-center">
+              <p className="text-center text-sm text-gray-600">
                 {mode === "reference-inspiration"
                   ? "Para criar o seu post conceitual, envie o print do post que você gostou como inspiração."
                   : "Para criar o seu post com o layout perfeito, envie o print do post que você gostou (Inspiração) E a foto do seu produto ou pessoa (Conteúdo)."}
               </p>
 
-              <div className={cn(
-                "grid grid-cols-1 gap-6",
-                mode === "reference-inspiration" ? "max-w-xl mx-auto w-full" : "md:grid-cols-2"
-              )}>
+              <div
+                className={cn(
+                  "grid grid-cols-1 gap-6",
+                  mode === "reference-inspiration" ? "mx-auto w-full max-w-xl" : "md:grid-cols-2"
+                )}
+              >
                 {/* 1. Print de Inspiração */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
@@ -1041,7 +1112,9 @@ export const Step1Idea = () => {
                   <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                     <div className="flex items-center gap-2 text-primary">
                       <Box className="h-5 w-5 text-blue-500" />
-                      <Label className="text-base font-bold">2. Foto do seu Produto ou Pessoa</Label>
+                      <Label className="text-base font-bold">
+                        2. Foto do seu Produto ou Pessoa
+                      </Label>
                     </div>
                     <p className="text-xs text-gray-500">
                       A foto do seu produto real, pessoa ou modelo que será recortada e inserida na
@@ -1098,31 +1171,32 @@ export const Step1Idea = () => {
           {isHybridMode && (
             <div className="space-y-6">
               <p className="text-sm text-gray-600">
-                Gere uma imagem combinando o rosto de uma pessoa (selfie) com um produto ou projeto em um cenário realista.
+                Gere uma imagem combinando o rosto de uma pessoa (selfie) com um produto ou projeto
+                em um cenário realista.
               </p>
 
-              {!referenceImagePreview && !secondaryReferenceImagePreview && (
-                <HybridAnimationDemo />
-              )}
-              
+              {!referenceImagePreview && !secondaryReferenceImagePreview && <HybridAnimationDemo />}
+
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* 1. Foto da Pessoa (Selfie) */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
+                    <Sparkles className="h-5 w-5 animate-pulse text-accent" />
                     <Label className="text-base font-bold">1. Foto da Pessoa (Selfie)</Label>
                   </div>
                   <p className="text-xs text-gray-500">
                     Selfie nítida e bem iluminada para preservar a fidelidade do rosto.
                   </p>
-                  
+
                   {!referenceImagePreview ? (
                     <div
                       onClick={() => fileInputRef.current?.click()}
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar ou cole (Ctrl+V) a selfie</p>
+                      <p className="text-center text-xs font-bold text-gray-700">
+                        Clique para carregar ou cole (Ctrl+V) a selfie
+                      </p>
                       <p className="mt-1 text-[10px] text-gray-400">PNG, JPG com boa iluminação.</p>
                       <input
                         type="file"
@@ -1135,12 +1209,18 @@ export const Step1Idea = () => {
                   ) : (
                     <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
                       <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
-                        <Image src={referenceImagePreview} alt="Selfie da Pessoa" layout="fill" objectFit="cover" unoptimized />
+                        <Image
+                          src={referenceImagePreview}
+                          alt="Selfie da Pessoa"
+                          layout="fill"
+                          objectFit="cover"
+                          unoptimized
+                        />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => onReferenceImageChange(null)}
                       >
                         Trocar imagem
@@ -1165,8 +1245,12 @@ export const Step1Idea = () => {
                       className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
                     >
                       <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar ou cole (Ctrl+V) o produto/projeto</p>
-                      <p className="mt-1 text-[10px] text-gray-400">PNG, JPG do produto ou arquitetura.</p>
+                      <p className="text-center text-xs font-bold text-gray-700">
+                        Clique para carregar ou cole (Ctrl+V) o produto/projeto
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        PNG, JPG do produto ou arquitetura.
+                      </p>
                       <input
                         type="file"
                         ref={secondaryFileInputRef}
@@ -1191,10 +1275,10 @@ export const Step1Idea = () => {
                           unoptimized
                         />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => onSecondaryReferenceImageChange(null)}
                       >
                         Trocar imagem
@@ -1207,7 +1291,7 @@ export const Step1Idea = () => {
           )}
 
           {mode !== "reference-photo" && !isHybridMode && (
-            <div className="space-y-2 pt-4 border-t">
+            <div className="space-y-2 border-t pt-4">
               <Label className="text-base font-semibold">
                 {isLinkMode ? "Ideia do Conteúdo / Promoção" : "Ideia do Conteúdo"}
               </Label>
@@ -1229,13 +1313,16 @@ export const Step1Idea = () => {
 
               {/* Seção opcional de Print de Inspiração para o modo conceito */}
               {mode === "concept" && (
-                <div className="mt-6 space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm max-w-xl mx-auto w-full">
+                <div className="mx-auto mt-6 w-full max-w-xl space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
-                    <Label className="text-base font-bold">Print de Inspiração / Referência Visual (Opcional)</Label>
+                    <Sparkles className="h-5 w-5 animate-pulse text-accent" />
+                    <Label className="text-base font-bold">
+                      Print de Inspiração / Referência Visual (Opcional)
+                    </Label>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Gostou de alguma postagem nas redes sociais? Envie o print dela e a IA gerará uma opção de imagem inspirada no mesmo layout, cenário e cores de composição.
+                    Gostou de alguma postagem nas redes sociais? Envie o print dela e a IA gerará
+                    uma opção de imagem inspirada no mesmo layout, cenário e cores de composição.
                   </p>
 
                   {!referenceLink ? (
@@ -1293,11 +1380,12 @@ export const Step1Idea = () => {
           )}
 
           {isHybridMode && (
-            <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-4 border-t pt-4">
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Prioridade de Foco da Geração</Label>
                 <p className="text-sm text-gray-600">
-                  Escolha o elemento que a inteligência artificial deve priorizar e manter fiel ao combinar as imagens.
+                  Escolha o elemento que a inteligência artificial deve priorizar e manter fiel ao
+                  combinar as imagens.
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <button
@@ -1310,10 +1398,12 @@ export const Step1Idea = () => {
                         : "border-gray-200 bg-white hover:border-gray-300"
                     }`}
                   >
-                    <Scale className={`h-6 w-6 ${hybridPriority === "balanced" ? "text-accent" : "text-gray-400"}`} />
+                    <Scale
+                      className={`h-6 w-6 ${hybridPriority === "balanced" ? "text-accent" : "text-gray-400"}`}
+                    />
                     <div>
                       <p className="text-xs font-bold text-gray-800">Foco em Ambos</p>
-                      <p className="mt-1 text-[10px] text-gray-500 leading-normal">
+                      <p className="mt-1 text-[10px] leading-normal text-gray-500">
                         Mescla equilibrada e proporcional dos elementos.
                       </p>
                     </div>
@@ -1329,10 +1419,12 @@ export const Step1Idea = () => {
                         : "border-gray-200 bg-white hover:border-gray-300"
                     }`}
                   >
-                    <Home className={`h-6 w-6 ${hybridPriority === "scenario" ? "text-blue-500" : "text-gray-400"}`} />
+                    <Home
+                      className={`h-6 w-6 ${hybridPriority === "scenario" ? "text-blue-500" : "text-gray-400"}`}
+                    />
                     <div>
                       <p className="text-xs font-bold text-gray-800">Priorizar Cenário</p>
-                      <p className="mt-1 text-[10px] text-gray-500 leading-normal">
+                      <p className="mt-1 text-[10px] leading-normal text-gray-500">
                         Preserva rigidamente a casa ou ambiente da Foto 2.
                       </p>
                     </div>
@@ -1348,10 +1440,12 @@ export const Step1Idea = () => {
                         : "border-gray-200 bg-white hover:border-gray-300"
                     }`}
                   >
-                    <User className={`h-6 w-6 ${hybridPriority === "person" ? "text-pink-500" : "text-gray-400"}`} />
+                    <User
+                      className={`h-6 w-6 ${hybridPriority === "person" ? "text-pink-500" : "text-gray-400"}`}
+                    />
                     <div>
                       <p className="text-xs font-bold text-gray-800">Priorizar Pessoa</p>
-                      <p className="mt-1 text-[10px] text-gray-500 leading-normal">
+                      <p className="mt-1 text-[10px] leading-normal text-gray-500">
                         Destaque máximo e fidelidade de rosto do corretor/modelo.
                       </p>
                     </div>
@@ -1364,11 +1458,13 @@ export const Step1Idea = () => {
                   Descrição do Cenário e Ideias Promocionais
                 </Label>
                 <p className="mb-2 text-sm text-gray-600">
-                  Explique detalhadamente como deseja combinar a pessoa e o produto/projeto na imagem final. Seja específico sobre roupas, pose, cenário de fundo, iluminação ou texto promocional se houver.
+                  Explique detalhadamente como deseja combinar a pessoa e o produto/projeto na
+                  imagem final. Seja específico sobre roupas, pose, cenário de fundo, iluminação ou
+                  texto promocional se houver.
                 </p>
                 <Textarea
                   placeholder="Ex: Coloque o arquiteto da Foto 1 de terno azul escuro e braços cruzados sorrindo, posicionado em frente à casa moderna da Foto 2 durante o pôr do sol."
-                  className="h-32 text-base bg-white"
+                  className="h-32 bg-white text-base"
                   value={referenceDescription}
                   onChange={(e) => onReferenceDescriptionChange(e.target.value)}
                   required
@@ -1377,112 +1473,43 @@ export const Step1Idea = () => {
             </div>
           )}
 
-          {!hideImageOption && !isLinkMode && !isHybridMode && (mode !== "reference-photo" || !!productWorkflow) && (
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="border-t pt-6 space-y-6">
-              {productWorkflow === "text-ambientation" ? (
-                // Interface A: Upload Único + Prompt de Texto
-                <div className="space-y-6">
-                  <div className="mb-2 flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <Box className="h-5 w-5 text-blue-500" />
-                      <Label className="text-base font-bold text-gray-800">
-                        Foto do seu Produto
-                      </Label>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Envie uma foto do seu produto físico para que a IA crie novos cenários para ele.
-                    </p>
-                  </div>
-
+          {!hideImageOption &&
+            !isLinkMode &&
+            !isHybridMode &&
+            (mode !== "reference-photo" || !!productWorkflow) && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6 border-t pt-6"
+              >
+                {productWorkflow === "text-ambientation" ? (
+                  // Interface A: Upload Único + Prompt de Texto
                   <div className="space-y-6">
-                    {!referenceImagePreview ? (
-                      <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 p-8 transition-all hover:border-accent hover:bg-accent/5"
-                      >
-                        <UploadCloud className="mb-2 h-10 w-10 text-gray-400" />
-                        <p className="text-sm font-medium text-gray-700">
-                          Clique para enviar a foto do produto
-                        </p>
-                        <p className="text-xs text-gray-500">PNG, JPG ou JPEG (Máx. 5MB)</p>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
+                    <div className="mb-2 flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <Box className="h-5 w-5 text-blue-500" />
+                        <Label className="text-base font-bold text-gray-800">
+                          Foto do seu Produto
+                        </Label>
                       </div>
-                    ) : (
-                      <div className="w-full space-y-4 pt-1">
-                        <div className="flex flex-col items-start gap-6 md:flex-row">
-                          <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-xl border shadow-sm">
-                            <Image
-                              src={referenceImagePreview}
-                              alt="Referência"
-                              layout="fill"
-                              objectFit="cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => onReferenceImageChange(null)}
-                              className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          <AnimatePresence>
-                            <motion.div
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              className="w-full flex-1 space-y-3"
-                            >
-                              <div className="flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-primary" />
-                                <Label className="text-sm font-bold text-gray-800">
-                                  Escreva ideias de cenário <span className="text-red-500">*</span>
-                                </Label>
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Explique como deseja ambientar o seu produto (ex: "sobre uma mesa de mármore branco com flores ao fundo no pôr do sol").
-                              </p>
-                              <Textarea
-                                placeholder="Ex: Frasco de perfume posicionado sobre uma mesa de madeira rústica, com iluminação quente de velas no fundo..."
-                                className="h-24 text-sm"
-                                value={referenceDescription}
-                                onChange={(e) => onReferenceDescriptionChange(e.target.value)}
-                                required
-                              />
-                            </motion.div>
-                          </AnimatePresence>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // Interface B: Upload Duplo para Packshot Híbrido
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {/* 1. Foto do seu Produto Real */}
-                    <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Box className="h-5 w-5 text-accent animate-pulse" />
-                        <Label className="text-base font-bold">1. Foto do seu Produto Real</Label>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Foto simples (mesmo amadora) do seu produto real que será recortado e colado.
+                      <p className="mt-1 text-xs text-gray-500">
+                        Envie uma foto do seu produto físico para que a IA crie novos cenários para
+                        ele.
                       </p>
-                      
+                    </div>
+
+                    <div className="space-y-6">
                       {!referenceImagePreview ? (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
+                          className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 p-8 transition-all hover:border-accent hover:bg-accent/5"
                         >
-                          <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                          <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar o seu produto</p>
-                          <p className="mt-1 text-[10px] text-gray-400">PNG, JPG de boa qualidade.</p>
+                          <UploadCloud className="mb-2 h-10 w-10 text-gray-400" />
+                          <p className="text-sm font-medium text-gray-700">
+                            Clique para enviar a foto do produto
+                          </p>
+                          <p className="text-xs text-gray-500">PNG, JPG ou JPEG (Máx. 5MB)</p>
                           <input
                             type="file"
                             ref={fileInputRef}
@@ -1492,95 +1519,192 @@ export const Step1Idea = () => {
                           />
                         </div>
                       ) : (
-                        <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                          <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
-                            <Image src={referenceImagePreview} alt="Seu Produto" layout="fill" objectFit="cover" unoptimized />
+                        <div className="w-full space-y-4 pt-1">
+                          <div className="flex flex-col items-start gap-6 md:flex-row">
+                            <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-xl border shadow-sm">
+                              <Image
+                                src={referenceImagePreview}
+                                alt="Referência"
+                                layout="fill"
+                                objectFit="cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => onReferenceImageChange(null)}
+                                className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <AnimatePresence>
+                              <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="w-full flex-1 space-y-3"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="h-4 w-4 text-primary" />
+                                  <Label className="text-sm font-bold text-gray-800">
+                                    Escreva ideias de cenário{" "}
+                                    <span className="text-red-500">*</span>
+                                  </Label>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  Explique como deseja ambientar o seu produto (ex: "sobre uma mesa
+                                  de mármore branco com flores ao fundo no pôr do sol").
+                                </p>
+                                <Textarea
+                                  placeholder="Ex: Frasco de perfume posicionado sobre uma mesa de madeira rústica, com iluminação quente de velas no fundo..."
+                                  className="h-24 text-sm"
+                                  value={referenceDescription}
+                                  onChange={(e) => onReferenceDescriptionChange(e.target.value)}
+                                  required
+                                />
+                              </motion.div>
+                            </AnimatePresence>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => onReferenceImageChange(null)}
-                          >
-                            Trocar imagem
-                          </Button>
                         </div>
                       )}
                     </div>
-
-                    {/* 2. Foto de Referência */}
-                    <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Sparkles className="h-5 w-5 text-blue-500" />
-                        <Label className="text-base font-bold">2. Foto de Referência</Label>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        A foto de inspiração profissional da qual copiaremos o cenário e a iluminação.
-                      </p>
-
-                      {!secondaryReferenceImagePreview ? (
-                        <div
-                          onClick={() => secondaryFileInputRef.current?.click()}
-                          className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
-                        >
-                          <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                          <p className="text-xs font-bold text-gray-700 text-center">Clique para carregar a referência</p>
-                          <p className="mt-1 text-[10px] text-gray-400">PNG, JPG do cenário comercial.</p>
-                          <input
-                            type="file"
-                            ref={secondaryFileInputRef}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                onSecondaryReferenceImageChange(file);
-                              }
-                            }}
-                            accept="image/*"
-                            className="hidden"
-                          />
+                  </div>
+                ) : (
+                  // Interface B: Upload Duplo para Packshot Híbrido
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      {/* 1. Foto do seu Produto Real */}
+                      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
+                        <div className="flex items-center gap-2 text-primary">
+                          <Box className="h-5 w-5 animate-pulse text-accent" />
+                          <Label className="text-base font-bold">1. Foto do seu Produto Real</Label>
                         </div>
-                      ) : (
-                        <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                          <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
-                            <Image
-                              src={secondaryReferenceImagePreview}
-                              alt="Foto de Referência"
-                              layout="fill"
-                              objectFit="cover"
-                              unoptimized
+                        <p className="text-xs text-gray-500">
+                          Foto simples (mesmo amadora) do seu produto real que será recortado e
+                          colado.
+                        </p>
+
+                        {!referenceImagePreview ? (
+                          <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
+                          >
+                            <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                            <p className="text-center text-xs font-bold text-gray-700">
+                              Clique para carregar o seu produto
+                            </p>
+                            <p className="mt-1 text-[10px] text-gray-400">
+                              PNG, JPG de boa qualidade.
+                            </p>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleFileChange}
+                              accept="image/*"
+                              className="hidden"
                             />
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mt-2 h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => onSecondaryReferenceImageChange(null)}
-                          >
-                            Trocar imagem
-                          </Button>
+                        ) : (
+                          <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                            <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                              <Image
+                                src={referenceImagePreview}
+                                alt="Seu Produto"
+                                layout="fill"
+                                objectFit="cover"
+                                unoptimized
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              onClick={() => onReferenceImageChange(null)}
+                            >
+                              Trocar imagem
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Foto de Referência */}
+                      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
+                        <div className="flex items-center gap-2 text-primary">
+                          <Sparkles className="h-5 w-5 text-blue-500" />
+                          <Label className="text-base font-bold">2. Foto de Referência</Label>
                         </div>
-                      )}
+                        <p className="text-xs text-gray-500">
+                          A foto de inspiração profissional da qual copiaremos o cenário e a
+                          iluminação.
+                        </p>
+
+                        {!secondaryReferenceImagePreview ? (
+                          <div
+                            onClick={() => secondaryFileInputRef.current?.click()}
+                            className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
+                          >
+                            <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
+                            <p className="text-center text-xs font-bold text-gray-700">
+                              Clique para carregar a referência
+                            </p>
+                            <p className="mt-1 text-[10px] text-gray-400">
+                              PNG, JPG do cenário comercial.
+                            </p>
+                            <input
+                              type="file"
+                              ref={secondaryFileInputRef}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  onSecondaryReferenceImageChange(file);
+                                }
+                              }}
+                              accept="image/*"
+                              className="hidden"
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
+                            <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                              <Image
+                                src={secondaryReferenceImagePreview}
+                                alt="Foto de Referência"
+                                layout="fill"
+                                objectFit="cover"
+                                unoptimized
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              onClick={() => onSecondaryReferenceImageChange(null)}
+                            >
+                              Trocar imagem
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 border-t pt-2">
+                      <Label className="text-base font-semibold">
+                        Descrição do Cenário ou Ajustes (Opcional)
+                      </Label>
+                      <p className="text-sm text-gray-600">
+                        Explique se gostaria de fazer algum ajuste na combinação (ex: "coloque o meu
+                        produto no lugar da garrafa profissional e mantenha os respingos de água").
+                      </p>
+                      <Textarea
+                        placeholder="Descreva detalhes ou instruções para a fusão..."
+                        className="h-24 bg-white text-sm"
+                        value={referenceDescription}
+                        onChange={(e) => onReferenceDescriptionChange(e.target.value)}
+                      />
                     </div>
                   </div>
-
-                  <div className="space-y-2 pt-2 border-t">
-                    <Label className="text-base font-semibold">
-                      Descrição do Cenário ou Ajustes (Opcional)
-                    </Label>
-                    <p className="text-sm text-gray-600">
-                      Explique se gostaria de fazer algum ajuste na combinação (ex: "coloque o meu produto no lugar da garrafa profissional e mantenha os respingos de água").
-                    </p>
-                    <Textarea
-                      placeholder="Descreva detalhes ou instruções para a fusão..."
-                      className="h-24 text-sm bg-white"
-                      value={referenceDescription}
-                      onChange={(e) => onReferenceDescriptionChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
+                )}
+              </motion.div>
+            )}
         </CardContent>
         <CardFooter className="flex items-center justify-end">
           <Button

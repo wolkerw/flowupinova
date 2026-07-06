@@ -42,16 +42,22 @@ export async function POST(request: Request) {
         parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
       }
       if (businessProfile.brandPositioning) {
-        parts.push(`- **Diferencial / Posicionamento (Memória)**: ${businessProfile.brandPositioning}`);
+        parts.push(
+          `- **Diferencial / Posicionamento (Memória)**: ${businessProfile.brandPositioning}`
+        );
       }
       if (businessProfile.keyProducts) {
-        parts.push(`- **Produtos e Serviços de Destaque (Memória)**: ${businessProfile.keyProducts}`);
+        parts.push(
+          `- **Produtos e Serviços de Destaque (Memória)**: ${businessProfile.keyProducts}`
+        );
       }
       if (businessProfile.clientProfile) {
         parts.push(`- **Perfil do Cliente / Persona (Memória)**: ${businessProfile.clientProfile}`);
       }
       if (businessProfile.stylisticPreferences) {
-        parts.push(`- **Preferências Estilísticas/Vibe (Memória)**: ${businessProfile.stylisticPreferences}`);
+        parts.push(
+          `- **Preferências Estilísticas/Vibe (Memória)**: ${businessProfile.stylisticPreferences}`
+        );
       }
 
       // Adicionar novas informações do Brand Kit profissional (fontes, cores e personas)

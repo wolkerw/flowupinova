@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
   const filterDay = searchParams.get("day") || "all";
 
   try {
-    let query = adminDb.collection("apiUsageLogs")
+    let query = adminDb
+      .collection("apiUsageLogs")
       .where("type", "in", ["image_generation", "avatar_generation"]);
 
     // Se não há filtros específicos de ano/mês/dia, limitamos aos últimos 30 dias por performance
@@ -30,16 +31,16 @@ export async function GET(request: NextRequest) {
     }
 
     const snapshot = await query.get();
-    
+
     // Agrupamento por dia respeitando o fuso horário local de Brasília (America/Sao_Paulo)
     const dailyStats: Record<string, { date: string; timestamp: number; count: number }> = {};
-    
+
     let totalCount = 0;
 
     snapshot.docs.forEach((doc) => {
       const data = doc.data();
       const createdAt = data.createdAt?.toDate?.() as Date | undefined;
-      
+
       if (!createdAt || isNaN(createdAt.getTime())) return;
 
       // Conversão explícita para o fuso horário local (America/Sao_Paulo)
@@ -47,21 +48,21 @@ export async function GET(request: NextRequest) {
         timeZone: "America/Sao_Paulo",
         year: "numeric",
         month: "2-digit",
-        day: "2-digit"
+        day: "2-digit",
       });
-      
+
       const parts = formatter.formatToParts(createdAt);
-      const dayStr = parts.find(p => p.type === "day")?.value || "";
-      const monthStr = parts.find(p => p.type === "month")?.value || "";
-      const yearStr = parts.find(p => p.type === "year")?.value || "";
-      
+      const dayStr = parts.find((p) => p.type === "day")?.value || "";
+      const monthStr = parts.find((p) => p.type === "month")?.value || "";
+      const yearStr = parts.find((p) => p.type === "year")?.value || "";
+
       // Aplicar filtros detalhados no nível de data local se o filtro estiver ativo
       if (filterYear !== "all" && yearStr !== filterYear) return;
       if (filterMonth !== "all" && monthStr !== filterMonth) return;
       if (filterDay !== "all" && dayStr !== filterDay) return;
 
       const localDateKey = `${dayStr}/${monthStr}/${yearStr}`;
-      
+
       // Criar um timestamp de comparação local para ordenação
       const localDateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
 
@@ -69,10 +70,10 @@ export async function GET(request: NextRequest) {
         dailyStats[localDateKey] = {
           date: localDateKey,
           timestamp: localDateObj.getTime(),
-          count: 0
+          count: 0,
         };
       }
-      
+
       dailyStats[localDateKey].count += 1;
       totalCount += 1;
     });
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((item) => ({
         date: item.date,
-        geracoes: item.count
+        geracoes: item.count,
       }));
 
     return NextResponse.json({ stats: statsArray, total: totalCount }, { status: 200 });

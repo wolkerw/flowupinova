@@ -18,7 +18,19 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+} from "recharts";
 
 interface UserSummary {
   uid: string;
@@ -197,7 +209,9 @@ export default function AdminConteudoPage() {
       : null;
 
   // Processamento de Gerações Diárias com Filtros (Substituído pela API para fidelidade de 100%)
-  const availableYears = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
+  const availableYears = Array.from({ length: 5 }, (_, i) =>
+    (new Date().getFullYear() - i).toString()
+  );
 
   // Mapeador de usuário para exibir no grid de posts
   const getUserInfo = (userId: string) => {
@@ -376,41 +390,47 @@ export default function AdminConteudoPage() {
           )}
 
           {/* Histórico de Gerações por Dia */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5 space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-700/40 pb-4">
+          <div className="space-y-6 rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
+            <div className="flex flex-col gap-4 border-b border-slate-700/40 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Histórico de Gerações por Dia
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h3 className="text-sm font-semibold text-white">Histórico de Gerações por Dia</h3>
+                <p className="mt-0.5 text-xs text-slate-400">
                   Acompanhe a quantidade exata de imagens e posts gerados por período.
                 </p>
               </div>
 
               {/* Filtros */}
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Filtro Dia */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Dia</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Dia
+                  </label>
                   <select
                     value={filterDay}
                     onChange={(e) => setFilterDay(e.target.value)}
-                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[70px]"
+                    className="min-w-[70px] rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none"
                   >
                     <option value="all">Todos</option>
-                    {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0")).map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
+                    {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0")).map(
+                      (d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
 
                 {/* Filtro Mês */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Mês</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Mês
+                  </label>
                   <select
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
-                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[100px]"
+                    className="min-w-[100px] rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none"
                   >
                     <option value="all">Todos</option>
                     {[
@@ -427,22 +447,28 @@ export default function AdminConteudoPage() {
                       { val: "11", name: "Novembro" },
                       { val: "12", name: "Dezembro" },
                     ].map((m) => (
-                      <option key={m.val} value={m.val}>{m.name}</option>
+                      <option key={m.val} value={m.val}>
+                        {m.name}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 {/* Filtro Ano */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ano</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Ano
+                  </label>
                   <select
                     value={filterYear}
                     onChange={(e) => setFilterYear(e.target.value)}
-                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none min-w-[80px]"
+                    className="min-w-[80px] rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-violet-500 focus:outline-none"
                   >
                     <option value="all">Todos</option>
                     {availableYears.map((y) => (
-                      <option key={y} value={y}>{y}</option>
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -455,7 +481,7 @@ export default function AdminConteudoPage() {
                       setFilterMonth("all");
                       setFilterDay("all");
                     }}
-                    className="mt-5 rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+                    className="mt-5 rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400 transition-colors hover:bg-slate-900 hover:text-white"
                   >
                     Limpar
                   </button>
@@ -469,15 +495,15 @@ export default function AdminConteudoPage() {
                 <p className="text-sm text-slate-400">Atualizando histórico de gerações...</p>
               </div>
             ) : dailyStats.length > 0 ? (
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 {/* Gráfico */}
                 <div className="xl:col-span-2">
                   <ResponsiveContainer width="100%" height={260}>
                     <AreaChart data={dailyStats}>
                       <defs>
                         <linearGradient id="colorGeracoes" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -505,36 +531,37 @@ export default function AdminConteudoPage() {
                 </div>
 
                 {/* Tabela Detalhada com Informações Precisas */}
-                <div className="rounded-lg border border-slate-700 bg-slate-950/40 overflow-hidden flex flex-col max-h-[260px]">
+                <div className="flex max-h-[260px] flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-950/40">
                   <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 py-2 text-xs font-bold text-slate-300">
                     <span>Data</span>
                     <span>Qtd. Gerações</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto divide-y divide-slate-800 scrollbar-thin scrollbar-thumb-slate-800">
+                  <div className="scrollbar-thin scrollbar-thumb-slate-800 flex-1 divide-y divide-slate-800 overflow-y-auto">
                     {dailyStats.map((item) => (
-                      <div key={item.date} className="flex items-center justify-between px-4 py-2 text-xs text-slate-300">
+                      <div
+                        key={item.date}
+                        className="flex items-center justify-between px-4 py-2 text-xs text-slate-300"
+                      >
                         <span className="font-mono">{item.date}</span>
-                        <span className="font-bold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
-                          {item.geracoes} {item.geracoes === 1 ? 'geração' : 'gerações'}
+                        <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-bold text-violet-400">
+                          {item.geracoes} {item.geracoes === 1 ? "geração" : "gerações"}
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t border-slate-800 bg-slate-900/30 px-4 py-2 flex justify-between text-[10px] text-slate-400 font-medium">
+                  <div className="flex justify-between border-t border-slate-800 bg-slate-900/30 px-4 py-2 text-[10px] font-medium text-slate-400">
                     <span>Total do período:</span>
                     <span className="font-bold text-white">
-                      {dailyStatsTotal} {dailyStatsTotal === 1 ? 'geração' : 'gerações'}
+                      {dailyStatsTotal} {dailyStatsTotal === 1 ? "geração" : "gerações"}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-slate-700/60 bg-slate-900/20">
-                <ImageIcon className="h-8 w-8 text-slate-600 mb-2 opacity-50" />
-                <p className="text-slate-400 text-sm font-medium">
-                  Nenhuma geração encontrada
-                </p>
-                <p className="text-xs text-slate-500 max-w-[280px] mt-1 leading-normal">
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700/60 bg-slate-900/20 py-10 text-center">
+                <ImageIcon className="mb-2 h-8 w-8 text-slate-600 opacity-50" />
+                <p className="text-sm font-medium text-slate-400">Nenhuma geração encontrada</p>
+                <p className="mt-1 max-w-[280px] text-xs leading-normal text-slate-500">
                   Não houve registros de criação para o período de filtros selecionados.
                 </p>
               </div>
@@ -750,21 +777,23 @@ export default function AdminConteudoPage() {
 
                     {/* Exibir Miniaturas Interativas do Carrossel de Imagens */}
                     {allImages.length > 1 && (
-                      <div className="flex gap-2 p-2.5 bg-slate-950/40 border-b border-slate-800/60 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800">
+                      <div className="scrollbar-thin scrollbar-thumb-slate-800 flex gap-2 overflow-x-auto border-b border-slate-800/60 bg-slate-950/40 p-2.5">
                         {allImages.map((imgUrl, idx) => (
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => setActiveImageMap((prev) => ({ ...prev, [post.id]: imgUrl }))}
+                            onClick={() =>
+                              setActiveImageMap((prev) => ({ ...prev, [post.id]: imgUrl }))
+                            }
                             className={`relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150 ${
-                              currentImage === imgUrl 
-                                ? "border-violet-500 scale-105 shadow-md shadow-violet-500/20" 
-                                : "border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700"
+                              currentImage === imgUrl
+                                ? "scale-105 border-violet-500 shadow-md shadow-violet-500/20"
+                                : "border-slate-800 opacity-60 hover:border-slate-700 hover:opacity-100"
                             }`}
                           >
                             <img src={imgUrl} className="h-full w-full object-cover" />
                             {idx === 0 && (
-                              <span className="absolute bottom-0 right-0 left-0 bg-violet-600/90 text-[7px] font-bold text-white text-center py-0.5 uppercase tracking-wider">
+                              <span className="absolute bottom-0 left-0 right-0 bg-violet-600/90 py-0.5 text-center text-[7px] font-bold uppercase tracking-wider text-white">
                                 Ativa
                               </span>
                             )}

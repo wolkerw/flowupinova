@@ -206,11 +206,18 @@ export async function POST(request: NextRequest) {
             if (bizData.mainBenefits && bizData.mainBenefits.length > 0) {
               parts.push(`- Principais Benefícios: ${bizData.mainBenefits.join(", ")}`);
             }
-            if (bizData.onboardingSource) parts.push(`- Origem do Onboarding: ${bizData.onboardingSource}`);
-            if (bizData.brandPositioning) parts.push(`- Diferencial / Posicionamento (Memória): ${bizData.brandPositioning}`);
-            if (bizData.keyProducts) parts.push(`- Produtos e Serviços de Destaque (Memória): ${bizData.keyProducts}`);
-            if (bizData.clientProfile) parts.push(`- Perfil do Cliente / Persona (Memória): ${bizData.clientProfile}`);
-            if (bizData.stylisticPreferences) parts.push(`- Preferências Estilísticas e Visuais (Memória): ${bizData.stylisticPreferences}`);
+            if (bizData.onboardingSource)
+              parts.push(`- Origem do Onboarding: ${bizData.onboardingSource}`);
+            if (bizData.brandPositioning)
+              parts.push(`- Diferencial / Posicionamento (Memória): ${bizData.brandPositioning}`);
+            if (bizData.keyProducts)
+              parts.push(`- Produtos e Serviços de Destaque (Memória): ${bizData.keyProducts}`);
+            if (bizData.clientProfile)
+              parts.push(`- Perfil do Cliente / Persona (Memória): ${bizData.clientProfile}`);
+            if (bizData.stylisticPreferences)
+              parts.push(
+                `- Preferências Estilísticas e Visuais (Memória): ${bizData.stylisticPreferences}`
+              );
 
             if (parts.length > 0) {
               businessContext = `\nINFORMAÇÕES REAIS DO NEGÓCIO DO USUÁRIO (CADASTRADAS NA PLATAFORMA):\n${parts.join("\n")}\nUse estas informações reais acima para personalizar todas as suas respostas, ideias de campanhas e sugerões de cores para a marca do usuário. Demonstre de forma sutil que você conhece profundamente o negócio dele!\n`;
@@ -329,31 +336,36 @@ DIRETRIZES DE ESTILO:
         functionDeclarations: [
           {
             name: "save_brand_insights",
-            description: "Salva insights sobre a marca, público, diferenciais e estilo extraídos do chat de forma invisível e persistente.",
+            description:
+              "Salva insights sobre a marca, público, diferenciais e estilo extraídos do chat de forma invisível e persistente.",
             parameters: {
               type: "OBJECT",
               properties: {
-                brandPositioning: { 
-                  type: "STRING", 
-                  description: "Diferencial de valor, proposta única de vendas ou posicionamento de mercado do negócio do usuário." 
+                brandPositioning: {
+                  type: "STRING",
+                  description:
+                    "Diferencial de valor, proposta única de vendas ou posicionamento de mercado do negócio do usuário.",
                 },
-                keyProducts: { 
-                  type: "STRING", 
-                  description: "Lista ou descrição dos principais produtos ou serviços em destaque." 
+                keyProducts: {
+                  type: "STRING",
+                  description:
+                    "Lista ou descrição dos principais produtos ou serviços em destaque.",
                 },
-                clientProfile: { 
-                  type: "STRING", 
-                  description: "Informações sobre o público-alvo ideal, persona ou perfil de clientes." 
+                clientProfile: {
+                  type: "STRING",
+                  description:
+                    "Informações sobre o público-alvo ideal, persona ou perfil de clientes.",
                 },
-                stylisticPreferences: { 
-                  type: "STRING", 
-                  description: "Estilo de design preferido, estética visual e tom visual da marca (ex: luxuoso, rústico, minimalista, vibrante)." 
-                }
-              }
-            }
-          }
-        ]
-      }
+                stylisticPreferences: {
+                  type: "STRING",
+                  description:
+                    "Estilo de design preferido, estética visual e tom visual da marca (ex: luxuoso, rústico, minimalista, vibrante).",
+                },
+              },
+            },
+          },
+        ],
+      },
     ];
 
     // 5. Disparar chamada REST com Fallback Automático Resiliente
@@ -381,7 +393,7 @@ DIRETRIZES DE ESTILO:
             generationConfig: {
               temperature: 0.7,
             },
-            tools: tools
+            tools: tools,
           }),
         });
 
@@ -406,13 +418,21 @@ DIRETRIZES DE ESTILO:
                 if (args.brandPositioning) dataToSave.brandPositioning = args.brandPositioning;
                 if (args.keyProducts) dataToSave.keyProducts = args.keyProducts;
                 if (args.clientProfile) dataToSave.clientProfile = args.clientProfile;
-                if (args.stylisticPreferences) dataToSave.stylisticPreferences = args.stylisticPreferences;
+                if (args.stylisticPreferences)
+                  dataToSave.stylisticPreferences = args.stylisticPreferences;
 
                 if (Object.keys(dataToSave).length > 0) {
-                  console.log(`[CHAT_VAPTI] Salvando insights no Firestore para o usuário ${userId}:`, dataToSave);
+                  console.log(
+                    `[CHAT_VAPTI] Salvando insights no Firestore para o usuário ${userId}:`,
+                    dataToSave
+                  );
                   // Salvar em onboarding e profile
-                  await adminDb.doc(`users/${userId}/business/onboarding`).set(dataToSave, { merge: true });
-                  await adminDb.doc(`users/${userId}/business/profile`).set(dataToSave, { merge: true });
+                  await adminDb
+                    .doc(`users/${userId}/business/onboarding`)
+                    .set(dataToSave, { merge: true });
+                  await adminDb
+                    .doc(`users/${userId}/business/profile`)
+                    .set(dataToSave, { merge: true });
                 }
               }
             } catch (fsErr) {
@@ -428,10 +448,10 @@ DIRETRIZES DE ESTILO:
                   {
                     functionCall: {
                       name: funcName,
-                      args: args
-                    }
-                  }
-                ]
+                      args: args,
+                    },
+                  },
+                ],
               },
               {
                 role: "function",
@@ -441,15 +461,17 @@ DIRETRIZES DE ESTILO:
                       name: funcName,
                       response: {
                         status: "success",
-                        message: "Brand insights successfully saved in database."
-                      }
-                    }
-                  }
-                ]
-              }
+                        message: "Brand insights successfully saved in database.",
+                      },
+                    },
+                  },
+                ],
+              },
             ];
 
-            console.log(`[CHAT_VAPTI] Realizando segunda chamada de acompanhamento para obter o texto final...`);
+            console.log(
+              `[CHAT_VAPTI] Realizando segunda chamada de acompanhamento para obter o texto final...`
+            );
             const secondResponse = await fetch(geminiUrl, {
               method: "POST",
               headers: {
@@ -463,13 +485,15 @@ DIRETRIZES DE ESTILO:
                 generationConfig: {
                   temperature: 0.7,
                 },
-                tools: tools
+                tools: tools,
               }),
             });
 
             if (!secondResponse.ok) {
               const secondErrorText = await secondResponse.text();
-              throw new Error(`Erro na segunda chamada do Gemini (status ${secondResponse.status}): ${secondErrorText}`);
+              throw new Error(
+                `Erro na segunda chamada do Gemini (status ${secondResponse.status}): ${secondErrorText}`
+              );
             }
 
             const secondResData = await secondResponse.json();
@@ -478,7 +502,9 @@ DIRETRIZES DE ESTILO:
             const secondCandidateText = secondPart?.text;
 
             if (!secondCandidateText) {
-              throw new Error(`Resposta da segunda chamada do Gemini vazia ou em formato inesperado`);
+              throw new Error(
+                `Resposta da segunda chamada do Gemini vazia ou em formato inesperado`
+              );
             }
 
             aiResponseText = secondCandidateText.trim();
