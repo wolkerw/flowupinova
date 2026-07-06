@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
 
       // Se for a análise de presença, aciona o Fallback de IA com Gemini para resiliência
       if (target === "analisar_presenca") {
-        console.warn("[PROXY_WEBHOOK] Ativando fallback resiliente do Gemini para análise de presença...");
+        console.warn(
+          "[PROXY_WEBHOOK] Ativando fallback resiliente do Gemini para análise de presença..."
+        );
         const website = formData.get("website")?.toString() || "";
         const instagram = formData.get("instagram")?.toString() || "";
 
@@ -89,13 +91,25 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(fallbackData);
           }
         } catch (geminiErr: any) {
-          console.error("[PROXY_WEBHOOK] Falha na execução do fallback do Gemini:", geminiErr.message || geminiErr);
+          console.error(
+            "[PROXY_WEBHOOK] Falha na execução do fallback do Gemini:",
+            geminiErr.message || geminiErr
+          );
         }
 
         // Se o Gemini falhar, retorna um JSON estruturado básico vazio em vez de estourar erro 500 no onboarding
-        console.warn("[PROXY_WEBHOOK] Retornando resposta padrão vazia para evitar quebra do onboarding.");
+        console.warn(
+          "[PROXY_WEBHOOK] Retornando resposta padrão vazia para evitar quebra do onboarding."
+        );
         return NextResponse.json({
-          name: website ? website.replace(/https?:\/\/(www\.)?/, "").split(".")[0].toUpperCase() : (instagram ? instagram.replace("@", "") : "Minha Empresa"),
+          name: website
+            ? website
+                .replace(/https?:\/\/(www\.)?/, "")
+                .split(".")[0]
+                .toUpperCase()
+            : instagram
+              ? instagram.replace("@", "")
+              : "Minha Empresa",
           category: "Geral",
           phone: "",
           address: "",
@@ -104,7 +118,7 @@ export async function POST(request: NextRequest) {
           primaryColor: "#0EA5E9",
           secondaryColor: "#0284C7",
           targetAudience: "Clientes em geral",
-          toneOfVoice: "Amigável"
+          toneOfVoice: "Amigável",
         });
       }
 
@@ -128,9 +142,16 @@ export async function POST(request: NextRequest) {
         const fallbackData = await runGeminiOnboardingFallback(website, instagram);
         if (fallbackData) return NextResponse.json(fallbackData);
       } catch (e) {}
-      
+
       return NextResponse.json({
-        name: website ? website.replace(/https?:\/\/(www\.)?/, "").split(".")[0].toUpperCase() : (instagram ? instagram.replace("@", "") : "Minha Empresa"),
+        name: website
+          ? website
+              .replace(/https?:\/\/(www\.)?/, "")
+              .split(".")[0]
+              .toUpperCase()
+          : instagram
+            ? instagram.replace("@", "")
+            : "Minha Empresa",
         category: "Geral",
         phone: "",
         address: "",
@@ -139,7 +160,7 @@ export async function POST(request: NextRequest) {
         primaryColor: "#0EA5E9",
         secondaryColor: "#0284C7",
         targetAudience: "Clientes em geral",
-        toneOfVoice: "Amigável"
+        toneOfVoice: "Amigável",
       });
     }
 
@@ -230,4 +251,3 @@ CRITICAL: Return ONLY the JSON object. Do not wrap in markdown block. Do not inc
 
   throw lastError || new Error("Todos os modelos falharam");
 }
-

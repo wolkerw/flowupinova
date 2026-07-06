@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       if (contentStr) selContent = JSON.parse(contentStr);
       const profileStr = formData.get("businessProfile") as string;
       if (profileStr) businessProfile = JSON.parse(profileStr);
-      userId = formData.get("userId") as string || "";
+      userId = (formData.get("userId") as string) || "";
       inspirationFile = formData.get("inspiration_file") as File | null;
     } else {
       const body = await request.json();
@@ -47,7 +47,9 @@ export async function POST(request: Request) {
     let approvedPromptsExamples = "";
     if (userId) {
       try {
-        console.log(`[GENERATE_PROMPTS] Buscando prompts de sucesso do mediaGallery para o usuário ${userId}...`);
+        console.log(
+          `[GENERATE_PROMPTS] Buscando prompts de sucesso do mediaGallery para o usuário ${userId}...`
+        );
         const gallerySnap = await adminDb
           .collection(`users/${userId}/mediaGallery`)
           .limit(50)
@@ -59,7 +61,9 @@ export async function POST(request: Request) {
           if (data.usedInPostId && data.prompt && data.source === "wizard_generation") {
             approvedItems.push({
               prompt: data.prompt,
-              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || 0)
+              createdAt: data.createdAt?.toDate
+                ? data.createdAt.toDate()
+                : new Date(data.createdAt || 0),
             });
           }
         });
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
         approvedItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         // Pegar os 5 prompts mais recentes aprovados pelo usuário
-        const topApproved = approvedItems.slice(0, 5).map(item => item.prompt);
+        const topApproved = approvedItems.slice(0, 5).map((item) => item.prompt);
 
         if (topApproved.length > 0) {
           approvedPromptsExamples = `
@@ -77,12 +81,19 @@ The following are examples of image prompts that the user previously approved, l
 Analyze their structure, level of detail, and stylistic cues, and use them as reference/inspiration to generate the new concepts:
 ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
 `;
-          console.log(`[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning.`);
+          console.log(
+            `[GENERATE_PROMPTS] Encontrados ${topApproved.length} prompts de sucesso para few-shot learning.`
+          );
         } else {
-          console.log(`[GENERATE_PROMPTS] Nenhum prompt de sucesso anterior encontrado para este usuário.`);
+          console.log(
+            `[GENERATE_PROMPTS] Nenhum prompt de sucesso anterior encontrado para este usuário.`
+          );
         }
       } catch (err: any) {
-        console.warn(`[GENERATE_PROMPTS_WARN] Falha ao buscar prompts aprovados do Firestore:`, err.message || err);
+        console.warn(
+          `[GENERATE_PROMPTS_WARN] Falha ao buscar prompts aprovados do Firestore:`,
+          err.message || err
+        );
       }
     }
 
@@ -102,8 +113,8 @@ ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
         inlineDataPart = {
           inlineData: {
             mimeType: mimeType,
-            data: base64Image
-          }
+            data: base64Image,
+          },
         };
 
         const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
@@ -128,13 +139,13 @@ Return the description strictly in YAML format containing:
                   {
                     inlineData: {
                       mimeType: mimeType,
-                      data: base64Image
-                    }
-                  }
-                ]
-              }
-            ]
-          })
+                      data: base64Image,
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
         });
 
         if (response.ok) {
@@ -142,25 +153,31 @@ Return the description strictly in YAML format containing:
           inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
           console.log("[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso.");
         } else {
-          console.error("[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:", await response.text());
+          console.error(
+            "[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:",
+            await response.text()
+          );
         }
       } catch (e: any) {
-        console.warn("[GENERATE_PROMPTS_WARN] Falha ao processar arquivo de inspiração:", e.message || e);
+        console.warn(
+          "[GENERATE_PROMPTS_WARN] Falha ao processar arquivo de inspiração:",
+          e.message || e
+        );
       }
     }
 
     let brandingInstruction = "";
     if (businessProfile) {
-      const { 
-        name, 
-        category, 
-        primaryColor, 
-        secondaryColor, 
+      const {
+        name,
+        category,
+        primaryColor,
+        secondaryColor,
         brandKit,
         brandPositioning,
         keyProducts,
         clientProfile,
-        stylisticPreferences
+        stylisticPreferences,
       } = businessProfile;
       const primaryHex = primaryColor || "#000000";
       const secondaryHex = secondaryColor || "#FFFFFF";
@@ -176,10 +193,12 @@ Return the description strictly in YAML format containing:
       }
 
       let memoryText = "";
-      if (brandPositioning) memoryText += `- Brand Positioning / Value Proposition: ${brandPositioning}\n`;
+      if (brandPositioning)
+        memoryText += `- Brand Positioning / Value Proposition: ${brandPositioning}\n`;
       if (keyProducts) memoryText += `- Key Products/Services to Feature: ${keyProducts}\n`;
       if (clientProfile) memoryText += `- Target Client/Audience Persona: ${clientProfile}\n`;
-      if (stylisticPreferences) memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
+      if (stylisticPreferences)
+        memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
       let fontsText = "";
       if (brandKit?.fonts) {
@@ -201,12 +220,16 @@ The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
 - Secondary Color Hex: ${secondaryHex}
 ${extendedColorsText}
-${memoryText ? `\n# ADAPTIVE BRAND MEMORY & STRATEGIC INSIGHTS (CRITICAL):
+${
+  memoryText
+    ? `\n# ADAPTIVE BRAND MEMORY & STRATEGIC INSIGHTS (CRITICAL):
 The following details were learned about the business's positioning and target style. You MUST strictly apply these guidelines to the imagery, style, and props:
 ${memoryText}
 - If a Stylistic Preference is defined (e.g. "luxury", "rustic", "neon/vibrant", "clean/minimalist"), shape the lighting, props, and overall scene composition to reflect this specific vibe.
 - Ensure any key products listed are organically integrated or metaphorically referenced as the main visual focus.
-` : ""}
+`
+    : ""
+}
 
 CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
 1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").

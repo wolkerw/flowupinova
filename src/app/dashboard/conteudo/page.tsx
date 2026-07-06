@@ -1617,17 +1617,20 @@ export default function Conteudo() {
                 {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
                 <button
                   onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-hybrid")}
-                  className="group relative flex flex-col items-start p-6 bg-gradient-to-br from-amber-500 to-orange-600 rounded-[24px] text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
+                  className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <RefreshCw size={120} />
                   </div>
-                  <div className="bg-white/20 p-3 rounded-2xl mb-4 group-hover:bg-white/30 transition-colors">
-                    <Sparkles className="w-6 h-6 text-white" />
+                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                    <Sparkles className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-black mb-2 leading-tight">Gerar Híbrido (Pessoa + Produto)</h3>
-                  <p className="text-white/80 text-sm font-medium leading-relaxed">
-                    Combine o rosto de uma pessoa (selfie) com um produto/projeto em um cenário avançado.
+                  <h3 className="mb-2 text-xl font-black leading-tight">
+                    Gerar Híbrido (Pessoa + Produto)
+                  </h3>
+                  <p className="text-sm font-medium leading-relaxed text-white/80">
+                    Combine o rosto de uma pessoa (selfie) com um produto/projeto em um cenário
+                    avançado.
                   </p>
                 </button>
 

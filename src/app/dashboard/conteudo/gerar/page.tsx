@@ -25,7 +25,11 @@ function WizardContent() {
     mode,
   } = useWizard();
 
-  const isReferenceMode = mode === "reference-photo" || mode === "reference-link" || mode === "reference-hybrid" || mode === "reference-inspiration";
+  const isReferenceMode =
+    mode === "reference-photo" ||
+    mode === "reference-link" ||
+    mode === "reference-hybrid" ||
+    mode === "reference-inspiration";
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
   const wizardSteps = isSyncImageMode
@@ -48,19 +52,25 @@ function WizardContent() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Gerar Post</h1>
         <p className="mt-1 text-gray-600">
-          {step === 1 && "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
-          {step === 2 && (isSyncImageMode
-            ? "Etapa 2: Selecione uma opção de legenda e acompanhe a imagem gerada."
-            : "Etapa 2: Selecione uma opção de texto para o seu post.")}
-          {step === 3 && (isSyncImageMode
-            ? "Etapa 3: Personalize sua imagem com sua logomarca."
-            : (isReferenceMode 
-              ? "Etapa 3: Veja a imagem criada a partir do seu produto." 
-              : "Etapa 3: Gere e selecione a melhor imagem para o seu post."))}
-          {step === 4 && (isSyncImageMode
-            ? "Etapa 4: Revise e agende seu post para as redes sociais."
-            : "Etapa 4: Personalize sua imagem com sua logomarca.")}
-          {step === 5 && !isSyncImageMode && "Etapa 5: Revise e agende seu post para as redes sociais."}
+          {step === 1 &&
+            "Etapa 1: Detalhe à nossa IA uma ideia e ela criará um post incrível para você."}
+          {step === 2 &&
+            (isSyncImageMode
+              ? "Etapa 2: Selecione uma opção de legenda e acompanhe a imagem gerada."
+              : "Etapa 2: Selecione uma opção de texto para o seu post.")}
+          {step === 3 &&
+            (isSyncImageMode
+              ? "Etapa 3: Personalize sua imagem com sua logomarca."
+              : isReferenceMode
+                ? "Etapa 3: Veja a imagem criada a partir do seu produto."
+                : "Etapa 3: Gere e selecione a melhor imagem para o seu post.")}
+          {step === 4 &&
+            (isSyncImageMode
+              ? "Etapa 4: Revise e agende seu post para as redes sociais."
+              : "Etapa 4: Personalize sua imagem com sua logomarca.")}
+          {step === 5 &&
+            !isSyncImageMode &&
+            "Etapa 5: Revise e agende seu post para as redes sociais."}
         </p>
       </div>
 
@@ -101,12 +111,8 @@ function WizardContent() {
 
       {step === 1 && <Step1Idea />}
       {step === 2 && <Step2TextSelection />}
-      {step === 3 && (isSyncImageMode
-        ? <Step4BrandCustomization />
-        : <Step3ImageSelection />)}
-      {step === 4 && (isSyncImageMode
-        ? <Step5ReviewPublish />
-        : <Step4BrandCustomization />)}
+      {step === 3 && (isSyncImageMode ? <Step4BrandCustomization /> : <Step3ImageSelection />)}
+      {step === 4 && (isSyncImageMode ? <Step5ReviewPublish /> : <Step4BrandCustomization />)}
       {step === 5 && !isSyncImageMode && <Step5ReviewPublish />}
 
       <SchedulerModal
