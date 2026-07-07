@@ -61,7 +61,7 @@ export const AvatarAnimationDemo = () => {
                 transition={{ duration: 8, repeat: Infinity, times: [0, 0.15, 0.85, 0.95, 1] }}
               >
                 <img
-                  src="https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?w=500&q=80"
+                  src="/images/avatar-demo/selfie.jpg"
                   alt="Selfie"
                   className="h-full w-full object-cover"
                 />
@@ -76,7 +76,7 @@ export const AvatarAnimationDemo = () => {
                 Foto 2: Estilo
               </span>
               <img
-                src="https://images.unsplash.com/photo-1556157382-97eda2d62296?w=500&q=80"
+                src="/images/avatar-demo/result.jpg"
                 alt="Referência"
                 className="h-full w-full object-cover"
               />
@@ -146,7 +146,7 @@ export const AvatarAnimationDemo = () => {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.45, 0.55, 1] }}
             >
               <img
-                src="https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?w=500&q=80"
+                src="/images/avatar-demo/selfie.jpg"
                 alt="Selfie"
                 className="h-full w-full object-cover"
               />
@@ -159,7 +159,7 @@ export const AvatarAnimationDemo = () => {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.45, 0.55, 0.85, 0.95, 1] }}
             >
               <img
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&q=80"
+                src="/images/avatar-demo/result.jpg"
                 alt="Resultado Avatar"
                 className="h-full w-full object-cover"
               />
