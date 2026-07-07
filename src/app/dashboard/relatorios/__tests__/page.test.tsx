@@ -17,6 +17,10 @@ vi.mock("@/lib/services/meta-service", () => ({
   getMetaConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
 
+vi.mock("@/lib/services/instagram-service", () => ({
+  getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
 // Mock Recharts to prevent errors during server-side rendering in tests
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
