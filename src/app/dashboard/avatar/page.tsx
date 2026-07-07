@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import Image from "next/image";
+import { AvatarAnimationDemo } from "./_components/AvatarAnimationDemo";
 
 const SUGGESTIONS = [
   // Categoria: corporate
@@ -440,6 +441,8 @@ export default function AvatarPage() {
           </p>
         </div>
       </div>
+
+      {!file && !styleFile && <AvatarAnimationDemo />}
 
       {/* Grid de Configurações Lado a Lado (Etapa 1 e 2) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
