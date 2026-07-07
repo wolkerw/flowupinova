@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, Sparkles, Paintbrush } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 import { CircularProgressLoader } from "./CircularProgressLoader";
+import { ImageInpaintModal } from "./ImageInpaintModal";
 
 import { useWizard } from "../context/WizardContext";
 
@@ -37,7 +38,16 @@ export const Step4BrandCustomization = () => {
     isGeneratingImages,
     selectedContent,
     mode,
+    currentPostId,
+    user,
+    businessProfile,
+    insertTextOnImage,
+    setSelectedImage,
+    generatedImages,
+    setGeneratedImages,
   } = useWizard();
+
+  const [isCorrectionOpen, setIsCorrectionOpen] = React.useState(false);
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
@@ -189,6 +199,22 @@ export const Step4BrandCustomization = () => {
                       unoptimized
                     />
 
+                    {/* Botão de Corrigir Escrita */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100 z-20">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCorrectionOpen(true);
+                        }}
+                        className="h-10 gap-2 text-xs font-semibold bg-slate-900/90 hover:bg-slate-900 text-slate-100 border-none shadow-xl"
+                      >
+                        <Paintbrush className="h-4 w-4 text-violet-400" />
+                        Editar Texto da Imagem
+                      </Button>
+                    </div>
+
                     {/* Logo Overlay Preview */}
                     {logoPreviewUrl && (
                       <div
@@ -257,6 +283,32 @@ export const Step4BrandCustomization = () => {
         accept="image/png, image/jpeg"
         className="hidden"
       />
+
+      {isCorrectionOpen && selectedImage && (
+        <ImageInpaintModal
+          isOpen={isCorrectionOpen}
+          onClose={() => setIsCorrectionOpen(false)}
+          imageUrl={selectedImage}
+          postId={currentPostId || ""}
+          userId={user?.uid || ""}
+          fileName={"1"}
+          initialText={insertTextOnImage ? selectedContent?.titulo : undefined}
+          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
+          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          onSuccess={(newImageUrl) => {
+            setSelectedImage(newImageUrl);
+            // Atualiza também no array de geradas para consistência, se estiver lá
+            if (generatedImages?.includes(selectedImage)) {
+               const idx = generatedImages.indexOf(selectedImage);
+               setGeneratedImages(prev => {
+                 const updated = [...prev];
+                 updated[idx] = newImageUrl;
+                 return updated;
+               });
+            }
+          }}
+        />
+      )}
     </motion.div>
   );
 };
