@@ -159,7 +159,7 @@ export const AvatarAnimationDemo = () => {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.45, 0.55, 0.85, 0.95, 1] }}
             >
               <img
-                src="/images/avatar-demo/result.jpg"
+                src="/images/avatar-demo/resultado.jpg"
                 alt="Resultado Avatar"
                 className="h-full w-full object-cover"
               />
