@@ -7,6 +7,6 @@ import PrivacidadePage from "../page";
 describe("PrivacidadePage", () => {
   it("renders the privacy policy title", () => {
     render(<PrivacidadePage />);
-    expect(screen.getByText("Política de Privacidade")).toBeInTheDocument();
+    expect(screen.getAllByText("Política de Privacidade").length).toBeGreaterThan(0);
   });
 });

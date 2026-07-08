@@ -153,7 +153,8 @@ export const Step2TextSelection = () => {
                   onClick={() => setInsertTextOnImage(false)}
                   className={cn(
                     "flex-1 border-gray-300 text-gray-700",
-                    insertTextOnImage === false && "bg-gray-800 text-white hover:bg-gray-900 border-transparent"
+                    insertTextOnImage === false &&
+                      "border-transparent bg-gray-800 text-white hover:bg-gray-900"
                   )}
                 >
                   Não, apenas a imagem

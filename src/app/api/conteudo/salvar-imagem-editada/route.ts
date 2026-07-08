@@ -50,7 +50,10 @@ export async function POST(request: Request) {
         .doc(galleryMediaId)
         .set({ url: firebaseDownloadUrl, updatedAt: new Date().toISOString() }, { merge: true });
     } catch (firestoreErr: any) {
-      console.warn("[SALVAR_IMAGEM_EDITADA] Falha ao atualizar Firestore (não crítico):", firestoreErr.message);
+      console.warn(
+        "[SALVAR_IMAGEM_EDITADA] Falha ao atualizar Firestore (não crítico):",
+        firestoreErr.message
+      );
     }
 
     return NextResponse.json({ success: true, imageUrl: firebaseDownloadUrl });

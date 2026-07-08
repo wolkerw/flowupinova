@@ -5,7 +5,16 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, ArrowLeft, ArrowRight, Check, Download, Paintbrush, Type, SkipForward } from "lucide-react";
+import {
+  ImageIcon,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Download,
+  Paintbrush,
+  Type,
+  SkipForward,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
@@ -45,7 +54,7 @@ export const Step3ImageSelection = () => {
 
   // Slot name da imagem selecionada para o inpainting
   const selectedSlotName = selectedImage
-    ? String((generatedImages.indexOf(selectedImage) + 1) || 1)
+    ? String(generatedImages.indexOf(selectedImage) + 1 || 1)
     : "1";
 
   return (
@@ -105,7 +114,7 @@ export const Step3ImageSelection = () => {
                   unoptimized
                 />
                 {/* Badge de opção */}
-                <div className="absolute left-2 bottom-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                <div className="absolute bottom-2 left-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
                   Opção {index + 1}
                 </div>
                 {selectedImage === imgSrc && (
@@ -136,7 +145,7 @@ export const Step3ImageSelection = () => {
                     setActiveSlotName(String(index + 1));
                     setIsCorrectionOpen(true);
                   }}
-                  className="absolute left-2 top-2 z-10 h-8 gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 text-[10px] font-semibold bg-slate-900/85 hover:bg-slate-900 text-slate-100 border-none shadow-md"
+                  className="absolute left-2 top-2 z-10 h-8 gap-1.5 border-none bg-slate-900/85 text-[10px] font-semibold text-slate-100 opacity-0 shadow-md transition-opacity hover:bg-slate-900 group-hover:opacity-100"
                 >
                   <Paintbrush className="h-3.5 w-3.5 text-violet-400" />
                   Editar Texto
@@ -247,8 +256,12 @@ export const Step3ImageSelection = () => {
           userId={user?.uid || ""}
           fileName={activeSlotName}
           initialText={insertTextOnImage ? initialTextForEditor : undefined}
-          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
-          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          brandKitPrimaryColor={
+            businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor
+          }
+          brandKitSecondaryColor={
+            businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
+          }
           onSuccess={(newImageUrl) => {
             setGeneratedImages((prev) => {
               const updated = [...prev];
@@ -264,7 +277,6 @@ export const Step3ImageSelection = () => {
           }}
         />
       )}
-
     </motion.div>
   );
 };

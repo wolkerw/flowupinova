@@ -124,8 +124,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            mediaData.error?.message || "Falha ao obter as postagens da conta do Instagram.",
+          error: mediaData.error?.message || "Falha ao obter as postagens da conta do Instagram.",
         },
         { status: mediaRes.status }
       );

@@ -1509,7 +1509,8 @@ export default function CriarConteudoPage() {
     }
 
     const isUrl = (url: string) => url && (url.startsWith("http://") || url.startsWith("https://"));
-    const imageUrl = mediaItem.publicUrl || (isUrl(mediaItem.previewUrl) ? mediaItem.previewUrl : "");
+    const imageUrl =
+      mediaItem.publicUrl || (isUrl(mediaItem.previewUrl) ? mediaItem.previewUrl : "");
 
     // Se não há logotipo e a imagem já possui URL remota, retornamos ela de imediato
     if (!logoFile && imageUrl) {
@@ -2099,7 +2100,7 @@ export default function CriarConteudoPage() {
                                 setActiveIndexToCorrect(index);
                                 setIsCorrectionOpen(true);
                               }}
-                              className="absolute left-1 top-1 rounded-full bg-violet-600 hover:bg-violet-500 p-1.5 text-white shadow-md transition-colors"
+                              className="absolute left-1 top-1 rounded-full bg-violet-600 p-1.5 text-white shadow-md transition-colors hover:bg-violet-500"
                               title="Editor de Texto"
                             >
                               <Paintbrush className="h-3.5 w-3.5" />
@@ -2108,7 +2109,7 @@ export default function CriarConteudoPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="absolute right-1 top-1 rounded-full bg-red-600 hover:bg-red-500 p-1.5 text-white shadow-md transition-colors"
+                            className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
                             title="Remover imagem"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -2968,8 +2969,12 @@ export default function CriarConteudoPage() {
           postId={manualPostId}
           userId={user?.uid || ""}
           fileName={String(activeIndexToCorrect + 1)}
-          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
-          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          brandKitPrimaryColor={
+            businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor
+          }
+          brandKitSecondaryColor={
+            businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
+          }
           onSuccess={(newUrl) => {
             if (activeIndexToCorrect !== -1) {
               setMediaItems((prev) => {
