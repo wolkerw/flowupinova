@@ -13,7 +13,64 @@ export const metadata: Metadata = {
 
 export default function PrivacidadePage() {
   const privacidadeHtml = `
-    <h2><span style="color: rgb(68, 68, 68);">Política Privacidade</span></h2><p><span style="color: rgb(68, 68, 68);">A sua privacidade é importante para nós. É política do numvapt.com.br respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no site <a href="numvapt.com.br">numvapt.com.br</a>, e outros sites que possuímos e operamos.</span></p><p><span style="color: rgb(68, 68, 68);">Solicitamos informações pessoais apenas quando realmente precisamos delas para lhe fornecer um serviço. Fazemo-lo por meios justos e legais, com o seu conhecimento e consentimento. Também informamos por que estamos coletando e como será usado.</span></p><p><span style="color: rgb(68, 68, 68);">Apenas retemos as informações coletadas pelo tempo necessário para fornecer o serviço solicitado. Quando armazenamos dados, protegemos dentro de meios comercialmente aceitáveis ​​para evitar perdas e roubos, bem como acesso, divulgação, cópia, uso ou modificação não autorizados.</span></p><p><span style="color: rgb(68, 68, 68);">Não compartilhamos informações de identificação pessoal publicamente ou com terceiros, exceto quando exigido por lei.</span></p><p><span style="color: rgb(68, 68, 68);">O nosso site pode ter links para sites externos que não são operados por nós. Esteja ciente de que não temos controle sobre o conteúdo e práticas desses sites e não podemos aceitar responsabilidade por suas respectivas&nbsp;</span><a href="https://politicaprivacidade.com/" rel="noopener noreferrer" target="_blank" style="background-color: transparent; color: rgb(68, 68, 68);">políticas de privacidade</a><span style="color: rgb(68, 68, 68);">.</span></p><p><span style="color: rgb(68, 68, 68);">Você é livre para recusar a nossa solicitação de informações pessoais, entendendo que talvez não possamos fornecer alguns dos serviços desejados.</span></p><p><span style="color: rgb(68, 68, 68);">O uso continuado de nosso site será considerado como aceitação de nossas práticas em torno de privacidade e informações pessoais. Se você tiver alguma dúvida sobre como lidamos com dados do usuário e informações pessoais, entre em contacto connosco.</span></p><p><span style="color: rgb(68, 68, 68);"><ul><li><span style="color: rgb(68, 68, 68);">O serviço Google AdSense que usamos para veicular publicidade usa um cookie DoubleClick para veicular anúncios mais relevantes em toda a Web e limitar o número de vezes que um determinado anúncio é exibido para você.</span></li><li><span style="color: rgb(68, 68, 68);">Para mais informações sobre o Google AdSense, consulte as FAQs oficiais sobre privacidade do Google AdSense.</span></li><li><span style="color: rgb(68, 68, 68);">Utilizamos anúncios para compensar os custos de funcionamento deste site e fornecer financiamento para futuros desenvolvimentos. Os cookies de publicidade comportamental usados ​​por este site foram projetados para garantir que você forneça os anúncios mais relevantes sempre que possível, rastreando anonimamente seus interesses e apresentando coisas semelhantes que possam ser do seu interesse.</span></li><li><span style="color: rgb(68, 68, 68);">Vários parceiros anunciam em nosso nome e os cookies de rastreamento de afiliados simplesmente nos permitem ver se nossos clientes acessaram o site através de um dos sites de nossos parceiros, para que possamos creditá-los adequadamente e, quando aplicável, permitir que nossos parceiros afiliados ofereçam qualquer promoção que pode fornecê-lo para fazer uma compra.</span></li></ul><p><br></p></span></p><h3><span style="color: rgb(68, 68, 68);">Compromisso do Usuário</span></h3><p><span style="color: rgb(68, 68, 68);">O usuário se compromete a fazer uso adequado dos conteúdos e da informação que o numvapt.com.br oferece no site e com caráter enunciativo, mas não limitativo:</span></p><ul><li><span style="color: rgb(68, 68, 68);">A) Não se envolver em atividades que sejam ilegais ou contrárias à boa fé a à ordem pública;</span></li><li><span style="color: rgb(68, 68, 68);">B) Não difundir propaganda ou conteúdo de natureza racista, xenofóbica, jogos de sorte ou azar, qualquer tipo de pornografia ilegal, de apologia ao terrorismo ou contra os direitos humanos;</span></li><li><span style="color: rgb(68, 68, 68);">C) Não causar danos aos sistemas físicos (hardwares) e lógicos (softwares) do numvapt.com.br, de seus fornecedores ou terceiros, para introduzir ou disseminar vírus informáticos ou quaisquer outros sistemas de hardware ou software que sejam capazes de causar danos anteriormente mencionados.</span></li></ul><h3><span style="color: rgb(68, 68, 68);">Mais informações</span></h3><p><span style="color: rgb(68, 68, 68);">Esperemos que esteja esclarecido e, como mencionado anteriormente, se houver algo que você não tem certeza se precisa ou não, geralmente é mais seguro deixar os cookies ativados, caso interaja com um dos recursos que você usa em nosso site.</span></p><p><span style="color: rgb(68, 68, 68);">Esta política é efetiva a partir de&nbsp;16 October 2025 14:44</span></p>
+    <h2><span style="color: rgb(68, 68, 68);">Política de Privacidade</span></h2>
+    <p><span style="color: rgb(68, 68, 68);">A sua privacidade é importante para nós. É política do numvapt.com.br respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no site <a href="https://numvapt.com.br">numvapt.com.br</a>, e outros sites que possuímos e operamos.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">Solicitamos informações pessoais apenas quando realmente precisamos delas para lhe fornecer um serviço. Fazemo-lo por meios justos e legais, com o seu conhecimento e consentimento. Também informamos por que estamos coletando e como será usado.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">Apenas retemos as informações coletadas pelo tempo necessário para fornecer o serviço solicitado. Quando armazenamos dados, protegemos dentro de meios comercialmente aceitáveis ​​para evitar perdas e roubos, bem como acesso, divulgação, cópia, uso ou modificação não autorizados.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">Não compartilhamos informações de identificação pessoal publicamente ou com terceiros, exceto quando exigido por lei.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">O nosso site pode ter links para sites externos que não são operados por nós. Esteja ciente de que não temos controle sobre o conteúdo e práticas desses sites e não podemos aceitar responsabilidade por suas respectivas&nbsp;</span><a href="https://politicaprivacidade.com/" rel="noopener noreferrer" target="_blank" style="background-color: transparent; color: rgb(68, 68, 68);">políticas de privacidade</a><span style="color: rgb(68, 68, 68);">.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">Você é livre para recusar a nossa solicitação de informações pessoais, entendendo que talvez não possamos fornecer alguns dos serviços desejados.</span></p>
+    
+    <p><span style="color: rgb(68, 68, 68);">O uso continuado de nosso site será considerado como aceitação de nossas práticas em torno de privacidade e informações pessoais. Se você tiver alguma dúvida sobre como lidamos com dados do usuário e informações pessoais, entre em contato conosco.</span></p>
+
+    <h3><span style="color: rgb(68, 68, 68);">Integração com Google APIs (Google Ads)</span></h3>
+    <p><span style="color: rgb(68, 68, 68);">Nossa plataforma se integra com os serviços de API do Google para permitir que você gerencie e acompanhe suas campanhas de publicidade do Google Ads diretamente pelo painel do NumVapt.</span></p>
+
+    <h4><span style="color: rgb(68, 68, 68);">1. Quais dados coletamos e acessamos?</span></h4>
+    <p><span style="color: rgb(68, 68, 68);">Ao conectar sua conta do Google Ads via OAuth 2.0, solicitamos acesso ao seguinte escopo:</span></p>
+    <ul>
+      <li><span style="color: rgb(68, 68, 68);"><strong>https://www.googleapis.com/auth/adwords:</strong> Permite ver, editar, criar e excluir seus dados e contas do Google Ads.</span></li>
+    </ul>
+    <p><span style="color: rgb(68, 68, 68);">Através deste acesso, nossa plataforma lê informações básicas sobre suas contas de anúncios (como ID da conta, nome), campanhas ativas, orçamentos, criativos e métricas de desempenho (impressões, cliques, conversões e custos).</span></p>
+
+    <h4><span style="color: rgb(68, 68, 68);">2. Como usamos esses dados?</span></h4>
+    <p><span style="color: rgb(68, 68, 68);">Os dados obtidos do Google Ads são utilizados exclusivamente para:</span></p>
+    <ul>
+      <li><span style="color: rgb(68, 68, 68);">Permitir que você crie, configure e publique novas campanhas e anúncios no Google Ads diretamente da interface do NumVapt.</span></li>
+      <li><span style="color: rgb(68, 68, 68);">Acompanhar e gerar relatórios visuais consolidados do desempenho dos seus anúncios no seu painel.</span></li>
+      <li><span style="color: rgb(68, 68, 68);">Sincronizar o status de cobrança e atividade das suas campanhas publicitárias.</span></li>
+    </ul>
+
+    <h4><span style="color: rgb(68, 68, 68);">3. Como armazenamos e protegemos seus dados?</span></h4>
+    <ul>
+      <li><span style="color: rgb(68, 68, 68);">Os tokens de acesso e de atualização (refresh tokens) obtidos durante a autenticação Google OAuth são armazenados com segurança em nosso banco de dados no Google Firestore.</span></li>
+      <li><span style="color: rgb(68, 68, 68);">Essas credenciais são usadas estritamente pelo nosso sistema para realizar chamadas de API autenticadas em seu nome às APIs do Google Ads, mantendo total privacidade.</span></li>
+    </ul>
+
+    <h4><span style="color: rgb(68, 68, 68);">4. Compartilhamento e Uso Limitado (Limited Use)</span></h4>
+    <p><span style="color: rgb(68, 68, 68);">O NumVapt <strong>não compartilha</strong>, não vende e não transfere seus dados de usuário obtidos através das APIs do Google para terceiros, exceto se estritamente necessário para cumprir obrigações legais ou de segurança.</span></p>
+    <p><span style="color: rgb(68, 68, 68);">O uso e a transferência de informações recebidas das APIs do Google pelo NumVapt estarão em total conformidade com a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo seus requisitos de <strong>Uso Limitado (Limited Use)</strong>.</span></p>
+
+    <h4><span style="color: rgb(68, 68, 68);">5. Exclusão de Dados e Revogação</span></h4>
+    <p><span style="color: rgb(68, 68, 68);">Você pode desconectar sua conta do Google Ads a qualquer momento na seção de configurações do NumVapt. Ao fazer isso, todos os tokens de acesso e dados temporários associados ao Google serão imediatamente e permanentemente removidos dos nossos servidores.</span></p>
+    <p><span style="color: rgb(68, 68, 68);">Adicionalmente, você pode revogar as permissões concedidas ao NumVapt acessando a página de configurações de segurança da sua própria Conta do Google.</span></p>
+
+    <h3><span style="color: rgb(68, 68, 68);">Compromisso do Usuário</span></h3>
+    <p><span style="color: rgb(68, 68, 68);">O usuário se compromete a fazer uso adequado dos conteúdos e da informação que o numvapt.com.br oferece no site e com caráter enunciativo, mas não limitativo:</span></p>
+    <ul>
+      <li><span style="color: rgb(68, 68, 68);">A) Não se envolver em atividades que sejam ilegais ou contrárias à boa fé e à ordem pública;</span></li>
+      <li><span style="color: rgb(68, 68, 68);">B) Não difundir propaganda ou conteúdo de natureza racista, xenofóbica, jogos de sorte ou azar, qualquer tipo de pornografia ilegal, de apologia ao terrorismo ou contra os direitos humanos;</span></li>
+      <li><span style="color: rgb(68, 68, 68);">C) Não causar danos aos sistemas físicos (hardwares) e lógicos (softwares) do numvapt.com.br, de seus fornecedores ou terceiros, para introduzir ou disseminar vírus informáticos ou quaisquer outros sistemas de hardware ou software que sejam capazes de causar danos anteriormente mencionados.</span></li>
+    </ul>
+
+    <h3><span style="color: rgb(68, 68, 68);">Mais informações</span></h3>
+    <p><span style="color: rgb(68, 68, 68);">Esperamos que esteja esclarecido e, como mencionado anteriormente, se houver algo que você não tem certeza se precisa ou não, geralmente é mais seguro deixar os cookies ativados, caso interaja com um dos recursos que você usa em nosso site.</span></p>
+    <p><span style="color: rgb(68, 68, 68);">Esta política é efetiva a partir de&nbsp;08 July 2026 17:15</span></p>
   `;
 
   return (

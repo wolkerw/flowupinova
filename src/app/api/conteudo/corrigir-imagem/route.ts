@@ -8,11 +8,15 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl, maskBase64, prompt, newText, userId, postId, fileName } = await request.json();
+    const { imageUrl, maskBase64, prompt, newText, userId, postId, fileName } =
+      await request.json();
 
     if (!imageUrl || !maskBase64 || !newText || !userId || !postId || !fileName) {
       return NextResponse.json(
-        { error: "Campos obrigatórios ausentes: imageUrl, maskBase64, newText, userId, postId, fileName" },
+        {
+          error:
+            "Campos obrigatórios ausentes: imageUrl, maskBase64, newText, userId, postId, fileName",
+        },
         { status: 400 }
       );
     }
@@ -42,14 +46,19 @@ export async function POST(request: Request) {
           cleanPrompt = docSnap.data()?.prompt || "";
         }
       } catch (err: any) {
-        console.warn("[CORRIGIR_IMAGEM] Falha ao recuperar prompt original do Firestore:", err.message);
+        console.warn(
+          "[CORRIGIR_IMAGEM] Falha ao recuperar prompt original do Firestore:",
+          err.message
+        );
       }
     }
     if (!cleanPrompt) cleanPrompt = "advertising graphic design post";
 
     const inpaintPrompt = `Render the literal text "${newText}" exactly inside the masked area. The letters must match the typography style, colors, materials, and lighting of the surrounding image perfectly. Ensure correct spelling, clean characters, and render the text exactly once. Surroundings: ${cleanPrompt}`;
 
-    console.log(`[CORRIGIR_IMAGEM] Iniciando inpainting com Fal AI para post ${postId} (Slot: ${fileName})...`);
+    console.log(
+      `[CORRIGIR_IMAGEM] Iniciando inpainting com Fal AI para post ${postId} (Slot: ${fileName})...`
+    );
     console.log(`[CORRIGIR_IMAGEM] Prompt de Inpainting: ${inpaintPrompt}`);
 
     // 2. Chamar o SDK do FLUX.1 [pro] Fill da Fal AI (modelo de inpainting profissional de altíssima qualidade)
@@ -60,12 +69,16 @@ export async function POST(request: Request) {
           image_url: imageUrl,
           mask_url: maskBase64,
           prompt: inpaintPrompt,
-        }
+        },
       });
     } catch (sdkError: any) {
       console.error("[CORRIGIR_IMAGEM_ERROR] Falha na chamada do SDK da Fal AI:", sdkError);
       return NextResponse.json(
-        { success: false, error: "Erro de processamento da IA", details: sdkError.message || sdkError },
+        {
+          success: false,
+          error: "Erro de processamento da IA",
+          details: sdkError.message || sdkError,
+        },
         { status: 500 }
       );
     }
@@ -73,9 +86,16 @@ export async function POST(request: Request) {
     const resultImageUrl = falData?.image?.url || falData?.images?.[0]?.url;
 
     if (!resultImageUrl) {
-      console.error("[CORRIGIR_IMAGEM_ERROR] Fal AI não retornou a URL da imagem corrigida. Resposta recebida:", JSON.stringify(falData));
+      console.error(
+        "[CORRIGIR_IMAGEM_ERROR] Fal AI não retornou a URL da imagem corrigida. Resposta recebida:",
+        JSON.stringify(falData)
+      );
       return NextResponse.json(
-        { success: false, error: "Fal AI não retornou a URL da imagem corrigida.", details: JSON.stringify(falData) },
+        {
+          success: false,
+          error: "Fal AI não retornou a URL da imagem corrigida.",
+          details: JSON.stringify(falData),
+        },
         { status: 500 }
       );
     }
@@ -85,7 +105,9 @@ export async function POST(request: Request) {
     // 3. Fazer download da imagem gerada pela Fal AI
     const imageDownloadRes = await fetch(resultImageUrl);
     if (!imageDownloadRes.ok) {
-      throw new Error(`Falha ao baixar imagem resultante do Fal AI (status ${imageDownloadRes.status})`);
+      throw new Error(
+        `Falha ao baixar imagem resultante do Fal AI (status ${imageDownloadRes.status})`
+      );
     }
     const arrayBuffer = await imageDownloadRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -118,13 +140,16 @@ export async function POST(request: Request) {
         .collection("mediaGallery");
       const galleryMediaId = `${postId}_concept_${fileName}`;
 
-      await galleryRef.doc(galleryMediaId).set({
-        id: galleryMediaId,
-        url: firebaseDownloadUrl,
-        prompt: cleanPrompt,
-        correctedPrompt: inpaintPrompt,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      await galleryRef.doc(galleryMediaId).set(
+        {
+          id: galleryMediaId,
+          url: firebaseDownloadUrl,
+          prompt: cleanPrompt,
+          correctedPrompt: inpaintPrompt,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
       console.log(`[CORRIGIR_IMAGEM] Firestore catalog atualizado: ${galleryMediaId}`);
 
       // Registrar consumo na API Usage
@@ -136,7 +161,10 @@ export async function POST(request: Request) {
         costUsd: 0.035,
       });
     } catch (firestoreError: any) {
-      console.warn("[CORRIGIR_IMAGEM_WARN] Falha ao atualizar Firestore:", firestoreError.message || firestoreError);
+      console.warn(
+        "[CORRIGIR_IMAGEM_WARN] Falha ao atualizar Firestore:",
+        firestoreError.message || firestoreError
+      );
     }
 
     return NextResponse.json({
@@ -146,7 +174,11 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("[CORRIGIR_IMAGEM_ERROR] Erro interno na API:", error);
     return NextResponse.json(
-      { success: false, error: "Erro interno no servidor ao corrigir imagem.", details: error.message },
+      {
+        success: false,
+        error: "Erro interno no servidor ao corrigir imagem.",
+        details: error.message,
+      },
       { status: 500 }
     );
   }

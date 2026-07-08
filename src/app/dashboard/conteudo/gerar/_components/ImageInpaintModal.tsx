@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,7 +167,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
   const [layers, setLayers] = useState<EditorLayer[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [interactionType, setInteractionType] = useState<"move" | "resize" | "resizeWidth" | "resizeHeight" | "rotate" | null>(null);
+  const [interactionType, setInteractionType] = useState<
+    "move" | "resize" | "resizeWidth" | "resizeHeight" | "rotate" | null
+  >(null);
   const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
   const [startParams, setStartParams] = useState({
     mouseX: 0,
@@ -180,8 +188,12 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
   const layersRef = useRef<EditorLayer[]>([]);
   const selectedIdRef = useRef<string | null>(null);
-  useEffect(() => { layersRef.current = layers; }, [layers]);
-  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => {
+    layersRef.current = layers;
+  }, [layers]);
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
   // Carregar fontes do Google Fonts dinamicamente
   useEffect(() => {
@@ -240,274 +252,277 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   }, [isOpen, imageUrl, initialText, onClose]);
 
   // Função centralizada para renderização das camadas
-  const drawLayersToCtx = useCallback((
-    ctx: CanvasRenderingContext2D,
-    img: HTMLImageElement,
-    layersToDraw: EditorLayer[],
-    activeSelectedId: string | null
-  ) => {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  const drawLayersToCtx = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement,
+      layersToDraw: EditorLayer[],
+      activeSelectedId: string | null
+    ) => {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
 
-    layersToDraw.forEach((l) => {
-      ctx.save();
-      ctx.globalAlpha = l.opacity;
-
-      let H_eff = l.height;
-      if (l.type === "text") {
-        H_eff = getTextHeight(ctx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-      }
-
-      // Definir ponto central do elemento
-      const cx = l.x + l.width / 2;
-      const cy = l.y + H_eff / 2;
-
-      // Aplicar transformações de rotação e escala a partir do centro
-      ctx.translate(cx, cy);
-      ctx.rotate(((l.rotation || 0) * Math.PI) / 180);
-      ctx.scale(l.scale || 1.0, l.scale || 1.0);
-
-      if (l.type === "text") {
-        const fontStyle = `${l.italic ? "italic" : ""} ${l.bold ? "bold" : ""} ${l.fontSize}px ${l.fontFamily}`;
-        ctx.font = fontStyle;
-        ctx.textBaseline = "top";
-
-        const words = l.text.split("\n").flatMap((line) => line.split(" "));
-        const lines: string[] = [];
-        let currentLine = "";
-
-        words.forEach((word) => {
-          const testLine = currentLine ? `${currentLine} ${word}` : word;
-          const metrics = ctx.measureText(testLine);
-          if (metrics.width > l.width && currentLine) {
-            lines.push(currentLine);
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-        });
-        if (currentLine) {
-          lines.push(currentLine);
-        }
-
-        const lineHeight = l.fontSize * 1.25;
-        const totalHeight = lines.length * lineHeight;
-
-        if (l.bgOpacity > 0) {
-          ctx.save();
-          ctx.globalAlpha = l.opacity * l.bgOpacity;
-          ctx.fillStyle = l.bgColor;
-          ctx.fillRect(-l.width / 2, -totalHeight / 2, l.width, totalHeight + 10);
-          ctx.restore();
-        }
-
-        lines.forEach((line, index) => {
-          ctx.fillStyle = l.color;
-          let textX = -l.width / 2;
-          if (l.align === "center") {
-            textX = -ctx.measureText(line).width / 2;
-          } else if (l.align === "right") {
-            textX = l.width / 2 - ctx.measureText(line).width;
-          }
-          ctx.fillText(line, textX, -totalHeight / 2 + 5 + index * lineHeight);
-        });
-
-        if (activeSelectedId === l.id) {
-          const currentScale = l.scale || 1.0;
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 2 / currentScale;
-          ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-          ctx.strokeRect(-l.width / 2 - 4, -totalHeight / 2 - 4, l.width + 8, totalHeight + 18);
-
-          // Puxador de redimensionamento (largura) no meio direito
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador de rotação no topo central
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 1.5 / currentScale;
-          ctx.setLineDash([]);
-          ctx.beginPath();
-          ctx.moveTo(0, -totalHeight / 2 - 4);
-          ctx.lineTo(0, -totalHeight / 2 - 20);
-          ctx.stroke();
-
-          ctx.fillStyle = "#3B82F6";
-          ctx.beginPath();
-          ctx.arc(0, -totalHeight / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (l.type === "rectangle") {
-        const r = l.borderRadius || 0;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(-l.width / 2, -l.height / 2, l.width, l.height, r);
-        } else {
-          ctx.rect(-l.width / 2, -l.height / 2, l.width, l.height);
-        }
-
-        if (l.filled) {
-          ctx.save();
-          ctx.globalAlpha = l.opacity * (l.fillOpacity !== undefined ? l.fillOpacity : 1.0);
-          ctx.fillStyle = l.color;
-          ctx.fill();
-          ctx.restore();
-        }
-        if (l.strokeWidth > 0) {
-          ctx.save();
-          ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
-          ctx.strokeStyle = l.strokeColor;
-          ctx.lineWidth = l.strokeWidth / (l.scale || 1.0);
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        if (activeSelectedId === l.id) {
-          const currentScale = l.scale || 1.0;
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 2 / currentScale;
-          ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-          ctx.strokeRect(-l.width / 2 - 4, -l.height / 2 - 4, l.width + 8, l.height + 8);
-
-          // Puxador de redimensionamento no canto inferior direito
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2 + 4, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador lateral direito (largura)
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador inferior central (altura)
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(0, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador de rotação no topo central
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 1.5 / currentScale;
-          ctx.setLineDash([]);
-          ctx.beginPath();
-          ctx.moveTo(0, -l.height / 2 - 4);
-          ctx.lineTo(0, -l.height / 2 - 20);
-          ctx.stroke();
-
-          ctx.fillStyle = "#3B82F6";
-          ctx.beginPath();
-          ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (l.type === "circle") {
-        const rx = Math.abs(l.width / 2);
-        const ry = Math.abs(l.height / 2);
-
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-        if (l.filled) {
-          ctx.save();
-          ctx.globalAlpha = l.opacity * (l.fillOpacity !== undefined ? l.fillOpacity : 1.0);
-          ctx.fillStyle = l.color;
-          ctx.fill();
-          ctx.restore();
-        }
-        if (l.strokeWidth > 0) {
-          ctx.save();
-          ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
-          ctx.strokeStyle = l.strokeColor;
-          ctx.lineWidth = l.strokeWidth / (l.scale || 1.0);
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        if (activeSelectedId === l.id) {
-          const currentScale = l.scale || 1.0;
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 2 / currentScale;
-          ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-          ctx.strokeRect(-l.width / 2 - 4, -l.height / 2 - 4, l.width + 8, l.height + 8);
-
-          // Puxador de redimensionamento
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2 + 4, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador lateral direito (largura)
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador inferior central (altura)
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(0, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador de rotação
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 1.5 / currentScale;
-          ctx.setLineDash([]);
-          ctx.beginPath();
-          ctx.moveTo(0, -l.height / 2 - 4);
-          ctx.lineTo(0, -l.height / 2 - 20);
-          ctx.stroke();
-
-          ctx.fillStyle = "#3B82F6";
-          ctx.beginPath();
-          ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (l.type === "line") {
+      layersToDraw.forEach((l) => {
         ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(-l.width / 2, -l.height / 2);
-        ctx.lineTo(l.width / 2, l.height / 2);
-        ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
-        ctx.strokeStyle = l.color;
-        ctx.lineWidth = (l.strokeWidth || 4) / (l.scale || 1.0);
-        ctx.lineCap = "round";
-        ctx.stroke();
-        ctx.restore();
+        ctx.globalAlpha = l.opacity;
 
-        if (activeSelectedId === l.id) {
-          const currentScale = l.scale || 1.0;
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 2 / currentScale;
-          ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-          ctx.strokeRect(-l.width / 2 - 6, -l.height / 2 - 6, l.width + 12, l.height + 12);
-
-          // Puxador de redimensionamento na ponta da linha
-          ctx.fillStyle = "#8B5CF6";
-          ctx.beginPath();
-          ctx.arc(l.width / 2, l.height / 2, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Puxador de rotação
-          ctx.strokeStyle = "#8B5CF6";
-          ctx.lineWidth = 1.5 / currentScale;
-          ctx.setLineDash([]);
-          ctx.beginPath();
-          ctx.moveTo(0, -l.height / 2 - 6);
-          ctx.lineTo(0, -l.height / 2 - 20);
-          ctx.stroke();
-
-          ctx.fillStyle = "#3B82F6";
-          ctx.beginPath();
-          ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
-          ctx.fill();
+        let H_eff = l.height;
+        if (l.type === "text") {
+          H_eff = getTextHeight(ctx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
         }
-      }
 
-      ctx.restore();
-    });
-  }, []);
+        // Definir ponto central do elemento
+        const cx = l.x + l.width / 2;
+        const cy = l.y + H_eff / 2;
+
+        // Aplicar transformações de rotação e escala a partir do centro
+        ctx.translate(cx, cy);
+        ctx.rotate(((l.rotation || 0) * Math.PI) / 180);
+        ctx.scale(l.scale || 1.0, l.scale || 1.0);
+
+        if (l.type === "text") {
+          const fontStyle = `${l.italic ? "italic" : ""} ${l.bold ? "bold" : ""} ${l.fontSize}px ${l.fontFamily}`;
+          ctx.font = fontStyle;
+          ctx.textBaseline = "top";
+
+          const words = l.text.split("\n").flatMap((line) => line.split(" "));
+          const lines: string[] = [];
+          let currentLine = "";
+
+          words.forEach((word) => {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > l.width && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          });
+          if (currentLine) {
+            lines.push(currentLine);
+          }
+
+          const lineHeight = l.fontSize * 1.25;
+          const totalHeight = lines.length * lineHeight;
+
+          if (l.bgOpacity > 0) {
+            ctx.save();
+            ctx.globalAlpha = l.opacity * l.bgOpacity;
+            ctx.fillStyle = l.bgColor;
+            ctx.fillRect(-l.width / 2, -totalHeight / 2, l.width, totalHeight + 10);
+            ctx.restore();
+          }
+
+          lines.forEach((line, index) => {
+            ctx.fillStyle = l.color;
+            let textX = -l.width / 2;
+            if (l.align === "center") {
+              textX = -ctx.measureText(line).width / 2;
+            } else if (l.align === "right") {
+              textX = l.width / 2 - ctx.measureText(line).width;
+            }
+            ctx.fillText(line, textX, -totalHeight / 2 + 5 + index * lineHeight);
+          });
+
+          if (activeSelectedId === l.id) {
+            const currentScale = l.scale || 1.0;
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 2 / currentScale;
+            ctx.setLineDash([6 / currentScale, 4 / currentScale]);
+            ctx.strokeRect(-l.width / 2 - 4, -totalHeight / 2 - 4, l.width + 8, totalHeight + 18);
+
+            // Puxador de redimensionamento (largura) no meio direito
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de rotação no topo central
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 1.5 / currentScale;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(0, -totalHeight / 2 - 4);
+            ctx.lineTo(0, -totalHeight / 2 - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.arc(0, -totalHeight / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (l.type === "rectangle") {
+          const r = l.borderRadius || 0;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(-l.width / 2, -l.height / 2, l.width, l.height, r);
+          } else {
+            ctx.rect(-l.width / 2, -l.height / 2, l.width, l.height);
+          }
+
+          if (l.filled) {
+            ctx.save();
+            ctx.globalAlpha = l.opacity * (l.fillOpacity !== undefined ? l.fillOpacity : 1.0);
+            ctx.fillStyle = l.color;
+            ctx.fill();
+            ctx.restore();
+          }
+          if (l.strokeWidth > 0) {
+            ctx.save();
+            ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
+            ctx.strokeStyle = l.strokeColor;
+            ctx.lineWidth = l.strokeWidth / (l.scale || 1.0);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (activeSelectedId === l.id) {
+            const currentScale = l.scale || 1.0;
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 2 / currentScale;
+            ctx.setLineDash([6 / currentScale, 4 / currentScale]);
+            ctx.strokeRect(-l.width / 2 - 4, -l.height / 2 - 4, l.width + 8, l.height + 8);
+
+            // Puxador de redimensionamento no canto inferior direito
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador lateral direito (largura)
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador inferior central (altura)
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(0, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de rotação no topo central
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 1.5 / currentScale;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(0, -l.height / 2 - 4);
+            ctx.lineTo(0, -l.height / 2 - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (l.type === "circle") {
+          const rx = Math.abs(l.width / 2);
+          const ry = Math.abs(l.height / 2);
+
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+          if (l.filled) {
+            ctx.save();
+            ctx.globalAlpha = l.opacity * (l.fillOpacity !== undefined ? l.fillOpacity : 1.0);
+            ctx.fillStyle = l.color;
+            ctx.fill();
+            ctx.restore();
+          }
+          if (l.strokeWidth > 0) {
+            ctx.save();
+            ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
+            ctx.strokeStyle = l.strokeColor;
+            ctx.lineWidth = l.strokeWidth / (l.scale || 1.0);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (activeSelectedId === l.id) {
+            const currentScale = l.scale || 1.0;
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 2 / currentScale;
+            ctx.setLineDash([6 / currentScale, 4 / currentScale]);
+            ctx.strokeRect(-l.width / 2 - 4, -l.height / 2 - 4, l.width + 8, l.height + 8);
+
+            // Puxador de redimensionamento
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador lateral direito (largura)
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador inferior central (altura)
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(0, l.height / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de rotação
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 1.5 / currentScale;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(0, -l.height / 2 - 4);
+            ctx.lineTo(0, -l.height / 2 - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (l.type === "line") {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(-l.width / 2, -l.height / 2);
+          ctx.lineTo(l.width / 2, l.height / 2);
+          ctx.globalAlpha = l.opacity * (l.strokeOpacity !== undefined ? l.strokeOpacity : 1.0);
+          ctx.strokeStyle = l.color;
+          ctx.lineWidth = (l.strokeWidth || 4) / (l.scale || 1.0);
+          ctx.lineCap = "round";
+          ctx.stroke();
+          ctx.restore();
+
+          if (activeSelectedId === l.id) {
+            const currentScale = l.scale || 1.0;
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 2 / currentScale;
+            ctx.setLineDash([6 / currentScale, 4 / currentScale]);
+            ctx.strokeRect(-l.width / 2 - 6, -l.height / 2 - 6, l.width + 12, l.height + 12);
+
+            // Puxador de redimensionamento na ponta da linha
+            ctx.fillStyle = "#8B5CF6";
+            ctx.beginPath();
+            ctx.arc(l.width / 2, l.height / 2, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de rotação
+            ctx.strokeStyle = "#8B5CF6";
+            ctx.lineWidth = 1.5 / currentScale;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(0, -l.height / 2 - 6);
+            ctx.lineTo(0, -l.height / 2 - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.arc(0, -l.height / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.restore();
+      });
+    },
+    []
+  );
 
   // Loop de renderização no canvas
   useEffect(() => {
@@ -590,8 +605,8 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       if (l.type === "line") {
         const W = l.width;
         const H = l.height;
-        const A = lx - (-W / 2);
-        const B = ly - (-H / 2);
+        const A = lx - -W / 2;
+        const B = ly - -H / 2;
         const dot = A * W + B * H;
         const lenSq = W * W + H * H;
         let param = -1;
@@ -673,11 +688,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const newX = x - dragOffset.dx;
       const newY = y - dragOffset.dy;
       setLayers((prev) =>
-        prev.map((layer) =>
-          layer.id === selectedId
-            ? { ...layer, x: newX, y: newY }
-            : layer
-        )
+        prev.map((layer) => (layer.id === selectedId ? { ...layer, x: newX, y: newY } : layer))
       );
     } else if (interactionType === "rotate") {
       const dx = x - startParams.centerX;
@@ -687,9 +698,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       newAngleDeg = (Math.round(newAngleDeg) + 360) % 360;
 
       setLayers((prev) =>
-        prev.map((layer) =>
-          layer.id === selectedId ? { ...layer, rotation: newAngleDeg } : layer
-        )
+        prev.map((layer) => (layer.id === selectedId ? { ...layer, rotation: newAngleDeg } : layer))
       );
     } else if (interactionType === "resize") {
       const dx = x - startParams.centerX;
@@ -780,7 +789,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
   // CRUD de camadas
   const addLayer = (type: LayerType = "text", x?: number, y?: number, text?: string) => {
-    const hasTextLayer = layers.some(l => l.type === "text");
+    const hasTextLayer = layers.some((l) => l.type === "text");
     const newLayer: EditorLayer = {
       ...DEFAULT_LAYER,
       type,
@@ -842,7 +851,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     if (!img || layersRef.current.length === 0) return;
     setLoading(true);
     try {
-      try { await document.fonts.ready; } catch (_) {}
+      try {
+        await document.fonts.ready;
+      } catch (_) {}
 
       const exportCanvas = document.createElement("canvas");
       exportCanvas.width = img.naturalWidth;
@@ -891,14 +902,16 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   const renderBrandKitPalette = (onSelectColor: (color: string) => void) => {
     if (!brandKitPrimaryColor && !brandKitSecondaryColor) return null;
     return (
-      <div className="flex flex-col gap-1.5 mt-1">
-        <span className="text-[10px] text-slate-500 uppercase font-medium tracking-wide">Cores do seu Brand Kit</span>
+      <div className="mt-1 flex flex-col gap-1.5">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+          Cores do seu Brand Kit
+        </span>
         <div className="flex gap-2">
           {brandKitPrimaryColor && (
             <button
               type="button"
               onClick={() => onSelectColor(brandKitPrimaryColor)}
-              className="w-7 h-7 rounded-full border border-slate-700 shadow-sm transition-transform hover:scale-110 active:scale-95"
+              className="h-7 w-7 rounded-full border border-slate-700 shadow-sm transition-transform hover:scale-110 active:scale-95"
               style={{ backgroundColor: brandKitPrimaryColor }}
               title="Cor Primária da Marca"
             />
@@ -907,7 +920,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             <button
               type="button"
               onClick={() => onSelectColor(brandKitSecondaryColor)}
-              className="w-7 h-7 rounded-full border border-slate-700 shadow-sm transition-transform hover:scale-110 active:scale-95"
+              className="h-7 w-7 rounded-full border border-slate-700 shadow-sm transition-transform hover:scale-110 active:scale-95"
               style={{ backgroundColor: brandKitSecondaryColor }}
               title="Cor Secundária da Marca"
             />
@@ -919,25 +932,26 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
-      <DialogContent className="max-w-5xl w-[95vw] md:w-full h-[95vh] lg:h-[85vh] max-h-[95vh] lg:max-h-[85vh] bg-slate-900 text-slate-100 border-slate-800 shadow-2xl p-0 rounded-2xl overflow-hidden flex flex-col">
-        <div className="flex flex-col h-full min-h-0">
+      <DialogContent className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]">
+        <div className="flex h-full min-h-0 flex-col">
           {/* Header */}
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-800">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-violet-400">
-              <Type className="w-5 h-5" />
+          <DialogHeader className="border-b border-slate-800 px-6 pb-4 pt-5">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-violet-400">
+              <Type className="h-5 w-5" />
               Editor Visual
             </DialogTitle>
-            <DialogDescription className="text-slate-400 mt-1 text-sm">
-              Adicione textos ou formas. Arraste para posicionar. Ajuste tamanho, escala, rotação e cores no painel lateral.
+            <DialogDescription className="mt-1 text-sm text-slate-400">
+              Adicione textos ou formas. Arraste para posicionar. Ajuste tamanho, escala, rotação e
+              cores no painel lateral.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col lg:flex-row gap-0 flex-1 min-h-0">
+          <div className="flex min-h-0 flex-1 flex-col gap-0 lg:flex-row">
             {/* Canvas Area */}
-            <div className="flex-1 flex items-center justify-center bg-slate-950 p-6 min-h-[300px]">
+            <div className="flex min-h-[300px] flex-1 items-center justify-center bg-slate-950 p-6">
               {!imageLoaded ? (
                 <div className="flex flex-col items-center gap-3 text-slate-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
                   <span className="text-sm">Carregando imagem...</span>
                 </div>
               ) : (
@@ -945,8 +959,12 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                   ref={canvasRef}
                   width={canvasW}
                   height={canvasH}
-                  style={{ maxWidth: "100%", maxHeight: "60vh", cursor: interactionType ? "grabbing" : "default" }}
-                  className="rounded-xl shadow-2xl border border-slate-800"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "60vh",
+                    cursor: interactionType ? "grabbing" : "default",
+                  }}
+                  className="rounded-xl border border-slate-800 shadow-2xl"
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
@@ -956,19 +974,19 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             </div>
 
             {/* Painel de Ferramentas */}
-            <div className="w-full lg:w-80 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-full min-h-0">
+            <div className="flex h-full min-h-0 w-full flex-col border-t border-slate-800 bg-slate-900 lg:w-80 lg:border-l lg:border-t-0">
               {/* Adicionar elementos e Ações globais */}
-              <div className="p-4 border-b border-slate-800 flex flex-col gap-2">
-                <div className="flex justify-between items-center text-xs text-slate-400 uppercase tracking-wide">
+              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
                   <span>Adicionar Elemento</span>
                   {selected && (
                     <Button
                       onClick={deleteSelected}
                       variant="outline"
                       size="sm"
-                      className="bg-red-900/20 hover:bg-red-900/40 border-red-800/50 text-red-400 h-7 px-2"
+                      className="h-7 border-red-800/50 bg-red-900/20 px-2 text-red-400 hover:bg-red-900/40"
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
                       Excluir
                     </Button>
                   )}
@@ -978,67 +996,69 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     onClick={() => addLayer("text")}
                     variant="outline"
                     size="icon"
-                    className="bg-slate-800 hover:bg-slate-700 border-slate-700 h-9 w-full"
+                    className="h-9 w-full border-slate-700 bg-slate-800 hover:bg-slate-700"
                     title="Texto"
                     disabled={!imageLoaded}
                   >
-                    <Type className="w-4 h-4 text-violet-300" />
+                    <Type className="h-4 w-4 text-violet-300" />
                   </Button>
                   <Button
                     onClick={() => addLayer("rectangle")}
                     variant="outline"
                     size="icon"
-                    className="bg-slate-800 hover:bg-slate-700 border-slate-700 h-9 w-full"
+                    className="h-9 w-full border-slate-700 bg-slate-800 hover:bg-slate-700"
                     title="Retângulo"
                     disabled={!imageLoaded}
                   >
-                    <Square className="w-4 h-4 text-violet-300" />
+                    <Square className="h-4 w-4 text-violet-300" />
                   </Button>
                   <Button
                     onClick={() => addLayer("circle")}
                     variant="outline"
                     size="icon"
-                    className="bg-slate-800 hover:bg-slate-700 border-slate-700 h-9 w-full"
+                    className="h-9 w-full border-slate-700 bg-slate-800 hover:bg-slate-700"
                     title="Círculo"
                     disabled={!imageLoaded}
                   >
-                    <Circle className="w-4 h-4 text-violet-300" />
+                    <Circle className="h-4 w-4 text-violet-300" />
                   </Button>
                   <Button
                     onClick={() => addLayer("line")}
                     variant="outline"
                     size="icon"
-                    className="bg-slate-800 hover:bg-slate-700 border-slate-700 h-9 w-full"
+                    className="h-9 w-full border-slate-700 bg-slate-800 hover:bg-slate-700"
                     title="Linha"
                     disabled={!imageLoaded}
                   >
-                    <Minus className="w-4 h-4 text-violet-300" />
+                    <Minus className="h-4 w-4 text-violet-300" />
                   </Button>
                 </div>
               </div>
 
               {/* Conteúdo rolável das ferramentas do elemento selecionado */}
-              <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 {selected ? (
                   <div className="flex flex-col gap-5 p-4">
                     {/* Ordenação (Z-Index) */}
                     <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-slate-400 uppercase tracking-wide">Ordenação da Camada</Label>
+                      <Label className="text-xs uppercase tracking-wide text-slate-400">
+                        Ordenação da Camada
+                      </Label>
                       <div className="flex gap-2">
                         <button
                           onClick={moveLayerBackward}
                           title="Enviar para trás"
-                          className="flex-1 h-9 rounded-lg border bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 text-sm flex items-center justify-center gap-2 transition-colors"
+                          className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300 transition-colors hover:bg-slate-700"
                         >
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="h-4 w-4" />
                           <span>Recuar</span>
                         </button>
                         <button
                           onClick={moveLayerForward}
                           title="Trazer para frente"
-                          className="flex-1 h-9 rounded-lg border bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 text-sm flex items-center justify-center gap-2 transition-colors"
+                          className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300 transition-colors hover:bg-slate-700"
                         >
-                          <ChevronUp className="w-4 h-4" />
+                          <ChevronUp className="h-4 w-4" />
                           <span>Avançar</span>
                         </button>
                       </div>
@@ -1048,7 +1068,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-xs text-slate-400">
                         <Label className="uppercase tracking-wide">Opacidade</Label>
-                        <span className="text-violet-400 font-semibold">
+                        <span className="font-semibold text-violet-400">
                           {Math.round(selected.opacity * 100)}%
                         </span>
                       </div>
@@ -1065,7 +1085,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-xs text-slate-400">
                         <Label className="uppercase tracking-wide">Tamanho</Label>
-                        <span className="text-violet-400 font-semibold">
+                        <span className="font-semibold text-violet-400">
                           {Math.round((selected.scale || 1.0) * 100)}%
                         </span>
                       </div>
@@ -1082,7 +1102,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-xs text-slate-400">
                         <Label className="uppercase tracking-wide">Rotação</Label>
-                        <span className="text-violet-400 font-semibold">
+                        <span className="font-semibold text-violet-400">
                           {selected.rotation || 0}°
                         </span>
                       </div>
@@ -1099,23 +1119,27 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                       <>
                         {/* Texto */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Texto</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Texto
+                          </Label>
                           <textarea
                             value={selected.text}
                             onChange={(e) => updateSelected({ text: e.target.value })}
                             rows={3}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 text-sm p-2.5 resize-none focus:outline-none focus:border-violet-500"
+                            className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-slate-100 focus:border-violet-500 focus:outline-none"
                             placeholder="Digite o text..."
                           />
                         </div>
 
                         {/* Fonte */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Fonte</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Fonte
+                          </Label>
                           <select
                             value={selected.fontFamily}
                             onChange={(e) => updateSelected({ fontFamily: e.target.value })}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg text-slate-100 text-sm p-2 focus:outline-none focus:border-violet-500"
+                            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2 text-sm text-slate-100 focus:border-violet-500 focus:outline-none"
                           >
                             {FONT_OPTIONS.map((f) => (
                               <option key={f} value={f} style={{ fontFamily: f }}>
@@ -1129,7 +1153,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Tamanho da Fonte</Label>
-                            <span className="text-violet-400 font-semibold">{selected.fontSize}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.fontSize}px
+                            </span>
                           </div>
                           <Slider
                             min={12}
@@ -1144,7 +1170,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Largura da Caixa</Label>
-                            <span className="text-violet-400 font-semibold">{selected.width}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.width}px
+                            </span>
                           </div>
                           <Slider
                             min={80}
@@ -1157,19 +1185,21 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
                         {/* Cor do texto */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Cor do Texto</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Cor do Texto
+                          </Label>
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-3">
                               <input
                                 type="color"
                                 value={selected.color}
                                 onChange={(e) => updateSelected({ color: e.target.value })}
-                                className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer bg-transparent"
+                                className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                               />
                               <Input
                                 value={selected.color}
                                 onChange={(e) => updateSelected({ color: e.target.value })}
-                                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 h-9 text-sm font-mono"
+                                className="h-9 flex-1 border-slate-700 bg-slate-800 font-mono text-sm text-slate-100"
                                 maxLength={7}
                               />
                             </div>
@@ -1181,7 +1211,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Fundo da Caixa</Label>
-                            <span className="text-violet-400 font-semibold">
+                            <span className="font-semibold text-violet-400">
                               {Math.round(selected.bgOpacity * 100)}%
                             </span>
                           </div>
@@ -1190,7 +1220,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                               type="color"
                               value={selected.bgColor}
                               onChange={(e) => updateSelected({ bgColor: e.target.value })}
-                              className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer bg-transparent"
+                              className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                             />
                             <Slider
                               min={0}
@@ -1206,48 +1236,57 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
                         {/* Estilo */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Estilo</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Estilo
+                          </Label>
                           <div className="flex gap-2">
                             <button
                               onClick={() => updateSelected({ bold: !selected.bold })}
-                              className={`flex-1 h-9 rounded-lg border text-sm font-bold flex items-center justify-center gap-1 transition-colors ${
+                              className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border text-sm font-bold transition-colors ${
                                 selected.bold
-                                  ? "bg-violet-600 border-violet-500 text-white"
-                                  : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                                  ? "border-violet-500 bg-violet-600 text-white"
+                                  : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
                               }`}
                             >
-                              <Bold className="w-4 h-4" />
+                              <Bold className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => updateSelected({ italic: !selected.italic })}
-                              className={`flex-1 h-9 rounded-lg border text-sm flex items-center justify-center gap-1 transition-colors ${
+                              className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border text-sm transition-colors ${
                                 selected.italic
-                                  ? "bg-violet-600 border-violet-500 text-white"
-                                  : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                                  ? "border-violet-500 bg-violet-600 text-white"
+                                  : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
                               }`}
                             >
-                              <Italic className="w-4 h-4" />
+                              <Italic className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
 
                         {/* Alinhamento */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Alinhamento</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Alinhamento
+                          </Label>
                           <div className="flex gap-2">
                             {(["left", "center", "right"] as const).map((a) => {
-                              const Icon = a === "left" ? AlignLeft : a === "center" ? AlignCenter : AlignRight;
+                              const Icon =
+                                a === "left"
+                                  ? AlignLeft
+                                  : a === "center"
+                                    ? AlignCenter
+                                    : AlignRight;
                               return (
                                 <button
                                   key={a}
                                   onClick={() => updateSelected({ align: a })}
-                                  className={`flex-1 h-9 rounded-lg border flex items-center justify-center transition-colors ${
+                                  className={`flex h-9 flex-1 items-center justify-center rounded-lg border transition-colors ${
                                     selected.align === a
-                                      ? "bg-violet-600 border-violet-500 text-white"
-                                      : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                                      ? "border-violet-500 bg-violet-600 text-white"
+                                      : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
                                   }`}
                                 >
-                                  <Icon className="w-4 h-4" />
+                                  <Icon className="h-4 w-4" />
                                 </button>
                               );
                             })}
@@ -1262,7 +1301,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Largura</Label>
-                            <span className="text-violet-400 font-semibold">{selected.width}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.width}px
+                            </span>
                           </div>
                           <Slider
                             min={10}
@@ -1277,7 +1318,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Altura</Label>
-                            <span className="text-violet-400 font-semibold">{selected.height}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.height}px
+                            </span>
                           </div>
                           <Slider
                             min={10}
@@ -1291,8 +1334,12 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         {selected.type === "rectangle" && (
                           <div className="flex flex-col gap-2">
                             <div className="flex justify-between text-xs text-slate-400">
-                              <Label className="uppercase tracking-wide">Arredondamento das Bordas</Label>
-                              <span className="text-violet-400 font-semibold">{selected.borderRadius || 0}px</span>
+                              <Label className="uppercase tracking-wide">
+                                Arredondamento das Bordas
+                              </Label>
+                              <span className="font-semibold text-violet-400">
+                                {selected.borderRadius || 0}px
+                              </span>
                             </div>
                             <Slider
                               min={0}
@@ -1306,7 +1353,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
                         {/* Preenchimento - toggle on/off */}
                         <div className="flex items-center justify-between">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Preenchimento</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Preenchimento
+                          </Label>
                           <button
                             type="button"
                             onClick={() => updateSelected({ filled: !selected.filled })}
@@ -1325,19 +1374,21 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         {/* Cor de Preenchimento — visível somente quando ligado */}
                         {selected.filled && (
                           <div className="flex flex-col gap-2">
-                            <Label className="text-xs text-slate-400 uppercase tracking-wide">Cor de Preenchimento</Label>
+                            <Label className="text-xs uppercase tracking-wide text-slate-400">
+                              Cor de Preenchimento
+                            </Label>
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-3">
                                 <input
                                   type="color"
                                   value={selected.color}
                                   onChange={(e) => updateSelected({ color: e.target.value })}
-                                  className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer bg-transparent"
+                                  className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                                 />
                                 <Input
                                   value={selected.color}
                                   onChange={(e) => updateSelected({ color: e.target.value })}
-                                  className="flex-1 bg-slate-800 border-slate-700 text-slate-100 h-9 text-sm font-mono"
+                                  className="h-9 flex-1 border-slate-700 bg-slate-800 font-mono text-sm text-slate-100"
                                   maxLength={7}
                                 />
                               </div>
@@ -1350,7 +1401,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Espessura da Borda</Label>
-                            <span className="text-violet-400 font-semibold">{selected.strokeWidth}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.strokeWidth}px
+                            </span>
                           </div>
                           <Slider
                             min={0}
@@ -1363,19 +1416,21 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
                         {selected.strokeWidth > 0 && (
                           <div className="flex flex-col gap-2">
-                            <Label className="text-xs text-slate-400 uppercase tracking-wide">Cor da Borda</Label>
+                            <Label className="text-xs uppercase tracking-wide text-slate-400">
+                              Cor da Borda
+                            </Label>
                             <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-3">
                                 <input
                                   type="color"
                                   value={selected.strokeColor}
                                   onChange={(e) => updateSelected({ strokeColor: e.target.value })}
-                                  className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer bg-transparent"
+                                  className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                                 />
                                 <Input
                                   value={selected.strokeColor}
                                   onChange={(e) => updateSelected({ strokeColor: e.target.value })}
-                                  className="flex-1 bg-slate-800 border-slate-700 text-slate-100 h-9 text-sm font-mono"
+                                  className="h-9 flex-1 border-slate-700 bg-slate-800 font-mono text-sm text-slate-100"
                                   maxLength={7}
                                 />
                               </div>
@@ -1392,7 +1447,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Comprimento X</Label>
-                            <span className="text-violet-400 font-semibold">{selected.width}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.width}px
+                            </span>
                           </div>
                           <Slider
                             min={-300}
@@ -1406,7 +1463,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Comprimento Y</Label>
-                            <span className="text-violet-400 font-semibold">{selected.height}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.height}px
+                            </span>
                           </div>
                           <Slider
                             min={-300}
@@ -1419,19 +1478,21 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
                         {/* Cor da Linha */}
                         <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-400 uppercase tracking-wide">Cor da Linha</Label>
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Cor da Linha
+                          </Label>
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-3">
                               <input
                                 type="color"
                                 value={selected.color}
                                 onChange={(e) => updateSelected({ color: e.target.value })}
-                                className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer bg-transparent"
+                                className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                               />
                               <Input
                                 value={selected.color}
                                 onChange={(e) => updateSelected({ color: e.target.value })}
-                                className="flex-1 bg-slate-800 border-slate-700 text-slate-100 h-9 text-sm font-mono"
+                                className="h-9 flex-1 border-slate-700 bg-slate-800 font-mono text-sm text-slate-100"
                                 maxLength={7}
                               />
                             </div>
@@ -1443,7 +1504,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between text-xs text-slate-400">
                             <Label className="uppercase tracking-wide">Espessura</Label>
-                            <span className="text-violet-400 font-semibold">{selected.strokeWidth}px</span>
+                            <span className="font-semibold text-violet-400">
+                              {selected.strokeWidth}px
+                            </span>
                           </div>
                           <Slider
                             min={1}
@@ -1457,22 +1520,23 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className="flex-1 h-full flex flex-col items-center justify-center gap-3 text-slate-500 p-6 text-center">
-                    <Type className="w-10 h-10 opacity-30" />
+                  <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-slate-500">
+                    <Type className="h-10 w-10 opacity-30" />
                     <p className="text-sm">
-                      Escolha um elemento acima para adicionar ao canvas, ou clique em um item existente para editá-lo.
+                      Escolha um elemento acima para adicionar ao canvas, ou clique em um item
+                      existente para editá-lo.
                     </p>
                   </div>
                 )}
               </div>
 
               {/* Botão Aplicar - Fixo no rodapé da barra lateral */}
-              <div className="p-4 border-t border-slate-800 bg-slate-900 mt-auto">
+              <div className="mt-auto border-t border-slate-800 bg-slate-900 p-4">
                 <div className="flex gap-2">
                   <Button
                     onClick={onClose}
                     variant="ghost"
-                    className="flex-1 hover:bg-slate-800 text-slate-400"
+                    className="flex-1 text-slate-400 hover:bg-slate-800"
                     disabled={loading}
                   >
                     Cancelar
@@ -1480,16 +1544,16 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                   <Button
                     onClick={handleApply}
                     disabled={loading || layers.length === 0}
-                    className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-medium gap-2"
+                    className="flex-1 gap-2 bg-violet-600 font-medium text-white hover:bg-violet-500"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Salvando...
                       </>
                     ) : (
                       <>
-                        <Check className="w-4 h-4" />
+                        <Check className="h-4 w-4" />
                         Aplicar
                       </>
                     )}
