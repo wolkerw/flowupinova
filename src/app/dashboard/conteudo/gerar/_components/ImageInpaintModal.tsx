@@ -78,6 +78,12 @@ export interface EditorLayer {
   align: "left" | "center" | "right";
   bgColor: string; // fundo do texto
   bgOpacity: number; // opacidade do fundo do texto
+  textStrokeColor: string;
+  textStrokeWidth: number;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
 
   // Propriedades de formas gráficas
   strokeColor: string; // cor da borda
@@ -99,6 +105,12 @@ const DEFAULT_LAYER: Omit<EditorLayer, "id" | "x" | "y"> = {
   align: "center",
   bgColor: "#000000",
   bgOpacity: 0,
+  textStrokeColor: "#000000",
+  textStrokeWidth: 0,
+  shadowColor: "#000000",
+  shadowBlur: 0,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
   width: 280,
   height: 40,
   opacity: 1.0,
@@ -111,6 +123,82 @@ const DEFAULT_LAYER: Omit<EditorLayer, "id" | "x" | "y"> = {
   strokeOpacity: 1.0,
   borderRadius: 0,
 };
+
+export const TEXT_PRESETS = [
+  {
+    name: "Promoção",
+    config: {
+      text: "PROMOÇÃO",
+      fontFamily: "Bebas Neue",
+      fontSize: 54,
+      bold: true,
+      italic: false,
+      color: "#FBBF24", // yellow-400
+      textStrokeColor: "#000000",
+      textStrokeWidth: 4,
+      shadowColor: "#000000",
+      shadowBlur: 0,
+      shadowOffsetX: 6,
+      shadowOffsetY: 6,
+      scale: 1.5,
+    },
+  },
+  {
+    name: "Liquidação",
+    config: {
+      text: "LIQUIDAÇÃO",
+      fontFamily: "Montserrat",
+      fontSize: 48,
+      bold: true,
+      italic: true,
+      color: "#ffffff",
+      bgColor: "#EF4444", // red-500
+      bgOpacity: 1,
+      textStrokeWidth: 0,
+      shadowColor: "#000000",
+      shadowBlur: 15,
+      shadowOffsetX: 0,
+      shadowOffsetY: 8,
+      scale: 1.2,
+    },
+  },
+  {
+    name: "Novidade",
+    config: {
+      text: "NOVIDADE",
+      fontFamily: "Poppins",
+      fontSize: 42,
+      bold: true,
+      italic: false,
+      color: "#ffffff",
+      textStrokeColor: "#6366F1", // indigo-500
+      textStrokeWidth: 8,
+      shadowColor: "#6366F1",
+      shadowBlur: 20,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+      scale: 1.2,
+    },
+  },
+  {
+    name: "Frete Grátis",
+    config: {
+      text: "FRETE GRÁTIS",
+      fontFamily: "Oswald",
+      fontSize: 48,
+      bold: true,
+      italic: false,
+      color: "#10B981", // emerald-500
+      textStrokeColor: "#064E3B", // emerald-900
+      textStrokeWidth: 3,
+      shadowColor: "#000000",
+      shadowBlur: 10,
+      shadowOffsetX: 0,
+      shadowOffsetY: 4,
+      scale: 1.1,
+    },
+  },
+];
 
 // Auxiliar para calcular a altura dinâmica do texto com quebra de linha
 const getTextHeight = (
@@ -314,6 +402,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.restore();
           }
 
+          if (l.shadowBlur && l.shadowBlur > 0) {
+            ctx.shadowColor = l.shadowColor || "#000000";
+            ctx.shadowBlur = l.shadowBlur;
+            ctx.shadowOffsetX = l.shadowOffsetX || 0;
+            ctx.shadowOffsetY = l.shadowOffsetY || 0;
+          }
+
           lines.forEach((line, index) => {
             ctx.fillStyle = l.color;
             let textX = -l.width / 2;
@@ -322,7 +417,33 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             } else if (l.align === "right") {
               textX = l.width / 2 - ctx.measureText(line).width;
             }
-            ctx.fillText(line, textX, -totalHeight / 2 + 5 + index * lineHeight);
+
+            const yPos = -totalHeight / 2 + 5 + index * lineHeight;
+
+            // Desenhar texto preenchido
+            ctx.fillText(line, textX, yPos);
+
+            // Desligar sombra para a borda não borrar duplicado, a não ser que o usuário queira, mas vamos desligar
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Desenhar borda de texto
+            if (l.textStrokeWidth && l.textStrokeWidth > 0) {
+              ctx.strokeStyle = l.textStrokeColor || "#000000";
+              ctx.lineWidth = l.textStrokeWidth / (l.scale || 1.0);
+              ctx.lineJoin = "round";
+              ctx.miterLimit = 2;
+              ctx.strokeText(line, textX, yPos);
+            }
+            
+            // Religar sombra para a próxima linha
+            if (l.shadowBlur && l.shadowBlur > 0) {
+              ctx.shadowColor = l.shadowColor || "#000000";
+              ctx.shadowBlur = l.shadowBlur;
+              ctx.shadowOffsetX = l.shadowOffsetX || 0;
+              ctx.shadowOffsetY = l.shadowOffsetY || 0;
+            }
           });
 
           if (activeSelectedId === l.id) {
@@ -810,6 +931,18 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     setSelectedId(newLayer.id);
   };
 
+  const addPresetLayer = (presetConfig: Partial<EditorLayer>) => {
+    const newLayer: EditorLayer = {
+      ...DEFAULT_LAYER,
+      ...presetConfig,
+      id: crypto.randomUUID(),
+      x: canvasW / 2 || 200, // Centralizado X
+      y: canvasH / 2 || 200, // Centralizado Y
+    };
+    setLayers((prev) => [...prev, newLayer]);
+    setSelectedId(newLayer.id);
+  };
+
   const deleteSelected = () => {
     setLayers((prev) => prev.filter((l) => l.id !== selectedId));
     setSelectedId(null);
@@ -1032,6 +1165,27 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                   >
                     <Minus className="h-4 w-4 text-violet-300" />
                   </Button>
+                </div>
+              </div>
+
+              {/* Textos Prontos (Presets) */}
+              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                  <span>Textos Prontos</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {TEXT_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.name}
+                      onClick={() => addPresetLayer(preset.config)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-slate-700 bg-slate-800 text-xs text-slate-300 hover:bg-slate-700"
+                      disabled={!imageLoaded}
+                    >
+                      {preset.name}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
@@ -1290,6 +1444,76 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                                 </button>
                               );
                             })}
+                          </div>
+                        </div>
+                        {/* Borda do Texto */}
+                        <div className="flex flex-col gap-2 border-t border-slate-800 pt-3">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Borda do Texto
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={selected.textStrokeColor}
+                              onChange={(e) => updateSelected({ textStrokeColor: e.target.value })}
+                              className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
+                            />
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className="flex justify-between text-[10px] text-slate-500">
+                                <span>Espessura</span>
+                                <span>{selected.textStrokeWidth}px</span>
+                              </div>
+                              <Slider
+                                min={0}
+                                max={20}
+                                step={1}
+                                value={[selected.textStrokeWidth]}
+                                onValueChange={([v]) => updateSelected({ textStrokeWidth: v })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Sombra do Texto */}
+                        <div className="flex flex-col gap-2 border-t border-slate-800 pt-3">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Sombra (Drop Shadow)
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={selected.shadowColor}
+                              onChange={(e) => updateSelected({ shadowColor: e.target.value })}
+                              className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
+                            />
+                            <div className="flex-1 flex flex-col gap-2">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-[10px] text-slate-500">
+                                  <span>Desfoque (Blur)</span>
+                                  <span>{selected.shadowBlur}px</span>
+                                </div>
+                                <Slider
+                                  min={0}
+                                  max={50}
+                                  step={1}
+                                  value={[selected.shadowBlur]}
+                                  onValueChange={([v]) => updateSelected({ shadowBlur: v })}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-[10px] text-slate-500">
+                                  <span>Distância (X / Y)</span>
+                                  <span>{selected.shadowOffsetX}px</span>
+                                </div>
+                                <Slider
+                                  min={-30}
+                                  max={30}
+                                  step={1}
+                                  value={[selected.shadowOffsetX]}
+                                  onValueChange={([v]) => updateSelected({ shadowOffsetX: v, shadowOffsetY: v })}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </>
