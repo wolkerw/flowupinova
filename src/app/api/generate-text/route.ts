@@ -164,7 +164,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-flash"];
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
     let aiResponseText = "";
     let lastError: any = null;
 

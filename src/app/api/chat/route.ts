@@ -369,7 +369,7 @@ DIRETRIZES DE ESTILO:
     ];
 
     // 5. Disparar chamada REST com Fallback Automático Resiliente
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-flash"];
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
     let aiResponseText = "";
     let lastError: any = null;
 
@@ -517,7 +517,7 @@ DIRETRIZES DE ESTILO:
 
               let inputPrice = 0.075;
               let outputPrice = 0.3;
-              if (model === "gemini-1.5-flash-8b") {
+              if (model === "gemini-3.1-flash-lite") {
                 inputPrice = 0.0375;
                 outputPrice = 0.15;
               }
@@ -555,7 +555,7 @@ DIRETRIZES DE ESTILO:
             let inputPrice = 0.075;
             let outputPrice = 0.3;
 
-            if (model === "gemini-1.5-flash-8b") {
+            if (model === "gemini-3.1-flash-lite") {
               inputPrice = 0.0375;
               outputPrice = 0.15;
             }
