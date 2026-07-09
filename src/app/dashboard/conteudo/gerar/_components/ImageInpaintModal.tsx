@@ -27,6 +27,7 @@ import {
   Minus,
   ChevronUp,
   ChevronDown,
+  Save,
 } from "lucide-react";
 
 // Fontes disponíveis (carregadas via Google Fonts no layout global)
@@ -272,6 +273,19 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     centerY: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [customPresets, setCustomPresets] = useState<{ name: string; config: Partial<EditorLayer> }[]>([]);
+
+  // Carregar presets do localStorage na inicialização
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("flowup_custom_presets");
+      if (saved) {
+        setCustomPresets(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Erro ao carregar presets", e);
+    }
+  }, []);
 
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
   const layersRef = useRef<EditorLayer[]>([]);
@@ -944,6 +958,43 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     setSelectedId(newLayer.id);
   };
 
+  const handleSaveCustomPreset = () => {
+    const selected = layers.find((l) => l.id === selectedId);
+    if (!selected || selected.type !== "text") return;
+
+    const presetName = prompt("Qual o nome desse Text Preset?");
+    if (!presetName?.trim()) return;
+
+    const configToSave: Partial<EditorLayer> = {
+      text: selected.text,
+      fontFamily: selected.fontFamily,
+      fontSize: selected.fontSize,
+      bold: selected.bold,
+      italic: selected.italic,
+      color: selected.color,
+      bgColor: selected.bgColor,
+      bgOpacity: selected.bgOpacity,
+      textStrokeColor: selected.textStrokeColor,
+      textStrokeWidth: selected.textStrokeWidth,
+      shadowColor: selected.shadowColor,
+      shadowBlur: selected.shadowBlur,
+      shadowOffsetX: selected.shadowOffsetX,
+      shadowOffsetY: selected.shadowOffsetY,
+    };
+
+    const novoPreset = { name: presetName.trim(), config: configToSave };
+    
+    setCustomPresets((prev) => {
+      const novos = [...prev, novoPreset];
+      try {
+        localStorage.setItem("flowup_custom_presets", JSON.stringify(novos));
+      } catch (err) {
+        console.error("Erro ao salvar preset no localStorage", err);
+      }
+      return novos;
+    });
+  };
+
   const deleteSelected = () => {
     setLayers((prev) => prev.filter((l) => l.id !== selectedId));
     setSelectedId(null);
@@ -1175,18 +1226,38 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                   <span>Textos Prontos</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {TEXT_PRESETS.map((preset) => (
-                    <Button
-                      key={preset.name}
-                      onClick={() => addPresetLayer(preset.config)}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 border-slate-700 bg-slate-800 text-xs text-slate-300 hover:bg-slate-700"
-                      disabled={!imageLoaded}
-                    >
-                      {preset.name}
-                    </Button>
-                  ))}
+                  {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
+                    const cfg = preset.config;
+                    const strokeCSS = (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor)
+                      ? `${cfg.textStrokeWidth}px ${cfg.textStrokeColor}`
+                      : 'none';
+                      
+                    const shadowCSS = (cfg.shadowBlur && cfg.shadowBlur > 0)
+                      ? `${cfg.shadowOffsetX || 0}px ${cfg.shadowOffsetY || 0}px ${cfg.shadowBlur}px ${cfg.shadowColor || '#000'}`
+                      : 'none';
+
+                    return (
+                      <Button
+                        key={`${preset.name}-${idx}`}
+                        onClick={() => addPresetLayer(cfg)}
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
+                        disabled={!imageLoaded}
+                        style={{
+                          backgroundColor: (cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor) ? cfg.bgColor : '#1e293b',
+                          color: cfg.color || '#fff',
+                          fontFamily: cfg.fontFamily,
+                          fontWeight: cfg.bold ? 'bold' : 'normal',
+                          fontStyle: cfg.italic ? 'italic' : 'normal',
+                          textShadow: shadowCSS !== 'none' ? shadowCSS : undefined,
+                          WebkitTextStroke: strokeCSS !== 'none' ? strokeCSS : undefined,
+                        }}
+                      >
+                        {preset.name}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1516,6 +1587,18 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                               </div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Botão de Salvar Preset */}
+                        <div className="pt-2">
+                          <Button
+                            onClick={handleSaveCustomPreset}
+                            variant="outline"
+                            className="w-full h-9 text-xs border-violet-800 bg-violet-900/20 text-violet-300 hover:bg-violet-900/40"
+                          >
+                            <Save className="mr-2 h-4 w-4" />
+                            Salvar como Preset
+                          </Button>
                         </div>
                       </>
                     )}
