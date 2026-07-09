@@ -995,6 +995,20 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     });
   };
 
+  const handleDeleteCustomPreset = (index: number) => {
+    if (!confirm("Tem certeza que deseja excluir este preset personalizado?")) return;
+    setCustomPresets((prev) => {
+      const novos = [...prev];
+      novos.splice(index, 1);
+      try {
+        localStorage.setItem("flowup_custom_presets", JSON.stringify(novos));
+      } catch (err) {
+        console.error("Erro ao salvar preset no localStorage", err);
+      }
+      return novos;
+    });
+  };
+
   const deleteSelected = () => {
     setLayers((prev) => prev.filter((l) => l.id !== selectedId));
     setSelectedId(null);
@@ -1240,26 +1254,43 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                       ? `${(cfg.shadowOffsetX || 0) * 0.3}px ${(cfg.shadowOffsetY || 0) * 0.3}px ${cfg.shadowBlur * 0.3}px ${cfg.shadowColor || '#000'}`
                       : 'none';
 
+                    const isCustom = idx >= TEXT_PRESETS.length;
+                    const customIdx = idx - TEXT_PRESETS.length;
+
                     return (
-                      <Button
-                        key={`${preset.name}-${idx}`}
-                        onClick={() => addPresetLayer(cfg)}
-                        variant="outline"
-                        size="sm"
-                        className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
-                        disabled={!imageLoaded}
-                        style={{
-                          backgroundColor: (cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor) ? cfg.bgColor : '#1e293b',
-                          color: cfg.color || '#fff',
-                          fontFamily: cfg.fontFamily,
-                          fontWeight: cfg.bold ? 'bold' : 'normal',
-                          fontStyle: cfg.italic ? 'italic' : 'normal',
-                          textShadow: shadowCSS !== 'none' ? shadowCSS : undefined,
-                          WebkitTextStroke: strokeCSS !== 'none' ? strokeCSS : undefined,
-                        }}
-                      >
-                        {preset.name}
-                      </Button>
+                      <div key={`${preset.name}-${idx}`} className="relative group">
+                        <Button
+                          onClick={() => addPresetLayer(cfg)}
+                          variant="outline"
+                          size="sm"
+                          className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
+                          disabled={!imageLoaded}
+                          style={{
+                            backgroundColor: (cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor) ? cfg.bgColor : '#1e293b',
+                            color: cfg.color || '#fff',
+                            fontFamily: cfg.fontFamily,
+                            fontWeight: cfg.bold ? 'bold' : 'normal',
+                            fontStyle: cfg.italic ? 'italic' : 'normal',
+                            textShadow: shadowCSS !== 'none' ? shadowCSS : undefined,
+                            WebkitTextStroke: strokeCSS !== 'none' ? strokeCSS : undefined,
+                          }}
+                        >
+                          {preset.name}
+                        </Button>
+                        
+                        {isCustom && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCustomPreset(customIdx);
+                            }}
+                            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600 shadow-md"
+                            title="Excluir preset"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
