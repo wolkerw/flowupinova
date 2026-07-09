@@ -420,22 +420,23 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
             const yPos = -totalHeight / 2 + 5 + index * lineHeight;
 
-            // Desenhar texto preenchido
-            ctx.fillText(line, textX, yPos);
-
-            // Desligar sombra para a borda não borrar duplicado, a não ser que o usuário queira, mas vamos desligar
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
-            // Desenhar borda de texto
+            // Desenhar borda de texto PRIMEIRO (para ficar atrás do preenchimento)
             if (l.textStrokeWidth && l.textStrokeWidth > 0) {
               ctx.strokeStyle = l.textStrokeColor || "#000000";
               ctx.lineWidth = l.textStrokeWidth / (l.scale || 1.0);
               ctx.lineJoin = "round";
               ctx.miterLimit = 2;
               ctx.strokeText(line, textX, yPos);
+              
+              // Se desenhou a borda, a borda já aplicou a sombra (se houver).
+              // Então desligamos a sombra para o fillText não duplicar/escurecer a sombra.
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
             }
+
+            // Desenhar texto preenchido POR CIMA da borda
+            ctx.fillText(line, textX, yPos);
             
             // Religar sombra para a próxima linha
             if (l.shadowBlur && l.shadowBlur > 0) {
