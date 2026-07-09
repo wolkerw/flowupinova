@@ -135,7 +135,7 @@ Return the description strictly in YAML format containing:
   text_areas: (where the text is positioned)
   visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -465,7 +465,7 @@ ${textRules}
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+    const modelsToTry = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
     let aiResponseText = "";
     let lastError: any = null;
 

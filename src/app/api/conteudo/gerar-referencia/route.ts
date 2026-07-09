@@ -227,7 +227,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
             proError
           );
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
           const geminiResponse = await fetch(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -334,7 +334,7 @@ If the image depicts a CHARACTER:
   outfit_style: (Detailed description of clothing style, accessories, or notable features)
   visual_description: (A full sentence summarizing face, hair, expression, and overall styling)`;
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
       const callGeminiVision = async (base64: string, mime: string, specificPrompt: string) => {
         const response = await fetch(geminiUrl, {
@@ -751,7 +751,7 @@ ${yamlAnalysis}`;
             proError
           );
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
           const contentsParts: any[] = [];
           if (inlineDataPart) {
@@ -1360,7 +1360,7 @@ ${yamlAnalysis}`;
       const NANOBANANA_MODELS = [
         "gemini-3-pro-image",
         "gemini-3.1-flash-image",
-        "gemini-2.5-flash-image",
+        "gemini-2.0-flash-image",
       ];
 
       let nanobananaPrompt = "";
