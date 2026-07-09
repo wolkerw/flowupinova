@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCookie("firebase-id-token", token, 1);
       // O useEffect acima cuidará do redirecionamento
     } catch (error: any) {
-      console.error("Erro ao fazer login:", error.code);
+      console.warn("Erro ao fazer login:", error.code);
       let errorMessage = "Ocorreu um erro desconhecido ao tentar fazer login.";
       switch (error.code) {
         case "auth/user-not-found":
