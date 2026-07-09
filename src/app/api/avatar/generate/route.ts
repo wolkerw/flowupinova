@@ -153,7 +153,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
   "lighting": "Descrição detalhada da iluminação (ex: iluminação suave direcional estilo Rembrandt vindo da lateral com foco nos olhos)"
 }`;
 
-            const geminiVisionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const geminiVisionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
             const geminiVisionResponse = await fetch(geminiVisionUrl, {
               method: "POST",
@@ -182,7 +182,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
               const resData = await geminiVisionResponse.json();
               const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
-              // Registrar log de consumo do Vision (gemini-2.0-flash)
+              // Registrar log de consumo do Vision (gemini-1.5-flash)
               const usage = resData?.usageMetadata;
               if (usage && userId) {
                 const pTokens = usage.promptTokenCount || 0;
@@ -195,7 +195,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   userId,
                   type: "vision_analysis",
                   provider: "google_gemini",
-                  model: "gemini-2.0-flash",
+                  model: "gemini-1.5-flash",
                   costUsd: totalCost,
                   tokens: {
                     promptTokens: pTokens,
@@ -255,7 +255,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         const NANOBANANA_MODELS = [
           "gemini-3-pro-image",
           "gemini-3.1-flash-image",
-          "gemini-2.0-flash-image",
+          "gemini-1.5-flash-image",
         ];
 
         let clothingSection = `DIRETRIZES DE VESTUÁRIO: Vista a pessoa conforme as instruções fornecidas no prompt do usuário: "${prompt}".`;

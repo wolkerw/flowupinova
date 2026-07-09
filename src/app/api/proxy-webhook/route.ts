@@ -204,7 +204,7 @@ JSON format structure:
 CRITICAL: Return ONLY the JSON object. Do not wrap in markdown block. Do not include any pre-text or post-text.
 `;
 
-  const modelsToTry = ["gemini-2.0-flash", "gemini-2.0-flash"];
+  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash"];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
