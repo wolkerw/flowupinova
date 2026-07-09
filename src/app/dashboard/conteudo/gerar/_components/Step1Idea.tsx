@@ -1711,14 +1711,18 @@ export const Step1Idea = () => {
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-4">
           <div className="flex items-center space-x-2">
-            <Switch
-              id="generate-text"
-              checked={generateTextSuggestions}
-              onCheckedChange={setGenerateTextSuggestions}
-            />
-            <Label htmlFor="generate-text" className="text-sm cursor-pointer text-gray-700 font-medium">
-              Gerar legendas (Opcional)
-            </Label>
+            {(mode === "reference-photo" || mode === "reference-hybrid") && (
+              <>
+                <Switch
+                  id="generate-text"
+                  checked={generateTextSuggestions}
+                  onCheckedChange={setGenerateTextSuggestions}
+                />
+                <Label htmlFor="generate-text" className="text-sm cursor-pointer text-gray-700 font-medium">
+                  Gerar legendas (Opcional)
+                </Label>
+              </>
+            )}
           </div>
           <Button
             onClick={() => onGenerate()}
