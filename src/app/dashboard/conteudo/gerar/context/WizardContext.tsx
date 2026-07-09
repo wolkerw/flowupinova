@@ -925,6 +925,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           if (businessProfile) {
             formData.append("businessProfile", JSON.stringify(businessProfile));
           }
+          formData.append("insertTextOnImage", String(insertTextOnImage !== false));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
 
@@ -939,11 +940,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               content: contentForPrompt,
               businessProfile: businessProfile,
+              insertTextOnImage: insertTextOnImage !== false,
               userId: user.uid,
             }),
           });
         }
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || "Erro na API de geração de prompts.");
+        }
+        
         const generatedPrompts = data?.[0]?.output?.prompt;
 
         if (!generatedPrompts || !Array.isArray(generatedPrompts)) {

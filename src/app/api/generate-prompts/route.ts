@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     let userId = "";
     let inspirationFile: File | null = null;
 
+    let insertTextOnImage = true;
+
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -19,11 +21,17 @@ export async function POST(request: Request) {
       if (profileStr) businessProfile = JSON.parse(profileStr);
       userId = (formData.get("userId") as string) || "";
       inspirationFile = formData.get("inspiration_file") as File | null;
+      if (formData.has("insertTextOnImage")) {
+        insertTextOnImage = formData.get("insertTextOnImage") === "true";
+      }
     } else {
       const body = await request.json();
       selContent = body.content;
       businessProfile = body.businessProfile;
       userId = body.userId;
+      if (body.insertTextOnImage !== undefined) {
+        insertTextOnImage = body.insertTextOnImage;
+      }
     }
 
     if (!selContent) {
@@ -253,7 +261,7 @@ Your CRITICAL mission is to strategically and organically blend these brand colo
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
 
 ${
-  fontsText
+  fontsText && insertTextOnImage
     ? `
 # TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
 When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
@@ -280,9 +288,9 @@ ${inspirationYaml}
 - CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
 - ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. Copying text from the reference print is strictly prohibited.
 ${
-  selContent?.titulo
+  selContent?.titulo && insertTextOnImage
     ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), which must be printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.`
-    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography.`
+    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene.`
 }
 `;
     } else {
@@ -374,7 +382,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
 `;
     }
     // 1. Regras condicionais de texto
-    const textRules = selContent?.titulo
+    const textRules = selContent?.titulo && insertTextOnImage
       ? `
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
    - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
@@ -385,7 +393,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
    - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
 `
       : `
-2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography.
+2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
 `;
 
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
