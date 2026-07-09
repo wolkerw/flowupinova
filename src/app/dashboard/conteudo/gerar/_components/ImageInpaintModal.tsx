@@ -1289,6 +1289,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                             textShadow: finalShadowCSS !== 'none' ? finalShadowCSS : undefined,
                             padding: hasBg ? '4px 12px' : '0px',
                             border: hasBg ? 'none' : 'none',
+                            borderRadius: hasBg ? '0px' : undefined,
                           }}
                         >
                           {preset.name}
