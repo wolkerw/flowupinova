@@ -1228,12 +1228,16 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
                     const cfg = preset.config;
-                    const strokeCSS = (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor)
-                      ? `${cfg.textStrokeWidth}px ${cfg.textStrokeColor}`
+                    
+                    // Escalonar o stroke para botões pequenos (máx 1.5px)
+                    const previewStrokeWidth = cfg.textStrokeWidth ? Math.min(cfg.textStrokeWidth * 0.2, 1.5) : 0;
+                    const strokeCSS = (previewStrokeWidth > 0 && cfg.textStrokeColor)
+                      ? `${previewStrokeWidth}px ${cfg.textStrokeColor}`
                       : 'none';
                       
+                    // Escalonar a sombra (blur, offset) para não borrar tudo no botão pequeno
                     const shadowCSS = (cfg.shadowBlur && cfg.shadowBlur > 0)
-                      ? `${cfg.shadowOffsetX || 0}px ${cfg.shadowOffsetY || 0}px ${cfg.shadowBlur}px ${cfg.shadowColor || '#000'}`
+                      ? `${(cfg.shadowOffsetX || 0) * 0.3}px ${(cfg.shadowOffsetY || 0) * 0.3}px ${cfg.shadowBlur * 0.3}px ${cfg.shadowColor || '#000'}`
                       : 'none';
 
                     return (
