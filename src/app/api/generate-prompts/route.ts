@@ -239,10 +239,10 @@ ${memoryText}
     : ""
 }
 
-CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
-1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").
-2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any other color hex), the hash symbol (#), or words like "hexadecimal", "hex", "hex code", "primary color", "secondary color", "brand kit", or "brand color" in the generated prompts. The image generator will literally print these hex codes or technical words on the visual artwork, which is strictly prohibited.
-3. Do NOT include technical variables, labels, or CSS terms (like "primary color", "secondary color", "brand color", "color value") in the generated prompts. Refer to the colors only by their plain English names.
+CRITICAL COLOR RULES FOR PROMPTING (MANDATORY - ZERO TOLERANCE FOR HEX CODES):
+1. Translate all hex codes above into their plain, descriptive English color names (e.g., use "golden yellow", "deep royal blue", "dark charcoal gray").
+2. ABSOLUTELY FORBIDDEN: NEVER write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any 6-character hex), the hash symbol (#), or technical words like "hexadecimal", "hex code", "primary color", "secondary color" in your generated prompts. If you output a hex code in the prompt, the image generator will literally paint the characters "#3b82f6" onto the image as a glowing text overlay, completely ruining the aesthetic. You MUST describe the colors strictly with natural human language.
+3. If you need to specify a color, just say the name of the color in English.
 
 CRITICAL NICHE & PRODUCT ALIGNMENT RULE (MANDATORY FOR GRAPHICS & METAPHORS):
 You MUST ensure that the graphics, floating elements, icons, props, and visual metaphors are DIRECTLY and explicitly related to the brand's niche ("${category || "general"}") and the products it sells.
@@ -549,10 +549,26 @@ ${textRules}
       throw new Error("O JSON retornado pela IA não contém um array de prompts válido.");
     }
 
+    const sanitizedPrompts = promptsArray.map((p: any) => {
+      let text = String(p);
+      text = text.replace(/#[0-9A-Fa-f]{3,6}\b/g, "");
+      text = text.replace(/\b(hex|hexadecimal|hex code|código hex)\b/gi, "");
+      // Limpa os hexadecimais mesmo sem # (ex: 1e293b) se caírem no formato exato da cor da marca
+      if (businessProfile?.primaryColor) {
+        const hex = businessProfile.primaryColor.replace("#", "");
+        text = text.replace(new RegExp(`\\b${hex}\\b`, "gi"), "");
+      }
+      if (businessProfile?.secondaryColor) {
+        const hex = businessProfile.secondaryColor.replace("#", "");
+        text = text.replace(new RegExp(`\\b${hex}\\b`, "gi"), "");
+      }
+      return text.replace(/\s+/g, " ").trim();
+    });
+
     const outputFormat = [
       {
         output: {
-          prompt: promptsArray.map((p: any) => String(p)),
+          prompt: sanitizedPrompts,
         },
       },
     ];
