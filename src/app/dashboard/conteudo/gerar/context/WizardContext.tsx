@@ -781,7 +781,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       contentOverride ||
       (selectedContentId !== undefined
         ? generatedContent[parseInt(selectedContentId, 10)]
-        : generatedContent[0]);
+        : generatedContent[0]) ||
+      (!generateTextSuggestions ? { titulo: postSummary || referenceDescription, subtitulo: "", hashtags: [] } : undefined);
     if (!user) return;
     if (!isSyncImageMode && !selContent && generateTextSuggestions) return;
 
