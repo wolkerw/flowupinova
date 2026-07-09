@@ -77,6 +77,7 @@ export interface EditorLayer {
   bold: boolean;
   italic: boolean;
   align: "left" | "center" | "right";
+  verticalAlign?: "top" | "center" | "bottom";
   bgColor: string; // fundo do texto
   bgOpacity: number; // opacidade do fundo do texto
   textStrokeColor: string;
@@ -104,6 +105,7 @@ const DEFAULT_LAYER: Omit<EditorLayer, "id" | "x" | "y"> = {
   bold: true,
   italic: false,
   align: "center",
+  verticalAlign: "center",
   bgColor: "#000000",
   bgOpacity: 0,
   textStrokeColor: "#000000",
@@ -369,9 +371,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
         ctx.globalAlpha = l.opacity;
 
         let H_eff = l.height;
-        if (l.type === "text") {
-          H_eff = getTextHeight(ctx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-        }
 
         // Definir ponto central do elemento
         const cx = l.x + l.width / 2;
@@ -412,7 +411,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.save();
             ctx.globalAlpha = l.opacity * l.bgOpacity;
             ctx.fillStyle = l.bgColor;
-            ctx.fillRect(-l.width / 2, -totalHeight / 2, l.width, totalHeight + 10);
+            ctx.fillRect(-l.width / 2, -H_eff / 2, l.width, H_eff + 10);
             ctx.restore();
           }
 
@@ -432,7 +431,12 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
               textX = l.width / 2 - ctx.measureText(line).width;
             }
 
-            const yPos = -totalHeight / 2 + 5 + index * lineHeight;
+            let yPos = -H_eff / 2 + 5 + index * lineHeight;
+            if (l.verticalAlign === "center") {
+              yPos = -totalHeight / 2 + 5 + index * lineHeight;
+            } else if (l.verticalAlign === "bottom") {
+              yPos = H_eff / 2 - totalHeight + 5 + index * lineHeight;
+            }
 
             // Desenhar borda de texto PRIMEIRO (para ficar atrás do preenchimento)
             if (l.textStrokeWidth && l.textStrokeWidth > 0) {
@@ -466,12 +470,22 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.strokeStyle = "#8B5CF6";
             ctx.lineWidth = 2 / currentScale;
             ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-            ctx.strokeRect(-l.width / 2 - 4, -totalHeight / 2 - 4, l.width + 8, totalHeight + 18);
+            ctx.strokeRect(-l.width / 2 - 4, -H_eff / 2 - 4, l.width + 8, H_eff + 8);
+
+            ctx.fillStyle = "#8B5CF6";
+            // Puxador de redimensionamento diagonal (canto inferior direito)
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
 
             // Puxador de redimensionamento (largura) no meio direito
-            ctx.fillStyle = "#8B5CF6";
             ctx.beginPath();
             ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de redimensionamento (altura) no meio inferior
+            ctx.beginPath();
+            ctx.arc(0, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
 
             // Puxador de rotação no topo central
@@ -479,13 +493,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.lineWidth = 1.5 / currentScale;
             ctx.setLineDash([]);
             ctx.beginPath();
-            ctx.moveTo(0, -totalHeight / 2 - 4);
-            ctx.lineTo(0, -totalHeight / 2 - 20);
+            ctx.moveTo(0, -H_eff / 2 - 4);
+            ctx.lineTo(0, -H_eff / 2 - 20);
             ctx.stroke();
 
             ctx.fillStyle = "#3B82F6";
             ctx.beginPath();
-            ctx.arc(0, -totalHeight / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(0, -H_eff / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
           }
         } else if (l.type === "rectangle") {
@@ -691,9 +705,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     for (let i = layers.length - 1; i >= 0; i--) {
       const l = layers[i];
       let H_eff = l.height;
-      if (l.type === "text") {
-        H_eff = getTextHeight(tempCtx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-      }
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -717,24 +728,22 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
       // Puxador de Redimensionamento (canto inferior direito)
       const resHandleX = l.width / 2 + 4;
-      const resHandleY = l.type === "text" ? 0 : H_eff / 2 + 4;
+      const resHandleY = H_eff / 2 + 4;
       if (Math.hypot(lx - resHandleX, ly - resHandleY) * scale <= 12) {
         return { id: l.id, type: "resize" as const };
       }
 
-      // Puxadores laterais para deformar (somente retângulo e círculo)
-      if (l.type === "rectangle" || l.type === "circle") {
-        const rightHandleX = l.width / 2 + 4;
-        const rightHandleY = 0;
-        if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 12) {
-          return { id: l.id, type: "resizeWidth" as const };
-        }
+      // Puxadores laterais para deformar (agora para todos os elementos)
+      const rightHandleX = l.width / 2 + 4;
+      const rightHandleY = 0;
+      if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 12) {
+        return { id: l.id, type: "resizeWidth" as const };
+      }
 
-        const bottomHandleX = 0;
-        const bottomHandleY = H_eff / 2 + 4;
-        if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 12) {
-          return { id: l.id, type: "resizeHeight" as const };
-        }
+      const bottomHandleX = 0;
+      const bottomHandleY = H_eff / 2 + 4;
+      if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 12) {
+        return { id: l.id, type: "resizeHeight" as const };
       }
 
       // Teste de corpo
@@ -786,9 +795,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       if (!tempCtx) return;
 
       let H_eff = l.height;
-      if (l.type === "text") {
-        H_eff = getTextHeight(tempCtx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-      }
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -845,17 +851,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const lx = dx * cos - dy * sin;
       const ly = dx * sin + dy * cos;
 
-      if (l.type === "text") {
-        const newW = Math.max(80, (lx * 2) / startParams.layerScale);
-        const newX = startParams.centerX - newW / 2;
-        setLayers((prev) =>
-          prev.map((layer) =>
-            layer.id === selectedId
-              ? { ...layer, width: Math.round(newW), x: Math.round(newX) }
-              : layer
-          )
-        );
-      } else if (l.type === "rectangle" || l.type === "circle") {
+      if (l.type === "text" || l.type === "rectangle" || l.type === "circle") {
         const newW = Math.max(10, (lx * 2) / startParams.layerScale);
         const newH = Math.max(10, (ly * 2) / startParams.layerScale);
         const newX = startParams.centerX - newW / 2;
@@ -1541,10 +1537,10 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Alinhamento */}
+                        {/* Alinhamento Horizontal */}
                         <div className="flex flex-col gap-2">
                           <Label className="text-xs uppercase tracking-wide text-slate-400">
-                            Alinhamento
+                            Alinh. Horizontal
                           </Label>
                           <div className="flex gap-2">
                             {(["left", "center", "right"] as const).map((a) => {
@@ -1570,6 +1566,38 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                             })}
                           </div>
                         </div>
+
+                        {/* Alinhamento Vertical */}
+                        <div className="flex flex-col gap-2">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Alinh. Vertical
+                          </Label>
+                          <div className="flex gap-2">
+                            {(["top", "center", "bottom"] as const).map((a) => {
+                              const Icon =
+                                a === "top"
+                                  ? ChevronUp
+                                  : a === "center"
+                                    ? Minus
+                                    : ChevronDown;
+                              return (
+                                <button
+                                  key={a}
+                                  onClick={() => updateSelected({ verticalAlign: a })}
+                                  className={`flex h-9 flex-1 items-center justify-center rounded-lg border transition-colors ${
+                                    selected.verticalAlign === a || (!selected.verticalAlign && a === "center")
+                                      ? "border-violet-500 bg-violet-600 text-white"
+                                      : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                  }`}
+                                  title={a === "top" ? "Alinhar ao topo" : a === "center" ? "Centralizar verticalmente" : "Alinhar à base"}
+                                >
+                                  <Icon className="h-4 w-4" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         {/* Borda do Texto */}
                         <div className="flex flex-col gap-2 border-t border-slate-800 pt-3">
                           <Label className="text-xs uppercase tracking-wide text-slate-400">
