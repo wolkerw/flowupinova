@@ -7,6 +7,27 @@ import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
+
+function safeJsonParse(rawText, fallback = null) {
+  let cleaned = rawText.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+  cleaned = cleaned.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):', cleaned.substring(0, 1500));
+    try {
+      const sanitized = cleaned.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+      return JSON.parse(sanitized);
+    } catch(e2) {
+      if (fallback) return fallback;
+      throw e;
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
@@ -178,7 +199,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await response.json();
           const rawText = resData.content?.[0]?.text;
-          parsed = JSON.parse(rawText.trim());
+          parsed = safeJsonParse(rawText);
         } catch (claudeError) {
           console.error(
             "[GERAR_REFERENCIA] Falha no Claude Vision (Ideas), acionando fallback para Gemini:",
@@ -210,7 +231,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   ],
                 },
               ],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -220,7 +241,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await geminiResponse.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = JSON.parse(rawJson);
+          parsed = safeJsonParse(rawJson);
         } catch (proError) {
           console.warn(
             "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Ideas), tentando Gemini 2.5 Flash:",
@@ -245,7 +266,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   ],
                 },
               ],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -257,7 +278,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await geminiResponse.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = JSON.parse(rawJson);
+          parsed = safeJsonParse(rawJson);
         }
       }
 
@@ -703,7 +724,7 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawText = resData.content?.[0]?.text;
-          parsedPrompt = JSON.parse(rawText.trim());
+          parsedPrompt = safeJsonParse(rawText);
         } catch (claudeError) {
           console.error(
             "[GERAR_REFERENCIA] Falha catastrófica no Claude Vision (Prompt), acionando fallback para Gemini:",
@@ -734,7 +755,7 @@ ${yamlAnalysis}`;
                 parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -744,7 +765,7 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsedPrompt = JSON.parse(rawJson);
+          parsedPrompt = safeJsonParse(rawJson);
         } catch (proError) {
           console.warn(
             "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Prompt), tentando Gemini 2.5 Flash:",
@@ -770,7 +791,7 @@ ${yamlAnalysis}`;
                 parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -780,7 +801,7 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsedPrompt = JSON.parse(rawJson);
+          parsedPrompt = safeJsonParse(rawJson);
         }
       }
 
