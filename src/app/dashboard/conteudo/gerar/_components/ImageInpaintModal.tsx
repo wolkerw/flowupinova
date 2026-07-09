@@ -1242,20 +1242,23 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
                     const cfg = preset.config;
+                    const isCustom = idx >= TEXT_PRESETS.length;
+                    const customIdx = idx - TEXT_PRESETS.length;
                     
-                    // Escalonar o stroke para botões pequenos (máx 1.5px)
-                    const previewStrokeWidth = cfg.textStrokeWidth ? Math.min(cfg.textStrokeWidth * 0.2, 1.5) : 0;
+                    // Escalar propriedades proporcionalmente (assumindo fonte do botão ~14px)
+                    const originalSize = cfg.fontSize || 40;
+                    const scale = 14 / originalSize;
+                    
+                    const previewStrokeWidth = cfg.textStrokeWidth ? cfg.textStrokeWidth * scale : 0;
                     const strokeCSS = (previewStrokeWidth > 0 && cfg.textStrokeColor)
                       ? `${previewStrokeWidth}px ${cfg.textStrokeColor}`
                       : 'none';
                       
-                    // Escalonar a sombra (blur, offset) para não borrar tudo no botão pequeno
                     const shadowCSS = (cfg.shadowBlur && cfg.shadowBlur > 0)
-                      ? `${(cfg.shadowOffsetX || 0) * 0.3}px ${(cfg.shadowOffsetY || 0) * 0.3}px ${cfg.shadowBlur * 0.3}px ${cfg.shadowColor || '#000'}`
+                      ? `${(cfg.shadowOffsetX || 0) * scale}px ${(cfg.shadowOffsetY || 0) * scale}px ${cfg.shadowBlur * scale}px ${cfg.shadowColor || '#000'}`
                       : 'none';
 
-                    const isCustom = idx >= TEXT_PRESETS.length;
-                    const customIdx = idx - TEXT_PRESETS.length;
+                    const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
 
                     return (
                       <div key={`${preset.name}-${idx}`} className="relative group">
@@ -1266,13 +1269,15 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                           className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
                           disabled={!imageLoaded}
                           style={{
-                            backgroundColor: (cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor) ? cfg.bgColor : '#1e293b',
+                            backgroundColor: hasBg ? cfg.bgColor : 'transparent',
                             color: cfg.color || '#fff',
                             fontFamily: cfg.fontFamily,
                             fontWeight: cfg.bold ? 'bold' : 'normal',
                             fontStyle: cfg.italic ? 'italic' : 'normal',
                             textShadow: shadowCSS !== 'none' ? shadowCSS : undefined,
                             WebkitTextStroke: strokeCSS !== 'none' ? strokeCSS : undefined,
+                            padding: hasBg ? '4px 12px' : '0px',
+                            border: hasBg ? 'none' : 'none',
                           }}
                         >
                           {preset.name}
