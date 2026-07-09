@@ -1719,7 +1719,7 @@ export const Step1Idea = () => {
                   onCheckedChange={setGenerateTextSuggestions}
                 />
                 <Label htmlFor="generate-text" className="text-sm cursor-pointer text-gray-700 font-medium">
-                  Gerar legendas (Opcional)
+                  Gerar Conteúdo (Opcional)
                 </Label>
               </>
             )}
