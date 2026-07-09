@@ -336,6 +336,7 @@ If the image contains a PRODUCT or PACKAGING:
   literal_texts_and_labels: (Transcribe every single word and phrase visible on the packaging exactly as written, inside double quotes)
   material_texture: (Describe the packaging material: frosted glass, matte paper, glossy plastic, brushed metal, etc.)
   visual_description: (A detailed sentence describing the object's shape, labeling design, and unique physical attributes)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
 
 If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
   item_type: (e.g., matching two-piece set, linen trousers, summer dress)
@@ -346,6 +347,7 @@ If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
   design_patterns: (Describe prints, patterns, stripes, buttons, stitching, or pocket details)
   cut_and_fit: (Describe the fit: oversized, cropped, slim fit, high-waisted, flowy)
   visual_description: (A detailed sentence summarizing the garment's appearance, shape, and physical design details)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
 
 If the image depicts a CHARACTER:
   character_name: (Name if known)
@@ -353,7 +355,8 @@ If the image depicts a CHARACTER:
     - hex: (Hex code of prominent outfit/feature color)
       name: (Color name)
   outfit_style: (Detailed description of clothing style, accessories, or notable features)
-  visual_description: (A full sentence summarizing face, hair, expression, and overall styling)`;
+  visual_description: (A full sentence summarizing face, hair, expression, and overall styling)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)`;
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
@@ -606,8 +609,8 @@ ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
 # UGC PHOTOGRAPHY & ESTHETIC PREMIUM
-- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "high-end studio product placement", "premium commercial food photography", "luxury editorial portrait").
-- Mandatorily detail advanced studio lighting setups to create stunning visual separation (e.g., "cinematic volumetric lighting", "soft diffuse professional studio gel lighting", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
+- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "real-world professional commercial photography", "premium natural lifestyle scene", "luxury cinematic portrait").
+- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., "cinematic volumetric natural lighting", "soft ambient sunlight", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
 - Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., "shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background").
 - Strictly avoid banned artificial buzzwords (e.g., do NOT use "photorealistic", "ultrarealistic", "4k", "8k", "hyper-detailed", or "masterpiece").
 - Emphasize natural tangible textures to force model realism: "subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections".
@@ -615,8 +618,8 @@ ${inspirationInstruction}
 # APPAREL & CLOTHING SPECIAL INSTRUCTIONS
 If the reference product is clothing/apparel, describe a real human model wearing the garment naturally:
 - Specify how the fabric falls, its physical texture (e.g., "textured heavy linen", "soft ribbed premium cotton", "glossy silk satin"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
-- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on a sleek studio counter").
-- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside a high-end beige studio backdrop with soft warm spotlights").
+- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on the natural ambient furniture").
+- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside the exact real-world scenario requested with beautiful ambient lighting").
 - EXPLICITLY state: "The model's entire head, full hair, and face are completely visible and beautifully framed with generous headroom at the top, strictly preventing any part of the head, forehead, or hair from being clipped or cut off by the borders".
 
 # OUTPUT FORMAT (Strict JSON)
