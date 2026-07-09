@@ -1249,15 +1249,27 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     const originalSize = cfg.fontSize || 40;
                     const scale = 14 / originalSize;
                     
-                    const previewStrokeWidth = cfg.textStrokeWidth ? cfg.textStrokeWidth * scale : 0;
-                    const strokeCSS = (previewStrokeWidth > 0 && cfg.textStrokeColor)
-                      ? `${previewStrokeWidth}px ${cfg.textStrokeColor}`
-                      : 'none';
-                      
-                    const shadowCSS = (cfg.shadowBlur && cfg.shadowBlur > 0)
-                      ? `${(cfg.shadowOffsetX || 0) * scale}px ${(cfg.shadowOffsetY || 0) * scale}px ${cfg.shadowBlur * scale}px ${cfg.shadowColor || '#000'}`
-                      : 'none';
-
+                    const shadowValues: string[] = [];
+                    
+                    // Sombra principal do texto
+                    if (cfg.shadowBlur && cfg.shadowBlur > 0) {
+                      const sX = (cfg.shadowOffsetX || 0) * scale;
+                      const sY = (cfg.shadowOffsetY || 0) * scale;
+                      const sB = cfg.shadowBlur * scale;
+                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || '#000'}`);
+                    }
+                    
+                    // Simular stroke (borda) usando múltiplas sombras para não "comer" a fonte por dentro
+                    if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
+                      const sw = Math.min(cfg.textStrokeWidth * scale, 2.5); // limite para não borrar muito
+                      const sc = cfg.textStrokeColor;
+                      shadowValues.push(
+                        `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
+                        `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
+                      );
+                    }
+                    
+                    const finalShadowCSS = shadowValues.length > 0 ? shadowValues.join(', ') : 'none';
                     const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
 
                     return (
@@ -1274,8 +1286,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                             fontFamily: cfg.fontFamily,
                             fontWeight: cfg.bold ? 'bold' : 'normal',
                             fontStyle: cfg.italic ? 'italic' : 'normal',
-                            textShadow: shadowCSS !== 'none' ? shadowCSS : undefined,
-                            WebkitTextStroke: strokeCSS !== 'none' ? strokeCSS : undefined,
+                            textShadow: finalShadowCSS !== 'none' ? finalShadowCSS : undefined,
                             padding: hasBg ? '4px 12px' : '0px',
                             border: hasBg ? 'none' : 'none',
                           }}
