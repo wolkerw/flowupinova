@@ -917,7 +917,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         // Modo conceito (sem referenceImageFile)
         let response;
-        const contentForPrompt = insertTextOnImage === false ? { ...selContent, titulo: "", subtitulo: "" } : selContent;
+        const contentForPrompt = selContent;
 
         if (inspirationFile) {
           const formData = new FormData();
@@ -1330,8 +1330,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               prompt: singlePrompt,
               postId: activePostId,
               fileName: fname,
+              content: selContent,
+              businessProfile: businessProfile,
               userId: user.uid,
-              content: insertTextOnImage === false ? { ...selContent, titulo: "", subtitulo: "" } : selContent,
             }),
           });
 
