@@ -199,22 +199,6 @@ export const Step4BrandCustomization = () => {
                       unoptimized
                     />
 
-                    {/* Botão de Corrigir Escrita */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100 z-20">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCorrectionOpen(true);
-                        }}
-                        className="h-10 gap-2 text-xs font-semibold bg-slate-900/90 hover:bg-slate-900 text-slate-100 border-none shadow-xl"
-                      >
-                        <Paintbrush className="h-4 w-4 text-violet-400" />
-                        Editar Texto da Imagem
-                      </Button>
-                    </div>
-
                     {/* Logo Overlay Preview */}
                     {logoPreviewUrl && (
                       <div

@@ -88,8 +88,6 @@ interface WizardContextType {
   ) => Promise<void>;
   isRetailStyle: boolean;
   setIsRetailStyle: (val: boolean) => void;
-  useDalle: boolean;
-  setUseDalle: (val: boolean) => void;
   useImagen4Ref: boolean;
   setUseImagen4Ref: (val: boolean) => void;
   useNanoBananaRef: boolean;
@@ -233,8 +231,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
-  const [useDalle, setUseDalle] = useState<boolean>(false);
-  const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
+  const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(true);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
@@ -1126,7 +1123,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        const targetAction = useDalle ? "submit-dalle" : "submit-kontext";
+        const targetAction = "submit-kontext";
         const submitResponse = await fetch(
           `/api/conteudo/gerar-referencia?action=${targetAction}`,
           {
@@ -1822,7 +1819,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       logoInputRef, foundFilesRef,
       customPrompt, setCustomPrompt, handleSubmitImageGeneration,
       isRetailStyle, setIsRetailStyle,
-      useDalle, setUseDalle,
       useImagen4Ref, setUseImagen4Ref,
       useNanoBananaRef, setUseNanoBananaRef,
       isGeneratingCaption, handleGenerateCaption,

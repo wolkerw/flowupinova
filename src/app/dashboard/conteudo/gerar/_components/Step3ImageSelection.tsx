@@ -135,21 +135,6 @@ export const Step3ImageSelection = () => {
                     <Download className="h-4 w-4" />
                   </Button>
                 )}
-                {/* Botão de Corrigir Escrita */}
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveImageToCorrect(imgSrc);
-                    setActiveSlotName(String(index + 1));
-                    setIsCorrectionOpen(true);
-                  }}
-                  className="absolute left-2 top-2 z-10 h-8 gap-1.5 border-none bg-slate-900/85 text-[10px] font-semibold text-slate-100 opacity-0 shadow-md transition-opacity hover:bg-slate-900 group-hover:opacity-100"
-                >
-                  <Paintbrush className="h-3.5 w-3.5 text-violet-400" />
-                  Editar Texto
-                </Button>
               </motion.div>
             ))}
 
