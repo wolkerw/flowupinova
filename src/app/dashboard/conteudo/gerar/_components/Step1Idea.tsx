@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Sparkles,
   ArrowRight,
@@ -817,6 +818,8 @@ export const Step1Idea = () => {
     mode,
     referenceLink,
     setReferenceLink: onReferenceLinkChange,
+    generateTextSuggestions,
+    setGenerateTextSuggestions,
     setInspirationFile: onInspirationFileChange,
     secondaryReferenceImagePreview,
     handleSecondaryReferenceImageChange: onSecondaryReferenceImageChange,
@@ -1706,7 +1709,21 @@ export const Step1Idea = () => {
               </motion.div>
             )}
         </CardContent>
-        <CardFooter className="flex items-center justify-end">
+        <CardFooter className="flex items-center justify-between border-t pt-4">
+          <div className="flex items-center space-x-2">
+            {(mode === "reference-photo" || mode === "reference-hybrid") && (
+              <>
+                <Switch
+                  id="generate-text"
+                  checked={generateTextSuggestions}
+                  onCheckedChange={setGenerateTextSuggestions}
+                />
+                <Label htmlFor="generate-text" className="text-sm cursor-pointer text-gray-700 font-medium">
+                  Gerar Conteúdo (Opcional)
+                </Label>
+              </>
+            )}
+          </div>
           <Button
             onClick={() => onGenerate()}
             disabled={isButtonDisabled}

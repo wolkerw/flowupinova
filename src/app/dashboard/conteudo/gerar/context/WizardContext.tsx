@@ -118,7 +118,7 @@ interface WizardContextType {
   setHybridPriority: (priority: "person" | "scenario" | "balanced") => void;
   productWorkflow: "text-ambientation" | "packshot-hybrid" | null;
   setProductWorkflow: (workflow: "text-ambientation" | "packshot-hybrid" | null) => void;
-
+  
   // Customization States
   logoFile: File | null;
   setLogoFile: (file: File | null) => void;
@@ -146,6 +146,8 @@ interface WizardContextType {
   setIsItalic: (italic: boolean) => void;
   insertTextOnImage: boolean | null;
   setInsertTextOnImage: (val: boolean | null) => void;
+  generateTextSuggestions: boolean;
+  setGenerateTextSuggestions: (val: boolean) => void;
   isUploading: boolean;
 
   // Computed & Refs
@@ -184,6 +186,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [step, setStep] = useState(1);
   const [postSummary, setPostSummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [generateTextSuggestions, setGenerateTextSuggestions] = useState<boolean>(true);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
   const [selectedContentId, setSelectedContentId] = useState<string | undefined>(undefined);
 
@@ -244,16 +247,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [referenceDescription, setReferenceDescription] = useState("");
   const [referenceLink, setReferenceLink] = useState("");
   const [secondaryReferenceImageFile, setSecondaryReferenceImageFile] = useState<File | null>(null);
-  const [secondaryReferenceImagePreview, setSecondaryReferenceImagePreview] = useState<
-    string | null
-  >(null);
+  const [secondaryReferenceImagePreview, setSecondaryReferenceImagePreview] = useState<string | null>(null);
   const [secondaryReferenceDescription, setSecondaryReferenceDescription] = useState("");
-  const [hybridPriority, setHybridPriority] = useState<"person" | "scenario" | "balanced">(
-    "balanced"
-  );
-  const [productWorkflow, setProductWorkflow] = useState<
-    "text-ambientation" | "packshot-hybrid" | null
-  >(null);
+  const [hybridPriority, setHybridPriority] = useState<"person" | "scenario" | "balanced">("balanced");
+  const [productWorkflow, setProductWorkflow] = useState<"text-ambientation" | "packshot-hybrid" | null>(null);
 
   // Personalização
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -527,6 +524,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleGenerateText = async (summary?: any) => {
+    if (!generateTextSuggestions) {
+      setGeneratedContent([]);
+      setSelectedContentId(undefined);
+      
+      if (mode === "reference-photo" || mode === "reference-hybrid") {
+        handleGeneratePrompts().catch((err) => {
+          console.error("Erro na geração de prompt de imagem em paralelo:", err);
+        });
+        setStep(3);
+        return null;
+      }
+      
+      setStep(3);
+      handleGeneratePrompts();
+      return null;
+    }
+
     if (mode === "reference-photo" || mode === "reference-hybrid") {
       let textToGenerate = referenceDescription;
       if (!textToGenerate.trim() || isLoading || !user) return null;
@@ -607,12 +621,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           formData.append("inspiration_file", inspirationFile);
         }
 
-        const combinedDescription =
-          mode === "concept"
-            ? postSummary.trim()
-            : postSummary.trim()
-              ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
-              : referenceDescription;
+        const combinedDescription = mode === "concept"
+          ? postSummary.trim()
+          : postSummary.trim()
+            ? `${referenceDescription.trim()} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
+            : referenceDescription;
 
         formData.append("description", combinedDescription);
         formData.append("user_id", user?.uid || "");
@@ -665,11 +678,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    if (
-      (mode === "reference-photo" || mode === "reference-hybrid") &&
-      !textToGenerate.trim() &&
-      referenceDescription.trim()
-    ) {
+    if ((mode === "reference-photo" || mode === "reference-hybrid") && !textToGenerate.trim() && referenceDescription.trim()) {
       textToGenerate = referenceDescription;
     }
 
@@ -772,9 +781,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       contentOverride ||
       (selectedContentId !== undefined
         ? generatedContent[parseInt(selectedContentId, 10)]
-        : generatedContent[0]);
+        : generatedContent[0]) ||
+      (!generateTextSuggestions ? { titulo: postSummary || referenceDescription, subtitulo: "", hashtags: [] } : undefined);
     if (!user) return;
-    if (!isSyncImageMode && !selContent) return;
+    if (!isSyncImageMode && !selContent && generateTextSuggestions) return;
 
     // Inteligência de navegação para evitar regerar imagens conceito se nada mudou
     if (!referenceImageFile && mode !== "reference-photo" && mode !== "reference-link") {
@@ -867,17 +877,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const promptFormData = new FormData();
         promptFormData.append("yamlAnalysis", yamlAnalysis);
         promptFormData.append("isRetailStyle", String(isRetailStyle));
-        promptFormData.append(
-          "hybridPriority",
-          mode === "reference-photo" && productWorkflow === "packshot-hybrid"
-            ? "packshot"
-            : hybridPriority
-        );
+        promptFormData.append("hybridPriority", mode === "reference-photo" && productWorkflow === "packshot-hybrid" ? "packshot" : hybridPriority);
 
         const combinedDescription = postSummary.trim()
           ? `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""} Ideia/Texto da promoção do lojista a ser destacado na imagem: "${postSummary.trim()}".`
           : `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""}`;
-
+          
         promptFormData.append("description", combinedDescription);
         if (selContent?.titulo && insertTextOnImage !== false) {
           promptFormData.append("title", selContent.titulo);
@@ -912,8 +917,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         // Modo conceito (sem referenceImageFile)
         let response;
-        const contentForPrompt =
-          insertTextOnImage === false ? { ...selContent, titulo: "", subtitulo: "" } : selContent;
+        const contentForPrompt = selContent;
 
         if (inspirationFile) {
           const formData = new FormData();
@@ -921,6 +925,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           if (businessProfile) {
             formData.append("businessProfile", JSON.stringify(businessProfile));
           }
+          formData.append("insertTextOnImage", String(insertTextOnImage !== false));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
 
@@ -935,11 +940,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               content: contentForPrompt,
               businessProfile: businessProfile,
+              insertTextOnImage: insertTextOnImage !== false,
               userId: user.uid,
             }),
           });
         }
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || "Erro na API de geração de prompts.");
+        }
+        
         const generatedPrompts = data?.[0]?.output?.prompt;
 
         if (!generatedPrompts || !Array.isArray(generatedPrompts)) {
@@ -968,7 +979,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     contentOverride?: GeneratedContent
   ) => {
     const promptToUse = customPromptOverride || customPrompt;
-    const promptString = Array.isArray(promptToUse) ? promptToUse.join(" ") : promptToUse || "";
+    const promptString = Array.isArray(promptToUse) ? promptToUse.join(" ") : (promptToUse || "");
     const activePostId = (postIdOverride || currentPostId) as string;
     const selContent =
       contentOverride ||
@@ -1065,12 +1076,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
-            nanobananaFormData.append(
-              "hybridPriority",
-              mode === "reference-photo" && productWorkflow === "packshot-hybrid"
-                ? "packshot"
-                : hybridPriority
-            );
+            nanobananaFormData.append("hybridPriority", mode === "reference-photo" && productWorkflow === "packshot-hybrid" ? "packshot" : hybridPriority);
 
             const nanobananaResponse = await fetch(
               "/api/conteudo/gerar-referencia?action=submit-nanobanana-ref",
@@ -1331,11 +1337,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               prompt: singlePrompt,
               postId: activePostId,
               fileName: fname,
+              content: selContent,
+              businessProfile: businessProfile,
               userId: user.uid,
-              content:
-                insertTextOnImage === false
-                  ? { ...selContent, titulo: "", subtitulo: "" }
-                  : selContent,
             }),
           });
 
@@ -1792,128 +1796,41 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <WizardContext.Provider
-      value={{
-        step,
-        setStep,
-        postSummary,
-        setPostSummary,
-        isLoading,
-        generatedContent,
-        setGeneratedContent,
-        selectedContentId,
-        setSelectedContentId: handleSelectedContentIdChange,
-        generatedImages,
-        setGeneratedImages,
-        selectedImage,
-        setSelectedImage: handleSelectedImageChange,
-        processedImageUrl,
-        setProcessedImageUrl,
-        showSchedulerModal,
-        setShowSchedulerModal,
-        isPublishing,
-        scheduleDateTime,
-        setScheduleDateTime,
-        platforms,
-        setPlatforms,
-        collaborators,
-        setCollaborators,
-        collaboratorsInput,
-        setCollaboratorsInput,
-        userTags,
-        setUserTags,
-        userTagsInput,
-        setUserTagsInput,
-        isGeneratingImages,
-        setIsGeneratingImages,
-        canStartPolling,
-        contentHistory,
-        unusedImagesHistory,
-        referenceImageFile,
-        setReferenceImageFile,
-        referenceImagePreview,
-        setReferenceImagePreview,
-        inspirationFile,
-        setInspirationFile,
-        referenceDescription,
-        setReferenceDescription,
-        referenceLink,
-        setReferenceLink,
-        secondaryReferenceImageFile,
-        setSecondaryReferenceImageFile,
-        secondaryReferenceImagePreview,
-        setSecondaryReferenceImagePreview,
-        secondaryReferenceDescription,
-        setSecondaryReferenceDescription,
-        hybridPriority,
-        setHybridPriority,
-        productWorkflow,
-        setProductWorkflow,
-        logoFile,
-        setLogoFile,
-        logoPreviewUrl,
-        setLogoPreviewUrl,
-        logoPosition,
-        setLogoPosition,
-        logoScale,
-        setLogoScale,
-        logoOpacity,
-        setLogoOpacity,
-        showTextOverlay,
-        setShowTextOverlay,
-        textPosition,
-        setTextPosition,
-        textScale,
-        setTextScale,
-        textColor,
-        setTextColor,
-        fontFamily,
-        setFontFamily,
-        fontWeight,
-        setFontWeight,
-        isItalic,
-        setIsItalic,
-        insertTextOnImage,
-        setInsertTextOnImage,
-        isUploading,
-        mode,
-        user,
-        metaConnection,
-        instagramConnection,
-        linkedinConnection,
-        businessProfile,
-        currentPostId,
-        visualLogoScale,
-        selectedContent,
-        logoInputRef,
-        foundFilesRef,
-        customPrompt,
-        setCustomPrompt,
-        handleSubmitImageGeneration,
-        isRetailStyle,
-        setIsRetailStyle,
-        useDalle,
-        setUseDalle,
-        useImagen4Ref,
-        setUseImagen4Ref,
-        useNanoBananaRef,
-        setUseNanoBananaRef,
-        isGeneratingCaption,
-        handleGenerateCaption,
-        fluxImageUrl,
-        setFluxImageUrl,
+    <WizardContext.Provider value={{
+      step, setStep, postSummary, setPostSummary, isLoading, generatedContent, setGeneratedContent, selectedContentId, setSelectedContentId: handleSelectedContentIdChange,
+      generatedImages, setGeneratedImages, selectedImage, setSelectedImage: handleSelectedImageChange, processedImageUrl, setProcessedImageUrl,
+      showSchedulerModal, setShowSchedulerModal, isPublishing, scheduleDateTime, setScheduleDateTime, platforms, setPlatforms,
+      collaborators, setCollaborators, collaboratorsInput, setCollaboratorsInput, userTags, setUserTags, userTagsInput, setUserTagsInput,
+      isGeneratingImages, setIsGeneratingImages, canStartPolling, contentHistory, unusedImagesHistory,
+      referenceImageFile, setReferenceImageFile, referenceImagePreview, setReferenceImagePreview, inspirationFile, setInspirationFile,
+      referenceDescription, setReferenceDescription, referenceLink, setReferenceLink,
+      secondaryReferenceImageFile, setSecondaryReferenceImageFile, secondaryReferenceImagePreview, setSecondaryReferenceImagePreview,
+      secondaryReferenceDescription, setSecondaryReferenceDescription,
+      hybridPriority, setHybridPriority,
+      productWorkflow, setProductWorkflow,
+      logoFile, setLogoFile, logoPreviewUrl, setLogoPreviewUrl, logoPosition, setLogoPosition, logoScale, setLogoScale, logoOpacity, setLogoOpacity,
+      showTextOverlay, setShowTextOverlay, textPosition, setTextPosition, textScale, setTextScale, textColor, setTextColor,
+      fontFamily, setFontFamily, fontWeight, setFontWeight,
+      isItalic,
+      setIsItalic,
+      insertTextOnImage,
+      setInsertTextOnImage,
+      generateTextSuggestions,
+      setGenerateTextSuggestions,
+      isUploading,
+      mode, user, metaConnection, instagramConnection, linkedinConnection, businessProfile, currentPostId, visualLogoScale, selectedContent,
+      logoInputRef, foundFilesRef,
+      customPrompt, setCustomPrompt, handleSubmitImageGeneration,
+      isRetailStyle, setIsRetailStyle,
+      useDalle, setUseDalle,
+      useImagen4Ref, setUseImagen4Ref,
+      useNanoBananaRef, setUseNanoBananaRef,
+      isGeneratingCaption, handleGenerateCaption,
+      fluxImageUrl, setFluxImageUrl,
 
-        handleGenerateText,
-        handleGeneratePostContent,
-        handleGeneratePrompts,
-        handleLogoProcessing,
-        handlePublish,
-        handleReferenceImageChange,
-        handleSecondaryReferenceImageChange,
-        handleDownloadImage,
-        handleLogoFileChange,
-      }}
-    >
+      handleGenerateText, handleGeneratePostContent, handleGeneratePrompts, handleLogoProcessing, handlePublish,
+      handleReferenceImageChange, handleSecondaryReferenceImageChange, handleDownloadImage, handleLogoFileChange
+    }}>
       {children}
     </WizardContext.Provider>
   );

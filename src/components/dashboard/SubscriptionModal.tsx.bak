@@ -1,0 +1,433 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { 
+  Sparkles, 
+  CreditCard, 
+  QrCode, 
+  UploadCloud, 
+  X, 
+  Check, 
+  Copy, 
+  Loader2,
+  Award
+} from "lucide-react";
+import Image from "next/image";
+
+interface SubscriptionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string | undefined;
+  onSuccess?: () => void;
+}
+
+interface PaymentSettings {
+  pixKey: string;
+  pixQrCodeUrl: string;
+  creditLinkMonthly: string;
+  creditLinkYearly: string;
+}
+
+export function SubscriptionModal({ isOpen, onClose, userId, onSuccess }: SubscriptionModalProps) {
+  const { toast } = useToast();
+  
+  // Plan State
+  const [selectedPlan, setSelectedPlan] = useState<"mensal" | "anual">("mensal");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit">("pix");
+  
+  // Settings State
+  const [settings, setSettings] = useState<PaymentSettings>({
+    pixKey: "pix@numvapt.com.br",
+    pixQrCodeUrl: "",
+    creditLinkMonthly: "",
+    creditLinkYearly: ""
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Upload/Receipt State
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+
+  // Fetch Settings on Open
+  useEffect(() => {
+    if (isOpen) {
+      const fetchSettings = async () => {
+        try {
+          setIsLoadingSettings(true);
+          const res = await fetch("/api/transactions?action=get-settings");
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSettings(data.settings);
+          }
+        } catch (err) {
+          console.error("Erro ao carregar configurações de pagamento:", err);
+        } finally {
+          setIsLoadingSettings(false);
+        }
+      };
+      fetchSettings();
+    }
+  }, [isOpen]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Arquivo muito grande",
+          description: "O tamanho do comprovante deve ser de no máximo 3MB."
+        });
+        return;
+      }
+      setReceiptFile(file);
+      setReceiptPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setReceiptFile(null);
+    if (receiptPreview) {
+      URL.revokeObjectURL(receiptPreview);
+      setReceiptPreview(null);
+    }
+  };
+
+  const handleCopyPixKey = () => {
+    navigator.clipboard.writeText(settings.pixKey);
+    setCopiedKey(true);
+    toast({
+      title: "Chave Copiada!",
+      description: "A chave Pix copia e cola foi copiada para sua área de transferência."
+    });
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const handleOpenCreditLink = () => {
+    const targetLink = selectedPlan === "mensal" 
+      ? settings.creditLinkMonthly 
+      : settings.creditLinkYearly;
+    
+    if (targetLink) {
+      window.open(targetLink, "_blank");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Link indisponível",
+        description: "O link de pagamento com cartão para este plano ainda não foi configurado."
+      });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Erro de autenticação",
+        description: "Faça login para realizar a assinatura."
+      });
+      return;
+    }
+
+    if (!receiptFile) {
+      toast({
+        variant: "destructive",
+        title: "Comprovante pendente",
+        description: "Faça o upload do comprovante de pagamento para validação."
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Upload do comprovante para o Firebase Storage
+      const fileExt = receiptFile.name.split(".").pop();
+      const storageRef = ref(storage, `users/${userId}/receipts/receipt_${Date.now()}.${fileExt}`);
+      
+      console.log("[SUBSCRIPTION] Iniciando upload do comprovante no Firebase Storage...");
+      const uploadResult = await uploadBytes(storageRef, receiptFile);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+      console.log("[SUBSCRIPTION] Upload concluído! URL:", downloadUrl);
+
+      // 2. Enviar a transação para o backend
+      const res = await fetch("/api/transactions?action=submit-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          plan: selectedPlan,
+          method: paymentMethod,
+          receiptUrl: downloadUrl
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Erro ao registrar comprovante de pagamento.");
+      }
+
+      toast({
+        title: "Comprovante enviado com sucesso! 🎉",
+        description: "Nossa equipe ativará sua conta Pro em instantes após validar a transação."
+      });
+
+      onSuccess?.();
+      onClose();
+      handleRemoveFile();
+    } catch (error: any) {
+      console.error("[SUBSCRIPTION_SUBMIT_ERROR]", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar comprovante",
+        description: error.message || "Tente novamente mais tarde."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl overflow-hidden border-none bg-white p-0 shadow-2xl">
+        {/* Banner de cabeçalho premium com gradiente de ouro e fúcsia */}
+        <div className="relative bg-gradient-to-r from-[#ff0055] via-[#ff6a00] to-[#e6c229] py-8 text-center text-white">
+          <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-white/20 p-2 backdrop-blur-md">
+            <Award className="h-10 w-10 text-yellow-300" />
+          </div>
+          <h2 className="mt-8 text-2xl font-extrabold uppercase tracking-wide">Desbloquear Versão Pro 🚀</h2>
+          <p className="mx-auto mt-1 max-w-md text-xs text-white/90">
+            Acesso ilimitado à inteligência artificial do Flux Kontext, Ideogram Turbo, remoção de fundo e relatórios.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6">
+          {/* Seção 1: Seleção de Plano e Informações (md:col-span-5) */}
+          <div className="md:col-span-5 space-y-4">
+            <Label className="text-sm font-bold text-gray-800">1. Selecione o Plano</Label>
+            
+            <div className="flex flex-col gap-3">
+              {/* Plano Mensal */}
+              <div
+                onClick={() => setSelectedPlan("mensal")}
+                className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  selectedPlan === "mensal"
+                    ? "border-[#ff0055] bg-pink-50/25 shadow-sm"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900">Plano Mensal</h4>
+                    <p className="text-[10px] text-gray-500">Cobrado mensalmente</p>
+                  </div>
+                  <span className="font-extrabold text-sm text-[#ff0055]">R$ 49,90</span>
+                </div>
+              </div>
+
+              {/* Plano Anual */}
+              <div
+                onClick={() => setSelectedPlan("anual")}
+                className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  selectedPlan === "anual"
+                    ? "border-[#ff0055] bg-pink-50/25 shadow-sm"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}
+              >
+                <div className="absolute right-2 -top-2 rounded-full bg-yellow-400 px-1.5 py-0.5 text-[8px] font-extrabold text-gray-900 uppercase">
+                  Economize 33%
+                </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900">Plano Anual</h4>
+                    <p className="text-[10px] text-gray-500">Pagamento único anual</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-extrabold text-sm text-[#ff0055]">R$ 399,90</span>
+                    <p className="text-[8px] text-gray-400 mt-0.5">Equivale a R$ 33,32/mês</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-bold text-gray-800">2. Método de Pagamento</Label>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setPaymentMethod("pix")}
+                  variant={paymentMethod === "pix" ? "default" : "outline"}
+                  className={`flex-1 h-9 gap-1.5 text-xs font-semibold ${
+                    paymentMethod === "pix" ? "bg-gray-900 text-white" : "text-gray-700"
+                  }`}
+                >
+                  <QrCode className="h-4 w-4" />
+                  Pix PJ
+                </Button>
+                <Button
+                  onClick={() => setPaymentMethod("credit")}
+                  variant={paymentMethod === "credit" ? "default" : "outline"}
+                  className={`flex-1 h-9 gap-1.5 text-xs font-semibold ${
+                    paymentMethod === "credit" ? "bg-gray-900 text-white" : "text-gray-700"
+                  }`}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  Cartão de Crédito
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Seção 2: Instruções e Envio de Comprovante (md:col-span-7) */}
+          <div className="md:col-span-7 flex flex-col justify-between border-t md:border-t-0 md:border-l md:pl-6 pt-4 md:pt-0">
+            <div className="space-y-4">
+              <Label className="text-sm font-bold text-gray-800">
+                3. {paymentMethod === "pix" ? "Efetue o Pix" : "Pague no Cartão"} e Envie o Comprovante
+              </Label>
+
+              {paymentMethod === "pix" ? (
+                /* Aba Pix */
+                <div className="space-y-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 border">
+                  {isLoadingSettings ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#ff0055]" />
+                    </div>
+                  ) : (
+                    <>
+                      {settings.pixQrCodeUrl && (
+                        <div className="relative mx-auto h-28 w-28 overflow-hidden rounded bg-white p-1 border shadow-sm">
+                          <Image src={settings.pixQrCodeUrl} alt="QR Code Pix" fill className="object-contain" unoptimized />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <span className="font-semibold text-gray-500 block">Chave Pix (Copia e Cola):</span>
+                        <div className="flex items-center gap-1.5 bg-white rounded border p-1.5">
+                          <code className="flex-1 break-all text-[9px] font-mono leading-tight max-h-[40px] overflow-y-auto">
+                            {settings.pixKey}
+                          </code>
+                          <Button 
+                            onClick={handleCopyPixKey}
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-6 w-6 shrink-0 text-gray-500 hover:text-gray-900"
+                          >
+                            {copiedKey ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  <p className="text-[10px] text-gray-500 leading-normal">
+                    * Leia o QR Code ou copie a chave Pix acima. Após pagar, anexe o comprovante abaixo.
+                  </p>
+                </div>
+              ) : (
+                /* Aba Cartão */
+                <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-center border">
+                  <p className="text-xs text-gray-600">
+                    Você será redirecionado para a plataforma de pagamento do nosso banco digital PJ para pagar o plano <strong className="text-gray-900 text-transform-capitalize">{selectedPlan}</strong> de forma 100% segura.
+                  </p>
+                  <Button
+                    onClick={handleOpenCreditLink}
+                    className="w-full bg-[#ff0055] hover:bg-[#d90048] font-bold text-xs"
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Ir para Link de Pagamento Segurar 💳
+                  </Button>
+                  <p className="text-[10px] text-gray-500 leading-normal mt-1">
+                    * Conclua o pagamento na aba aberta, e depois anexe o comprovante de aprovação da transação abaixo.
+                  </p>
+                </div>
+              )}
+
+              {/* Área de Comprovante */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-gray-700">Anexar Comprovante de Pagamento</Label>
+                
+                {!receiptPreview ? (
+                  <div
+                    onClick={() => document.getElementById("receipt-input")?.click()}
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white py-6 text-center transition-all hover:border-[#ff0055] hover:bg-pink-50/5"
+                  >
+                    <UploadCloud className="h-8 w-8 text-gray-400 mb-1" />
+                    <p className="text-[11px] font-bold text-gray-700">Clique para enviar o comprovante</p>
+                    <p className="text-[9px] text-gray-400">PDF, PNG ou JPG (Máx. 3MB)</p>
+                    <input
+                      id="receipt-input"
+                      type="file"
+                      onChange={handleFileChange}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative flex items-center justify-between rounded-lg border bg-white p-2.5 shadow-sm">
+                    <div className="flex items-center gap-2 max-w-[80%]">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded border bg-gray-100">
+                        {receiptFile?.type?.includes("pdf") ? (
+                          <div className="flex h-full w-full items-center justify-center font-bold text-red-500 text-[10px] uppercase">
+                            PDF
+                          </div>
+                        ) : (
+                          <Image src={receiptPreview} alt="Comprovante" fill className="object-cover" unoptimized />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-gray-700">{receiptFile?.name}</p>
+                        <p className="text-[9px] text-gray-400">{(receiptFile!.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleRemoveFile}
+                      className="h-7 w-7 text-gray-400 hover:text-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="bg-gray-50 border-t p-4 flex gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={isSubmitting} className="text-gray-500">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !receiptFile}
+            className="bg-[#ff0055] hover:bg-[#d90048] font-bold text-white px-8"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enviando Comprovante...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Enviar e Ativar Pro ✨
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

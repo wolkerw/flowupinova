@@ -7,6 +7,27 @@ import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
 export const maxDuration = 300;
 
+
+function safeJsonParse(rawText, fallback = null) {
+  let cleaned = rawText.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+  cleaned = cleaned.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):', cleaned.substring(0, 1500));
+    try {
+      const sanitized = cleaned.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+      return JSON.parse(sanitized);
+    } catch(e2) {
+      if (fallback) return fallback;
+      throw e;
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
@@ -105,7 +126,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              model: "claude-3-5-sonnet-20241022",
+              model: "claude-sonnet-5",
               max_tokens: 3000,
               messages: [
                 {
@@ -145,7 +166,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                 "content-type": "application/json",
               },
               body: JSON.stringify({
-                model: "claude-3-5-sonnet-20240620",
+                model: "claude-sonnet-4-5-20250929",
                 max_tokens: 3000,
                 messages: [
                   {
@@ -178,7 +199,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await response.json();
           const rawText = resData.content?.[0]?.text;
-          parsed = JSON.parse(rawText.trim());
+          parsed = safeJsonParse(rawText);
         } catch (claudeError) {
           console.error(
             "[GERAR_REFERENCIA] Falha no Claude Vision (Ideas), acionando fallback para Gemini:",
@@ -210,7 +231,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   ],
                 },
               ],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -220,14 +241,14 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await geminiResponse.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = JSON.parse(rawJson);
+          parsed = safeJsonParse(rawJson);
         } catch (proError) {
           console.warn(
             "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Ideas), tentando Gemini 2.5 Flash:",
             proError
           );
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
           const geminiResponse = await fetch(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -245,7 +266,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   ],
                 },
               ],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -257,7 +278,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
           const resData = await geminiResponse.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = JSON.parse(rawJson);
+          parsed = safeJsonParse(rawJson);
         }
       }
 
@@ -315,6 +336,7 @@ If the image contains a PRODUCT or PACKAGING:
   literal_texts_and_labels: (Transcribe every single word and phrase visible on the packaging exactly as written, inside double quotes)
   material_texture: (Describe the packaging material: frosted glass, matte paper, glossy plastic, brushed metal, etc.)
   visual_description: (A detailed sentence describing the object's shape, labeling design, and unique physical attributes)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
 
 If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
   item_type: (e.g., matching two-piece set, linen trousers, summer dress)
@@ -325,6 +347,7 @@ If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
   design_patterns: (Describe prints, patterns, stripes, buttons, stitching, or pocket details)
   cut_and_fit: (Describe the fit: oversized, cropped, slim fit, high-waisted, flowy)
   visual_description: (A detailed sentence summarizing the garment's appearance, shape, and physical design details)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)
 
 If the image depicts a CHARACTER:
   character_name: (Name if known)
@@ -332,9 +355,10 @@ If the image depicts a CHARACTER:
     - hex: (Hex code of prominent outfit/feature color)
       name: (Color name)
   outfit_style: (Detailed description of clothing style, accessories, or notable features)
-  visual_description: (A full sentence summarizing face, hair, expression, and overall styling)`;
+  visual_description: (A full sentence summarizing face, hair, expression, and overall styling)
+  background_and_setting: (Detailed description of the environment, location, props, and background scenery)`;
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
       const callGeminiVision = async (base64: string, mime: string, specificPrompt: string) => {
         const response = await fetch(geminiUrl, {
@@ -585,8 +609,8 @@ ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
 # UGC PHOTOGRAPHY & ESTHETIC PREMIUM
-- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "high-end studio product placement", "premium commercial food photography", "luxury editorial portrait").
-- Mandatorily detail advanced studio lighting setups to create stunning visual separation (e.g., "cinematic volumetric lighting", "soft diffuse professional studio gel lighting", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
+- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "real-world professional commercial photography", "premium natural lifestyle scene", "luxury cinematic portrait").
+- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., "cinematic volumetric natural lighting", "soft ambient sunlight", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
 - Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., "shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background").
 - Strictly avoid banned artificial buzzwords (e.g., do NOT use "photorealistic", "ultrarealistic", "4k", "8k", "hyper-detailed", or "masterpiece").
 - Emphasize natural tangible textures to force model realism: "subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections".
@@ -594,8 +618,8 @@ ${inspirationInstruction}
 # APPAREL & CLOTHING SPECIAL INSTRUCTIONS
 If the reference product is clothing/apparel, describe a real human model wearing the garment naturally:
 - Specify how the fabric falls, its physical texture (e.g., "textured heavy linen", "soft ribbed premium cotton", "glossy silk satin"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
-- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on a sleek studio counter").
-- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside a high-end beige studio backdrop with soft warm spotlights").
+- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on the natural ambient furniture").
+- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside the exact real-world scenario requested with beautiful ambient lighting").
 - EXPLICITLY state: "The model's entire head, full hair, and face are completely visible and beautifully framed with generous headroom at the top, strictly preventing any part of the head, forehead, or hair from being clipped or cut off by the borders".
 
 # OUTPUT FORMAT (Strict JSON)
@@ -654,7 +678,7 @@ ${yamlAnalysis}`;
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              model: "claude-3-5-sonnet-20241022",
+              model: "claude-sonnet-5",
               max_tokens: 2000,
               system: geminiSystemInstruction,
               messages: [
@@ -682,7 +706,7 @@ ${yamlAnalysis}`;
                 "content-type": "application/json",
               },
               body: JSON.stringify({
-                model: "claude-3-5-sonnet-20240620",
+                model: "claude-sonnet-4-5-20250929",
                 max_tokens: 2000,
                 system: geminiSystemInstruction,
                 messages: [
@@ -703,7 +727,7 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawText = resData.content?.[0]?.text;
-          parsedPrompt = JSON.parse(rawText.trim());
+          parsedPrompt = safeJsonParse(rawText);
         } catch (claudeError) {
           console.error(
             "[GERAR_REFERENCIA] Falha catastrófica no Claude Vision (Prompt), acionando fallback para Gemini:",
@@ -734,7 +758,7 @@ ${yamlAnalysis}`;
                 parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -744,14 +768,14 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsedPrompt = JSON.parse(rawJson);
+          parsedPrompt = safeJsonParse(rawJson);
         } catch (proError) {
           console.warn(
             "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Prompt), tentando Gemini 2.5 Flash:",
             proError
           );
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
           const contentsParts: any[] = [];
           if (inlineDataPart) {
@@ -770,7 +794,7 @@ ${yamlAnalysis}`;
                 parts: [{ text: geminiSystemInstruction }],
               },
               contents: [{ parts: contentsParts }],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
             }),
           });
 
@@ -780,7 +804,7 @@ ${yamlAnalysis}`;
 
           const resData = await response.json();
           const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsedPrompt = JSON.parse(rawJson);
+          parsedPrompt = safeJsonParse(rawJson);
         }
       }
 
@@ -1360,7 +1384,7 @@ ${yamlAnalysis}`;
       const NANOBANANA_MODELS = [
         "gemini-3-pro-image",
         "gemini-3.1-flash-image",
-        "gemini-2.5-flash-image",
+        "gemini-3.5-flash-image",
       ];
 
       let nanobananaPrompt = "";

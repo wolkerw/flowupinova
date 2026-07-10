@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     let userId = "";
     let inspirationFile: File | null = null;
 
+    let insertTextOnImage = true;
+
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -19,11 +21,17 @@ export async function POST(request: Request) {
       if (profileStr) businessProfile = JSON.parse(profileStr);
       userId = (formData.get("userId") as string) || "";
       inspirationFile = formData.get("inspiration_file") as File | null;
+      if (formData.has("insertTextOnImage")) {
+        insertTextOnImage = formData.get("insertTextOnImage") === "true";
+      }
     } else {
       const body = await request.json();
       selContent = body.content;
       businessProfile = body.businessProfile;
       userId = body.userId;
+      if (body.insertTextOnImage !== undefined) {
+        insertTextOnImage = body.insertTextOnImage;
+      }
     }
 
     if (!selContent) {
@@ -127,7 +135,7 @@ Return the description strictly in YAML format containing:
   text_areas: (where the text is positioned)
   visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
         const response = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -231,10 +239,10 @@ ${memoryText}
     : ""
 }
 
-CRITICAL COLOR RULES FOR PROMPTING (MANDATORY):
-1. Translate all hex codes above (e.g. "${primaryHex}", "${secondaryHex}") into their plain, descriptive English color names (e.g. use "golden yellow", "deep royal blue", "dark charcoal gray", "vibrant orange").
-2. ABSOLUTELY FORBIDDEN: Do NOT write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any other color hex), the hash symbol (#), or words like "hexadecimal", "hex", "hex code", "primary color", "secondary color", "brand kit", or "brand color" in the generated prompts. The image generator will literally print these hex codes or technical words on the visual artwork, which is strictly prohibited.
-3. Do NOT include technical variables, labels, or CSS terms (like "primary color", "secondary color", "brand color", "color value") in the generated prompts. Refer to the colors only by their plain English names.
+CRITICAL COLOR RULES FOR PROMPTING (MANDATORY - ZERO TOLERANCE FOR HEX CODES):
+1. Translate all hex codes above into their plain, descriptive English color names (e.g., use "golden yellow", "deep royal blue", "dark charcoal gray").
+2. ABSOLUTELY FORBIDDEN: NEVER write literal hexadecimal codes (like "${primaryHex}", "${secondaryHex}", or any 6-character hex), the hash symbol (#), or technical words like "hexadecimal", "hex code", "primary color", "secondary color" in your generated prompts. If you output a hex code in the prompt, the image generator will literally paint the characters "#3b82f6" onto the image as a glowing text overlay, completely ruining the aesthetic. You MUST describe the colors strictly with natural human language.
+3. If you need to specify a color, just say the name of the color in English.
 
 CRITICAL NICHE & PRODUCT ALIGNMENT RULE (MANDATORY FOR GRAPHICS & METAPHORS):
 You MUST ensure that the graphics, floating elements, icons, props, and visual metaphors are DIRECTLY and explicitly related to the brand's niche ("${category || "general"}") and the products it sells.
@@ -253,7 +261,7 @@ Your CRITICAL mission is to strategically and organically blend these brand colo
 4. **Natural Integration:** The branding must look premium, modern, and extremely tasteful. DO NOT paint the entire image, the main product, or the background in a single flat color block. Keep it high-end and photorealistic.
 
 ${
-  fontsText
+  fontsText && insertTextOnImage
     ? `
 # TYPOGRAPHY RULES (MANDATORY TEXT RENDERING PERSONALIZATION)
 When rendering the literal text/title on the image, instruct the generator to follow the brand's typography:
@@ -280,9 +288,9 @@ ${inspirationYaml}
 - CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
 - ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. Copying text from the reference print is strictly prohibited.
 ${
-  selContent?.titulo
+  selContent?.titulo && insertTextOnImage
     ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), which must be printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.`
-    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography.`
+    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene.`
 }
 `;
     } else {
@@ -374,7 +382,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
 `;
     }
     // 1. Regras condicionais de texto
-    const textRules = selContent?.titulo
+    const textRules = selContent?.titulo && insertTextOnImage
       ? `
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
    - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
@@ -385,7 +393,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
    - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
 `
       : `
-2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography.
+2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
 `;
 
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
@@ -457,7 +465,7 @@ ${textRules}
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
     let aiResponseText = "";
     let lastError: any = null;
 
@@ -541,10 +549,26 @@ ${textRules}
       throw new Error("O JSON retornado pela IA não contém um array de prompts válido.");
     }
 
+    const sanitizedPrompts = promptsArray.map((p: any) => {
+      let text = String(p);
+      text = text.replace(/#[0-9A-Fa-f]{3,6}\b/g, "");
+      text = text.replace(/\b(hex|hexadecimal|hex code|código hex)\b/gi, "");
+      // Limpa os hexadecimais mesmo sem # (ex: 1e293b) se caírem no formato exato da cor da marca
+      if (businessProfile?.primaryColor) {
+        const hex = businessProfile.primaryColor.replace("#", "");
+        text = text.replace(new RegExp(`\\b${hex}\\b`, "gi"), "");
+      }
+      if (businessProfile?.secondaryColor) {
+        const hex = businessProfile.secondaryColor.replace("#", "");
+        text = text.replace(new RegExp(`\\b${hex}\\b`, "gi"), "");
+      }
+      return text.replace(/\s+/g, " ").trim();
+    });
+
     const outputFormat = [
       {
         output: {
-          prompt: promptsArray.map((p: any) => String(p)),
+          prompt: sanitizedPrompts,
         },
       },
     ];

@@ -27,6 +27,7 @@ import {
   Minus,
   ChevronUp,
   ChevronDown,
+  Save,
 } from "lucide-react";
 
 // Fontes disponíveis (carregadas via Google Fonts no layout global)
@@ -76,8 +77,15 @@ export interface EditorLayer {
   bold: boolean;
   italic: boolean;
   align: "left" | "center" | "right";
+  verticalAlign?: "top" | "center" | "bottom";
   bgColor: string; // fundo do texto
   bgOpacity: number; // opacidade do fundo do texto
+  textStrokeColor: string;
+  textStrokeWidth: number;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
 
   // Propriedades de formas gráficas
   strokeColor: string; // cor da borda
@@ -97,8 +105,15 @@ const DEFAULT_LAYER: Omit<EditorLayer, "id" | "x" | "y"> = {
   bold: true,
   italic: false,
   align: "center",
+  verticalAlign: "center",
   bgColor: "#000000",
   bgOpacity: 0,
+  textStrokeColor: "#000000",
+  textStrokeWidth: 0,
+  shadowColor: "#000000",
+  shadowBlur: 0,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
   width: 280,
   height: 40,
   opacity: 1.0,
@@ -111,6 +126,82 @@ const DEFAULT_LAYER: Omit<EditorLayer, "id" | "x" | "y"> = {
   strokeOpacity: 1.0,
   borderRadius: 0,
 };
+
+export const TEXT_PRESETS = [
+  {
+    name: "Promoção",
+    config: {
+      text: "PROMOÇÃO",
+      fontFamily: "Bebas Neue",
+      fontSize: 54,
+      bold: true,
+      italic: false,
+      color: "#FBBF24", // yellow-400
+      textStrokeColor: "#000000",
+      textStrokeWidth: 4,
+      shadowColor: "#000000",
+      shadowBlur: 0,
+      shadowOffsetX: 6,
+      shadowOffsetY: 6,
+      scale: 1.5,
+    },
+  },
+  {
+    name: "Liquidação",
+    config: {
+      text: "LIQUIDAÇÃO",
+      fontFamily: "Montserrat",
+      fontSize: 48,
+      bold: true,
+      italic: true,
+      color: "#ffffff",
+      bgColor: "#EF4444", // red-500
+      bgOpacity: 1,
+      textStrokeWidth: 0,
+      shadowColor: "#000000",
+      shadowBlur: 15,
+      shadowOffsetX: 0,
+      shadowOffsetY: 8,
+      scale: 1.2,
+    },
+  },
+  {
+    name: "Novidade",
+    config: {
+      text: "NOVIDADE",
+      fontFamily: "Poppins",
+      fontSize: 42,
+      bold: true,
+      italic: false,
+      color: "#ffffff",
+      textStrokeColor: "#6366F1", // indigo-500
+      textStrokeWidth: 8,
+      shadowColor: "#6366F1",
+      shadowBlur: 20,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+      scale: 1.2,
+    },
+  },
+  {
+    name: "Frete Grátis",
+    config: {
+      text: "FRETE GRÁTIS",
+      fontFamily: "Oswald",
+      fontSize: 48,
+      bold: true,
+      italic: false,
+      color: "#10B981", // emerald-500
+      textStrokeColor: "#064E3B", // emerald-900
+      textStrokeWidth: 3,
+      shadowColor: "#000000",
+      shadowBlur: 10,
+      shadowOffsetX: 0,
+      shadowOffsetY: 4,
+      scale: 1.1,
+    },
+  },
+];
 
 // Auxiliar para calcular a altura dinâmica do texto com quebra de linha
 const getTextHeight = (
@@ -184,6 +275,19 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     centerY: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [customPresets, setCustomPresets] = useState<{ name: string; config: Partial<EditorLayer> }[]>([]);
+
+  // Carregar presets do localStorage na inicialização
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("flowup_custom_presets");
+      if (saved) {
+        setCustomPresets(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Erro ao carregar presets", e);
+    }
+  }, []);
 
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
   const layersRef = useRef<EditorLayer[]>([]);
@@ -267,9 +371,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
         ctx.globalAlpha = l.opacity;
 
         let H_eff = l.height;
-        if (l.type === "text") {
-          H_eff = getTextHeight(ctx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-        }
 
         // Definir ponto central do elemento
         const cx = l.x + l.width / 2;
@@ -310,8 +411,15 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.save();
             ctx.globalAlpha = l.opacity * l.bgOpacity;
             ctx.fillStyle = l.bgColor;
-            ctx.fillRect(-l.width / 2, -totalHeight / 2, l.width, totalHeight + 10);
+            ctx.fillRect(-l.width / 2, -H_eff / 2, l.width, H_eff + 10);
             ctx.restore();
+          }
+
+          if (l.shadowBlur && l.shadowBlur > 0) {
+            ctx.shadowColor = l.shadowColor || "#000000";
+            ctx.shadowBlur = l.shadowBlur;
+            ctx.shadowOffsetX = l.shadowOffsetX || 0;
+            ctx.shadowOffsetY = l.shadowOffsetY || 0;
           }
 
           lines.forEach((line, index) => {
@@ -322,7 +430,39 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             } else if (l.align === "right") {
               textX = l.width / 2 - ctx.measureText(line).width;
             }
-            ctx.fillText(line, textX, -totalHeight / 2 + 5 + index * lineHeight);
+
+            let yPos = -H_eff / 2 + 5 + index * lineHeight;
+            if (l.verticalAlign === "center") {
+              yPos = -totalHeight / 2 + 5 + index * lineHeight;
+            } else if (l.verticalAlign === "bottom") {
+              yPos = H_eff / 2 - totalHeight + 5 + index * lineHeight;
+            }
+
+            // Desenhar borda de texto PRIMEIRO (para ficar atrás do preenchimento)
+            if (l.textStrokeWidth && l.textStrokeWidth > 0) {
+              ctx.strokeStyle = l.textStrokeColor || "#000000";
+              ctx.lineWidth = l.textStrokeWidth / (l.scale || 1.0);
+              ctx.lineJoin = "round";
+              ctx.miterLimit = 2;
+              ctx.strokeText(line, textX, yPos);
+              
+              // Se desenhou a borda, a borda já aplicou a sombra (se houver).
+              // Então desligamos a sombra para o fillText não duplicar/escurecer a sombra.
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+            }
+
+            // Desenhar texto preenchido POR CIMA da borda
+            ctx.fillText(line, textX, yPos);
+            
+            // Religar sombra para a próxima linha
+            if (l.shadowBlur && l.shadowBlur > 0) {
+              ctx.shadowColor = l.shadowColor || "#000000";
+              ctx.shadowBlur = l.shadowBlur;
+              ctx.shadowOffsetX = l.shadowOffsetX || 0;
+              ctx.shadowOffsetY = l.shadowOffsetY || 0;
+            }
           });
 
           if (activeSelectedId === l.id) {
@@ -330,12 +470,22 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.strokeStyle = "#8B5CF6";
             ctx.lineWidth = 2 / currentScale;
             ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-            ctx.strokeRect(-l.width / 2 - 4, -totalHeight / 2 - 4, l.width + 8, totalHeight + 18);
+            ctx.strokeRect(-l.width / 2 - 4, -H_eff / 2 - 4, l.width + 8, H_eff + 8);
+
+            ctx.fillStyle = "#8B5CF6";
+            // Puxador de redimensionamento diagonal (canto inferior direito)
+            ctx.beginPath();
+            ctx.arc(l.width / 2 + 4, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
 
             // Puxador de redimensionamento (largura) no meio direito
-            ctx.fillStyle = "#8B5CF6";
             ctx.beginPath();
             ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puxador de redimensionamento (altura) no meio inferior
+            ctx.beginPath();
+            ctx.arc(0, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
 
             // Puxador de rotação no topo central
@@ -343,13 +493,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.lineWidth = 1.5 / currentScale;
             ctx.setLineDash([]);
             ctx.beginPath();
-            ctx.moveTo(0, -totalHeight / 2 - 4);
-            ctx.lineTo(0, -totalHeight / 2 - 20);
+            ctx.moveTo(0, -H_eff / 2 - 4);
+            ctx.lineTo(0, -H_eff / 2 - 20);
             ctx.stroke();
 
             ctx.fillStyle = "#3B82F6";
             ctx.beginPath();
-            ctx.arc(0, -totalHeight / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(0, -H_eff / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
           }
         } else if (l.type === "rectangle") {
@@ -555,9 +705,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     for (let i = layers.length - 1; i >= 0; i--) {
       const l = layers[i];
       let H_eff = l.height;
-      if (l.type === "text") {
-        H_eff = getTextHeight(tempCtx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-      }
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -581,24 +728,22 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
       // Puxador de Redimensionamento (canto inferior direito)
       const resHandleX = l.width / 2 + 4;
-      const resHandleY = l.type === "text" ? 0 : H_eff / 2 + 4;
+      const resHandleY = H_eff / 2 + 4;
       if (Math.hypot(lx - resHandleX, ly - resHandleY) * scale <= 12) {
         return { id: l.id, type: "resize" as const };
       }
 
-      // Puxadores laterais para deformar (somente retângulo e círculo)
-      if (l.type === "rectangle" || l.type === "circle") {
-        const rightHandleX = l.width / 2 + 4;
-        const rightHandleY = 0;
-        if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 12) {
-          return { id: l.id, type: "resizeWidth" as const };
-        }
+      // Puxadores laterais para deformar (agora para todos os elementos)
+      const rightHandleX = l.width / 2 + 4;
+      const rightHandleY = 0;
+      if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 12) {
+        return { id: l.id, type: "resizeWidth" as const };
+      }
 
-        const bottomHandleX = 0;
-        const bottomHandleY = H_eff / 2 + 4;
-        if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 12) {
-          return { id: l.id, type: "resizeHeight" as const };
-        }
+      const bottomHandleX = 0;
+      const bottomHandleY = H_eff / 2 + 4;
+      if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 12) {
+        return { id: l.id, type: "resizeHeight" as const };
       }
 
       // Teste de corpo
@@ -650,9 +795,6 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       if (!tempCtx) return;
 
       let H_eff = l.height;
-      if (l.type === "text") {
-        H_eff = getTextHeight(tempCtx, l.text, l.fontSize, l.fontFamily, l.bold, l.italic, l.width);
-      }
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -709,17 +851,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const lx = dx * cos - dy * sin;
       const ly = dx * sin + dy * cos;
 
-      if (l.type === "text") {
-        const newW = Math.max(80, (lx * 2) / startParams.layerScale);
-        const newX = startParams.centerX - newW / 2;
-        setLayers((prev) =>
-          prev.map((layer) =>
-            layer.id === selectedId
-              ? { ...layer, width: Math.round(newW), x: Math.round(newX) }
-              : layer
-          )
-        );
-      } else if (l.type === "rectangle" || l.type === "circle") {
+      if (l.type === "text" || l.type === "rectangle" || l.type === "circle") {
         const newW = Math.max(10, (lx * 2) / startParams.layerScale);
         const newH = Math.max(10, (ly * 2) / startParams.layerScale);
         const newX = startParams.centerX - newW / 2;
@@ -808,6 +940,69 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     };
     setLayers((prev) => [...prev, newLayer]);
     setSelectedId(newLayer.id);
+  };
+
+  const addPresetLayer = (presetConfig: Partial<EditorLayer>) => {
+    const newLayer: EditorLayer = {
+      ...DEFAULT_LAYER,
+      ...presetConfig,
+      id: crypto.randomUUID(),
+      x: canvasW / 2 || 200, // Centralizado X
+      y: canvasH / 2 || 200, // Centralizado Y
+    };
+    setLayers((prev) => [...prev, newLayer]);
+    setSelectedId(newLayer.id);
+  };
+
+  const handleSaveCustomPreset = () => {
+    const selected = layers.find((l) => l.id === selectedId);
+    if (!selected || selected.type !== "text") return;
+
+    const presetName = prompt("Qual o nome desse Text Preset?");
+    if (!presetName?.trim()) return;
+
+    const configToSave: Partial<EditorLayer> = {
+      text: selected.text,
+      fontFamily: selected.fontFamily,
+      fontSize: selected.fontSize,
+      bold: selected.bold,
+      italic: selected.italic,
+      color: selected.color,
+      bgColor: selected.bgColor,
+      bgOpacity: selected.bgOpacity,
+      textStrokeColor: selected.textStrokeColor,
+      textStrokeWidth: selected.textStrokeWidth,
+      shadowColor: selected.shadowColor,
+      shadowBlur: selected.shadowBlur,
+      shadowOffsetX: selected.shadowOffsetX,
+      shadowOffsetY: selected.shadowOffsetY,
+    };
+
+    const novoPreset = { name: presetName.trim(), config: configToSave };
+    
+    setCustomPresets((prev) => {
+      const novos = [...prev, novoPreset];
+      try {
+        localStorage.setItem("flowup_custom_presets", JSON.stringify(novos));
+      } catch (err) {
+        console.error("Erro ao salvar preset no localStorage", err);
+      }
+      return novos;
+    });
+  };
+
+  const handleDeleteCustomPreset = (index: number) => {
+    if (!confirm("Tem certeza que deseja excluir este preset personalizado?")) return;
+    setCustomPresets((prev) => {
+      const novos = [...prev];
+      novos.splice(index, 1);
+      try {
+        localStorage.setItem("flowup_custom_presets", JSON.stringify(novos));
+      } catch (err) {
+        console.error("Erro ao salvar preset no localStorage", err);
+      }
+      return novos;
+    });
   };
 
   const deleteSelected = () => {
@@ -1032,6 +1227,85 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                   >
                     <Minus className="h-4 w-4 text-violet-300" />
                   </Button>
+                </div>
+              </div>
+
+              {/* Textos Prontos (Presets) */}
+              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                  <span>Textos Prontos</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
+                    const cfg = preset.config;
+                    const isCustom = idx >= TEXT_PRESETS.length;
+                    const customIdx = idx - TEXT_PRESETS.length;
+                    
+                    // Escalar propriedades proporcionalmente (assumindo fonte do botão ~14px)
+                    const originalSize = cfg.fontSize || 40;
+                    const scale = 14 / originalSize;
+                    
+                    const shadowValues: string[] = [];
+                    
+                    // Sombra principal do texto
+                    if (cfg.shadowBlur && cfg.shadowBlur > 0) {
+                      const sX = (cfg.shadowOffsetX || 0) * scale;
+                      const sY = (cfg.shadowOffsetY || 0) * scale;
+                      const sB = cfg.shadowBlur * scale;
+                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || '#000'}`);
+                    }
+                    
+                    // Simular stroke (borda) usando múltiplas sombras para não "comer" a fonte por dentro
+                    if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
+                      const sw = Math.min(cfg.textStrokeWidth * scale, 2.5); // limite para não borrar muito
+                      const sc = cfg.textStrokeColor;
+                      shadowValues.push(
+                        `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
+                        `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
+                      );
+                    }
+                    
+                    const finalShadowCSS = shadowValues.length > 0 ? shadowValues.join(', ') : 'none';
+                    const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
+
+                    return (
+                      <div key={`${preset.name}-${idx}`} className="relative group">
+                        <Button
+                          onClick={() => addPresetLayer(cfg)}
+                          variant="outline"
+                          size="sm"
+                          className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
+                          disabled={!imageLoaded}
+                          style={{
+                            backgroundColor: hasBg ? cfg.bgColor : 'transparent',
+                            color: cfg.color || '#fff',
+                            fontFamily: cfg.fontFamily,
+                            fontWeight: cfg.bold ? 'bold' : 'normal',
+                            fontStyle: cfg.italic ? 'italic' : 'normal',
+                            textShadow: finalShadowCSS !== 'none' ? finalShadowCSS : undefined,
+                            padding: hasBg ? '4px 12px' : '0px',
+                            border: hasBg ? 'none' : 'none',
+                            borderRadius: hasBg ? '0px' : undefined,
+                          }}
+                        >
+                          {preset.name}
+                        </Button>
+                        
+                        {isCustom && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCustomPreset(customIdx);
+                            }}
+                            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600 shadow-md"
+                            title="Excluir preset"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1263,10 +1537,10 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Alinhamento */}
+                        {/* Alinhamento Horizontal */}
                         <div className="flex flex-col gap-2">
                           <Label className="text-xs uppercase tracking-wide text-slate-400">
-                            Alinhamento
+                            Alinh. Horizontal
                           </Label>
                           <div className="flex gap-2">
                             {(["left", "center", "right"] as const).map((a) => {
@@ -1291,6 +1565,120 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                               );
                             })}
                           </div>
+                        </div>
+
+                        {/* Alinhamento Vertical */}
+                        <div className="flex flex-col gap-2">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Alinh. Vertical
+                          </Label>
+                          <div className="flex gap-2">
+                            {(["top", "center", "bottom"] as const).map((a) => {
+                              const Icon =
+                                a === "top"
+                                  ? ChevronUp
+                                  : a === "center"
+                                    ? Minus
+                                    : ChevronDown;
+                              return (
+                                <button
+                                  key={a}
+                                  onClick={() => updateSelected({ verticalAlign: a })}
+                                  className={`flex h-9 flex-1 items-center justify-center rounded-lg border transition-colors ${
+                                    selected.verticalAlign === a || (!selected.verticalAlign && a === "center")
+                                      ? "border-violet-500 bg-violet-600 text-white"
+                                      : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                  }`}
+                                  title={a === "top" ? "Alinhar ao topo" : a === "center" ? "Centralizar verticalmente" : "Alinhar à base"}
+                                >
+                                  <Icon className="h-4 w-4" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Borda do Texto */}
+                        <div className="flex flex-col gap-2 border-t border-slate-800 pt-3">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Borda do Texto
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={selected.textStrokeColor}
+                              onChange={(e) => updateSelected({ textStrokeColor: e.target.value })}
+                              className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
+                            />
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className="flex justify-between text-[10px] text-slate-500">
+                                <span>Espessura</span>
+                                <span>{selected.textStrokeWidth}px</span>
+                              </div>
+                              <Slider
+                                min={0}
+                                max={20}
+                                step={1}
+                                value={[selected.textStrokeWidth]}
+                                onValueChange={([v]) => updateSelected({ textStrokeWidth: v })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Sombra do Texto */}
+                        <div className="flex flex-col gap-2 border-t border-slate-800 pt-3">
+                          <Label className="text-xs uppercase tracking-wide text-slate-400">
+                            Sombra (Drop Shadow)
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={selected.shadowColor}
+                              onChange={(e) => updateSelected({ shadowColor: e.target.value })}
+                              className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
+                            />
+                            <div className="flex-1 flex flex-col gap-2">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-[10px] text-slate-500">
+                                  <span>Desfoque (Blur)</span>
+                                  <span>{selected.shadowBlur}px</span>
+                                </div>
+                                <Slider
+                                  min={0}
+                                  max={50}
+                                  step={1}
+                                  value={[selected.shadowBlur]}
+                                  onValueChange={([v]) => updateSelected({ shadowBlur: v })}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-[10px] text-slate-500">
+                                  <span>Distância (X / Y)</span>
+                                  <span>{selected.shadowOffsetX}px</span>
+                                </div>
+                                <Slider
+                                  min={-30}
+                                  max={30}
+                                  step={1}
+                                  value={[selected.shadowOffsetX]}
+                                  onValueChange={([v]) => updateSelected({ shadowOffsetX: v, shadowOffsetY: v })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botão de Salvar Preset */}
+                        <div className="pt-2">
+                          <Button
+                            onClick={handleSaveCustomPreset}
+                            variant="outline"
+                            className="w-full h-9 text-xs border-violet-800 bg-violet-900/20 text-violet-300 hover:bg-violet-900/40"
+                          >
+                            <Save className="mr-2 h-4 w-4" />
+                            Salvar como Preset
+                          </Button>
                         </div>
                       </>
                     )}
