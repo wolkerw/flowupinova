@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -41,6 +42,11 @@ const navItems = [
     title: "Conteúdo Gerado",
     href: "/admin/conteudo",
     icon: ImageIcon,
+  },
+  {
+    title: "Cupons de Desconto",
+    href: "/admin/cupons",
+    icon: Tag,
   },
   {
     title: "Configurações",

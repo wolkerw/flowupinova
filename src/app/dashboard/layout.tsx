@@ -26,7 +26,9 @@ import {
   Settings2,
   Images,
   User,
+  Crown,
 } from "lucide-react";
+import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 import {
   Sidebar,
   SidebarContent,
@@ -154,6 +156,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userPlan, setUserPlan] = useState<string>("trial");
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.status === "unread").length;
 
@@ -176,6 +180,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (user) {
       fetchAndProcessNotifications();
+
+      const userDocRef = doc(db, `users/${user.uid}`);
+      const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserPlan(docSnap.data().plan || "trial");
+        }
+      });
 
       const onboardingDocRef = doc(db, `users/${user.uid}/business/onboarding`);
       const unsubscribeOnboarding = onSnapshot(onboardingDocRef, (docSnap) => {
@@ -221,6 +232,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       });
 
       return () => {
+        unsubscribeUser();
         unsubscribeOnboarding();
       };
     }
@@ -255,6 +267,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen w-full bg-muted/50">
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        userId={user.uid}
+      />
       <OnboardingWizard
         userId={user.uid}
         initialData={businessProfile}
@@ -363,6 +380,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
+                {userPlan === "trial" && (
+                  <Button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold rounded-xl shadow-sm hover:opacity-90 transition-opacity gap-2 h-9 px-4 hidden sm:flex border-0"
+                  >
+                    <Crown className="w-4 h-4 fill-white text-white" />
+                    Fazer Upgrade PRO
+                  </Button>
+                )}
+                
                 <DropdownMenu onOpenChange={handleOpenNotifications}>
                   <DropdownMenuTrigger asChild>
                     <Button
