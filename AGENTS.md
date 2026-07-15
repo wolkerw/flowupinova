@@ -29,6 +29,7 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
    - Accent: `#FA6305` (NumVapt Orange)
    - Rounded corners: `0.5rem` (8px)
    - Buttons: Solid colors only (no gradients).
+4. **Garantir o envio das imagens fixas**: Sempre inclua e comite no repositório todas as imagens estáticas/fixas utilizadas pelas páginas do site (na pasta `public/`), para que estejam sempre visíveis nos ambientes de deploy e homologação.
 
 ## 🧪 Testing and Mocking Guidelines
 

@@ -5,19 +5,33 @@ import { vi } from "vitest";
 // Mock framer-motion globally to avoid animation issues in tests
 vi.mock("framer-motion", () => {
   const React = require("react");
+  const motion = new Proxy(
+    {},
+    {
+      get: (_target, prop) => {
+        return ({ children, ...props }: any) => {
+          // Destructure framer-motion specific props that standard React elements don't accept
+          const {
+            animate,
+            transition,
+            variants,
+            initial,
+            exit,
+            whileHover,
+            whileTap,
+            whileInView,
+            viewport,
+            onAnimationStart,
+            onAnimationComplete,
+            ...restProps
+          } = props;
+          return React.createElement(prop as string, restProps, children);
+        };
+      },
+    }
+  );
   return {
-    motion: {
-      div: ({ children, ...props }: any) => React.createElement("div", props, children),
-      h1: ({ children, ...props }: any) => React.createElement("h1", props, children),
-      p: ({ children, ...props }: any) => React.createElement("p", props, children),
-      button: ({ children, ...props }: any) => React.createElement("button", props, children),
-      span: ({ children, ...props }: any) => React.createElement("span", props, children),
-      section: ({ children, ...props }: any) => React.createElement("section", props, children),
-      nav: ({ children, ...props }: any) => React.createElement("nav", props, children),
-      header: ({ children, ...props }: any) => React.createElement("header", props, children),
-      footer: ({ children, ...props }: any) => React.createElement("footer", props, children),
-      a: ({ children, ...props }: any) => React.createElement("a", props, children),
-    },
+    motion,
     AnimatePresence: ({ children }: any) => children,
     useScroll: () => ({ scrollYProgress: { toJSON: () => 0 } }),
     useTransform: (value: any) => value,

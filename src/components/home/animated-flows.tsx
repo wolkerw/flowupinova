@@ -84,10 +84,10 @@ const FLOWS = [
   {
     id: 2,
     titleInput: "FOTO 1: SEU PRODUTO",
-    imageInput: "/Screenshot_27.png",
+    imageInput: "/demo-product-raw.png",
     promptTitle: "INPUT DA IDEIA (TEXTO)",
     promptText: "faça uma foto de catálogo deste hambúrguer e coloque-o numa mesa de lanchonete moderna...",
-    imageOutput: "/numvapt-1783544518718.png",
+    imageOutput: "/demo-result.png",
     titleOutput1: "Cenário IA",
     titleOutput2: "Arte Pronta",
     isHybrid: false,
@@ -243,19 +243,19 @@ export const AnimatedProductFlow = () => {
 const AVATAR_FLOWS = [
   {
     id: 1,
-    imageSelfie: "/Screenshot_26.png",
-    imageReference: "/3d775c5812ab51fe760005858f34926d.png",
+    imageSelfie: "/images/avatar-demo/selfie.jpg",
+    imageReference: "/demo-hybrid-project.png",
     promptText: "Extrair estilo fotográfico, traços e iluminação da imagem de referência e aplicar na selfie...",
-    imageOutput: "/users_m4hhWY415jZrmOZHYVXyqxrPxtg1_mediaGallery_avatar_d89306c0-7031-415a-bcc1-02b40f72b3cc.png",
+    imageOutput: "/images/avatar-demo/resultado.jpg",
     titleOutput1: "Estilo Transferido",
     titleOutput2: "Avatar IA"
   },
   {
     id: 2,
-    imageSelfie: "/Screenshot_28.png",
-    imageReference: "/download (2).jpeg",
+    imageSelfie: "/images/avatar-demo/selfie.jpg",
+    imageReference: "/demo-clothing-model.png",
     promptText: "Extrair estilo fotográfico e iluminação da imagem de referência e aplicar perfeitamente na selfie da modelo feminina...",
-    imageOutput: "/users_m4hhWY415jZrmOZHYVXyqxrPxtg1_mediaGallery_avatar_d65f95a0-1b6e-43c3-bf1d-5df1f3d883b9.png",
+    imageOutput: "/images/avatar-demo/result.jpg",
     titleOutput1: "Estilo Transferido",
     titleOutput2: "Avatar IA"
   }

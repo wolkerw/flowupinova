@@ -20,18 +20,18 @@ const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode, delay?
 
 export const WorkflowSection = () => {
   const mosaicImages = [
-    "/mosaico/concept_1 (1).png",
-    "/mosaico/concept_1.png",
-    "/mosaico/concept_2 (1).png",
-    "/mosaico/concept_2.png",
-    "/mosaico/concept_3.png",
-    "/mosaico/nanobanana_ref_generated.png",
-    "/mosaico/numvapt-1779305655511.png",
-    "/mosaico/numvapt-1779305658702.png",
-    "/mosaico/numvapt-1779305661530.png",
-    "/mosaico/numvapt-1780953400573.png",
-    "/mosaico/numvapt-1781023326295.png",
-    "/mosaico/numvapt-1783545177946.png",
+    "/demo-clothing-isolated.png",
+    "/demo-clothing-model.png",
+    "/demo-hybrid-project.png",
+    "/demo-hybrid-result.png",
+    "/demo-hybrid-selfie.png",
+    "/demo-product-isolated.png",
+    "/demo-product-raw-simple.png",
+    "/demo-product-raw.png",
+    "/demo-result.png",
+    "/demo-scenario.png",
+    "/images/avatar-demo/resultado.jpg",
+    "/images/avatar-demo/result.jpg",
   ];
 
   // Dividimos as imagens em 4 colunas para o grid animado
