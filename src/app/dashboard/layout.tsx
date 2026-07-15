@@ -480,6 +480,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link
+                        href="/dashboard/minha-conta"
+                        className="flex w-full cursor-pointer items-center"
+                      >
+                        <User className="mr-2 h-4 w-4" />
+                        Minha Conta
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
                         href="/dashboard/configuracoes"
                         className="flex w-full cursor-pointer items-center"
                       >

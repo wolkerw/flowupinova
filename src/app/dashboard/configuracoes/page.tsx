@@ -52,6 +52,7 @@ import {
   Palette,
 } from "lucide-react";
 import Image from "next/image";
+import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -180,6 +181,9 @@ export default function ConfiguracoesPage() {
   const fileInputRefVertical = useRef<HTMLInputElement>(null);
   const fileInputRefSymbol = useRef<HTMLInputElement>(null);
   const fileInputRefAvatar = useRef<HTMLInputElement>(null);
+
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<"avatar" | null>(null);
 
   const migrateLegacyBase64Profile = async (data: OnboardingProfileData) => {
     if (!user) return;
@@ -386,6 +390,32 @@ export default function ConfiguracoesPage() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    if (type === "avatar") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCropImageSrc(e.target?.result as string);
+        setCropType("avatar");
+      };
+      reader.readAsDataURL(file);
+      if (event.target) event.target.value = "";
+      return;
+    }
+
+    await performUpload(file, type);
+    if (event.target) event.target.value = "";
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    if (!cropType || !user) return;
+    setCropImageSrc(null);
+    await performUpload(croppedFile, cropType);
+    setCropType(null);
+  };
+
+  const performUpload = async (
+    file: File,
+    type: "horizontal" | "vertical" | "symbol" | "avatar"
+  ) => {
     setUploadingType(type);
     toast({ title: `Enviando logo ${type}...`, description: "Aguarde a conclusão do upload." });
 
@@ -439,9 +469,6 @@ export default function ConfiguracoesPage() {
       toast({ title: "Erro de Processamento", description: error.message, variant: "destructive" });
     } finally {
       setUploadingType(null);
-      if (event.target) {
-        event.target.value = "";
-      }
     }
   };
 
@@ -1988,6 +2015,15 @@ export default function ConfiguracoesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {cropImageSrc && cropType === "avatar" && (
+        <ImageCropperModal
+          isOpen={true}
+          onClose={() => setCropImageSrc(null)}
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 }
