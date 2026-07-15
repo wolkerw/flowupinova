@@ -25,6 +25,11 @@ import {
   Clock,
   Mail,
   Sparkles,
+  Copy,
+  Check,
+  CreditCard,
+  QrCode,
+  Award,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -135,47 +140,41 @@ const MetricDisplay = ({
 );
 
 const TrialEndedOverlay = () => {
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const { user, logout } = useAuth();
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-lg rounded-2xl bg-white p-8 text-center shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl relative overflow-hidden"
       >
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
-          <Clock className="h-10 w-10 text-white" />
+        <div className="absolute top-0 left-0 w-full h-2 bg-[#0B1426]"></div>
+        <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+           <Award className="h-8 w-8 text-[#0B1426]" />
         </div>
-        <h2 className="mb-2 text-2xl font-bold text-gray-900">Seu período de teste terminou</h2>
-        <p className="mb-6 text-gray-600">
-          Esperamos que você tenha gostado de usar a NumVapt! Para continuar a impulsionar seu
-          marketing, por favor, entre em contato para escolher um plano.
+        <h2 className="mb-2 text-2xl font-bold text-slate-900 mt-2">Período de testes finalizado</h2>
+        <p className="mb-6 text-slate-500 text-sm">
+          Seu período de teste gratuito chegou ao fim. Para continuar usando a plataforma, faça o upgrade.
         </p>
-        <div className="flex flex-col justify-center gap-4 sm:flex-row">
-          <Button asChild size="lg" className="w-full bg-green-500 hover:bg-green-600 sm:w-auto">
-            <a
-              href="https://wa.me/555199922177?text=Olá!%20Meu%20período%20de%20teste%20na%20NumVapt%20terminou%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20planos."
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="mr-2 h-5 w-5"
-              >
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
-              </svg>
-              Falar no WhatsApp
-            </a>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-            <a href="mailto:numvaptinova@gmail.com?subject=Interesse%20em%20Plano&body=Tenho%20interesse%20em%20contratar%20um%20plano.">
-              <Mail className="mr-2 h-5 w-5" />
-              Enviar E-mail
-            </a>
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setShowSubscriptionModal(true)} 
+          className="w-full font-bold bg-[#1da051] hover:bg-[#168541] text-white py-6 text-[15px] mb-3 shadow-md"
+        >
+          <Sparkles className="h-5 w-5 mr-2 text-yellow-300" />
+          Fazer Upgrade Plano PRO
+        </Button>
+        <Button variant="ghost" onClick={logout} className="w-full text-sm text-slate-400 hover:text-slate-600">
+           Sair (Logout)
+        </Button>
       </motion.div>
+
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        userId={user?.uid}
+      />
     </div>
   );
 };

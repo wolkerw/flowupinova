@@ -88,8 +88,6 @@ interface WizardContextType {
   ) => Promise<void>;
   isRetailStyle: boolean;
   setIsRetailStyle: (val: boolean) => void;
-  useDalle: boolean;
-  setUseDalle: (val: boolean) => void;
   useImagen4Ref: boolean;
   setUseImagen4Ref: (val: boolean) => void;
   useNanoBananaRef: boolean;
@@ -233,8 +231,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
-  const [useDalle, setUseDalle] = useState<boolean>(false);
-  const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
+  const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(true);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
@@ -735,16 +732,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     try {
       const imageUrl = generatedContent[0]?.url_da_imagem;
+      const formData = new FormData();
+      formData.append("imageUrl", imageUrl || "");
+      formData.append("businessProfile", JSON.stringify(businessProfile || {}));
+      formData.append("referenceDescription", referenceDescription || "");
+      formData.append("postId", currentPostId || "");
+      formData.append("userId", user.uid);
+
       const response = await fetch("/api/proxy-webhook?target=gerador_conteudo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageUrl,
-          businessProfile,
-          referenceDescription,
-          postId: currentPostId,
-          userId: user.uid,
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -884,7 +881,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           : `${referenceDescription.trim()} ${secondaryReferenceDescription ? `Segunda imagem (produto): ${secondaryReferenceDescription.trim()}.` : ""}`;
           
         promptFormData.append("description", combinedDescription);
-        if (selContent?.titulo && insertTextOnImage !== false) {
+        // Se o usuário optou por não gerar texto (generateTextSuggestions === false), não inserimos texto na imagem.
+        const shouldInsertText = generateTextSuggestions ? (insertTextOnImage !== false) : false;
+        
+        if (selContent?.titulo && shouldInsertText) {
           promptFormData.append("title", selContent.titulo);
         }
         if (businessProfile) {
@@ -918,6 +918,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         // Modo conceito (sem referenceImageFile)
         let response;
         const contentForPrompt = selContent;
+        
+        const shouldInsertText = generateTextSuggestions ? (insertTextOnImage !== false) : false;
 
         if (inspirationFile) {
           const formData = new FormData();
@@ -925,7 +927,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           if (businessProfile) {
             formData.append("businessProfile", JSON.stringify(businessProfile));
           }
-          formData.append("insertTextOnImage", String(insertTextOnImage !== false));
+          formData.append("insertTextOnImage", String(shouldInsertText));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
 
@@ -940,7 +942,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               content: contentForPrompt,
               businessProfile: businessProfile,
-              insertTextOnImage: insertTextOnImage !== false,
+              insertTextOnImage: shouldInsertText,
               userId: user.uid,
             }),
           });
@@ -1126,7 +1128,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        const targetAction = useDalle ? "submit-dalle" : "submit-kontext";
+        const targetAction = "submit-kontext";
         const submitResponse = await fetch(
           `/api/conteudo/gerar-referencia?action=${targetAction}`,
           {
@@ -1822,7 +1824,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       logoInputRef, foundFilesRef,
       customPrompt, setCustomPrompt, handleSubmitImageGeneration,
       isRetailStyle, setIsRetailStyle,
-      useDalle, setUseDalle,
       useImagen4Ref, setUseImagen4Ref,
       useNanoBananaRef, setUseNanoBananaRef,
       isGeneratingCaption, handleGenerateCaption,

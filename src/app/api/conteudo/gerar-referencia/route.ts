@@ -4,6 +4,7 @@ import { Jimp } from "jimp";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
 
 export const maxDuration = 300;
 
@@ -322,6 +323,20 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
 
       const { base64: base64Image1, mimeType: mimeType1 } = await processImage(file);
 
+      let base64Image2 = "";
+      let mimeType2 = "";
+      if (secondaryFile) {
+        const processed = await processImage(secondaryFile);
+        base64Image2 = processed.base64;
+        mimeType2 = processed.mimeType;
+      }
+
+      const cacheKey = "analyze_" + base64Image1 + (base64Image2 ? "_" + base64Image2 : "");
+      const cachedData = await getSemanticCache(cacheKey);
+      if (cachedData) {
+        return NextResponse.json({ success: true, yamlAnalysis: cachedData });
+      }
+
       // Call Gemini for physical description
       const geminiAnalysisPrompt = `Analyze the given image with high precision to extract structural features for image conditioning. Determine if it depicts a product, a piece of clothing/apparel, a character, or a combination.
 
@@ -395,7 +410,7 @@ If the image depicts a CHARACTER:
         console.log(
           "[GERAR_REFERENCIA] Modo híbrido detectado. Analisando as duas imagens de referência em paralelo..."
         );
-        const { base64: base64Image2, mimeType: mimeType2 } = await processImage(secondaryFile);
+        // secondary image already processed for cache key
 
         const promptPerson = `${geminiAnalysisPrompt}\n\nCRITICAL: This is a CHARACTER reference (Foto 1). Focus strictly on character styling, facial details, hair, and overall fisionomy.`;
         const promptProduct = `${geminiAnalysisPrompt}\n\nCRITICAL: This is a PRODUCT/PROJECT/SCENARIO reference (Foto 2). Focus strictly on its physical features, shapes, textures, materials, and colors.`;
@@ -409,6 +424,8 @@ If the image depicts a CHARACTER:
       } else {
         yamlAnalysis = await callGeminiVision(base64Image1, mimeType1, geminiAnalysisPrompt);
       }
+
+      await setSemanticCache(cacheKey, yamlAnalysis);
 
       return NextResponse.json({ success: true, yamlAnalysis });
     }
