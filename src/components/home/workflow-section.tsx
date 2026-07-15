@@ -20,18 +20,18 @@ const FadeInView = ({ children, delay = 0 }: { children: React.ReactNode, delay?
 
 export const WorkflowSection = () => {
   const mosaicImages = [
-    "/mosaico/concept_1 (1).jpg",
-    "/mosaico/concept_1.jpg",
-    "/mosaico/concept_2 (1).jpg",
-    "/mosaico/concept_2.jpg",
-    "/mosaico/concept_3.jpg",
-    "/mosaico/nanobanana_ref_generated.jpg",
-    "/mosaico/numvapt-1779305655511.jpg",
-    "/mosaico/numvapt-1779305658702.jpg",
-    "/mosaico/numvapt-1779305661530.jpg",
-    "/mosaico/numvapt-1780953400573.jpg",
-    "/mosaico/numvapt-1781023326295.jpg",
-    "/mosaico/numvapt-1783545177946.jpg",
+    "/mosaico/concept_1 (1).png",
+    "/mosaico/concept_1.png",
+    "/mosaico/concept_2 (1).png",
+    "/mosaico/concept_2.png",
+    "/mosaico/concept_3.png",
+    "/mosaico/nanobanana_ref_generated.png",
+    "/mosaico/numvapt-1779305655511.png",
+    "/mosaico/numvapt-1779305658702.png",
+    "/mosaico/numvapt-1779305661530.png",
+    "/mosaico/numvapt-1780953400573.png",
+    "/mosaico/numvapt-1781023326295.png",
+    "/mosaico/numvapt-1783545177946.png",
   ];
 
   // Dividimos as imagens em 4 colunas para o grid animado
@@ -142,7 +142,7 @@ export const WorkflowSection = () => {
                 
                 {/* Imagem do Post */}
                 <div className="w-full aspect-square bg-slate-100 relative overflow-hidden group">
-                  <img src="/numvapt-1784051866584.jpg" alt="Post gerado" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src="/numvapt-1784051866584.png" alt="Post gerado" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 
                 {/* Legenda do Post */}

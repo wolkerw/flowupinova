@@ -57,7 +57,7 @@ export const AnimatedEditorFlow = () => {
               {/* Imagem com texto mesclado tipo IA */}
               <div className="relative w-full max-w-[400px] aspect-square md:aspect-[4/3] rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
                 <Image
-                  src="/numvapt-1783544518718.jpg"
+                  src="/numvapt-1783544518718.png"
                   alt="Hambúrguer gerado por IA"
                   fill
                   className="object-cover"
@@ -121,7 +121,7 @@ export const AnimatedEditorFlow = () => {
                   {/* Container da Imagem (Canvas area) */}
                   <div className="relative w-full max-w-[360px] aspect-square rounded overflow-hidden shadow-2xl border border-slate-800 bg-black">
                     <Image
-                      src="/numvapt-1783544518718.jpg"
+                      src="/numvapt-1783544518718.png"
                       alt="Hambúrguer limpo"
                       fill
                       className="object-cover opacity-80"
