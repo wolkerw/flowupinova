@@ -50,6 +50,8 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const [selectedPlan, setSelectedPlan] = useState<"mensal" | "anual">("mensal");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
   const [coupon, setCoupon] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [discount, setDiscount] = useState<{code: string, percentage: number} | null>(null);
 
   const [settings, setSettings] = useState<PaymentSettings>({
     pixKey: "d696cfdb-a875-4219-ae41-494a619a9e00",
@@ -162,6 +164,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
         subscriptionStatus: "pending_verification",
         paymentProofUploadedAt: new Date(),
         selectedPlan: selectedPlan,
+        appliedCoupon: discount ? discount.code : null,
         updatedAt: new Date(),
       });
       toast({
@@ -179,6 +182,33 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
       setLoading(false);
     }
   };
+
+  const handleApplyCoupon = async () => {
+    if (!coupon.trim()) return;
+    setApplyingCoupon(true);
+    try {
+      const res = await fetch(`/api/cupons/validar?code=${encodeURIComponent(coupon)}`);
+      const data = await res.json();
+      if (data.valid) {
+        setDiscount({ code: data.code, percentage: data.discountPercentage });
+        toast({ title: "Cupom aplicado!", description: `Desconto de ${data.discountPercentage}% garantido.`, variant: "success" });
+      } else {
+        setDiscount(null);
+        toast({ title: "Cupom inválido", description: data.error || "Tente outro código.", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Erro", description: "Falha ao validar cupom.", variant: "destructive" });
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const getDiscountedPrice = (price: number) => {
+    if (!discount) return price;
+    return price - (price * (discount.percentage / 100));
+  };
+  const finalPrice = getDiscountedPrice(planPrices[selectedPlan]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -276,11 +306,16 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
             <div className="text-center pb-2">
               <div className="flex items-end justify-center gap-1">
                 <span className="text-4xl font-black text-[#1da051]">
-                  R$ {planPrices[selectedPlan]}
+                  R$ {finalPrice}
                 </span>
                 <span className="text-sm font-bold text-slate-400 mb-1">/mês</span>
               </div>
-              {selectedPlan === "anual" && (
+              {discount && (
+                <p className="text-[12px] font-bold text-[#FA6305] mt-1">
+                  Cupom {discount.code} ({discount.percentage}% OFF) aplicado!
+                </p>
+              )}
+              {selectedPlan === "anual" && !discount && (
                 <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 4.800 anualmente</p>
               )}
             </div>
@@ -291,10 +326,16 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 placeholder="CUPOM DE DESCONTO" 
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
                 className="text-sm uppercase placeholder:text-xs text-center border-slate-200 h-10 rounded-lg shadow-sm"
               />
-              <Button variant="secondary" className="h-10 px-6 rounded-lg font-medium text-sm bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100">
-                Aplicar
+              <Button 
+                variant="secondary" 
+                onClick={handleApplyCoupon}
+                disabled={applyingCoupon || !coupon.trim()}
+                className="h-10 px-6 rounded-lg font-medium text-sm bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100"
+              >
+                {applyingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
               </Button>
             </div>
 
@@ -330,7 +371,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
                 <div className="text-center flex justify-center items-center gap-2">
                   <span className="text-sm font-medium text-slate-500">Total a pagar:</span>
-                  <span className="text-[26px] font-black text-[#1da051]">R$ {planPrices[selectedPlan]},00</span>
+                  <span className="text-[26px] font-black text-[#1da051]">R$ {finalPrice},00</span>
                 </div>
 
                 <div className="space-y-2 border-t border-slate-200/80 pt-5">
@@ -365,7 +406,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                  </p>
                  <div className="pt-4 flex items-center justify-center gap-2">
                     <span className="text-sm text-slate-500">Total do plano {selectedPlan}:</span>
-                    <span className="text-xl font-bold text-blue-600">R$ {planPrices[selectedPlan]},00</span>
+                    <span className="text-xl font-bold text-blue-600">R$ {finalPrice},00</span>
                  </div>
               </div>
             )}
