@@ -46,7 +46,7 @@ export const FloatingNavbar = () => {
           <Link href="/acesso/login" className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
             Entrar
           </Link>
-          <Button asChild className="rounded-full bg-slate-900 text-white hover:bg-slate-800 hover:scale-105 transition-transform duration-300">
+          <Button asChild className="rounded-full bg-[#0083C7] text-white hover:bg-[#006ca3] hover:scale-105 transition-transform duration-300">
             <Link href="/acesso/cadastro">Começar Grátis</Link>
           </Button>
         </div>
