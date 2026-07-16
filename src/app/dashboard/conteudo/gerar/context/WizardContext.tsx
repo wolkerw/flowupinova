@@ -1548,7 +1548,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
         : selectedImage;
       const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
-      formData.append("image", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
+      formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
       formData.append("logo", logoFile);
       formData.append("logoScale", logoScale.toString());
       formData.append("logoOpacity", logoOpacity.toString());
