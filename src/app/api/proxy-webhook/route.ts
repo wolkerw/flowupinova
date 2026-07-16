@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
         webhookUrl = settings.analisarPresencaWebhook;
       } else if (target === "imagem_sem_logo") {
         webhookUrl = settings.imgNoLogoWebhook;
+      } else if (target === "gerador_conteudo") {
+        webhookUrl = settings.generateTextWebhook;
       } else {
         webhookUrl = settings.postManualWebhook;
       }
@@ -38,9 +40,12 @@ export async function POST(request: NextRequest) {
       const DEFAULT_IMG_NO_LOGO = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
       const DEFAULT_ANALISAR_PRESENCA =
         "https://webhook.flowupinova.com.br/webhook/analisar-presenca";
+      const DEFAULT_GERADOR_DE_IDEIAS =
+        "https://webhook.flowupinova.com.br/webhook/gerador_de_ideias";
       if (target === "post_manual") webhookUrl = DEFAULT_POST_MANUAL;
       else if (target === "imagem_sem_logo") webhookUrl = DEFAULT_IMG_NO_LOGO;
       else if (target === "analisar_presenca") webhookUrl = DEFAULT_ANALISAR_PRESENCA;
+      else if (target === "gerador_conteudo") webhookUrl = DEFAULT_GERADOR_DE_IDEIAS;
       else webhookUrl = DEFAULT_POST_MANUAL;
     }
   }

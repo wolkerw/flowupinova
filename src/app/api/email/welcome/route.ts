@@ -5,6 +5,9 @@ import { config } from "@/lib/config";
 const WEBHOOK_URL = "https://webhook.flowupinova.com.br/webhook/send-email";
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "development") {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
   try {
     const { name, email } = await request.json();
 
