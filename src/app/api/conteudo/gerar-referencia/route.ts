@@ -8,21 +8,23 @@ import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cach
 
 export const maxDuration = 300;
 
-
 function safeJsonParse(rawText, fallback = null) {
   let cleaned = rawText.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
-  else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+  if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
+  else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
+  if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3);
   cleaned = cleaned.trim();
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error('[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):', cleaned.substring(0, 1500));
+    console.error(
+      "[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):",
+      cleaned.substring(0, 1500)
+    );
     try {
-      const sanitized = cleaned.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+      const sanitized = cleaned.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
       return JSON.parse(sanitized);
-    } catch(e2) {
+    } catch (e2) {
       if (fallback) return fallback;
       throw e;
     }
@@ -1433,10 +1435,16 @@ ${yamlAnalysis}`;
         }
 
         const inputIsPackshot = hybridPriority === "packshot";
-        nanobananaPrompt = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior.
-Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial profissional de altíssima qualidade integrando ambos na cena descrita no final.
+        nanobananaPrompt = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
+Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
-DIRETRIZES DE CRIAÇÃO HÍBRIDA A SEREM SEGUIDAS RIGOROSAMENTE:
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC A SEREM RIGOROSAMENTE SEGUIDAS:
+- Use iluminação natural profissional para criar profundidade tridimensional e separação de planos (ex: luz solar indireta suave, luz de preenchimento suave casting sombras diagonais quentes, iluminação volumétrica).
+- Configure a composição como se fosse tirada por uma câmera profissional de ponta com lente de 50mm ou 85mm, com foco cirúrgico no sujeito principal e desfoque suave de fundo (circular bokeh).
+- Preserve texturas realistas e tangíveis (granulação sutil de película analógica, poros finos na pele, dobras e fios no tecido, reflexos em vidro de verdade).
+- Evite artificialidades plásticas de inteligência artificial. A imagem final deve parecer real, orgânica e capturada em um ambiente real.
+
+DIRETRIZES DE CRIAÇÃO HÍBRIDA DO SEU FLUXO:
 ${priorityRule}
 
 Cenário e estilo desejados: ${prompt}`;
@@ -1459,12 +1467,18 @@ Cenário e estilo desejados: ${prompt}`;
       } else {
         // Prompt Tradicional (Pessoa Única ou Produto Único)
         nanobananaPrompt = `Aqui está a foto de referência do produto (com fundo transparente/removido).
-Gere uma imagem comercial realista, profissional e de altíssima qualidade posicionando este produto no cenário descrito a seguir.
+Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
+
 ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
 1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXACTAMENTE como estão na foto de referência.
 2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
 3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
 4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
+
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
+- Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave, sombras de contato suaves sob o produto, reflexos realistas de superfície).
+- Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm com foco cirúrgico no produto e profundidade de campo rasa no cenário de fundo.
+- Evite renderizações genéricas ou cores plásticas artificiais. Dê ênfase a texturas palpáveis e grão fotográfico sutil.
 
 Cenário e estilo desejados: ${prompt}`;
 
