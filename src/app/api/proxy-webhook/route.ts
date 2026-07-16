@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
+import { admin, adminDb, getUidFromCookie } from "@/lib/firebase-admin";
+import crypto from "crypto";
 
 export const maxDuration = 300;
 
@@ -60,6 +62,62 @@ export async function POST(request: NextRequest) {
       { error: "Dados do formulário inválidos.", details: err.message },
       { status: 400 }
     );
+  }
+
+  // --- OTIMIZAÇÃO: UPLOAD DIRETO PARA O FIREBASE STORAGE SEM PASSA PELO N8N ---
+  if (target === "imagem_sem_logo") {
+    try {
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return NextResponse.json({ error: "Arquivo de imagem ausente." }, { status: 400 });
+      }
+
+      const userId = await getUidFromCookie().catch(() => "anonymous");
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      let userName = "User";
+      try {
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+        if (userDoc.exists) {
+          userName = userDoc.data()?.name || "User";
+        }
+      } catch (e) {
+        console.warn("[PROXY_WEBHOOK] Erro ao recuperar nome do usuário no Firestore:", e);
+      }
+
+      const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, "_");
+      const dateStr = new Date()
+        .toISOString()
+        .replace(/T/, "_")
+        .replace(/\..+/, "")
+        .replace(/[^0-9_]/g, "");
+
+      const bucket = admin.storage().bucket();
+      const filename = `users/${cleanUserName}_${userId}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
+      const fileRef = bucket.file(filename);
+      const downloadToken = crypto.randomUUID();
+
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: file.type || "image/jpeg",
+          metadata: {
+            firebaseStorageDownloadTokens: downloadToken,
+          },
+        },
+      });
+
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+      console.log(
+        `[PROXY_WEBHOOK] Imagem sem logo salva diretamente no Firebase Storage: ${publicUrl}`
+      );
+      return NextResponse.json([{ url_post: publicUrl }]);
+    } catch (err: any) {
+      console.error("[PROXY_WEBHOOK] Erro no upload direto da imagem sem logo:", err);
+      return NextResponse.json(
+        { error: "Falha ao realizar upload direto para o Firebase.", details: err.message },
+        { status: 500 }
+      );
+    }
   }
 
   try {
@@ -136,8 +194,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await webhookResponse.json();
+    const contentType = webhookResponse.headers.get("content-type") || "";
 
+    // Se o webhook retornar uma imagem binária (compatível com n8n otimizado)
+    if (contentType.includes("image/") || contentType.includes("application/octet-stream")) {
+      console.log(
+        "[PROXY_WEBHOOK] Resposta binária recebida do n8n. Salvando no Firebase Storage..."
+      );
+      const arrayBuffer = await webhookResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const userId = await getUidFromCookie().catch(() => "anonymous");
+
+      let userName = "User";
+      try {
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+        if (userDoc.exists) {
+          userName = userDoc.data()?.name || "User";
+        }
+      } catch (e) {
+        console.warn("[PROXY_WEBHOOK] Erro ao recuperar nome do usuário no Firestore:", e);
+      }
+
+      const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, "_");
+      const dateStr = new Date()
+        .toISOString()
+        .replace(/T/, "_")
+        .replace(/\..+/, "")
+        .replace(/[^0-9_]/g, "");
+
+      const bucket = admin.storage().bucket();
+      const filename = `users/${cleanUserName}_${userId}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
+      const fileRef = bucket.file(filename);
+      const downloadToken = crypto.randomUUID();
+
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: "image/jpeg",
+          metadata: {
+            firebaseStorageDownloadTokens: downloadToken,
+          },
+        },
+      });
+
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+      console.log(
+        `[PROXY_WEBHOOK] Imagem processada com logo salva no Firebase Storage: ${publicUrl}`
+      );
+      return NextResponse.json([{ url_post: publicUrl }]);
+    }
+
+    const data = await webhookResponse.json();
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error);
