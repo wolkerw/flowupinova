@@ -4,6 +4,9 @@ import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "development") {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
   const target = request.nextUrl.searchParams.get("target");
   let webhookUrl = "";
 
