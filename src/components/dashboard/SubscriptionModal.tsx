@@ -35,6 +35,8 @@ interface PaymentSettings {
   pixKey: string;
   pixQrCodeUrl: string;
   creditLinkMonthly: string;
+  creditLinkTrimestral: string;
+  creditLinkSemestral: string;
   creditLinkYearly: string;
 }
 
@@ -47,7 +49,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const [fetchingUser, setFetchingUser] = useState(true);
   const [copied, setCopied] = useState(false);
   
-  const [selectedPlan, setSelectedPlan] = useState<"mensal" | "anual">("mensal");
+  const [selectedPlan, setSelectedPlan] = useState<"mensal" | "trimestral" | "semestral" | "anual">("mensal");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
@@ -57,6 +59,8 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     pixKey: "d696cfdb-a875-4219-ae41-494a619a9e00",
     pixQrCodeUrl: "",
     creditLinkMonthly: "",
+    creditLinkTrimestral: "",
+    creditLinkSemestral: "",
     creditLinkYearly: ""
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -66,7 +70,9 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   
   const planPrices = {
     mensal: 490,
-    anual: 400
+    trimestral: 441, // 10% off
+    semestral: 416.5, // 15% off
+    anual: 4800 / 13 // 13 months
   };
 
   useEffect(() => {
@@ -140,9 +146,11 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   };
 
   const handleOpenCreditLink = () => {
-    const targetLink = selectedPlan === "mensal" 
-      ? settings.creditLinkMonthly 
-      : settings.creditLinkYearly;
+    let targetLink = "";
+    if (selectedPlan === "mensal") targetLink = settings.creditLinkMonthly;
+    else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
+    else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
+    else if (selectedPlan === "anual") targetLink = settings.creditLinkYearly;
     
     if (targetLink) {
       window.open(targetLink, "_blank");
@@ -209,6 +217,15 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   };
   const finalPrice = getDiscountedPrice(planPrices[selectedPlan]);
 
+  const getTotalToPay = (plan: string, monthlyPrice: number) => {
+    if (plan === "trimestral") return monthlyPrice * 3;
+    if (plan === "semestral") return monthlyPrice * 6;
+    if (plan === "anual") return 4800; // Total is fixed at 4800 for 13 months
+    return monthlyPrice;
+  };
+  
+  const totalToPay = getTotalToPay(selectedPlan, finalPrice);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -270,11 +287,11 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
             {/* Plan Toggle */}
             <div className="flex justify-center pt-2">
-              <div className="relative flex w-full max-w-sm items-center rounded-full border border-slate-200 bg-white p-1.5 shadow-sm">
+              <div className="relative flex w-full flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
                 <button
                   onClick={() => setSelectedPlan("mensal")}
                   className={cn(
-                    "relative flex-1 rounded-full py-2.5 text-sm font-bold transition-all",
+                    "relative flex-1 rounded-xl py-2 text-xs font-bold transition-all min-w-[70px]",
                     selectedPlan === "mensal"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -283,9 +300,43 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   Mensal
                 </button>
                 <button
+                  onClick={() => setSelectedPlan("trimestral")}
+                  className={cn(
+                    "relative flex-1 flex flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all min-w-[70px]",
+                    selectedPlan === "trimestral"
+                      ? "bg-[#0B1426] text-white shadow-md"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  3 Meses
+                  <span className={cn(
+                    "rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase mt-0.5",
+                    selectedPlan === "trimestral" ? "bg-[#FA6305] text-white" : "bg-orange-100 text-[#FA6305]"
+                  )}>
+                    -10%
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSelectedPlan("semestral")}
+                  className={cn(
+                    "relative flex-1 flex flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all min-w-[70px]",
+                    selectedPlan === "semestral"
+                      ? "bg-[#0B1426] text-white shadow-md"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  6 Meses
+                  <span className={cn(
+                    "rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase mt-0.5",
+                    selectedPlan === "semestral" ? "bg-[#FA6305] text-white" : "bg-orange-100 text-[#FA6305]"
+                  )}>
+                    -15%
+                  </span>
+                </button>
+                <button
                   onClick={() => setSelectedPlan("anual")}
                   className={cn(
-                    "relative flex-1 flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold transition-all",
+                    "relative flex-1 flex flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all min-w-[70px]",
                     selectedPlan === "anual"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -293,20 +344,38 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 >
                   Anual
                   <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[9px] font-black tracking-wider uppercase",
+                    "rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase mt-0.5",
                     selectedPlan === "anual" ? "bg-[#FA6305] text-white" : "bg-orange-100 text-[#FA6305]"
                   )}>
-                    Economize 18%
+                    +1 Mês Grátis
                   </span>
                 </button>
               </div>
             </div>
 
+            {selectedPlan === "anual" && (
+              <div className="mt-3 mb-2 overflow-hidden rounded-xl bg-gradient-to-r from-[#FA6305] to-[#f58b45] p-[2px] shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-center gap-3 bg-white/95 px-4 py-2.5 rounded-[10px]">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                    <span className="text-xl">🎁</span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[13px] font-black text-slate-900 leading-tight">
+                      Ganhe o 13º Mês Grátis!
+                    </p>
+                    <p className="text-[11px] font-bold text-[#FA6305]">
+                      Plano de 13 meses por apenas R$ 4.800
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Price Display */}
             <div className="text-center pb-2">
               <div className="flex items-end justify-center gap-1">
                 <span className="text-4xl font-black text-[#1da051]">
-                  R$ {finalPrice}
+                  R$ {finalPrice % 1 === 0 ? finalPrice : finalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-sm font-bold text-slate-400 mb-1">/mês</span>
               </div>
@@ -315,8 +384,14 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   Cupom {discount.code} ({discount.percentage}% OFF) aplicado!
                 </p>
               )}
+              {selectedPlan === "trimestral" && !discount && (
+                <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 1.323 a cada 3 meses</p>
+              )}
+              {selectedPlan === "semestral" && !discount && (
+                <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 2.499 a cada 6 meses</p>
+              )}
               {selectedPlan === "anual" && !discount && (
-                <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 4.800 anualmente</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 4.800 pelo período de 13 meses</p>
               )}
             </div>
 
@@ -371,7 +446,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
                 <div className="text-center flex justify-center items-center gap-2">
                   <span className="text-sm font-medium text-slate-500">Total a pagar:</span>
-                  <span className="text-[26px] font-black text-[#1da051]">R$ {finalPrice},00</span>
+                  <span className="text-[26px] font-black text-[#1da051]">R$ {totalToPay.toLocaleString('pt-BR')}</span>
                 </div>
 
                 <div className="space-y-2 border-t border-slate-200/80 pt-5">
@@ -406,7 +481,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                  </p>
                  <div className="pt-4 flex items-center justify-center gap-2">
                     <span className="text-sm text-slate-500">Total do plano {selectedPlan}:</span>
-                    <span className="text-xl font-bold text-blue-600">R$ {finalPrice},00</span>
+                    <span className="text-xl font-bold text-blue-600">R$ {totalToPay.toLocaleString('pt-BR')}</span>
                  </div>
               </div>
             )}
