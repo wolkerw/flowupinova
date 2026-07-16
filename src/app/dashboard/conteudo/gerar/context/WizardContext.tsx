@@ -912,7 +912,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("[WIZARD] Prompt UGC criado:", fluxPrompt);
 
         setCustomPrompt(fluxPrompt);
-        setStep(mode === "reference-photo" || mode === "reference-hybrid" ? 2 : 3);
+        setStep(
+          generateTextSuggestions
+            ? (mode === "reference-photo" || mode === "reference-hybrid" ? 2 : 3)
+            : 3
+        );
         handleSubmitImageGeneration(fluxPrompt, postId, selContent);
       } else {
         // Modo conceito (sem referenceImageFile)

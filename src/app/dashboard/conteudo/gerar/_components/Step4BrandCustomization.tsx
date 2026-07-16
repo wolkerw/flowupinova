@@ -42,6 +42,7 @@ export const Step4BrandCustomization = () => {
     user,
     businessProfile,
     insertTextOnImage,
+    generateTextSuggestions,
     setSelectedImage,
     generatedImages,
     setGeneratedImages,
@@ -51,7 +52,13 @@ export const Step4BrandCustomization = () => {
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
-  const onBack = () => setStep(isSyncImageMode ? 2 : 3);
+  const onBack = () => {
+    if (isSyncImageMode) {
+      setStep(generateTextSuggestions ? 2 : 1);
+    } else {
+      setStep(3);
+    }
+  };
   const onLogoRemove = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);
