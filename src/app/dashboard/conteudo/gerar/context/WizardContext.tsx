@@ -725,7 +725,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setIsGeneratingImages(true);
-    // Legacy setCanStartPolling removed
+    setSelectedImage(null);
     setGeneratedImages([]);
     foundFilesRef.current.clear();
 
@@ -935,6 +935,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setIsGeneratingImages(true);
+    setSelectedImage(null);
     setGeneratedImages([]);
     foundFilesRef.current.clear();
 
