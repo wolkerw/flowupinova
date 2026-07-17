@@ -1406,43 +1406,42 @@ ${yamlAnalysis}`;
         // Prompt Híbrido Avançado
         let priorityRule = "";
         if (hybridPriority === "scenario") {
-          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 de forma nítida e de corpo inteiro ou plano americano/médio-longo (menor no enquadramento) para dar destaque total à arquitetura.
-2. INTEGRAÇÃO FÍSICA NA ARQUITETURA (CRÍTICO): Posicione a pessoa integrada fisicamente aos elementos da casa/construção da Foto 2. Ela deve ser retratada encostada casualmente em uma parede externa, ao lado da porta de entrada, subindo os degraus da varanda, ou entrando pela porta. A pessoa serve como elemento de escala e contexto humano, e não como um retrato central em close-up.
-3. PRESERVAÇÃO RÍGIDA DO CENÁRIO (CRÍTICO): O cenário, a casa, o interior ou a arquitetura da Foto 2 são o assunto principal de primeiro e segundo plano. Você deve reproduzir este cenário físico (fachada, varanda, portas, janelas, texturas de pedra/madeira) com máxima fidelidade.
-4. POSICIONAMENTO LATERAL ASSIMÉTRICO (REGRA DOS TERÇOS): Posicione a pessoa da Foto 1 de forma deslocada para a lateral esquerda ou lateral direita da imagem (não centralizada). O centro do enquadramento deve permanecer totalmente livre e desimpedido para exibir a fachada da casa, a porta ou os detalhes estruturais da Foto 2.`;
+          priorityRule = `1. SUBJECT FIDELITY: Depict the person from Photo 1 clearly, but frame them in a wide-shot, full-body, or medium-wide shot (smaller in the frame) to give absolute prominence and priority to the architecture of the house.
+2. PHYSICAL INTEGRATION INTO THE ARCHITECTURE (CRITICAL): Position the person physically integrated with the house/building elements from Photo 2. They must be depicted leaning casually against an external wall, standing right next to the entrance doorway, climbing the porch steps, or entering the door. The person must serve as a scale reference and human context, NEVER as a large, central close-up portrait.
+3. RIGID SCENARIO PRESERVATION (CRITICAL): The scenario, house, interior, or architecture from Photo 2 is the main subject of the foreground and background. You must replicate this physical structure (facade, porch, doors, windows, stone/wood textures) with maximum fidelity.
+4. ASYMMETRIC LATERAL POSITIONING (RULE OF THIRDS): Position the person from Photo 1 off-center, shifted to the far-left or far-right of the image (never centered). The center of the frame must remain completely open and unobstructed to beautifully display the main entrance, door, and structural facade of the house in Photo 2.`;
         } else if (hybridPriority === "packshot") {
-          priorityRule = `1. TROCA DE PRODUTO (PRODUCT SWAP): Identifique o produto central de primeiro plano na Foto 2 e substitua-o inteiramente pelo produto da Foto 1. Coloque o produto da Foto 1 na exata mesma posição, escala e ângulo do original.
-2. FIDELIDADE DO PRODUTO: Preserve com máxima precisão o formato, cores, rótulos, logo, textos e marcas do produto da Foto 1. Ele deve continuar legível e idêntico à referência.
-3. PRESERVAÇÃO RÍGIDA DO CENÁRIO DE FUNDO: O cenário de fundo, decorações, superfícies (como mesa, gelo, etc.) e o ambiente da Foto 2 devem ser recriados com máxima fidelidade. Não o substitua por um cenário genérico.
-4. FUSÃO DE ILUMINAÇÃO E REFLEXOS: O novo produto deve absorver de forma realista a luz (direção, cor e brilho), reflexos de superfície e as sombras de contato que o produto original tinha na Foto 2.`;
+          priorityRule = `1. PRODUCT SWAP: Identify the main foreground product in Photo 2 and replace it entirely with the product from Photo 1. Place the product from Photo 1 in the exact same position, scale, and angle as the original.
+2. PRODUCT FIDELITY: Replicate the shape, colors, labels, logo, text, and brands of the product from Photo 1 with maximum precision. It must remain readable and identical to the reference.
+3. RIGID BACKDROP PRESERVATION: Recreate the background scenery, decorations, surfaces (table, shelf, ice, etc.) from Photo 2 with maximum fidelity. Do not replace it with a generic background.
+4. LIGHTING & SHADOW FUSION: The new product must realistically absorb the lighting (direction, color, brightness), surface reflections, and contact shadows of the original product from Photo 2.`;
         } else if (hybridPriority === "person") {
-          priorityRule = `1. FIDELIDADE MÁXIMA DA PESSOA (FOCO PRINCIPAL): Retrate a pessoa da Foto 1 com altíssima fidelidade de detalhes faciais, fisionomia, expressão e pele. Ela é a heroína absoluta da foto.
-2. RECRIAÇÃO DE CORPO E ROUPAS: Desenhe poses corporais naturais e roupas sofisticadas que combinem com a fisionomia e o tema.
-3. ADAPTAÇÃO FLEXÍVEL DO CENÁRIO: O produto/cenário da Foto 2 serve apenas de contexto geral e ambientação de fundo. Você tem total liberdade criativa para simplificar, recortar ou desfocar (efeito bokeh) o fundo da Foto 2 para dar total destaque à pessoa.
-4. FUSÃO DE ILUMINAÇÃO: Integre a pessoa e o cenário de fundo com uma iluminação artística e profissional direcionada ao sujeito principal.`;
+          priorityRule = `1. MAXIMUM PERSON FIDELITY (PRIMARY FOCUS): Depict the person from Photo 1 with extremely high fidelity of facial features, posture, expressions, and skin textures. They are the absolute hero of the shot.
+2. BODY & APPAREL RECREATION: Draw natural body poses and sophisticated clothing that match the person's physique and the overall theme.
+3. FLEXIBLE SCENARIO ADAPTATION: The product/scenery from Photo 2 serves only as loose background context. You have total creative freedom to simplify, crop, or blur (bokeh effect) the background of Photo 2 to emphasize the person.
+4. LIGHTING FUSION: Integrate the person and the background scene with professional, artistic lighting focused on the main subject.`;
         } else {
-          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 com máxima fidelidade fisionômica (rosto, barba/cabelo, cor dos olhos e pele). ela deve ser claramente identificável.
-2. RECRIAÇÃO DE CORPO E ROUPAS: Estenda o corpo e desenhe poses naturais com vestimentas refinadas e de alta qualidade que harmonizem com o cenário.
-3. INTEGRIDADE DO PRODUTO/PROJETO: Preserve o produto ou projeto da Foto 2 com suas características físicas, cores e proporções originais.
-4. INTEGRAÇÃO TRIDIMENSIONAL: Posicione o produto/projeto e a pessoa na cena de forma integrada com iluminação, sombras e reflexos realistas. O cenário de fundo deve mesclá-los de forma natural.`;
+          priorityRule = `1. SUBJECT FIDELITY: Depict the person from Photo 1 with maximum physical fidelity (face, hair, eyes, skin). They must be clearly recognizable.
+2. BODY & APPAREL RECREATION: Draw natural body poses with refined, high-quality clothing that harmonizes with the scenario.
+3. PRODUCT/PROJECT INTEGRITY: Replicate the product or project from Photo 2, preserving its physical features, colors, and original proportions.
+4. THREE-DIMENSIONAL INTEGRATION: Position the product/project and the person in the scene integrated with realistic lighting, shadows, and reflections. The background must blend them naturally.`;
         }
 
         const inputIsPackshot = hybridPriority === "packshot";
-        nanobananaPrompt = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
-Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
+        nanobananaPrompt = `You are an elite Director of Photography, Editorial Portraitist, and Senior Ad Designer.
+Based on the two reference images provided (Photo 1: ${inputIsPackshot ? "User's Product" : "User's Selfie/Person"}; Photo 2: ${inputIsPackshot ? "Commercial Backdrop/Scenario" : "Product/Project Scenario"}), generate a premium, realistic lifestyle commercial image integrating both into the scene.
 
-DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC A SEREM RIGOROSAMENTE SEGUIDAS:
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
-- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se a cena contiver uma pessoa ou modelo, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Deixe um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
-- Use iluminação natural profissional para criar profundidade tridimensional e separação de planos (ex: luz solar indireta suave, luz de preenchimento suave casting sombras diagonais quentes, iluminação volumétrica).
-- Configure a composição como se fosse tirada por uma câmera profissional de ponta com lente de 50mm ou 85mm, com foco cirúrgico no sujeito principal e desfoque suave de fundo (circular bokeh).
-- Preserve texturas realistas e tangíveis (granulação sutil de película analógica, poros finos na pele, dobras e fios no tecido, reflexos em vidro de verdade).
-- Evite artificialidades plásticas de inteligência artificial. A imagem final deve parecer real, orgânica e capturada em um ambiente real.
+UGC PHOTOGRAPHIC ESTHETIC GUIDELINES (STRICTLY FOLLOW):
+- CRITICAL TEXT PROHIBITION RULE (ABSOLUTELY NO TEXT - ZERO TOLERANCE): The final image must NOT contain any text, words, letters, numbers, logos, watermarks, or graphical badges. The image must be purely photographic and completely clean of typography.
+- CRITICAL FRAMING RULE (ABSOLUTELY NO CROPPED HEADS): If the scene contains a person, you must show their entire head, hair, and face fully contained within the frame with generous headroom at the top. Never clip or cut off the head.
+- Use professional natural lighting to create three-dimensional depth and separation (e.g., soft indirect sunlight, soft side-lighting casting warm diagonal shadows).
+- Replicate a high-end professional camera look (50mm or 85mm lens, sharp focus on the main subject, soft circular bokeh background).
+- Preserve realistic, tangible textures (film grain, skin pores, fabric folds, real glass reflections). Avoid fake AI plastic look.
 
-DIRETRIZES DE CRIAÇÃO HÍBRIDA DO SEU FLUXO:
+HYBRID CREATION RULES FOR THIS RUN:
 ${priorityRule}
 
-Cenário e estilo desejados: ${prompt}`;
+Desired scenario and style: ${prompt}`;
 
         contentsParts = [
           { text: nanobananaPrompt },
@@ -1461,23 +1460,23 @@ Cenário e estilo desejados: ${prompt}`;
         ];
       } else {
         // Prompt Tradicional (Pessoa Única ou Produto Único)
-        nanobananaPrompt = `Aqui está a foto de referência do produto (com fundo transparente/removido).
-Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
+        nanobananaPrompt = `Here is the user's product reference photo (with transparent/removed background).
+You are a Senior Commercial Photographer and Ad Designer specializing in premium UGC campaigns. Generate a realistic lifestyle commercial ad placing this product into the desired scenario described below.
 
-ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
-1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXACTAMENTE como estão na foto de referência.
-2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
-3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
-4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
+CRITICAL PRODUCT PRESERVATION RULES:
+1. Maintain the exact physical shape, formatting, brands, labels, logos, text, and colors of the product from the reference photo.
+2. Do not distort, modify, or change the product. It must look real, sharp, and identical to the reference.
+3. Position the product three-dimensionally, integrating it with realistic contact shadows and reflections on the surface.
+4. Any text or label on the product must remain readable and identical to the original.
 
-DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
-- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
-- Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave, sombras de contato suaves sob o produto, reflexos realistas de superfície).
-- Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm com foco cirúrgico no produto e profundidade de campo rasa no cenário de fundo.
-- Evite renderizações genéricas ou cores plásticas artificiais. Dê ênfase a texturas palpáveis e grão fotográfico sutil.
+UGC PHOTOGRAPHIC ESTHETIC GUIDELINES:
+- CRITICAL TEXT PROHIBITION RULE (ABSOLUTELY NO TEXT - ZERO TOLERANCE): The final image must NOT contain any text, words, letters, numbers, logos, watermarks, or graphical badges. The image must be completely clean of typography.
+- CRITICAL FRAMING RULE (ABSOLUTELY NO CROPPED HEADS): If the scene contains a person, you must show their entire head, hair, and face fully contained within the frame with generous headroom at the top. Never clip or cut off the head.
+- Integrate the product organically with professional studio or natural ambient lighting (e.g., soft window sunlight, soft contact shadows beneath the product, realistic surface reflections).
+- Simulate a premium camera shot using a professional 50mm or 85mm lens, sharp focus on the product, and shallow depth of field in the background.
+- Avoid generic renders or artificial plastic colors. Emphasize tangible textures and subtle photographic grain.
 
-Cenário e estilo desejados: ${prompt}`;
+Desired scenario and style: ${prompt}`;
 
         contentsParts = [
           { text: nanobananaPrompt },
