@@ -76,7 +76,7 @@ interface WizardContextType {
   setUserTagsInput: (input: string) => void;
   isGeneratingImages: boolean;
   setIsGeneratingImages: (val: boolean) => void;
-  canStartPolling: boolean;
+  // Legacy canStartPolling removed
   contentHistory: GeneratedContent[];
   unusedImagesHistory: string[];
   customPrompt: string;
@@ -226,7 +226,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [businessProfile, setBusinessProfile] = useState<OnboardingProfileData | null>(null);
 
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [canStartPolling, setCanStartPolling] = useState(false);
+  // Legacy canStartPolling state removed
   const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
   const [unusedImagesHistory, setUnusedImagesHistory] = useState<string[]>([]);
   const [customPrompt, setCustomPrompt] = useState<string>("");
@@ -408,97 +408,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    let attempts = 0;
-    const maxAttempts = 30;
-
-    if ((step === 3 || step === 4) && currentPostId && !referenceImageFile && canStartPolling) {
-      const poll = async () => {
-        attempts++;
-        const targetCount = inspirationFile ? 1 : 2;
-        const baseFilenames = inspirationFile ? ["1"] : ["1", "2"];
-        const filenamesToCheck = baseFilenames.filter((f) => !foundFilesRef.current.has(f));
-
-        if (filenamesToCheck.length === 0) {
-          setIsGeneratingImages(false);
-          return true;
-        }
-
-        const fetchPromises = filenamesToCheck.map(async (filename) => {
-          try {
-            const response = await fetch(
-              "https://webhook.flowupinova.com.br/webhook/buscar-imagens-supabase",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  postId: currentPostId,
-                  filename: filename,
-                  fileExtension: "png",
-                }),
-              }
-            );
-
-            if (response.ok) {
-              const contentType = response.headers.get("content-type");
-
-              if (contentType?.includes("application/json")) {
-                const data = await response.json();
-                const url = Array.isArray(data) ? data[0]?.url_post : data?.url_post;
-                if (url) {
-                  foundFilesRef.current.add(filename);
-                  setGeneratedImages((prev) => [...prev, url]);
-                  setSelectedImage((prev) => prev || url);
-                }
-              } else {
-                const blob = await response.blob();
-                if (blob.size > 100 && blob.type.startsWith("image/")) {
-                  const imageUrl = URL.createObjectURL(blob);
-                  blobURLsRef.current.add(imageUrl);
-                  foundFilesRef.current.add(filename);
-
-                  setGeneratedImages((prev) => [...prev, imageUrl]);
-                  setSelectedImage((prev) => prev || imageUrl);
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`[POLLING] Erro ao buscar imagem ${filename}:`, error);
-          }
-        });
-
-        await Promise.all(fetchPromises);
-
-        if (foundFilesRef.current.size === targetCount) {
-          setIsGeneratingImages(false);
-          return true;
-        }
-
-        if (attempts >= maxAttempts) {
-          setIsGeneratingImages(false);
-          return true;
-        }
-
-        return false;
-      };
-
-      poll().then((stopped) => {
-        if (!stopped) {
-          interval = setInterval(async () => {
-            const shouldStop = await poll();
-            if (shouldStop) {
-              clearInterval(interval);
-            }
-          }, 10000);
-        }
-      });
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [step, currentPostId, isGeneratingImages, toast, referenceImageFile, canStartPolling]);
+  // Polling useEffect for webhook removed as it's no longer used
 
   const handleReferenceImageChange = (file: File | null) => {
     if (file) {
@@ -815,7 +725,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setIsGeneratingImages(true);
-    setCanStartPolling(false);
+    // Legacy setCanStartPolling removed
     setGeneratedImages([]);
     foundFilesRef.current.clear();
 
@@ -1025,7 +935,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setIsGeneratingImages(true);
-    setCanStartPolling(true);
     setGeneratedImages([]);
     foundFilesRef.current.clear();
 
@@ -1035,6 +944,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       if (referenceImageFile) {
+        // Legacy setCanStartPolling removed
         // --- ETAPA 3: SUBMETER PARA FILA DO FAL.AI ---
         console.log("[WIZARD] Etapa 3: Submetendo na fila de IA...");
 
@@ -1861,7 +1771,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setUserTagsInput,
         isGeneratingImages,
         setIsGeneratingImages,
-        canStartPolling,
+        // Legacy canStartPolling removed
         contentHistory,
         unusedImagesHistory,
         referenceImageFile,

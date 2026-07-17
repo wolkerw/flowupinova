@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 import { admin, adminDb, getUidFromCookie } from "@/lib/firebase-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import crypto from "crypto";
 
 export const maxDuration = 300;
@@ -75,17 +76,7 @@ export async function POST(request: NextRequest) {
       const userId = await getUidFromCookie().catch(() => "anonymous");
       const buffer = Buffer.from(await file.arrayBuffer());
 
-      let userName = "User";
-      try {
-        const userDoc = await adminDb.collection("users").doc(userId).get();
-        if (userDoc.exists) {
-          userName = userDoc.data()?.name || "User";
-        }
-      } catch (e) {
-        console.warn("[PROXY_WEBHOOK] Erro ao recuperar nome do usuário no Firestore:", e);
-      }
-
-      const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, "_");
+      const userStoragePath = await getUserStoragePathAdmin(userId);
       const dateStr = new Date()
         .toISOString()
         .replace(/T/, "_")
@@ -93,7 +84,7 @@ export async function POST(request: NextRequest) {
         .replace(/[^0-9_]/g, "");
 
       const bucket = admin.storage().bucket();
-      const filename = `users/${cleanUserName}_${userId}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
+      const filename = `${userStoragePath}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
       const fileRef = bucket.file(filename);
       const downloadToken = crypto.randomUUID();
 
@@ -206,17 +197,7 @@ export async function POST(request: NextRequest) {
 
       const userId = await getUidFromCookie().catch(() => "anonymous");
 
-      let userName = "User";
-      try {
-        const userDoc = await adminDb.collection("users").doc(userId).get();
-        if (userDoc.exists) {
-          userName = userDoc.data()?.name || "User";
-        }
-      } catch (e) {
-        console.warn("[PROXY_WEBHOOK] Erro ao recuperar nome do usuário no Firestore:", e);
-      }
-
-      const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, "_");
+      const userStoragePath = await getUserStoragePathAdmin(userId);
       const dateStr = new Date()
         .toISOString()
         .replace(/T/, "_")
@@ -224,7 +205,7 @@ export async function POST(request: NextRequest) {
         .replace(/[^0-9_]/g, "");
 
       const bucket = admin.storage().bucket();
-      const filename = `users/${cleanUserName}_${userId}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
+      const filename = `${userStoragePath}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
       const fileRef = bucket.file(filename);
       const downloadToken = crypto.randomUUID();
 

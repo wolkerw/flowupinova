@@ -30,6 +30,7 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
    - Rounded corners: `0.5rem` (8px)
    - Buttons: Solid colors only (no gradients).
 4. **Garantir o envio das imagens fixas**: Sempre inclua e comite no repositório todas as imagens estáticas/fixas utilizadas pelas páginas do site (na pasta `public/`), para que estejam sempre visíveis nos ambientes de deploy e homologação.
+5. **Sincronização de Prompts no Admin**: Sempre que atualizar alguma regra, instrução ou parâmetro nos prompts de IA ou modelos de imagens no back-end (endpoints/APIs), lembre-se de atualizar também a exibição desses prompts e modelos na tela de "Configurações" (painel admin) para manter a interface de auditoria do usuário 100% fiel e sincronizada.
 
 ## 🧪 Testing and Mocking Guidelines
 

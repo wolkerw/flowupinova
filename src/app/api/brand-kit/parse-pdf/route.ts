@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { admin, adminDb } from "@/lib/firebase-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 
 export const maxDuration = 300;
 
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
     let publicUrl = "";
     try {
       const bucket = admin.storage().bucket();
-      const fileName = `users/${userId}/brand_guides/${Date.now()}_manual_marca.pdf`;
+      const userStoragePath = await getUserStoragePathAdmin(userId);
+      const fileName = `${userStoragePath}/brand_guides/${Date.now()}_manual_marca.pdf`;
       const fileRef = bucket.file(fileName);
 
       await fileRef.save(buffer, {

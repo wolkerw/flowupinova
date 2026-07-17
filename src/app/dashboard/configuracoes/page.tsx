@@ -23,6 +23,8 @@ import {
   type OnboardingLogoData,
   type OnboardingPersona,
 } from "@/lib/services/onboarding-service";
+import { updateBusinessProfile } from "@/lib/services/business-profile-service";
+import { getUserStoragePathClient } from "@/lib/utils/storage-utils-client";
 import { createCnpjRequest } from "@/lib/services/cnpj-request-service";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 import {
@@ -214,7 +216,8 @@ export default function ConfiguracoesPage() {
       const uploadBase64ToStorage = async (base64Str: string, type: string) => {
         const res = await fetch(base64Str);
         const blob = await res.blob();
-        const storageRef = ref(storage, `users/${user.uid}/logos/${type}_migrated_${Date.now()}`);
+        const userStoragePath = getUserStoragePathClient(user);
+        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
         const uploadResult = await uploadBytes(storageRef, blob);
         return await getDownloadURL(uploadResult.ref);
       };
@@ -421,7 +424,8 @@ export default function ConfiguracoesPage() {
 
     try {
       // 1. Fazer upload para o Firebase Storage
-      const storageRef = ref(storage, `users/${user.uid}/logos/${type}_${Date.now()}`);
+      const userStoragePath = getUserStoragePathClient(user);
+      const storageRef = ref(storage, `${userStoragePath}/logos/${type}_${Date.now()}`);
       const uploadResult = await uploadBytes(storageRef, file);
       const downloadUrl = await getDownloadURL(uploadResult.ref);
 
@@ -675,7 +679,8 @@ export default function ConfiguracoesPage() {
       const uploadBase64ToStorage = async (base64Str: string, type: string) => {
         const res = await fetch(base64Str);
         const blob = await res.blob();
-        const storageRef = ref(storage, `users/${user.uid}/logos/${type}_migrated_${Date.now()}`);
+        const userStoragePath = getUserStoragePathClient(user);
+        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
         const uploadResult = await uploadBytes(storageRef, blob);
         return await getDownloadURL(uploadResult.ref);
       };

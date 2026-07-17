@@ -4,11 +4,13 @@ import { Jimp } from "jimp";
 import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
 
 export const maxDuration = 300;
 
-function safeJsonParse(rawText, fallback = null) {
+function safeJsonParse(rawText: any, fallback = null) {
+  if (!rawText || typeof rawText !== "string") return fallback;
   let cleaned = rawText.trim();
   if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
   else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
@@ -955,6 +957,7 @@ ${yamlAnalysis}`;
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
       const userId = (formData.get("userId") as string) || "";
+      const userStoragePath = await getUserStoragePathAdmin(userId);
       const caption = (formData.get("caption") as string) || null;
 
       if (!prompt || !postId || !userId) {
@@ -1022,7 +1025,7 @@ ${yamlAnalysis}`;
           `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
         );
       const buffer = Buffer.from(imageBytes, "base64");
-      const fileRef = bucket.file(`users/${userId}/posts/${postId}/imagen4_ref_generated.jpg`);
+      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/imagen4_ref_generated.jpg`);
       const downloadToken = crypto.randomUUID();
 
       await fileRef.save(buffer, {
@@ -1100,6 +1103,7 @@ ${yamlAnalysis}`;
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
       const userId = (formData.get("userId") as string) || "";
+      const userStoragePath = await getUserStoragePathAdmin(userId);
       const caption = (formData.get("caption") as string) || null;
       const hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
 
@@ -1439,6 +1443,7 @@ ${yamlAnalysis}`;
 Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC A SEREM RIGOROSAMENTE SEGUIDAS:
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se a cena contiver uma pessoa ou modelo, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Deixe um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
 - Use iluminação natural profissional para criar profundidade tridimensional e separação de planos (ex: luz solar indireta suave, luz de preenchimento suave casting sombras diagonais quentes, iluminação volumétrica).
 - Configure a composição como se fosse tirada por uma câmera profissional de ponta com lente de 50mm ou 85mm, com foco cirúrgico no sujeito principal e desfoque suave de fundo (circular bokeh).
 - Preserve texturas realistas e tangíveis (granulação sutil de película analógica, poros finos na pele, dobras e fios no tecido, reflexos em vidro de verdade).
@@ -1476,6 +1481,7 @@ ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
 4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
 - Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave, sombras de contato suaves sob o produto, reflexos realistas de superfície).
 - Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm com foco cirúrgico no produto e profundidade de campo rasa no cenário de fundo.
 - Evite renderizações genéricas ou cores plásticas artificiais. Dê ênfase a texturas palpáveis e grão fotográfico sutil.
@@ -1568,7 +1574,7 @@ Cenário e estilo desejados: ${prompt}`;
           `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
         );
       const generatedBuffer = Buffer.from(imageBytes, "base64");
-      const fileRef = bucket.file(`users/${userId}/posts/${postId}/nanobanana_ref_generated.jpg`);
+      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/nanobanana_ref_generated.jpg`);
       const downloadToken = crypto.randomUUID();
 
       await fileRef.save(generatedBuffer, {
@@ -1591,7 +1597,7 @@ Cenário e estilo desejados: ${prompt}`;
           if (refRes2.ok) {
             const refBuffer2 = Buffer.from(await refRes2.arrayBuffer());
             const refFileRef2 = bucket.file(
-              `users/${userId}/posts/${postId}/secondary_reference_image.jpg`
+              `${userStoragePath}/posts/${postId}/secondary_reference_image.jpg`
             );
             const refDownloadToken2 = crypto.randomUUID();
 
@@ -1688,6 +1694,7 @@ Cenário e estilo desejados: ${prompt}`;
       const prompt = formData.get("prompt") as string;
       const postId = (formData.get("postId") as string) || "";
       const userId = (formData.get("userId") as string) || "";
+      const userStoragePath = await getUserStoragePathAdmin(userId);
 
       if (!prompt) {
         return NextResponse.json({ error: "Campo 'prompt' ausente." }, { status: 400 });
@@ -1739,7 +1746,7 @@ Cenário e estilo desejados: ${prompt}`;
                 admin.app().options.storageBucket || "studio-7502195980-3983c.firebasestorage.app"
               );
             const buffer = Buffer.from(b64Data, "base64");
-            const fileRef = bucket.file(`users/${userId}/posts/${postId}/temp_dalle.jpg`);
+            const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/temp_dalle.jpg`);
             const downloadToken = crypto.randomUUID();
 
             await fileRef.save(buffer, {
@@ -1841,7 +1848,7 @@ Cenário e estilo desejados: ${prompt}`;
 
         const finalBuffer = buffer;
 
-        const fileRef = bucket.file(`users/${userId}/posts/${postId}/generated_image.jpg`);
+        const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/generated_image.jpg`);
         const downloadToken = crypto.randomUUID();
 
         // Salvar o buffer no Storage com permissão total via Admin e registrar o download token
@@ -1868,7 +1875,7 @@ Cenário e estilo desejados: ${prompt}`;
             const buffer = Buffer.from(arrayBuffer);
             const contentType = refRes.headers.get("Content-Type") || "image/jpeg";
 
-            const refFileRef = bucket.file(`users/${userId}/posts/${postId}/reference_image.jpg`);
+            const refFileRef = bucket.file(`${userStoragePath}/posts/${postId}/reference_image.jpg`);
             const refDownloadToken = crypto.randomUUID();
 
             await refFileRef.save(buffer, {
@@ -1896,7 +1903,7 @@ Cenário e estilo desejados: ${prompt}`;
             const contentType2 = refRes2.headers.get("Content-Type") || "image/jpeg";
 
             const refFileRef2 = bucket.file(
-              `users/${userId}/posts/${postId}/secondary_reference_image.jpg`
+              `${userStoragePath}/posts/${postId}/secondary_reference_image.jpg`
             );
             const refDownloadToken2 = crypto.randomUUID();
 
@@ -1946,7 +1953,7 @@ Cenário e estilo desejados: ${prompt}`;
           await galleryRef.doc(galleryMediaId).set({
             id: galleryMediaId,
             url: firebaseDownloadUrl,
-            storagePath: `users/${userId}/posts/${postId}/generated_image.jpg`,
+            storagePath: `${userStoragePath}/posts/${postId}/generated_image.jpg`,
             source: "reference_generation",
             prompt: "Imagem gerada a partir de foto do produto via IA.",
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
