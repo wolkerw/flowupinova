@@ -2619,11 +2619,46 @@ export default function CriarConteudoPage() {
             </div>
           </div>
 
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg">Agendamento e Plataformas</CardTitle>
-              <p className="text-sm text-gray-600">Escolha quando e onde publicar seu conteúdo.</p>
-            </CardHeader>
+          <div className="space-y-6">
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Editor de Texto</CardTitle>
+                <p className="text-sm text-gray-600">Escreva e edite a legenda da sua publicação antes de publicar.</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="post-text-step3" className="font-semibold text-gray-700">
+                    Legenda
+                  </Label>
+                  <Textarea
+                    id="post-text-step3"
+                    placeholder="Escreva aqui a legenda da sua publicação..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="min-h-[120px] bg-white"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  className="flex w-full items-center gap-2"
+                  onClick={handleGenerateText}
+                  disabled={isGeneratingText}
+                >
+                  {isGeneratingText ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                  )}
+                  Melhorar com IA
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Agendamento e Plataformas</CardTitle>
+                <p className="text-sm text-gray-600">Escolha quando e onde publicar seu conteúdo.</p>
+              </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <Label className="font-semibold">Onde Publicar?</Label>
@@ -2947,8 +2982,9 @@ export default function CriarConteudoPage() {
                 )}
             </CardFooter>
           </Card>
+        </div>
 
-          <div className="col-span-full mt-8 flex justify-between">
+        <div className="col-span-full mt-8 flex justify-between">
             <Button variant="outline" onClick={handleBackToStep2}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
