@@ -58,7 +58,7 @@ export const HeroSection = () => {
                 asChild
                 variant="outline"
                 size="lg"
-                className="h-14 w-full rounded-full border-[#FA6305] px-8 text-lg text-[#FA6305] transition-transform duration-300 hover:scale-105 hover:bg-orange-50 sm:w-auto"
+                className="h-14 w-full rounded-full border-[#FA6305] px-8 text-lg text-[#FA6305] transition-transform duration-300 hover:scale-105 hover:bg-orange-50 hover:text-[#FA6305] sm:w-auto"
               >
                 <Link href="#como-funciona">
                   <PlayCircle className="mr-2 h-5 w-5" />
