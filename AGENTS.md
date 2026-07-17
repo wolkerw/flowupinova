@@ -42,3 +42,4 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
 1. **Planning Phase**: Prior to implementing any changes, run research commands (grep/view files) and present a detailed implementation plan in Markdown. Obtain user approval before writing code.
 2. **Test-First Principle**: When creating a new service or feature, proactively create corresponding unit or integration tests under `__tests__` directories.
 3. **No Placeholders**: Never write placeholder components or mock image strings. Generate functional logic and use image assets correctly.
+4. **Explicit Push Approval**: Never run `git push` or push changes to remote branches (`uat` or `main`) automatically. Always ask for explicit user permission or command before sending any commits.
