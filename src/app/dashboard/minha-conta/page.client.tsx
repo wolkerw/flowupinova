@@ -4,11 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +15,7 @@ import { AlertTriangle, CheckCircle2, Shield, User, Loader2 } from "lucide-react
 export function MinhaContaPageClient() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [userPlan, setUserPlan] = useState<string>("Carregando...");
   const [loading, setLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -83,11 +79,11 @@ export function MinhaContaPageClient() {
     } catch (error: any) {
       console.error("Erro ao alterar senha:", error);
       let errorMessage = "Ocorreu um erro ao alterar sua senha. Tente novamente.";
-      
+
       if (error.code === "auth/invalid-credential") {
         errorMessage = "A senha atual informada está incorreta.";
       }
-      
+
       toast({
         title: "Erro ao alterar senha",
         description: errorMessage,
@@ -107,10 +103,10 @@ export function MinhaContaPageClient() {
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8 p-6 md:p-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Minha Conta</h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="mt-2 text-muted-foreground">
           Gerencie os detalhes do seu plano e suas configurações de segurança.
         </p>
       </div>
@@ -121,23 +117,17 @@ export function MinhaContaPageClient() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
+                <Shield className="h-5 w-5 text-primary" />
                 Assinatura
               </CardTitle>
-              <CardDescription>
-                Informações sobre seu plano atual na NumVapt.
-              </CardDescription>
+              <CardDescription>Informações sobre seu plano atual na NumVapt.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label className="text-muted-foreground">Plano Atual</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xl font-bold text-slate-900">
-                    {userPlan}
-                  </span>
-                  {userPlan === "PRO" && (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  )}
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-xl font-bold text-slate-900">{userPlan}</span>
+                  {userPlan === "PRO" && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                 </div>
               </div>
             </CardContent>
@@ -146,7 +136,7 @@ export function MinhaContaPageClient() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" />
+                <User className="h-5 w-5 text-primary" />
                 Informações de Login
               </CardTitle>
               <CardDescription>
@@ -156,9 +146,7 @@ export function MinhaContaPageClient() {
             <CardContent>
               <div>
                 <Label className="text-muted-foreground">E-mail</Label>
-                <div className="mt-1 font-medium text-slate-900">
-                  {user.email}
-                </div>
+                <div className="mt-1 font-medium text-slate-900">{user.email}</div>
               </div>
             </CardContent>
           </Card>
@@ -169,14 +157,16 @@ export function MinhaContaPageClient() {
           <CardHeader>
             <CardTitle>Alterar Senha</CardTitle>
             <CardDescription>
-              Mantenha sua conta segura. Se sua conta foi criada pela nossa equipe, recomendamos que altere a senha padrão agora mesmo.
+              Mantenha sua conta segura. Se sua conta foi criada pela nossa equipe, recomendamos que
+              altere a senha padrão agora mesmo.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg flex gap-3 text-orange-800">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
+            <div className="mb-6 flex gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 text-orange-800">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
               <p className="text-sm">
-                <strong>Dica de Segurança:</strong> Não use senhas fáceis como "mudar123" ou "numvapt123". Sua Vitrine Digital e seus acessos sociais são valiosos!
+                <strong>Dica de Segurança:</strong> Não use senhas fáceis como "mudar123" ou
+                "numvapt123". Sua Vitrine Digital e seus acessos sociais são valiosos!
               </p>
             </div>
 
@@ -192,7 +182,7 @@ export function MinhaContaPageClient() {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="newPassword">Nova Senha</Label>
                 <Input
@@ -217,9 +207,9 @@ export function MinhaContaPageClient() {
                 />
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-[#0083C7] hover:bg-[#006ca3]" 
+              <Button
+                type="submit"
+                className="w-full bg-[#0083C7] hover:bg-[#006ca3]"
                 disabled={loading}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

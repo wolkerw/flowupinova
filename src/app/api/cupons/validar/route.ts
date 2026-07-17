@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
-    
+
     if (!code) {
       return NextResponse.json({ error: "Código ausente" }, { status: 400 });
     }
@@ -23,13 +23,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ valid: false, error: "Cupom inativo." });
     }
 
-    return NextResponse.json({ 
-      valid: true, 
+    return NextResponse.json({
+      valid: true,
       discountPercentage: data.discountPercentage,
-      code: data.code
+      code: data.code,
     });
   } catch (error: any) {
     console.error("Erro GET validar cupom:", error);
-    return NextResponse.json({ valid: false, error: "Erro interno ao validar cupom" }, { status: 500 });
+    return NextResponse.json(
+      { valid: false, error: "Erro interno ao validar cupom" },
+      { status: 500 }
+    );
   }
 }

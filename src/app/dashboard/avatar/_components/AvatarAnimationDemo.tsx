@@ -7,7 +7,8 @@ import { Sparkles, CheckCircle2 } from "lucide-react";
 export const AvatarAnimationDemo = () => {
   const [typedText, setTypedText] = React.useState("");
   const [loopTrigger, setLoopTrigger] = React.useState(0);
-  const fullText = "Substitua o rosto desta foto profissional pelo rosto da selfie mantendo a iluminação...";
+  const fullText =
+    "Substitua o rosto desta foto profissional pelo rosto da selfie mantendo a iluminação...";
 
   React.useEffect(() => {
     let index = 0;
@@ -27,7 +28,7 @@ export const AvatarAnimationDemo = () => {
   }, [loopTrigger]);
 
   return (
-    <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm mb-8">
+    <div className="relative mx-auto mb-8 w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/50 p-6 shadow-sm">
       <div className="mb-5 flex justify-center gap-3">
         <button
           type="button"
@@ -54,7 +55,7 @@ export const AvatarAnimationDemo = () => {
                 Foto 1: Seu Rosto
               </span>
               <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-800 to-slate-900" />
-              
+
               <motion.div
                 className="z-10 h-full w-full"
                 animate={{ opacity: [1, 0.4, 0.4, 1, 1] }}
@@ -71,7 +72,7 @@ export const AvatarAnimationDemo = () => {
 
           {/* CENTRO: Foto 2 (Referência) + Prompt */}
           <div className="z-10 flex flex-1 flex-col items-center justify-center px-2">
-            <div className="relative flex h-28 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center mb-3">
+            <div className="relative mb-3 flex h-28 w-28 flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 text-center">
               <span className="absolute right-1.5 top-1.5 z-20 rounded bg-black/50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white">
                 Foto 2: Estilo
               </span>
@@ -85,9 +86,7 @@ export const AvatarAnimationDemo = () => {
             <div className="relative w-full max-w-[200px] rounded-lg border border-slate-700 bg-slate-950/80 p-2 text-left shadow-lg">
               <div className="mb-1 flex items-center gap-1">
                 <span className="h-1.5 w-1.5 animate-ping rounded-full bg-accent" />
-                <span className="text-[7px] font-bold uppercase text-slate-500">
-                  Instrução IA
-                </span>
+                <span className="text-[7px] font-bold uppercase text-slate-500">Instrução IA</span>
               </div>
               <div className="min-h-[32px] break-words font-mono text-[8px] leading-snug text-slate-300">
                 {typedText}
@@ -97,12 +96,24 @@ export const AvatarAnimationDemo = () => {
                 />
               </div>
             </div>
-            
+
             {/* Conector */}
             <div className="relative mt-2 flex h-4 w-16 items-center justify-center">
               <svg width="64" height="12" viewBox="0 0 64 12" fill="none">
-                <path d="M2 6 H 58" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-                <path d="M50 2L58 6L50 10" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M2 6 H 58"
+                  stroke="#6366f1"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M50 2L58 6L50 10"
+                  stroke="#6366f1"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
           </div>
@@ -143,7 +154,12 @@ export const AvatarAnimationDemo = () => {
                   "drop-shadow(0 0 0px rgba(99,102,241,0))",
                 ],
               }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.45, 0.55, 1] }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+                times: [0, 0.15, 0.45, 0.55, 1],
+              }}
             >
               <img
                 src="/images/avatar-demo/selfie.jpg"
@@ -156,7 +172,12 @@ export const AvatarAnimationDemo = () => {
             <motion.div
               className="absolute inset-0 z-30"
               animate={{ opacity: [0, 0, 1, 1, 1, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.45, 0.55, 0.85, 0.95, 1] }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+                times: [0, 0.45, 0.55, 0.85, 0.95, 1],
+              }}
             >
               <img
                 src="/images/avatar-demo/resultado.jpg"

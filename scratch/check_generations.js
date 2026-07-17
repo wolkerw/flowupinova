@@ -5,7 +5,7 @@ const path = require("path");
 const envPath = path.join(__dirname, "../.env.local");
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, "utf8");
-  envContent.split("\n").forEach(line => {
+  envContent.split("\n").forEach((line) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) return;
     const index = trimmed.indexOf("=");
@@ -27,7 +27,10 @@ const projectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 if (privateKey) {
-  privateKey = privateKey.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
+  privateKey = privateKey
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\n/g, "\n");
 }
 
 if (privateKey && clientEmail) {
@@ -49,19 +52,20 @@ async function run() {
   let allMedia = [];
 
   for (const userDoc of usersSnapshot.docs) {
-    const mediaSnapshot = await db.collection("users")
+    const mediaSnapshot = await db
+      .collection("users")
       .doc(userDoc.id)
       .collection("mediaGallery")
       .orderBy("createdAt", "desc")
       .limit(3)
       .get();
-    
-    mediaSnapshot.forEach(doc => {
+
+    mediaSnapshot.forEach((doc) => {
       allMedia.push({
         id: doc.id,
         path: doc.ref.path,
         userId: userDoc.id,
-        ...doc.data()
+        ...doc.data(),
       });
     });
   }

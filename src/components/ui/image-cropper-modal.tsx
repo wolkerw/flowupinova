@@ -41,18 +41,15 @@ export function ImageCropperModal({
     setZoom(zoom);
   };
 
-  const onCropCompleteHandler = useCallback(
-    (_croppedArea: any, croppedAreaPixels: any) => {
-      setCroppedAreaPixels(croppedAreaPixels);
-    },
-    []
-  );
+  const onCropCompleteHandler = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   const handleSave = async () => {
     try {
       setIsProcessing(true);
       const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels, 0);
-      
+
       if (croppedImageFile) {
         onCropComplete(croppedImageFile);
         onClose();
@@ -70,11 +67,12 @@ export function ImageCropperModal({
         <DialogHeader>
           <DialogTitle>Recortar Símbolo da Logomarca</DialogTitle>
           <DialogDescription>
-            Ajuste a imagem para focar apenas no símbolo da sua empresa. Isso será usado como o Avatar.
+            Ajuste a imagem para focar apenas no símbolo da sua empresa. Isso será usado como o
+            Avatar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full h-[300px] sm:h-[400px] bg-slate-900 rounded-lg overflow-hidden my-4">
+        <div className="relative my-4 h-[300px] w-full overflow-hidden rounded-lg bg-slate-900 sm:h-[400px]">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -90,7 +88,7 @@ export function ImageCropperModal({
         </div>
 
         <div className="flex items-center gap-4 px-4 py-2">
-          <ZoomOut className="w-5 h-5 text-muted-foreground" />
+          <ZoomOut className="h-5 w-5 text-muted-foreground" />
           <Slider
             value={[zoom]}
             min={1}
@@ -99,14 +97,18 @@ export function ImageCropperModal({
             onValueChange={(value) => setZoom(value[0])}
             className="flex-1"
           />
-          <ZoomIn className="w-5 h-5 text-muted-foreground" />
+          <ZoomIn className="h-5 w-5 text-muted-foreground" />
         </div>
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isProcessing} className="bg-[#0083C7] hover:bg-[#006ca3]">
+          <Button
+            onClick={handleSave}
+            disabled={isProcessing}
+            className="bg-[#0083C7] hover:bg-[#006ca3]"
+          >
             {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar e Salvar
           </Button>

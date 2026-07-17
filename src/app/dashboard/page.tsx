@@ -144,29 +144,36 @@ const TrialEndedOverlay = () => {
   const { user, logout } = useAuth();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl relative overflow-hidden"
+        className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white p-8 text-center shadow-2xl"
       >
-        <div className="absolute top-0 left-0 w-full h-2 bg-[#0B1426]"></div>
-        <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-           <Award className="h-8 w-8 text-[#0B1426]" />
+        <div className="absolute left-0 top-0 h-2 w-full bg-[#0B1426]"></div>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+          <Award className="h-8 w-8 text-[#0B1426]" />
         </div>
-        <h2 className="mb-2 text-2xl font-bold text-slate-900 mt-2">Período de testes finalizado</h2>
-        <p className="mb-6 text-slate-500 text-sm">
-          Seu período de teste gratuito chegou ao fim. Para continuar usando a plataforma, faça o upgrade.
+        <h2 className="mb-2 mt-2 text-2xl font-bold text-slate-900">
+          Período de testes finalizado
+        </h2>
+        <p className="mb-6 text-sm text-slate-500">
+          Seu período de teste gratuito chegou ao fim. Para continuar usando a plataforma, faça o
+          upgrade.
         </p>
-        <Button 
-          onClick={() => setShowSubscriptionModal(true)} 
-          className="w-full font-bold bg-[#1da051] hover:bg-[#168541] text-white py-6 text-[15px] mb-3 shadow-md"
+        <Button
+          onClick={() => setShowSubscriptionModal(true)}
+          className="mb-3 w-full bg-[#1da051] py-6 text-[15px] font-bold text-white shadow-md hover:bg-[#168541]"
         >
-          <Sparkles className="h-5 w-5 mr-2 text-yellow-300" />
+          <Sparkles className="mr-2 h-5 w-5 text-yellow-300" />
           Fazer Upgrade Plano PRO
         </Button>
-        <Button variant="ghost" onClick={logout} className="w-full text-sm text-slate-400 hover:text-slate-600">
-           Sair (Logout)
+        <Button
+          variant="ghost"
+          onClick={logout}
+          className="w-full text-sm text-slate-400 hover:text-slate-600"
+        >
+          Sair (Logout)
         </Button>
       </motion.div>
 

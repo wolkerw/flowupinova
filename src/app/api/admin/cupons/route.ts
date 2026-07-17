@@ -5,11 +5,11 @@ export async function GET() {
   try {
     const uid = await getUidFromCookie();
     if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
+
     const db = adminDb;
     const snapshot = await db.collection("coupons").orderBy("createdAt", "desc").get();
-    const coupons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
+    const coupons = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
     return NextResponse.json({ coupons });
   } catch (error: any) {
     console.error("Erro GET coupons:", error);
@@ -21,28 +21,31 @@ export async function POST(request: Request) {
   try {
     const uid = await getUidFromCookie();
     if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
+
     const body = await request.json();
     const { code, discountPercentage } = body;
-    
+
     if (!code || !discountPercentage) {
       return NextResponse.json({ error: "Faltam parâmetros" }, { status: 400 });
     }
 
     const db = adminDb;
     const cleanCode = String(code).toUpperCase().trim();
-    
+
     const existing = await db.collection("coupons").doc(cleanCode).get();
     if (existing.exists) {
       return NextResponse.json({ error: "Este código de cupom já existe" }, { status: 400 });
     }
 
-    await db.collection("coupons").doc(cleanCode).set({
-      code: cleanCode,
-      discountPercentage: Number(discountPercentage),
-      active: true,
-      createdAt: new Date().toISOString()
-    });
+    await db
+      .collection("coupons")
+      .doc(cleanCode)
+      .set({
+        code: cleanCode,
+        discountPercentage: Number(discountPercentage),
+        active: true,
+        createdAt: new Date().toISOString(),
+      });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -55,10 +58,10 @@ export async function DELETE(request: Request) {
   try {
     const uid = await getUidFromCookie();
     if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
+
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
-    
+
     if (!code) return NextResponse.json({ error: "Code missing" }, { status: 400 });
 
     const db = adminDb;

@@ -383,13 +383,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {userPlan === "trial" && (
                   <Button
                     onClick={() => setShowSubscriptionModal(true)}
-                    className="bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold rounded-xl shadow-sm hover:opacity-90 transition-opacity gap-2 h-9 px-4 hidden sm:flex border-0"
+                    className="hidden h-9 gap-2 rounded-xl border-0 bg-gradient-to-r from-orange-500 to-orange-400 px-4 font-bold text-white shadow-sm transition-opacity hover:opacity-90 sm:flex"
                   >
-                    <Crown className="w-4 h-4 fill-white text-white" />
+                    <Crown className="h-4 w-4 fill-white text-white" />
                     Fazer Upgrade PRO
                   </Button>
                 )}
-                
+
                 <DropdownMenu onOpenChange={handleOpenNotifications}>
                   <DropdownMenuTrigger asChild>
                     <Button

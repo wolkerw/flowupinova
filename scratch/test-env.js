@@ -1,11 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 try {
-  const envPath = path.join(__dirname, '..', '.env.local');
-  const envContent = fs.readFileSync(envPath, 'utf8');
+  const envPath = path.join(__dirname, "..", ".env.local");
+  const envContent = fs.readFileSync(envPath, "utf8");
   console.log("--- Conteúdo do arquivo .env.local ---");
-  
+
   // Vamos simular a leitura do Next.js. O Next.js usa o dotenv por trás.
   // Vamos ler a variável usando expressões regulares básicas ou dotenv simples.
   const lines = envContent.split(/\r?\n/);

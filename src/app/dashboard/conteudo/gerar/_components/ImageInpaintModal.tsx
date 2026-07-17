@@ -275,7 +275,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     centerY: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [customPresets, setCustomPresets] = useState<{ name: string; config: Partial<EditorLayer> }[]>([]);
+  const [customPresets, setCustomPresets] = useState<
+    { name: string; config: Partial<EditorLayer> }[]
+  >([]);
 
   // Carregar presets do localStorage na inicialização
   useEffect(() => {
@@ -445,7 +447,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
               ctx.lineJoin = "round";
               ctx.miterLimit = 2;
               ctx.strokeText(line, textX, yPos);
-              
+
               // Se desenhou a borda, a borda já aplicou a sombra (se houver).
               // Então desligamos a sombra para o fillText não duplicar/escurecer a sombra.
               ctx.shadowBlur = 0;
@@ -455,7 +457,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
             // Desenhar texto preenchido POR CIMA da borda
             ctx.fillText(line, textX, yPos);
-            
+
             // Religar sombra para a próxima linha
             if (l.shadowBlur && l.shadowBlur > 0) {
               ctx.shadowColor = l.shadowColor || "#000000";
@@ -979,7 +981,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     };
 
     const novoPreset = { name: presetName.trim(), config: configToSave };
-    
+
     setCustomPresets((prev) => {
       const novos = [...prev, novoPreset];
       try {
@@ -1240,64 +1242,65 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                     const cfg = preset.config;
                     const isCustom = idx >= TEXT_PRESETS.length;
                     const customIdx = idx - TEXT_PRESETS.length;
-                    
+
                     // Escalar propriedades proporcionalmente (assumindo fonte do botão ~14px)
                     const originalSize = cfg.fontSize || 40;
                     const scale = 14 / originalSize;
-                    
+
                     const shadowValues: string[] = [];
-                    
+
                     // Sombra principal do texto
                     if (cfg.shadowBlur && cfg.shadowBlur > 0) {
                       const sX = (cfg.shadowOffsetX || 0) * scale;
                       const sY = (cfg.shadowOffsetY || 0) * scale;
                       const sB = cfg.shadowBlur * scale;
-                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || '#000'}`);
+                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || "#000"}`);
                     }
-                    
+
                     // Simular stroke (borda) usando múltiplas sombras para não "comer" a fonte por dentro
                     if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
                       const sw = Math.min(cfg.textStrokeWidth * scale, 2.5); // limite para não borrar muito
                       const sc = cfg.textStrokeColor;
                       shadowValues.push(
                         `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
-                        `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
+                          `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
                       );
                     }
-                    
-                    const finalShadowCSS = shadowValues.length > 0 ? shadowValues.join(', ') : 'none';
+
+                    const finalShadowCSS =
+                      shadowValues.length > 0 ? shadowValues.join(", ") : "none";
                     const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
 
                     return (
-                      <div key={`${preset.name}-${idx}`} className="relative group">
+                      <div key={`${preset.name}-${idx}`} className="group relative">
                         <Button
                           onClick={() => addPresetLayer(cfg)}
                           variant="outline"
                           size="sm"
-                          className="h-9 min-w-[80px] border-slate-700 hover:scale-105 transition-transform"
+                          className="h-9 min-w-[80px] border-slate-700 transition-transform hover:scale-105"
                           disabled={!imageLoaded}
                           style={{
-                            backgroundColor: hasBg ? cfg.bgColor : 'transparent',
-                            color: cfg.color || '#fff',
+                            backgroundColor: hasBg ? cfg.bgColor : "transparent",
+                            color: cfg.color || "#fff",
                             fontFamily: cfg.fontFamily,
-                            fontWeight: cfg.bold ? 'bold' : 'normal',
-                            fontStyle: cfg.italic ? 'italic' : 'normal',
-                            textShadow: finalShadowCSS !== 'none' ? finalShadowCSS : undefined,
-                            padding: hasBg ? '4px 12px' : '0px',
-                            border: hasBg ? 'none' : 'none',
-                            borderRadius: hasBg ? '0px' : undefined,
+                            fontWeight: cfg.bold ? "bold" : "normal",
+                            fontStyle: cfg.italic ? "italic" : "normal",
+                            textShadow: finalShadowCSS !== "none" ? finalShadowCSS : undefined,
+                            padding: hasBg ? "4px 12px" : "0px",
+                            border: hasBg ? "none" : "none",
+                            borderRadius: hasBg ? "0px" : undefined,
                           }}
                         >
                           {preset.name}
                         </Button>
-                        
+
                         {isCustom && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteCustomPreset(customIdx);
                             }}
-                            className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600 shadow-md"
+                            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-opacity hover:bg-red-600 group-hover:opacity-100"
                             title="Excluir preset"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -1575,21 +1578,24 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                           <div className="flex gap-2">
                             {(["top", "center", "bottom"] as const).map((a) => {
                               const Icon =
-                                a === "top"
-                                  ? ChevronUp
-                                  : a === "center"
-                                    ? Minus
-                                    : ChevronDown;
+                                a === "top" ? ChevronUp : a === "center" ? Minus : ChevronDown;
                               return (
                                 <button
                                   key={a}
                                   onClick={() => updateSelected({ verticalAlign: a })}
                                   className={`flex h-9 flex-1 items-center justify-center rounded-lg border transition-colors ${
-                                    selected.verticalAlign === a || (!selected.verticalAlign && a === "center")
+                                    selected.verticalAlign === a ||
+                                    (!selected.verticalAlign && a === "center")
                                       ? "border-violet-500 bg-violet-600 text-white"
                                       : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
                                   }`}
-                                  title={a === "top" ? "Alinhar ao topo" : a === "center" ? "Centralizar verticalmente" : "Alinhar à base"}
+                                  title={
+                                    a === "top"
+                                      ? "Alinhar ao topo"
+                                      : a === "center"
+                                        ? "Centralizar verticalmente"
+                                        : "Alinhar à base"
+                                  }
                                 >
                                   <Icon className="h-4 w-4" />
                                 </button>
@@ -1610,7 +1616,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                               onChange={(e) => updateSelected({ textStrokeColor: e.target.value })}
                               className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                             />
-                            <div className="flex-1 flex flex-col gap-1">
+                            <div className="flex flex-1 flex-col gap-1">
                               <div className="flex justify-between text-[10px] text-slate-500">
                                 <span>Espessura</span>
                                 <span>{selected.textStrokeWidth}px</span>
@@ -1638,7 +1644,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                               onChange={(e) => updateSelected({ shadowColor: e.target.value })}
                               className="h-10 w-10 cursor-pointer rounded-lg border border-slate-700 bg-transparent"
                             />
-                            <div className="flex-1 flex flex-col gap-2">
+                            <div className="flex flex-1 flex-col gap-2">
                               <div className="flex flex-col gap-1">
                                 <div className="flex justify-between text-[10px] text-slate-500">
                                   <span>Desfoque (Blur)</span>
@@ -1662,7 +1668,9 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                                   max={30}
                                   step={1}
                                   value={[selected.shadowOffsetX]}
-                                  onValueChange={([v]) => updateSelected({ shadowOffsetX: v, shadowOffsetY: v })}
+                                  onValueChange={([v]) =>
+                                    updateSelected({ shadowOffsetX: v, shadowOffsetY: v })
+                                  }
                                 />
                               </div>
                             </div>
@@ -1674,7 +1682,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                           <Button
                             onClick={handleSaveCustomPreset}
                             variant="outline"
-                            className="w-full h-9 text-xs border-violet-800 bg-violet-900/20 text-violet-300 hover:bg-violet-900/40"
+                            className="h-9 w-full border-violet-800 bg-violet-900/20 text-xs text-violet-300 hover:bg-violet-900/40"
                           >
                             <Save className="mr-2 h-4 w-4" />
                             Salvar como Preset
