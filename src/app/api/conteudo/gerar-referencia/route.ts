@@ -565,6 +565,7 @@ ${
 - The prompt MUST describe the visual scene and subjects, but it MUST contain ABSOLUTELY NO text, letters, slogans, prices, or graphical UI elements written on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
 `;
 
+      let priorityInstruction = "";
       if (hybridPriority === "scenario") {
         priorityInstruction = `
 # STRICT SCENARIO FIDELITY & ASYMMETRIC FRAMING RULE (CRITICAL FOR IMMOVABLES / SCENARIOS):
