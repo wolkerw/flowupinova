@@ -1572,7 +1572,7 @@ export default function Conteudo() {
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
                 <p className="mt-1 text-gray-600">
-                  Crie, agende e analise o conteúdo para suas redes sociais.
+                  Crie, agende e analise posts e conteúdos para suas redes sociais.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
@@ -1588,10 +1588,10 @@ export default function Conteudo() {
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="mb-2 text-xl font-black leading-tight">
-                    Gerar Conteúdo Conceito com IA
+                    Criar Post
                   </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Dê uma ideia e a IA cria artes únicas sobre o seu negócio.
+                    Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
                   </p>
                 </button>
 
@@ -1607,10 +1607,10 @@ export default function Conteudo() {
                     <ImageIcon className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="mb-2 text-xl font-black leading-tight">
-                    Gerar com Foto de Produto
+                    Criar Post Enviando Foto de Produto
                   </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Mande uma foto do seu produto e a IA cria um post incrível.
+                    Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
                   </p>
                 </button>
 
@@ -1626,11 +1626,10 @@ export default function Conteudo() {
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="mb-2 text-xl font-black leading-tight">
-                    Gerar Híbrido (Pessoa + Produto)
+                    Criar Post Enviando Imagem de Pessoa e Produto/Projeto
                   </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Combine o rosto de uma pessoa (selfie) com um produto/projeto em um cenário
-                    avançado.
+                    Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de alta qualidade.
                   </p>
                 </button>
 
@@ -1645,9 +1644,9 @@ export default function Conteudo() {
                   <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
                     <Plus className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">Gerar Conteúdo Manual</h3>
+                  <h3 className="mb-2 text-xl font-black leading-tight">Criar Post Manual</h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Escolha fotos do seu arquivo e monte o seu post manualmente.
+                    Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
                   </p>
                 </button>
               </div>
