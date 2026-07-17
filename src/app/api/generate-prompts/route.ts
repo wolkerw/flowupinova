@@ -153,6 +153,12 @@ Return the description strictly in YAML format containing:
                 ],
               },
             ],
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ]
           }),
         });
 
@@ -455,6 +461,11 @@ ${textRules}
    - If you include any of these technical words, symbols (#) or hex codes, the image generator will literally print them on the image, ruining the artwork.
    - All colors must be described using natural descriptive color words in English (e.g., "rich sky blue", "elegant forest green", "warm pastel pink", "minimalist dark gray").
 
+7. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the generated prompt features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+   - You MUST explicitly inject strict spatial instructions into the generated prompt.
+   - You MUST include a phrase like: "framed in a balanced shot showing the model, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
+   - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
+
 # REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {
   "prompts": [
@@ -466,7 +477,7 @@ ${textRules}
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
     let aiResponseText = "";
     let lastError: any = null;
 
@@ -499,6 +510,12 @@ ${textRules}
                 parts: userParts,
               },
             ],
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ],
             generationConfig: {
               temperature: 1.2,
               responseMimeType: "application/json",
@@ -515,7 +532,8 @@ ${textRules}
         const candidateText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!candidateText) {
-          throw new Error(`Resposta do Gemini vazia ou em formato inesperado`);
+          console.warn("[GENERATE_PROMPTS_WARN] Resposta vazia. Payload:", JSON.stringify(resData));
+          throw new Error(`Resposta vazia ou bloqueada. Motivo: ${resData?.candidates?.[0]?.finishReason || "Desconhecido"}`);
         }
 
         aiResponseText = candidateText.trim();
@@ -538,10 +556,15 @@ ${textRules}
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
     let parsedData: any;
     try {
-      parsedData = JSON.parse(aiResponseText);
+      const match = aiResponseText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+      if (match) {
+        parsedData = JSON.parse(match[0]);
+      } else {
+        parsedData = JSON.parse(aiResponseText);
+      }
     } catch (e) {
-      const cleanedText = aiResponseText.replace(/```json|```/g, "").trim();
-      parsedData = JSON.parse(cleanedText);
+      console.error("[GENERATE_PROMPTS_ERROR] Erro ao fazer parse do JSON retornado:", aiResponseText);
+      throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
     }
 
     const promptsArray = parsedData.prompts || parsedData;

@@ -68,11 +68,23 @@ export const Step5ReviewPublish = () => {
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
+  const fallbackContent: GeneratedContent = {
+    titulo: "Nova publicação",
+    subtitulo: "",
+    hashtags: []
+  };
+
   const selectedContent =
-    selectedContentId !== undefined ? generatedContent[parseInt(selectedContentId, 10)] : null;
+    selectedContentId !== undefined ? generatedContent[parseInt(selectedContentId, 10)] || fallbackContent : fallbackContent;
 
   const handleEditContent = (field: keyof GeneratedContent, value: any) => {
-    if (selectedContentId === undefined) return;
+    if (selectedContentId === undefined) {
+      const baseContent = generatedContent[0] || fallbackContent;
+      const updated = { ...baseContent, [field]: value };
+      setGeneratedContent([updated]);
+      setSelectedContentId("0");
+      return;
+    }
     const index = parseInt(selectedContentId, 10);
     setGeneratedContent((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
   };
@@ -84,7 +96,7 @@ export const Step5ReviewPublish = () => {
   const onPublish = (mode: "now" | "schedule") =>
     mode === "now" ? handlePublish("now") : setShowSchedulerModal(true);
 
-  if (!selectedContent || !selectedImage) return null;
+  if (!selectedImage) return null;
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();

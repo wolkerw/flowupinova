@@ -202,7 +202,7 @@ export const Step4BrandCustomization = () => {
           <div className="sticky top-24 w-full">
             <div className="mx-auto w-full max-w-sm">
               <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-gray-200 shadow-md">
-                {isGeneratingImages && !selectedImage ? (
+                {isGeneratingImages ? (
                   <CircularProgressLoader isActive={isGeneratingImages} />
                 ) : selectedImage ? (
                   <>

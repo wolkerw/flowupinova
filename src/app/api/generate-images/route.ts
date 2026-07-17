@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { admin } from "@/lib/firebase-admin";
+import { admin, adminDb } from "@/lib/firebase-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 
@@ -103,7 +104,6 @@ export async function POST(request: Request) {
     }
 
     // 2. Chamar a API REST oficial do Google Imagen com fallback automático de modelo
-    // Tenta o Ultra primeiro (maior qualidade). Se indisponível (503/500), cai para o Fast.
     const IMAGEN_MODELS = ["imagen-4.0-ultra-generate-001", "imagen-4.0-fast-generate-001"];
 
     let imagenData: any = null;
@@ -169,7 +169,8 @@ export async function POST(request: Request) {
     const bucket = admin.storage().bucket(`${projectId}.firebasestorage.app`);
 
     // Caminho da imagem conceito estruturado no Storage
-    const fileRef = bucket.file(`users/${userId}/posts/${postId}/concepts/image_${fileName}.jpg`);
+    const userStoragePath = await getUserStoragePathAdmin(userId);
+    const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/concepts/image_${fileName}.jpg`);
     const downloadToken = crypto.randomUUID();
 
     await fileRef.save(buffer, {

@@ -30,6 +30,7 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
    - Rounded corners: `0.5rem` (8px)
    - Buttons: Solid colors only (no gradients).
 4. **Garantir o envio das imagens fixas**: Sempre inclua e comite no repositório todas as imagens estáticas/fixas utilizadas pelas páginas do site (na pasta `public/`), para que estejam sempre visíveis nos ambientes de deploy e homologação.
+5. **Sincronização de Prompts no Admin**: Sempre que atualizar alguma regra, instrução ou parâmetro nos prompts de IA ou modelos de imagens no back-end (endpoints/APIs), lembre-se de atualizar também a exibição desses prompts e modelos na tela de "Configurações" (painel admin) para manter a interface de auditoria do usuário 100% fiel e sincronizada.
 
 ## 🧪 Testing and Mocking Guidelines
 
@@ -42,3 +43,4 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
 1. **Planning Phase**: Prior to implementing any changes, run research commands (grep/view files) and present a detailed implementation plan in Markdown. Obtain user approval before writing code.
 2. **Test-First Principle**: When creating a new service or feature, proactively create corresponding unit or integration tests under `__tests__` directories.
 3. **No Placeholders**: Never write placeholder components or mock image strings. Generate functional logic and use image assets correctly.
+4. **Explicit Push Approval**: Never run `git push` or push changes to remote branches (`uat` or `main`) automatically. Always ask for explicit user permission or command before sending any commits.

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { fal } from "@fal-ai/client";
@@ -116,7 +117,8 @@ export async function POST(request: Request) {
     const firebaseProjectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";
     const bucket = admin.storage().bucket(`${firebaseProjectId}.firebasestorage.app`);
 
-    const fileRef = bucket.file(`users/${userId}/posts/${postId}/concepts/image_${fileName}.jpg`);
+    const userStoragePath = await getUserStoragePathAdmin(userId);
+    const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/concepts/image_${fileName}.jpg`);
     const downloadToken = crypto.randomUUID();
 
     await fileRef.save(buffer, {

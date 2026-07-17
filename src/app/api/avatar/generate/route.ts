@@ -3,6 +3,7 @@ import { admin, adminDb } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getGlobalSettings } from "@/lib/services/settings-service-admin";
+import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
 
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userStoragePath = await getUserStoragePathAdmin(userId);
+
     // 3. Fazer o upload do arquivo de referência para o Firebase Storage
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     const bucket = admin.storage().bucket(`${projectId}.firebasestorage.app`);
 
     const refId = crypto.randomUUID();
-    const refFileRef = bucket.file(`users/${userId}/avatar_references/${refId}_ref.jpg`);
+    const refFileRef = bucket.file(`${userStoragePath}/avatar_references/${refId}_ref.jpg`);
     const refDownloadToken = crypto.randomUUID();
 
     await refFileRef.save(buffer, {
@@ -376,7 +379,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
     }
 
     const genId = crypto.randomUUID();
-    const genFileRef = bucket.file(`users/${userId}/mediaGallery/avatar_${genId}.jpg`);
+    const genFileRef = bucket.file(`${userStoragePath}/mediaGallery/avatar_${genId}.jpg`);
     const genDownloadToken = crypto.randomUUID();
 
     await genFileRef.save(imgBuffer, {

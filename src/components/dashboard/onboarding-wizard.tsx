@@ -29,10 +29,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { updateOnboardingProfile, OnboardingProfileData } from "@/lib/services/onboarding-service";
+import { db, storage, auth } from "@/lib/firebase";
+import { getUserStoragePathClient } from "@/lib/utils/storage-utils-client";
+import { logEvent } from "firebase/analytics";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 
 interface OnboardingWizardProps {
   userId: string;
@@ -358,7 +360,9 @@ export function OnboardingWizard({
       const uploadBase64ToStorage = async (base64Str: string, type: string) => {
         const res = await fetch(base64Str);
         const blob = await res.blob();
-        const storageRef = ref(storage, `users/${userId}/logos/${type}_migrated_${Date.now()}`);
+        const currentUser = auth.currentUser;
+        const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
+        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
         const uploadResult = await uploadBytes(storageRef, blob);
         return await getDownloadURL(uploadResult.ref);
       };
@@ -443,7 +447,9 @@ export function OnboardingWizard({
       const uploadBase64ToStorage = async (base64Str: string, type: string) => {
         const res = await fetch(base64Str);
         const blob = await res.blob();
-        const storageRef = ref(storage, `users/${userId}/logos/${type}_migrated_${Date.now()}`);
+        const currentUser = auth.currentUser;
+        const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
+        const storageRef = ref(storage, `${userStoragePath}/logos/${type}_migrated_${Date.now()}`);
         const uploadResult = await uploadBytes(storageRef, blob);
         return await getDownloadURL(uploadResult.ref);
       };
@@ -519,7 +525,9 @@ export function OnboardingWizard({
 
     try {
       // 1. Fazer upload para o Firebase Storage
-      const storageRef = ref(storage, `users/${userId}/logos/logo_onboarding_${Date.now()}`);
+      const currentUser = auth.currentUser;
+      const userStoragePath = currentUser ? getUserStoragePathClient(currentUser) : `users/${userId}`;
+      const storageRef = ref(storage, `${userStoragePath}/logos/logo_onboarding_${Date.now()}`);
       const uploadResult = await uploadBytes(storageRef, file);
       const downloadUrl = await getDownloadURL(uploadResult.ref);
 
