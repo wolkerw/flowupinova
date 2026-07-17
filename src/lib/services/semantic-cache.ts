@@ -37,7 +37,7 @@ export async function setSemanticCache(keyStr: string, responseObj: any): Promis
   try {
     const hash = crypto.createHash("sha256").update(keyStr).digest("hex");
     const docRef = adminDb.collection(CACHE_COLLECTION).doc(hash);
-    
+
     await docRef.set({
       response: responseObj,
       createdAt: new Date().toISOString(),

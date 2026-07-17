@@ -1,9 +1,9 @@
-const fs = require('fs');
+const fs = require("fs");
 
 try {
-  let content = fs.readFileSync('src/app/api/conteudo/gerar-referencia/route.ts', 'utf8');
+  let content = fs.readFileSync("src/app/api/conteudo/gerar-referencia/route.ts", "utf8");
 
-  if(!content.includes('semantic-cache')) {
+  if (!content.includes("semantic-cache")) {
     content = content.replace(
       'import { logApiUsage } from "@/lib/services/api-usage-service-admin";',
       'import { logApiUsage } from "@/lib/services/api-usage-service-admin";\nimport { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";'
@@ -11,8 +11,9 @@ try {
   }
 
   // semantic cache logic
-  const processImageStart = 'const { base64: base64Image1, mimeType: mimeType1 } = await processImage(file);';
-  if(content.includes(processImageStart)) {
+  const processImageStart =
+    "const { base64: base64Image1, mimeType: mimeType1 } = await processImage(file);";
+  if (content.includes(processImageStart)) {
     const replacement = `const { base64: base64Image1, mimeType: mimeType1 } = await processImage(file);
 
       let base64Image2 = "";
@@ -28,16 +29,22 @@ try {
       if (cachedData) {
         return NextResponse.json({ success: true, yamlAnalysis: cachedData });
       }`;
-        
+
     content = content.replace(processImageStart, replacement);
-    
+
     // replace the secondary processImage call since we already did it
     const oldSecondaryStr = `const { base64: base64Image2, mimeType: mimeType2 } = await processImage(secondaryFile);`;
-    content = content.replace(oldSecondaryStr, `// secondary image already processed for cache key`);
-    
+    content = content.replace(
+      oldSecondaryStr,
+      `// secondary image already processed for cache key`
+    );
+
     // add setSemanticCache at the end of analyze block
-    const analyzeEndReturn = 'return NextResponse.json({ success: true, yamlAnalysis });';
-    content = content.replace(analyzeEndReturn, `await setSemanticCache(cacheKey, yamlAnalysis);\n\n      return NextResponse.json({ success: true, yamlAnalysis });`);
+    const analyzeEndReturn = "return NextResponse.json({ success: true, yamlAnalysis });";
+    content = content.replace(
+      analyzeEndReturn,
+      `await setSemanticCache(cacheKey, yamlAnalysis);\n\n      return NextResponse.json({ success: true, yamlAnalysis });`
+    );
   }
 
   // Claude headers
@@ -87,8 +94,8 @@ try {
                         cache_control: { type: "ephemeral" }`;
   content = content.split(imageBlockStrV1).join(newImageBlockStrV1);
 
-  fs.writeFileSync('src/app/api/conteudo/gerar-referencia/route.ts', content);
-  console.log('Script done.');
+  fs.writeFileSync("src/app/api/conteudo/gerar-referencia/route.ts", content);
+  console.log("Script done.");
 } catch (e) {
   console.error(e);
 }

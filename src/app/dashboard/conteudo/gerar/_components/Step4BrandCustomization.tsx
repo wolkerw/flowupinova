@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { UploadCloud, Trash2, ArrowLeft, ArrowRight, Loader2, Sparkles, Paintbrush } from "lucide-react";
+import {
+  UploadCloud,
+  Trash2,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  Paintbrush,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 import { CircularProgressLoader } from "./CircularProgressLoader";
@@ -42,6 +50,7 @@ export const Step4BrandCustomization = () => {
     user,
     businessProfile,
     insertTextOnImage,
+    generateTextSuggestions,
     setSelectedImage,
     generatedImages,
     setGeneratedImages,
@@ -51,7 +60,13 @@ export const Step4BrandCustomization = () => {
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
-  const onBack = () => setStep(isSyncImageMode ? 2 : 3);
+  const onBack = () => {
+    if (isSyncImageMode) {
+      setStep(generateTextSuggestions ? 2 : 1);
+    } else {
+      setStep(3);
+    }
+  };
   const onLogoRemove = () => {
     setLogoFile(null);
     setLogoPreviewUrl(null);
@@ -232,6 +247,16 @@ export const Step4BrandCustomization = () => {
                   </div>
                 )}
               </div>
+              {selectedImage && !isGeneratingImages && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCorrectionOpen(true)}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-primary/40 py-2 font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
+                >
+                  <Paintbrush className="h-4 w-4 text-primary" />
+                  Escrever Textos / Editar Imagem
+                </Button>
+              )}
               <p className="mt-4 text-center text-xs italic text-muted-foreground">
                 * A visualização é uma estimativa. O resultado final pode variar ligeiramente.
               </p>
@@ -277,18 +302,22 @@ export const Step4BrandCustomization = () => {
           userId={user?.uid || ""}
           fileName={"1"}
           initialText={insertTextOnImage ? selectedContent?.titulo : undefined}
-          brandKitPrimaryColor={businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor}
-          brandKitSecondaryColor={businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor}
+          brandKitPrimaryColor={
+            businessProfile?.brandKit?.primaryColor || businessProfile?.primaryColor
+          }
+          brandKitSecondaryColor={
+            businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
+          }
           onSuccess={(newImageUrl) => {
             setSelectedImage(newImageUrl);
             // Atualiza também no array de geradas para consistência, se estiver lá
             if (generatedImages?.includes(selectedImage)) {
-               const idx = generatedImages.indexOf(selectedImage);
-               setGeneratedImages(prev => {
-                 const updated = [...prev];
-                 updated[idx] = newImageUrl;
-                 return updated;
-               });
+              const idx = generatedImages.indexOf(selectedImage);
+              setGeneratedImages((prev) => {
+                const updated = [...prev];
+                updated[idx] = newImageUrl;
+                return updated;
+              });
             }
           }}
         />

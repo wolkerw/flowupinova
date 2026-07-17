@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Save, Loader2, Settings, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PromptsViewer } from "./_components/PromptsViewer";
+import { ModelsViewer } from "./_components/ModelsViewer";
 
 interface GlobalSettings {
   generateImagesWebhook: string;
@@ -110,7 +113,12 @@ export default function AdminConfiguracoesPage() {
     setTestingKey(key);
     setTestResults((prev) => ({ ...prev, [key]: "testing" }));
     try {
-      await fetch(url, { method: "GET", signal: AbortSignal.timeout(5000) });
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test: true }),
+        signal: AbortSignal.timeout(5000),
+      });
       setTestResults((prev) => ({ ...prev, [key]: "ok" }));
     } catch {
       setTestResults((prev) => ({ ...prev, [key]: "fail" }));
@@ -149,98 +157,135 @@ export default function AdminConfiguracoesPage() {
         </button>
       </div>
 
-      {/* Webhooks */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-800/60">
-        <div className="flex items-center gap-3 border-b border-slate-700/50 px-5 py-4">
-          <Settings className="h-4 w-4 text-violet-400" />
-          <h2 className="text-sm font-semibold text-white">URLs de Webhooks (n8n)</h2>
-        </div>
-        <div className="divide-y divide-slate-700/40">
-          {WEBHOOK_KEYS.map((key) => {
-            const testResult = testResults[key];
-            return (
-              <div key={key} className="px-5 py-4">
-                <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                  {WEBHOOK_LABELS[key]}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={settings[key]}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, [key]: e.target.value }))}
-                    className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-200 focus:border-violet-500 focus:outline-none"
-                    placeholder="https://..."
-                  />
-                  <button
-                    onClick={() => handleTest(key)}
-                    disabled={testingKey === key}
-                    title="Testar conectividade"
-                    className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-400 transition-colors hover:border-slate-600 hover:text-white disabled:opacity-50"
-                  >
-                    {testingKey === key ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : testResult === "ok" ? (
-                      <CheckCircle className="h-3.5 w-3.5 text-green-400" />
-                    ) : testResult === "fail" ? (
-                      <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
-                    ) : (
-                      <span className="text-xs">Testar</span>
+      <Tabs defaultValue="webhooks" className="space-y-6">
+        <TabsList className="border border-slate-700/50 bg-slate-800/60">
+          <TabsTrigger
+            value="webhooks"
+            className="text-slate-400 data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+          >
+            Webhooks (n8n)
+          </TabsTrigger>
+          <TabsTrigger
+            value="prompts"
+            className="text-slate-400 data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+          >
+            Prompts do Sistema
+          </TabsTrigger>
+          <TabsTrigger
+            value="modelos"
+            className="text-slate-400 data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+          >
+            Modelos em Uso
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="webhooks" className="space-y-6 outline-none">
+          {/* Webhooks */}
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/60">
+            <div className="flex items-center gap-3 border-b border-slate-700/50 px-5 py-4">
+              <Settings className="h-4 w-4 text-violet-400" />
+              <h2 className="text-sm font-semibold text-white">URLs de Webhooks (n8n)</h2>
+            </div>
+            <div className="divide-y divide-slate-700/40">
+              {WEBHOOK_KEYS.map((key) => {
+                const testResult = testResults[key];
+                return (
+                  <div key={key} className="px-5 py-4">
+                    <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                      {WEBHOOK_LABELS[key]}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={settings[key]}
+                        onChange={(e) =>
+                          setSettings((prev) => ({ ...prev, [key]: e.target.value }))
+                        }
+                        className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-200 focus:border-violet-500 focus:outline-none"
+                        placeholder="https://..."
+                      />
+                      <button
+                        onClick={() => handleTest(key)}
+                        disabled={testingKey === key}
+                        title="Testar conectividade"
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-400 transition-colors hover:border-slate-600 hover:text-white disabled:opacity-50"
+                      >
+                        {testingKey === key ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : testResult === "ok" ? (
+                          <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                        ) : testResult === "fail" ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+                        ) : (
+                          <span className="text-xs">Testar</span>
+                        )}
+                      </button>
+                    </div>
+                    {testResult === "ok" && (
+                      <p className="mt-1 text-xs text-green-400">✓ Respondendo</p>
                     )}
-                  </button>
-                </div>
-                {testResult === "ok" && (
-                  <p className="mt-1 text-xs text-green-400">✓ Respondendo</p>
-                )}
-                {testResult === "fail" && (
-                  <p className="mt-1 text-xs text-red-400">✗ Sem resposta ou erro (timeout 5s)</p>
-                )}
+                    {testResult === "fail" && (
+                      <p className="mt-1 text-xs text-red-400">
+                        ✗ Sem resposta ou erro (timeout 5s)
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Timeout */}
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">
+              {WEBHOOK_LABELS.serverTimeout}
+            </label>
+            <input
+              type="number"
+              min={30}
+              max={600}
+              value={settings.serverTimeout}
+              onChange={(e) => setSettings((prev) => ({ ...prev, serverTimeout: e.target.value }))}
+              className="w-48 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Tempo máximo de espera por resposta dos webhooks. Padrão: 300s.
+            </p>
+          </div>
+
+          {/* Botão Salvar */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? "Salvando..." : "Salvar Configurações"}
+            </button>
+            {saveStatus === "success" && (
+              <div className="flex items-center gap-2 text-sm text-green-400">
+                <CheckCircle className="h-4 w-4" />
+                Configurações salvas com sucesso!
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Timeout */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5">
-        <label className="mb-1.5 block text-xs font-medium text-slate-400">
-          {WEBHOOK_LABELS.serverTimeout}
-        </label>
-        <input
-          type="number"
-          min={30}
-          max={600}
-          value={settings.serverTimeout}
-          onChange={(e) => setSettings((prev) => ({ ...prev, serverTimeout: e.target.value }))}
-          className="w-48 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          Tempo máximo de espera por resposta dos webhooks. Padrão: 300s.
-        </p>
-      </div>
-
-      {/* Botão Salvar */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-60"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Salvando..." : "Salvar Configurações"}
-        </button>
-        {saveStatus === "success" && (
-          <div className="flex items-center gap-2 text-sm text-green-400">
-            <CheckCircle className="h-4 w-4" />
-            Configurações salvas com sucesso!
+            )}
+            {saveStatus === "error" && (
+              <div className="flex items-center gap-2 text-sm text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                Erro ao salvar. Tente novamente.
+              </div>
+            )}
           </div>
-        )}
-        {saveStatus === "error" && (
-          <div className="flex items-center gap-2 text-sm text-red-400">
-            <AlertTriangle className="h-4 w-4" />
-            Erro ao salvar. Tente novamente.
-          </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="prompts" className="outline-none">
+          <PromptsViewer />
+        </TabsContent>
+
+        <TabsContent value="modelos" className="outline-none">
+          <ModelsViewer />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

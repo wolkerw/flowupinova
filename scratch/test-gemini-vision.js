@@ -1,15 +1,15 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const MODELS = [
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-3-flash-preview",
-  "gemini-3.5-flash"
+  "gemini-3.5-flash",
 ];
 
 async function test() {
-  const envContent = fs.readFileSync(path.join(__dirname, '../.env.local'), 'utf8');
+  const envContent = fs.readFileSync(path.join(__dirname, "../.env.local"), "utf8");
   const apiKeyMatch = envContent.match(/GEMINI_API_KEY=([^\r\n]+)/);
   if (!apiKeyMatch) {
     console.error("GEMINI_API_KEY não encontrada no .env.local");
@@ -19,7 +19,8 @@ async function test() {
   console.log("Chave Gemini encontrada (começo):", apiKey.substring(0, 15));
 
   // Pixel vermelho 1x1 base64
-  const testBase64Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const testBase64Image =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
   const mimeType = "image/png";
 
   const prompt = `Analise a imagem de teste fornecida e descreva-a de forma estruturada.
@@ -40,21 +41,23 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: testBase64Image
-                }
-              }
-            ]
-          }],
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: testBase64Image,
+                  },
+                },
+              ],
+            },
+          ],
           generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
+            responseMimeType: "application/json",
+          },
+        }),
       });
 
       console.log(`Status para ${model}:`, response.status);

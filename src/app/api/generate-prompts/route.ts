@@ -382,8 +382,9 @@ BRAND KIT ALIGNMENT (MANDATORY):
 `;
     }
     // 1. Regras condicionais de texto
-    const textRules = selContent?.titulo && insertTextOnImage
-      ? `
+    const textRules =
+      selContent?.titulo && insertTextOnImage
+        ? `
 2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
    - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
    - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${selContent.titulo}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word (such as the company name or the word 'empresa') is written or repeated twice on the canvas. The text must read exactly '${selContent.titulo}' and nothing else."
@@ -392,7 +393,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
      - NEVER output raw text without describing the accentuation system to the model.
    - FORBIDDEN: Do NOT include the subtitle as image text. It will cause visual noise and blur.
 `
-      : `
+        : `
 2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
 `;
 

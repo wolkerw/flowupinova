@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +32,8 @@ interface PaymentSettings {
   pixKey: string;
   pixQrCodeUrl: string;
   creditLinkMonthly: string;
+  creditLinkTrimestral: string;
+  creditLinkSemestral: string;
   creditLinkYearly: string;
 }
 
@@ -46,27 +45,33 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   const [loading, setLoading] = useState(false);
   const [fetchingUser, setFetchingUser] = useState(true);
   const [copied, setCopied] = useState(false);
-  
-  const [selectedPlan, setSelectedPlan] = useState<"mensal" | "anual">("mensal");
+
+  const [selectedPlan, setSelectedPlan] = useState<"mensal" | "trimestral" | "semestral" | "anual">(
+    "mensal"
+  );
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [discount, setDiscount] = useState<{code: string, percentage: number} | null>(null);
+  const [discount, setDiscount] = useState<{ code: string; percentage: number } | null>(null);
 
   const [settings, setSettings] = useState<PaymentSettings>({
     pixKey: "d696cfdb-a875-4219-ae41-494a619a9e00",
     pixQrCodeUrl: "",
     creditLinkMonthly: "",
-    creditLinkYearly: ""
+    creditLinkTrimestral: "",
+    creditLinkSemestral: "",
+    creditLinkYearly: "",
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const PIX_KEY = "d696cfdb-a875-4219-ae41-494a619a9e00";
   const PIX_RECIPIENT = "BMG Publicidade e Propaganda Ltda";
-  
+
   const planPrices = {
     mensal: 490,
-    anual: 400
+    trimestral: 441, // 10% off
+    semestral: 416.5, // 15% off
+    anual: 4800 / 13, // 13 months
   };
 
   useEffect(() => {
@@ -140,17 +145,19 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
   };
 
   const handleOpenCreditLink = () => {
-    const targetLink = selectedPlan === "mensal" 
-      ? settings.creditLinkMonthly 
-      : settings.creditLinkYearly;
-    
+    let targetLink = "";
+    if (selectedPlan === "mensal") targetLink = settings.creditLinkMonthly;
+    else if (selectedPlan === "trimestral") targetLink = settings.creditLinkTrimestral;
+    else if (selectedPlan === "semestral") targetLink = settings.creditLinkSemestral;
+    else if (selectedPlan === "anual") targetLink = settings.creditLinkYearly;
+
     if (targetLink) {
       window.open(targetLink, "_blank");
     } else {
       toast({
         variant: "destructive",
         title: "Link indisponível",
-        description: "O link de pagamento com cartão para este plano ainda não foi configurado."
+        description: "O link de pagamento com cartão para este plano ainda não foi configurado.",
       });
     }
   };
@@ -191,10 +198,18 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
       const data = await res.json();
       if (data.valid) {
         setDiscount({ code: data.code, percentage: data.discountPercentage });
-        toast({ title: "Cupom aplicado!", description: `Desconto de ${data.discountPercentage}% garantido.`, variant: "success" });
+        toast({
+          title: "Cupom aplicado!",
+          description: `Desconto de ${data.discountPercentage}% garantido.`,
+          variant: "success",
+        });
       } else {
         setDiscount(null);
-        toast({ title: "Cupom inválido", description: data.error || "Tente outro código.", variant: "destructive" });
+        toast({
+          title: "Cupom inválido",
+          description: data.error || "Tente outro código.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       toast({ title: "Erro", description: "Falha ao validar cupom.", variant: "destructive" });
@@ -205,15 +220,22 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
 
   const getDiscountedPrice = (price: number) => {
     if (!discount) return price;
-    return price - (price * (discount.percentage / 100));
+    return price - price * (discount.percentage / 100);
   };
   const finalPrice = getDiscountedPrice(planPrices[selectedPlan]);
 
+  const getTotalToPay = (plan: string, monthlyPrice: number) => {
+    if (plan === "trimestral") return monthlyPrice * 3;
+    if (plan === "semestral") return monthlyPrice * 6;
+    if (plan === "anual") return 4800; // Total is fixed at 4800 for 13 months
+    return monthlyPrice;
+  };
+
+  const totalToPay = getTotalToPay(selectedPlan, finalPrice);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[95vh] w-full max-w-[460px] overflow-y-auto rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl sm:p-8">
-        
         {fetchingUser ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-[#1da051]" />
@@ -221,60 +243,65 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
         ) : userData?.subscriptionStatus === "pending_verification" ? (
           // Vista: Comprovante em Análise
           <div className="space-y-6 py-6 text-center">
-             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
-               <Loader2 className="h-10 w-10 animate-spin text-[#FA6305]" />
-             </div>
-             <h3 className="text-2xl font-black tracking-tight text-slate-900">
-                Pagamento em Análise
-             </h3>
-             <p className="text-sm leading-relaxed text-slate-600">
-               Já fomos notificados do seu pagamento. Nosso time de suporte está validando a
-               transação e sua conta PRO será liberada em alguns minutos!
-             </p>
-             
-             <Button
-                asChild
-                className="w-full bg-[#25D366] font-bold text-white hover:bg-[#20bd5a] rounded-xl py-6"
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
+              <Loader2 className="h-10 w-10 animate-spin text-[#FA6305]" />
+            </div>
+            <h3 className="text-2xl font-black tracking-tight text-slate-900">
+              Pagamento em Análise
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-600">
+              Já fomos notificados do seu pagamento. Nosso time de suporte está validando a
+              transação e sua conta PRO será liberada em alguns minutos!
+            </p>
+
+            <Button
+              asChild
+              className="w-full rounded-xl bg-[#25D366] py-6 font-bold text-white hover:bg-[#20bd5a]"
+            >
+              <a
+                href={`https://wa.me/555199922177?text=Olá!%20Acabei%20de%20confirmar%20meu%20pagamento%20PIX%20de%20assinatura%20PRO%20no%20painel%20da%20NumVapt%20para%20o%20email%20${encodeURIComponent(userData.email)}.%20Poderiam%20validar?`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a
-                  href={`https://wa.me/555199922177?text=Olá!%20Acabei%20de%20confirmar%20meu%20pagamento%20PIX%20de%20assinatura%20PRO%20no%20painel%20da%20NumVapt%20para%20o%20email%20${encodeURIComponent(userData.email)}.%20Poderiam%20validar?`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="mr-2 h-5 w-5"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="mr-2 h-5 w-5">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
-                  </svg>
-                  Acelerar no WhatsApp
-                </a>
-              </Button>
-              <Button
-                  variant="ghost"
-                  onClick={onClose}
-                  className="w-full text-sm font-semibold text-slate-400 hover:text-slate-600 rounded-xl"
-                >
-                  Voltar ao painel
-              </Button>
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.894 11.892-1.99 0-3.902-.539-5.586-1.543l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.849 6.037l-1.09 3.972 4.025-1.05z" />
+                </svg>
+                Acelerar no WhatsApp
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="w-full rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-600"
+            >
+              Voltar ao painel
+            </Button>
           </div>
         ) : (
           // Vista: Checkout
           <div className="space-y-6">
-            <div className="text-center space-y-3 px-2">
-              <h2 className="text-[26px] font-black tracking-tight text-slate-900 leading-tight">
+            <div className="space-y-3 px-2 text-center">
+              <h2 className="text-[26px] font-black leading-tight tracking-tight text-slate-900">
                 O seu período de testes terminou!
               </h2>
-              <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
-                Continue impulsionando seu marketing na NumVapt com recursos
-                exclusivos e geração ilimitada. Escolha o seu plano e pague via Pix:
+              <p className="text-[13px] font-medium leading-relaxed text-slate-500">
+                Continue impulsionando seu marketing na NumVapt com recursos exclusivos e geração
+                ilimitada. Escolha o seu plano e pague via Pix:
               </p>
             </div>
 
             {/* Plan Toggle */}
             <div className="flex justify-center pt-2">
-              <div className="relative flex w-full max-w-sm items-center rounded-full border border-slate-200 bg-white p-1.5 shadow-sm">
+              <div className="relative flex w-full flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
                 <button
                   onClick={() => setSelectedPlan("mensal")}
                   className={cn(
-                    "relative flex-1 rounded-full py-2.5 text-sm font-bold transition-all",
+                    "relative min-w-[70px] flex-1 rounded-xl py-2 text-xs font-bold transition-all",
                     selectedPlan === "mensal"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
@@ -283,131 +310,233 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                   Mensal
                 </button>
                 <button
+                  onClick={() => setSelectedPlan("trimestral")}
+                  className={cn(
+                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
+                    selectedPlan === "trimestral"
+                      ? "bg-[#0B1426] text-white shadow-md"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  3 Meses
+                  <span
+                    className={cn(
+                      "mt-0.5 rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase",
+                      selectedPlan === "trimestral"
+                        ? "bg-[#FA6305] text-white"
+                        : "bg-orange-100 text-[#FA6305]"
+                    )}
+                  >
+                    -10%
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSelectedPlan("semestral")}
+                  className={cn(
+                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
+                    selectedPlan === "semestral"
+                      ? "bg-[#0B1426] text-white shadow-md"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  6 Meses
+                  <span
+                    className={cn(
+                      "mt-0.5 rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase",
+                      selectedPlan === "semestral"
+                        ? "bg-[#FA6305] text-white"
+                        : "bg-orange-100 text-[#FA6305]"
+                    )}
+                  >
+                    -15%
+                  </span>
+                </button>
+                <button
                   onClick={() => setSelectedPlan("anual")}
                   className={cn(
-                    "relative flex-1 flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold transition-all",
+                    "relative flex min-w-[70px] flex-1 flex-col items-center justify-center rounded-xl py-1 text-xs font-bold transition-all",
                     selectedPlan === "anual"
                       ? "bg-[#0B1426] text-white shadow-md"
                       : "text-slate-500 hover:text-slate-700"
                   )}
                 >
                   Anual
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[9px] font-black tracking-wider uppercase",
-                    selectedPlan === "anual" ? "bg-[#FA6305] text-white" : "bg-orange-100 text-[#FA6305]"
-                  )}>
-                    Economize 18%
+                  <span
+                    className={cn(
+                      "mt-0.5 rounded-full px-1.5 py-[1px] text-[8px] font-black uppercase",
+                      selectedPlan === "anual"
+                        ? "bg-[#FA6305] text-white"
+                        : "bg-orange-100 text-[#FA6305]"
+                    )}
+                  >
+                    +1 Mês Grátis
                   </span>
                 </button>
               </div>
             </div>
 
+            {selectedPlan === "anual" && (
+              <div className="mb-2 mt-3 overflow-hidden rounded-xl bg-gradient-to-r from-[#FA6305] to-[#f58b45] p-[2px] shadow-md duration-300 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-center gap-3 rounded-[10px] bg-white/95 px-4 py-2.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                    <span className="text-xl">🎁</span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[13px] font-black leading-tight text-slate-900">
+                      Ganhe o 13º Mês Grátis!
+                    </p>
+                    <p className="text-[11px] font-bold text-[#FA6305]">
+                      Plano de 13 meses por apenas R$ 4.800
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Price Display */}
-            <div className="text-center pb-2">
+            <div className="pb-2 text-center">
               <div className="flex items-end justify-center gap-1">
                 <span className="text-4xl font-black text-[#1da051]">
-                  R$ {finalPrice}
+                  R${" "}
+                  {finalPrice % 1 === 0
+                    ? finalPrice
+                    : finalPrice.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                 </span>
-                <span className="text-sm font-bold text-slate-400 mb-1">/mês</span>
+                <span className="mb-1 text-sm font-bold text-slate-400">/mês</span>
               </div>
               {discount && (
-                <p className="text-[12px] font-bold text-[#FA6305] mt-1">
+                <p className="mt-1 text-[12px] font-bold text-[#FA6305]">
                   Cupom {discount.code} ({discount.percentage}% OFF) aplicado!
                 </p>
               )}
+              {selectedPlan === "trimestral" && !discount && (
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  cobrado R$ 1.323 a cada 3 meses
+                </p>
+              )}
+              {selectedPlan === "semestral" && !discount && (
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  cobrado R$ 2.499 a cada 6 meses
+                </p>
+              )}
               {selectedPlan === "anual" && !discount && (
-                <p className="text-[11px] text-slate-400 font-medium mt-1">cobrado R$ 4.800 anualmente</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  cobrado R$ 4.800 pelo período de 13 meses
+                </p>
               )}
             </div>
 
             {/* Coupon */}
-            <div className="flex gap-2 items-center">
-              <Input 
-                placeholder="CUPOM DE DESCONTO" 
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="CUPOM DE DESCONTO"
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                className="text-sm uppercase placeholder:text-xs text-center border-slate-200 h-10 rounded-lg shadow-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                className="h-10 rounded-lg border-slate-200 text-center text-sm uppercase shadow-sm placeholder:text-xs"
               />
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={handleApplyCoupon}
                 disabled={applyingCoupon || !coupon.trim()}
-                className="h-10 px-6 rounded-lg font-medium text-sm bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100"
+                className="h-10 rounded-lg border border-slate-100 bg-slate-50 px-6 text-sm font-medium text-slate-600 hover:bg-slate-100"
               >
-                {applyingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                {applyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
               </Button>
             </div>
 
             {/* Payment Tabs */}
-            <div className="flex bg-slate-50/80 p-1.5 rounded-xl border border-slate-100">
+            <div className="flex rounded-xl border border-slate-100 bg-slate-50/80 p-1.5">
               <button
                 onClick={() => setPaymentMethod("pix")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all",
-                  paymentMethod === "pix" ? "bg-white text-[#1da051] shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  "flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-bold transition-all",
+                  paymentMethod === "pix"
+                    ? "bg-white text-[#1da051] shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <QrCode className="w-4 h-4" /> Pix
+                <QrCode className="h-4 w-4" /> Pix
               </button>
               <button
                 onClick={() => setPaymentMethod("credit_card")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all",
-                  paymentMethod === "credit_card" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  "flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-bold transition-all",
+                  paymentMethod === "credit_card"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <CreditCard className="w-4 h-4" /> Cartão de Crédito
+                <CreditCard className="h-4 w-4" /> Cartão de Crédito
               </button>
             </div>
 
             {paymentMethod === "pix" ? (
-              <div className="rounded-2xl border border-slate-100 bg-[#f8f9fa] p-5 space-y-6">
+              <div className="space-y-6 rounded-2xl border border-slate-100 bg-[#f8f9fa] p-5">
                 <div className="flex justify-center">
-                   <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm inline-block">
-                     <Image src="/qrcode-pix.png" alt="QR Code Pix" width={160} height={160} className="rounded-lg" />
-                   </div>
+                  <div className="inline-block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Image
+                      src="/qrcode-pix.png"
+                      alt="QR Code Pix"
+                      width={160}
+                      height={160}
+                      className="rounded-lg"
+                    />
+                  </div>
                 </div>
 
-                <div className="text-center flex justify-center items-center gap-2">
+                <div className="flex items-center justify-center gap-2 text-center">
                   <span className="text-sm font-medium text-slate-500">Total a pagar:</span>
-                  <span className="text-[26px] font-black text-[#1da051]">R$ {finalPrice},00</span>
+                  <span className="text-[26px] font-black text-[#1da051]">
+                    R$ {totalToPay.toLocaleString("pt-BR")}
+                  </span>
                 </div>
 
                 <div className="space-y-2 border-t border-slate-200/80 pt-5">
-                  <span className="block text-center text-xs font-bold text-slate-700">Ou use o Pix Copia e Cola:</span>
+                  <span className="block text-center text-xs font-bold text-slate-700">
+                    Ou use o Pix Copia e Cola:
+                  </span>
                   <div className="relative flex items-center justify-between rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
-                    <span className="block truncate font-mono text-[11px] text-slate-500 px-3 w-[200px]">
+                    <span className="block w-[200px] truncate px-3 font-mono text-[11px] text-slate-500">
                       {PIX_KEY}
                     </span>
                     <Button
                       size="sm"
                       variant="secondary"
                       onClick={handleCopyPixKey}
-                      className="h-8 gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-md px-4 shrink-0"
+                      className="h-8 shrink-0 gap-1.5 rounded-md bg-slate-50 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                     >
-                      {copied ? <Check className="h-3.5 w-3.5 text-[#1da051]" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5 text-[#1da051]" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                       Copiar
                     </Button>
                   </div>
-                  <p className="text-center text-[10px] text-slate-400 font-medium mt-3">
+                  <p className="mt-3 text-center text-[10px] font-medium text-slate-400">
                     Favorecido: {PIX_RECIPIENT}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-8 text-center space-y-4">
-                 <div className="mx-auto w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-2">
-                   <CreditCard className="w-7 h-7 text-blue-600" />
-                 </div>
-                 <h4 className="font-bold text-slate-900 text-lg">Pagamento Seguro via Cartão</h4>
-                 <p className="text-sm text-slate-500">
-                    Você pode pagar no cartão de crédito via link seguro.
-                 </p>
-                 <div className="pt-4 flex items-center justify-center gap-2">
-                    <span className="text-sm text-slate-500">Total do plano {selectedPlan}:</span>
-                    <span className="text-xl font-bold text-blue-600">R$ {finalPrice},00</span>
-                 </div>
+              <div className="space-y-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-8 text-center">
+                <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                  <CreditCard className="h-7 w-7 text-blue-600" />
+                </div>
+                <h4 className="text-lg font-bold text-slate-900">Pagamento Seguro via Cartão</h4>
+                <p className="text-sm text-slate-500">
+                  Você pode pagar no cartão de crédito via link seguro.
+                </p>
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <span className="text-sm text-slate-500">Total do plano {selectedPlan}:</span>
+                  <span className="text-xl font-bold text-blue-600">
+                    R$ {totalToPay.toLocaleString("pt-BR")}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -417,7 +546,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 <Button
                   onClick={handleConfirmPayment}
                   disabled={loading}
-                  className="w-full bg-[#1da051] hover:bg-[#168541] font-bold text-white text-[15px] py-7 rounded-xl shadow-md transition-all border-b-4 border-[#126b34] hover:-translate-y-px active:translate-y-px active:border-b-0"
+                  className="w-full rounded-xl border-b-4 border-[#126b34] bg-[#1da051] py-7 text-[15px] font-bold text-white shadow-md transition-all hover:-translate-y-px hover:bg-[#168541] active:translate-y-px active:border-b-0"
                 >
                   {loading ? (
                     <>
@@ -432,7 +561,7 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
                 <Button
                   onClick={handleOpenCreditLink}
                   disabled={isLoadingSettings}
-                  className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] font-bold text-white text-[15px] py-7 rounded-xl shadow-md transition-all border-b-4 border-[#1e40af] hover:-translate-y-px active:translate-y-px active:border-b-0 flex items-center justify-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-b-4 border-[#1e40af] bg-[#2563EB] py-7 text-[15px] font-bold text-white shadow-md transition-all hover:-translate-y-px hover:bg-[#1d4ed8] active:translate-y-px active:border-b-0"
                 >
                   {isLoadingSettings ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -445,23 +574,22 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
             </div>
 
             <div className="space-y-3 pt-3">
-              <a 
+              <a
                 href="https://wa.me/555199922177?text=Olá!%20Gostaria%20de%20tirar%20dúvidas%20sobre%20os%20planos%20da%20NumVapt."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-center text-[13px] font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                className="block text-center text-[13px] font-semibold text-slate-500 transition-colors hover:text-slate-800"
               >
                 Tirar dúvidas sobre os planos
               </a>
-              
+
               <button
                 onClick={() => logout()}
-                className="w-full text-center text-[13px] font-semibold text-red-500 hover:text-red-600 transition-colors"
+                className="w-full text-center text-[13px] font-semibold text-red-500 transition-colors hover:text-red-600"
               >
                 Sair (Logout)
               </button>
             </div>
-
           </div>
         )}
       </DialogContent>

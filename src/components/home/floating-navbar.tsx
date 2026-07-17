@@ -18,35 +18,56 @@ export const FloatingNavbar = () => {
   }, []);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center mt-4 px-4">
+    <div className="fixed left-0 right-0 top-0 z-50 mt-4 flex justify-center px-4">
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-        className={`flex items-center justify-between px-6 py-3 rounded-full transition-all duration-300 w-full max-w-5xl ${
-          scrolled 
-            ? "bg-white/80 backdrop-blur-xl shadow-soft border border-slate-200/50" 
+        className={`flex w-full max-w-5xl items-center justify-between rounded-full px-6 py-3 transition-all duration-300 ${
+          scrolled
+            ? "shadow-soft border border-slate-200/50 bg-white/80 backdrop-blur-xl"
             : "bg-transparent"
         }`}
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+        <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
           <img src="/logo-numvapt.png" alt="NumVapt" className="h-8 object-contain" />
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="#como-funciona" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Como funciona</Link>
-          <Link href="#recursos" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Recursos</Link>
-          <Link href="#planos" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Planos</Link>
+        <div className="hidden items-center gap-8 md:flex">
+          <Link
+            href="#como-funciona"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+          >
+            Como funciona
+          </Link>
+          <Link
+            href="#recursos"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+          >
+            Recursos
+          </Link>
+          <Link
+            href="#planos"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+          >
+            Planos
+          </Link>
         </div>
 
         {/* CTA */}
         <div className="flex items-center gap-3">
-          <Link href="/acesso/login" className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+          <Link
+            href="/acesso/login"
+            className="hidden text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 sm:block"
+          >
             Entrar
           </Link>
-          <Button asChild className="rounded-full bg-[#0083C7] text-white hover:bg-[#006ca3] hover:scale-105 transition-transform duration-300">
+          <Button
+            asChild
+            className="rounded-full bg-[#0083C7] text-white transition-transform duration-300 hover:scale-105 hover:bg-[#006ca3]"
+          >
             <Link href="/acesso/cadastro">Começar Grátis</Link>
           </Button>
         </div>
