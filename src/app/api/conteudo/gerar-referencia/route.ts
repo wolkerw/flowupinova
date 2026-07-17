@@ -561,21 +561,9 @@ ${
         }
       }
 
-      let textRenderingInstruction = "";
-      if (title && title.trim()) {
-        textRenderingInstruction = `
-- The user requested a literal text/title to be rendered directly on the image: "${title}".
-- You MUST instruct the image generator to render this literal text exactly as written, inside double quotes, styled beautifully.
-- Place it strategically (e.g. at the bottom, top-center, or on a clean graphic overlay) so it doesn't cover the main subjects (the person and the product).
-- DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${title}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word (such as the company name or the word 'empresa') is written or repeated twice on the canvas. The text must read exactly '${title}' and nothing else."
-- PORTUGUESE ACCENTUATION RULE (CRITICAL): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô), you MUST explicitly describe the accent marks in the prompt.
-  - Example: If the text is "Lançamento Incrível", write: ...render the literal text "Lançamento Incrível" with a clean tilde (~) mark on the letter "ã" in "Lançamento", and a clean acute accent mark on the letter "í" in "Incrível". Ensure all accent marks and special characters (á, é, í, ó, ú, ç, ã, õ, ê, ô) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
+      const textRenderingInstruction = `
+- The prompt MUST describe the visual scene and subjects, but it MUST contain ABSOLUTELY NO text, letters, slogans, prices, or graphical UI elements written on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
 `;
-      } else {
-        textRenderingInstruction = `
-- The prompt MUST describe the visual scene and subjects, but it MUST contain ABSOLUTELY NO text, slogans, prices, or graphical UI elements written on the canvas.
-`;
-      }
 
       let priorityInstruction = "";
       if (hybridPriority === "scenario") {
@@ -1443,6 +1431,7 @@ ${yamlAnalysis}`;
 Com base nas duas imagens de referência fornecidas (${inputIsPackshot ? "Foto 1: Produto do Usuário; Foto 2: Cenário Comercial de Referência com outro produto" : "Foto 1: Selfie/Retrato da Pessoa; Foto 2: Produto/Projeto"}), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC A SEREM RIGOROSAMENTE SEGUIDAS:
+- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
 - REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se a cena contiver uma pessoa ou modelo, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Deixe um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
 - Use iluminação natural profissional para criar profundidade tridimensional e separação de planos (ex: luz solar indireta suave, luz de preenchimento suave casting sombras diagonais quentes, iluminação volumétrica).
 - Configure a composição como se fosse tirada por uma câmera profissional de ponta com lente de 50mm ou 85mm, com foco cirúrgico no sujeito principal e desfoque suave de fundo (circular bokeh).
@@ -1481,6 +1470,7 @@ ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
 4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
 
 DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
+- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
 - REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
 - Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave, sombras de contato suaves sob o produto, reflexos realistas de superfície).
 - Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm com foco cirúrgico no produto e profundidade de campo rasa no cenário de fundo.
