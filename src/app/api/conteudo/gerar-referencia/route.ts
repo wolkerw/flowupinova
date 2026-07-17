@@ -565,13 +565,13 @@ ${
 - The prompt MUST describe the visual scene and subjects, but it MUST contain ABSOLUTELY NO text, letters, slogans, prices, or graphical UI elements written on the canvas. Under no circumstances should any typography, text, or character be printed on the generated image.
 `;
 
-      let priorityInstruction = "";
       if (hybridPriority === "scenario") {
         priorityInstruction = `
 # STRICT SCENARIO FIDELITY & ASYMMETRIC FRAMING RULE (CRITICAL FOR IMMOVABLES / SCENARIOS):
 - The background, architecture, building, rooms, or garden from Photo 2 (described in SECONDARY_PRODUCT_ANALYSIS) are the absolute subject and setting of the scene.
 - You MUST describe this physical scenario with high fidelity (materials, layout, lights, doors, windows, textures). Do NOT replace the backdrop with a generic scene.
 - COMPOSITION & PLACEMENT: The person from Photo 1 must be placed off-center, positioned on the far-left or far-right of the frame (applying the photographic rule of thirds). The center of the image must remain completely open and unobstructed to beautifully display the main entrance, facade, or central architecture of the property in Photo 2.
+- INTEGRATION OF SUBJECT IN THE ARCHITECTURE: The person must not be a large close-up portrait. Instead, frame the scene in a wide-shot or medium-wide shot where the person is smaller in the frame and physically integrated into the building's architecture. Describe them in a natural pose: e.g., leaning casually against an external wall of the house, standing right next to the entrance doorway, walking through the entrance, or standing on the front porch. The person acts as a scale reference and natural character in the architectural scene, while the building remains the main hero of the photo.
 `;
       } else if (hybridPriority === "packshot") {
         priorityInstruction = `
@@ -1405,9 +1405,9 @@ ${yamlAnalysis}`;
         // Prompt Híbrido Avançado
         let priorityRule = "";
         if (hybridPriority === "scenario") {
-          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 de forma nítida e reconhecível (foco facial básico).
-2. RECRIAÇÃO DE CORPO E ROUPAS: Vista a pessoa da Foto 1 com vestimentas elegantes e de alto nível apropriadas para o ambiente da Foto 2 (como blazer ou trajes corporativos refinados).
-3. PRESERVAÇÃO RÍGIDA DO CENÁRIO (CRÍTICO): O cenário, a casa, o interior ou a arquitetura da Foto 2 são o assunto principal de fundo. Você deve reproduzir este cenário físico com máxima fidelidade.
+          priorityRule = `1. FIDELIDADE DA PESSOA: Retrate a pessoa da Foto 1 de forma nítida e de corpo inteiro ou plano americano/médio-longo (menor no enquadramento) para dar destaque total à arquitetura.
+2. INTEGRAÇÃO FÍSICA NA ARQUITETURA (CRÍTICO): Posicione a pessoa integrada fisicamente aos elementos da casa/construção da Foto 2. Ela deve ser retratada encostada casualmente em uma parede externa, ao lado da porta de entrada, subindo os degraus da varanda, ou entrando pela porta. A pessoa serve como elemento de escala e contexto humano, e não como um retrato central em close-up.
+3. PRESERVAÇÃO RÍGIDA DO CENÁRIO (CRÍTICO): O cenário, a casa, o interior ou a arquitetura da Foto 2 são o assunto principal de primeiro e segundo plano. Você deve reproduzir este cenário físico (fachada, varanda, portas, janelas, texturas de pedra/madeira) com máxima fidelidade.
 4. POSICIONAMENTO LATERAL ASSIMÉTRICO (REGRA DOS TERÇOS): Posicione a pessoa da Foto 1 de forma deslocada para a lateral esquerda ou lateral direita da imagem (não centralizada). O centro do enquadramento deve permanecer totalmente livre e desimpedido para exibir a fachada da casa, a porta ou os detalhes estruturais da Foto 2.`;
         } else if (hybridPriority === "packshot") {
           priorityRule = `1. TROCA DE PRODUTO (PRODUCT SWAP): Identifique o produto central de primeiro plano na Foto 2 e substitua-o inteiramente pelo produto da Foto 1. Coloque o produto da Foto 1 na exata mesma posição, escala e ângulo do original.
