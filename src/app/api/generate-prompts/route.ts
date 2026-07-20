@@ -128,15 +128,22 @@ ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
 
         const base64Image = buffer.toString("base64");
 
-        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
-Determine the composition layout, model poses (if any), colors, scenery, lighting types, text placement areas, and other stylistic features.
-Return the description strictly in YAML format containing:
-  composition_layout: (e.g. split screen, center focus, overlapping card)
-  lighting_style: (e.g. warm side light, studio soft lights)
-  color_palette: (describe prominent color names and tones)
-  scene_details: (describe textures, background elements, furniture, outdoor/indoor setting)
-  text_areas: (where the text is positioned)
-  visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
+        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with extreme visual precision.
+Deconstruct the image into a detailed description so an AI image generator can recreate the scene with high fidelity.
+Describe:
+1. SUBJECT & POSE: What is the main subject/person/object? Describe their exact pose, clothing, posture, and facial expression or product placement.
+2. ENVIRONMENT & SETTING: Describe the exact room, architecture, outdoor/indoor location, furniture, walls, floor, plants, and background scenery.
+3. COMPOSITION & FRAMING: Camera distance (e.g. medium shot, wide shot, close-up), camera height/angle, subject position (e.g. centered, right third), negative space areas.
+4. LIGHTING & ATMOSPHERE: Light sources, lighting direction, shadows, atmosphere (e.g. warm golden sunset, moody dark room, bright daylight).
+5. COLOR PALETTE: Main colors, tones, and contrast.
+
+Return the description strictly in YAML format:
+  subject_description: "..."
+  environment_scenery: "..."
+  composition_framing: "..."
+  lighting_atmosphere: "..."
+  color_palette: "..."
+  full_detailed_scene_prompt: "Write a comprehensive 100-word English photographic prompt describing this exact visual scene, backdrop, lighting, and composition."`;
 
         const visionModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
         for (const model of visionModels) {
@@ -299,20 +306,22 @@ Instruct the typography to be rendered using the specified Primary Font for titl
     if (inspirationYaml) {
       option3Text = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING)
+## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING - OVERRIDES GENERIC BRANDING)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You MUST analyze the provided YAML description and visual cues of the user's inspiration reference print (which is provided in the input image):
+CRITICAL INSTRUCTION FOR OPTION 3: You MUST generate an image prompt that DIRECTLY RECREATES AND MATCHES the visual scene, subject posture, architecture, furniture, background setting, and composition layout from the user's inspiration reference print analyzed below:
+
 ${inspirationYaml}
 
-- DECONSTRUCT COMPOSITION & LAYOUT: Replicate the layout, camera angle, subject placement, and scene structure described in the YAML and visible in the input image.
-- SCENARIO & LIGHTING: Mimic the lighting style (e.g., studio soft lights, warm gel accents), scene details, textures, and backdrop of the inspiration reference.
-- BRAND PERSONALIZATION: Stylize the scene with the brand's primary and secondary colors (e.g. golden yellow, deep blue) in props, backgrounds, or lighting accents.
-- CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
-- ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. Copying text from the reference print is strictly prohibited.
+REPLICATION REQUIREMENTS (HIGHEST PRIORITY):
+1. RECREATE THE EXACT SCENE & ENVIRONMENT: You MUST base the Option 3 prompt on the exact scenery, room, location, furniture, architecture, and background elements described in the YAML above. Do NOT replace the scene with a generic studio or workspace unless the inspiration reference image was literally a studio.
+2. RECREATE THE COMPOSITION & FRAMING: Replicate the exact camera angle, subject positioning, distance, and negative space areas from the YAML.
+3. RECREATE THE LIGHTING & ATMOSPHERE: Mimic the exact lighting style, direction, color temperature, and atmospheric mood described in the YAML.
+4. BRAND PERSONALIZATION: Adapt the brand's primary and secondary colors subtly into props, lighting accents, or clothing details without altering the core scene architecture or layout.
+5. ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any text, words, logos, or slogans from the inspiration print. Completely ignore all text in the reference print.
 ${
   selContent?.titulo && insertTextOnImage
-    ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), which must be printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.`
-    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene.`
+    ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply text rendering rules.`
+    : `- ABSOLUTE TEXT PROHIBITION: The user requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography.`
 }
 `;
     } else {
