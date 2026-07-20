@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { Jimp } from "jimp";
 
 export const maxDuration = 300;
 
@@ -106,24 +107,26 @@ ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
     }
 
     let inspirationYaml = "";
-    let inlineDataPart: any = null;
-    let base64Image = "";
-    let mimeType = "";
 
     if (inspirationFile) {
       try {
         console.log("[GENERATE_PROMPTS] Processando arquivo de inspiração para análise visual...");
         const arrayBuffer = await inspirationFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        mimeType = inspirationFile.type || "image/jpeg";
-        base64Image = buffer.toString("base64");
+        let buffer = Buffer.from(arrayBuffer);
+        let mimeType = inspirationFile.type || "image/jpeg";
 
-        inlineDataPart = {
-          inlineData: {
-            mimeType: mimeType,
-            data: base64Image,
-          },
-        };
+        try {
+          const image = await Jimp.read(buffer);
+          if (image.width > 768 || image.height > 768) {
+            image.resize({ w: 768, h: 768 });
+          }
+          buffer = await image.getBuffer("image/jpeg");
+          mimeType = "image/jpeg";
+        } catch (jimpErr) {
+          console.warn("[GENERATE_PROMPTS_WARN] Falha ao redimensionar imagem com Jimp, usando imagem original:", jimpErr);
+        }
+
+        const base64Image = buffer.toString("base64");
 
         const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
 Determine the composition layout, model poses (if any), colors, scenery, lighting types, text placement areas, and other stylistic features.
@@ -135,42 +138,55 @@ Return the description strictly in YAML format containing:
   text_areas: (where the text is positioned)
   visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: geminiAnalysisPrompt },
+        const visionModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
+        for (const model of visionModels) {
+          try {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
                   {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: base64Image,
-                    },
+                    parts: [
+                      { text: geminiAnalysisPrompt },
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                    ],
                   },
                 ],
-              },
-            ],
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ]
-          }),
-        });
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                ],
+              }),
+            });
 
-        if (response.ok) {
-          const resData = await response.json();
-          inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          console.log("[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso.");
-        } else {
-          console.error(
-            "[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:",
-            await response.text()
-          );
+            if (response.ok) {
+              const resData = await response.json();
+              inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              if (inspirationYaml) {
+                console.log(`[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso usando ${model}.`);
+                break;
+              }
+            } else {
+              console.warn(
+                `[GENERATE_PROMPTS_WARN] Modelo ${model} falhou na análise de visão:`,
+                await response.text()
+              );
+            }
+          } catch (modelErr: any) {
+            console.warn(
+              `[GENERATE_PROMPTS_WARN] Erro ao tentar modelo ${model} para visão:`,
+              modelErr.message || modelErr
+            );
+          }
         }
       } catch (e: any) {
         console.warn(
@@ -491,9 +507,6 @@ ${textRules}
         );
 
         const userParts: any[] = [{ text: `Conteúdo da publicação:\n${summaryText}` }];
-        if (inlineDataPart) {
-          userParts.push(inlineDataPart);
-        }
 
         const response = await fetch(geminiUrl, {
           method: "POST",
@@ -517,7 +530,7 @@ ${textRules}
               { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
             ],
             generationConfig: {
-              temperature: 1.2,
+              temperature: 0.7,
               responseMimeType: "application/json",
             },
           }),
@@ -556,15 +569,33 @@ ${textRules}
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
     let parsedData: any;
     try {
-      const match = aiResponseText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      if (match) {
-        parsedData = JSON.parse(match[0]);
-      } else {
-        parsedData = JSON.parse(aiResponseText);
+      let cleanText = aiResponseText.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+      try {
+        parsedData = JSON.parse(cleanText);
+      } catch (e1) {
+        const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (match) {
+          parsedData = JSON.parse(match[0]);
+        } else {
+          throw e1;
+        }
       }
     } catch (e) {
       console.error("[GENERATE_PROMPTS_ERROR] Erro ao fazer parse do JSON retornado:", aiResponseText);
-      throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+      // Tentativa extrema: extração por regex dos itens do array de prompts
+      const arrayItems = aiResponseText.match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
+      if (arrayItems && arrayItems.length >= 3) {
+        const extracted = arrayItems
+          .map((item) => item.slice(1, -1).replace(/\\"/g, '"').trim())
+          .filter((item) => item.length > 30);
+        if (extracted.length > 0) {
+          parsedData = { prompts: extracted };
+        } else {
+          throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+        }
+      } else {
+        throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+      }
     }
 
     const promptsArray = parsedData.prompts || parsedData;
