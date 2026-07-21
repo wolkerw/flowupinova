@@ -54,10 +54,21 @@ export const Step4BrandCustomization = () => {
     setSelectedImage,
     generatedImages,
     setGeneratedImages,
+    processedImageUrl,
+    setProcessedImageUrl,
   } = useWizard();
 
   const [isCorrectionOpen, setIsCorrectionOpen] = React.useState(false);
   const [layersMap, setLayersMap] = React.useState<Record<string, { originalUrl: string; layers: EditorLayer[] }>>({});
+
+  // URL da imagem que deve ser exibida no preview da Step4.
+  // Prefere a originalUrl do editor (sem marca d'agua processada) para permitir reedição.
+  const previewImageUrl = React.useMemo(() => {
+    if (selectedImage && layersMap[selectedImage]?.originalUrl) {
+      return layersMap[selectedImage].originalUrl;
+    }
+    return selectedImage;
+  }, [selectedImage, layersMap]);
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
@@ -205,10 +216,10 @@ export const Step4BrandCustomization = () => {
               <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-gray-200 shadow-md">
                 {isGeneratingImages ? (
                   <CircularProgressLoader isActive={isGeneratingImages} />
-                ) : selectedImage ? (
+                ) : previewImageUrl ? (
                   <>
                     <Image
-                      src={selectedImage}
+                      src={previewImageUrl}
                       layout="fill"
                       objectFit="cover"
                       alt="Imagem selecionada"

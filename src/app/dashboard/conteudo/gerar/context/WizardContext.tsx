@@ -346,12 +346,18 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setPlatforms(initialPlatforms);
 
         // Inicializar a logomarca do Brand Kit se existir e nenhuma estiver selecionada
-        if (busProfile?.logo?.url) {
-          setLogoPreviewUrl(busProfile.logo.url);
+        const brandKitLogoUrl =
+          busProfile?.logo?.url ||
+          busProfile?.brandKit?.logoUrl ||
+          (busProfile as any)?.logoUrl ||
+          (busProfile as any)?.logo;
 
-          const logoUrlToFetch = busProfile.logo.url.startsWith("http")
-            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(busProfile.logo.url)}`
-            : busProfile.logo.url;
+        if (brandKitLogoUrl && typeof brandKitLogoUrl === "string") {
+          setLogoPreviewUrl(brandKitLogoUrl);
+
+          const logoUrlToFetch = brandKitLogoUrl.startsWith("http")
+            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(brandKitLogoUrl)}`
+            : brandKitLogoUrl;
 
           fetch(logoUrlToFetch)
             .then((res) => {
@@ -1349,11 +1355,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     if (!selectedImage) return;
 
     let activeLogoFile = logoFile;
-    if (!activeLogoFile && logoPreviewUrl) {
+    const effectiveLogoUrl =
+      logoPreviewUrl ||
+      busProfile?.logo?.url ||
+      busProfile?.brandKit?.logoUrl ||
+      (busProfile as any)?.logoUrl;
+
+    if (!activeLogoFile && effectiveLogoUrl) {
       try {
-        const logoUrlToFetch = logoPreviewUrl.startsWith("http")
-          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoPreviewUrl)}`
-          : logoPreviewUrl;
+        const logoUrlToFetch = effectiveLogoUrl.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(effectiveLogoUrl)}`
+          : effectiveLogoUrl;
         const logoBlob = await fetch(logoUrlToFetch).then((r) => r.blob());
         activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
           type: logoBlob.type || "image/png",
@@ -1419,14 +1431,30 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     setIsUploading(true);
     try {
       const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const img = document.createElement("img");
+          img.crossOrigin = "anonymous";
           img.onload = () =>
             resolve({
-              width: img.naturalWidth || img.width,
-              height: img.naturalHeight || img.height,
+              width: img.naturalWidth || img.width || 1024,
+              height: img.naturalHeight || img.height || 1024,
             });
-          img.onerror = reject;
+          img.onerror = () => {
+            if (url.startsWith("http")) {
+              const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
+              const img2 = document.createElement("img");
+              img2.crossOrigin = "anonymous";
+              img2.onload = () =>
+                resolve({
+                  width: img2.naturalWidth || img2.width || 1024,
+                  height: img2.naturalHeight || img2.height || 1024,
+                });
+              img2.onerror = () => resolve({ width: 1024, height: 1024 });
+              img2.src = proxyUrl;
+            } else {
+              resolve({ width: 1024, height: 1024 });
+            }
+          };
           img.src = url;
         });
       };

@@ -245,13 +245,62 @@ export async function POST(request: NextRequest) {
 }
 
 async function fallbackSaveDirectToStorage(formData: FormData) {
-  const file = (formData.get("file") as File) || (formData.get("logo") as File);
-  if (!file) {
+  const mainFile = (formData.get("file") as File) || null;
+  const logoFile = (formData.get("logo") as File) || null;
+
+  const targetFile = mainFile || logoFile;
+  if (!targetFile) {
     throw new Error("Nenhum arquivo de imagem encontrado no formulário.");
   }
 
   const userId = await getUidFromCookie().catch(() => "anonymous");
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer = Buffer.from(await targetFile.arrayBuffer());
+
+  // Se houver arquivo principal e logomarca, realiza a composição usando Jimp
+  if (mainFile && logoFile) {
+    try {
+      const { Jimp } = await import("jimp");
+      const mainImage = await Jimp.read(buffer);
+      const logoBuffer = Buffer.from(await logoFile.arrayBuffer());
+      const logoImage = await Jimp.read(logoBuffer);
+
+      const posXStr = formData.get("positionX")?.toString();
+      const posYStr = formData.get("positionY")?.toString();
+      const logoScaleStr = formData.get("logoScale")?.toString();
+      const logoOpacityStr = formData.get("logoOpacity")?.toString();
+
+      const logoScale = logoScaleStr ? parseFloat(logoScaleStr) : 20;
+      const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
+      const targetLogoWidth = Math.round(mainImage.width * (visualLogoScale / 100));
+
+      if (targetLogoWidth > 0 && logoImage.width > 0) {
+        const aspectRatio = logoImage.height / logoImage.width;
+        const targetLogoHeight = Math.round(targetLogoWidth * aspectRatio);
+        logoImage.resize({ w: targetLogoWidth, h: targetLogoHeight });
+      }
+
+      if (logoOpacityStr) {
+        const opacityVal = parseFloat(logoOpacityStr) / 100;
+        if (!isNaN(opacityVal) && opacityVal >= 0 && opacityVal <= 1) {
+          logoImage.opacity(opacityVal);
+        }
+      }
+
+      const posX = posXStr ? parseInt(posXStr, 10) : 16;
+      const posY = posYStr ? parseInt(posYStr, 10) : 16;
+
+      mainImage.composite(logoImage, posX, posY);
+      buffer = await mainImage.getBuffer("image/jpeg");
+      console.log(
+        `[PROXY_WEBHOOK] Logomarca aplicada com sucesso via Jimp no fallback! (X: ${posX}, Y: ${posY})`
+      );
+    } catch (jimpErr: any) {
+      console.error(
+        "[PROXY_WEBHOOK] Erro ao aplicar marca d'água via Jimp no fallback:",
+        jimpErr.message || jimpErr
+      );
+    }
+  }
 
   const userStoragePath = await getUserStoragePathAdmin(userId);
   const dateStr = new Date()
@@ -267,7 +316,7 @@ async function fallbackSaveDirectToStorage(formData: FormData) {
 
   await fileRef.save(buffer, {
     metadata: {
-      contentType: file.type || "image/jpeg",
+      contentType: "image/jpeg",
       metadata: {
         firebaseStorageDownloadTokens: downloadToken,
       },
