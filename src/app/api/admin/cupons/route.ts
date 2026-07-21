@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { code, discountPercentage } = body;
+    const { code, discountPercentage, expiresAt } = body;
 
     if (!code || !discountPercentage) {
       return NextResponse.json({ error: "Faltam parâmetros" }, { status: 400 });
@@ -37,15 +37,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Este código de cupom já existe" }, { status: 400 });
     }
 
-    await db
-      .collection("coupons")
-      .doc(cleanCode)
-      .set({
-        code: cleanCode,
-        discountPercentage: Number(discountPercentage),
-        active: true,
-        createdAt: new Date().toISOString(),
-      });
+    const couponData: Record<string, any> = {
+      code: cleanCode,
+      discountPercentage: Number(discountPercentage),
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Validade opcional: salvar apenas se fornecida e válida
+    if (expiresAt) {
+      const expiresDate = new Date(expiresAt);
+      if (!isNaN(expiresDate.getTime())) {
+        couponData.expiresAt = expiresDate.toISOString();
+      }
+    }
+
+    await db.collection("coupons").doc(cleanCode).set(couponData);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
