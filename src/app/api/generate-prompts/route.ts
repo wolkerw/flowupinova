@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { Jimp } from "jimp";
 
 export const maxDuration = 300;
 
@@ -106,71 +107,93 @@ ${topApproved.map((p, idx) => `Example #${idx + 1}: ${p}`).join("\n\n")}
     }
 
     let inspirationYaml = "";
-    let inlineDataPart: any = null;
-    let base64Image = "";
-    let mimeType = "";
 
     if (inspirationFile) {
       try {
         console.log("[GENERATE_PROMPTS] Processando arquivo de inspiração para análise visual...");
         const arrayBuffer = await inspirationFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        mimeType = inspirationFile.type || "image/jpeg";
-        base64Image = buffer.toString("base64");
+        let buffer = Buffer.from(arrayBuffer);
+        let mimeType = inspirationFile.type || "image/jpeg";
 
-        inlineDataPart = {
-          inlineData: {
-            mimeType: mimeType,
-            data: base64Image,
-          },
-        };
+        try {
+          const image = await Jimp.read(buffer);
+          if (image.width > 768 || image.height > 768) {
+            image.resize({ w: 768, h: 768 });
+          }
+          buffer = await image.getBuffer("image/jpeg");
+          mimeType = "image/jpeg";
+        } catch (jimpErr) {
+          console.warn("[GENERATE_PROMPTS_WARN] Falha ao redimensionar imagem com Jimp, usando imagem original:", jimpErr);
+        }
 
-        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with high precision.
-Determine the composition layout, model poses (if any), colors, scenery, lighting types, text placement areas, and other stylistic features.
-Return the description strictly in YAML format containing:
-  composition_layout: (e.g. split screen, center focus, overlapping card)
-  lighting_style: (e.g. warm side light, studio soft lights)
-  color_palette: (describe prominent color names and tones)
-  scene_details: (describe textures, background elements, furniture, outdoor/indoor setting)
-  text_areas: (where the text is positioned)
-  visual_style: (describe overall vibe, luxury, minimal, playful, vintage)`;
+        const base64Image = buffer.toString("base64");
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: geminiAnalysisPrompt },
+        const geminiAnalysisPrompt = `Analyze the given social media post print (inspiration reference) with extreme visual precision.
+Deconstruct the image into a detailed description so an AI image generator can recreate the scene with high fidelity.
+Describe:
+1. SUBJECT & POSE: What is the main subject/person/object? Describe their exact pose, clothing, posture, and facial expression or product placement.
+2. ENVIRONMENT & SETTING: Describe the exact room, architecture, outdoor/indoor location, furniture, walls, floor, plants, and background scenery.
+3. COMPOSITION & FRAMING: Camera distance (e.g. medium shot, wide shot, close-up), camera height/angle, subject position (e.g. centered, right third), negative space areas.
+4. LIGHTING & ATMOSPHERE: Light sources, lighting direction, shadows, atmosphere (e.g. warm golden sunset, moody dark room, bright daylight).
+5. COLOR PALETTE: Main colors, tones, and contrast.
+
+Return the description strictly in YAML format:
+  subject_description: "..."
+  environment_scenery: "..."
+  composition_framing: "..."
+  lighting_atmosphere: "..."
+  color_palette: "..."
+  full_detailed_scene_prompt: "Write a comprehensive 100-word English photographic prompt describing this exact visual scene, backdrop, lighting, and composition."`;
+
+        const visionModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
+        for (const model of visionModels) {
+          try {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
                   {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: base64Image,
-                    },
+                    parts: [
+                      { text: geminiAnalysisPrompt },
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
+                      },
+                    ],
                   },
                 ],
-              },
-            ],
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ]
-          }),
-        });
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                ],
+              }),
+            });
 
-        if (response.ok) {
-          const resData = await response.json();
-          inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          console.log("[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso.");
-        } else {
-          console.error(
-            "[GENERATE_PROMPTS_ERROR] Erro ao chamar Gemini Vision para análise:",
-            await response.text()
-          );
+            if (response.ok) {
+              const resData = await response.json();
+              inspirationYaml = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              if (inspirationYaml) {
+                console.log(`[GENERATE_PROMPTS] Análise YAML do print obtida com sucesso usando ${model}.`);
+                break;
+              }
+            } else {
+              console.warn(
+                `[GENERATE_PROMPTS_WARN] Modelo ${model} falhou na análise de visão:`,
+                await response.text()
+              );
+            }
+          } catch (modelErr: any) {
+            console.warn(
+              `[GENERATE_PROMPTS_WARN] Erro ao tentar modelo ${model} para visão:`,
+              modelErr.message || modelErr
+            );
+          }
         }
       } catch (e: any) {
         console.warn(
@@ -283,20 +306,22 @@ Instruct the typography to be rendered using the specified Primary Font for titl
     if (inspirationYaml) {
       option3Text = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING)
+## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING - OVERRIDES GENERIC BRANDING)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You MUST analyze the provided YAML description and visual cues of the user's inspiration reference print (which is provided in the input image):
+CRITICAL INSTRUCTION FOR OPTION 3: You MUST generate an image prompt that DIRECTLY RECREATES AND MATCHES the visual scene, subject posture, architecture, furniture, background setting, and composition layout from the user's inspiration reference print analyzed below:
+
 ${inspirationYaml}
 
-- DECONSTRUCT COMPOSITION & LAYOUT: Replicate the layout, camera angle, subject placement, and scene structure described in the YAML and visible in the input image.
-- SCENARIO & LIGHTING: Mimic the lighting style (e.g., studio soft lights, warm gel accents), scene details, textures, and backdrop of the inspiration reference.
-- BRAND PERSONALIZATION: Stylize the scene with the brand's primary and secondary colors (e.g. golden yellow, deep blue) in props, backgrounds, or lighting accents.
-- CONCEPTUAL GENERATION: Describe the scene textually as a standard Text-to-Image prompt. Since this model does not support image conditioning, do NOT say "the product in the input image". Describe the subjects, characters, and product textually (e.g., "a beautifully designed bottle of cosmetic cream", "a stylish leather bag") placed inside the replicated layout and setting.
-- ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any texts, slogans, words, numbers, logos, or brand names present in the inspiration reference print. You MUST completely discard and ignore any text visible in the reference image. Copying text from the reference print is strictly prohibited.
+REPLICATION REQUIREMENTS (HIGHEST PRIORITY):
+1. RECREATE THE EXACT SCENE & ENVIRONMENT: You MUST base the Option 3 prompt on the exact scenery, room, location, furniture, architecture, and background elements described in the YAML above. Do NOT replace the scene with a generic studio or workspace unless the inspiration reference image was literally a studio.
+2. RECREATE THE COMPOSITION & FRAMING: Replicate the exact camera angle, subject positioning, distance, and negative space areas from the YAML.
+3. RECREATE THE LIGHTING & ATMOSPHERE: Mimic the exact lighting style, direction, color temperature, and atmospheric mood described in the YAML.
+4. BRAND PERSONALIZATION: Adapt the brand's primary and secondary colors subtly into props, lighting accents, or clothing details without altering the core scene architecture or layout.
+5. ABSOLUTE TEXT ISOLATION RULE (MANDATORY): Do NOT copy, translate, or include any text, words, logos, or slogans from the inspiration print. Completely ignore all text in the reference print.
 ${
   selContent?.titulo && insertTextOnImage
-    ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), which must be printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply the text rendering rules to print the title exactly once with zero repetitions.`
-    : `- ABSOLUTE TEXT PROHIBITION: The user specifically requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene.`
+    ? `- The ONLY text allowed on the generated image is the selected post title ("${selContent.titulo}"), printed exactly once.\n- NO DUPLICATE WORDS: Strictly apply text rendering rules.`
+    : `- ABSOLUTE TEXT PROHIBITION: The user requested NO TEXT on the generated image. Do NOT instruct the generator to draw any typography.`
 }
 `;
     } else {
@@ -491,9 +516,6 @@ ${textRules}
         );
 
         const userParts: any[] = [{ text: `Conteúdo da publicação:\n${summaryText}` }];
-        if (inlineDataPart) {
-          userParts.push(inlineDataPart);
-        }
 
         const response = await fetch(geminiUrl, {
           method: "POST",
@@ -517,7 +539,7 @@ ${textRules}
               { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
             ],
             generationConfig: {
-              temperature: 1.2,
+              temperature: 0.7,
               responseMimeType: "application/json",
             },
           }),
@@ -556,15 +578,33 @@ ${textRules}
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
     let parsedData: any;
     try {
-      const match = aiResponseText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      if (match) {
-        parsedData = JSON.parse(match[0]);
-      } else {
-        parsedData = JSON.parse(aiResponseText);
+      let cleanText = aiResponseText.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+      try {
+        parsedData = JSON.parse(cleanText);
+      } catch (e1) {
+        const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (match) {
+          parsedData = JSON.parse(match[0]);
+        } else {
+          throw e1;
+        }
       }
     } catch (e) {
       console.error("[GENERATE_PROMPTS_ERROR] Erro ao fazer parse do JSON retornado:", aiResponseText);
-      throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+      // Tentativa extrema: extração por regex dos itens do array de prompts
+      const arrayItems = aiResponseText.match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
+      if (arrayItems && arrayItems.length >= 3) {
+        const extracted = arrayItems
+          .map((item) => item.slice(1, -1).replace(/\\"/g, '"').trim())
+          .filter((item) => item.length > 30);
+        if (extracted.length > 0) {
+          parsedData = { prompts: extracted };
+        } else {
+          throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+        }
+      } else {
+        throw new Error("A IA retornou um formato inválido que não pôde ser lido.");
+      }
     }
 
     const promptsArray = parsedData.prompts || parsedData;
