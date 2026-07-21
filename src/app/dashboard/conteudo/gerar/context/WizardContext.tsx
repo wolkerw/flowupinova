@@ -1347,7 +1347,23 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleLogoProcessing = async () => {
     if (!selectedImage) return;
-    if (!logoFile) {
+
+    let activeLogoFile = logoFile;
+    if (!activeLogoFile && logoPreviewUrl) {
+      try {
+        const logoUrlToFetch = logoPreviewUrl.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoPreviewUrl)}`
+          : logoPreviewUrl;
+        const logoBlob = await fetch(logoUrlToFetch).then((r) => r.blob());
+        activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
+          type: logoBlob.type || "image/png",
+        });
+      } catch (errLogo) {
+        console.error("[WIZARD] Erro ao carregar blob da logo para envio:", errLogo);
+      }
+    }
+
+    if (!activeLogoFile) {
       if (!selectedImage.startsWith("blob:")) {
         setProcessedImageUrl(null);
         setStep(isSyncImageMode ? 4 : 5);
@@ -1485,7 +1501,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         : selectedImage;
       const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
       formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
-      formData.append("logo", logoFile);
+      formData.append("logo", activeLogoFile);
       formData.append("logoScale", logoScale.toString());
       formData.append("logoOpacity", logoOpacity.toString());
       formData.append("positionX", Math.round(positionX).toString());
