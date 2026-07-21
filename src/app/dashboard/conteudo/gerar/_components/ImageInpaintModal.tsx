@@ -204,6 +204,284 @@ export const TEXT_PRESETS = [
   },
 ];
 
+export interface SymbolPreset {
+  id: string;
+  name: string;
+  symbol: string;
+  category: string;
+  config: Partial<EditorLayer>;
+}
+
+export const SYMBOL_PRESETS: SymbolPreset[] = [
+  {
+    id: "quote-open",
+    name: "Aspas Abertura",
+    symbol: "“",
+    category: "Aspas",
+    config: {
+      type: "text",
+      text: "“",
+      fontSize: 100,
+      fontFamily: "Playfair Display",
+      bold: true,
+      color: "#8B5CF6",
+      width: 80,
+      height: 80,
+      align: "center",
+    },
+  },
+  {
+    id: "quote-close",
+    name: "Aspas Fechamento",
+    symbol: "”",
+    category: "Aspas",
+    config: {
+      type: "text",
+      text: "”",
+      fontSize: 100,
+      fontFamily: "Playfair Display",
+      bold: true,
+      color: "#8B5CF6",
+      width: 80,
+      height: 80,
+      align: "center",
+    },
+  },
+  {
+    id: "quote-angle",
+    name: "Aspas « »",
+    symbol: "« »",
+    category: "Aspas",
+    config: {
+      type: "text",
+      text: "« »",
+      fontSize: 60,
+      fontFamily: "Oswald",
+      bold: true,
+      color: "#FA6305",
+      width: 120,
+      height: 60,
+      align: "center",
+    },
+  },
+  {
+    id: "curr-reais",
+    name: "Cifrão R$",
+    symbol: "R$",
+    category: "Moedas",
+    config: {
+      type: "text",
+      text: "R$",
+      fontSize: 50,
+      fontFamily: "Montserrat",
+      bold: true,
+      color: "#10B981",
+      width: 100,
+      height: 50,
+      align: "center",
+    },
+  },
+  {
+    id: "curr-dollar",
+    name: "Cifrão $",
+    symbol: "$",
+    category: "Moedas",
+    config: {
+      type: "text",
+      text: "$",
+      fontSize: 70,
+      fontFamily: "Montserrat",
+      bold: true,
+      color: "#10B981",
+      width: 80,
+      height: 80,
+      align: "center",
+    },
+  },
+  {
+    id: "curr-percent",
+    name: "Porcentagem %",
+    symbol: "%",
+    category: "Moedas",
+    config: {
+      type: "text",
+      text: "%",
+      fontSize: 70,
+      fontFamily: "Bebas Neue",
+      bold: true,
+      color: "#FA6305",
+      width: 80,
+      height: 80,
+      align: "center",
+    },
+  },
+  {
+    id: "curr-off",
+    name: "Tag OFF",
+    symbol: "OFF",
+    category: "Moedas",
+    config: {
+      type: "text",
+      text: "OFF",
+      fontSize: 40,
+      fontFamily: "Oswald",
+      bold: true,
+      color: "#EF4444",
+      bgOpacity: 0.2,
+      bgColor: "#EF4444",
+      width: 90,
+      height: 45,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-star",
+    name: "Estrela ★",
+    symbol: "★",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "★",
+      fontSize: 60,
+      fontFamily: "Inter",
+      color: "#F59E0B",
+      width: 70,
+      height: 70,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-sparkle",
+    name: "Brilho ✦",
+    symbol: "✦",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "✦",
+      fontSize: 60,
+      fontFamily: "Inter",
+      color: "#8B5CF6",
+      width: 70,
+      height: 70,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-check",
+    name: "Check ✔",
+    symbol: "✔",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "✔",
+      fontSize: 55,
+      fontFamily: "Inter",
+      color: "#10B981",
+      width: 60,
+      height: 60,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-fire",
+    name: "Fogo 🔥",
+    symbol: "🔥",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "🔥",
+      fontSize: 55,
+      fontFamily: "Inter",
+      color: "#F97316",
+      width: 60,
+      height: 60,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-lightning",
+    name: "Raio ⚡",
+    symbol: "⚡",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "⚡",
+      fontSize: 55,
+      fontFamily: "Inter",
+      color: "#EAB308",
+      width: 60,
+      height: 60,
+      align: "center",
+    },
+  },
+  {
+    id: "bullet-dot",
+    name: "Ponto •",
+    symbol: "•",
+    category: "Marcadores",
+    config: {
+      type: "text",
+      text: "•",
+      fontSize: 80,
+      fontFamily: "Inter",
+      color: "#0083C7",
+      width: 50,
+      height: 50,
+      align: "center",
+    },
+  },
+  {
+    id: "graph-emdash",
+    name: "Traço —",
+    symbol: "—",
+    category: "Grafismos",
+    config: {
+      type: "text",
+      text: "—",
+      fontSize: 60,
+      fontFamily: "Inter",
+      bold: true,
+      color: "#0083C7",
+      width: 90,
+      height: 45,
+      align: "center",
+    },
+  },
+  {
+    id: "graph-slashes",
+    name: "Barras ///",
+    symbol: "///",
+    category: "Grafismos",
+    config: {
+      type: "text",
+      text: "///",
+      fontSize: 40,
+      fontFamily: "Oswald",
+      bold: true,
+      color: "#0083C7",
+      width: 90,
+      height: 45,
+      align: "center",
+    },
+  },
+  {
+    id: "graph-stars",
+    name: "Três Estrelas ★★★",
+    symbol: "★★★",
+    category: "Grafismos",
+    config: {
+      type: "text",
+      text: "★★★",
+      fontSize: 32,
+      fontFamily: "Inter",
+      color: "#F59E0B",
+      width: 120,
+      height: 40,
+      align: "center",
+    },
+  },
+];
+
 // Auxiliar para calcular a altura dinâmica do texto com quebra de linha
 const getTextHeight = (
   ctx: CanvasRenderingContext2D,
@@ -1407,6 +1685,31 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Símbolos & Artes */}
+              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                  <span>Símbolos & Artes</span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  {SYMBOL_PRESETS.map((sym) => (
+                    <Button
+                      key={sym.id}
+                      onClick={() => addPresetLayer(sym.config)}
+                      variant="outline"
+                      size="sm"
+                      className="flex h-11 flex-col items-center justify-center border-slate-700 bg-slate-800/80 p-1 text-slate-200 transition-transform hover:scale-105 hover:bg-slate-700 hover:text-white"
+                      disabled={!imageLoaded}
+                      title={sym.name}
+                    >
+                      <span className="text-sm font-bold leading-none">{sym.symbol}</span>
+                      <span className="mt-1 text-[8px] text-slate-400 leading-none truncate max-w-full">
+                        {sym.name}
+                      </span>
+                    </Button>
+                  ))}
                 </div>
               </div>
 
