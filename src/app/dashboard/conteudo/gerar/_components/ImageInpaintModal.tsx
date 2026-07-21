@@ -50,8 +50,9 @@ interface ImageInpaintModalProps {
   postId: string;
   userId: string;
   fileName: string;
-  onSuccess: (newImageUrl: string) => void;
+  onSuccess: (newImageUrl: string, layers?: EditorLayer[]) => void;
   initialText?: string;
+  initialLayers?: EditorLayer[];
   brandKitPrimaryColor?: string;
   brandKitSecondaryColor?: string;
 }
@@ -247,6 +248,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   fileName,
   onSuccess,
   initialText,
+  initialLayers,
   brandKitPrimaryColor,
   brandKitSecondaryColor,
 }) => {
@@ -316,7 +318,11 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   useEffect(() => {
     if (!isOpen || !imageUrl) return;
     setImageLoaded(false);
-    setLayers([]);
+    if (initialLayers && initialLayers.length > 0) {
+      setLayers(initialLayers);
+    } else {
+      setLayers([]);
+    }
     setSelectedId(null);
 
     const img = new window.Image();
@@ -355,7 +361,99 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       alert("Não foi possível carregar a imagem para o editor.");
       onClose();
     };
-  }, [isOpen, imageUrl, initialText, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, imageUrl, initialText]);
+
+  // Extrai as linhas de texto considerando quebras manuais e quebra de linha por largura
+  const getTextLines = (ctx: CanvasRenderingContext2D, l: EditorLayer) => {
+    const paragraphs = l.text.split("\n");
+    const lines: string[] = [];
+
+    paragraphs.forEach((paragraph) => {
+      // Se for uma linha vazia (apenas enter), adiciona uma linha em branco
+      if (!paragraph) {
+        lines.push("");
+        return;
+      }
+      const words = paragraph.split(" ");
+      let currentLine = "";
+      words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (ctx.measureText(testLine).width > l.width && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+    });
+    return lines;
+  };
+
+  // Calcula a altura efetiva de uma camada, especialmente útil para camadas de texto onde o conteúdo pode aumentar e quebrar linhas
+  const getEffectiveHeight = (ctx: CanvasRenderingContext2D, l: EditorLayer) => {
+    let H_eff = l.height;
+    if (l.type === "text") {
+      ctx.save();
+      const fontStyle = `${l.italic ? "italic" : ""} ${l.bold ? "bold" : ""} ${l.fontSize}px ${l.fontFamily}`;
+      ctx.font = fontStyle;
+      const lines = getTextLines(ctx, l);
+      ctx.restore();
+      const totalHeight = lines.length * (l.fontSize * 1.25);
+      H_eff = Math.max(l.height, totalHeight);
+    }
+    return H_eff;
+  };
+
+  const getVisualBounds = (ctx: CanvasRenderingContext2D, l: EditorLayer, H_eff: number) => {
+    let minX = -l.width / 2;
+    let maxX = l.width / 2;
+    let minY = -H_eff / 2;
+    let maxY = H_eff / 2;
+
+    if (l.type === "text") {
+      ctx.save();
+      const fontStyle = `${l.italic ? "italic" : ""} ${l.bold ? "bold" : ""} ${l.fontSize}px ${l.fontFamily}`;
+      ctx.font = fontStyle;
+      const lines = getTextLines(ctx, l);
+      
+      if (l.bgOpacity > 0) {
+        maxY = H_eff / 2 + 10;
+      } else {
+        const maxLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 20);
+        
+        if (l.align === "left") {
+          minX = -l.width / 2;
+          maxX = -l.width / 2 + maxLineWidth;
+        } else if (l.align === "center") {
+          minX = -maxLineWidth / 2;
+          maxX = maxLineWidth / 2;
+        } else if (l.align === "right") {
+          minX = l.width / 2 - maxLineWidth;
+          maxX = l.width / 2;
+        }
+        
+        const lineHeight = l.fontSize * 1.25;
+        const totalHeight = lines.length * lineHeight;
+        
+        if (l.verticalAlign === "center") {
+          minY = -totalHeight / 2 + 5;
+          maxY = totalHeight / 2 + 5;
+        } else if (l.verticalAlign === "bottom") {
+          minY = H_eff / 2 - totalHeight + 5;
+          maxY = H_eff / 2 + 5;
+        } else {
+          minY = -H_eff / 2 + 5;
+          maxY = -H_eff / 2 + 5 + totalHeight;
+        }
+      }
+      ctx.restore();
+    }
+    return { minX, maxX, minY, maxY: Math.max(minY + 10, maxY) };
+  };
 
   // Função centralizada para renderização das camadas
   const drawLayersToCtx = useCallback(
@@ -372,7 +470,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
         ctx.save();
         ctx.globalAlpha = l.opacity;
 
-        let H_eff = l.height;
+        let H_eff = getEffectiveHeight(ctx, l);
 
         // Definir ponto central do elemento
         const cx = l.x + l.width / 2;
@@ -388,23 +486,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
           ctx.font = fontStyle;
           ctx.textBaseline = "top";
 
-          const words = l.text.split("\n").flatMap((line) => line.split(" "));
-          const lines: string[] = [];
-          let currentLine = "";
-
-          words.forEach((word) => {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > l.width && currentLine) {
-              lines.push(currentLine);
-              currentLine = word;
-            } else {
-              currentLine = testLine;
-            }
-          });
-          if (currentLine) {
-            lines.push(currentLine);
-          }
+          const lines = getTextLines(ctx, l);
 
           const lineHeight = l.fontSize * 1.25;
           const totalHeight = lines.length * lineHeight;
@@ -469,25 +551,29 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
           if (activeSelectedId === l.id) {
             const currentScale = l.scale || 1.0;
+            const bounds = getVisualBounds(ctx, l, H_eff);
+            const w = bounds.maxX - bounds.minX;
+            const h = bounds.maxY - bounds.minY;
+
             ctx.strokeStyle = "#8B5CF6";
             ctx.lineWidth = 2 / currentScale;
             ctx.setLineDash([6 / currentScale, 4 / currentScale]);
-            ctx.strokeRect(-l.width / 2 - 4, -H_eff / 2 - 4, l.width + 8, H_eff + 8);
+            ctx.strokeRect(bounds.minX - 4, bounds.minY - 4, w + 8, h + 8);
 
             ctx.fillStyle = "#8B5CF6";
             // Puxador de redimensionamento diagonal (canto inferior direito)
             ctx.beginPath();
-            ctx.arc(l.width / 2 + 4, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(bounds.maxX + 4, bounds.maxY + 4, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
 
             // Puxador de redimensionamento (largura) no meio direito
             ctx.beginPath();
-            ctx.arc(l.width / 2 + 4, 0, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(bounds.maxX + 4, bounds.minY + h / 2, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
 
             // Puxador de redimensionamento (altura) no meio inferior
             ctx.beginPath();
-            ctx.arc(0, H_eff / 2 + 4, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(bounds.minX + w / 2, bounds.maxY + 4, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
 
             // Puxador de rotação no topo central
@@ -495,13 +581,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
             ctx.lineWidth = 1.5 / currentScale;
             ctx.setLineDash([]);
             ctx.beginPath();
-            ctx.moveTo(0, -H_eff / 2 - 4);
-            ctx.lineTo(0, -H_eff / 2 - 20);
+            ctx.moveTo(bounds.minX + w / 2, bounds.minY - 4);
+            ctx.lineTo(bounds.minX + w / 2, bounds.minY - 20);
             ctx.stroke();
 
             ctx.fillStyle = "#3B82F6";
             ctx.beginPath();
-            ctx.arc(0, -H_eff / 2 - 20, 6 / currentScale, 0, Math.PI * 2);
+            ctx.arc(bounds.minX + w / 2, bounds.minY - 20, 6 / currentScale, 0, Math.PI * 2);
             ctx.fill();
           }
         } else if (l.type === "rectangle") {
@@ -686,14 +772,16 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     drawLayersToCtx(ctx, imageRef.current, layers, selectedId);
   }, [imageLoaded, layers, selectedId, canvasW, canvasH, drawLayersToCtx]);
 
-  // Obter posição do cursor sobre o canvas
+  // Obter posição do cursor sobre o canvas adaptado para a escala CSS do canvas
   const getPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
     };
   };
 
@@ -706,7 +794,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
     for (let i = layers.length - 1; i >= 0; i--) {
       const l = layers[i];
-      let H_eff = l.height;
+      let H_eff = getEffectiveHeight(tempCtx, l);
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -721,30 +809,35 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const lx = (dx * cos - dy * sin) / scale;
       const ly = (dx * sin + dy * cos) / scale;
 
+      const bounds = getVisualBounds(tempCtx, l, H_eff);
+      const w = bounds.maxX - bounds.minX;
+      const h = bounds.maxY - bounds.minY;
+      const pad = 6; // Garante que a linha pontilhada (-4px) e margens sejam 100% pegáveis
+
       // Puxador de Rotação (topo central)
-      const rotHandleX = 0;
-      const rotHandleY = -H_eff / 2 - 20;
-      if (Math.hypot(lx - rotHandleX, ly - rotHandleY) * scale <= 12) {
+      const rotHandleX = bounds.minX + w / 2;
+      const rotHandleY = bounds.minY - 20;
+      if (Math.hypot(lx - rotHandleX, ly - rotHandleY) * scale <= 14) {
         return { id: l.id, type: "rotate" as const };
       }
 
       // Puxador de Redimensionamento (canto inferior direito)
-      const resHandleX = l.width / 2 + 4;
-      const resHandleY = H_eff / 2 + 4;
-      if (Math.hypot(lx - resHandleX, ly - resHandleY) * scale <= 12) {
+      const resHandleX = bounds.maxX + 4;
+      const resHandleY = bounds.maxY + 4;
+      if (Math.hypot(lx - resHandleX, ly - resHandleY) * scale <= 14) {
         return { id: l.id, type: "resize" as const };
       }
 
       // Puxadores laterais para deformar (agora para todos os elementos)
-      const rightHandleX = l.width / 2 + 4;
-      const rightHandleY = 0;
-      if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 12) {
+      const rightHandleX = bounds.maxX + 4;
+      const rightHandleY = bounds.minY + h / 2;
+      if (Math.hypot(lx - rightHandleX, ly - rightHandleY) * scale <= 14) {
         return { id: l.id, type: "resizeWidth" as const };
       }
 
-      const bottomHandleX = 0;
-      const bottomHandleY = H_eff / 2 + 4;
-      if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 12) {
+      const bottomHandleX = bounds.minX + w / 2;
+      const bottomHandleY = bounds.maxY + 4;
+      if (Math.hypot(lx - bottomHandleX, ly - bottomHandleY) * scale <= 14) {
         return { id: l.id, type: "resizeHeight" as const };
       }
 
@@ -771,11 +864,16 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
           yy = -H / 2 + param * H;
         }
 
-        if (Math.hypot(lx - xx, ly - yy) * scale <= 8) {
+        if (Math.hypot(lx - xx, ly - yy) * scale <= 10) {
           return { id: l.id, type: "move" as const };
         }
       } else {
-        if (lx >= -l.width / 2 && lx <= l.width / 2 && ly >= -H_eff / 2 && ly <= H_eff / 2) {
+        if (
+          lx >= bounds.minX - pad &&
+          lx <= bounds.maxX + pad &&
+          ly >= bounds.minY - pad &&
+          ly <= bounds.maxY + pad
+        ) {
           return { id: l.id, type: "move" as const };
         }
       }
@@ -796,7 +894,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const tempCtx = canvas.getContext("2d");
       if (!tempCtx) return;
 
-      let H_eff = l.height;
+      let H_eff = getEffectiveHeight(tempCtx, l);
 
       const cx = l.x + l.width / 2;
       const cy = l.y + H_eff / 2;
@@ -1082,7 +1180,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
 
       const data = await response.json();
       if (data.success && data.imageUrl) {
-        onSuccess(data.imageUrl);
+        onSuccess(data.imageUrl, layersRef.current);
         onClose();
       } else {
         alert(data.error || "Erro ao salvar a imagem editada.");
