@@ -154,10 +154,36 @@ export function SubscriptionModal({ isOpen, onClose, userId }: SubscriptionModal
     if (targetLink) {
       window.open(targetLink, "_blank");
     } else {
+      const planNames: Record<string, string> = {
+        mensal: "Mensal",
+        trimestral: "Trimestral",
+        semestral: "Semestral",
+        anual: "Anual",
+      };
+
+      const planName = planNames[selectedPlan] || selectedPlan;
+      const formattedTotal = totalToPay.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+
+      let textMsg = `Olá! Gostaria de solicitar o link de pagamento no Cartão de Crédito para o plano ${planName} (Valor Total: ${formattedTotal}).`;
+
+      if (discount) {
+        textMsg += ` Cupom aplicado: ${discount.code} (${discount.percentage}% OFF).`;
+      }
+
+      if (userData?.email) {
+        textMsg += ` Meu e-mail de cadastro: ${userData.email}.`;
+      }
+
+      const whatsappUrl = `https://wa.me/555199922177?text=${encodeURIComponent(textMsg)}`;
+      window.open(whatsappUrl, "_blank");
+
       toast({
-        variant: "destructive",
-        title: "Link indisponível",
-        description: "O link de pagamento com cartão para este plano ainda não foi configurado.",
+        variant: "success",
+        title: "Solicitação Enviada! 💬",
+        description: "Abrindo o WhatsApp para envio da sua solicitação de link de pagamento.",
       });
     }
   };
