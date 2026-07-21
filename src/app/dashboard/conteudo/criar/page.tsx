@@ -61,7 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { ImageInpaintModal } from "../gerar/_components/ImageInpaintModal";
+import { ImageInpaintModal, type EditorLayer } from "../gerar/_components/ImageInpaintModal";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -112,6 +112,8 @@ type MediaItem = {
   file: File;
   previewUrl: string;
   publicUrl?: string;
+  originalUrl?: string;
+  editorLayers?: EditorLayer[];
 };
 
 const LogoOverlay = ({
@@ -211,11 +213,13 @@ const adaptImageToStory = (
           ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
           ctx.fillRect(0, 0, 1080, 1920);
 
-          // 2. Imagem Principal centralizada (1:1 mantido)
-          const targetWidth = 1080;
-          const targetHeight = 1080;
+          // 2. Imagem Principal centralizada mantendo a proporção original
+          const scale = Math.min(1080 / img.width, 1920 / img.height);
+          const targetWidth = img.width * scale;
+          const targetHeight = img.height * scale;
+          const targetX = (1080 - targetWidth) / 2;
           const targetY = (1920 - targetHeight) / 2;
-          ctx.drawImage(img, 0, targetY, targetWidth, targetHeight);
+          ctx.drawImage(img, targetX, targetY, targetWidth, targetHeight);
         } else if (mode === "crop") {
           // Zoom e crop para cobrir toda a tela 9:16
           const bgScale = 1920 / img.height;
@@ -227,10 +231,12 @@ const adaptImageToStory = (
           ctx.fillStyle = brandKitPrimaryColor || "#000000";
           ctx.fillRect(0, 0, 1080, 1920);
 
-          const targetWidth = 1080;
-          const targetHeight = 1080;
+          const scale = Math.min(1080 / img.width, 1920 / img.height);
+          const targetWidth = img.width * scale;
+          const targetHeight = img.height * scale;
+          const targetX = (1080 - targetWidth) / 2;
           const targetY = (1920 - targetHeight) / 2;
-          ctx.drawImage(img, 0, targetY, targetWidth, targetHeight);
+          ctx.drawImage(img, targetX, targetY, targetWidth, targetHeight);
         }
 
         // 3. Aplicação do Logotipo
@@ -329,7 +335,11 @@ const adaptImageToStory = (
               0.95
             );
           };
-          logoImg.src = logoUrl;
+          const proxyLogoUrl =
+            logoUrl.startsWith("blob:") || logoUrl.startsWith("data:") || logoUrl.startsWith("/")
+              ? logoUrl
+              : `/api/download?url=${encodeURIComponent(logoUrl)}`;
+          logoImg.src = proxyLogoUrl;
         } else {
           canvas.toBlob(
             (blob) => {
@@ -350,7 +360,11 @@ const adaptImageToStory = (
     img.onerror = () => {
       reject(new Error("Erro ao carregar a imagem original no Canvas."));
     };
-    img.src = imageUrl;
+    const proxyImageUrl =
+      imageUrl.startsWith("blob:") || imageUrl.startsWith("data:") || imageUrl.startsWith("/")
+        ? imageUrl
+        : `/api/download?url=${encodeURIComponent(imageUrl)}`;
+    img.src = proxyImageUrl;
   });
 };
 
@@ -420,8 +434,8 @@ const InstagramPreview = ({
                       unoptimized
                     />
                   </div>
-                  {/* Imagem Centralizada Quadrada */}
-                  <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
+                  {/* Imagem Principal Centralizada */}
+                  <div className="absolute inset-0 z-10 h-full w-full">
                     <Image
                       src={currentMedia.publicUrl || currentMedia.previewUrl}
                       alt="Imagem Principal"
@@ -448,7 +462,7 @@ const InstagramPreview = ({
                   className="absolute inset-0 z-0 flex items-center justify-center"
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
-                  <div className="relative aspect-square w-full">
+                  <div className="relative h-full w-full">
                     <Image
                       src={currentMedia.publicUrl || currentMedia.previewUrl}
                       alt="Imagem Centralizada"
@@ -1693,7 +1707,8 @@ export default function CriarConteudoPage() {
               logoOpacity
             );
 
-            const adaptedFile = new File([blob], item.file.name || "adapted_story.jpg", {
+            const fileName = item.file?.name || "adapted_story.jpg";
+            const adaptedFile = new File([blob], fileName, {
               type: "image/jpeg",
             });
             const adaptedUrl = URL.createObjectURL(blob);
@@ -2083,16 +2098,27 @@ export default function CriarConteudoPage() {
                   {mediaItems.length > 0 ? (
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                       {mediaItems.map((item, index) => (
-                        <div key={index} className="group relative aspect-square">
-                          <Image
-                            src={item.previewUrl}
-                            alt={`Preview ${index}`}
-                            layout="fill"
-                            objectFit="cover"
-                            className="rounded-md"
-                          />
-                          {item.type === "image" && (
+                        <div key={index} className="flex flex-col gap-2">
+                          <div className="group relative aspect-square">
+                            <Image
+                              src={item.previewUrl}
+                              alt={`Preview ${index}`}
+                              layout="fill"
+                              objectFit="cover"
+                              className="rounded-md"
+                            />
                             <button
+                              type="button"
+                              onClick={() => handleRemoveItem(index)}
+                              className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
+                              title="Remover imagem"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          {item.type === "image" && (
+                            <Button
+                              variant="outline"
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2100,20 +2126,12 @@ export default function CriarConteudoPage() {
                                 setActiveIndexToCorrect(index);
                                 setIsCorrectionOpen(true);
                               }}
-                              className="absolute left-1 top-1 rounded-full bg-violet-600 p-1.5 text-white shadow-md transition-colors hover:bg-violet-500"
-                              title="Editor de Texto"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 py-1.5 px-2 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5 h-auto"
                             >
-                              <Paintbrush className="h-3.5 w-3.5" />
-                            </button>
+                              <Paintbrush className="h-3.5 w-3.5 text-primary" />
+                              <span className="truncate">Editar Textos</span>
+                            </Button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(index)}
-                            className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
-                            title="Remover imagem"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -2556,6 +2574,23 @@ export default function CriarConteudoPage() {
                       />
                     </TabsContent>
                   </Tabs>
+                  {mediaItems.some(item => item.type === "image") && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const firstImageIndex = mediaItems.findIndex(item => item.type === "image");
+                        if (firstImageIndex !== -1) {
+                          setActiveImageToCorrect(mediaItems[firstImageIndex].previewUrl);
+                          setActiveIndexToCorrect(firstImageIndex);
+                          setIsCorrectionOpen(true);
+                        }
+                      }}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border-primary/40 py-2 font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
+                    >
+                      <Paintbrush className="h-4 w-4 text-primary" />
+                      Escrever Textos / Editar Imagens
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -2751,26 +2786,26 @@ export default function CriarConteudoPage() {
                         <div
                           className={cn(
                             "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
-                            platforms.includes("google") && googleConnection?.isConnected
+                            platforms.includes("google") && googleConnection?.isConnected && selectedType !== "story"
                               ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
                               : "border-gray-200 hover:bg-gray-50",
-                            !googleConnection?.isConnected &&
+                            (!googleConnection?.isConnected || selectedType === "story") &&
                               "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                           )}
                         >
                           <Checkbox
                             id="platform-google"
                             checked={
-                              platforms.includes("google") && !!googleConnection?.isConnected
+                              platforms.includes("google") && !!googleConnection?.isConnected && selectedType !== "story"
                             }
                             onCheckedChange={() => handlePlatformChange("google")}
-                            disabled={!googleConnection?.isConnected}
+                            disabled={!googleConnection?.isConnected || selectedType === "story"}
                           />
                           <Label
                             htmlFor="platform-google"
                             className={cn(
                               "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
-                              !googleConnection?.isConnected && "cursor-not-allowed"
+                              (!googleConnection?.isConnected || selectedType === "story") && "cursor-not-allowed"
                             )}
                           >
                             <Store className="h-5 w-5 text-blue-500" />
@@ -2778,11 +2813,15 @@ export default function CriarConteudoPage() {
                           </Label>
                         </div>
                       </TooltipTrigger>
-                      {!googleConnection?.isConnected && (
+                      {selectedType === "story" ? (
+                        <TooltipContent>
+                          <p>O Google Meu Negócio não suporta o formato Story.</p>
+                        </TooltipContent>
+                      ) : !googleConnection?.isConnected ? (
                         <TooltipContent>
                           <p>Conecte seu Perfil no Google na aba 'Meu Negócio' para publicar.</p>
                         </TooltipContent>
-                      )}
+                      ) : null}
                     </Tooltip>
                   </TooltipProvider>
 
@@ -2792,26 +2831,26 @@ export default function CriarConteudoPage() {
                         <div
                           className={cn(
                             "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
-                            platforms.includes("linkedin") && linkedinConnection?.isConnected
+                            platforms.includes("linkedin") && linkedinConnection?.isConnected && selectedType !== "story"
                               ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
                               : "border-gray-200 hover:bg-gray-50",
-                            !linkedinConnection?.isConnected &&
+                            (!linkedinConnection?.isConnected || selectedType === "story") &&
                               "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
                           )}
                         >
                           <Checkbox
                             id="platform-linkedin"
                             checked={
-                              platforms.includes("linkedin") && !!linkedinConnection?.isConnected
+                              platforms.includes("linkedin") && !!linkedinConnection?.isConnected && selectedType !== "story"
                             }
                             onCheckedChange={() => handlePlatformChange("linkedin")}
-                            disabled={!linkedinConnection?.isConnected}
+                            disabled={!linkedinConnection?.isConnected || selectedType === "story"}
                           />
                           <Label
                             htmlFor="platform-linkedin"
                             className={cn(
                               "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
-                              !linkedinConnection?.isConnected && "cursor-not-allowed"
+                              (!linkedinConnection?.isConnected || selectedType === "story") && "cursor-not-allowed"
                             )}
                           >
                             <Linkedin className="h-5 w-5 text-blue-700" />
@@ -2819,11 +2858,15 @@ export default function CriarConteudoPage() {
                           </Label>
                         </div>
                       </TooltipTrigger>
-                      {!linkedinConnection?.isConnected && (
+                      {selectedType === "story" ? (
+                        <TooltipContent>
+                          <p>O LinkedIn não suporta o formato Story.</p>
+                        </TooltipContent>
+                      ) : !linkedinConnection?.isConnected ? (
                         <TooltipContent>
                           <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
-                      )}
+                      ) : null}
                     </Tooltip>
                   </TooltipProvider>
                 </div>
@@ -3001,7 +3044,14 @@ export default function CriarConteudoPage() {
             setActiveImageToCorrect(null);
             setActiveIndexToCorrect(-1);
           }}
-          imageUrl={activeImageToCorrect}
+          imageUrl={
+            activeIndexToCorrect >= 0 && mediaItems[activeIndexToCorrect]?.originalUrl
+              ? mediaItems[activeIndexToCorrect].originalUrl!
+              : activeImageToCorrect
+          }
+          initialLayers={
+            activeIndexToCorrect >= 0 ? mediaItems[activeIndexToCorrect]?.editorLayers : undefined
+          }
           postId={manualPostId}
           userId={user?.uid || ""}
           fileName={String(activeIndexToCorrect + 1)}
@@ -3011,15 +3061,17 @@ export default function CriarConteudoPage() {
           brandKitSecondaryColor={
             businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
           }
-          onSuccess={(newUrl) => {
+          onSuccess={(newUrl, layers) => {
             if (activeIndexToCorrect !== -1) {
               setMediaItems((prev) => {
                 const updated = [...prev];
+                const current = updated[activeIndexToCorrect];
                 updated[activeIndexToCorrect] = {
-                  ...updated[activeIndexToCorrect],
+                  ...current,
                   previewUrl: newUrl,
-                  url: newUrl,
-                  publicUrl: newUrl, // Atualiza também o publicUrl para atualizar o preview lateral imediatamente na Etapa 2
+                  publicUrl: newUrl,
+                  originalUrl: current?.originalUrl || current?.previewUrl,
+                  editorLayers: layers,
                   file: null as any,
                 };
                 return updated;

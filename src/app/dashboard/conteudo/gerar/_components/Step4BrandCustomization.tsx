@@ -57,6 +57,7 @@ export const Step4BrandCustomization = () => {
   } = useWizard();
 
   const [isCorrectionOpen, setIsCorrectionOpen] = React.useState(false);
+  const [layersMap, setLayersMap] = React.useState<Record<string, { originalUrl: string; layers: EditorLayer[] }>>({});
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
@@ -297,7 +298,8 @@ export const Step4BrandCustomization = () => {
         <ImageInpaintModal
           isOpen={isCorrectionOpen}
           onClose={() => setIsCorrectionOpen(false)}
-          imageUrl={selectedImage}
+          imageUrl={layersMap[selectedImage]?.originalUrl || selectedImage}
+          initialLayers={layersMap[selectedImage]?.layers}
           postId={currentPostId || ""}
           userId={user?.uid || ""}
           fileName={"1"}
@@ -308,7 +310,15 @@ export const Step4BrandCustomization = () => {
           brandKitSecondaryColor={
             businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
           }
-          onSuccess={(newImageUrl) => {
+          onSuccess={(newImageUrl, layers) => {
+            const origUrl = layersMap[selectedImage]?.originalUrl || selectedImage;
+            setLayersMap((prev) => ({
+              ...prev,
+              [newImageUrl]: {
+                originalUrl: origUrl,
+                layers: layers || [],
+              },
+            }));
             setSelectedImage(newImageUrl);
             // Atualiza também no array de geradas para consistência, se estiver lá
             if (generatedImages?.includes(selectedImage)) {
@@ -319,6 +329,7 @@ export const Step4BrandCustomization = () => {
                 return updated;
               });
             }
+            setIsCorrectionOpen(false);
           }}
         />
       )}

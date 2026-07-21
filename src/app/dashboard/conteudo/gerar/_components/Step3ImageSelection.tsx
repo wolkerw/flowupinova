@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
-import { ImageInpaintModal } from "./ImageInpaintModal";
+import { ImageInpaintModal, type EditorLayer } from "./ImageInpaintModal";
 
 export const Step3ImageSelection = () => {
   const {
@@ -41,6 +41,7 @@ export const Step3ImageSelection = () => {
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
   const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
   const [activeSlotName, setActiveSlotName] = useState<string>("");
+  const [layersMap, setLayersMap] = useState<Record<string, { originalUrl: string; layers: EditorLayer[] }>>({});
 
   const onBack = () => setStep(2);
   const onNext = () => {
@@ -236,7 +237,8 @@ export const Step3ImageSelection = () => {
             setActiveImageToCorrect(null);
             setActiveSlotName("");
           }}
-          imageUrl={activeImageToCorrect}
+          imageUrl={layersMap[activeImageToCorrect]?.originalUrl || activeImageToCorrect}
+          initialLayers={layersMap[activeImageToCorrect]?.layers}
           postId={currentPostId || ""}
           userId={user?.uid || ""}
           fileName={activeSlotName}
@@ -247,7 +249,15 @@ export const Step3ImageSelection = () => {
           brandKitSecondaryColor={
             businessProfile?.brandKit?.secondaryColor || businessProfile?.secondaryColor
           }
-          onSuccess={(newImageUrl) => {
+          onSuccess={(newImageUrl, layers) => {
+            const origUrl = layersMap[activeImageToCorrect]?.originalUrl || activeImageToCorrect;
+            setLayersMap((prev) => ({
+              ...prev,
+              [newImageUrl]: {
+                originalUrl: origUrl,
+                layers: layers || [],
+              },
+            }));
             setGeneratedImages((prev) => {
               const updated = [...prev];
               const idx = parseInt(activeSlotName, 10) - 1;
@@ -259,6 +269,9 @@ export const Step3ImageSelection = () => {
             if (selectedImage === activeImageToCorrect) {
               onSelectedImageChange(newImageUrl);
             }
+            setIsCorrectionOpen(false);
+            setActiveImageToCorrect(null);
+            setActiveSlotName("");
           }}
         />
       )}
