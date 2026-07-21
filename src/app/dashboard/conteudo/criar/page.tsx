@@ -1565,7 +1565,8 @@ export default function CriarConteudoPage() {
     let webhookUrl = "";
 
     if (logoFile) {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/post_manual";
+      // Usar proxy interno com fallback resiliente em vez de chamar webhook externo diretamente
+      webhookUrl = "/api/proxy-webhook?target=post_manual";
       const { width: mainImageWidth, height: mainImageHeight } =
         await getImageDimensions(imageFile);
 
@@ -1628,7 +1629,8 @@ export default function CriarConteudoPage() {
       formData.append("positionX", Math.round(positionX).toString());
       formData.append("positionY", Math.round(positionY).toString());
     } else {
-      webhookUrl = "https://webhook.flowupinova.com.br/webhook/imagem_sem_logo";
+      // Usar proxy interno com fallback resiliente em vez de chamar webhook externo diretamente
+      webhookUrl = "/api/proxy-webhook?target=imagem_sem_logo";
     }
 
     const response = await fetch(webhookUrl, { method: "POST", body: formData });

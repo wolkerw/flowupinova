@@ -133,50 +133,16 @@ export async function POST(request: NextRequest) {
       const errorText = await webhookResponse.text();
       console.error("Erro no webhook externo:", errorText);
 
-      // Se for a análise de presença, aciona o Fallback de IA com Gemini para resiliência
-      if (target === "analisar_presenca") {
+      // Se o webhook externo de post_manual ou upload falhar, aciona fallback resiliente de salvamento direto no Firebase
+      if (target === "post_manual" || target === "imagem_sem_logo") {
         console.warn(
-          "[PROXY_WEBHOOK] Ativando fallback resiliente do Gemini para análise de presença..."
+          `[PROXY_WEBHOOK] Webhook externo para ${target} falhou (HTTP ${webhookResponse.status}). Ativando fallback resiliente direto no Firebase...`
         );
-        const website = formData.get("website")?.toString() || "";
-        const instagram = formData.get("instagram")?.toString() || "";
-
         try {
-          const fallbackData = await runGeminiOnboardingFallback(website, instagram);
-          if (fallbackData) {
-            console.log("[PROXY_WEBHOOK] Fallback do Gemini executado com sucesso.");
-            return NextResponse.json(fallbackData);
-          }
-        } catch (geminiErr: any) {
-          console.error(
-            "[PROXY_WEBHOOK] Falha na execução do fallback do Gemini:",
-            geminiErr.message || geminiErr
-          );
+          return await fallbackSaveDirectToStorage(formData);
+        } catch (fallbackErr: any) {
+          console.error("[PROXY_WEBHOOK] Falha também no fallback direto do Firebase:", fallbackErr);
         }
-
-        // Se o Gemini falhar, retorna um JSON estruturado básico vazio em vez de estourar erro 500 no onboarding
-        console.warn(
-          "[PROXY_WEBHOOK] Retornando resposta padrão vazia para evitar quebra do onboarding."
-        );
-        return NextResponse.json({
-          name: website
-            ? website
-                .replace(/https?:\/\/(www\.)?/, "")
-                .split(".")[0]
-                .toUpperCase()
-            : instagram
-              ? instagram.replace("@", "")
-              : "Minha Empresa",
-          category: "Geral",
-          phone: "",
-          address: "",
-          description: "Bem-vindo ao nosso perfil de negócios.",
-          slogan: "Sempre com você.",
-          primaryColor: "#0EA5E9",
-          secondaryColor: "#0284C7",
-          targetAudience: "Clientes em geral",
-          toneOfVoice: "Amigável",
-        });
       }
 
       return NextResponse.json(
@@ -230,6 +196,17 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Erro interno na API proxy:", error);
 
+    if (target === "post_manual" || target === "imagem_sem_logo") {
+      console.warn(
+        `[PROXY_WEBHOOK] Conexão com webhook falhou (${error.message}). Ativando fallback resiliente direto no Firebase...`
+      );
+      try {
+        return await fallbackSaveDirectToStorage(formData);
+      } catch (fallbackErr: any) {
+        console.error("[PROXY_WEBHOOK] Falha também no fallback direto do Firebase:", fallbackErr);
+      }
+    }
+
     // Também protege contra erros de conexão (ex: DNS, Timeout) se o target for analisar_presenca
     if (target === "analisar_presenca") {
       const website = formData.get("website")?.toString() || "";
@@ -265,6 +242,41 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function fallbackSaveDirectToStorage(formData: FormData) {
+  const file = (formData.get("file") as File) || (formData.get("logo") as File);
+  if (!file) {
+    throw new Error("Nenhum arquivo de imagem encontrado no formulário.");
+  }
+
+  const userId = await getUidFromCookie().catch(() => "anonymous");
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const userStoragePath = await getUserStoragePathAdmin(userId);
+  const dateStr = new Date()
+    .toISOString()
+    .replace(/T/, "_")
+    .replace(/\..+/, "")
+    .replace(/[^0-9_]/g, "");
+
+  const bucket = admin.storage().bucket();
+  const filename = `${userStoragePath}/posts/${dateStr}_${crypto.randomUUID().substring(0, 8)}.jpg`;
+  const fileRef = bucket.file(filename);
+  const downloadToken = crypto.randomUUID();
+
+  await fileRef.save(buffer, {
+    metadata: {
+      contentType: file.type || "image/jpeg",
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken,
+      },
+    },
+  });
+
+  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+  console.log(`[PROXY_WEBHOOK] Fallback: Imagem salva diretamente no Firebase Storage: ${publicUrl}`);
+  return NextResponse.json([{ url_post: publicUrl }]);
 }
 
 async function runGeminiOnboardingFallback(website: string, instagram: string) {
