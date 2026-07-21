@@ -38,6 +38,7 @@ import { useWizard } from "../context/WizardContext";
 export const Step5ReviewPublish = () => {
   const {
     processedImageUrl,
+    setProcessedImageUrl,
     selectedImage,
     user,
     metaConnection,
@@ -89,7 +90,11 @@ export const Step5ReviewPublish = () => {
     setGeneratedContent((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
   };
 
-  const onBack = () => setStep(isSyncImageMode ? 3 : 4);
+  const onBack = () => {
+    // Limpa a URL processada para que Step4 exiba a imagem original editável com camadas de texto
+    setProcessedImageUrl(null);
+    setStep(isSyncImageMode ? 3 : 4);
+  };
   const onPlatformChange = (p: Platform) =>
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
 
