@@ -357,8 +357,10 @@ If the image contains a PRODUCT or PACKAGING:
   visual_description: (A detailed sentence describing the object's shape, labeling design, and unique physical attributes)
   background_and_setting: (Detailed description of the environment, location, props, and background scenery)
 
-If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
+If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn by a human model):
   item_type: (e.g., matching two-piece set, linen trousers, summer dress)
+  human_model_present: (true or false — is a live human model wearing the garment in the photo?)
+  required_shot_type: (MANDATORY FIELD — set to "full_body" if human_model_present is true, otherwise "product_shot")
   color_scheme:
     - hex: (Hex code of fabric color)
       name: (Color name, e.g., pastel off-white, ocean blue)
@@ -367,6 +369,7 @@ If the image contains CLOTHING / APPAREL (Flat lay, hanger, or worn):
   cut_and_fit: (Describe the fit: oversized, cropped, slim fit, high-waisted, flowy)
   visual_description: (A detailed sentence summarizing the garment's appearance, shape, and physical design details)
   background_and_setting: (Detailed description of the environment, location, props, and background scenery)
+  full_body_composition_note: (MANDATORY if human_model_present is true — Write: "The human model wearing this garment MUST be shown in a FULL BODY shot from head to feet, with generous headroom above and the full outfit silhouette visible. Never crop the head or feet.")
 
 If the image depicts a CHARACTER:
   character_name: (Name if known)
@@ -608,29 +611,35 @@ This prompt MUST describe a realistic photorealistic scene, detailing the produc
 2. NO DUPLICATE PRODUCTS (ULTRA-CRITICAL): Since we are using "flux-pro/kontext" (an image conditioning model), you MUST refer to the user's product in the input image as "the product" or "the product in the input image" instead of describing a new, generic product from scratch. 
    - Never write phrases that cause the generator to draw two separate products (e.g. "a model holding a laptop while another laptop is on the table"). 
    - Always integrate "the product in the input image" seamlessly into the pose, scene, and hands of the model (if there is a model).
-3. ABSOLUTELY NO CROPPED HEADS OR HAIR (ULTRA-CRITICAL): If the image features a person or model (holding a product, wearing clothing, or posing), you MUST ABSOLUTELY prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+3. ABSOLUTELY NO CROPPED HEADS, BODY PARTS OR HAIR — COMPLETE HUMAN BODY VISIBILITY (ULTRA-CRITICAL, NON-NEGOTIABLE): If the image features a person or model (holding a product, wearing clothing, or posing), the following rules are ABSOLUTE and CANNOT be overridden by any other instruction:
+   - **HEAD & HAIR RULE**: The model's full head, forehead, hair, and face MUST be entirely contained within the frame. The top of the head must have a generous empty space buffer of at least 10-15% of the frame height above it. NEVER clip, crop, or cut any part of the head or hair.
+   - **FULL BODY RULE FOR APPAREL/FASHION**: When the reference product is clothing, apparel, garments, shoes, or any wearable item, you MUST frame the model in a FULL BODY SHOT — showing the model from the top of their head all the way down to their feet (or at minimum mid-thigh). This is mandatory because the entire garment must be visible. DO NOT use chest-up, waist-up, or any partial body framing for apparel products.
+   - **NEGATIVE PROMPT MANDATORY**: You MUST include the following phrase verbatim in the generated prompt: "full body shot, entire person visible from head to feet, generous headroom above the head, no cropping of head or hair, no cutoff, head fully inside frame"
+   - **SPATIAL COMPOSITION**: Use a wide-angle or medium-wide lens (35mm to 50mm equivalent) that comfortably fits the full model with space to breathe above and below. The model should occupy approximately 70-80% of the vertical frame height, leaving visible headroom on top and floor/environment space on the bottom.
+   - **PRODUCT DOES NOT OVERRIDE PERSON**: The person wearing the clothing or holding the product is the PRIMARY subject of the scene. The framing must NEVER be tightened to show the product at the expense of cutting off parts of the human body. The product is secondary to the full, dignified representation of the human being in the scene.
    - You MUST explicitly inject multiple strict spatial instructions into the generated prompt.
-   - You MUST include a phrase like: "framed in a balanced medium shot showing the model from the chest up, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
-   - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
+   - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious full-body or medium-wide composition.
 4. TEXT RENDERING CONTROL (CRITICAL):
    ${textRenderingInstruction}
-5. FORMAT: Always end the prompt with the instruction: "square format, optimized for Instagram feed".
+5. FORMAT: Always end the prompt with the instruction: \"square format, optimized for Instagram feed\".
 ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
 # UGC PHOTOGRAPHY & ESTHETIC PREMIUM
-- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "real-world professional commercial photography", "premium natural lifestyle scene", "luxury cinematic portrait").
-- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., "cinematic volumetric natural lighting", "soft ambient sunlight", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
-- Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., "shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background").
-- Strictly avoid banned artificial buzzwords (e.g., do NOT use "photorealistic", "ultrarealistic", "4k", "8k", "hyper-detailed", or "masterpiece").
-- Emphasize natural tangible textures to force model realism: "subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections".
+- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., \"real-world professional commercial photography\", \"premium natural lifestyle scene\", \"luxury cinematic portrait\").
+- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., \"cinematic volumetric natural lighting\", \"soft ambient sunlight\", \"gentle side-lighting casting warm soft diagonal shadows\", \"rim lighting highlighting the contours of the subject\").
+- Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., \"shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background\").
+- Strictly avoid banned artificial buzzwords (e.g., do NOT use \"photorealistic\", \"ultrarealistic\", \"4k\", \"8k\", \"hyper-detailed\", or \"masterpiece\").
+- Emphasize natural tangible textures to force model realism: \"subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections\".
 
-# APPAREL & CLOTHING SPECIAL INSTRUCTIONS
-If the reference product is clothing/apparel, describe a real human model wearing the garment naturally:
-- Specify how the fabric falls, its physical texture (e.g., "textured heavy linen", "soft ribbed premium cotton", "glossy silk satin"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
-- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on the natural ambient furniture").
-- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside the exact real-world scenario requested with beautiful ambient lighting").
-- EXPLICITLY state: "The model's entire head, full hair, and face are completely visible and beautifully framed with generous headroom at the top, strictly preventing any part of the head, forehead, or hair from being clipped or cut off by the borders".
+# APPAREL & CLOTHING SPECIAL INSTRUCTIONS — FULL BODY MANDATORY
+If the reference product is clothing/apparel, shoes, or any wearable item, all of the following rules are ABSOLUTE and override any other composition instruction:
+- **FRAMING IS FULL BODY ONLY**: You MUST describe a full body shot framing. The model must be shown completely from head to toe. Explicitly state: "full-body portrait shot, showing the model from the very top of their head down to their feet, with the entire outfit clearly visible from top to bottom, generous empty headroom above the head".
+- Specify how the fabric falls, its physical texture (e.g., \"textured heavy linen\", \"soft ribbed premium cotton\", \"glossy silk satin\"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
+- Describe the model interacting naturally and elegantly with the environment (e.g., \"standing relaxed\", \"leaning casually on the natural ambient furniture\").
+- Ensure the model's environment strictly represents the user's requested scenario (e.g., \"inside the exact real-world scenario requested with beautiful ambient lighting\").
+- EXPLICITLY state: \"The model's entire body is fully visible — head, hair, face, torso, legs, and feet — all beautifully framed with generous headroom at the top and ground visible at the bottom, strictly preventing any part of the body, head, forehead, or hair from being clipped or cut off by the borders. Full body shot. No cropping.\".
+- NEVER frame apparel shots as chest-up, waist-up, or product close-up. The garment's full silhouette from collar/shoulder to hem/feet is the visual story — it must be fully shown.
 
 # OUTPUT FORMAT (Strict JSON)
 You must return exclusively a valid JSON object with the following key. Do not include any explanations, introductory or concluding text:
