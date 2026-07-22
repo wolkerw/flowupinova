@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
   Tag,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -47,6 +48,11 @@ const navItems = [
     title: "Cupons de Desconto",
     href: "/admin/cupons",
     icon: Tag,
+  },
+  {
+    title: "Melhorias",
+    href: "/admin/melhorias",
+    icon: Lightbulb,
   },
   {
     title: "Configurações",
