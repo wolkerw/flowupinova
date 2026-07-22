@@ -728,6 +728,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     { name: string; config: Partial<EditorLayer> }[]
   >([]);
 
+  // --- Histórico para Ctrl+Z (undo) ---
+  const historyRef = useRef<EditorLayer[][]>([]);
+  const isUndoingRef = useRef(false);
+
+  // --- Clipboard para Ctrl+C / Ctrl+V ---
+  const clipboardLayerRef = useRef<EditorLayer | null>(null);
+
   // Carregar presets do localStorage na inicialização
   useEffect(() => {
     try {
@@ -739,6 +746,79 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       console.error("Erro ao carregar presets", e);
     }
   }, []);
+
+
+  // Salva snapshot do estado atual no histórico sempre que layers muda
+  // (exceto quando a mudança foi causada por um undo)
+  useEffect(() => {
+    if (isUndoingRef.current) {
+      isUndoingRef.current = false;
+      return;
+    }
+    historyRef.current = [
+      ...historyRef.current.slice(-49), // máximo 50 snapshots
+      layers.map((l) => ({ ...l })),    // snapshot imutável
+    ];
+  }, [layers]);
+
+  // Atalhos de teclado: Ctrl+Z (undo), Ctrl+C (copy), Ctrl+V (paste)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar quando o foco estiver em um campo de texto/input
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      // Ctrl+Z — Desfazer
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        const history = historyRef.current;
+        // Remove o snapshot atual (último) e restaura o anterior
+        if (history.length >= 2) {
+          const prev = history[history.length - 2];
+          historyRef.current = history.slice(0, -1);
+          isUndoingRef.current = true;
+          setLayers(prev.map((l) => ({ ...l })));
+          setSelectedId(null);
+        }
+        return;
+      }
+
+      // Ctrl+C — Copiar layer selecionado
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        const sel = layersRef.current.find((l) => l.id === selectedIdRef.current);
+        if (sel) {
+          clipboardLayerRef.current = { ...sel };
+        }
+        return;
+      }
+
+      // Ctrl+V — Colar layer copiado
+      if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        const clip = clipboardLayerRef.current;
+        if (clip) {
+          const newLayer: EditorLayer = {
+            ...clip,
+            id: `layer_${Date.now()}`,
+            x: clip.x + 20,  // offset para não sobrepor exatamente
+            y: clip.y + 20,
+          };
+          setLayers((prev) => [...prev, newLayer]);
+          setSelectedId(newLayer.id);
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
   const layersRef = useRef<EditorLayer[]>([]);
