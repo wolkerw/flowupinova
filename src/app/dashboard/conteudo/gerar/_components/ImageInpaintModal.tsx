@@ -32,14 +32,25 @@ import {
 
 // Fontes disponíveis (carregadas via Google Fonts no layout global)
 const FONT_OPTIONS = [
+  // Sans-serif / Display
   "Montserrat",
   "Inter",
   "Bebas Neue",
   "Oswald",
   "Roboto",
-  "Playfair Display",
   "Poppins",
   "Raleway",
+  // Serif
+  "Playfair Display",
+  // Caligráficas
+  "Dancing Script",
+  "Pacifico",
+  "Great Vibes",
+  "Sacramento",
+  "Pinyon Script",
+  "Alex Brush",
+  "Caveat",
+  "Satisfy",
 ];
 
 interface ImageInpaintModalProps {
@@ -770,6 +781,17 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
+      // Delete / Backspace — Apagar layer selecionado
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        const selId = selectedIdRef.current;
+        if (selId) {
+          setLayers((prev) => prev.filter((l) => l.id !== selId));
+          setSelectedId(null);
+        }
+        return;
+      }
+
       const ctrl = e.ctrlKey || e.metaKey;
       if (!ctrl) return;
 
@@ -830,13 +852,31 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     selectedIdRef.current = selectedId;
   }, [selectedId]);
 
-  // Carregar fontes do Google Fonts dinamicamente
+  // Carregar fontes do Google Fonts dinamicamente (incluindo caligráficas)
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href =
-      "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap";
-    if (!document.head.querySelector('link[href*="Montserrat"]')) {
+      "https://fonts.googleapis.com/css2?" +
+      "family=Bebas+Neue" +
+      "&family=Inter:wght@400;700" +
+      "&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Oswald:wght@400;700" +
+      "&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Poppins:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Raleway:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Roboto:ital,wght@0,400;0,700;1,400;1,700" +
+      // Caligráficas
+      "&family=Dancing+Script:wght@400;700" +
+      "&family=Pacifico" +
+      "&family=Great+Vibes" +
+      "&family=Sacramento" +
+      "&family=Pinyon+Script" +
+      "&family=Alex+Brush" +
+      "&family=Caveat:wght@400;700" +
+      "&family=Satisfy" +
+      "&display=swap";
+    if (!document.head.querySelector('link[href*="Dancing+Script"]')) {
       document.head.appendChild(link);
     }
   }, []);
@@ -1978,14 +2018,26 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                             value={selected.fontFamily}
                             onChange={(e) => updateSelected({ fontFamily: e.target.value })}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2 text-sm text-slate-100 focus:border-violet-500 focus:outline-none"
+                            style={{ fontFamily: selected.fontFamily }}
                           >
-                            {FONT_OPTIONS.map((f) => (
-                              <option key={f} value={f} style={{ fontFamily: f }}>
-                                {f}
-                              </option>
-                            ))}
+                            <optgroup label="── Sans-serif / Display ──">
+                              {["Montserrat","Inter","Bebas Neue","Oswald","Roboto","Poppins","Raleway"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── Serif ──">
+                              {["Playfair Display"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── Caligráficas ──">
+                              {["Dancing Script","Pacifico","Great Vibes","Sacramento","Pinyon Script","Alex Brush","Caveat","Satisfy"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
                           </select>
                         </div>
+
 
                         {/* Tamanho da Fonte */}
                         <div className="flex flex-col gap-2">
