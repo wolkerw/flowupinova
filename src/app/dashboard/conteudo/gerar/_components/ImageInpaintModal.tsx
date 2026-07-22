@@ -782,7 +782,8 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
       // Delete / Backspace — Apagar layer selecionado
-      if (e.key === "Delete" || e.key === "Backspace") {
+      const isDelete = e.key === "Delete" || e.key === "Backspace" || e.code === "Delete" || e.code === "Backspace" || e.keyCode === 46 || e.keyCode === 8;
+      if (isDelete) {
         e.preventDefault();
         const selId = selectedIdRef.current;
         if (selId) {
@@ -838,8 +839,8 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isOpen]);
 
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
@@ -1793,8 +1794,11 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => { /* bloqueado: use o botão fechar */ }}>
-      <DialogContent className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent 
+        onInteractOutside={(e) => e.preventDefault()}
+        className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]"
+      >
         <div className="flex h-full min-h-0 flex-col">
           {/* Header */}
           <DialogHeader className="border-b border-slate-800 px-6 pb-4 pt-5">
