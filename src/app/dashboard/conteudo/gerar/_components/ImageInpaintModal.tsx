@@ -576,6 +576,115 @@ function SymbolsAccordion({
   );
 }
 
+// Componente accordion para Textos Prontos (Presets)
+function TextPresetsAccordion({
+  textPresets,
+  customPresets,
+  imageLoaded,
+  onAdd,
+  onDeleteCustom,
+}: {
+  textPresets: typeof TEXT_PRESETS;
+  customPresets: { name: string; config: Partial<EditorLayer> }[];
+  imageLoaded: boolean;
+  onAdd: (config: Partial<EditorLayer>) => void;
+  onDeleteCustom: (index: number) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const allPresets = [...textPresets, ...customPresets];
+
+  return (
+    <div className="border-b border-slate-800">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-xs uppercase tracking-wide text-slate-400 hover:bg-slate-800/60 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <span>Textos Prontos</span>
+          <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] normal-case tracking-normal text-slate-300">
+            {allPresets.length}
+          </span>
+        </span>
+        <svg
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-3 pt-1 max-h-44 overflow-y-auto">
+          <div className="flex flex-wrap gap-2">
+            {allPresets.map((preset, idx) => {
+              const cfg = preset.config;
+              const isCustom = idx >= textPresets.length;
+              const customIdx = idx - textPresets.length;
+              const originalSize = cfg.fontSize || 40;
+              const scale = 14 / originalSize;
+              const shadowValues: string[] = [];
+              if (cfg.shadowBlur && cfg.shadowBlur > 0) {
+                const sX = (cfg.shadowOffsetX || 0) * scale;
+                const sY = (cfg.shadowOffsetY || 0) * scale;
+                const sB = cfg.shadowBlur * scale;
+                shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || "#000"}`);
+              }
+              if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
+                const sw = Math.min(cfg.textStrokeWidth * scale, 2.5);
+                const sc = cfg.textStrokeColor;
+                shadowValues.push(
+                  `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
+                    `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
+                );
+              }
+              const finalShadowCSS = shadowValues.length > 0 ? shadowValues.join(", ") : "none";
+              const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
+              return (
+                <div key={`${preset.name}-${idx}`} className="group relative">
+                  <Button
+                    onClick={() => onAdd(cfg)}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 min-w-[80px] border-slate-700 transition-transform hover:scale-105"
+                    disabled={!imageLoaded}
+                    style={{
+                      backgroundColor: hasBg ? cfg.bgColor : "transparent",
+                      color: cfg.color || "#fff",
+                      fontFamily: cfg.fontFamily,
+                      fontWeight: cfg.bold ? "bold" : "normal",
+                      fontStyle: cfg.italic ? "italic" : "normal",
+                      textShadow: finalShadowCSS !== "none" ? finalShadowCSS : undefined,
+                      padding: hasBg ? "4px 12px" : "0px",
+                      border: "none",
+                      borderRadius: hasBg ? "0px" : undefined,
+                    }}
+                  >
+                    {preset.name}
+                  </Button>
+                  {isCustom && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteCustom(customIdx);
+                      }}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-opacity hover:bg-red-600 group-hover:opacity-100"
+                      title="Excluir preset"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   isOpen,
   onClose,
@@ -1564,7 +1673,7 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
+    <Dialog open={isOpen} onOpenChange={() => { /* bloqueado: use o botão fechar */ }}>
       <DialogContent className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]">
         <div className="flex h-full min-h-0 flex-col">
           {/* Header */}
@@ -1668,85 +1777,14 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                 </div>
               </div>
 
-              {/* Textos Prontos (Presets) */}
-              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                  <span>Textos Prontos</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
-                    const cfg = preset.config;
-                    const isCustom = idx >= TEXT_PRESETS.length;
-                    const customIdx = idx - TEXT_PRESETS.length;
-
-                    // Escalar propriedades proporcionalmente (assumindo fonte do botão ~14px)
-                    const originalSize = cfg.fontSize || 40;
-                    const scale = 14 / originalSize;
-
-                    const shadowValues: string[] = [];
-
-                    // Sombra principal do texto
-                    if (cfg.shadowBlur && cfg.shadowBlur > 0) {
-                      const sX = (cfg.shadowOffsetX || 0) * scale;
-                      const sY = (cfg.shadowOffsetY || 0) * scale;
-                      const sB = cfg.shadowBlur * scale;
-                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || "#000"}`);
-                    }
-
-                    // Simular stroke (borda) usando múltiplas sombras para não "comer" a fonte por dentro
-                    if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
-                      const sw = Math.min(cfg.textStrokeWidth * scale, 2.5); // limite para não borrar muito
-                      const sc = cfg.textStrokeColor;
-                      shadowValues.push(
-                        `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
-                          `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
-                      );
-                    }
-
-                    const finalShadowCSS =
-                      shadowValues.length > 0 ? shadowValues.join(", ") : "none";
-                    const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
-
-                    return (
-                      <div key={`${preset.name}-${idx}`} className="group relative">
-                        <Button
-                          onClick={() => addPresetLayer(cfg)}
-                          variant="outline"
-                          size="sm"
-                          className="h-9 min-w-[80px] border-slate-700 transition-transform hover:scale-105"
-                          disabled={!imageLoaded}
-                          style={{
-                            backgroundColor: hasBg ? cfg.bgColor : "transparent",
-                            color: cfg.color || "#fff",
-                            fontFamily: cfg.fontFamily,
-                            fontWeight: cfg.bold ? "bold" : "normal",
-                            fontStyle: cfg.italic ? "italic" : "normal",
-                            textShadow: finalShadowCSS !== "none" ? finalShadowCSS : undefined,
-                            padding: hasBg ? "4px 12px" : "0px",
-                            border: hasBg ? "none" : "none",
-                            borderRadius: hasBg ? "0px" : undefined,
-                          }}
-                        >
-                          {preset.name}
-                        </Button>
-
-                        {isCustom && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCustomPreset(customIdx);
-                            }}
-                            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-opacity hover:bg-red-600 group-hover:opacity-100"
-                            title="Excluir preset"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Textos Prontos (Presets) — colapsável */}
+              <TextPresetsAccordion
+                textPresets={TEXT_PRESETS}
+                customPresets={customPresets}
+                imageLoaded={imageLoaded}
+                onAdd={(cfg) => addPresetLayer(cfg)}
+                onDeleteCustom={handleDeleteCustomPreset}
+              />
 
               {/* Símbolos & Artes — seção colapsável */}
               <SymbolsAccordion
