@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         "X-Server-Timeout": serverTimeout,
       },
       body: webhookFormData,
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(300000),
     });
 
     if (!webhookResponse.ok) {
