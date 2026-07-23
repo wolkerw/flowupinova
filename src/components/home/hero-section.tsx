@@ -170,8 +170,7 @@ export const HeroSection = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              {/* Play overlay clicável sobre a imagem */}
-              <div className="group relative cursor-pointer" onClick={() => setShowVideo(true)}>
+              <div className="group relative">
                 <motion.img
                   src="/1.png"
                   alt="Marca NumVapt"
@@ -179,12 +178,6 @@ export const HeroSection = () => {
                   animate={{ y: [0, -15, 0] }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {/* Play button flutuante sobre a imagem */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 shadow-2xl ring-4 ring-white/50 backdrop-blur-sm">
-                    <PlayCircle className="h-10 w-10 text-[#FA6305]" />
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
