@@ -40,6 +40,7 @@ export const Step5ReviewPublish = () => {
     processedImageUrl,
     setProcessedImageUrl,
     selectedImage,
+    generatedImages,
     user,
     metaConnection,
     instagramConnection,
@@ -101,7 +102,8 @@ export const Step5ReviewPublish = () => {
   const onPublish = (mode: "now" | "schedule") =>
     mode === "now" ? handlePublish("now") : setShowSchedulerModal(true);
 
-  if (!selectedImage) return null;
+  const displayImage = processedImageUrl || selectedImage || (generatedImages && generatedImages.length > 0 ? generatedImages[0] : null);
+  if (!displayImage) return null;
   const handleAddCollaborator = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -146,7 +148,7 @@ export const Step5ReviewPublish = () => {
               <h3 className="text-lg font-bold">Preview do Post</h3>
               <div className="mt-6 flex items-center justify-center">
                 <PostPreview
-                  imageUrl={processedImageUrl || selectedImage}
+                  imageUrl={displayImage}
                   content={selectedContent}
                   user={user}
                   metaConnection={metaConnection}

@@ -45,6 +45,9 @@ export const Step3ImageSelection = () => {
 
   const onBack = () => setStep(2);
   const onNext = () => {
+    if (!selectedImage && generatedImages.length > 0) {
+      onSelectedImageChange(generatedImages[0]);
+    }
     setStep(4);
   };
 

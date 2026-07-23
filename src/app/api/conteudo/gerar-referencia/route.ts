@@ -2017,7 +2017,7 @@ export async function GET(request: NextRequest) {
       }
 
       console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
-      const imgRes = await fetch(url);
+      const imgRes = await fetch(url, { signal: AbortSignal.timeout(4000) });
       if (!imgRes.ok) {
         return NextResponse.json(
           { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },

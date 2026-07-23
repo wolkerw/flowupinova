@@ -1352,7 +1352,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleLogoProcessing = async () => {
-    if (!selectedImage) return;
+    let targetImg = selectedImage || (generatedImages.length > 0 ? generatedImages[0] : null);
+    if (!targetImg) {
+      setStep(isSyncImageMode ? 4 : 5);
+      return;
+    }
+    if (!selectedImage && targetImg) {
+      setSelectedImage(targetImg);
+    }
+
+    if (!logoFile && !logoPreviewUrl) {
+      setProcessedImageUrl(null);
+      setStep(isSyncImageMode ? 4 : 5);
+      return;
+    }
 
     let activeLogoFile = logoFile;
     const effectiveLogoUrl =
@@ -1366,7 +1379,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const logoUrlToFetch = effectiveLogoUrl.startsWith("http")
           ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(effectiveLogoUrl)}`
           : effectiveLogoUrl;
-        const logoBlob = await fetch(logoUrlToFetch).then((r) => r.blob());
+        const logoBlob = await fetch(logoUrlToFetch, {
+          signal: AbortSignal.timeout(3000),
+        }).then((r) => r.blob());
         activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
           type: logoBlob.type || "image/png",
         });
@@ -1376,16 +1391,16 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (!activeLogoFile) {
-      if (!selectedImage.startsWith("blob:")) {
+      if (!targetImg.startsWith("blob:")) {
         setProcessedImageUrl(null);
         setStep(isSyncImageMode ? 4 : 5);
         return;
       }
       setIsUploading(true);
       try {
-        const imageUrlToFetch = selectedImage.startsWith("http")
-          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
-          : selectedImage;
+        const imageUrlToFetch = targetImg.startsWith("http")
+          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
+          : targetImg;
         const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
         const formData = new FormData();
         formData.append("file", new File([imageBlob], "raw-image.jpg", { type: imageBlob.type }));
@@ -1419,9 +1434,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           setStep(isSyncImageMode ? 4 : 5);
+        } else {
+          setStep(isSyncImageMode ? 4 : 5);
         }
       } catch (error) {
         console.error(error);
+        setStep(isSyncImageMode ? 4 : 5);
       } finally {
         setIsUploading(false);
       }
@@ -1432,27 +1450,44 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
         return new Promise((resolve) => {
+          let resolved = false;
+          const safeResolve = (dim: { width: number; height: number }) => {
+            if (!resolved) {
+              resolved = true;
+              resolve(dim);
+            }
+          };
+          const timeoutId = setTimeout(() => safeResolve({ width: 1024, height: 1024 }), 3000);
+
           const img = document.createElement("img");
           img.crossOrigin = "anonymous";
-          img.onload = () =>
-            resolve({
+          img.onload = () => {
+            clearTimeout(timeoutId);
+            safeResolve({
               width: img.naturalWidth || img.width || 1024,
               height: img.naturalHeight || img.height || 1024,
             });
+          };
           img.onerror = () => {
             if (url.startsWith("http")) {
               const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
               const img2 = document.createElement("img");
               img2.crossOrigin = "anonymous";
-              img2.onload = () =>
-                resolve({
+              img2.onload = () => {
+                clearTimeout(timeoutId);
+                safeResolve({
                   width: img2.naturalWidth || img2.width || 1024,
                   height: img2.naturalHeight || img2.height || 1024,
                 });
-              img2.onerror = () => resolve({ width: 1024, height: 1024 });
+              };
+              img2.onerror = () => {
+                clearTimeout(timeoutId);
+                safeResolve({ width: 1024, height: 1024 });
+              };
               img2.src = proxyUrl;
             } else {
-              resolve({ width: 1024, height: 1024 });
+              clearTimeout(timeoutId);
+              safeResolve({ width: 1024, height: 1024 });
             }
           };
           img.src = url;
@@ -1461,7 +1496,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
       const visualLogoScale = 5 + (logoScale - 10) * (45 / 90);
       const { width: mainImageWidth, height: mainImageHeight } =
-        await getImageDimensions(selectedImage);
+        await getImageDimensions(targetImg);
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
 
       // Obter proporção original da logo para calcular a altura real em pixels
@@ -1524,9 +1559,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const formData = new FormData();
-      const imageUrlToFetch = selectedImage.startsWith("http")
-        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(selectedImage)}`
-        : selectedImage;
+      const imageUrlToFetch = targetImg.startsWith("http")
+        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
+        : targetImg;
       const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
       formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
       formData.append("logo", activeLogoFile);
@@ -1574,6 +1609,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Erro ao Processar",
         description: getFriendlyErrorMessage(error.message),
       });
+      setStep(isSyncImageMode ? 4 : 5);
     } finally {
       setIsUploading(false);
     }
