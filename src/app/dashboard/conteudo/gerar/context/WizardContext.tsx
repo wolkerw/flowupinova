@@ -551,9 +551,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         formData.append("user_id", user?.uid || "");
 
         if (businessProfile) {
-          formData.append("business_name", businessProfile.name || "");
-          formData.append("business_category", businessProfile.category || "");
-          formData.append("business_description", businessProfile.description || "");
+          formData.append("business_profile_json", JSON.stringify(businessProfile));
         }
 
         if (referenceImageFile) {
