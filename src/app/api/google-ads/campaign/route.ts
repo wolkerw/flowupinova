@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       imageUrl,
       bodyText,
       durationDays,
+      finalUrl,
     } = body;
 
     if (!userId || !customerId || !name || !dailyBudget) {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       description1: description1 || bodyText || "",
       description2: description2 || "",
       keywords: keywords || [],
+      finalUrl,
     });
 
     if (!adsResult || !adsResult.success) {

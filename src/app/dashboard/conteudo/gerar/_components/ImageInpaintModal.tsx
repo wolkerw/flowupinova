@@ -32,14 +32,25 @@ import {
 
 // Fontes disponíveis (carregadas via Google Fonts no layout global)
 const FONT_OPTIONS = [
+  // Sans-serif / Display
   "Montserrat",
   "Inter",
   "Bebas Neue",
   "Oswald",
   "Roboto",
-  "Playfair Display",
   "Poppins",
   "Raleway",
+  // Serif
+  "Playfair Display",
+  // Caligráficas
+  "Dancing Script",
+  "Pacifico",
+  "Great Vibes",
+  "Sacramento",
+  "Pinyon Script",
+  "Alex Brush",
+  "Caveat",
+  "Satisfy",
 ];
 
 interface ImageInpaintModalProps {
@@ -517,9 +528,178 @@ const getTextHeight = (
   return lines.length * lineHeight + 10;
 };
 
+// Componente accordion para a seção de Símbolos & Artes
+function SymbolsAccordion({
+  presets,
+  imageLoaded,
+  onAdd,
+}: {
+  presets: SymbolPreset[];
+  imageLoaded: boolean;
+  onAdd: (config: Partial<EditorLayer>) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="border-b border-slate-800">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-xs uppercase tracking-wide text-slate-400 hover:bg-slate-800/60 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <span>Símbolos &amp; Artes</span>
+          <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] normal-case tracking-normal text-slate-300">
+            {presets.length}
+          </span>
+        </span>
+        <svg
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-3 pt-1">
+          <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1">
+            {presets.map((sym) => (
+              <Button
+                key={sym.id}
+                onClick={() => onAdd(sym.config)}
+                variant="outline"
+                size="sm"
+                className="flex h-11 flex-col items-center justify-center border-slate-700 bg-slate-800/80 p-1 text-slate-200 transition-transform hover:scale-105 hover:bg-slate-700 hover:text-white"
+                disabled={!imageLoaded}
+                title={sym.name}
+              >
+                <span className="text-sm font-bold leading-none">{sym.symbol}</span>
+                <span className="mt-1 text-[8px] text-slate-400 leading-none truncate max-w-full">
+                  {sym.name}
+                </span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente accordion para Textos Prontos (Presets)
+function TextPresetsAccordion({
+  textPresets,
+  customPresets,
+  imageLoaded,
+  onAdd,
+  onDeleteCustom,
+}: {
+  textPresets: typeof TEXT_PRESETS;
+  customPresets: { name: string; config: Partial<EditorLayer> }[];
+  imageLoaded: boolean;
+  onAdd: (config: Partial<EditorLayer>) => void;
+  onDeleteCustom: (index: number) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const allPresets = [...textPresets, ...customPresets];
+
+  return (
+    <div className="border-b border-slate-800">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-xs uppercase tracking-wide text-slate-400 hover:bg-slate-800/60 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <span>Textos Prontos</span>
+          <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] normal-case tracking-normal text-slate-300">
+            {allPresets.length}
+          </span>
+        </span>
+        <svg
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-3 pt-1 max-h-44 overflow-y-auto">
+          <div className="flex flex-wrap gap-2">
+            {allPresets.map((preset, idx) => {
+              const cfg = preset.config;
+              const isCustom = idx >= textPresets.length;
+              const customIdx = idx - textPresets.length;
+              const originalSize = cfg.fontSize || 40;
+              const scale = 14 / originalSize;
+              const shadowValues: string[] = [];
+              if (cfg.shadowBlur && cfg.shadowBlur > 0) {
+                const sX = (cfg.shadowOffsetX || 0) * scale;
+                const sY = (cfg.shadowOffsetY || 0) * scale;
+                const sB = cfg.shadowBlur * scale;
+                shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || "#000"}`);
+              }
+              if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
+                const sw = Math.min(cfg.textStrokeWidth * scale, 2.5);
+                const sc = cfg.textStrokeColor;
+                shadowValues.push(
+                  `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
+                    `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
+                );
+              }
+              const finalShadowCSS = shadowValues.length > 0 ? shadowValues.join(", ") : "none";
+              const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
+              return (
+                <div key={`${preset.name}-${idx}`} className="group relative">
+                  <Button
+                    onClick={() => onAdd(cfg)}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 min-w-[80px] border-slate-700 transition-transform hover:scale-105"
+                    disabled={!imageLoaded}
+                    style={{
+                      backgroundColor: hasBg ? cfg.bgColor : "transparent",
+                      color: cfg.color || "#fff",
+                      fontFamily: cfg.fontFamily,
+                      fontWeight: cfg.bold ? "bold" : "normal",
+                      fontStyle: cfg.italic ? "italic" : "normal",
+                      textShadow: finalShadowCSS !== "none" ? finalShadowCSS : undefined,
+                      padding: hasBg ? "4px 12px" : "0px",
+                      border: "none",
+                      borderRadius: hasBg ? "0px" : undefined,
+                    }}
+                  >
+                    {preset.name}
+                  </Button>
+                  {isCustom && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteCustom(customIdx);
+                      }}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-opacity hover:bg-red-600 group-hover:opacity-100"
+                      title="Excluir preset"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   isOpen,
   onClose,
+
   imageUrl,
   postId,
   userId,
@@ -559,6 +739,13 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     { name: string; config: Partial<EditorLayer> }[]
   >([]);
 
+  // --- Histórico para Ctrl+Z (undo) ---
+  const historyRef = useRef<EditorLayer[][]>([]);
+  const isUndoingRef = useRef(false);
+
+  // --- Clipboard para Ctrl+C / Ctrl+V ---
+  const clipboardLayerRef = useRef<EditorLayer | null>(null);
+
   // Carregar presets do localStorage na inicialização
   useEffect(() => {
     try {
@@ -571,6 +758,91 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     }
   }, []);
 
+
+  // Salva snapshot do estado atual no histórico sempre que layers muda
+  // (exceto quando a mudança foi causada por um undo)
+  useEffect(() => {
+    if (isUndoingRef.current) {
+      isUndoingRef.current = false;
+      return;
+    }
+    historyRef.current = [
+      ...historyRef.current.slice(-49), // máximo 50 snapshots
+      layers.map((l) => ({ ...l })),    // snapshot imutável
+    ];
+  }, [layers]);
+
+  // Atalhos de teclado: Ctrl+Z (undo), Ctrl+C (copy), Ctrl+V (paste)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar quando o foco estiver em um campo de texto/input
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      // Delete / Backspace — Apagar layer selecionado
+      const isDelete = e.key === "Delete" || e.key === "Backspace" || e.code === "Delete" || e.code === "Backspace" || e.keyCode === 46 || e.keyCode === 8;
+      if (isDelete) {
+        e.preventDefault();
+        const selId = selectedIdRef.current;
+        if (selId) {
+          setLayers((prev) => prev.filter((l) => l.id !== selId));
+          setSelectedId(null);
+        }
+        return;
+      }
+
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      // Ctrl+Z — Desfazer
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        const history = historyRef.current;
+        // Remove o snapshot atual (último) e restaura o anterior
+        if (history.length >= 2) {
+          const prev = history[history.length - 2];
+          historyRef.current = history.slice(0, -1);
+          isUndoingRef.current = true;
+          setLayers(prev.map((l) => ({ ...l })));
+          setSelectedId(null);
+        }
+        return;
+      }
+
+      // Ctrl+C — Copiar layer selecionado
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        const sel = layersRef.current.find((l) => l.id === selectedIdRef.current);
+        if (sel) {
+          clipboardLayerRef.current = { ...sel };
+        }
+        return;
+      }
+
+      // Ctrl+V — Colar layer copiado
+      if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        const clip = clipboardLayerRef.current;
+        if (clip) {
+          const newLayer: EditorLayer = {
+            ...clip,
+            id: `layer_${Date.now()}`,
+            x: clip.x + 20,  // offset para não sobrepor exatamente
+            y: clip.y + 20,
+          };
+          setLayers((prev) => [...prev, newLayer]);
+          setSelectedId(newLayer.id);
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen]);
+
   // Refs sempre atualizados para evitar stale closures na renderização e exportação
   const layersRef = useRef<EditorLayer[]>([]);
   const selectedIdRef = useRef<string | null>(null);
@@ -581,13 +853,31 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
     selectedIdRef.current = selectedId;
   }, [selectedId]);
 
-  // Carregar fontes do Google Fonts dinamicamente
+  // Carregar fontes do Google Fonts dinamicamente (incluindo caligráficas)
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href =
-      "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap";
-    if (!document.head.querySelector('link[href*="Montserrat"]')) {
+      "https://fonts.googleapis.com/css2?" +
+      "family=Bebas+Neue" +
+      "&family=Inter:wght@400;700" +
+      "&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Oswald:wght@400;700" +
+      "&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Poppins:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Raleway:ital,wght@0,400;0,700;1,400;1,700" +
+      "&family=Roboto:ital,wght@0,400;0,700;1,400;1,700" +
+      // Caligráficas
+      "&family=Dancing+Script:wght@400;700" +
+      "&family=Pacifico" +
+      "&family=Great+Vibes" +
+      "&family=Sacramento" +
+      "&family=Pinyon+Script" +
+      "&family=Alex+Brush" +
+      "&family=Caveat:wght@400;700" +
+      "&family=Satisfy" +
+      "&display=swap";
+    if (!document.head.querySelector('link[href*="Dancing+Script"]')) {
       document.head.appendChild(link);
     }
   }, []);
@@ -1504,8 +1794,11 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !loading && onClose()}>
-      <DialogContent className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent 
+        onInteractOutside={(e) => e.preventDefault()}
+        className="flex h-[95vh] max-h-[95vh] w-[95vw] max-w-5xl flex-col overflow-hidden rounded-2xl border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl md:w-full lg:h-[85vh] lg:max-h-[85vh]"
+      >
         <div className="flex h-full min-h-0 flex-col">
           {/* Header */}
           <DialogHeader className="border-b border-slate-800 px-6 pb-4 pt-5">
@@ -1608,110 +1901,21 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                 </div>
               </div>
 
-              {/* Textos Prontos (Presets) */}
-              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                  <span>Textos Prontos</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[...TEXT_PRESETS, ...customPresets].map((preset, idx) => {
-                    const cfg = preset.config;
-                    const isCustom = idx >= TEXT_PRESETS.length;
-                    const customIdx = idx - TEXT_PRESETS.length;
+              {/* Textos Prontos (Presets) — colapsável */}
+              <TextPresetsAccordion
+                textPresets={TEXT_PRESETS}
+                customPresets={customPresets}
+                imageLoaded={imageLoaded}
+                onAdd={(cfg) => addPresetLayer(cfg)}
+                onDeleteCustom={handleDeleteCustomPreset}
+              />
 
-                    // Escalar propriedades proporcionalmente (assumindo fonte do botão ~14px)
-                    const originalSize = cfg.fontSize || 40;
-                    const scale = 14 / originalSize;
-
-                    const shadowValues: string[] = [];
-
-                    // Sombra principal do texto
-                    if (cfg.shadowBlur && cfg.shadowBlur > 0) {
-                      const sX = (cfg.shadowOffsetX || 0) * scale;
-                      const sY = (cfg.shadowOffsetY || 0) * scale;
-                      const sB = cfg.shadowBlur * scale;
-                      shadowValues.push(`${sX}px ${sY}px ${sB}px ${cfg.shadowColor || "#000"}`);
-                    }
-
-                    // Simular stroke (borda) usando múltiplas sombras para não "comer" a fonte por dentro
-                    if (cfg.textStrokeWidth && cfg.textStrokeWidth > 0 && cfg.textStrokeColor) {
-                      const sw = Math.min(cfg.textStrokeWidth * scale, 2.5); // limite para não borrar muito
-                      const sc = cfg.textStrokeColor;
-                      shadowValues.push(
-                        `${sw}px ${sw}px 0 ${sc}, -${sw}px -${sw}px 0 ${sc}, ${sw}px -${sw}px 0 ${sc}, -${sw}px ${sw}px 0 ${sc}, ` +
-                          `0px ${sw}px 0 ${sc}, ${sw}px 0px 0 ${sc}, 0px -${sw}px 0 ${sc}, -${sw}px 0px 0 ${sc}`
-                      );
-                    }
-
-                    const finalShadowCSS =
-                      shadowValues.length > 0 ? shadowValues.join(", ") : "none";
-                    const hasBg = cfg.bgOpacity && cfg.bgOpacity > 0 && cfg.bgColor;
-
-                    return (
-                      <div key={`${preset.name}-${idx}`} className="group relative">
-                        <Button
-                          onClick={() => addPresetLayer(cfg)}
-                          variant="outline"
-                          size="sm"
-                          className="h-9 min-w-[80px] border-slate-700 transition-transform hover:scale-105"
-                          disabled={!imageLoaded}
-                          style={{
-                            backgroundColor: hasBg ? cfg.bgColor : "transparent",
-                            color: cfg.color || "#fff",
-                            fontFamily: cfg.fontFamily,
-                            fontWeight: cfg.bold ? "bold" : "normal",
-                            fontStyle: cfg.italic ? "italic" : "normal",
-                            textShadow: finalShadowCSS !== "none" ? finalShadowCSS : undefined,
-                            padding: hasBg ? "4px 12px" : "0px",
-                            border: hasBg ? "none" : "none",
-                            borderRadius: hasBg ? "0px" : undefined,
-                          }}
-                        >
-                          {preset.name}
-                        </Button>
-
-                        {isCustom && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCustomPreset(customIdx);
-                            }}
-                            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-opacity hover:bg-red-600 group-hover:opacity-100"
-                            title="Excluir preset"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Símbolos & Artes */}
-              <div className="flex flex-col gap-2 border-b border-slate-800 p-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                  <span>Símbolos & Artes</span>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                  {SYMBOL_PRESETS.map((sym) => (
-                    <Button
-                      key={sym.id}
-                      onClick={() => addPresetLayer(sym.config)}
-                      variant="outline"
-                      size="sm"
-                      className="flex h-11 flex-col items-center justify-center border-slate-700 bg-slate-800/80 p-1 text-slate-200 transition-transform hover:scale-105 hover:bg-slate-700 hover:text-white"
-                      disabled={!imageLoaded}
-                      title={sym.name}
-                    >
-                      <span className="text-sm font-bold leading-none">{sym.symbol}</span>
-                      <span className="mt-1 text-[8px] text-slate-400 leading-none truncate max-w-full">
-                        {sym.name}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {/* Símbolos & Artes — seção colapsável */}
+              <SymbolsAccordion
+                presets={SYMBOL_PRESETS}
+                imageLoaded={imageLoaded}
+                onAdd={(config) => addPresetLayer(config)}
+              />
 
               {/* Conteúdo rolável das ferramentas do elemento selecionado */}
               <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1818,14 +2022,26 @@ export const ImageInpaintModal: React.FC<ImageInpaintModalProps> = ({
                             value={selected.fontFamily}
                             onChange={(e) => updateSelected({ fontFamily: e.target.value })}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2 text-sm text-slate-100 focus:border-violet-500 focus:outline-none"
+                            style={{ fontFamily: selected.fontFamily }}
                           >
-                            {FONT_OPTIONS.map((f) => (
-                              <option key={f} value={f} style={{ fontFamily: f }}>
-                                {f}
-                              </option>
-                            ))}
+                            <optgroup label="── Sans-serif / Display ──">
+                              {["Montserrat","Inter","Bebas Neue","Oswald","Roboto","Poppins","Raleway"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── Serif ──">
+                              {["Playfair Display"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── Caligráficas ──">
+                              {["Dancing Script","Pacifico","Great Vibes","Sacramento","Pinyon Script","Alex Brush","Caveat","Satisfy"].map((f) => (
+                                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                              ))}
+                            </optgroup>
                           </select>
                         </div>
+
 
                         {/* Tamanho da Fonte */}
                         <div className="flex flex-col gap-2">

@@ -5,7 +5,22 @@ import { google } from "googleapis";
 import type { GoogleAdsConnectionData } from "./google-ads-service";
 
 const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "TEST_DEVELOPER_TOKEN";
-const GOOGLE_ADS_API_VERSION = "v17";
+const GOOGLE_ADS_API_VERSION = "v21";
+
+/**
+ * Retorna os headers padrões para requisições na API do Google Ads
+ */
+function getGoogleAdsHeaders(accessToken: string, managerCustomerId?: string) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "developer-token": DEVELOPER_TOKEN,
+    "Content-Type": "application/json",
+  };
+  if (managerCustomerId) {
+    headers["login-customer-id"] = managerCustomerId.replace(/-/g, "");
+  }
+  return headers;
+}
 
 /**
  * Recupera os dados da conexão do Google Ads do banco (Firestore admin)
@@ -102,7 +117,7 @@ export async function listGoogleAdsCustomers(
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              query: "SELECT customer.id, customer.descriptive_name FROM customer LIMIT 1",
+              query: "SELECT customer.id, customer.descriptive_name, customer.manager FROM customer LIMIT 1",
             }),
           }
         );
@@ -110,10 +125,58 @@ export async function listGoogleAdsCustomers(
         if (detailResponse.ok) {
           const detailData = await detailResponse.json();
           const customerInfo = detailData.results?.[0]?.customer;
-          accounts.push({
-            id: customerId,
-            name: customerInfo?.descriptiveName || `Conta Google Ads (${customerId})`,
-          });
+          const isManager = customerInfo?.manager || false;
+          const name = customerInfo?.descriptiveName || `Conta Google Ads (${customerId})`;
+
+          if (isManager) {
+            console.log(`[GOOGLE_ADS_ADMIN] Conta ${customerId} é administradora (MCC). Buscando subcontas de clientes...`);
+            const childResponse = await fetch(
+              `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:search`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "developer-token": DEVELOPER_TOKEN,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  query: `
+                    SELECT 
+                      customer_client.client_customer, 
+                      customer_client.descriptive_name, 
+                      customer_client.manager 
+                    FROM customer_client 
+                    WHERE customer_client.level = 1 AND customer_client.manager = false
+                  `,
+                }),
+              }
+            );
+
+            if (childResponse.ok) {
+              const childData = await childResponse.json();
+              const childResults = childData.results || [];
+              console.log(`[GOOGLE_ADS_ADMIN] Encontradas ${childResults.length} subcontas vinculadas.`);
+              for (const childItem of childResults) {
+                const childInfo = childItem.customerClient;
+                if (childInfo && childInfo.clientCustomer) {
+                  const childId = childInfo.clientCustomer.replace("customers/", "");
+                  accounts.push({
+                    id: childId,
+                    name: childInfo.descriptiveName || `Conta Google Ads (${childId})`,
+                    managerCustomerId: customerId,
+                  });
+                }
+              }
+            } else {
+              console.warn(
+                `[GOOGLE_ADS_ADMIN] Falha ao obter subcontas de ${customerId}:`,
+                await childResponse.text().catch(() => "")
+              );
+              accounts.push({ id: customerId, name });
+            }
+          } else {
+            accounts.push({ id: customerId, name });
+          }
         } else {
           accounts.push({
             id: customerId,
@@ -158,6 +221,9 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
       throw new Error("Não foi possível gerar token de acesso.");
     }
 
+    const connectionData = await getGoogleAdsConnectionAdmin(userId);
+    const headers = getGoogleAdsHeaders(accessToken, connectionData.managerCustomerId);
+
     const cleanCustomerId = customerId.replace(/-/g, "");
 
     const query = `
@@ -170,6 +236,7 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
         metrics.clicks, 
         metrics.cost_micros 
       FROM campaign
+      WHERE segments.date DURING LAST_30_DAYS
       ORDER BY campaign.id DESC
       LIMIT 50
     `;
@@ -178,11 +245,7 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ query }),
       }
     );
@@ -199,10 +262,13 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
       const budgetMicros = Number(item.campaignBudget?.amountMicros || 0);
       const spentMicros = Number(item.metrics?.costMicros || 0);
 
+      const rawStatus = item.campaign?.status?.toLowerCase();
+      const status = rawStatus === "enabled" ? "active" : rawStatus;
+
       return {
         id: item.campaign?.id,
         name: item.campaign?.name,
-        status: item.campaign?.status?.toLowerCase(),
+        status,
         budgetAmount: budgetMicros / 1_000_000,
         metrics: {
           impressions: Number(item.metrics?.impressions || 0),
@@ -251,6 +317,9 @@ export async function updateGoogleAdsCampaignStatus(
       throw new Error("Não foi possível gerar token de acesso.");
     }
 
+    const connectionData = await getGoogleAdsConnectionAdmin(userId);
+    const headers = getGoogleAdsHeaders(accessToken, connectionData.managerCustomerId);
+
     const cleanCustomerId = customerId.replace(/-/g, "");
 
     const payload = {
@@ -269,11 +338,7 @@ export async function updateGoogleAdsCampaignStatus(
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/campaigns:mutate`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(payload),
       }
     );
@@ -287,6 +352,64 @@ export async function updateGoogleAdsCampaignStatus(
   } catch (error: any) {
     console.error(`[GOOGLE_ADS_ADMIN] Erro ao atualizar campanha ${campaignId}:`, error);
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extrai detalhes específicos de falha retornados pela API do Google Ads (GoogleAdsFailure)
+ */
+function parseGoogleAdsError(err: any, defaultMsg: string): string {
+  if (err?.error?.details) {
+    for (const detail of err.error.details) {
+      if (detail.errors && Array.isArray(detail.errors)) {
+        const messages = detail.errors.map((e: any) => {
+          let msg = e.message;
+          if (e.trigger?.stringValue) {
+            msg += ` (Valor: "${e.trigger.stringValue}")`;
+          }
+          if (e.policyFindingDetails?.policyTopicEntries) {
+            const topics = e.policyFindingDetails.policyTopicEntries
+              .map((t: any) => t.topicName)
+              .join(", ");
+            msg += ` [Políticas violadas: ${topics}]`;
+          }
+          return msg;
+        });
+        return messages.join(" | ");
+      }
+    }
+  }
+  return err?.error?.message || defaultMsg;
+}
+
+/**
+ * Remove uma campanha do Google Ads em caso de falha no meio do fluxo para garantir atomicidade.
+ */
+async function rollbackGoogleAdsCampaign(
+  cleanCustomerId: string,
+  headers: Record<string, string>,
+  campaignResourceName: string
+) {
+  try {
+    console.warn(
+      `[GOOGLE_ADS_ADMIN] Executando rollback para remover campanha incompleta: ${campaignResourceName}`
+    );
+    await fetch(
+      `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/campaigns:mutate`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          operations: [
+            {
+              remove: campaignResourceName,
+            },
+          ],
+        }),
+      }
+    );
+  } catch (rollbackErr) {
+    console.error("[GOOGLE_ADS_ADMIN] Erro ao executar rollback de campanha:", rollbackErr);
   }
 }
 
@@ -305,8 +428,13 @@ export async function createGoogleAdsCampaign(
     description1: string;
     description2: string;
     keywords: string[];
+    finalUrl?: string;
   }
 ) {
+  let createdCampaignResourceName: string | null = null;
+  let cleanCustomerId = customerId.replace(/-/g, "");
+  let headers: Record<string, string> = {};
+
   try {
     const oauth2Client = await getAuthenticatedGoogleAdsClient(userId);
     const tokenInfo = await oauth2Client.getAccessToken();
@@ -316,7 +444,9 @@ export async function createGoogleAdsCampaign(
       throw new Error("Não foi possível gerar token de acesso.");
     }
 
-    const cleanCustomerId = customerId.replace(/-/g, "");
+    const connectionData = await getGoogleAdsConnectionAdmin(userId);
+    headers = getGoogleAdsHeaders(accessToken, connectionData.managerCustomerId);
+
     const budgetMicros = Math.round(campaignData.dailyBudget * 1_000_000);
 
     // 1. Cria Orçamento de Campanha (Campaign Budget)
@@ -336,18 +466,14 @@ export async function createGoogleAdsCampaign(
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/campaignBudgets:mutate`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(budgetPayload),
       }
     );
 
     if (!budgetRes.ok) {
       const err = await budgetRes.json().catch(() => ({}));
-      throw new Error(err.error?.message || "Falha ao criar orçamento no Google Ads.");
+      throw new Error(parseGoogleAdsError(err, "Falha ao criar orçamento no Google Ads."));
     }
 
     const budgetData = await budgetRes.json();
@@ -366,6 +492,8 @@ export async function createGoogleAdsCampaign(
             advertisingChannelType: "SEARCH",
             status: "ENABLED",
             campaignBudget: budgetResourceName,
+            manualCpc: {},
+            containsEuPoliticalAdvertising: "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
             networkSettings: {
               targetGoogleSearch: true,
               targetSearchNetwork: true,
@@ -381,18 +509,14 @@ export async function createGoogleAdsCampaign(
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/campaigns:mutate`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(campaignPayload),
       }
     );
 
     if (!campaignRes.ok) {
       const err = await campaignRes.json().catch(() => ({}));
-      throw new Error(err.error?.message || "Falha ao criar campanha no Google Ads.");
+      throw new Error(parseGoogleAdsError(err, "Falha ao criar campanha no Google Ads."));
     }
 
     const campaignResult = await campaignRes.json();
@@ -402,6 +526,7 @@ export async function createGoogleAdsCampaign(
       throw new Error("Recurso de campanha não retornado pelo Google.");
     }
 
+    createdCampaignResourceName = campaignResourceName;
     const campaignId = campaignResourceName.split("/").pop();
 
     // 3. Cria Grupo de Anúncios (Ad Group)
@@ -413,6 +538,7 @@ export async function createGoogleAdsCampaign(
             campaign: campaignResourceName,
             status: "ENABLED",
             type: "SEARCH_STANDARD",
+            cpcBidMicros: Math.min(Math.max(Math.round(campaignData.dailyBudget * 0.1 * 1_000_000), 1_000_000), 5_000_000),
           },
         },
       ],
@@ -422,18 +548,14 @@ export async function createGoogleAdsCampaign(
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/adGroups:mutate`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(adGroupPayload),
       }
     );
 
     if (!adGroupRes.ok) {
       const err = await adGroupRes.json().catch(() => ({}));
-      throw new Error(err.error?.message || "Falha ao criar grupo de anúncios no Google Ads.");
+      throw new Error(parseGoogleAdsError(err, "Falha ao criar grupo de anúncios no Google Ads."));
     }
 
     const adGroupResult = await adGroupRes.json();
@@ -455,6 +577,11 @@ export async function createGoogleAdsCampaign(
       { text: campaignData.description2 },
     ].filter((d) => !!d.text);
 
+    let finalUrl = campaignData.finalUrl || process.env.NEXT_PUBLIC_APP_URL || "https://numvapt.com";
+    if (finalUrl.includes("localhost") || finalUrl.includes("127.0.0.1")) {
+      finalUrl = "https://numvapt.com";
+    }
+
     const adGroupAdPayload = {
       operations: [
         {
@@ -466,7 +593,7 @@ export async function createGoogleAdsCampaign(
                 headlines,
                 descriptions,
               },
-              finalUrls: [process.env.NEXT_PUBLIC_APP_URL || "https://numvapt.com"],
+              finalUrls: [finalUrl],
             },
           },
         },
@@ -477,18 +604,14 @@ export async function createGoogleAdsCampaign(
       `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/adGroupAds:mutate`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "developer-token": DEVELOPER_TOKEN,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(adGroupAdPayload),
       }
     );
 
     if (!adRes.ok) {
       const err = await adRes.json().catch(() => ({}));
-      throw new Error(err.error?.message || "Falha ao criar anúncio de pesquisa no Google Ads.");
+      throw new Error(parseGoogleAdsError(err, "Falha ao criar anúncio de pesquisa no Google Ads."));
     }
 
     // 5. Cria Palavras-chave (Keywords Criteria)
@@ -504,24 +627,34 @@ export async function createGoogleAdsCampaign(
         },
       }));
 
-      await fetch(
+      const keywordRes = await fetch(
         `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/adGroupCriteria:mutate`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "developer-token": DEVELOPER_TOKEN,
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({ operations: keywordOperations }),
         }
-      ).catch((e) => console.warn("[GOOGLE_ADS_ADMIN] Erro ao associar palavras-chave:", e));
+      );
+
+      if (!keywordRes.ok) {
+        const err = await keywordRes.json().catch(() => ({}));
+        throw new Error(parseGoogleAdsError(err, "Falha ao associar palavras-chave no Google Ads."));
+      }
     }
 
     return { success: true, campaignId };
   } catch (error: any) {
     console.error("[GOOGLE_ADS_ADMIN] Falha no fluxo de criação de campanha no Google Ads:", error);
-    // Simula criação com sucesso no ambiente de desenvolvimento se falhar
+    
+    // Se a campanha já tinha sido criada mas um passo posterior falhou, executa Rollback imediato no Google Ads
+    if (createdCampaignResourceName) {
+      await rollbackGoogleAdsCampaign(cleanCustomerId, headers, createdCampaignResourceName);
+    }
+
+    if (customerId !== "123-456-7890") {
+      throw error;
+    }
+    // Simula criação com sucesso no ambiente de desenvolvimento se falhar na conta demonstrativa
     return { success: true, campaignId: `mock-campaign-${Date.now()}` };
   }
 }

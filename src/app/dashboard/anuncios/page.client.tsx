@@ -269,8 +269,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     isConnected: false,
   });
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
-  const [googleAccounts, setGoogleAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  const [googleAccounts, setGoogleAccounts] = useState<Array<{ id: string; name: string; managerCustomerId?: string }>>([]);
   const [isGoogleAccountModalOpen, setIsGoogleAccountModalOpen] = useState(false);
+  const [googleAccountSearchQuery, setGoogleAccountSearchQuery] = useState("");
   const [googleCampaigns, setGoogleCampaigns] = useState<any[]>([]);
   const [activePlatformTab, setActivePlatformTab] = useState<"meta" | "google">("meta");
   const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false);
@@ -282,10 +283,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [googleHeadline3, setGoogleHeadline3] = useState("");
   const [googleDescription1, setGoogleDescription1] = useState("");
   const [googleDescription2, setGoogleDescription2] = useState("");
-  const [googleKeywordsText, setGoogleKeywordsText] = useState("");
+  const [googleKeywords, setGoogleKeywords] = useState<string[]>([]);
+  const [newKeywordInput, setNewKeywordInput] = useState("");
   const [googleDailyBudget, setGoogleDailyBudget] = useState(15);
   const [googleDurationDays, setGoogleDurationDays] = useState(7);
   const [googleAdName, setGoogleAdName] = useState("");
+  const [googleWebsiteUrl, setGoogleWebsiteUrl] = useState("");
 
   const effectRan = useRef(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -445,10 +448,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   };
 
   useEffect(() => {
-    if (businessProfile && !customDestination) {
-      setCustomDestination(businessProfile.website || businessProfile.instagram || "");
+    if (businessProfile) {
+      if (!customDestination) {
+        setCustomDestination(businessProfile.website || businessProfile.instagram || "");
+      }
+      if (!googleWebsiteUrl) {
+        setGoogleWebsiteUrl(businessProfile.website || businessProfile.instagram || "");
+      }
     }
-  }, [businessProfile, customDestination]);
+  }, [businessProfile, customDestination, googleWebsiteUrl]);
 
   const checkWhatsAppConnection = async () => {
     setIsCheckingWhatsApp(true);
@@ -1034,7 +1042,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       if (result.accounts && result.accounts.length > 0) {
         setGoogleAccounts(result.accounts);
         if (result.accounts.length === 1) {
-          await handleSelectGoogleAdsAccount(result.accounts[0].id, result.accounts[0].name);
+          await handleSelectGoogleAdsAccount(
+            result.accounts[0].id,
+            result.accounts[0].name,
+            result.accounts[0].managerCustomerId
+          );
         } else {
           setIsGoogleAccountModalOpen(true);
         }
@@ -1053,13 +1065,18 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   };
 
-  const handleSelectGoogleAdsAccount = async (accountId: string, accountName: string) => {
+  const handleSelectGoogleAdsAccount = async (
+    accountId: string,
+    accountName: string,
+    managerCustomerId?: string
+  ) => {
     if (!user) return;
     try {
       await updateGoogleAdsConnection(user.uid, {
         isConnected: true,
         adAccountId: accountId,
         adAccountName: accountName,
+        managerCustomerId: managerCustomerId || "",
       });
       toast({
         title: "Conectado!",
@@ -1093,12 +1110,123 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   const handlePublishGoogleCampaign = async () => {
     if (!user || !googleAdsConnection.adAccountId) return;
+    
+    // Validações obrigatórias exigidas pela API do Google Ads
+    if (!googleAdName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Nome obrigatório",
+        description: "Por favor, defina um nome para a sua campanha.",
+      });
+      return;
+    }
+    
+    if (!googleDailyBudget || googleDailyBudget <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Orçamento obrigatório",
+        description: "Por favor, defina um orçamento diário válido maior que zero.",
+      });
+      return;
+    }
+
+    if (!googleHeadline1.trim() || !googleHeadline2.trim() || !googleHeadline3.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Títulos obrigatórios",
+        description: "O Google Ads exige exatamente 3 títulos para configurar o anúncio.",
+      });
+      return;
+    }
+
+    if (!googleDescription1.trim() || !googleDescription2.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Descrições obrigatórias",
+        description: "O Google Ads exige exatamente 2 descrições para configurar o anúncio.",
+      });
+      return;
+    }
+
+    // Previsão de Políticas do Google Ads (Validações Locais)
+    const hlList = [googleHeadline1, googleHeadline2, googleHeadline3];
+    for (let i = 0; i < hlList.length; i++) {
+      const h = hlList[i].trim();
+      if (h.includes("!")) {
+        toast({
+          variant: "destructive",
+          title: "Regra do Google Ads",
+          description: `O Título ${i + 1} não pode conter pontos de exclamação (!). O Google proíbe exclamações em títulos.`,
+        });
+        return;
+      }
+      if (h === h.toUpperCase() && /[A-Z]/.test(h)) {
+        toast({
+          variant: "destructive",
+          title: "Regra do Google Ads",
+          description: `O Título ${i + 1} não deve ser escrito inteiramente em MAIÚSCULAS (ex: COMPRE). Use apenas a primeira letra maiúscula.`,
+        });
+        return;
+      }
+    }
+
+    const descList = [googleDescription1, googleDescription2];
+    for (let i = 0; i < descList.length; i++) {
+      const d = descList[i].trim();
+      const exclamations = (d.match(/!/g) || []).length;
+      if (exclamations > 1) {
+        toast({
+          variant: "destructive",
+          title: "Regra do Google Ads",
+          description: `A Descrição ${i + 1} pode conter no máximo um (1) único ponto de exclamação (!).`,
+        });
+        return;
+      }
+      if (d.includes("!!")) {
+        toast({
+          variant: "destructive",
+          title: "Regra do Google Ads",
+          description: `A Descrição ${i + 1} não pode conter exclamações repetidas (ex: !!).`,
+        });
+        return;
+      }
+      if (d === d.toUpperCase() && /[A-Z]/.test(d)) {
+        toast({
+          variant: "destructive",
+          title: "Regra do Google Ads",
+          description: `A Descrição ${i + 1} não deve ser escrita inteiramente em MAIÚSCULAS.`,
+        });
+        return;
+      }
+    }
+
+    let websiteUrl = googleWebsiteUrl.trim();
+    if (websiteUrl && !/^https?:\/\//i.test(websiteUrl)) {
+      websiteUrl = `https://${websiteUrl}`;
+    }
+
+    if (!websiteUrl) {
+      toast({
+        variant: "destructive",
+        title: "URL de Destino obrigatória",
+        description: "Por favor, insira o site ou link de destino para a campanha.",
+      });
+      return;
+    }
+
+    const keywords = googleKeywords;
+
+    if (keywords.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Palavras-chave obrigatórias",
+        description: "Por favor, insira pelo menos uma palavra-chave para a busca.",
+      });
+      return;
+    }
+
     setIsSubmittingGoogle(true);
     try {
-      const keywords = googleKeywordsText
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k.length > 0);
 
       const response = await fetch("/api/google-ads/campaign", {
         method: "POST",
@@ -1115,6 +1243,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           description1: googleDescription1,
           description2: googleDescription2,
           keywords,
+          finalUrl: websiteUrl,
         }),
       });
 
@@ -1136,7 +1265,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       setGoogleHeadline3("");
       setGoogleDescription1("");
       setGoogleDescription2("");
-      setGoogleKeywordsText("");
+      setGoogleKeywords([]);
+      setNewKeywordInput("");
+      setGoogleWebsiteUrl("");
 
       fetchData();
     } catch (err: any) {
@@ -1606,8 +1737,44 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [isMetaActive, isGoogleActive]);
 
+  const dateRangeText = (() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+
+    const format = (date: Date) => {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    return `de ${format(start)} até ${format(end)}`;
+  })();
+
+  const filteredGoogleAccounts = googleAccounts.filter(
+    (acc) =>
+      acc.name.toLowerCase().includes(googleAccountSearchQuery.toLowerCase()) ||
+      acc.id.toLowerCase().includes(googleAccountSearchQuery.toLowerCase())
+  );
+
   return (
     <div className="container mx-auto max-w-7xl p-6 font-sans text-slate-800">
+      {(isConnectingGoogle || isConnectingMeta) && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-8 shadow-2xl max-w-xs w-full mx-4 border border-slate-100 text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-bold text-slate-900">
+                {isConnectingGoogle ? "Conectando ao Google Ads..." : "Conectando ao Facebook Meta..."}
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Aguarde enquanto sincronizamos as suas contas e permissões em tempo real.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* HEADER PRINCIPAL */}
       <div className="mb-8 flex flex-col items-start justify-between gap-6 border-b border-slate-100 pb-6 md:flex-row md:items-center">
         <div className="max-w-3xl text-left">
@@ -4311,7 +4478,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
               <span className="font-inter flex items-center gap-1.5 self-end text-xs font-medium text-slate-400 sm:self-center">
                 <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                Relatórios considerando os últimos 30 dias
+                Relatórios considerando os últimos 30 dias ({dateRangeText})
               </span>
             </div>
 
@@ -4777,7 +4944,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       </Dialog>
 
       {/* MODAL DE SELEÇÃO DE CONTA DO GOOGLE ADS */}
-      <Dialog open={isGoogleAccountModalOpen} onOpenChange={setIsGoogleAccountModalOpen}>
+      <Dialog
+        open={isGoogleAccountModalOpen}
+        onOpenChange={(open) => {
+          setIsGoogleAccountModalOpen(open);
+          if (!open) setGoogleAccountSearchQuery("");
+        }}
+      >
         <DialogContent className="max-w-md font-sans">
           <DialogHeader>
             <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
@@ -4789,25 +4962,47 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               suas campanhas locais.
             </DialogDescription>
           </DialogHeader>
-          <div className="my-4 max-h-[300px] space-y-3 overflow-y-auto pr-1">
-            {googleAccounts.map((acc) => (
-              <button
-                key={acc.id}
-                type="button"
-                onClick={() => handleSelectGoogleAdsAccount(acc.id, acc.name)}
-                className="group flex w-full items-center justify-between rounded-xl border border-slate-200 p-4 text-left transition-all duration-200 hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
-              >
-                <div className="min-w-0">
-                  <span className="block text-xs font-bold text-slate-800 transition-colors group-hover:text-primary">
-                    {acc.name}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] font-medium text-slate-400">
-                    ID da Conta: {acc.id}
-                  </span>
-                </div>
-                <ArrowRight className="h-4 w-4 text-slate-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
-              </button>
-            ))}
+
+          {/* Campo de pesquisa */}
+          <div className="relative my-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={googleAccountSearchQuery}
+              onChange={(e) => setGoogleAccountSearchQuery(e.target.value)}
+              placeholder="Buscar conta por nome ou ID..."
+              className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div className="my-2 max-h-[300px] space-y-3 overflow-y-auto pr-1">
+            {filteredGoogleAccounts.length === 0 ? (
+              <div className="py-8 text-center text-xs italic text-slate-400">
+                Nenhuma conta encontrada.
+              </div>
+            ) : (
+              filteredGoogleAccounts.map((acc) => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onClick={() => {
+                    handleSelectGoogleAdsAccount(acc.id, acc.name, acc.managerCustomerId);
+                    setGoogleAccountSearchQuery("");
+                  }}
+                  className="group flex w-full items-center justify-between rounded-xl border border-slate-200 p-4 text-left transition-all duration-200 hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+                >
+                  <div className="min-w-0">
+                    <span className="block text-xs font-bold text-slate-800 transition-colors group-hover:text-primary">
+                      {acc.name}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] font-medium text-slate-400">
+                      ID da Conta: {acc.id}
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-slate-400 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+                </button>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -4843,7 +5038,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             {/* Títulos do Anúncio */}
             <div className="space-y-2 text-left">
               <span className="block text-xs font-bold text-slate-700">
-                Títulos do Anúncio (Exibidos no topo)
+                Títulos do Anúncio (Mínimo de 3 obrigatórios)
               </span>
               <div className="grid grid-cols-1 gap-2">
                 <div className="relative">
@@ -4888,7 +5083,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             {/* Descrições */}
             <div className="space-y-2 text-left">
               <span className="block text-xs font-bold text-slate-700">
-                Descrições (Texto complementar)
+                Descrições (Mínimo de 2 obrigatórias)
               </span>
               <div className="grid grid-cols-1 gap-2">
                 <div className="relative">
@@ -4918,18 +5113,78 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               </div>
             </div>
 
-            {/* Palavras-chave */}
+            {/* URL de Destino */}
             <div className="space-y-1.5 text-left">
-              <Label htmlFor="g-keywords" className="text-xs font-bold text-slate-700">
-                Palavras-chave (Termos de busca - separadas por vírgula)
+              <Label htmlFor="g-website-url" className="text-xs font-bold text-slate-700">
+                URL de Destino (Site, Landing Page ou link do Instagram)
               </Label>
               <Input
-                id="g-keywords"
-                placeholder="Ex: sorveteria, melhor sorvete, doceria perto de mim"
-                value={googleKeywordsText}
-                onChange={(e) => setGoogleKeywordsText(e.target.value)}
+                id="g-website-url"
+                placeholder="Ex: www.sorveteriagourmet.com"
+                value={googleWebsiteUrl}
+                onChange={(e) => setGoogleWebsiteUrl(e.target.value)}
                 className="h-10 rounded-lg text-xs"
               />
+            </div>
+
+            {/* Palavras-chave */}
+            <div className="space-y-2 text-left">
+              <Label className="text-xs font-bold text-slate-700">
+                Palavras-chave (Mínimo de 1 obrigatória)
+              </Label>
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: melhor sorvete (Pressione Enter ou clique em Adicionar)"
+                  value={newKeywordInput}
+                  onChange={(e) => setNewKeywordInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = newKeywordInput.trim();
+                      if (val && !googleKeywords.includes(val)) {
+                        setGoogleKeywords([...googleKeywords, val]);
+                        setNewKeywordInput("");
+                      }
+                    }
+                  }}
+                  className="h-10 rounded-lg text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const val = newKeywordInput.trim();
+                    if (val && !googleKeywords.includes(val)) {
+                      setGoogleKeywords([...googleKeywords, val]);
+                      setNewKeywordInput("");
+                    }
+                  }}
+                  className="h-10 rounded-lg px-4 bg-primary text-xs font-bold text-white active:scale-95 hover:bg-primary/95"
+                >
+                  Adicionar
+                </Button>
+              </div>
+
+              {/* Lista de tags de palavras-chave adicionadas */}
+              {googleKeywords.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 max-h-[80px] overflow-y-auto p-1.5 bg-slate-50 border border-slate-200/60 rounded-lg">
+                  {googleKeywords.map((kw, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs animate-in fade-in zoom-in-95 duration-100"
+                    >
+                      {kw}
+                      <button
+                        type="button"
+                        onClick={() => setGoogleKeywords(googleKeywords.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-red-500 font-bold ml-0.5 text-xs transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Orçamento e Duração */}
@@ -4969,7 +5224,15 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             <Button
               onClick={handlePublishGoogleCampaign}
               disabled={
-                isSubmittingGoogle || !googleAdName || !googleHeadline1 || !googleDescription1
+                isSubmittingGoogle ||
+                !googleAdName.trim() ||
+                !googleHeadline1.trim() ||
+                !googleHeadline2.trim() ||
+                !googleHeadline3.trim() ||
+                !googleDescription1.trim() ||
+                !googleDescription2.trim() ||
+                googleKeywords.length === 0 ||
+                !googleWebsiteUrl.trim()
               }
               className="h-10 rounded-lg bg-primary px-6 text-xs font-bold text-white"
             >

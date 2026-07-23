@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Tag, Trash2, CheckCircle2 } from "lucide-react";
+import { Loader2, Tag, Trash2, CheckCircle2, Clock, CalendarX2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Coupon {
@@ -15,6 +15,42 @@ interface Coupon {
   discountPercentage: number;
   active: boolean;
   createdAt: any;
+  expiresAt?: string;
+}
+
+function formatExpiryDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function CouponExpiryBadge({ expiresAt }: { expiresAt?: string }) {
+  if (!expiresAt) {
+    return <Badge variant="outline" className="text-gray-500">Sem prazo</Badge>;
+  }
+
+  const isExpired = new Date() > new Date(expiresAt);
+
+  if (isExpired) {
+    return (
+      <Badge variant="destructive" className="flex items-center gap-1">
+        <CalendarX2 className="h-3 w-3" />
+        Expirado
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="secondary" className="flex items-center gap-1 text-orange-700 bg-orange-50 border-orange-200">
+      <Clock className="h-3 w-3" />
+      até {formatExpiryDate(expiresAt)}
+    </Badge>
+  );
 }
 
 export default function AdminCuponsPage() {
@@ -25,6 +61,7 @@ export default function AdminCuponsPage() {
 
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
+  const [newExpiresAt, setNewExpiresAt] = useState("");
 
   const { toast } = useToast();
 
@@ -65,6 +102,7 @@ export default function AdminCuponsPage() {
         body: JSON.stringify({
           code: newCode,
           discountPercentage: Number(newDiscount),
+          expiresAt: newExpiresAt || undefined,
         }),
       });
 
@@ -73,6 +111,7 @@ export default function AdminCuponsPage() {
         toast({ title: "Sucesso", description: "Cupom criado!" });
         setNewCode("");
         setNewDiscount("");
+        setNewExpiresAt("");
         fetchCoupons();
       } else {
         toast({
@@ -115,6 +154,9 @@ export default function AdminCuponsPage() {
     }
   };
 
+  // Data/hora mínima: agora (para impedir criar cupons já expirados)
+  const minDateTime = new Date().toISOString().slice(0, 16);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,38 +174,60 @@ export default function AdminCuponsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreate} className="flex flex-col items-end gap-4 md:flex-row">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="code">Código do Cupom (ex: PARCEIRO50)</Label>
-              <Input
-                id="code"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                placeholder="PROMO20"
-                required
-              />
+          <form onSubmit={handleCreate} className="flex flex-col gap-4">
+            <div className="flex flex-col items-end gap-4 md:flex-row">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="code">Código do Cupom (ex: PARCEIRO50)</Label>
+                <Input
+                  id="code"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                  placeholder="PROMO20"
+                  required
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="discount">Desconto em % (ex: 50 para 50%)</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newDiscount}
+                  onChange={(e) => setNewDiscount(e.target.value)}
+                  placeholder="20"
+                  required
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="expiresAt" className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-orange-500" />
+                  Válido até (opcional)
+                </Label>
+                <Input
+                  id="expiresAt"
+                  type="datetime-local"
+                  value={newExpiresAt}
+                  onChange={(e) => setNewExpiresAt(e.target.value)}
+                  min={minDateTime}
+                />
+              </div>
             </div>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="discount">Desconto em % (ex: 50 para 50%)</Label>
-              <Input
-                id="discount"
-                type="number"
-                min="1"
-                max="100"
-                value={newDiscount}
-                onChange={(e) => setNewDiscount(e.target.value)}
-                placeholder="20"
-                required
-              />
+            <div className="flex justify-end">
+              <Button type="submit" disabled={creating} className="w-full md:w-auto">
+                {creating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                Criar Cupom
+              </Button>
             </div>
-            <Button type="submit" disabled={creating} className="w-full md:w-auto">
-              {creating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-              )}
-              Criar Cupom
-            </Button>
+            {newExpiresAt && (
+              <p className="text-xs text-gray-500">
+                ⏱ Este cupom expirará em <strong>{formatExpiryDate(newExpiresAt)}</strong>. Após esta data, o cupom será automaticamente invalidado.
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -187,6 +251,7 @@ export default function AdminCuponsPage() {
                     <th className="px-6 py-3">Código</th>
                     <th className="px-6 py-3">Desconto</th>
                     <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Validade</th>
                     <th className="px-6 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -201,6 +266,9 @@ export default function AdminCuponsPage() {
                         <Badge variant={coupon.active ? "default" : "secondary"}>
                           {coupon.active ? "Ativo" : "Inativo"}
                         </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <CouponExpiryBadge expiresAt={coupon.expiresAt} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Button

@@ -23,6 +23,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ valid: false, error: "Cupom inativo." });
     }
 
+    // Verificar validade por data de expiração
+    if (data.expiresAt) {
+      const expiresDate = new Date(data.expiresAt);
+      if (!isNaN(expiresDate.getTime()) && new Date() > expiresDate) {
+        return NextResponse.json({ valid: false, error: "Cupom expirado." });
+      }
+    }
+
     return NextResponse.json({
       valid: true,
       discountPercentage: data.discountPercentage,
