@@ -426,35 +426,68 @@ const InstagramPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Fundo Desfocado"
-                      layout="fill"
-                      objectFit="cover"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Fundo Desfocado"
+                        layout="fill"
+                        objectFit="cover"
+                        unoptimized
+                      />
+                    )}
                   </div>
                   {/* Imagem Principal Centralizada */}
                   <div className="absolute inset-0 z-10 h-full w-full">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Imagem Principal"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Imagem Principal"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </>
               )}
 
               {storyAdaptationMode === "crop" && (
-                <Image
-                  src={currentMedia.publicUrl || currentMedia.previewUrl}
-                  alt="Imagem Cortada"
-                  layout="fill"
-                  objectFit="cover"
-                  unoptimized
-                />
+                currentMedia.type === "video" ? (
+                  <video
+                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <Image
+                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    alt="Imagem Cortada"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                )
               )}
 
               {storyAdaptationMode === "solid" && (
@@ -463,13 +496,24 @@ const InstagramPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative h-full w-full">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Imagem Centralizada"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Imagem Centralizada"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -556,13 +600,24 @@ const InstagramPreview = ({
       {/* Image */}
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
-          <Image
-            src={currentMedia.publicUrl || currentMedia.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          currentMedia.type === "video" ? (
+            <video
+              src={currentMedia.publicUrl || currentMedia.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={currentMedia.publicUrl || currentMedia.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
@@ -680,35 +735,68 @@ const FacebookPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Fundo Desfocado"
-                      layout="fill"
-                      objectFit="cover"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Fundo Desfocado"
+                        layout="fill"
+                        objectFit="cover"
+                        unoptimized
+                      />
+                    )}
                   </div>
                   {/* Imagem Centralizada Quadrada */}
                   <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Imagem Principal"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Imagem Principal"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </>
               )}
 
               {storyAdaptationMode === "crop" && (
-                <Image
-                  src={singleItem.publicUrl || singleItem.previewUrl}
-                  alt="Imagem Cortada"
-                  layout="fill"
-                  objectFit="cover"
-                  unoptimized
-                />
+                singleItem.type === "video" ? (
+                  <video
+                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <Image
+                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    alt="Imagem Cortada"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                )
               )}
 
               {storyAdaptationMode === "solid" && (
@@ -717,13 +805,24 @@ const FacebookPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative aspect-square w-full">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Imagem Centralizada"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Imagem Centralizada"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -834,13 +933,24 @@ const FacebookPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
@@ -976,13 +1086,24 @@ const GooglePreview = ({
       {/* Image Container with black background letterboxing */}
       <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview Google"
-            layout="fill"
-            objectFit="contain"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview Google"
+              layout="fill"
+              objectFit="contain"
+              unoptimized
+            />
+          )
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
             <ImageIcon className="mb-2 h-12 w-12 text-gray-300" />
@@ -1082,13 +1203,24 @@ const LinkedInPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
