@@ -2102,13 +2102,24 @@ export default function CriarConteudoPage() {
                       {mediaItems.map((item, index) => (
                         <div key={index} className="flex flex-col gap-2">
                           <div className="group relative aspect-square">
-                            <Image
-                              src={item.previewUrl}
-                              alt={`Preview ${index}`}
-                              layout="fill"
-                              objectFit="cover"
-                              className="rounded-md"
-                            />
+                            {item.type === "video" ? (
+                              <video
+                                src={item.previewUrl}
+                                className="h-full w-full rounded-md object-cover"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                              />
+                            ) : (
+                              <Image
+                                src={item.previewUrl}
+                                alt={`Preview ${index}`}
+                                layout="fill"
+                                objectFit="cover"
+                                className="rounded-md"
+                              />
+                            )}
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(index)}
