@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
     const systemInstruction = `Você é um especialista em Copywriting para Redes Sociais.
 Sua tarefa é melhorar a legenda fornecida pelo usuário.
