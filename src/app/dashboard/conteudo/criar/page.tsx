@@ -2012,12 +2012,44 @@ export default function CriarConteudoPage() {
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleGenerateText = () => {
+  const handleGenerateText = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "Texto vazio",
+        description: "Escreva algo primeiro para a IA poder melhorar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGeneratingText(true);
-    setTimeout(() => {
-      setText((prevText) => prevText + "\n\nTexto melhorado pela IA: " + prevText);
+    try {
+      const response = await fetch("/api/conteudo/melhorar-texto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ textoOriginal: text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao comunicar com a IA.");
+      }
+
+      const data = await response.json();
+      if (data.textoMelhorado) {
+        setText(data.textoMelhorado);
+      } else {
+        throw new Error("Texto não retornado.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro na IA",
+        description: "Não foi possível melhorar o texto no momento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsGeneratingText(false);
-    }, 1500);
+    }
   };
 
   const handlePlatformChange = (platform: Platform) => {
