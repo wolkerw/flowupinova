@@ -1181,11 +1181,11 @@ export const Step1Idea = () => {
               {!referenceImagePreview && !secondaryReferenceImagePreview && <HybridAnimationDemo />}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* 1. Foto da Pessoa (Selfie) */}
+                {/* 1. Foto da Pessoa */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
                     <Sparkles className="h-5 w-5 animate-pulse text-accent" />
-                    <Label className="text-base font-bold">1. Foto da Pessoa (Selfie)</Label>
+                    <Label className="text-base font-bold">1. Foto da Pessoa</Label>
                   </div>
                   <p className="text-xs text-gray-500">
                     Selfie nítida e bem iluminada para preservar a fidelidade do rosto.
@@ -1232,11 +1232,11 @@ export const Step1Idea = () => {
                   )}
                 </div>
 
-                {/* 2. Foto do Produto ou Projeto */}
+                {/* 2. Foto do Cenário */}
                 <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-primary">
                     <Box className="h-5 w-5 text-blue-500" />
-                    <Label className="text-base font-bold">2. Foto do Produto ou Projeto</Label>
+                    <Label className="text-base font-bold">2. Foto do Cenário</Label>
                   </div>
                   <p className="text-xs text-gray-500">
                     Foto do produto, projeto, casa ou cenário complementar.
