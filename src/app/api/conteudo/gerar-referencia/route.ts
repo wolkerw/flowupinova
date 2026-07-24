@@ -33,6 +33,90 @@ function safeJsonParse(rawText: any, fallback = null) {
   }
 }
 
+async function removeBackgroundWithCache(
+  imageBuffer: Buffer,
+  fallbackUrl: string,
+  rawFalKey: string,
+  userId: string
+): Promise<string> {
+  const hash = crypto.createHash("sha256").update(imageBuffer).digest("hex");
+  const cacheKey = `img_bria_hash_${hash}`;
+  const cachedUrl = await getSemanticCache(cacheKey);
+
+  if (cachedUrl) {
+    console.log(`[CACHE] Fundo removido recuperado do cache para a imagem (${hash}): ${cachedUrl}`);
+    return cachedUrl;
+  }
+
+  try {
+    console.log(`[BRIA] Removendo fundo da imagem via Bria API...`);
+    const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${rawFalKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image_url: fallbackUrl,
+      }),
+    });
+
+    if (briaResponse.ok) {
+      const briaData = await briaResponse.json();
+      const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
+      if (briaUrl) {
+        console.log(`[BRIA] Fundo removido com sucesso: ${briaUrl}`);
+        
+        logApiUsage({
+          userId,
+          type: "background_removal",
+          provider: "falai",
+          model: "bria",
+          costUsd: 0.006,
+        });
+
+        console.log(`[CACHE] Baixando imagem da Fal.ai e salvando permanentemente no Firebase Storage...`);
+        try {
+          const imgRes = await fetch(briaUrl);
+          if (!imgRes.ok) throw new Error("Falha ao baixar da Fal.ai");
+          const imgArrayBuffer = await imgRes.arrayBuffer();
+          const imgBuffer = Buffer.from(imgArrayBuffer);
+          
+          const bucket = admin.storage().bucket();
+          const firebasePath = `cache/bria/${hash}.png`;
+          const fileRef = bucket.file(firebasePath);
+          const downloadToken = crypto.randomUUID();
+          
+          await fileRef.save(imgBuffer, {
+            metadata: {
+              contentType: "image/png",
+              metadata: {
+                firebaseStorageDownloadTokens: downloadToken,
+              },
+            },
+          });
+
+          const permanentUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+          
+          await setSemanticCache(cacheKey, permanentUrl);
+          console.log(`[CACHE] Imagem recortada salva permanentemente: ${permanentUrl}`);
+          
+          return permanentUrl;
+        } catch (downloadErr) {
+          console.error("[CACHE] Falha ao salvar imagem no Firebase, usando URL da Fal.ai:", downloadErr);
+          return briaUrl;
+        }
+      }
+    } else {
+      console.warn("[BRIA] Falha na API do Bria, retornando URL original:", await briaResponse.text());
+    }
+  } catch (err) {
+    console.error("[BRIA] Erro ao remover fundo via Bria, usando original:", err);
+  }
+
+  return fallbackUrl;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
@@ -1281,34 +1365,12 @@ ${yamlAnalysis}`;
           console.log(
             `[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`
           );
-          const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
-            method: "POST",
-            headers: {
-              Authorization: `Key ${rawFalKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              image_url: garmentPublicUrl,
-            }),
-          });
-
-          if (briaResponse.ok) {
-            const briaData = await briaResponse.json();
-            const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-            if (briaUrl) {
-              transparentGarmentUrl = briaUrl;
-              console.log(
-                `[NANOBANANA_REF] Fundo da Foto 1 removido via Bria: ${transparentGarmentUrl}`
-              );
-              logApiUsage({
-                userId,
-                type: "background_removal",
-                provider: "falai",
-                model: "bria",
-                costUsd: 0.006,
-              });
-            }
-          }
+          transparentGarmentUrl = await removeBackgroundWithCache(
+            buffer1,
+            garmentPublicUrl,
+            rawFalKey,
+            userId
+          );
         } catch (briaError) {
           console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
         }
@@ -1347,44 +1409,12 @@ ${yamlAnalysis}`;
         ) {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto 2 (Produto) via Bria API...`);
-            const briaResponse = await fetch(
-              "https://queue.fal.run/fal-ai/bria/background/remove",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Key ${rawFalKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image_url: secondaryGarmentPublicUrl,
-                }),
-              }
+            transparentProductUrl = await removeBackgroundWithCache(
+              buffer2,
+              secondaryGarmentPublicUrl,
+              rawFalKey,
+              userId
             );
-
-            if (briaResponse.ok) {
-              const briaData = await briaResponse.json();
-              const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-              if (briaUrl) {
-                transparentProductUrl = briaUrl;
-                console.log(
-                  `[NANOBANANA_REF] Fundo da Foto 2 removido via Bria: ${transparentProductUrl}`
-                );
-
-                // Registrar log de consumo do Bria no Firestore
-                logApiUsage({
-                  userId,
-                  type: "background_removal",
-                  provider: "falai",
-                  model: "bria",
-                  costUsd: 0.006,
-                });
-              }
-            } else {
-              console.warn(
-                "[NANOBANANA_REF] Falha na API do Bria para Foto 2, prosseguindo com original:",
-                await briaResponse.text()
-              );
-            }
           } catch (briaError) {
             console.error(
               "[NANOBANANA_REF] Erro ao remover fundo da Foto 2 via Bria, usando original:",
@@ -1437,35 +1467,12 @@ ${yamlAnalysis}`;
         if (garmentPublicUrl) {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto única via Bria API...`);
-            const briaResponse = await fetch(
-              "https://queue.fal.run/fal-ai/bria/background/remove",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Key ${rawFalKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image_url: garmentPublicUrl,
-                }),
-              }
+            transparentGarmentUrl = await removeBackgroundWithCache(
+              buffer1,
+              garmentPublicUrl,
+              rawFalKey,
+              userId
             );
-
-            if (briaResponse.ok) {
-              const briaData = await briaResponse.json();
-              const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-              if (briaUrl) {
-                transparentGarmentUrl = briaUrl;
-                console.log(`[NANOBANANA_REF] Fundo removido via Bria: ${transparentGarmentUrl}`);
-                logApiUsage({
-                  userId,
-                  type: "background_removal",
-                  provider: "falai",
-                  model: "bria",
-                  costUsd: 0.006,
-                });
-              }
-            }
           } catch (briaError) {
             console.error("[NANOBANANA_REF] Erro no Bria (modo único):", briaError);
           }
