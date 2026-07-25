@@ -1575,7 +1575,16 @@ export default function Conteudo() {
                   Crie, agende e analise posts e conteúdos para suas redes sociais.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-5 w-1 rounded-full bg-[#0083C7]" />
+                  <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+                    Criar nova publicação
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {/* Botão 1 - Conceito com IA */}
                 <button
                   onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
@@ -1584,12 +1593,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <Lightbulb size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Sparkles className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Com IA
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
                   </p>
@@ -1603,12 +1614,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <Camera size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <ImageIcon className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <ImageIcon className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Enviando Foto de Produto
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post Enviando Foto de Produto
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
                   </p>
@@ -1622,12 +1635,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <RefreshCw size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Sparkles className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Enviando Imagem de Pessoa e Produto/Projeto
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post Enviando Imagem de Pessoa e Produto/Projeto
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de alta qualidade.
                   </p>
@@ -1641,16 +1656,19 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <UploadCloud size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Plus className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Plus className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">Manual</h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">Criar Post Manual</h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
                   </p>
                 </button>
               </div>
             </div>
+          </div>
 
             <Card className="border-none shadow-lg">
               <CardHeader>
