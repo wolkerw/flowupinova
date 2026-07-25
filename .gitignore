@@ -35,3 +35,6 @@ credenciais.env
 playwright-report/
 test-results/
 .auth/
+
+# Scratch directory
+scratch/

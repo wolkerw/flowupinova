@@ -59,14 +59,22 @@ export interface ContentDataPoint {
 }
 
 /**
- * Busca estatísticas gerais da plataforma usando Firebase Admin SDK.
+ * Busca estatísticas gerais da plataforma usando Firebase Admin SDK com filtro temporal.
+ * @param days Quantidade de dias para filtrar (padrão: 30 dias. Se 0 ou null, calcula para todo o período).
  */
-export async function getPlatformStats(): Promise<PlatformStats> {
+export async function getPlatformStats(days: number | null = 30): Promise<PlatformStats> {
   const usersSnap = await adminDb.collection("users").get();
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
   const trialDuration = 7 * 24 * 60 * 60 * 1000;
+
+  let sinceDate: Date | null = null;
+  if (days !== null && days !== undefined && days > 0) {
+    sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - days);
+    sinceDate.setHours(0, 0, 0, 0);
+  }
 
   let totalUsers = 0;
   let newUsersToday = 0;
@@ -120,7 +128,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     console.error("[ADMIN_DASHBOARD] Erro ao contar sessões de chat:", err);
   }
 
-  // Obter custos e imagens reais a partir da coleção apiUsageLogs
+  // Obter custos e imagens reais a partir da coleção apiUsageLogs com filtro temporal
   let totalImagesGenerated = 0;
   let estimatedCostFalai = 0;
   let estimatedCostImagen4 = 0;
@@ -131,6 +139,12 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     const usageSnap = await adminDb.collection("apiUsageLogs").get();
     usageSnap.docs.forEach((doc) => {
       const data = doc.data();
+      const createdAt = data.createdAt?.toDate?.() as Date | undefined;
+
+      if (sinceDate && createdAt && createdAt < sinceDate) {
+        return;
+      }
+
       const cost = data.costUsd || 0;
 
       if (data.provider === "falai") {
@@ -280,6 +294,108 @@ export async function getRecentSignups(days = 30): Promise<SignupDataPoint[]> {
   }
 
   return Object.entries(countByDay).map(([date, count]) => ({ date, count }));
+}
+
+/**
+ * Busca quantidade de imagens geradas por dia nos últimos N dias para o gráfico de imagens.
+ */
+export async function getRecentImageGenerations(days = 30): Promise<SignupDataPoint[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  since.setHours(0, 0, 0, 0);
+
+  const countByDay: Record<string, number> = {};
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since);
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().substring(0, 10);
+    countByDay[key] = 0;
+  }
+
+  try {
+    const snap = await adminDb
+      .collection("apiUsageLogs")
+      .where("createdAt", ">=", since)
+      .get();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if (data.type === "image_generation" || data.type === "avatar_generation") {
+        const createdAt = data.createdAt?.toDate?.() as Date | undefined;
+        if (createdAt) {
+          const key = createdAt.toISOString().substring(0, 10);
+          if (key in countByDay) countByDay[key]++;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[ADMIN_DASHBOARD] Erro ao buscar dados diários de geração de imagens:", err);
+  }
+
+  return Object.entries(countByDay).map(([date, count]) => ({ date, count }));
+}
+
+export interface ImageModelUsagePoint {
+  model: string;
+  count: number;
+  totalCostUsd: number;
+  avgCostUsd: number;
+  avgCostBrl: number;
+}
+
+/**
+ * Busca estatísticas de uso e custo por modelo de geração de imagem nos últimos N dias.
+ */
+export async function getRecentImageModelsUsage(days = 30): Promise<ImageModelUsagePoint[]> {
+  let sinceDate: Date | null = null;
+  if (days > 0) {
+    sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - days);
+    sinceDate.setHours(0, 0, 0, 0);
+  }
+
+  const modelMap: Record<string, { count: number; totalCostUsd: number }> = {};
+
+  try {
+    const snap = await adminDb.collection("apiUsageLogs").get();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const type = data.type || "";
+      if (type === "image_generation" || type === "avatar_generation") {
+        const createdAt = data.createdAt?.toDate?.() as Date | undefined;
+        if (sinceDate && createdAt && createdAt < sinceDate) {
+          continue;
+        }
+
+        const model = data.model || "imagen-3.0-generate-002";
+        const costUsd = Number(data.costUsd || 0);
+
+        if (!modelMap[model]) {
+          modelMap[model] = { count: 0, totalCostUsd: 0 };
+        }
+        modelMap[model].count += 1;
+        modelMap[model].totalCostUsd += costUsd;
+      }
+    }
+  } catch (err) {
+    console.error("[ADMIN_DASHBOARD] Erro ao buscar uso por modelo de imagem:", err);
+  }
+
+  return Object.entries(modelMap)
+    .map(([model, data]) => {
+      const avgCostUsd = data.count > 0 ? data.totalCostUsd / data.count : 0;
+      const avgCostBrl = avgCostUsd * 5.65;
+      return {
+        model,
+        count: data.count,
+        totalCostUsd: data.totalCostUsd,
+        avgCostUsd,
+        avgCostBrl,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function getFailedPosts(
