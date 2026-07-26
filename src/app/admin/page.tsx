@@ -75,7 +75,7 @@ const MODEL_COLORS = [
   "#f97316",
 ];
 
-const CustomPieTooltip = ({ active, payload }: any) => {
+export const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data: ImageModelUsagePoint = payload[0].payload;
     return (
