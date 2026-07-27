@@ -17,6 +17,7 @@ import {
   MessageSquare,
   AlertCircle,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import {
   BarChart,
@@ -59,6 +60,8 @@ interface PostItem {
   scheduledAt: string | null;
   publishedAt: string | null;
   failureReason: string | null;
+  isDraftMedia?: boolean;
+  source?: string;
 }
 
 export default function AdminConteudoPage() {
@@ -84,9 +87,14 @@ export default function AdminConteudoPage() {
   const [selectedPost, setSelectedPost] = useState<PostItem | null>(null);
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
-  // Filtros de Gerações Diárias
-  const [filterYear, setFilterYear] = useState<string>("all");
-  const [filterMonth, setFilterMonth] = useState<string>("all");
+  // Seletor de Período Global (Padrão 30 dias)
+  const [selectedPeriod, setSelectedPeriod] = useState<number>(30);
+
+  // Filtros de Gerações Diárias (Padrão: ano e mês atual)
+  const [filterYear, setFilterYear] = useState<string>(() => new Date().getFullYear().toString());
+  const [filterMonth, setFilterMonth] = useState<string>(() =>
+    (new Date().getMonth() + 1).toString().padStart(2, "0")
+  );
   const [filterDay, setFilterDay] = useState<string>("all");
 
   // Estatísticas Reais de Gerações (do Firestore apiUsageLogs via API dedicada)
@@ -94,12 +102,12 @@ export default function AdminConteudoPage() {
   const [dailyStatsTotal, setDailyStatsTotal] = useState<number>(0);
   const [dailyStatsLoading, setDailyStatsLoading] = useState<boolean>(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (periodDays: number = selectedPeriod) => {
     setLoading(true);
     try {
       const [usersRes, statsRes] = await Promise.all([
-        fetch("/api/admin/users"),
-        fetch("/api/admin/stats"),
+        fetch(`/api/admin/users?days=${periodDays}`),
+        fetch(`/api/admin/stats?days=${periodDays}`),
       ]);
 
       if (
@@ -125,13 +133,13 @@ export default function AdminConteudoPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedPeriod]);
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async (periodDays: number = selectedPeriod) => {
     setPostsLoading(true);
     setPostsError(null);
     try {
-      const res = await fetch("/api/admin/posts");
+      const res = await fetch(`/api/admin/posts?days=${periodDays}`);
 
       if (res.status === 403 || res.status === 401) {
         window.location.href = `/acesso/login?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -150,12 +158,13 @@ export default function AdminConteudoPage() {
     } finally {
       setPostsLoading(false);
     }
-  }, []);
+  }, [selectedPeriod]);
 
-  const fetchDailyStats = useCallback(async () => {
+  const fetchDailyStats = useCallback(async (periodDays: number = selectedPeriod) => {
     setDailyStatsLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append("days", periodDays.toString());
       if (filterYear !== "all") params.append("year", filterYear);
       if (filterMonth !== "all") params.append("month", filterMonth);
       if (filterDay !== "all") params.append("day", filterDay);
@@ -179,16 +188,39 @@ export default function AdminConteudoPage() {
     } finally {
       setDailyStatsLoading(false);
     }
-  }, [filterYear, filterMonth, filterDay]);
+  }, [selectedPeriod, filterYear, filterMonth, filterDay]);
 
   useEffect(() => {
-    fetchData();
-    fetchPosts();
-  }, [fetchData, fetchPosts]);
+    fetchData(selectedPeriod);
+    fetchPosts(selectedPeriod);
+  }, [selectedPeriod, fetchData, fetchPosts]);
 
   useEffect(() => {
-    fetchDailyStats();
-  }, [fetchDailyStats]);
+    fetchDailyStats(selectedPeriod);
+  }, [selectedPeriod, fetchDailyStats]);
+
+  const handlePeriodChange = (days: number) => {
+    setSelectedPeriod(days);
+  };
+
+  const getPeriodLabel = (days: number) => {
+    switch (days) {
+      case 1:
+        return "Hoje (24h)";
+      case 7:
+        return "Últimos 7 dias";
+      case 30:
+        return "Últimos 30 dias";
+      case 90:
+        return "Últimos 90 dias";
+      case 365:
+        return "Último ano";
+      case 0:
+        return "Todo o período";
+      default:
+        return `Últimos ${days} dias`;
+    }
+  };
 
   // Rankings e Gráficos da aba Stats
   const topImageUsers = [...users].sort((a, b) => b.imagesCount - a.imagesCount).slice(0, 10);
@@ -242,33 +274,51 @@ export default function AdminConteudoPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Conteúdo Gerado</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Painel analítico e exploração visual de criações na plataforma NumVapt
+            Painel analítico e exploração visual de criações ({getPeriodLabel(selectedPeriod)})
           </p>
         </div>
-        <div className="flex gap-2">
-          {activeTab === "explore" && (
-            <button
-              onClick={fetchPosts}
-              disabled={postsLoading}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-55"
-            >
-              <RefreshCw className={`h-4 w-4 ${postsLoading ? "animate-spin" : ""}`} />
-              Recarregar Fotos
-            </button>
-          )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Seletor de Período Global */}
+          <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 p-1 text-xs font-medium">
+            <span className="px-2 text-slate-400">Período:</span>
+            {[
+              { label: "24h", value: 1 },
+              { label: "7D", value: 7 },
+              { label: "30D", value: 30 },
+              { label: "90D", value: 90 },
+              { label: "1 Ano", value: 365 },
+              { label: "Tudo", value: 0 },
+            ].map((p) => (
+              <button
+                key={p.value}
+                onClick={() => handlePeriodChange(p.value)}
+                className={`rounded px-2.5 py-1 transition-colors ${
+                  selectedPeriod === p.value
+                    ? "bg-violet-600 text-white font-bold"
+                    : "text-slate-400 hover:bg-slate-700 hover:text-white"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={() => {
-              fetchData();
-              fetchDailyStats();
+              fetchData(selectedPeriod);
+              fetchPosts(selectedPeriod);
+              fetchDailyStats(selectedPeriod);
             }}
-            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
+            disabled={loading || postsLoading}
+            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white disabled:opacity-55"
           >
-            <RefreshCw className="h-4 w-4" />
-            Atualizar Métricas
+            <RefreshCw className={`h-4 w-4 ${loading || postsLoading ? "animate-spin" : ""}`} />
+            Atualizar
           </button>
         </div>
       </div>
@@ -754,8 +804,12 @@ export default function AdminConteudoPage() {
                       )}
 
                       {/* Tag de Status */}
-                      <div className="absolute bottom-2 left-2">
-                        {post.status === "published" || post.status === "completed" ? (
+                      <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
+                        {post.isDraftMedia ? (
+                          <span className="flex items-center gap-1 rounded-full bg-violet-600/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                            <Sparkles className="h-3 w-3 text-pink-300" /> Galeria / Gerada
+                          </span>
+                        ) : post.status === "published" || post.status === "completed" ? (
                           <span className="flex items-center gap-1 rounded-full bg-emerald-500/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                             <CheckCircle className="h-3 w-3" /> Publicado
                           </span>

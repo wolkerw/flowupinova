@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       const fileRef = bucket.file(filename);
       const downloadToken = crypto.randomUUID();
 
-      await fileRef.save(buffer, {
+      const savePromise = fileRef.save(buffer, {
         metadata: {
           contentType: file.type || "image/jpeg",
           metadata: {
@@ -96,6 +96,12 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Storage upload timeout")), 4000)
+      );
+
+      await Promise.race([savePromise, timeoutPromise]);
 
       const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
       console.log(
@@ -127,6 +133,7 @@ export async function POST(request: NextRequest) {
         "X-Server-Timeout": serverTimeout,
       },
       body: webhookFormData,
+      signal: AbortSignal.timeout(300000),
     });
 
     if (!webhookResponse.ok) {
@@ -175,20 +182,30 @@ export async function POST(request: NextRequest) {
       const fileRef = bucket.file(filename);
       const downloadToken = crypto.randomUUID();
 
-      await fileRef.save(buffer, {
-        metadata: {
-          contentType: "image/jpeg",
+      try {
+        const savePromise = fileRef.save(buffer, {
           metadata: {
-            firebaseStorageDownloadTokens: downloadToken,
+            contentType: "image/jpeg",
+            metadata: {
+              firebaseStorageDownloadTokens: downloadToken,
+            },
           },
-        },
-      });
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Storage upload timeout")), 3000)
+        );
+        await Promise.race([savePromise, timeoutPromise]);
 
-      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-      console.log(
-        `[PROXY_WEBHOOK] Imagem processada com logo salva no Firebase Storage: ${publicUrl}`
-      );
-      return NextResponse.json([{ url_post: publicUrl }]);
+        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+        console.log(
+          `[PROXY_WEBHOOK] Imagem processada com logo salva no Firebase Storage: ${publicUrl}`
+        );
+        return NextResponse.json([{ url_post: publicUrl }]);
+      } catch (errStorage: any) {
+        console.warn(`[PROXY_WEBHOOK] Storage save binário falhou ou expirou (${errStorage.message}). Retornando data URL.`);
+        const dataUrl = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+        return NextResponse.json([{ url_post: dataUrl }]);
+      }
     }
 
     const data = await webhookResponse.json();
@@ -314,18 +331,28 @@ async function fallbackSaveDirectToStorage(formData: FormData) {
   const fileRef = bucket.file(filename);
   const downloadToken = crypto.randomUUID();
 
-  await fileRef.save(buffer, {
-    metadata: {
-      contentType: "image/jpeg",
+  try {
+    const savePromise = fileRef.save(buffer, {
       metadata: {
-        firebaseStorageDownloadTokens: downloadToken,
+        contentType: "image/jpeg",
+        metadata: {
+          firebaseStorageDownloadTokens: downloadToken,
+        },
       },
-    },
-  });
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Storage upload timeout")), 3000)
+    );
+    await Promise.race([savePromise, timeoutPromise]);
 
-  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
-  console.log(`[PROXY_WEBHOOK] Fallback: Imagem salva diretamente no Firebase Storage: ${publicUrl}`);
-  return NextResponse.json([{ url_post: publicUrl }]);
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+    console.log(`[PROXY_WEBHOOK] Fallback: Imagem salva diretamente no Firebase Storage: ${publicUrl}`);
+    return NextResponse.json([{ url_post: publicUrl }]);
+  } catch (errStorage: any) {
+    console.warn(`[PROXY_WEBHOOK] Storage save falhou ou expirou (${errStorage.message}). Retornando data URL de fallback local.`);
+    const dataUrl = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+    return NextResponse.json([{ url_post: dataUrl }]);
+  }
 }
 
 async function runGeminiOnboardingFallback(website: string, instagram: string) {

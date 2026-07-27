@@ -44,3 +44,4 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
 2. **Test-First Principle**: When creating a new service or feature, proactively create corresponding unit or integration tests under `__tests__` directories.
 3. **No Placeholders**: Never write placeholder components or mock image strings. Generate functional logic and use image assets correctly.
 4. **Explicit Push Approval**: Never run `git push` or push changes to remote branches (`uat` or `main`) automatically. Always ask for explicit user permission or command before sending any commits.
+5. **Obrigatório Executar Playwright antes do envio para `main`**: Sempre que for realizar um push ou merge para a branch `main`, **execute obrigatoriamente os testes de E2E do Playwright (`npm run test:e2e`)** e garanta que 100% dos testes passem com sucesso. Caso qualquer teste falhe, **NÃO envie para a branch `main`** até que todas as falhas sejam corrigidas e ajustadas.

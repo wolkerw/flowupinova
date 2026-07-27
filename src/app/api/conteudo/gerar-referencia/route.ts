@@ -33,6 +33,90 @@ function safeJsonParse(rawText: any, fallback = null) {
   }
 }
 
+async function removeBackgroundWithCache(
+  imageBuffer: Buffer,
+  fallbackUrl: string,
+  rawFalKey: string,
+  userId: string
+): Promise<string> {
+  const hash = crypto.createHash("sha256").update(imageBuffer).digest("hex");
+  const cacheKey = `img_bria_hash_${hash}`;
+  const cachedUrl = await getSemanticCache(cacheKey);
+
+  if (cachedUrl) {
+    console.log(`[CACHE] Fundo removido recuperado do cache para a imagem (${hash}): ${cachedUrl}`);
+    return cachedUrl;
+  }
+
+  try {
+    console.log(`[BRIA] Removendo fundo da imagem via Bria API...`);
+    const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${rawFalKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image_url: fallbackUrl,
+      }),
+    });
+
+    if (briaResponse.ok) {
+      const briaData = await briaResponse.json();
+      const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
+      if (briaUrl) {
+        console.log(`[BRIA] Fundo removido com sucesso: ${briaUrl}`);
+        
+        logApiUsage({
+          userId,
+          type: "background_removal",
+          provider: "falai",
+          model: "bria",
+          costUsd: 0.006,
+        });
+
+        console.log(`[CACHE] Baixando imagem da Fal.ai e salvando permanentemente no Firebase Storage...`);
+        try {
+          const imgRes = await fetch(briaUrl);
+          if (!imgRes.ok) throw new Error("Falha ao baixar da Fal.ai");
+          const imgArrayBuffer = await imgRes.arrayBuffer();
+          const imgBuffer = Buffer.from(imgArrayBuffer);
+          
+          const bucket = admin.storage().bucket();
+          const firebasePath = `cache/bria/${hash}.png`;
+          const fileRef = bucket.file(firebasePath);
+          const downloadToken = crypto.randomUUID();
+          
+          await fileRef.save(imgBuffer, {
+            metadata: {
+              contentType: "image/png",
+              metadata: {
+                firebaseStorageDownloadTokens: downloadToken,
+              },
+            },
+          });
+
+          const permanentUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
+          
+          await setSemanticCache(cacheKey, permanentUrl);
+          console.log(`[CACHE] Imagem recortada salva permanentemente: ${permanentUrl}`);
+          
+          return permanentUrl;
+        } catch (downloadErr) {
+          console.error("[CACHE] Falha ao salvar imagem no Firebase, usando URL da Fal.ai:", downloadErr);
+          return briaUrl;
+        }
+      }
+    } else {
+      console.warn("[BRIA] Falha na API do Bria, retornando URL original:", await briaResponse.text());
+    }
+  } catch (err) {
+    console.error("[BRIA] Erro ao remover fundo via Bria, usando original:", err);
+  }
+
+  return fallbackUrl;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
@@ -60,9 +144,118 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const inspirationFile = formData.get("inspiration_file") as File;
       const description = (formData.get("description") as string) || "";
-      const businessName = (formData.get("business_name") as string) || "";
-      const businessCategory = (formData.get("business_category") as string) || "";
-      const businessDescription = (formData.get("business_description") as string) || "";
+      const businessProfileJson = formData.get("business_profile_json") as string;
+      
+      let businessProfile = null;
+      if (businessProfileJson) {
+        try {
+          businessProfile = JSON.parse(businessProfileJson);
+        } catch (e) {
+          console.error("Erro ao parsear business_profile_json:", e);
+        }
+      }
+
+      // Contexto do Perfil de Negócio (se disponível)
+      let businessContext = "";
+      if (businessProfile) {
+        const parts = [];
+        if (businessProfile.name) parts.push(`- **Nome da Marca/Empresa**: ${businessProfile.name}`);
+        if (businessProfile.category)
+          parts.push(`- **Nicho/Categoria**: ${businessProfile.category}`);
+        if (businessProfile.description)
+          parts.push(`- **Descrição do Negócio**: ${businessProfile.description}`);
+        if (businessProfile.slogan) parts.push(`- **Slogan**: ${businessProfile.slogan}`);
+        if (businessProfile.targetAudience)
+          parts.push(`- **Público-Alvo**: ${businessProfile.targetAudience}`);
+        if (businessProfile.toneOfVoice)
+          parts.push(`- **Tom de Voz**: ${businessProfile.toneOfVoice}`);
+        if (businessProfile.mainBenefits && businessProfile.mainBenefits.length > 0) {
+          parts.push(`- **Principais Benefícios**: ${businessProfile.mainBenefits.join(", ")}`);
+        }
+        if (businessProfile.brandPositioning) {
+          parts.push(
+            `- **Diferencial / Posicionamento (Memória)**: ${businessProfile.brandPositioning}`
+          );
+        }
+        if (businessProfile.keyProducts) {
+          parts.push(
+            `- **Produtos e Serviços de Destaque (Memória)**: ${businessProfile.keyProducts}`
+          );
+        }
+        if (businessProfile.clientProfile) {
+          parts.push(`- **Perfil do Cliente / Persona (Memória)**: ${businessProfile.clientProfile}`);
+        }
+        if (businessProfile.stylisticPreferences) {
+          parts.push(
+            `- **Preferências Estilísticas/Vibe (Memória)**: ${businessProfile.stylisticPreferences}`
+          );
+        }
+
+        // Adicionar novas informações do Brand Kit profissional (fontes, cores e personas)
+        const brandKit = businessProfile.brandKit;
+        if (brandKit) {
+          if (brandKit.fonts) {
+            const fontsInfo = [];
+            if (brandKit.fonts.primaryFont)
+              fontsInfo.push(`Principal/Títulos: ${brandKit.fonts.primaryFont}`);
+            if (brandKit.fonts.secondaryFont)
+              fontsInfo.push(`Secundária/Corpo: ${brandKit.fonts.secondaryFont}`);
+            if (brandKit.fonts.style) fontsInfo.push(`Estilo Geral: ${brandKit.fonts.style}`);
+            if (fontsInfo.length > 0) {
+              parts.push(`- **Tipografia da Marca**: ${fontsInfo.join(" | ")}`);
+            }
+          }
+
+          if (brandKit.extendedColors) {
+            const colorsInfo = [];
+            if (brandKit.extendedColors.complementary)
+              colorsInfo.push(`Complementar/Apoio: ${brandKit.extendedColors.complementary}`);
+            if (brandKit.extendedColors.background)
+              colorsInfo.push(`Cenário/Fundo: ${brandKit.extendedColors.background}`);
+            if (colorsInfo.length > 0) {
+              parts.push(`- **Paleta de Cores Estendida**: ${colorsInfo.join(" | ")}`);
+            }
+          }
+
+          if (brandKit.personas && brandKit.personas.length > 0) {
+            const personasInfo = brandKit.personas
+              .map((p: any, idx: number) => {
+                return `Persona ${idx + 1} (${p.name || "Sem nome"}):
+      * Perfil: ${p.profile || "N/A"}
+      * Dores/Desafios: ${p.painPoints || "N/A"}
+      * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
+              })
+              .join("\n");
+            parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
+          }
+        }
+
+        if (parts.length > 0) {
+          businessContext = `
+# CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
+Você é o redator oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz correto:
+${parts.join("\n")}
+
+DIRETRIZES DE PERSONALIZAÇÃO:
+1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
+2. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo (ex: se for luxuoso, use linguagem mais refinada, sofisticada e exclusiva; se for rústico/casual/afetivo, use algo mais acolhedor, simples e próximo).
+3. **Público e Personas**: Comunique-se diretamente com o Público-Alvo e as Personas descritas, focando em suas dores e motivações de compra.
+4. **Benefícios e Posicionamento**: Sempre que possível, destaque os principais benefícios e o diferencial competitivo da marca listados acima, especialmente ao fazer chamadas para ação (CTAs).
+`;
+        }
+      } else {
+        // Fallback para os campos antigos caso a interface mande apenas nome, categoria e desc
+        const businessName = (formData.get("business_name") as string) || "";
+        const businessCategory = (formData.get("business_category") as string) || "";
+        const businessDescription = (formData.get("business_description") as string) || "";
+        
+        businessContext = `
+Informações Básicas do Negócio:
+- Nome da Empresa: ${businessName || "Não informado"}
+- Ramo de Atuação: ${businessCategory || "Não informado"}
+- Descrição do Negócio: ${businessDescription || "Não informado"}
+`;
+      }
 
       if (!inspirationFile) {
         return NextResponse.json({ error: "Imagem de inspiração não fornecida." }, { status: 400 });
@@ -84,10 +277,7 @@ CONTEXTO TEMPORAL: Estamos no ano de ${currentYear}, no mês de ${currentMonth}.
 Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "${description}".
 Com base nessas informações e no perfil comercial do usuário informado abaixo, crie 3 propostas de publicações virais e estratégicas para o Instagram que herdem e adaptem o conceito visual, estilo estético, layout e tom de voz do print de referência para a realidade deste negócio.
 
-Informações do Negócio do Usuário:
-- Nome da Empresa: ${businessName || "Não informado"}
-- Ramo de Atuação: ${businessCategory || "Não informado"}
-- Descrição do Negócio: ${businessDescription || "Não informado"}
+${businessContext}
 
 Instruções para cada uma das 3 propostas de posts:
 1. "titulo": Crie um título extremamente curto (máx 45 caracteres), instigante e magnético (gancho comercial forte).
@@ -1175,34 +1365,12 @@ ${yamlAnalysis}`;
           console.log(
             `[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`
           );
-          const briaResponse = await fetch("https://queue.fal.run/fal-ai/bria/background/remove", {
-            method: "POST",
-            headers: {
-              Authorization: `Key ${rawFalKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              image_url: garmentPublicUrl,
-            }),
-          });
-
-          if (briaResponse.ok) {
-            const briaData = await briaResponse.json();
-            const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-            if (briaUrl) {
-              transparentGarmentUrl = briaUrl;
-              console.log(
-                `[NANOBANANA_REF] Fundo da Foto 1 removido via Bria: ${transparentGarmentUrl}`
-              );
-              logApiUsage({
-                userId,
-                type: "background_removal",
-                provider: "falai",
-                model: "bria",
-                costUsd: 0.006,
-              });
-            }
-          }
+          transparentGarmentUrl = await removeBackgroundWithCache(
+            buffer1,
+            garmentPublicUrl,
+            rawFalKey,
+            userId
+          );
         } catch (briaError) {
           console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
         }
@@ -1241,44 +1409,12 @@ ${yamlAnalysis}`;
         ) {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto 2 (Produto) via Bria API...`);
-            const briaResponse = await fetch(
-              "https://queue.fal.run/fal-ai/bria/background/remove",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Key ${rawFalKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image_url: secondaryGarmentPublicUrl,
-                }),
-              }
+            transparentProductUrl = await removeBackgroundWithCache(
+              buffer2,
+              secondaryGarmentPublicUrl,
+              rawFalKey,
+              userId
             );
-
-            if (briaResponse.ok) {
-              const briaData = await briaResponse.json();
-              const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-              if (briaUrl) {
-                transparentProductUrl = briaUrl;
-                console.log(
-                  `[NANOBANANA_REF] Fundo da Foto 2 removido via Bria: ${transparentProductUrl}`
-                );
-
-                // Registrar log de consumo do Bria no Firestore
-                logApiUsage({
-                  userId,
-                  type: "background_removal",
-                  provider: "falai",
-                  model: "bria",
-                  costUsd: 0.006,
-                });
-              }
-            } else {
-              console.warn(
-                "[NANOBANANA_REF] Falha na API do Bria para Foto 2, prosseguindo com original:",
-                await briaResponse.text()
-              );
-            }
           } catch (briaError) {
             console.error(
               "[NANOBANANA_REF] Erro ao remover fundo da Foto 2 via Bria, usando original:",
@@ -1331,35 +1467,12 @@ ${yamlAnalysis}`;
         if (garmentPublicUrl) {
           try {
             console.log(`[NANOBANANA_REF] Removendo fundo da Foto única via Bria API...`);
-            const briaResponse = await fetch(
-              "https://queue.fal.run/fal-ai/bria/background/remove",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Key ${rawFalKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image_url: garmentPublicUrl,
-                }),
-              }
+            transparentGarmentUrl = await removeBackgroundWithCache(
+              buffer1,
+              garmentPublicUrl,
+              rawFalKey,
+              userId
             );
-
-            if (briaResponse.ok) {
-              const briaData = await briaResponse.json();
-              const briaUrl = briaData.image?.url || briaData.images?.[0]?.url;
-              if (briaUrl) {
-                transparentGarmentUrl = briaUrl;
-                console.log(`[NANOBANANA_REF] Fundo removido via Bria: ${transparentGarmentUrl}`);
-                logApiUsage({
-                  userId,
-                  type: "background_removal",
-                  provider: "falai",
-                  model: "bria",
-                  costUsd: 0.006,
-                });
-              }
-            }
           } catch (briaError) {
             console.error("[NANOBANANA_REF] Erro no Bria (modo único):", briaError);
           }
@@ -2017,7 +2130,7 @@ export async function GET(request: NextRequest) {
       }
 
       console.log(`[GERAR_REFERENCIA] Fazendo proxy da imagem: ${url}`);
-      const imgRes = await fetch(url);
+      const imgRes = await fetch(url, { signal: AbortSignal.timeout(4000) });
       if (!imgRes.ok) {
         return NextResponse.json(
           { error: `Falha ao baixar imagem no proxy (status ${imgRes.status})` },

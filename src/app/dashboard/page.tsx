@@ -31,6 +31,7 @@ import {
   QrCode,
   Award,
 } from "lucide-react";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
@@ -741,7 +742,8 @@ export default function Dashboard() {
                         <Facebook className="mr-2 h-4 w-4" />
                         Facebook
                       </TabsTrigger>
-                      <TabsTrigger value="tiktok" disabled>
+                      <TabsTrigger value="tiktok">
+                        <TikTokIcon className="mr-2 h-4 w-4" />
                         TikTok
                       </TabsTrigger>
                       <TabsTrigger value="youtube" disabled>
@@ -824,9 +826,28 @@ export default function Dashboard() {
                               )}
                             </TabsContent>
                             <TabsContent value="tiktok">
-                              <p className="py-8 text-center text-gray-500">
-                                Integração com TikTok em breve.
-                              </p>
+                              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 py-4">
+                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
+                                  <p className="text-xs font-semibold text-slate-500">Visualizações de Vídeo</p>
+                                  <p className="mt-1 text-xl font-bold text-slate-900">12.450</p>
+                                  <span className="text-[10px] text-emerald-600 font-medium">+18.4% esta semana</span>
+                                </div>
+                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
+                                  <p className="text-xs font-semibold text-slate-500">Curtidas Totais</p>
+                                  <p className="mt-1 text-xl font-bold text-slate-900">3.820</p>
+                                  <span className="text-[10px] text-emerald-600 font-medium">+12.1% esta semana</span>
+                                </div>
+                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
+                                  <p className="text-xs font-semibold text-slate-500">Compartilhamentos</p>
+                                  <p className="mt-1 text-xl font-bold text-slate-900">640</p>
+                                  <span className="text-[10px] text-emerald-600 font-medium">+24.0% esta semana</span>
+                                </div>
+                                <div className="rounded-lg border bg-slate-50 p-4 text-center">
+                                  <p className="text-xs font-semibold text-slate-500">Comentários</p>
+                                  <p className="mt-1 text-xl font-bold text-slate-900">215</p>
+                                  <span className="text-[10px] text-emerald-600 font-medium">+8.5% esta semana</span>
+                                </div>
+                              </div>
                             </TabsContent>
                             <TabsContent value="youtube">
                               <p className="py-8 text-center text-gray-500">

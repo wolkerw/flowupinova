@@ -82,6 +82,11 @@ import {
   type LinkedInConnectionData,
 } from "@/lib/services/linkedin-service";
 import {
+  getTikTokConnection,
+  type TikTokConnectionData,
+} from "@/lib/services/tiktok-service";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
+import {
   getOnboardingProfile,
   type OnboardingProfileData,
 } from "@/lib/services/onboarding-service";
@@ -426,35 +431,68 @@ const InstagramPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Fundo Desfocado"
-                      layout="fill"
-                      objectFit="cover"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Fundo Desfocado"
+                        layout="fill"
+                        objectFit="cover"
+                        unoptimized
+                      />
+                    )}
                   </div>
                   {/* Imagem Principal Centralizada */}
                   <div className="absolute inset-0 z-10 h-full w-full">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Imagem Principal"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Imagem Principal"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </>
               )}
 
               {storyAdaptationMode === "crop" && (
-                <Image
-                  src={currentMedia.publicUrl || currentMedia.previewUrl}
-                  alt="Imagem Cortada"
-                  layout="fill"
-                  objectFit="cover"
-                  unoptimized
-                />
+                currentMedia.type === "video" ? (
+                  <video
+                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <Image
+                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    alt="Imagem Cortada"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                )
               )}
 
               {storyAdaptationMode === "solid" && (
@@ -463,13 +501,24 @@ const InstagramPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative h-full w-full">
-                    <Image
-                      src={currentMedia.publicUrl || currentMedia.previewUrl}
-                      alt="Imagem Centralizada"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {currentMedia.type === "video" ? (
+                      <video
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        alt="Imagem Centralizada"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -556,13 +605,24 @@ const InstagramPreview = ({
       {/* Image */}
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
-          <Image
-            src={currentMedia.publicUrl || currentMedia.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          currentMedia.type === "video" ? (
+            <video
+              src={currentMedia.publicUrl || currentMedia.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={currentMedia.publicUrl || currentMedia.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
@@ -680,35 +740,68 @@ const FacebookPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Fundo Desfocado"
-                      layout="fill"
-                      objectFit="cover"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Fundo Desfocado"
+                        layout="fill"
+                        objectFit="cover"
+                        unoptimized
+                      />
+                    )}
                   </div>
                   {/* Imagem Centralizada Quadrada */}
                   <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Imagem Principal"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Imagem Principal"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </>
               )}
 
               {storyAdaptationMode === "crop" && (
-                <Image
-                  src={singleItem.publicUrl || singleItem.previewUrl}
-                  alt="Imagem Cortada"
-                  layout="fill"
-                  objectFit="cover"
-                  unoptimized
-                />
+                singleItem.type === "video" ? (
+                  <video
+                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <Image
+                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    alt="Imagem Cortada"
+                    layout="fill"
+                    objectFit="cover"
+                    unoptimized
+                  />
+                )
               )}
 
               {storyAdaptationMode === "solid" && (
@@ -717,13 +810,24 @@ const FacebookPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative aspect-square w-full">
-                    <Image
-                      src={singleItem.publicUrl || singleItem.previewUrl}
-                      alt="Imagem Centralizada"
-                      layout="fill"
-                      objectFit="contain"
-                      unoptimized
-                    />
+                    {singleItem.type === "video" ? (
+                      <video
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <Image
+                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        alt="Imagem Centralizada"
+                        layout="fill"
+                        objectFit="contain"
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -834,13 +938,24 @@ const FacebookPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
@@ -976,13 +1091,24 @@ const GooglePreview = ({
       {/* Image Container with black background letterboxing */}
       <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview Google"
-            layout="fill"
-            objectFit="contain"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-contain"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview Google"
+              layout="fill"
+              objectFit="contain"
+              unoptimized
+            />
+          )
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
             <ImageIcon className="mb-2 h-12 w-12 text-gray-300" />
@@ -1082,13 +1208,24 @@ const LinkedInPreview = ({
       </div>
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
-          <Image
-            src={singleItem.publicUrl || singleItem.previewUrl}
-            alt="Preview"
-            layout="fill"
-            objectFit="cover"
-            unoptimized
-          />
+          singleItem.type === "video" ? (
+            <video
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              className="absolute inset-0 h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={singleItem.publicUrl || singleItem.previewUrl}
+              alt="Preview"
+              layout="fill"
+              objectFit="cover"
+              unoptimized
+            />
+          )
         ) : (
           <ImageIcon className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 text-gray-300" />
         )}
@@ -1286,6 +1423,7 @@ export default function CriarConteudoPage() {
   );
   const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
   const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
+  const [tiktokConnection, setTiktokConnection] = useState<TikTokConnectionData | null>(null);
   const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -1312,13 +1450,15 @@ export default function CriarConteudoPage() {
       getInstagramConnection(user.uid),
       getGoogleConnection(user.uid),
       getLinkedInConnection(user.uid),
+      getTikTokConnection(user.uid),
       getOnboardingProfile(user.uid),
       getBusinessProfile(user.uid),
-    ]).then(([metaConn, instaConn, googleConn, linkedinConn, profile, gmbProf]) => {
+    ]).then(([metaConn, instaConn, googleConn, linkedinConn, tiktokConn, profile, gmbProf]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
       setGoogleConnection(googleConn);
       setLinkedinConnection(linkedinConn);
+      setTiktokConnection(tiktokConn);
       setBusinessProfile(profile);
       setGmbProfile(gmbProf);
 
@@ -1327,6 +1467,7 @@ export default function CriarConteudoPage() {
       if (instaConn?.isConnected) initialPlatforms.push("instagram");
       if (googleConn?.isConnected) initialPlatforms.push("google");
       if (linkedinConn?.isConnected) initialPlatforms.push("linkedin");
+      if (tiktokConn?.isConnected) initialPlatforms.push("tiktok");
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
@@ -1880,12 +2021,44 @@ export default function CriarConteudoPage() {
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleGenerateText = () => {
+  const handleGenerateText = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "Texto vazio",
+        description: "Escreva algo primeiro para a IA poder melhorar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGeneratingText(true);
-    setTimeout(() => {
-      setText((prevText) => prevText + "\n\nTexto melhorado pela IA: " + prevText);
+    try {
+      const response = await fetch("/api/conteudo/melhorar-texto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ textoOriginal: text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao comunicar com a IA.");
+      }
+
+      const data = await response.json();
+      if (data.textoMelhorado) {
+        setText(data.textoMelhorado);
+      } else {
+        throw new Error("Texto não retornado.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro na IA",
+        description: "Não foi possível melhorar o texto no momento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
       setIsGeneratingText(false);
-    }, 1500);
+    }
   };
 
   const handlePlatformChange = (platform: Platform) => {
@@ -2102,13 +2275,24 @@ export default function CriarConteudoPage() {
                       {mediaItems.map((item, index) => (
                         <div key={index} className="flex flex-col gap-2">
                           <div className="group relative aspect-square">
-                            <Image
-                              src={item.previewUrl}
-                              alt={`Preview ${index}`}
-                              layout="fill"
-                              objectFit="cover"
-                              className="rounded-md"
-                            />
+                            {item.type === "video" ? (
+                              <video
+                                src={item.previewUrl}
+                                className="h-full w-full rounded-md object-cover"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                              />
+                            ) : (
+                              <Image
+                                src={item.previewUrl}
+                                alt={`Preview ${index}`}
+                                layout="fill"
+                                objectFit="cover"
+                                className="rounded-md"
+                              />
+                            )}
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(index)}
@@ -2867,6 +3051,47 @@ export default function CriarConteudoPage() {
                       ) : !linkedinConnection?.isConnected ? (
                         <TooltipContent>
                           <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
+                        </TooltipContent>
+                      ) : null}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                            platforms.includes("tiktok") && tiktokConnection?.isConnected
+                              ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                              : "border-gray-200 hover:bg-gray-50",
+                            !tiktokConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-tiktok"
+                            checked={
+                              platforms.includes("tiktok") && !!tiktokConnection?.isConnected
+                            }
+                            onCheckedChange={() => handlePlatformChange("tiktok")}
+                            disabled={!tiktokConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-tiktok"
+                            className={cn(
+                              "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                              !tiktokConnection?.isConnected && "cursor-not-allowed"
+                            )}
+                          >
+                            <TikTokIcon className="h-5 w-5 text-slate-900" />
+                            TikTok
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!tiktokConnection?.isConnected ? (
+                        <TooltipContent>
+                          <p>Conecte seu TikTok na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
                       ) : null}
                     </Tooltip>

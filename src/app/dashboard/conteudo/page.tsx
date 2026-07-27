@@ -101,6 +101,12 @@ import {
   updateLinkedInConnection,
   type LinkedInConnectionData,
 } from "@/lib/services/linkedin-service";
+import {
+  getTikTokConnection,
+  updateTikTokConnection,
+  type TikTokConnectionData,
+} from "@/lib/services/tiktok-service";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
 import { config } from "@/lib/config";
 
 import { Separator } from "@/components/ui/separator";
@@ -541,7 +547,7 @@ function ConnectionStatus({
   onDisconnect,
   isLoading,
 }: {
-  platform: "facebook" | "instagram" | "linkedin";
+  platform: "facebook" | "instagram" | "linkedin" | "tiktok";
   isConnected: boolean;
   accountName?: string;
   onConnect: () => void;
@@ -563,6 +569,11 @@ function ConnectionStatus({
       icon: Linkedin,
       name: "LinkedIn",
       color: "text-blue-700",
+    },
+    tiktok: {
+      icon: TikTokIcon,
+      name: "TikTok",
+      color: "text-slate-900",
     },
   };
 
@@ -630,6 +641,9 @@ export default function Conteudo() {
   const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData>({
     isConnected: false,
   });
+  const [tiktokConnection, setTiktokConnection] = useState<TikTokConnectionData>({
+    isConnected: false,
+  });
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
@@ -670,13 +684,14 @@ export default function Conteudo() {
     setCheckingConnection(true);
 
     try {
-      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult] =
+      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult, tiktokResult] =
         await Promise.all([
           getScheduledPosts(user.uid),
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
           getGoogleConnection(user.uid),
           getLinkedInConnection(user.uid),
+          getTikTokConnection(user.uid),
         ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
@@ -698,6 +713,7 @@ export default function Conteudo() {
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
       setGoogleConnection(googleResult);
+      setTiktokConnection(tiktokResult);
       // Community Management API só suporta org como owner — força publishTarget = "organization"
       // sempre que houver uma org selecionada, independente do personUrn
       if (
@@ -817,6 +833,33 @@ export default function Conteudo() {
     const isInstagramAuth = searchParams.has("instagram_connection_success");
     const isLinkedInAuth = searchParams.has("linkedin_connection_success");
     const isLinkedInError = searchParams.has("linkedin_error");
+    const isTikTokAuth = searchParams.has("tiktok_connection_success");
+    const isTikTokError = searchParams.has("tiktok_error");
+
+    if (isTikTokError) {
+      effectRan.current = true;
+      const errorDesc = searchParams.get("tiktok_error_description");
+      toast({
+        variant: "destructive",
+        title: "Erro no TikTok",
+        description: decodeURIComponent(errorDesc || "Falha na autenticação"),
+      });
+      router.replace("/dashboard/conteudo", undefined);
+      return;
+    }
+
+    if (isTikTokAuth) {
+      effectRan.current = true;
+      const tiktokName = searchParams.get("tiktok_name");
+      toast({
+        variant: "success",
+        title: "TikTok Conectado!",
+        description: `Conexão com ${tiktokName || "TikTok"} estabelecida com sucesso.`,
+      });
+      fetchPageData();
+      router.replace("/dashboard/conteudo", undefined);
+      return;
+    }
 
     if (isLinkedInError) {
       effectRan.current = true;
@@ -1076,6 +1119,33 @@ export default function Conteudo() {
       await updateLinkedInConnection(user.uid, { isConnected: false });
       await fetchPageData();
       toast({ title: "Desconectado", description: "A conexão com o LinkedIn foi removida." });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Desconectar",
+        description: err.message || "Erro desconhecido.",
+      });
+    }
+  }, [fetchPageData, toast, user]);
+
+  const handleConnectTikTok = useCallback(() => {
+    if (!user?.uid) {
+      toast({
+        variant: "destructive",
+        title: "Usuário Não Autenticado",
+        description: "Faça login para conectar sua conta do TikTok.",
+      });
+      return;
+    }
+    window.location.href = `/api/tiktok/login?userId=${user.uid}`;
+  }, [user?.uid, toast]);
+
+  const handleDisconnectTikTok = useCallback(async () => {
+    if (!user) return;
+    try {
+      await updateTikTokConnection(user.uid, { isConnected: false });
+      await fetchPageData();
+      toast({ title: "Desconectado", description: "A conexão com o TikTok foi removida." });
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -1575,7 +1645,16 @@ export default function Conteudo() {
                   Crie, agende e analise posts e conteúdos para suas redes sociais.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-5 w-1 rounded-full bg-[#0083C7]" />
+                  <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+                    Criar nova publicação
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {/* Botão 1 - Conceito com IA */}
                 <button
                   onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
@@ -1584,12 +1663,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <Lightbulb size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Sparkles className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Com IA
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
                   </p>
@@ -1603,12 +1684,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <Camera size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <ImageIcon className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <ImageIcon className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Enviando Foto de Produto
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post Enviando Foto de Produto
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
                   </p>
@@ -1622,12 +1705,14 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <RefreshCw size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Sparkles className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">
+                      Enviando Imagem de Pessoa e Produto/Projeto
+                    </h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">
-                    Criar Post Enviando Imagem de Pessoa e Produto/Projeto
-                  </h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de alta qualidade.
                   </p>
@@ -1641,16 +1726,19 @@ export default function Conteudo() {
                   <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
                     <UploadCloud size={120} />
                   </div>
-                  <div className="mb-4 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                    <Plus className="h-6 w-6 text-white" />
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                      <Plus className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-black leading-tight">Manual</h3>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-tight">Criar Post Manual</h3>
                   <p className="text-sm font-medium leading-relaxed text-white/80">
                     Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
                   </p>
                 </button>
               </div>
             </div>
+          </div>
 
             <Card className="border-none shadow-lg">
               <CardHeader>
@@ -1810,6 +1898,15 @@ export default function Conteudo() {
                   }
                   onConnect={handleConnectLinkedIn}
                   onDisconnect={handleDisconnectLinkedIn}
+                  isLoading={checkingConnection}
+                />
+                <Separator />
+                <ConnectionStatus
+                  platform="tiktok"
+                  isConnected={tiktokConnection.isConnected}
+                  accountName={tiktokConnection.displayName}
+                  onConnect={handleConnectTikTok}
+                  onDisconnect={handleDisconnectTikTok}
                   isLoading={checkingConnection}
                 />
                 {linkedinConnection.isConnected &&

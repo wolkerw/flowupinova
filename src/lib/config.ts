@@ -36,4 +36,10 @@ export const config = {
     redirectUri:
       process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI || `${aplicationURL}/api/linkedin/callback`,
   },
+  tiktok: {
+    clientKey: process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_KEY!,
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
+    redirectUri:
+      process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI || `${aplicationURL}/api/tiktok/callback`,
+  },
 };

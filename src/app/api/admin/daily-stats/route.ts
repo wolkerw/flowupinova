@@ -16,18 +16,20 @@ export async function GET(request: NextRequest) {
   const filterYear = searchParams.get("year") || "all";
   const filterMonth = searchParams.get("month") || "all";
   const filterDay = searchParams.get("day") || "all";
+  const daysParam = searchParams.get("days");
+  const days = daysParam !== null ? parseInt(daysParam, 10) : 30;
 
   try {
     let query = adminDb
       .collection("apiUsageLogs")
       .where("type", "in", ["image_generation", "avatar_generation"]);
 
-    // Se não há filtros específicos de ano/mês/dia, limitamos aos últimos 30 dias por performance
-    if (filterYear === "all" && filterMonth === "all" && filterDay === "all") {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      thirtyDaysAgo.setHours(0, 0, 0, 0);
-      query = query.where("createdAt", ">=", thirtyDaysAgo);
+    // Aplicar limite de dias quando não houver filtros estritos por ano/mês/dia
+    if (days > 0 && filterYear === "all" && filterMonth === "all" && filterDay === "all") {
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - days);
+      sinceDate.setHours(0, 0, 0, 0);
+      query = query.where("createdAt", ">=", sinceDate);
     }
 
     const snapshot = await query.get();

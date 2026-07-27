@@ -45,7 +45,7 @@ vi.mock("@/lib/services/meta-service", () => ({
 }));
 
 describe("Conteudo Page", () => {
-  it("renders the main title", async () => {
+  it("renders the main title and section header", async () => {
     render(
       <AuthProvider>
         <Toaster />
@@ -53,5 +53,10 @@ describe("Conteudo Page", () => {
       </AuthProvider>
     );
     expect(await screen.findByText("Conteúdo & Marketing")).toBeInTheDocument();
+    expect(screen.getByText("Criar nova publicação")).toBeInTheDocument();
+    expect(screen.getByText("Com IA")).toBeInTheDocument();
+    expect(screen.getByText("Enviando Foto de Produto")).toBeInTheDocument();
+    expect(screen.getByText("Enviando Imagem de Pessoa e Produto/Projeto")).toBeInTheDocument();
+    expect(screen.getByText("Manual")).toBeInTheDocument();
   });
 });
