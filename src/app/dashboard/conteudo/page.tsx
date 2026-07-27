@@ -640,6 +640,9 @@ export default function Conteudo() {
   const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData>({
     isConnected: false,
   });
+  const [tiktokConnection, setTiktokConnection] = useState<TikTokConnectionData>({
+    isConnected: false,
+  });
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
@@ -680,13 +683,14 @@ export default function Conteudo() {
     setCheckingConnection(true);
 
     try {
-      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult] =
+      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult, tiktokResult] =
         await Promise.all([
           getScheduledPosts(user.uid),
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
           getGoogleConnection(user.uid),
           getLinkedInConnection(user.uid),
+          getTikTokConnection(user.uid),
         ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
@@ -708,6 +712,7 @@ export default function Conteudo() {
       setMetaConnection(metaResult);
       setInstagramConnection(instagramResult);
       setGoogleConnection(googleResult);
+      setTiktokConnection(tiktokResult);
       // Community Management API só suporta org como owner — força publishTarget = "organization"
       // sempre que houver uma org selecionada, independente do personUrn
       if (
@@ -827,6 +832,33 @@ export default function Conteudo() {
     const isInstagramAuth = searchParams.has("instagram_connection_success");
     const isLinkedInAuth = searchParams.has("linkedin_connection_success");
     const isLinkedInError = searchParams.has("linkedin_error");
+    const isTikTokAuth = searchParams.has("tiktok_connection_success");
+    const isTikTokError = searchParams.has("tiktok_error");
+
+    if (isTikTokError) {
+      effectRan.current = true;
+      const errorDesc = searchParams.get("tiktok_error_description");
+      toast({
+        variant: "destructive",
+        title: "Erro no TikTok",
+        description: decodeURIComponent(errorDesc || "Falha na autenticação"),
+      });
+      router.replace("/dashboard/conteudo", undefined);
+      return;
+    }
+
+    if (isTikTokAuth) {
+      effectRan.current = true;
+      const tiktokName = searchParams.get("tiktok_name");
+      toast({
+        variant: "success",
+        title: "TikTok Conectado!",
+        description: `Conexão com ${tiktokName || "TikTok"} estabelecida com sucesso.`,
+      });
+      fetchPageData();
+      router.replace("/dashboard/conteudo", undefined);
+      return;
+    }
 
     if (isLinkedInError) {
       effectRan.current = true;
@@ -1086,6 +1118,39 @@ export default function Conteudo() {
       await updateLinkedInConnection(user.uid, { isConnected: false });
       await fetchPageData();
       toast({ title: "Desconectado", description: "A conexão com o LinkedIn foi removida." });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Desconectar",
+        description: err.message || "Erro desconhecido.",
+      });
+    }
+  }, [fetchPageData, toast, user]);
+
+  const handleConnectTikTok = useCallback(() => {
+    const origin = window.location.origin;
+    const redirectUri = `${origin}/api/tiktok/callback`;
+    const clientKey = config.tiktok.clientKey;
+    if (!clientKey) {
+      toast({
+        variant: "destructive",
+        title: "Configuração Ausente",
+        description: "Credenciais do TikTok não encontradas no servidor.",
+      });
+      return;
+    }
+    const state = user?.uid || "";
+    const scope = "user.info.basic,video.publish,video.upload";
+    const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+    window.location.href = authUrl;
+  }, [user?.uid, toast]);
+
+  const handleDisconnectTikTok = useCallback(async () => {
+    if (!user) return;
+    try {
+      await updateTikTokConnection(user.uid, { isConnected: false });
+      await fetchPageData();
+      toast({ title: "Desconectado", description: "A conexão com o TikTok foi removida." });
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -1838,6 +1903,15 @@ export default function Conteudo() {
                   }
                   onConnect={handleConnectLinkedIn}
                   onDisconnect={handleDisconnectLinkedIn}
+                  isLoading={checkingConnection}
+                />
+                <Separator />
+                <ConnectionStatus
+                  platform="tiktok"
+                  isConnected={tiktokConnection.isConnected}
+                  accountName={tiktokConnection.displayName}
+                  onConnect={handleConnectTikTok}
+                  onDisconnect={handleDisconnectTikTok}
                   isLoading={checkingConnection}
                 />
                 {linkedinConnection.isConnected &&
