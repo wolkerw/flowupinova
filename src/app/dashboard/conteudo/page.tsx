@@ -101,6 +101,11 @@ import {
   updateLinkedInConnection,
   type LinkedInConnectionData,
 } from "@/lib/services/linkedin-service";
+import {
+  getTikTokConnection,
+  updateTikTokConnection,
+  type TikTokConnectionData,
+} from "@/lib/services/tiktok-service";
 import { config } from "@/lib/config";
 
 import { Separator } from "@/components/ui/separator";
@@ -541,7 +546,7 @@ function ConnectionStatus({
   onDisconnect,
   isLoading,
 }: {
-  platform: "facebook" | "instagram" | "linkedin";
+  platform: "facebook" | "instagram" | "linkedin" | "tiktok";
   isConnected: boolean;
   accountName?: string;
   onConnect: () => void;
@@ -563,6 +568,11 @@ function ConnectionStatus({
       icon: Linkedin,
       name: "LinkedIn",
       color: "text-blue-700",
+    },
+    tiktok: {
+      icon: Camera,
+      name: "TikTok",
+      color: "text-slate-900",
     },
   };
 

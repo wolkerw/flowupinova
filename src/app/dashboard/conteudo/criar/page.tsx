@@ -82,6 +82,10 @@ import {
   type LinkedInConnectionData,
 } from "@/lib/services/linkedin-service";
 import {
+  getTikTokConnection,
+  type TikTokConnectionData,
+} from "@/lib/services/tiktok-service";
+import {
   getOnboardingProfile,
   type OnboardingProfileData,
 } from "@/lib/services/onboarding-service";
@@ -1418,6 +1422,7 @@ export default function CriarConteudoPage() {
   );
   const [googleConnection, setGoogleConnection] = useState<GoogleConnectionData | null>(null);
   const [linkedinConnection, setLinkedinConnection] = useState<LinkedInConnectionData | null>(null);
+  const [tiktokConnection, setTiktokConnection] = useState<TikTokConnectionData | null>(null);
   const [gmbProfile, setGmbProfile] = useState<BusinessProfileData | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -1444,13 +1449,15 @@ export default function CriarConteudoPage() {
       getInstagramConnection(user.uid),
       getGoogleConnection(user.uid),
       getLinkedInConnection(user.uid),
+      getTikTokConnection(user.uid),
       getOnboardingProfile(user.uid),
       getBusinessProfile(user.uid),
-    ]).then(([metaConn, instaConn, googleConn, linkedinConn, profile, gmbProf]) => {
+    ]).then(([metaConn, instaConn, googleConn, linkedinConn, tiktokConn, profile, gmbProf]) => {
       setMetaConnection(metaConn);
       setInstagramConnection(instaConn);
       setGoogleConnection(googleConn);
       setLinkedinConnection(linkedinConn);
+      setTiktokConnection(tiktokConn);
       setBusinessProfile(profile);
       setGmbProfile(gmbProf);
 
@@ -1459,6 +1466,7 @@ export default function CriarConteudoPage() {
       if (instaConn?.isConnected) initialPlatforms.push("instagram");
       if (googleConn?.isConnected) initialPlatforms.push("google");
       if (linkedinConn?.isConnected) initialPlatforms.push("linkedin");
+      if (tiktokConn?.isConnected) initialPlatforms.push("tiktok");
       setPlatforms(initialPlatforms);
 
       // Carregar automaticamente a logomarca do Brand Kit se existir e nenhuma estiver selecionada
@@ -3042,6 +3050,47 @@ export default function CriarConteudoPage() {
                       ) : !linkedinConnection?.isConnected ? (
                         <TooltipContent>
                           <p>Conecte seu LinkedIn na aba 'Conexões' para publicar.</p>
+                        </TooltipContent>
+                      ) : null}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                            platforms.includes("tiktok") && tiktokConnection?.isConnected
+                              ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                              : "border-gray-200 hover:bg-gray-50",
+                            !tiktokConnection?.isConnected &&
+                              "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
+                          )}
+                        >
+                          <Checkbox
+                            id="platform-tiktok"
+                            checked={
+                              platforms.includes("tiktok") && !!tiktokConnection?.isConnected
+                            }
+                            onCheckedChange={() => handlePlatformChange("tiktok")}
+                            disabled={!tiktokConnection?.isConnected}
+                          />
+                          <Label
+                            htmlFor="platform-tiktok"
+                            className={cn(
+                              "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                              !tiktokConnection?.isConnected && "cursor-not-allowed"
+                            )}
+                          >
+                            <Camera className="h-5 w-5 text-slate-900" />
+                            TikTok
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      {!tiktokConnection?.isConnected ? (
+                        <TooltipContent>
+                          <p>Conecte seu TikTok na aba 'Conexões' para publicar.</p>
                         </TooltipContent>
                       ) : null}
                     </Tooltip>
