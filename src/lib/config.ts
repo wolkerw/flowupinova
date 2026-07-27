@@ -37,8 +37,11 @@ export const config = {
       process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI || `${aplicationURL}/api/linkedin/callback`,
   },
   tiktok: {
-    clientKey: process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || process.env.TIKTOK_CLIENT_KEY!,
-    clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
+    clientKey:
+      process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY ||
+      process.env.TIKTOK_CLIENT_KEY ||
+      "sbawya7pk95xatxlyn",
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET || "uWC4jvLF2HGzv8ivCNIvWpTWCZgOohnR",
     redirectUri:
       process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI || `${aplicationURL}/api/tiktok/callback`,
   },
