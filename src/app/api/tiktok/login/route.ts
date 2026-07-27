@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     .digest("base64url");
 
   // 2. Construir URL de autorização do TikTok v2
-  const redirectUri = `${origin}/api/tiktok/callback`;
+  const redirectUri = config.tiktok.redirectUri || `${origin}/api/tiktok/callback`;
   const scope = "user.info.basic,video.publish,video.upload";
 
   const tiktokAuthUrl = new URL("https://www.tiktok.com/v2/auth/authorize/");

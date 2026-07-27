@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const currentCallbackUri = `${origin}/api/tiktok/callback`;
+    const currentCallbackUri = config.tiktok.redirectUri || `${origin}/api/tiktok/callback`;
     const codeVerifier = request.cookies.get("tiktok_code_verifier")?.value;
 
     // 1. Troca o código pelo Token de Acesso (com suporte PKCE code_verifier)
