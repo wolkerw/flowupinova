@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const protocol = request.headers.get("x-forwarded-proto") || "https";
   const origin = `${protocol}://${host}`;
 
-  const redirectUrl = new URL("/dashboard/meu-negocio", origin);
+  const redirectUrl = new URL("/dashboard/conteudo", origin);
   redirectUrl.search = "";
 
   if (error) {
@@ -57,16 +57,23 @@ export async function GET(request: NextRequest) {
 
   try {
     const currentCallbackUri = `${origin}/api/tiktok/callback`;
+    const codeVerifier = request.cookies.get("tiktok_code_verifier")?.value;
 
-    // 1. Troca o código pelo Token de Acesso
+    // 1. Troca o código pelo Token de Acesso (com suporte PKCE code_verifier)
     const tokenUrl = "https://open.tiktokapis.com/v2/oauth/token/";
-    const tokenParams = new URLSearchParams({
+    const tokenParamsObj: Record<string, string> = {
       client_key: config.tiktok.clientKey,
       client_secret: config.tiktok.clientSecret,
       code: code,
       grant_type: "authorization_code",
       redirect_uri: currentCallbackUri,
-    });
+    };
+
+    if (codeVerifier) {
+      tokenParamsObj.code_verifier = codeVerifier;
+    }
+
+    const tokenParams = new URLSearchParams(tokenParamsObj);
 
     const tokenResponse = await fetch(tokenUrl, {
       method: "POST",
@@ -139,11 +146,15 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set("tiktok_connection_success", "true");
     redirectUrl.searchParams.set("tiktok_name", displayName);
 
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(redirectUrl);
+    response.cookies.delete("tiktok_code_verifier");
+    return response;
   } catch (err: any) {
     console.error("[TIKTOK_CALLBACK_FATAL_ERROR]", err);
     redirectUrl.searchParams.set("tiktok_error", "token_exchange_failed");
     redirectUrl.searchParams.set("tiktok_error_description", encodeURIComponent(err.message || "Falha ao conectar TikTok."));
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(redirectUrl);
+    response.cookies.delete("tiktok_code_verifier");
+    return response;
   }
 }

@@ -1129,21 +1129,15 @@ export default function Conteudo() {
   }, [fetchPageData, toast, user]);
 
   const handleConnectTikTok = useCallback(() => {
-    const origin = window.location.origin;
-    const redirectUri = `${origin}/api/tiktok/callback`;
-    const clientKey = config.tiktok.clientKey;
-    if (!clientKey) {
+    if (!user?.uid) {
       toast({
         variant: "destructive",
-        title: "Configuração Ausente",
-        description: "Credenciais do TikTok não encontradas no servidor.",
+        title: "Usuário Não Autenticado",
+        description: "Faça login para conectar sua conta do TikTok.",
       });
       return;
     }
-    const state = user?.uid || "";
-    const scope = "user.info.basic,video.publish,video.upload";
-    const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=${encodeURIComponent(scope)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
-    window.location.href = authUrl;
+    window.location.href = `/api/tiktok/login?userId=${user.uid}`;
   }, [user?.uid, toast]);
 
   const handleDisconnectTikTok = useCallback(async () => {
