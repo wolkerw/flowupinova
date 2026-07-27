@@ -85,6 +85,7 @@ import {
   getTikTokConnection,
   type TikTokConnectionData,
 } from "@/lib/services/tiktok-service";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
 import {
   getOnboardingProfile,
   type OnboardingProfileData,
@@ -3083,7 +3084,7 @@ export default function CriarConteudoPage() {
                               !tiktokConnection?.isConnected && "cursor-not-allowed"
                             )}
                           >
-                            <Camera className="h-5 w-5 text-slate-900" />
+                            <TikTokIcon className="h-5 w-5 text-slate-900" />
                             TikTok
                           </Label>
                         </div>

@@ -31,6 +31,7 @@ import {
   QrCode,
   Award,
 } from "lucide-react";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { ChatBubble, type Message } from "@/components/chat/chat-bubble";
@@ -742,6 +743,7 @@ export default function Dashboard() {
                         Facebook
                       </TabsTrigger>
                       <TabsTrigger value="tiktok">
+                        <TikTokIcon className="mr-2 h-4 w-4" />
                         TikTok
                       </TabsTrigger>
                       <TabsTrigger value="youtube" disabled>

@@ -106,6 +106,7 @@ import {
   updateTikTokConnection,
   type TikTokConnectionData,
 } from "@/lib/services/tiktok-service";
+import { TikTokIcon } from "@/components/icons/tiktok-icon";
 import { config } from "@/lib/config";
 
 import { Separator } from "@/components/ui/separator";
@@ -570,7 +571,7 @@ function ConnectionStatus({
       color: "text-blue-700",
     },
     tiktok: {
-      icon: Camera,
+      icon: TikTokIcon,
       name: "TikTok",
       color: "text-slate-900",
     },
