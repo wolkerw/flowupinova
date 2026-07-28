@@ -11,12 +11,14 @@ export async function GET(request: NextRequest) {
   const rawState = searchParams.get("state") || "";
   let userId = rawState;
   let clientKeyFromState = "";
+  let originFromState = "";
 
   try {
     const decoded = JSON.parse(Buffer.from(rawState, "base64url").toString("utf-8"));
     if (decoded && decoded.u) {
       userId = decoded.u;
       clientKeyFromState = decoded.k || "";
+      originFromState = decoded.o || "";
     }
   } catch {
     // Fallback if state is plain string
@@ -25,9 +27,10 @@ export async function GET(request: NextRequest) {
   // Real host detection
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
   const protocol = request.headers.get("x-forwarded-proto") || "https";
-  const origin = `${protocol}://${host}`;
+  const requestOrigin = `${protocol}://${host}`;
+  const finalOrigin = originFromState || requestOrigin;
 
-  const redirectUrl = new URL("/dashboard/conteudo", origin);
+  const redirectUrl = new URL("/dashboard/conteudo", finalOrigin);
   redirectUrl.search = "";
 
   if (error) {
