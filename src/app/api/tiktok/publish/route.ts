@@ -48,14 +48,6 @@ export async function POST(request: NextRequest) {
     const initPublishUrl = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
 
     const publishPayload = {
-      post_info: {
-        title: title || "Vídeo publicado via NumVapt AI",
-        privacy_level: privacyLevel || "SELF_ONLY", // SELF_ONLY, PUBLIC, FRIENDS
-        disable_duet: false,
-        disable_stitch: false,
-        disable_comment: false,
-        auto_add_music: false,
-      },
       source_info: {
         source: "PULL_FROM_URL",
         video_url: videoUrl,
