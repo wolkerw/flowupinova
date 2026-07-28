@@ -193,6 +193,20 @@ async function publishPostImmediately(
             userId,
           },
         };
+      } else if (platform === "tiktok") {
+        apiPath = "/api/tiktok/publish";
+        const videoUrl =
+          postData.mediaFiles && postData.mediaFiles.length > 0
+            ? postData.mediaFiles[0].url
+            : postData.imageUrls && postData.imageUrls.length > 0
+            ? postData.imageUrls[0]
+            : undefined;
+        payload = {
+          userId,
+          title: postData.text,
+          videoUrl,
+          privacyLevel: "SELF_ONLY",
+        };
       } else {
         // 'linkedin'
         apiPath = "/api/linkedin/publish";
