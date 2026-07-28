@@ -3244,10 +3244,11 @@ export default function CriarConteudoPage() {
               </Button>
               {!metaConnection?.isConnected &&
                 !instagramConnection?.isConnected &&
-                !linkedinConnection?.isConnected && (
+                !linkedinConnection?.isConnected &&
+                !googleConnection?.isConnected &&
+                !tiktokConnection?.isConnected && (
                   <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
-                    <AlertTriangle className="h-4 w-4" /> Conecte suas contas na página de Conteúdo
-                    ou Conexões para publicar.
+                    <AlertTriangle className="h-4 w-4" /> Conecte pelo menos uma rede social para publicar.
                   </p>
                 )}
             </CardFooter>
