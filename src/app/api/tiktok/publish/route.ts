@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
     const { accessToken } = connectionDoc.data()!;
 
     // 2. Inicia o envio usando Content Posting API v2 (PULL_FROM_URL)
-    const initPublishUrl = "https://open.tiktokapis.com/v2/post/publish/video/init/";
+    // O escopo video.upload utiliza o endpoint /inbox/video/init/ (envio para rascunhos do criador)
+    const initPublishUrl = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
 
     const publishPayload = {
       post_info: {
