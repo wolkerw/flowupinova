@@ -41,8 +41,16 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(tiktokAuthUrl.toString());
 
-  // 3. Salvar o verifier no Cookie HTTP-Only seguro para uso no callback
+  // 3. Salvar o verifier e o clientKey nos Cookies HTTP-Only seguros para uso no callback
   response.cookies.set("tiktok_code_verifier", verifier, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 600, // 10 minutos
+    path: "/",
+  });
+
+  response.cookies.set("tiktok_client_key", clientKey, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -58,12 +58,19 @@ export async function GET(request: NextRequest) {
   try {
     const currentCallbackUri = config.tiktok.redirectUri || `${origin}/api/tiktok/callback`;
     const codeVerifier = request.cookies.get("tiktok_code_verifier")?.value;
+    const cookieClientKey = request.cookies.get("tiktok_client_key")?.value;
+
+    const usedClientKey = cookieClientKey || config.tiktok.clientKey;
+    const usedClientSecret =
+      usedClientKey === "sbawya7pk95xatxlyn"
+        ? "uWC4jvLF2HGzv8ivCNIvWpTWCZgOohnR"
+        : config.tiktok.clientSecret;
 
     // 1. Troca o código pelo Token de Acesso (com suporte PKCE code_verifier)
     const tokenUrl = "https://open.tiktokapis.com/v2/oauth/token/";
     const tokenParamsObj: Record<string, string> = {
-      client_key: config.tiktok.clientKey,
-      client_secret: config.tiktok.clientSecret,
+      client_key: usedClientKey,
+      client_secret: usedClientSecret,
       code: code,
       grant_type: "authorization_code",
       redirect_uri: currentCallbackUri,
@@ -148,6 +155,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.redirect(redirectUrl);
     response.cookies.delete("tiktok_code_verifier");
+    response.cookies.delete("tiktok_client_key");
     return response;
   } catch (err: any) {
     console.error("[TIKTOK_CALLBACK_FATAL_ERROR]", err);
@@ -155,6 +163,7 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set("tiktok_error_description", encodeURIComponent(err.message || "Falha ao conectar TikTok."));
     const response = NextResponse.redirect(redirectUrl);
     response.cookies.delete("tiktok_code_verifier");
+    response.cookies.delete("tiktok_client_key");
     return response;
   }
 }
