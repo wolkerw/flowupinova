@@ -73,11 +73,37 @@ export default function LaboratorioIAPage() {
         throw new Error(data.error || "Erro desconhecido");
       }
 
-      setResult(data.result);
+      if (data.pending && data.taskId) {
+        // Entra em modo de Polling
+        setResult({ message: data.message, taskId: data.taskId, status: "pending" });
+        pollTaskStatus(data.taskId);
+      } else {
+        setResult(data.result);
+        setIsLoading(false);
+      }
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const pollTaskStatus = async (taskId: string) => {
+    try {
+      const res = await fetch(`/api/admin/laboratorio-ia/status?taskId=${taskId}`);
+      const data = await res.json();
+      
+      if (data.status === "completed") {
+        setResult(data.result);
+        setIsLoading(false);
+      } else if (data.status === "error") {
+        setError(data.error || "Erro no processamento da Manus.");
+        setIsLoading(false);
+      } else {
+        // Continua rodando
+        setTimeout(() => pollTaskStatus(taskId), 5000);
+      }
+    } catch (err) {
+      setTimeout(() => pollTaskStatus(taskId), 5000);
     }
   };
 

@@ -11,42 +11,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "MANUS_API não configurada no .env" }, { status: 500 });
       }
 
-      const messages: any[] = [];
-      if (systemPrompt) {
-        messages.push({ role: "system", content: systemPrompt });
-      }
+      // Conforme o PDF, precisamos criar uma Task na Manus
+      const manusUrl = "https://api.manus.ai/v2/task.create"; 
       
-      const userContent: any[] = [];
-      if (userPrompt) {
-        userContent.push({ type: "text", text: userPrompt });
-      }
-      if (image1) {
-        userContent.push({
-          type: "image_url",
-          image_url: { url: `data:${image1.mimeType};base64,${image1.base64}` },
-        });
-      }
-      if (image2) {
-        userContent.push({
-          type: "image_url",
-          image_url: { url: `data:${image2.mimeType};base64,${image2.base64}` },
-        });
-      }
-      messages.push({ role: "user", content: userContent });
+      const payload = {
+        prompt: userPrompt || "Gere um conteúdo de marketing.",
+        system_prompt: systemPrompt || "",
+        structured_output_schema: {
+          image_url: "Link da imagem",
+          post_caption: "Texto da legenda",
+          optimized_hashtags: "Lista de hashtags"
+        }
+      };
 
-      // Assumindo endpoint compatível com OpenAI para o Manus
-      const manusUrl = "https://api.manus.im/v1/chat/completions"; 
       const response = await fetch(manusUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${manusKey}`,
+          "x-manus-api-key": manusKey,
         },
-        body: JSON.stringify({
-          model: model, 
-          messages,
-          temperature: temperature ?? 0.7,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -56,18 +40,27 @@ export async function POST(request: NextRequest) {
       }
 
       const resData = await response.json();
-      const resultText = resData.choices?.[0]?.message?.content || "";
-      let parsedResult = resultText;
-      try {
-        if (resultText.startsWith("```json")) {
-          const clean = resultText.replace(/```json\n?/, "").replace(/```$/, "");
-          parsedResult = JSON.parse(clean);
-        } else {
-          parsedResult = JSON.parse(resultText);
-        }
-      } catch { }
+      const taskId = resData.task_id || resData.id;
 
-      return NextResponse.json({ result: parsedResult });
+      if (!taskId) {
+        return NextResponse.json({ error: "API Manus não retornou task_id", details: resData }, { status: 500 });
+      }
+
+      // Salva no Firestore para controlar o andamento (necessita adminDb import)
+      const { adminDb } = await import("@/lib/firebase-admin");
+      await adminDb.collection("manus_tasks").doc(taskId).set({
+        taskId,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        model
+      });
+
+      // Retorna para o Frontend que estamos aguardando
+      return NextResponse.json({ 
+        pending: true,
+        taskId, 
+        message: "Tarefa enviada. Aguardando processamento da Manus..." 
+      });
     }
 
     // Fluxo padrão para o Gemini
