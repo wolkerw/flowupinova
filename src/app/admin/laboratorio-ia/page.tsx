@@ -110,6 +110,8 @@ export default function LaboratorioIAPage() {
                   <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                   <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                   <option value="gemini-3-pro-image">Gemini 3 Pro Image (Vision)</option>
+                  <option value="manus-1.6">Manus 1.6 (Agent)</option>
+                  <option value="manus-1.6-lite">Manus 1.6 Lite</option>
                 </select>
               </div>
               <div>
