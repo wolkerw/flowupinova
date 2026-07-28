@@ -74,10 +74,15 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok || resData.error?.code !== "ok") {
       console.error("[TIKTOK_PUBLISH_ERROR]", resData);
+      const isScopeError = resData.error?.code === "scope_not_authorized";
+      const userMessage = isScopeError
+        ? "A conta do TikTok precisa ser reconectada para conceder a permissão de publicação de vídeo. Por favor, desconecte e reconecte o TikTok na aba Conexões."
+        : resData.error?.message || "Falha ao iniciar publicação do vídeo no TikTok.";
+
       return NextResponse.json(
         {
           success: false,
-          error: resData.error?.message || "Falha ao iniciar publicação do vídeo no TikTok.",
+          error: userMessage,
           details: resData,
         },
         { status: 400 }
