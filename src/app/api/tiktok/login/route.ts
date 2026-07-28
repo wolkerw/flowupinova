@@ -30,12 +30,15 @@ export async function GET(request: NextRequest) {
   const redirectUri = config.tiktok.redirectUri || `${origin}/api/tiktok/callback`;
   const scope = "user.info.basic,video.upload";
 
+  // Encoda o userId e a clientKey no parâmetro state para garantir consistência cross-domain no callback
+  const statePayload = Buffer.from(JSON.stringify({ u: userId, k: clientKey })).toString("base64url");
+
   const tiktokAuthUrl = new URL("https://www.tiktok.com/v2/auth/authorize/");
   tiktokAuthUrl.searchParams.set("client_key", clientKey);
   tiktokAuthUrl.searchParams.set("scope", scope);
   tiktokAuthUrl.searchParams.set("response_type", "code");
   tiktokAuthUrl.searchParams.set("redirect_uri", redirectUri);
-  tiktokAuthUrl.searchParams.set("state", userId);
+  tiktokAuthUrl.searchParams.set("state", statePayload);
   tiktokAuthUrl.searchParams.set("code_challenge", challenge);
   tiktokAuthUrl.searchParams.set("code_challenge_method", "S256");
 

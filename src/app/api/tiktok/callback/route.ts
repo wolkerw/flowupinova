@@ -8,7 +8,19 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
   const error = searchParams.get("error");
-  const userId = searchParams.get("state"); // state passes the Firebase userId
+  const rawState = searchParams.get("state") || "";
+  let userId = rawState;
+  let clientKeyFromState = "";
+
+  try {
+    const decoded = JSON.parse(Buffer.from(rawState, "base64url").toString("utf-8"));
+    if (decoded && decoded.u) {
+      userId = decoded.u;
+      clientKeyFromState = decoded.k || "";
+    }
+  } catch {
+    // Fallback if state is plain string
+  }
 
   // Real host detection
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
@@ -60,7 +72,7 @@ export async function GET(request: NextRequest) {
     const codeVerifier = request.cookies.get("tiktok_code_verifier")?.value;
     const cookieClientKey = request.cookies.get("tiktok_client_key")?.value;
 
-    const usedClientKey = cookieClientKey || config.tiktok.clientKey;
+    const usedClientKey = clientKeyFromState || cookieClientKey || config.tiktok.clientKey;
     const usedClientSecret =
       usedClientKey === "sbawya7pk95xatxlyn"
         ? "uWC4jvLF2HGzv8ivCNIvWpTWCZgOohnR"
