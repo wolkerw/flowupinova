@@ -307,12 +307,13 @@ export default function LaboratorioIAPage() {
               <h2 className="font-semibold text-gray-800">2. Prompt de Sistema (Instruções)</h2>
               <select
                 className="rounded-md border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 max-w-[200px]"
+                defaultValue=""
                 onChange={(e) => {
                   const preset = PROMPT_PRESETS.find(p => p.label === e.target.value);
                   if (preset) setSystemPrompt(preset.value);
                 }}
               >
-                <option value="" disabled selected>Carregar prompt original...</option>
+                <option value="" disabled>Carregar prompt original...</option>
                 {PROMPT_PRESETS.map((preset, index) => (
                   <option key={index} value={preset.label}>{preset.label}</option>
                 ))}
