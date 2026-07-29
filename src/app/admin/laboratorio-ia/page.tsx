@@ -418,7 +418,12 @@ export default function LaboratorioIAPage() {
           )}
 
           {!isLoading && result && (
-            <div className="flex-1 overflow-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
+            <div className="flex-1 flex flex-col gap-4 overflow-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
+              {result.imageUrl && (
+                <div className="w-full flex justify-center bg-gray-800 p-2 rounded-md">
+                  <img src={result.imageUrl} alt="Imagem gerada" className="max-h-[400px] object-contain rounded-md shadow-md" />
+                </div>
+              )}
               <pre className="whitespace-pre-wrap">{typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</pre>
             </div>
           )}
