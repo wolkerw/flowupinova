@@ -6,9 +6,9 @@ export async function POST(request: NextRequest) {
     const { model, temperature, systemPrompt, userPrompt, image1, image2 } = body;
 
     if (model.startsWith("manus")) {
-      const manusKey = process.env.MANUS_API;
+      const manusKey = process.env.MANUS_API_KEY || process.env.MANUS_API;
       if (!manusKey) {
-        return NextResponse.json({ error: "MANUS_API não configurada no .env" }, { status: 500 });
+        return NextResponse.json({ error: "MANUS_API_KEY não configurada no .env" }, { status: 500 });
       }
 
       // Conforme o PDF, precisamos criar uma Task na Manus
