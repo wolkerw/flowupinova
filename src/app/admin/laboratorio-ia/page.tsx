@@ -250,12 +250,24 @@ export default function LaboratorioIAPage() {
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full rounded-md border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                  <option value="gemini-3-pro-image">Gemini 3 Pro Image (Vision)</option>
-                  <option value="manus-1.6">Manus 1.6 (Agent)</option>
-                  <option value="manus-1.6-lite">Manus 1.6 Lite</option>
+                  <optgroup label="Texto (Gemini)">
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  </optgroup>
+                  <optgroup label="Agentes (Manus)">
+                    <option value="manus-1.6">Manus 1.6 (Agent)</option>
+                    <option value="manus-1.6-lite">Manus 1.6 Lite</option>
+                  </optgroup>
+                  <optgroup label="Imagem (Nano Banana)">
+                    <option value="gemini-3-pro-image">Gemini 3 Pro Image (Nano Banana Pro)</option>
+                    <option value="gemini-3.1-flash-image">Gemini 3.1 Flash Image (Fallback 1)</option>
+                    <option value="gemini-3.5-flash-image">Gemini 3.5 Flash Image (Fallback 2)</option>
+                  </optgroup>
+                  <optgroup label="Imagem (Imagen 4)">
+                    <option value="imagen-4.0-ultra-generate-001">Imagen 4.0 Ultra</option>
+                    <option value="imagen-4.0-fast-generate-001">Imagen 4.0 Fast (Fallback)</option>
+                  </optgroup>
                 </select>
               </div>
               <div>

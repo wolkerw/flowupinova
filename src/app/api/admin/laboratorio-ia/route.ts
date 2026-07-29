@@ -63,10 +63,47 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Fluxo padrão para o Gemini
+    // Fluxo padrão para o Gemini ou Imagen
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "GEMINI_API_KEY não configurada." }, { status: 500 });
+    }
+
+    if (model.startsWith("imagen")) {
+      // Fluxo para Imagen 4
+      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+      
+      const imagenResponse = await fetch(imagenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instances: [{ prompt: userPrompt || systemPrompt || "Um objeto aleatório" }],
+          parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
+        }),
+      });
+
+      if (!imagenResponse.ok) {
+        const errText = await imagenResponse.text();
+        console.error("[LAB_IA] Falha na API do Imagen:", errText);
+        return NextResponse.json(
+          { error: "Erro na API da IA (Imagen)", details: errText },
+          { status: imagenResponse.status }
+        );
+      }
+
+      const data = await imagenResponse.json();
+      const bytes = data?.predictions?.[0]?.bytesBase64Encoded;
+      
+      if (bytes) {
+        return NextResponse.json({ 
+          result: { 
+            message: "Imagem gerada com sucesso via Imagen 4", 
+            imageUrl: `data:image/jpeg;base64,${bytes}` 
+          } 
+        });
+      }
+      
+      return NextResponse.json({ result: data });
     }
 
     // A URL muda levemente dependendo da string exata do modelo, mas a v1beta é padrão para quase todos
@@ -130,7 +167,18 @@ export async function POST(request: NextRequest) {
     }
 
     const resData = await response.json();
-    const resultText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const part = resData.candidates?.[0]?.content?.parts?.[0];
+    const resultText = part?.text || "";
+    const inlineData = part?.inlineData;
+
+    if (inlineData && inlineData.data) {
+      return NextResponse.json({
+        result: {
+          message: "Imagem gerada com sucesso via Nano Banana",
+          imageUrl: `data:${inlineData.mimeType};base64,${inlineData.data}`
+        }
+      });
+    }
 
     // Tentamos dar um parse caso a resposta seja um JSON
     let parsedResult = resultText;
@@ -142,7 +190,6 @@ export async function POST(request: NextRequest) {
         parsedResult = JSON.parse(resultText);
       }
     } catch {
-
       // Ignora, é só texto plano
     }
 
