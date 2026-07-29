@@ -33,9 +33,10 @@ export interface PostData {
   // Changed to array to support carousels
   imageUrls: string[];
   isCarousel: boolean;
-  platforms: Array<"instagram" | "facebook" | "google" | "linkedin">;
+  platforms: Array<"instagram" | "facebook" | "google" | "linkedin" | "tiktok">;
   status: "scheduled" | "publishing" | "published" | "failed";
   scheduledAt: Timestamp;
+  mediaFiles?: { url: string; type?: string }[];
   connections: {
     fbPageAccessToken?: string | null;
     igUserAccessToken?: string | null;
@@ -62,7 +63,7 @@ export type PostDataInput = {
   text: string;
   // Changed to array to support carousels
   media: MediaFileInput[];
-  platforms: Array<"instagram" | "facebook" | "google" | "linkedin">;
+  platforms: Array<"instagram" | "facebook" | "google" | "linkedin" | "tiktok">;
   isCarousel: boolean;
   scheduledAt: Date;
   metaConnection?: MetaConnectionData;

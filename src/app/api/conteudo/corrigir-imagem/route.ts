@@ -158,7 +158,7 @@ export async function POST(request: Request) {
       logApiUsage({
         userId,
         type: "image_generation",
-        provider: "fal_ai",
+        provider: "falai",
         model: "flux-dev-inpaint",
         costUsd: 0.035,
       });

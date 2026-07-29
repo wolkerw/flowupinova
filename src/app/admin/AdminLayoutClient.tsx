@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Tag,
   Lightbulb,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -63,6 +64,11 @@ const navItems = [
     title: "Logs & Erros",
     href: "/admin/logs",
     icon: FileWarning,
+  },
+  {
+    title: "Laboratório IA",
+    href: "/admin/laboratorio-ia",
+    icon: FlaskConical,
   },
 ];
 

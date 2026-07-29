@@ -739,7 +739,7 @@ export default function AdminConteudoPage() {
               <h3 className="mt-2 text-sm font-semibold text-white">Erro ao Carregar</h3>
               <p className="mt-1 text-xs text-slate-400">{postsError}</p>
               <button
-                onClick={fetchPosts}
+                onClick={() => fetchPosts()}
                 className="mt-4 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20"
               >
                 Tentar Novamente

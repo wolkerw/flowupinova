@@ -422,6 +422,7 @@ export default function ConfiguracoesPage() {
     setUploadingType(type);
     toast({ title: `Enviando logo ${type}...`, description: "Aguarde a conclusão do upload." });
 
+    if (!user) return;
     try {
       // 1. Fazer upload para o Firebase Storage
       const userStoragePath = getUserStoragePathClient(user);

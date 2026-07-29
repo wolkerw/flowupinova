@@ -15,7 +15,7 @@ import {
  * Tenta publicar um post em uma plataforma específica.
  */
 async function publishToPlatform(
-  platform: "instagram" | "facebook" | "google" | "linkedin",
+  platform: "instagram" | "facebook" | "google" | "linkedin" | "tiktok",
   post: PostData & { _parentPath?: string }
 ): Promise<string> {
   const isInstagram = platform === "instagram";

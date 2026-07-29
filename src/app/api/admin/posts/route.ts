@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       postsQuery = postsQuery.limit(50);
 
       const snapshot = await postsQuery.get();
-      snapshot.docs.forEach((doc) => {
+      snapshot.docs.forEach((doc: any) => {
         const data = doc.data();
         const parentUser = doc.ref.parent.parent;
         posts.push({
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           posts.flatMap((p) => [p.imageUrl, ...(p.imageUrls || []), ...(p.conceptUrls || [])]).filter(Boolean)
         );
 
-        mediaSnapshot.docs.forEach((doc) => {
+        mediaSnapshot.docs.forEach((doc: any) => {
           const data = doc.data();
           const parentUser = doc.ref.parent.parent;
           const imgUrl = data.url || data.imageUrl || data.supabaseUrl;
@@ -177,17 +177,17 @@ export async function GET(request: NextRequest) {
       let allPosts = resolvedPostsArray.flat();
 
       if (sinceDate) {
-        allPosts = allPosts.filter((p) => {
-          const createdAtDate = p.createdAt ? new Date(p.createdAt) : null;
+        allPosts = allPosts.filter((p: any) => {
+          const createdAtDate = p?.createdAt ? new Date(p.createdAt) : null;
           return createdAtDate && createdAtDate >= sinceDate!;
         });
       }
 
       // Ordenar e pegar os últimos 100
       posts = allPosts
-        .sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        .sort((a: any, b: any) => {
+          const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateB - dateA;
         })
         .slice(0, 100);

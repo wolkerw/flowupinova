@@ -5,7 +5,7 @@ export interface GeneratedContent {
   url_da_imagem?: string;
 }
 
-export type Platform = "instagram" | "facebook" | "google" | "linkedin";
+export type Platform = "instagram" | "facebook" | "google" | "linkedin" | "tiktok";
 
 export type LogoPosition =
   | "top-left"
