@@ -122,6 +122,10 @@ Seu objetivo é sintetizar as diretrizes visuais e conceituais para que nosso ap
 Caso alguma informação específica (como slogan ou público-alvo) não esteja escrita textualmente no PDF, faça uma inferência lógica e de alta qualidade profissional com base no posicionamento da marca exposto no documento.
 
 Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatamente os seguintes campos (valores em português do Brasil):`
+  },
+  {
+    label: "Criador de Post Premium (Teste Manus)",
+    value: `Você é o motor de IA da plataforma NumVapt, especialista em marketing digital de alta conversão. Sua missão é gerar posts publicitários de nível agência premium. REGRAS DE QUALIDADE VISUAL: - Use estilo de fotografia profissional, 8k, iluminação cinematográfica. - As imagens devem ser realistas, evitando aspectos de ilustração ou desenho. REGRAS DE TEXTO NA IMAGEM: - O texto deve ser nítido, legível e com tipografia moderna. - É OBRIGATÓRIO usar português correto, com todos os acentos e gramática perfeita. CONTEXTO DO POST:`
   }
 ];
 
