@@ -5,12 +5,80 @@ import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+const PROMPT_PRESETS = [
+  {
+    label: "Nenhum (Livre)",
+    value: "Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais...\n(Preencha com o prompt de teste)"
+  },
+  {
+    label: "Gerador de Ideias de Posts (Referência)",
+    value: `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
+CONTEXTO TEMPORAL: Estamos no ano de [ANO], no mês de [MES]. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
+
+Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "[DESCRICAO]".
+Com base nessas informações e no perfil comercial do usuário informado abaixo, crie 3 propostas de publicações virais e estratégicas para o Instagram que herdem e adaptem o conceito visual, estilo estético, layout e tom de voz do print de referência para a realidade deste negócio.
+
+[CONTEXTO_DO_NEGOCIO]
+
+Instruções para cada uma das 3 propostas de posts:
+1. "titulo": Crie um título extremamente curto (máx 45 caracteres), instigante e magnético (gancho comercial forte).
+2. "subtitulo": Crie um parágrafo curto e dinâmico (1 a 2 frases) aprofundando a dica ou tema e fechando com uma chamada para ação (CTA) curta e atrativa.
+3. "hashtags": Uma lista contendo de 3 a 5 hashtags muito relevantes para o nicho comercial da publicação.
+
+Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, sem qualquer explicação, introdução, conclusão ou blocos de marcação de código adicionais. Responda APENAS o JSON bruto:`
+  },
+  {
+    label: "Melhorador de Textos",
+    value: `Você é um especialista em Copywriting para Redes Sociais.
+Sua tarefa é melhorar a legenda fornecida pelo usuário.
+Diretrizes:
+- Corrija erros gramaticais e deixe a leitura mais fluida, persuasiva e engajadora.
+- Você tem total liberdade de inserir emojis e dar uma "animada" no tom de voz.
+- Mantenha estritamente o CONTEXTO e a MENSAGEM PRINCIPAL solicitados.
+- Traga sempre uma nova variação criativa e diferente, assumindo que se você foi chamado novamente para o mesmo tema, o usuário não gostou da versão anterior.
+- DEVOLVA APENAS A LEGENDA FINAL. Não adicione comentários, aspas no início/fim, ou explicações. O seu texto será colado diretamente na caixa de edição do usuário.`
+  },
+  {
+    label: "Copilot de Anúncios (Meta Ads)",
+    value: `Você é um especialista em marketing digital da Meta (Facebook e Instagram) focado em pequenos e médios negócios locais brasileiros.
+CONTEXTO TEMPORAL: Estamos no ano de [ANO]. Sempre utilize esse ano atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
+Sua tarefa é criar títulos (headlines) magnéticos e copies altamente persuasivas para impulsionar um anúncio na região local.
+
+INFORMAÇÕES DO NEGÓCIO:
+- Nome do segmento: [SEGMENTO]
+- Descrição da Empresa: [DESCRICAO_DA_EMPRESA]
+
+CONTEXTO DO POST (SE HOUVER):
+- Texto original da publicação a ser impulsionada: "[TEXTO_POST]"
+
+OBJETIVO DA CAMPANHA:
+- [OBJETIVO_DA_CAMPANHA]
+
+INSTRUÇÕES DE ESCRITA:
+- Use uma linguagem amigável, direta, cativante e focada nos benefícios (copywriting moderno).
+- Não use jargões difíceis. Fale diretamente com as dores e desejos dos moradores da região.
+- Os títulos (Headlines) devem ser curtos, marcantes e diretos (máximo 40 caracteres).
+- Os textos (Ad Copies) devem conter no máximo 3 pequenos parágrafos, usar emojis de forma natural e incluir um forte Call to Action (CTA).
+- Retorne exatamente 3 sugestões diferentes e criativas.
+
+Você deve responder estritamente com um objeto JSON válido, sem markdown ou formatações extras, seguindo exatamente o seguinte esquema JSON:`
+  },
+  {
+    label: "Extrator de Brand Kit (Leitor de PDF)",
+    value: `Você é um especialista em Branding, Direção de Arte e Marketing Estratégico.
+Analise detalhadamente o arquivo PDF de manual de marca (Brandbook / Guia de Estilo / Identidade Visual) fornecido e extraia as diretrizes fundamentais da marca.
+Seu objetivo é sintetizar as diretrizes visuais e conceituais para que nosso app de Inteligência Artificial possa utilizá-las para gerar posts de texto e imagens publicitárias consistentes com a marca do cliente.
+
+Caso alguma informação específica (como slogan ou público-alvo) não esteja escrita textualmente no PDF, faça uma inferência lógica e de alta qualidade profissional com base no posicionamento da marca exposto no documento.
+
+Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatamente os seguintes campos (valores em português do Brasil):`
+  }
+];
+
 export default function LaboratorioIAPage() {
   const [model, setModel] = useState("gemini-3.5-flash");
   const [temperature, setTemperature] = useState(0.7);
-  const [systemPrompt, setSystemPrompt] = useState(
-    "Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais...\n(Preencha com o prompt de teste)"
-  );
+  const [systemPrompt, setSystemPrompt] = useState(PROMPT_PRESETS[0].value);
   const [userPrompt, setUserPrompt] = useState("Crie um post para o Instagram focado em conversão.");
   
   const [image1Url, setImage1Url] = useState<string | null>(null);
@@ -156,7 +224,21 @@ export default function LaboratorioIAPage() {
           </div>
 
           <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <h2 className="mb-4 font-semibold text-gray-800">2. Prompt de Sistema (Instruções)</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800">2. Prompt de Sistema (Instruções)</h2>
+              <select
+                className="rounded-md border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 max-w-[200px]"
+                onChange={(e) => {
+                  const preset = PROMPT_PRESETS.find(p => p.label === e.target.value);
+                  if (preset) setSystemPrompt(preset.value);
+                }}
+              >
+                <option value="" disabled selected>Carregar prompt original...</option>
+                {PROMPT_PRESETS.map((preset, index) => (
+                  <option key={index} value={preset.label}>{preset.label}</option>
+                ))}
+              </select>
+            </div>
             <Textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
