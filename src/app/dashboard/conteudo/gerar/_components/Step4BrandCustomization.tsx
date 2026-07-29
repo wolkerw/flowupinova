@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 import { CircularProgressLoader } from "./CircularProgressLoader";
-import { ImageInpaintModal } from "./ImageInpaintModal";
+import { ImageInpaintModal, type EditorLayer } from "./ImageInpaintModal";
 
 import { useWizard } from "../context/WizardContext";
 

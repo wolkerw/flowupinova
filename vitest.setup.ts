@@ -40,7 +40,7 @@ vi.mock("framer-motion", () => {
 });
 
 // Expor o jest globalmente apontando para o vi para compatibilidade com mocks inline
-globalThis.jest = vi as any;
+(globalThis as any).jest = vi;
 
 // Mock next/image globalmente
 vi.mock("next/image", () => {

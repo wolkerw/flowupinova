@@ -62,6 +62,7 @@ export const Step5ReviewPublish = () => {
     generatedContent,
     setGeneratedContent,
     selectedContentId,
+    setSelectedContentId,
     mode,
     isGeneratingCaption,
     handleGenerateCaption,

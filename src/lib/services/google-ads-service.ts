@@ -12,6 +12,7 @@ export interface GoogleAdsConnectionData {
   expiryDate?: number | null;
   adAccountId?: string; // ID da conta selecionada (Customer ID)
   adAccountName?: string; // Nome descritivo da conta
+  managerCustomerId?: string;
 }
 
 const defaultConnection: GoogleAdsConnectionData = {

@@ -1368,9 +1368,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     let activeLogoFile = logoFile;
     const effectiveLogoUrl =
       logoPreviewUrl ||
-      busProfile?.logo?.url ||
-      busProfile?.brandKit?.logoUrl ||
-      (busProfile as any)?.logoUrl;
+      businessProfile?.logo?.url ||
+      businessProfile?.brandKit?.logoUrl ||
+      (businessProfile as any)?.logoUrl;
 
     if (!activeLogoFile && effectiveLogoUrl) {
       try {

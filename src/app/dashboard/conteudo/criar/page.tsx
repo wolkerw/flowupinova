@@ -110,7 +110,7 @@ type LogoPosition =
   | "bottom-left"
   | "bottom-center"
   | "bottom-right";
-type Platform = "instagram" | "facebook" | "google" | "linkedin";
+type Platform = "instagram" | "facebook" | "google" | "linkedin" | "tiktok";
 
 type MediaItem = {
   type: "image" | "video";

@@ -101,7 +101,7 @@ export async function listGoogleAdsCustomers(
 
     const data = await response.json();
     const resourceNames: string[] = data.resourceNames || [];
-    const accounts: Array<{ id: string; name: string }> = [];
+    const accounts: Array<{ id: string; name: string; managerCustomerId?: string }> = [];
 
     // Para cada conta encontrada, busca o nome amigável
     for (const resName of resourceNames) {

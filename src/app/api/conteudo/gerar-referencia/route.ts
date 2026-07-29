@@ -1922,6 +1922,7 @@ Desired scenario and style: ${prompt}`;
       let firebaseDownloadUrl = finalImageUrl;
       let firebaseRefUrl = null;
       let firebaseSecondaryRefUrl = null;
+      const userStoragePath = `users/${userId}`;
 
       try {
         const bucket = admin
@@ -1958,6 +1959,7 @@ Desired scenario and style: ${prompt}`;
           contentType = imgRes.headers.get("Content-Type") || "image/jpeg";
         }
 
+        const userStoragePath = `users/${userId}`;
         const finalBuffer = buffer;
 
         const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/generated_image.jpg`);
