@@ -146,7 +146,18 @@ export default function LaboratorioIAPage() {
   const [model, setModel] = useState("gemini-3.5-flash");
   const [temperature, setTemperature] = useState(0.7);
   const [systemPrompt, setSystemPrompt] = useState(PROMPT_PRESETS[0].value);
-  const [userPrompt, setUserPrompt] = useState("Crie um post para o Instagram focado em conversão.");
+  const [userPrompt, setUserPrompt] = useState(
+    `user_prompt = "Crie um post sobre jaquetas corta-vento para corrida"\n` +
+    `texto_na_arte = "NumVapt: Simples Assim."\n` +
+    `aspect_ratio = "4:5"\n\n` +
+    `# Escolha um destes para o estilo_selecionado:\n` +
+    `# - Cinematográfico: fotografia cinematográfica, iluminação dramática, profundidade de campo\n` +
+    `# - Estúdio Clean: fotografia de estúdio, fundo neutro, iluminação suave e uniforme\n` +
+    `# - Urbano/Lifestyle: estilo lifestyle, ambiente urbano natural, luz do dia\n` +
+    `# - Minimalista: design minimalista, composição limpa, estética moderna e sofisticada\n` +
+    `# - Tecnologia 3D: estilo de ilustração 3D premium, renderização estilo Octane, cores vibrantes\n` +
+    `estilo_selecionado = "Cinematográfico"`
+  );
   
   const [image1Url, setImage1Url] = useState<string | null>(null);
   const [image1Mime, setImage1Mime] = useState<string>("");
