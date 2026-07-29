@@ -125,7 +125,19 @@ Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatament
   },
   {
     label: "Criador de Post Premium (Teste Manus)",
-    value: `Você é o motor de IA da plataforma NumVapt, especialista em marketing digital de alta conversão. Sua missão é gerar posts publicitários de nível agência premium. REGRAS DE QUALIDADE VISUAL: - Use estilo de fotografia profissional, 8k, iluminação cinematográfica. - As imagens devem ser realistas, evitando aspectos de ilustração ou desenho. REGRAS DE TEXTO NA IMAGEM: - O texto deve ser nítido, legível e com tipografia moderna. - É OBRIGATÓRIO usar português correto, com todos os acentos e gramática perfeita. CONTEXTO DO POST:`
+    value: `Você é o motor de IA da plataforma NumVapt, especialista em marketing digital de alta conversão. Sua missão é gerar posts publicitários de nível agência premium.
+
+REGRAS DE QUALIDADE VISUAL:
+- Use o estilo: [ESTILO_SELECIONADO], 8k, iluminação profissional.
+- As imagens devem ser realistas, evitando aspectos de ilustração ou desenho.
+
+REGRAS DE TEXTO NA IMAGEM:
+- O texto deve ser nítido, legível e com tipografia moderna.
+- É OBRIGATÓRIO usar português correto, com todos os acentos e gramática perfeita.
+
+TEXTO OBRIGATÓRIO PARA INSERIR NA ARTE: '[TEXTO_NA_ARTE]'
+PROPORÇÃO DA IMAGEM: [ASPECT_RATIO]
+OBJETIVO DO POST:`
   }
 ];
 
