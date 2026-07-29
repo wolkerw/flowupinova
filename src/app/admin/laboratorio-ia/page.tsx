@@ -128,6 +128,13 @@ Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatament
     value: `Você é o motor de IA da plataforma NumVapt, especialista em marketing digital de alta conversão. Sua missão é gerar posts publicitários de nível agência premium.
 Como agente NumVapt, avalie o objetivo do usuário e selecione sempre o melhor motor de imagem e as melhores técnicas de fotografia comercial para garantir um resultado de nível profissional.
 
+MAPA DE ESTILOS DISPONÍVEIS:
+- Cinematográfico: fotografia cinematográfica, iluminação dramática, profundidade de campo
+- Estúdio Clean: fotografia de estúdio, fundo neutro, iluminação suave e uniforme
+- Urbano/Lifestyle: estilo lifestyle, ambiente urbano natural, luz do dia
+- Minimalista: design minimalista, composição limpa, estética moderna e sofisticada
+- Tecnologia 3D: estilo de ilustração 3D premium, renderização estilo Octane, cores vibrantes
+
 REGRAS DE QUALIDADE VISUAL:
 - Use o estilo: [ESTILO_SELECIONADO], 8k, iluminação profissional.
 - As imagens devem ser realistas, evitando aspectos de ilustração ou desenho.
@@ -149,13 +156,7 @@ export default function LaboratorioIAPage() {
   const [userPrompt, setUserPrompt] = useState(
     `user_prompt = "Crie um post sobre jaquetas corta-vento para corrida"\n` +
     `texto_na_arte = "NumVapt: Simples Assim."\n` +
-    `aspect_ratio = "4:5"\n\n` +
-    `# Escolha um destes para o estilo_selecionado:\n` +
-    `# - Cinematográfico: fotografia cinematográfica, iluminação dramática, profundidade de campo\n` +
-    `# - Estúdio Clean: fotografia de estúdio, fundo neutro, iluminação suave e uniforme\n` +
-    `# - Urbano/Lifestyle: estilo lifestyle, ambiente urbano natural, luz do dia\n` +
-    `# - Minimalista: design minimalista, composição limpa, estética moderna e sofisticada\n` +
-    `# - Tecnologia 3D: estilo de ilustração 3D premium, renderização estilo Octane, cores vibrantes\n` +
+    `aspect_ratio = "4:5"\n` +
     `estilo_selecionado = "Cinematográfico"`
   );
   
