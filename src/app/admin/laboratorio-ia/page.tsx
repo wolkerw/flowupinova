@@ -217,7 +217,10 @@ export default function LaboratorioIAPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Erro desconhecido");
+        const errorMsg = data.details 
+          ? `${data.error}: ${typeof data.details === 'object' ? JSON.stringify(data.details) : data.details}`
+          : (data.error || "Erro desconhecido");
+        throw new Error(errorMsg);
       }
 
       if (data.pending && data.taskId) {
