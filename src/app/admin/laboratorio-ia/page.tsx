@@ -430,7 +430,9 @@ export default function LaboratorioIAPage() {
                   <img src={result.imageUrl} alt="Imagem gerada" className="max-h-[400px] object-contain rounded-md shadow-md" />
                 </div>
               )}
-              <pre className="whitespace-pre-wrap">{typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</pre>
+              {!result.imageUrl && (
+                <pre className="whitespace-pre-wrap">{typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</pre>
+              )}
             </div>
           )}
 
