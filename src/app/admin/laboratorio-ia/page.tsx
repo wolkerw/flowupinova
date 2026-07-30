@@ -199,6 +199,9 @@ export default function LaboratorioIAPage() {
     setResult(null);
 
     try {
+      console.log("🚀 [Frontend] Iniciando requisição para nossa API local: POST /api/admin/laboratorio-ia");
+      console.log("📦 Payload enviado:", { model, temperature });
+
       const response = await fetch("/api/admin/laboratorio-ia", {
         method: "POST",
         headers: {
