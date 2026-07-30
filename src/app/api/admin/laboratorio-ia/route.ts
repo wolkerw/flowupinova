@@ -14,14 +14,10 @@ export async function POST(request: NextRequest) {
       // Conforme o PDF, precisamos criar uma Task na Manus
       const manusUrl = "https://api.manus.ai/v2/task.create"; 
       
+      const finalContent = `${systemPrompt || ""}\n\n${userPrompt || "Gere um conteúdo de marketing."}`;
+
       const payload = {
-        prompt: userPrompt || "Gere um conteúdo de marketing.",
-        system_prompt: systemPrompt || "",
-        structured_output_schema: {
-          image_url: "Link da imagem",
-          post_caption: "Texto da legenda",
-          optimized_hashtags: "Lista de hashtags"
-        }
+        message: { content: finalContent }
       };
 
       const response = await fetch(manusUrl, {
