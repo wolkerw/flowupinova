@@ -6,22 +6,18 @@ export async function POST(request: NextRequest) {
     const { model, temperature, systemPrompt, userPrompt, image1, image2 } = body;
 
     if (model.startsWith("manus")) {
-      const manusKey = process.env.MANUS_API;
+      const manusKey = process.env.MANUS_API_KEY || process.env.MANUS_API;
       if (!manusKey) {
-        return NextResponse.json({ error: "MANUS_API não configurada no .env" }, { status: 500 });
+        return NextResponse.json({ error: "MANUS_API_KEY não configurada no .env" }, { status: 500 });
       }
 
       // Conforme o PDF, precisamos criar uma Task na Manus
       const manusUrl = "https://api.manus.ai/v2/task.create"; 
       
+      const finalContent = `${systemPrompt || ""}\n\n${userPrompt || "Gere um conteúdo de marketing."}`;
+
       const payload = {
-        prompt: userPrompt || "Gere um conteúdo de marketing.",
-        system_prompt: systemPrompt || "",
-        structured_output_schema: {
-          image_url: "Link da imagem",
-          post_caption: "Texto da legenda",
-          optimized_hashtags: "Lista de hashtags"
-        }
+        message: { content: finalContent }
       };
 
       const response = await fetch(manusUrl, {

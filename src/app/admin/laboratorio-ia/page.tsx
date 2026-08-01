@@ -128,6 +128,13 @@ Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatament
     value: `Você é o motor de IA da plataforma NumVapt, especialista em marketing digital de alta conversão. Sua missão é gerar posts publicitários de nível agência premium.
 Como agente NumVapt, avalie o objetivo do usuário e selecione sempre o melhor motor de imagem e as melhores técnicas de fotografia comercial para garantir um resultado de nível profissional.
 
+MAPA DE ESTILOS DISPONÍVEIS:
+- Cinematográfico: fotografia cinematográfica, iluminação dramática, profundidade de campo
+- Estúdio Clean: fotografia de estúdio, fundo neutro, iluminação suave e uniforme
+- Urbano/Lifestyle: estilo lifestyle, ambiente urbano natural, luz do dia
+- Minimalista: design minimalista, composição limpa, estética moderna e sofisticada
+- Tecnologia 3D: estilo de ilustração 3D premium, renderização estilo Octane, cores vibrantes
+
 REGRAS DE QUALIDADE VISUAL:
 - Use o estilo: [ESTILO_SELECIONADO], 8k, iluminação profissional.
 - As imagens devem ser realistas, evitando aspectos de ilustração ou desenho.
@@ -146,7 +153,12 @@ export default function LaboratorioIAPage() {
   const [model, setModel] = useState("gemini-3.5-flash");
   const [temperature, setTemperature] = useState(0.7);
   const [systemPrompt, setSystemPrompt] = useState(PROMPT_PRESETS[0].value);
-  const [userPrompt, setUserPrompt] = useState("Crie um post para o Instagram focado em conversão.");
+  const [userPrompt, setUserPrompt] = useState(
+    `user_prompt = "Crie um post sobre jaquetas corta-vento para corrida"\n` +
+    `texto_na_arte = "NumVapt: Simples Assim."\n` +
+    `aspect_ratio = "4:5"\n` +
+    `estilo_selecionado = "Cinematográfico"`
+  );
   
   const [image1Url, setImage1Url] = useState<string | null>(null);
   const [image1Mime, setImage1Mime] = useState<string>("");
@@ -187,6 +199,9 @@ export default function LaboratorioIAPage() {
     setResult(null);
 
     try {
+      console.log("🚀 [Frontend] Iniciando requisição para nossa API local: POST /api/admin/laboratorio-ia");
+      console.log("📦 Payload enviado:", { model, temperature });
+
       const response = await fetch("/api/admin/laboratorio-ia", {
         method: "POST",
         headers: {
@@ -205,7 +220,10 @@ export default function LaboratorioIAPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Erro desconhecido");
+        const errorMsg = data.details 
+          ? `${data.error}: ${typeof data.details === 'object' ? JSON.stringify(data.details) : data.details}`
+          : (data.error || "Erro desconhecido");
+        throw new Error(errorMsg);
       }
 
       if (data.pending && data.taskId) {
@@ -406,8 +424,15 @@ export default function LaboratorioIAPage() {
           )}
 
           {!isLoading && result && (
-            <div className="flex-1 overflow-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
-              <pre className="whitespace-pre-wrap">{typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</pre>
+            <div className="flex-1 flex flex-col gap-4 overflow-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
+              {result.imageUrl && (
+                <div className="w-full flex justify-center bg-gray-800 p-2 rounded-md">
+                  <img src={result.imageUrl} alt="Imagem gerada" className="max-h-[400px] object-contain rounded-md shadow-md" />
+                </div>
+              )}
+              {!result.imageUrl && (
+                <pre className="whitespace-pre-wrap">{typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</pre>
+              )}
             </div>
           )}
 
