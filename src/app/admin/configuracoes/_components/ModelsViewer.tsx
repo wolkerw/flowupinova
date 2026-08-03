@@ -30,17 +30,17 @@ export function ModelsViewer() {
               <span className="mb-1 block text-xs font-medium text-emerald-400">
                 Modelo Principal
               </span>
-              <p className="text-sm font-semibold text-slate-200">Imagen 4.0 Ultra</p>
-              <p className="mt-1 text-xs text-slate-400">Provedor: Google Vertex AI</p>
+              <p className="text-sm font-semibold text-slate-200">GPT Image 2</p>
+              <p className="mt-1 text-xs text-slate-400">Provedor: OpenAI</p>
             </div>
 
             <div className="rounded border border-amber-900/50 bg-amber-950/20 p-3">
               <span className="mb-1 block text-xs font-medium text-amber-400">
                 Modelo de Fallback
               </span>
-              <p className="text-sm font-semibold text-slate-200">Imagen 4.0 Fast</p>
+              <p className="text-sm font-semibold text-slate-200">Imagen 4.0 Ultra</p>
               <p className="mt-1 text-xs text-slate-400">
-                Acionado nativamente pelo servidor caso o modelo Ultra apresente instabilidade.
+                Acionado nativamente pelo servidor caso a comunicação com a OpenAI (GPT Image 2) apresente instabilidade ou falha.
               </p>
             </div>
           </div>
