@@ -59,6 +59,62 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Fluxo para OpenAI (GPT Image / DALL-E)
+    if (model.includes("gpt-image")) {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        return NextResponse.json({ error: "OPENAI_API_KEY não configurada no .env" }, { status: 500 });
+      }
+
+      const openaiUrl = "https://api.openai.com/v1/images/generations";
+      const finalPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
+
+      const response = await fetch(openaiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: finalPrompt,
+          n: 1,
+          size: "1024x1024"
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("[LAB_IA] Falha na API da OpenAI:", errText);
+        return NextResponse.json(
+          { error: `Erro na API da OpenAI (${model})`, details: errText },
+          { status: response.status }
+        );
+      }
+
+      const resData = await response.json();
+      const b64 = resData?.data?.[0]?.b64_json;
+      const imageUrl = resData?.data?.[0]?.url;
+
+      if (b64) {
+        return NextResponse.json({
+          result: {
+            message: `Imagem gerada com sucesso via ${model.toUpperCase()}`,
+            imageUrl: `data:image/png;base64,${b64}`
+          }
+        });
+      } else if (imageUrl) {
+        return NextResponse.json({
+          result: {
+            message: `Imagem gerada com sucesso via ${model.toUpperCase()}`,
+            imageUrl: imageUrl
+          }
+        });
+      }
+
+      return NextResponse.json({ result: resData });
+    }
+
     // Fluxo padrão para o Gemini ou Imagen
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -68,12 +124,13 @@ export async function POST(request: NextRequest) {
     if (model.startsWith("imagen")) {
       // Fluxo para Imagen 4
       const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+      const finalImagenPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
       
       const imagenResponse = await fetch(imagenUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instances: [{ prompt: userPrompt || systemPrompt || "Um objeto aleatório" }],
+          instances: [{ prompt: finalImagenPrompt }],
           parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
         }),
       });
@@ -138,6 +195,7 @@ export async function POST(request: NextRequest) {
       ],
       generationConfig: {
         temperature: temperature ?? 0.7,
+        ...(model.includes("image") ? { responseModalities: ["IMAGE"] } : {})
       },
     };
 

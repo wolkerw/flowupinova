@@ -1,9 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
+    let dynamicPrompts: any = {};
+    try {
+      const docSnap = await adminDb.collection("system_settings").doc("prompts").get();
+      if (docSnap.exists) {
+        dynamicPrompts = docSnap.data();
+      }
+    } catch (dbErr) {
+      console.error("[GERAR_COPILOT_ERROR] Erro ao buscar prompts do DB:", dbErr);
+    }
+
     const { segmento, descricaoNegocio, textoPost, objetivo } = await request.json();
 
     const apiKey =
@@ -24,11 +35,21 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const currentYear = now.getFullYear();
 
+    const rawCopilotPrompt = dynamicPrompts.copilot_ads_prompt || `Você é um especialista em marketing digital da Meta (Facebook e Instagram) focado em pequenos e médios negócios locais brasileiros.
+Sua tarefa é criar títulos (headlines) magnéticos e copies altamente persuasivas para impulsionar um anúncio na região local.
+
+INSTRUÇÕES DE ESCRITA:
+- Use uma linguagem amigável, direta, cativante e focada nos benefícios (copywriting moderno).
+- Não use jargões difíceis. Fale diretamente com as dores e desejos dos moradores da região.
+- Os títulos (Headlines) devem ser curtos, marcantes e diretos (máximo 40 caracteres).
+- Os textos (Ad Copies) devem conter no máximo 3 pequenos parágrafos, usar emojis de forma natural e incluir um forte Call to Action (CTA).
+- Retorne exatamente 3 sugestões diferentes e criativas.`;
+
     // Criar o prompt detalhado para o especialista em marketing local da Meta
     const prompt = `
-Você é um especialista em marketing digital da Meta (Facebook e Instagram) focado em pequenos e médios negócios locais brasileiros.
+${rawCopilotPrompt}
+
 CONTEXTO TEMPORAL: Estamos no ano de ${currentYear}. Sempre utilize esse ano atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
-Sua tarefa é criar títulos (headlines) magnéticos e copies altamente persuasivas para impulsionar um anúncio na região local.
 
 INFORMAÇÕES DO NEGÓCIO:
 - Nome do segmento: ${segmento || "Negócio Local"}
@@ -39,13 +60,6 @@ CONTEXTO DO POST (SE HOUVER):
 
 OBJETIVO DA CAMPANHA:
 - ${objetivo === "MESSAGES" ? "Garantir contatos imediatos e mensagens iniciadas no WhatsApp ou Direct de clientes interessados." : objetivo === "LINK_CLICKS" ? "Direcionar tráfego qualificado de visitantes para o site da empresa ou perfil comercial." : "Gerar o máximo de engajamento local, curtidas, comentários e salvamentos."}
-
-INSTRUÇÕES DE ESCRITA:
-- Use uma linguagem amigável, direta, cativante e focada nos benefícios (copywriting moderno).
-- Não use jargões difíceis. Fale diretamente com as dores e desejos dos moradores da região.
-- Os títulos (Headlines) devem ser curtos, marcantes e diretos (máximo 40 caracteres).
-- Os textos (Ad Copies) devem conter no máximo 3 pequenos parágrafos, usar emojis de forma natural e incluir um forte Call to Action (CTA).
-- Retorne exatamente 3 sugestões diferentes e criativas.
 
 Você deve responder estritamente com um objeto JSON válido, sem markdown ou formatações extras, seguindo exatamente o seguinte esquema JSON:
 {

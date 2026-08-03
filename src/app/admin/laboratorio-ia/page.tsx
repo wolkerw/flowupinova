@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -154,11 +154,51 @@ export default function LaboratorioIAPage() {
   const [temperature, setTemperature] = useState(0.7);
   const [systemPrompt, setSystemPrompt] = useState(PROMPT_PRESETS[0].value);
   const [userPrompt, setUserPrompt] = useState(
-    `user_prompt = "Crie um post sobre jaquetas corta-vento para corrida"\n` +
-    `texto_na_arte = "NumVapt: Simples Assim."\n` +
-    `aspect_ratio = "4:5"\n` +
-    `estilo_selecionado = "Cinematográfico"`
+    `Objetivo: Crie um post sobre jaquetas corta-vento para corrida\n` +
+    `Texto obrigatório para estampar na arte: "NumVapt: Estratégia e tráfego para sua comunicação"\n` +
+    `Formato: 4:5\n` +
+    `Estilo visual: Cinematográfico`
   );
+  
+  const [prompts, setPrompts] = useState<{label: string; value: string}[]>(PROMPT_PRESETS);
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const res = await fetch("/api/admin/prompts");
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const dynamicPresets = [
+          { label: "Gerador de Imagem: Conceito (UGC / Contexto)", value: data.ugc_prompt },
+          { label: "Gerador de Imagem: Foto de Produto", value: data.produto_prompt },
+          { label: "Gerador de Imagem: Híbrida (Produto + Cenário)", value: data.hibrido_prompt },
+          { label: "Gerador de Ideias de Posts (Referência)", value: data.ideias_post_prompt },
+          { label: "Melhorador de Textos", value: data.melhorar_texto_prompt },
+          { label: "Copilot de Anúncios (Meta Ads)", value: data.copilot_ads_prompt },
+        ];
+        
+        const merged = PROMPT_PRESETS.map(preset => {
+          const matched = dynamicPresets.find(dp => dp.label === preset.label);
+          if (matched && matched.value) {
+            return { ...preset, value: matched.value };
+          }
+          return preset;
+        });
+
+        setPrompts(merged);
+        
+        // Se o sistema estiver com o default original e ele veio atualizado do banco, atualiza:
+        if (systemPrompt === PROMPT_PRESETS[0].value && merged[0].value !== PROMPT_PRESETS[0].value) {
+          setSystemPrompt(merged[0].value);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar prompts dinâmicos no laboratório", err);
+      }
+    };
+    
+    fetchPrompts();
+  }, []);
   
   const [image1Url, setImage1Url] = useState<string | null>(null);
   const [image1Mime, setImage1Mime] = useState<string>("");
@@ -303,6 +343,10 @@ export default function LaboratorioIAPage() {
                     <option value="imagen-4.0-ultra-generate-001">Imagen 4.0 Ultra</option>
                     <option value="imagen-4.0-fast-generate-001">Imagen 4.0 Fast (Fallback)</option>
                   </optgroup>
+                  <optgroup label="Imagem (OpenAI)">
+                    <option value="gpt-image-2">GPT Image 2</option>
+                    <option value="chatgpt-image-latest">ChatGPT Image Latest</option>
+                  </optgroup>
                 </select>
               </div>
               <div>
@@ -327,12 +371,12 @@ export default function LaboratorioIAPage() {
                 className="rounded-md border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 max-w-[200px]"
                 defaultValue=""
                 onChange={(e) => {
-                  const preset = PROMPT_PRESETS.find(p => p.label === e.target.value);
+                  const preset = prompts.find(p => p.label === e.target.value);
                   if (preset) setSystemPrompt(preset.value);
                 }}
               >
                 <option value="" disabled>Carregar prompt original...</option>
-                {PROMPT_PRESETS.map((preset, index) => (
+                {prompts.map((preset, index) => (
                   <option key={index} value={preset.label}>{preset.label}</option>
                 ))}
               </select>

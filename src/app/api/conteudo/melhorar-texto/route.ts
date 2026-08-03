@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   try {
+    let dynamicPrompts: any = {};
+    try {
+      const docSnap = await adminDb.collection("system_settings").doc("prompts").get();
+      if (docSnap.exists) {
+        dynamicPrompts = docSnap.data();
+      }
+    } catch (dbErr) {
+      console.error("[MELHORAR_TEXTO] Erro ao buscar prompts do DB:", dbErr);
+    }
+
     const { textoOriginal } = await request.json();
 
     if (!textoOriginal || typeof textoOriginal !== "string") {
@@ -19,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
-    const systemInstruction = `Você é um especialista em Copywriting para Redes Sociais.
+    const systemInstruction = dynamicPrompts.melhorar_texto_prompt || `Você é um especialista em Copywriting para Redes Sociais.
 Sua tarefa é melhorar a legenda fornecida pelo usuário.
 Diretrizes:
 - Corrija erros gramaticais e deixe a leitura mais fluida, persuasiva e engajadora.

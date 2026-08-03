@@ -664,7 +664,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       formData.append("postId", currentPostId || "");
       formData.append("userId", user.uid);
 
-      const response = await fetch("/api/proxy-webhook?target=gerador_conteudo", {
+      const response = await fetch("/api/conteudo/gerar-ideias", {
         method: "POST",
         body: formData,
       });
