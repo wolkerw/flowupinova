@@ -137,6 +137,16 @@ export async function POST(request: NextRequest) {
       credentials: rawFalKey,
     });
 
+    let dynamicPrompts: any = {};
+    try {
+      const docSnap = await adminDb.collection("system_settings").doc("prompts").get();
+      if (docSnap.exists) {
+        dynamicPrompts = docSnap.data();
+      }
+    } catch (dbErr) {
+      console.error("[GERAR_REFERENCIA] Erro ao buscar prompts do DB:", dbErr);
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
 
@@ -271,13 +281,13 @@ Informações Básicas do Negócio:
       const currentYear = now.getFullYear();
       const currentMonth = now.toLocaleString("pt-BR", { month: "long" });
 
-      const geminiPrompt = `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
-CONTEXTO TEMPORAL: Estamos no ano de ${currentYear}, no mês de ${currentMonth}. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
+      const rawIdeiasPrompt = dynamicPrompts.ideias_post_prompt || `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
+CONTEXTO TEMPORAL: Estamos no ano de [ANO], no mês de [MES]. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
 
-Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "${description}".
+Análise detalhadamente a imagem de inspiração visual (print de post) fornecida e a descrição enviada pelo usuário: "[DESCRICAO]".
 Com base nessas informações e no perfil comercial do usuário informado abaixo, crie 3 propostas de publicações virais e estratégicas para o Instagram que herdem e adaptem o conceito visual, estilo estético, layout e tom de voz do print de referência para a realidade deste negócio.
 
-${businessContext}
+[CONTEXTO_DO_NEGOCIO]
 
 Instruções para cada uma das 3 propostas de posts:
 1. "titulo": Crie um título extremamente curto (máx 45 caracteres), instigante e magnético (gancho comercial forte).
@@ -305,6 +315,31 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
   ]
 }`;
 
+      let geminiPrompt = rawIdeiasPrompt
+        .replace("[ANO]", currentYear.toString())
+        .replace("[MES]", currentMonth)
+        .replace("[DESCRICAO]", description)
+        .replace("[CONTEXTO_DO_NEGOCIO]", businessContext);
+
+      // Se o prompt master não tinha as tags originais (porque foi atualizado), garantimos que a IA receba o contexto e a descrição no final
+      if (!geminiPrompt.includes(description) && description) {
+        geminiPrompt += `\n\nDescrição/Tema fornecido pelo usuário: ${description}`;
+      }
+      if (!geminiPrompt.includes(businessContext) && businessContext) {
+        geminiPrompt += `\n\nContexto do Negócio:\n${businessContext}`;
+      }
+
+      // GARANTIA CRÍTICA DE FORMATO: Injeta as regras de JSON que podem estar faltando no prompt do admin
+      geminiPrompt += `\n\nINSTRUÇÕES DE FORMATO OBRIGATÓRIO (VOCÊ DEVE SEGUIR ESTA ESTRUTURA ESTRITAMENTE):
+Responda EXATAMENTE E APENAS com um objeto JSON válido, contendo uma propriedade "publicacoes" que é um array com as 3 ideias. Cada ideia deve ter as propriedades exatas: "titulo" (string), "subtitulo" (string) e "hashtags" (array de strings com a hashtag incluída, ex: ["#foo"]).
+Exemplo de formato:
+{
+  "publicacoes": [
+    { "titulo": "Seu título aqui", "subtitulo": "Seu subtítulo explicativo aqui", "hashtags": ["#marketing", "#sucesso"] }
+  ]
+}
+NÃO inclua crases, NENHUM bloco markdown \`\`\`json, nem qualquer texto antes ou depois do JSON. Devolva apenas o JSON puro.`;
+
       const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
       let parsed = null;
 
@@ -321,7 +356,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              model: "claude-sonnet-5",
+              model: "claude-3-5-sonnet-20241022",
               max_tokens: 3000,
               messages: [
                 {
@@ -361,7 +396,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                 "content-type": "application/json",
               },
               body: JSON.stringify({
-                model: "claude-sonnet-4-5-20250929",
+                model: "claude-3-opus-20240229",
                 max_tokens: 3000,
                 messages: [
                   {
@@ -404,77 +439,93 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
       }
 
       if (!parsed) {
-        try {
-          console.log(
-            "[GERAR_REFERENCIA] Usando Gemini 2.5 Pro de fallback para gerar ideias textuais..."
-          );
-          const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
-          const geminiResponse = await fetch(geminiProUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: geminiPrompt },
-                    {
-                      inlineData: {
-                        mimeType: mimeType,
-                        data: base64Image,
+          let proErrMessage = "";
+          try {
+            console.log(
+              "[GERAR_REFERENCIA] Usando Gemini 1.5 Pro de fallback para gerar ideias textuais..."
+            );
+            const geminiProUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${apiKey}`;
+            const geminiResponse = await fetch(geminiProUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
                       },
-                    },
-                  ],
+                      { text: "Analise a imagem de acordo com as instruções do sistema." }
+                    ],
+                  },
+                ],
+                systemInstruction: {
+                  parts: [{ text: geminiPrompt }],
                 },
-              ],
-              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
-            }),
-          });
+                generationConfig: {
+                  temperature: 0.9,
+                  responseMimeType: "application/json",
+                },
+              }),
+            });
 
-          if (!geminiResponse.ok) {
-            throw new Error(await geminiResponse.text());
-          }
+            if (!geminiResponse.ok) {
+              throw new Error(await geminiResponse.text());
+            }
 
-          const resData = await geminiResponse.json();
-          const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = safeJsonParse(rawJson);
-        } catch (proError) {
-          console.warn(
-            "[GERAR_REFERENCIA] Falha no Gemini 2.5 Pro (Ideas), tentando Gemini 2.5 Flash:",
-            proError
-          );
+            const resData = await geminiResponse.json();
+            const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+            parsed = safeJsonParse(rawJson);
+          } catch (proError: any) {
+            proErrMessage = proError.message || String(proError);
+            console.warn(
+              "[GERAR_REFERENCIA] Falha no Gemini 1.5 Pro (Ideas), tentando Gemini 1.5 Flash:",
+              proErrMessage
+            );
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-          const geminiResponse = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: geminiPrompt },
-                    {
-                      inlineData: {
-                        mimeType: mimeType,
-                        data: base64Image,
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+            const geminiResponseFlash = await fetch(geminiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Image,
+                        },
                       },
-                    },
-                  ],
+                      { text: "Analise a imagem de acordo com as instruções do sistema." }
+                    ],
+                  },
+                ],
+                systemInstruction: {
+                  parts: [{ text: geminiPrompt }],
                 },
-              ],
-              generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192 },
-            }),
-          });
+                generationConfig: {
+                  temperature: 0.9,
+                  responseMimeType: "application/json",
+                },
+              }),
+            });
 
-          if (!geminiResponse.ok) {
-            const errText = await geminiResponse.text();
-            console.error("[MIGRATED_REF_IDEAS] Falha no Gemini Flash:", errText);
-            throw new Error(`Falha ao gerar ideias no Gemini: ${errText}`);
+            if (!geminiResponseFlash.ok) {
+              const flashErrText = await geminiResponseFlash.text();
+              console.error("[MIGRATED_REF_IDEAS] Falha no Gemini Flash:", flashErrText);
+              throw new Error(`Falha ao gerar ideias no Gemini.\nErro no Pro: ${proErrMessage}\nErro no Flash: ${flashErrText}`);
+            }
+
+            const resData = await geminiResponseFlash.json();
+            const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+            parsed = safeJsonParse(rawJson);
           }
-
-          const resData = await geminiResponse.json();
-          const rawJson = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          parsed = safeJsonParse(rawJson);
-        }
       }
 
       return NextResponse.json(parsed);
@@ -815,21 +866,21 @@ This prompt MUST describe a realistic photorealistic scene, detailing the produc
 ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
-# UGC PHOTOGRAPHY & ESTHETIC PREMIUM
-- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., \"real-world professional commercial photography\", \"premium natural lifestyle scene\", \"luxury cinematic portrait\").
-- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., \"cinematic volumetric natural lighting\", \"soft ambient sunlight\", \"gentle side-lighting casting warm soft diagonal shadows\", \"rim lighting highlighting the contours of the subject\").
-- Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., \"shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background\").
-- Strictly avoid banned artificial buzzwords (e.g., do NOT use \"photorealistic\", \"ultrarealistic\", \"4k\", \"8k\", \"hyper-detailed\", or \"masterpiece\").
-- Emphasize natural tangible textures to force model realism: \"subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections\".
+${dynamicPrompts.ugc_prompt || `# UGC PHOTOGRAPHY & ESTHETIC PREMIUM
+- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait (e.g., "real-world professional commercial photography", "premium natural lifestyle scene", "luxury cinematic portrait").
+- Mandatorily detail advanced lighting setups to create stunning visual separation (e.g., "cinematic volumetric natural lighting", "soft ambient sunlight", "gentle side-lighting casting warm soft diagonal shadows", "rim lighting highlighting the contours of the subject").
+- Define professional camera specifications to preserve palpable textures and extreme optical sharpness (e.g., "shot on high-end camera, 50mm or 85mm lens, pin-sharp focus on the main subject, shallow depth of field, clean circular bokeh circles in the background").
+- Strictly avoid banned artificial buzzwords (e.g., do NOT use "photorealistic", "ultrarealistic", "4k", "8k", "hyper-detailed", or "masterpiece").
+- Emphasize natural tangible textures to force model realism: "subtle high-end film grain, realistic skin textures showing fine pores, natural fabric folds, soft textile imperfections, and realistic glass reflections".
 
 # APPAREL & CLOTHING SPECIAL INSTRUCTIONS — FULL BODY MANDATORY
 If the reference product is clothing/apparel, shoes, or any wearable item, all of the following rules are ABSOLUTE and override any other composition instruction:
 - **FRAMING IS FULL BODY ONLY**: You MUST describe a full body shot framing. The model must be shown completely from head to toe. Explicitly state: "full-body portrait shot, showing the model from the very top of their head down to their feet, with the entire outfit clearly visible from top to bottom, generous empty headroom above the head".
-- Specify how the fabric falls, its physical texture (e.g., \"textured heavy linen\", \"soft ribbed premium cotton\", \"glossy silk satin\"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
-- Describe the model interacting naturally and elegantly with the environment (e.g., \"standing relaxed\", \"leaning casually on the natural ambient furniture\").
-- Ensure the model's environment strictly represents the user's requested scenario (e.g., \"inside the exact real-world scenario requested with beautiful ambient lighting\").
-- EXPLICITLY state: \"The model's entire body is fully visible — head, hair, face, torso, legs, and feet — all beautifully framed with generous headroom at the top and ground visible at the bottom, strictly preventing any part of the body, head, forehead, or hair from being clipped or cut off by the borders. Full body shot. No cropping.\".
-- NEVER frame apparel shots as chest-up, waist-up, or product close-up. The garment's full silhouette from collar/shoulder to hem/feet is the visual story — it must be fully shown.
+- Specify how the fabric falls, its physical texture (e.g., "textured heavy linen", "soft ribbed premium cotton", "glossy silk satin"), and visual details like wooden buttons, delicate stitching, prints, or specific cuts.
+- Describe the model interacting naturally and elegantly with the environment (e.g., "standing relaxed", "leaning casually on the natural ambient furniture").
+- Ensure the model's environment strictly represents the user's requested scenario (e.g., "inside the exact real-world scenario requested with beautiful ambient lighting").
+- EXPLICITLY state: "The model's entire body is fully visible — head, hair, face, torso, legs, and feet — all beautifully framed with generous headroom at the top and ground visible at the bottom, strictly preventing any part of the body, head, forehead, or hair from being clipped or cut off by the borders. Full body shot. No cropping.".
+- NEVER frame apparel shots as chest-up, waist-up, or product close-up. The garment's full silhouette from collar/shoulder to hem/feet is the visual story — it must be fully shown.`}
 
 # OUTPUT FORMAT (Strict JSON)
 You must return exclusively a valid JSON object with the following key. Do not include any explanations, introductory or concluding text:
@@ -1550,20 +1601,23 @@ ${yamlAnalysis}`;
         }
 
         const inputIsPackshot = hybridPriority === "packshot";
-        nanobananaPrompt = `You are an elite Director of Photography, Editorial Portraitist, and Senior Ad Designer.
-Based on the two reference images provided (Photo 1: ${inputIsPackshot ? "User's Product" : "User's Selfie/Person"}; Photo 2: ${inputIsPackshot ? "Commercial Backdrop/Scenario" : "Product/Project Scenario"}), generate a premium, realistic lifestyle commercial image integrating both into the scene.
+        
+        const rawHibridoPrompt = dynamicPrompts.hibrido_prompt || `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
+Com base nas duas imagens de referência fornecidas (Foto 1 e Foto 2), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
-UGC PHOTOGRAPHIC ESTHETIC GUIDELINES (STRICTLY FOLLOW):
-- CRITICAL TEXT PROHIBITION RULE (ABSOLUTELY NO TEXT - ZERO TOLERANCE): The final image must NOT contain any text, words, letters, numbers, logos, watermarks, or graphical badges. The image must be purely photographic and completely clean of typography.
-- CRITICAL FRAMING RULE (ABSOLUTELY NO CROPPED HEADS): If the scene contains a person, you must show their entire head, hair, and face fully contained within the frame with generous headroom at the top. Never clip or cut off the head.
-- Use professional natural lighting to create three-dimensional depth and separation (e.g., soft indirect sunlight, soft side-lighting casting warm diagonal shadows).
-- Replicate a high-end professional camera look (50mm or 85mm lens, sharp focus on the main subject, soft circular bokeh background).
-- Preserve realistic, tangible textures (film grain, skin pores, fabric folds, real glass reflections). Avoid fake AI plastic look.
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC (SIGA ESTRITAMENTE):
+- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento, deixando um espaço livre (headroom) na parte superior. Nunca corte o topo da cabeça ou cabelo do modelo.
+- Utilize iluminação profissional e natural para criar profundidade e separação tridimensional.
+- Replique o visual de uma câmera profissional de alto padrão (lente 50mm ou 85mm, foco nítido, desfoque suave de fundo).
+- Preserve texturas realistas e tangíveis (grão de filme, poros da pele, dobras de tecido). Evite aspecto de plástico artificial.`;
 
-HYBRID CREATION RULES FOR THIS RUN:
+        nanobananaPrompt = `${rawHibridoPrompt}
+
+REGRAS DE CRIAÇÃO HÍBRIDA PARA ESTA GERAÇÃO:
 ${priorityRule}
 
-Desired scenario and style: ${prompt}`;
+Cenário desejado e estilo: ${prompt}`;
 
         contentsParts = [
           { text: nanobananaPrompt },
@@ -1582,23 +1636,24 @@ Desired scenario and style: ${prompt}`;
         ];
       } else {
         // Prompt Tradicional (Pessoa Única ou Produto Único)
-        nanobananaPrompt = `Here is the user's product reference photo (with transparent/removed background).
-You are a Senior Commercial Photographer and Ad Designer specializing in premium UGC campaigns. Generate a realistic lifestyle commercial ad placing this product into the desired scenario described below.
+        const rawProdutoPrompt = dynamicPrompts.produto_prompt || `Aqui está a foto de referência do produto (com fundo transparente/removido).
+Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
 
-CRITICAL PRODUCT PRESERVATION RULES:
-1. Maintain the exact physical shape, formatting, brands, labels, logos, text, and colors of the product from the reference photo.
-2. Do not distort, modify, or change the product. It must look real, sharp, and identical to the reference.
-3. Position the product three-dimensionally, integrating it with realistic contact shadows and reflections on the surface.
-4. Any text or label on the product must remain readable and identical to the original.
+ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
+1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXACTAMENTE como estão na foto de referência.
+2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
+3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
+4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
 
-UGC PHOTOGRAPHIC ESTHETIC GUIDELINES:
-- CRITICAL TEXT PROHIBITION RULE (ABSOLUTELY NO TEXT - ZERO TOLERANCE): The final image must NOT contain any text, words, letters, numbers, logos, watermarks, or graphical badges. The image must be completely clean of typography.
-- CRITICAL FRAMING RULE (ABSOLUTELY NO CROPPED HEADS): If the scene contains a person, you must show their entire head, hair, and face fully contained within the frame with generous headroom at the top. Never clip or cut off the head.
-- Integrate the product organically with professional studio or natural ambient lighting (e.g., soft window sunlight, soft contact shadows beneath the product, realistic surface reflections).
-- Simulate a premium camera shot using a professional 50mm or 85mm lens, sharp focus on the product, and shallow depth of field in the background.
-- Avoid generic renders or artificial plastic colors. Emphasize tangible textures and subtle photographic grain.
+DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
+- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia.
+- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem.
+- Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave).
+- Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm.`;
 
-Desired scenario and style: ${prompt}`;
+        nanobananaPrompt = `${rawProdutoPrompt}
+
+Cenário desejado e estilo: ${prompt}`;
 
         contentsParts = [
           { text: nanobananaPrompt },

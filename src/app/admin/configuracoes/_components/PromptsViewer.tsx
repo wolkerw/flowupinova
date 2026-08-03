@@ -1,74 +1,99 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Bot, Image as ImageIcon, Workflow, Sparkles, MessageSquare } from "lucide-react";
+import { Bot, Image as ImageIcon, Workflow, Sparkles, MessageSquare, Save, Loader2, Megaphone, PenTool } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 export function PromptsViewer() {
-  const UGC_PROMPT = `You are an elite Creative Art Director, Ad Designer, and Prompt Engineer specialized in User-Generated Content (UGC) advertising and premium photographic product placement for image generation models (specifically Flux Kontext).
+  const [prompts, setPrompts] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-# GOAL
-Given a reference image description, the user's creative advertising ideas, and optionally an inspiration image, you MUST write a descriptive prompt in English for the "flux-pro/kontext" model.
+  useEffect(() => {
+    fetchPrompts();
+  }, []);
 
-# CRITICAL RULES
-1. OUTPUT LANGUAGE: IN ENGLISH.
-2. NO DUPLICATE PRODUCTS: Refer to the user's product in the input image as "the product" instead of describing a new product from scratch. 
-3. ABSOLUTELY NO CROPPED HEADS OR HAIR: Prevent the top of their head, forehead, or hair from being cut off by the border of the canvas.
+  const fetchPrompts = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/prompts");
+      const data = await res.json();
+      if (res.ok) {
+        setPrompts(data);
+      } else {
+        setError("Erro ao carregar os prompts.");
+      }
+    } catch (err) {
+      setError("Erro de rede ao carregar os prompts.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-# UGC PHOTOGRAPHY & ESTHETIC PREMIUM
-- Always describe a high-end commercial advertising photograph or a clean premium lifestyle portrait.
-- Mandatorily detail advanced lighting setups to create stunning visual separation.
-- Define professional camera specifications (e.g., "shot on high-end camera, 50mm or 85mm lens").
-- Strictly avoid banned artificial buzzwords (e.g., do NOT use "photorealistic", "ultrarealistic", "4k").`;
+  const handleSave = async (key: string) => {
+    try {
+      setSaving(true);
+      setSuccess("");
+      setError("");
+      
+      const res = await fetch("/api/admin/prompts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ [key]: prompts[key] }),
+      });
 
-  const PRODUTO_PROMPT = `Aqui está a foto de referência do produto (com fundo transparente/removido).
-Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
+      if (res.ok) {
+        setSuccess("Prompt salvo com sucesso!");
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Erro ao salvar o prompt.");
+      }
+    } catch (err) {
+      setError("Erro de rede ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-ATENÇÃO REGRAS CRÍTICAS DE PRESERVAÇÃO DO PRODUTO:
-1. Mantenha a integridade física, formato, marcas, rótulos, logo, textos e cores do produto EXACTAMENTE como estão na foto de referência.
-2. Não altere, distorça ou modifique o produto. Ele deve parecer real, nítido e idêntico à referência.
-3. Posicione o produto de forma tridimensional e integrada com as sombras e reflexos adequados no cenário.
-4. O texto ou rótulo do produto deve continuar legível e idêntico ao original.
+  const handleChange = (key: string, value: string) => {
+    setPrompts((prev) => ({ ...prev, [key]: value }));
+  };
 
-DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
-- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se houver uma pessoa ou modelo vestindo o produto, segurando o produto ou posando na cena, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Certifique-se de deixar um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
-- Integre o produto organicamente com iluminação profissional de estúdio ou natural de ambiente (ex: luz solar de janela suave).
-- Simule captura fotográfica premium com câmera profissional de ponta e lente de 50mm ou 85mm.`;
-
-  const HIBRIDO_PROMPT = `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
-Com base nas duas imagens de referência fornecidas (Foto 1 e Foto 2), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
-
-DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC A SEREM RIGOROSAMENTE SEGUIDAS:
-- REGRA CRÍTICA DE PROIBIÇÃO DE TEXTOS (ABSOLUTELY NO TEXT - ZERO TOLERANCE): A imagem final gerada NÃO deve conter nenhum tipo de texto, palavra, letra, número, logotipo, marca d'água ou elemento gráfico escrito (como banners ou etiquetas). A imagem deve ser puramente fotográfica e limpa de qualquer tipografia. (English enforcement: Under no circumstances should any text, words, labels, letters, numbers, or logo graphics be rendered on the image. The output must be completely clean of any typography).
-- REGRA CRÍTICA DE ENQUADRAMENTO (ABSOLUTELY NO CROPPED HEADS - ZERO TOLERANCE): Se a cena contiver uma pessoa ou modelo, você deve OBRIGATORIAMENTE exibir a cabeça, cabelo e rosto completos do modelo dentro do enquadramento. Deixe um espaço livre generoso (clear headroom) acima da cabeça. NUNCA corte o topo da cabeça ou o cabelo pelas bordas da imagem. (English enforcement: The model's entire head, full hair, and face must be completely visible and fully contained within the frame, with no cutoff or clipping by the top borders of the canvas, ensuring a generous amount of empty space above the head).
-- Use iluminação natural profissional para criar profundidade tridimensional e separação de planos.
-- Configure a composição como se fosse tirada por uma câmera profissional de ponta com lente de 50mm ou 85mm.
-- Preserve texturas realistas e tangíveis. Evite artificialidades plásticas de inteligência artificial.
-
-DIRETRIZES DE CRIAÇÃO HÍBRIDA DO SEU FLUXO:
-[A REGRA DA OPÇÃO ESCOLHIDA É INJETADA AQUI NO CÓDIGO]`;
-
-  const TEXTO_PROMPT = `[Workflow no n8n]
-Você atua como um Head de Estratégia de Conteúdo e Copywriter Especialista em Conversão.
-Analise os pilares editoriais da marca, o nicho de mercado e as descrições dos serviços/produtos.
-Elabore 3 opções de imagens conceituais, legendas altamente persuasivas (AIDA/PAS), e sugira os títulos que devem ser escritos sobre a imagem para gerar identificação imediata com a persona.`;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-slate-700/50 bg-slate-800/60 p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-6">
-      <div className="mb-6 flex items-center gap-3">
-        <Bot className="h-5 w-5 text-violet-400" />
-        <h2 className="text-lg font-semibold text-white">Biblioteca de Prompts (Agentes IA)</h2>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Bot className="h-5 w-5 text-violet-400" />
+          <h2 className="text-lg font-semibold text-white">Biblioteca de Prompts (Agentes IA)</h2>
+        </div>
       </div>
+      
       <p className="mb-6 text-sm text-slate-400">
-        Aqui estão os "cérebros" por trás das inteligências artificiais do app. Os prompts abaixo
-        estão divididos exatamente conforme as opções da sua tela de geração.
+        Aqui estão os "cérebros" por trás das inteligências artificiais do app. Edite as instruções abaixo 
+        para ajustar o comportamento de cada agente. Cuidado ao alterar as variáveis entre colchetes como [TEXTO_AQUI].
       </p>
+
+      {error && <div className="mb-4 rounded-md bg-red-500/20 p-3 text-sm text-red-200">{error}</div>}
+      {success && <div className="mb-4 rounded-md bg-emerald-500/20 p-3 text-sm text-emerald-200">{success}</div>}
 
       <Accordion type="single" collapsible className="w-full space-y-4">
         {/* Botão Conceito */}
@@ -79,17 +104,31 @@ Elabore 3 opções de imagens conceituais, legendas altamente persuasivas (AIDA/
           <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <Sparkles className="h-4 w-4 text-amber-400" />
-              Botão: Gerar Imagem Conceito
+              Agente: Gerar Imagem Conceito (UGC)
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-400">
             <p className="mb-4 text-xs">
-              Este agente (Gemini/Claude) recebe a ideia e constrói o prompt avançado em inglês
-              abaixo focando na estética UGC, evitando rostos cortados e repassando ao gerador de
-              imagem (Flux Kontext).
+              Este agente constrói o prompt avançado em inglês focando na estética UGC, evitando rostos cortados 
+              e repassando ao gerador de imagem (Flux Kontext).
             </p>
-            <div className="relative rounded-md bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-300">
-              <pre className="whitespace-pre-wrap">{UGC_PROMPT}</pre>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.ugc_prompt || ""}
+                onChange={(e) => handleChange("ugc_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("ugc_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -102,17 +141,31 @@ Elabore 3 opções de imagens conceituais, legendas altamente persuasivas (AIDA/
           <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <ImageIcon className="h-4 w-4 text-blue-400" />
-              Botão: Gerar com Foto de Produto
+              Agente: Gerar com Foto de Produto
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-400">
             <p className="mb-4 text-xs">
-              Este prompt é acionado <strong>após</strong> o Bria remover o fundo da sua imagem. Ele
-              instrui o Nano Banana Pro a preservar perfeitamente marcas e formatos originais,
+              Instrui a preservar perfeitamente marcas e formatos originais, 
               posicionando o item num cenário fotográfico de alto padrão.
             </p>
-            <div className="relative rounded-md bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-300">
-              <pre className="whitespace-pre-wrap">{PRODUTO_PROMPT}</pre>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.produto_prompt || ""}
+                onChange={(e) => handleChange("produto_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("produto_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -125,28 +178,36 @@ Elabore 3 opções de imagens conceituais, legendas altamente persuasivas (AIDA/
           <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <Workflow className="h-4 w-4 text-pink-400" />
-              Botão: Geração Híbrida (Várias Opções)
+              Agente: Geração Híbrida
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-400">
             <p className="mb-4 text-xs">
               Neste fluxo, o sistema junta sua imagem com uma referência. O modelo entende
-              prioridades com base no que você selecionou:
-              <br />
-              <br />- <strong>Opção A (Foco no Cenário):</strong> O prompt injeta ordens para manter
-              o fundo da Foto 2 intacto.
-              <br />- <strong>Opção B (Packshot/Produto):</strong> A IA é instruída a trocar (swap)
-              o produto da Foto 2 pelo seu da Foto 1.
-              <br />- <strong>Opção C (Foco na Pessoa):</strong> A pessoa é a heroína, mantendo
-              máxima fidelidade facial, flexibilizando o resto.
+              prioridades com base no que você selecionou e injeta a regra no placeholder `[REGRA_DA_OPCAO_ESCOLHIDA]`.
             </p>
-            <div className="relative rounded-md bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-300">
-              <pre className="whitespace-pre-wrap">{HIBRIDO_PROMPT}</pre>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.hibrido_prompt || ""}
+                onChange={(e) => handleChange("hibrido_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("hibrido_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
 
-        {/* Gerador de Textos */}
+        {/* Gerador de Ideias */}
         <AccordionItem
           value="textos"
           className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/50 px-4"
@@ -154,19 +215,106 @@ Elabore 3 opções de imagens conceituais, legendas altamente persuasivas (AIDA/
           <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
             <div className="flex items-center gap-3">
               <MessageSquare className="h-4 w-4 text-emerald-400" />
-              Agente: Gerador de Ideias e Textos
+              Agente: Gerador de Ideias e Textos (Interno)
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-6 pt-2 text-slate-400">
             <p className="mb-4 text-xs">
-              Este é o prompt mestre executado via n8n (nas etapas iniciais de criação do post) para
-              formular o copy.
+              Este é o prompt mestre executado internamente pela IA (nas etapas iniciais de criação do post) para formular as 3 sugestões de copy.
             </p>
-            <div className="relative rounded-md bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-300">
-              <pre className="whitespace-pre-wrap">{TEXTO_PROMPT}</pre>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[200px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.ideias_post_prompt || ""}
+                onChange={(e) => handleChange("ideias_post_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("ideias_post_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
+
+        {/* Melhorador de Textos */}
+        <AccordionItem
+          value="melhorador"
+          className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/50 px-4"
+        >
+          <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <PenTool className="h-4 w-4 text-cyan-400" />
+              Agente: Melhorador de Textos
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-400">
+            <p className="mb-4 text-xs">
+              Refina e corrige gramaticalmente a legenda fornecida pelo usuário, adicionando tom persuasivo.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[200px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.melhorar_texto_prompt || ""}
+                onChange={(e) => handleChange("melhorar_texto_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("melhorar_texto_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Copilot de Anúncios */}
+        <AccordionItem
+          value="copilot"
+          className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/50 px-4"
+        >
+          <AccordionTrigger className="text-slate-200 hover:text-white hover:no-underline">
+            <div className="flex items-center gap-3">
+              <Megaphone className="h-4 w-4 text-orange-400" />
+              Agente: Copilot de Anúncios (Meta Ads)
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 pt-2 text-slate-400">
+            <p className="mb-4 text-xs">
+              Cria headlines e copys focadas em conversão de anúncios pagos na Meta.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Textarea 
+                className="min-h-[300px] bg-slate-950 font-mono text-xs text-slate-300 border-slate-700" 
+                value={prompts.copilot_ads_prompt || ""}
+                onChange={(e) => handleChange("copilot_ads_prompt", e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleSave("copilot_ads_prompt")}
+                  disabled={saving}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Prompt
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
       </Accordion>
     </div>
   );

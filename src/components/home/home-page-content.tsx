@@ -44,10 +44,10 @@ export function HomePageContent() {
             </div>
 
             <div className="flex gap-6 text-sm">
-              <Link href="#" className="transition-colors hover:text-white">
+              <Link href="/termos-de-uso" className="transition-colors hover:text-white">
                 Termos de Uso
               </Link>
-              <Link href="#" className="transition-colors hover:text-white">
+              <Link href="/politica-de-privacidade" className="transition-colors hover:text-white">
                 Privacidade
               </Link>
               <Link href="/suporte" className="transition-colors hover:text-white">

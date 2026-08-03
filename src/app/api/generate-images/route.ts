@@ -103,54 +103,96 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Chamar a API REST oficial do Google Imagen com fallback automático de modelo
-    const IMAGEN_MODELS = ["imagen-4.0-ultra-generate-001", "imagen-4.0-fast-generate-001"];
+    // 2. Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
+    const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2" },
+      { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+    ];
 
-    let imagenData: any = null;
+    let imageBytes: string | null = null;
+    let modelUsed = "";
     let lastError = "";
+    const openaiKey = process.env.OPENAI_API_KEY;
 
-    for (const model of IMAGEN_MODELS) {
+    for (const config of MODELS_CHAIN) {
       console.log(
-        `[GENERATE_IMAGES_NATIVE] Tentando modelo ${model} para o post ${postId} (Slot: ${fileName})...`
+        `[GENERATE_IMAGES_NATIVE] Tentando modelo ${config.model} (${config.provider}) para o post ${postId} (Slot: ${fileName})...`
       );
-      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
 
-      const imagenResponse = await fetchWithRetry(imagenUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instances: [{ prompt: finalPrompt }],
-          parameters: {
-            sampleCount: 1,
-            outputMimeType: "image/jpeg",
-            aspectRatio: "1:1",
-          },
-        }),
-      });
+      try {
+        if (config.provider === "openai") {
+          if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
+          const response = await fetchWithRetry(
+            "https://api.openai.com/v1/images/generations",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${openaiKey}`,
+              },
+              body: JSON.stringify({
+                model: config.model,
+                prompt: finalPrompt,
+                n: 1,
+                size: "1024x1024",
+              }),
+            }
+          );
 
-      if (imagenResponse.ok) {
-        const data = await imagenResponse.json();
-        if (data?.predictions?.[0]?.bytesBase64Encoded) {
-          imagenData = data;
-          console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${model}!`);
-          break;
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.data?.[0]?.b64_json) {
+              imageBytes = data.data[0].b64_json;
+              modelUsed = config.model;
+              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              break;
+            }
+          }
+          const errText = await response.text().catch(() => `status ${response.status}`);
+          lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 200)}`;
+          throw new Error(lastError);
+        } else {
+          // Google Imagen
+          const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:predict?key=${apiKey}`;
+          const response = await fetchWithRetry(imagenUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{ prompt: finalPrompt }],
+              parameters: {
+                sampleCount: 1,
+                outputMimeType: "image/jpeg",
+                aspectRatio: "1:1",
+              },
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.predictions?.[0]?.bytesBase64Encoded) {
+              imageBytes = data.predictions[0].bytesBase64Encoded;
+              modelUsed = config.model;
+              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              break;
+            }
+          }
+          const errText = await response.text().catch(() => `status ${response.status}`);
+          lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 200)}`;
+          throw new Error(lastError);
         }
+      } catch (err: any) {
+        console.warn(`[GENERATE_IMAGES_NATIVE] Exceção na tentativa: ${err.message}. Tentando próximo modelo...`);
       }
-
-      // Se for 503 ou 500 (instabilidade no servidor), tenta o próximo modelo
-      const errText = await imagenResponse.text().catch(() => `status ${imagenResponse.status}`);
-      lastError = `Modelo ${model} falhou (status ${imagenResponse.status}): ${errText.substring(0, 200)}`;
-      console.warn(`[GENERATE_IMAGES_NATIVE] ${lastError}. Tentando próximo modelo...`);
     }
 
-    if (!imagenData) {
+    if (!imageBytes) {
       console.error(
         `[GENERATE_IMAGES_NATIVE] Todos os modelos Imagen falharam. Último erro: ${lastError}`
       );
       throw new Error(`Todos os modelos do Google Imagen falharam. ${lastError}`);
     }
 
-    const imageBytes = imagenData?.predictions?.[0]?.bytesBase64Encoded;
+
 
     if (!imageBytes) {
       console.error(
@@ -206,6 +248,7 @@ export async function POST(request: Request) {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null, // Inicialmente livre/não publicada
         fileName: `concept_${fileName}.jpg`,
+        modelUsed: modelUsed || "gpt-image-2",
         caption: content
           ? `${content.titulo || ""}\n\n${content.subtitulo || ""}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}`.trim()
           : null,
@@ -214,14 +257,14 @@ export async function POST(request: Request) {
         `[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`
       );
 
-      // Registrar log de consumo real no Firestore
-      logApiUsage({
-        userId,
-        type: "image_generation",
-        provider: "google_vertex",
-        model: "imagen-4",
-        costUsd: 0.03,
-      });
+        // Log opcional de faturamento interno
+        logApiUsage({
+          userId,
+          type: "image_generation",
+          provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
+          model: modelUsed || "gpt-image-2",
+          costUsd: 0.03, // custo estimado padrão
+        });
     } catch (firestoreError) {
       console.error(
         "[GENERATE_IMAGES_NATIVE_ERROR] Falha ao catalogar imagem gerada no Firestore:",
