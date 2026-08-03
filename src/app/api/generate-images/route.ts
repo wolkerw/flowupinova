@@ -248,6 +248,7 @@ export async function POST(request: Request) {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         usedInPostId: null, // Inicialmente livre/não publicada
         fileName: `concept_${fileName}.jpg`,
+        modelUsed: modelUsed || "gpt-image-2",
         caption: content
           ? `${content.titulo || ""}\n\n${content.subtitulo || ""}\n\n${Array.isArray(content.hashtags) ? content.hashtags.join(" ") : ""}`.trim()
           : null,
