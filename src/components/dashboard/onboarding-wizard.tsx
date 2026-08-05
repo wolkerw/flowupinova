@@ -265,6 +265,7 @@ export function OnboardingWizard({
               extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
             toneOfVoice:
               extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
+            logoUrl: extractedData.logoUrl || extractedData.logo_url || prev.logoUrl,
           }));
 
           // Salvar de imediato no Firestore para garantir persistência à prova de falhas após análise de IA bem sucedida
@@ -299,6 +300,7 @@ export function OnboardingWizard({
               formData.targetAudience,
             toneOfVoice:
               extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
+            logoUrl: extractedData.logoUrl || extractedData.logo_url || formData.logoUrl,
           };
 
           updateOnboardingProfile(userId, updatedFields).catch((err) =>
