@@ -129,9 +129,35 @@ Preencha os seguintes campos no formato JSON bruto.
   "slogan": "Frase de efeito explícita",
   "targetAudience": "Quem é o público alvo",
   "logoUrl": "A URL mais provável que contém a logomarca da empresa entre as extraídas. Se não tiver certeza ou se for SVG inline corrompido, deixe vazio.",
-  "primaryColor": "A cor principal em HEX (ex: #000000) mais repetida ou vinda da Cor do Tema (Meta)",
-  "secondaryColor": "A segunda cor mais comum em HEX, ou vazio"
+  "primaryColor": "A cor principal em HEX extraída DIRETAMENTE da imagem da logomarca (se houver imagem anexada) ou do CSS",
+  "secondaryColor": "A segunda cor mais comum em HEX extraída da logomarca, ou vazio"
 }`;
+
+    // Baixar e injetar imagens candidatas para que a IA possa "enxergar" o logotipo e extrair as cores dele
+    const candidateUrls = [ogImage, icon, ...images].filter(url => url && url.startsWith("http")).slice(0, 2);
+    const imageParts: any[] = [];
+    
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const mimeType = res.headers.get('content-type') || 'image/png';
+          // Gemini aceita imagens de até certo tamanho e com mimetype correto
+          if (mimeType.startsWith('image/')) {
+            imageParts.push({
+              inlineData: {
+                data: base64,
+                mimeType: mimeType
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("[ONBOARDING_IA] Falha ao baixar imagem para IA visualizar:", url);
+      }
+    }
 
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
@@ -141,7 +167,7 @@ Preencha os seguintes campos no formato JSON bruto.
       );
     }
 
-    console.log("[ONBOARDING_IA] Enviando dados para extração no Gemini 3.5 Flash...");
+    console.log(`[ONBOARDING_IA] Enviando dados para extração no Gemini 3.5 Flash (com ${imageParts.length} imagens anexadas)...`);
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
     
     const geminiResponse = await fetch(geminiUrl, {
@@ -154,9 +180,8 @@ Preencha os seguintes campos no formato JSON bruto.
           {
             role: "user",
             parts: [
-              {
-                text: systemInstruction
-              }
+              { text: systemInstruction },
+              ...imageParts
             ]
           }
         ],
