@@ -1210,43 +1210,70 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: Fast primeiro (Ultra tendo 503), depois Ultra quando voltar
-      const IMAGEN_MODELS = ["imagen-4.0-fast-generate-001", "imagen-4.0-ultra-generate-001"];
+      // Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
+      const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+      ];
 
       let imageBytes: string | null = null;
       let modelUsed = "";
+      const openaiKey = process.env.OPENAI_API_KEY;
 
-      for (const model of IMAGEN_MODELS) {
+      for (const config of MODELS_CHAIN) {
         try {
-          console.log(`[IMAGEN4_REF] Tentando modelo ${model}...`);
-          const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
-          const imagenResponse = await fetch(imagenUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              instances: [{ prompt }],
-              parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
-            }),
-          });
+          console.log(`[IMAGE_REF] Tentando modelo ${config.model} (${config.provider})...`);
+          let bytes: string | null = null;
 
-          if (imagenResponse.ok) {
-            const data = await imagenResponse.json();
-            const bytes = data?.predictions?.[0]?.bytesBase64Encoded;
-            if (bytes) {
-              imageBytes = bytes;
-              modelUsed = model;
-              console.log(`[IMAGEN4_REF] ✅ Sucesso com o modelo ${model}!`);
-              break;
+          if (config.provider === "openai") {
+            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
+            const response = await fetch("https://api.openai.com/v1/images/generations", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${openaiKey}`,
+              },
+              body: JSON.stringify({
+                model: config.model,
+                prompt: prompt,
+                n: 1,
+                size: "1024x1024",
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              bytes = data?.data?.[0]?.b64_json;
+            } else {
+              throw new Error(await response.text());
+            }
+          } else {
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:predict?key=${apiKey}`;
+            const imagenResponse = await fetch(imagenUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                instances: [{ prompt }],
+                parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
+              }),
+            });
+
+            if (imagenResponse.ok) {
+              const data = await imagenResponse.json();
+              bytes = data?.predictions?.[0]?.bytesBase64Encoded;
+            } else {
+              throw new Error(await imagenResponse.text());
             }
           }
-          const errText = await imagenResponse
-            .text()
-            .catch(() => `status ${imagenResponse.status}`);
-          console.warn(
-            `[IMAGEN4_REF] Modelo ${model} falhou (${imagenResponse.status}): ${errText.substring(0, 150)}`
-          );
+
+          if (bytes) {
+            imageBytes = bytes;
+            modelUsed = config.model;
+            console.log(`[IMAGE_REF] ✅ Sucesso com o modelo ${config.model}!`);
+            break;
+          }
         } catch (modelErr: any) {
-          console.warn(`[IMAGEN4_REF] Exceção no modelo ${model}:`, modelErr.message);
+          console.warn(`[IMAGE_REF] Exceção no modelo ${config.model}:`, modelErr.message);
         }
       }
 
@@ -1313,12 +1340,12 @@ ${yamlAnalysis}`;
           caption,
         });
 
-        // Registrar log de consumo do Google Imagen 4
+        // Registrar log de consumo
         logApiUsage({
           userId,
           type: "image_generation",
-          provider: "google_vertex",
-          model: modelUsed || "imagen-4",
+          provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
+          model: modelUsed || "gpt-image-2",
           costUsd: 0.03,
         });
       } catch (galleryErr) {
