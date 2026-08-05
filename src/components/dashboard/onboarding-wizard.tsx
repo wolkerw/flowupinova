@@ -1065,12 +1065,10 @@ export function OnboardingWizard({
                             </div>
                           ) : logoPreview ? (
                             <div className="relative h-full w-full p-8">
-                              <Image
+                              <img
                                 src={logoPreview}
                                 alt="Logo"
-                                fill
-                                style={{ objectFit: "contain" }}
-                                className="p-4 transition-transform group-hover:scale-105"
+                                className="h-full w-full object-contain p-4 transition-transform group-hover:scale-105"
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                                 <Camera className="h-8 w-8 text-white" />
