@@ -17,13 +17,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const openaiKey = process.env.OPENAI_API_KEY;
-    if (!openaiKey) {
-      return NextResponse.json(
-        { error: "Chave da OpenAI ausente no servidor." },
-        { status: 500 }
-      );
-    }
 
     let scrapedData = "";
 
@@ -140,33 +133,47 @@ Preencha os seguintes campos no formato JSON bruto.
   "secondaryColor": "A segunda cor mais comum em HEX, ou vazio"
 }`;
 
-    console.log("[ONBOARDING_IA] Enviando dados para extração no GPT-4o-mini (OpenAI)...");
-    const openaiUrl = `https://api.openai.com/v1/chat/completions`;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      return NextResponse.json(
+        { error: "Chave do Gemini ausente no servidor." },
+        { status: 500 }
+      );
+    }
+
+    console.log("[ONBOARDING_IA] Enviando dados para extração no Gemini 3.5 Flash...");
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
     
-    const openaiResponse = await fetch(openaiUrl, {
+    const geminiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        response_format: { type: "json_object" },
-        temperature: 0.0,
-        messages: [
-          { role: "system", content: "Você é uma IA de extração de dados estrita. Retorne apenas um objeto JSON e não invente dados." },
-          { role: "user", content: systemInstruction }
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: systemInstruction
+              }
+            ]
+          }
         ],
+        generationConfig: {
+          temperature: 0.0,
+          responseMimeType: "application/json"
+        }
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const err = await openaiResponse.text();
-      throw new Error(`OpenAI API Error: ${err}`);
+    if (!geminiResponse.ok) {
+      const err = await geminiResponse.text();
+      throw new Error(`Gemini API Error: ${err}`);
     }
 
-    const data = await openaiResponse.json();
-    let textResponse = data.choices?.[0]?.message?.content;
+    const data = await geminiResponse.json();
+    let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!textResponse) {
       throw new Error("OpenAI retornou vazio.");
