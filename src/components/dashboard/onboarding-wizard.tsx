@@ -204,7 +204,7 @@ export function OnboardingWizard({
       formDataToSend.append("instagram", formData.instagram || "");
       formDataToSend.append("userId", userId);
 
-      const response = await fetch("/api/proxy-webhook?target=analisar_presenca", {
+      const response = await fetch("/api/onboarding/analisar-presenca", {
         method: "POST",
         body: formDataToSend,
       });
