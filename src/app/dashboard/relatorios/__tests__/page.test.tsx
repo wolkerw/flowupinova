@@ -21,6 +21,10 @@ vi.mock("@/lib/services/instagram-service", () => ({
   getInstagramConnection: vi.fn().mockResolvedValue({ isConnected: false }),
 }));
 
+vi.mock("@/lib/services/linkedin-service", () => ({
+  getLinkedInConnection: vi.fn().mockResolvedValue({ isConnected: false }),
+}));
+
 // Mock Recharts to prevent errors during server-side rendering in tests
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
@@ -39,6 +43,9 @@ vi.mock("recharts", () => ({
     React.createElement("div", null, children),
   Pie: () => null,
   Cell: () => null,
+  AreaChart: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  Area: () => null,
 }));
 
 describe("Relatorios Page", () => {
@@ -51,4 +58,18 @@ describe("Relatorios Page", () => {
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
     expect(screen.getByText("Análise detalhada de performance")).toBeInTheDocument();
   });
+
+  it("renders Instagram, Facebook, and LinkedIn tab triggers after data loads", async () => {
+    render(
+      <AuthProvider>
+        <Relatorios />
+      </AuthProvider>
+    );
+    expect(await screen.findByText("Instagram")).toBeInTheDocument();
+    expect(screen.getByText("Facebook")).toBeInTheDocument();
+    expect(screen.getByText("LinkedIn")).toBeInTheDocument();
+  });
 });
+
+
+

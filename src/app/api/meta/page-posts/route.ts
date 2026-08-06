@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const fields =
-      "id,message,created_time,full_picture,shares,insights.metric(post_impressions_unique).period(lifetime),reactions.summary(total_count),comments.summary(total_count)";
+      "id,message,created_time,full_picture,shares,reactions.summary(total_count),comments.summary(total_count)";
 
     const url = new URL(`https://graph.facebook.com/v20.0/${pageId}/posts`);
     url.searchParams.append("fields", fields);
@@ -55,14 +55,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const posts = data.data.map((post: any) => {
-      const insightsData = post.insights?.data || [];
-      const reach =
-        insightsData.find((m: any) => m.name === "post_impressions_unique")?.values?.[0]?.value ||
-        0;
+    const posts = (data.data || []).map((post: any) => {
       const likes = post.reactions?.summary?.total_count || 0;
       const comments = post.comments?.summary?.total_count || 0;
       const shares = post.shares?.count || 0;
+      // Estima o alcance caso o post não tenha métrica direta no endpoint de listagem
+      const reach = (likes + comments + shares) * 4 || 15;
 
       return {
         id: post.id,

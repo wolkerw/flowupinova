@@ -204,7 +204,7 @@ export function OnboardingWizard({
       formDataToSend.append("instagram", formData.instagram || "");
       formDataToSend.append("userId", userId);
 
-      const response = await fetch("/api/proxy-webhook?target=analisar_presenca", {
+      const response = await fetch("/api/onboarding/analisar-presenca", {
         method: "POST",
         body: formDataToSend,
       });
@@ -265,6 +265,7 @@ export function OnboardingWizard({
               extractedData.target_audience || extractedData.targetAudience || prev.targetAudience,
             toneOfVoice:
               extractedData.tone_of_voice || extractedData.toneOfVoice || prev.toneOfVoice,
+            logoUrl: extractedData.logoUrl || extractedData.logo_url || prev.logoUrl,
           }));
 
           // Salvar de imediato no Firestore para garantir persistência à prova de falhas após análise de IA bem sucedida
@@ -299,6 +300,7 @@ export function OnboardingWizard({
               formData.targetAudience,
             toneOfVoice:
               extractedData.tone_of_voice || extractedData.toneOfVoice || formData.toneOfVoice,
+            logoUrl: extractedData.logoUrl || extractedData.logo_url || formData.logoUrl,
           };
 
           updateOnboardingProfile(userId, updatedFields).catch((err) =>
@@ -1063,12 +1065,10 @@ export function OnboardingWizard({
                             </div>
                           ) : logoPreview ? (
                             <div className="relative h-full w-full p-8">
-                              <Image
+                              <img
                                 src={logoPreview}
                                 alt="Logo"
-                                fill
-                                style={{ objectFit: "contain" }}
-                                className="p-4 transition-transform group-hover:scale-105"
+                                className="h-full w-full object-contain p-4 transition-transform group-hover:scale-105"
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                                 <Camera className="h-8 w-8 text-white" />

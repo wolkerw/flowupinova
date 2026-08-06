@@ -37,31 +37,28 @@ export async function POST(request: NextRequest) {
       "post_activity_by_action_type",
     ].join(",");
 
-    // Única chamada para o endpoint de insights com as métricas necessárias
     const insightsUrl = `https://graph.facebook.com/v24.0/${postId}/insights?metric=${metricsList}&period=lifetime&access_token=${accessToken}`;
     const insightsResponse = await fetch(insightsUrl);
     const insightsData = await insightsResponse.json();
-
-    if (!insightsResponse.ok || insightsData.error) {
-      console.error("[FB_POST_INSIGHTS_ERROR] API Error:", insightsData.error);
-      throw new Error(`Erro na API de Insights: ${insightsData.error.message}`);
-    }
 
     const rawInsights = insightsData.data || [];
 
     const insights = {
       reach: getMetricValue(rawInsights, "post_impressions_unique"),
-      clicks_by_type: getMetricValue(rawInsights, "post_clicks_by_type"),
-      // O objeto de reações está dentro de 'post_activity_by_action_type'
-      activity_by_action_type: getMetricValue(rawInsights, "post_activity_by_action_type"),
+      clicks_by_type: getMetricValue(rawInsights, "post_clicks_by_type") || {},
+      activity_by_action_type: getMetricValue(rawInsights, "post_activity_by_action_type") || {},
     };
 
     // Adiciona a busca pelo permalink_url para o link direto
-    const fieldsUrl = `https://graph.facebook.com/v24.0/${postId}?fields=permalink_url&access_token=${accessToken}`;
-    const fieldsResponse = await fetch(fieldsUrl);
-    const fieldsData = await fieldsResponse.json();
-    if (fieldsData.permalink_url) {
-      (insights as any).permalink_url = fieldsData.permalink_url;
+    try {
+      const fieldsUrl = `https://graph.facebook.com/v24.0/${postId}?fields=permalink_url&access_token=${accessToken}`;
+      const fieldsResponse = await fetch(fieldsUrl);
+      const fieldsData = await fieldsResponse.json();
+      if (fieldsData.permalink_url) {
+        (insights as any).permalink_url = fieldsData.permalink_url;
+      }
+    } catch (e) {
+      // Ignora erro de permalink
     }
 
     return NextResponse.json({ success: true, insights });

@@ -80,6 +80,7 @@ export function ImageCropperModal({
             aspect={1} // 1:1 aspect ratio for avatars
             cropShape="round" // Round shape for avatars
             showGrid={false}
+            minZoom={0.1}
             restrictPosition={false} // Allows dragging the image freely
             onCropChange={onCropChange}
             onCropComplete={onCropCompleteHandler}
@@ -91,7 +92,7 @@ export function ImageCropperModal({
           <ZoomOut className="h-5 w-5 text-muted-foreground" />
           <Slider
             value={[zoom]}
-            min={1}
+            min={0.1}
             max={3}
             step={0.1}
             onValueChange={(value) => setZoom(value[0])}
