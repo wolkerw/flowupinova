@@ -146,6 +146,8 @@ interface WizardContextType {
   setInsertTextOnImage: (val: boolean | null) => void;
   generateTextSuggestions: boolean;
   setGenerateTextSuggestions: (val: boolean) => void;
+  layoutStyle: string;
+  setLayoutStyle: (style: string) => void;
   isUploading: boolean;
 
   // Computed & Refs
@@ -233,6 +235,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
+  const [layoutStyle, setLayoutStyle] = useState<string>("CLEAN_LUXURY");
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
@@ -882,6 +885,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               businessProfile: businessProfile,
               insertTextOnImage: shouldInsertText,
               userId: user.uid,
+              layoutStyle: layoutStyle,
             }),
           });
         }
@@ -1901,6 +1905,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setInsertTextOnImage,
         generateTextSuggestions,
         setGenerateTextSuggestions,
+        layoutStyle,
+        setLayoutStyle,
         isUploading,
         mode,
         user,

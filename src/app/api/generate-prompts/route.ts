@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     let inspirationFile: File | null = null;
 
     let insertTextOnImage = true;
+    let layoutStyle = "CLEAN_LUXURY";
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       if (formData.has("insertTextOnImage")) {
         insertTextOnImage = formData.get("insertTextOnImage") === "true";
       }
+      if (formData.has("layoutStyle")) {
+        layoutStyle = (formData.get("layoutStyle") as string) || "CLEAN_LUXURY";
+      }
     } else {
       const body = await request.json();
       selContent = body.content;
@@ -32,6 +36,9 @@ export async function POST(request: Request) {
       userId = body.userId;
       if (body.insertTextOnImage !== undefined) {
         insertTextOnImage = body.insertTextOnImage;
+      }
+      if (body.layoutStyle !== undefined) {
+        layoutStyle = body.layoutStyle;
       }
     }
 
@@ -428,9 +435,31 @@ BRAND KIT ALIGNMENT (MANDATORY):
 2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
 `;
 
+    // Mapa: id do layout -> instrução técnica para a IA
+    const LAYOUT_TECHNICAL: Record<string, string> = {
+      MAGAZINE_3D: "LAYOUT STYLE — MAGAZINE_3D: High-fashion depth-of-field, main subject overlaps and breaks through the typographic title plane creating a dramatic 3D parallax effect. Bold editorial serif headlines partially hidden behind the subject. Layered, complex composition. Magazine cover aesthetic.",
+      CLEAN_LUXURY: "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
+      UGC_CINEMATIC: "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
+      SPLIT_LAYOUT: "LAYOUT STYLE — SPLIT_LAYOUT: Geometric hard-edge division splits the frame into two distinct zones — one side contains a crisp high-resolution photo, the other is a solid bold-color container block holding structured typographic information. Sharp, editorial, corporate.",
+      GLASSMORPHISM: "LAYOUT STYLE — GLASSMORPHISM: A semi-transparent frosted glass card floats in the center of the composition over a softly blurred bokeh backdrop. The text lives inside the glass panel. The background is dreamlike and out-of-focus. Futuristic, tech, modern.",
+      TYPOGRAPHIC_HERO: "LAYOUT STYLE — TYPOGRAPHIC_HERO: Giant, expressive, bold headline text is the primary visual hero element — it occupies 60-70% of the frame. A small product or illustrative accent is anchored in a corner as a supporting element. Pure typographic power.",
+      ENVIRONMENTAL_TEXT: "LAYOUT STYLE — ENVIRONMENTAL_TEXT: The text is naturally integrated into the 3D scene environment, appearing as if it was painted, projected, or embossed onto real-world surfaces — walls, floors, windows, or objects. Realistic shadows and perspective distortion applied to text.",
+      DARK_SPOTLIGHT: "LAYOUT STYLE — DARK_SPOTLIGHT: Dramatic, near-black background. Intense, narrow side-lighting or top-spot creates a theatrical spotlight effect on the product or subject. High-contrast white or luminous typography. Luxurious, powerful, night-premium aesthetic.",
+    };
+    const selectedLayoutInstruction = LAYOUT_TECHNICAL[layoutStyle] || LAYOUT_TECHNICAL["CLEAN_LUXURY"];
+
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
 You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
+
+# MANDATORY LAYOUT STYLE DIRECTIVE (HIGHEST PRIORITY — OVERRIDES ALL OTHER COMPOSITION RULES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The user has explicitly selected a layout style. You MUST apply this layout and composition system to ALL 3 generated image prompts with zero exceptions. This directive overrides any generic composition preference.
+
+${selectedLayoutInstruction}
+
+You MUST explicitly describe this layout composition mechanics in every single prompt you generate. Do NOT ignore this rule.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # CORE MISSION
 Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.

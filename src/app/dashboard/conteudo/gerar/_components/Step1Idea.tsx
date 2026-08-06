@@ -24,6 +24,8 @@ import {
 
 import { cn } from "@/lib/utils";
 import { useWizard } from "../context/WizardContext";
+import { LayoutStyleSelector, LayoutStyleId } from "./LayoutStyleSelector";
+
 
 const PackshotAnimationDemo = () => {
   const [activeDemoTab, setActiveDemoTab] = React.useState<"text-ambientation" | "packshot-hybrid">(
@@ -829,6 +831,8 @@ export const Step1Idea = () => {
     setHybridPriority,
     productWorkflow,
     setProductWorkflow,
+    layoutStyle,
+    setLayoutStyle,
   } = useWizard();
 
   const hideImageOption = mode === "concept";
@@ -1382,6 +1386,16 @@ export const Step1Idea = () => {
             </div>
           )}
 
+          {/* Seletor de Estilo de Layout — apenas no modo conceito */}
+          {mode === "concept" && (
+            <div className="border-t pt-4">
+              <LayoutStyleSelector
+                value={layoutStyle as LayoutStyleId}
+                onChange={(style) => setLayoutStyle(style)}
+              />
+            </div>
+          )}
+
           {isHybridMode && (
             <div className="space-y-4 border-t pt-4">
               <div className="space-y-2">
@@ -1389,6 +1403,7 @@ export const Step1Idea = () => {
                 <p className="text-sm text-gray-600">
                   Escolha o elemento que a inteligência artificial deve priorizar e manter fiel ao
                   combinar as imagens.
+
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <button
