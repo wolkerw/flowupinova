@@ -85,7 +85,8 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) throw new Error("Token de acesso não retornado.");
 
-    // 2. Obter perfil do membro via /v2/userinfo (requer escopos openid profile email)
+    // 2. Obter perfil do membro via /rest/me (scope r_basicprofile)
+    // O app do usuário possui acesso ao r_basicprofile, então usamos ele.
     let personName = "LinkedIn User";
     let personUrn = "";
     let profilePictureUrl: string | null = null;
@@ -94,6 +95,8 @@ export async function GET(request: NextRequest) {
       const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "LinkedIn-Version": "202401", // Usar uma versão estável
+          "X-Restli-Protocol-Version": "2.0.0",
         },
       });
 
