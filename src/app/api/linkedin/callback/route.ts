@@ -85,30 +85,35 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) throw new Error("Token de acesso não retornado.");
 
-    // 2. Obter perfil do membro via /v2/userinfo (requer escopos openid profile email)
+    // 2. Obter perfil do membro via /rest/me (scope r_basicprofile)
+    // O app do usuário possui acesso ao r_basicprofile, então usamos ele.
     let personName = "LinkedIn User";
     let personUrn = "";
     let profilePictureUrl: string | null = null;
 
     try {
-      const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
+      const profileResponse = await fetch("https://api.linkedin.com/rest/me", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "LinkedIn-Version": "202401", // Usar uma versão estável
+          "X-Restli-Protocol-Version": "2.0.0",
         },
       });
 
-      console.log("[LINKEDIN_CALLBACK_DEBUG] /v2/userinfo status:", profileResponse.status);
+      console.log("[LINKEDIN_CALLBACK_DEBUG] /rest/me status:", profileResponse.status);
 
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        personName = profileData.name || "LinkedIn User";
-        personUrn = profileData.sub ? `urn:li:person:${profileData.sub}` : "";
-        profilePictureUrl = profileData.picture || null;
+        personName =
+          profileData.localizedFirstName && profileData.localizedLastName
+            ? `${profileData.localizedFirstName} ${profileData.localizedLastName}`
+            : profileData.localizedFirstName || "LinkedIn User";
+        personUrn = profileData.id ? `urn:li:person:${profileData.id}` : "";
         console.log("[LINKEDIN_CALLBACK_DEBUG] Perfil obtido:", personName, personUrn);
       } else {
         const errText = await profileResponse.text();
         console.warn(
-          "[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /v2/userinfo. Status:",
+          "[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /rest/me. Status:",
           profileResponse.status,
           errText
         );
