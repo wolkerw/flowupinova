@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   // 2. Construir URL de autorização do TikTok v2
   const redirectUri = config.tiktok.redirectUri || `${origin}/api/tiktok/callback`;
-  const scope = "user.info.basic,video.upload";
+  const scope = "user.info.basic,video.publish,video.upload";
 
   // Encoda userId, clientKey e a origem (origin) no parâmetro state para garantir consistência cross-domain e retorno dinâmico ao localhost
   const statePayload = Buffer.from(JSON.stringify({ u: userId, k: clientKey, o: origin })).toString("base64url");
