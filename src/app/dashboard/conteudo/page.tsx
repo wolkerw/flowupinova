@@ -266,13 +266,23 @@ function PostItem({
       className="flex items-center justify-between rounded-lg border bg-white p-4 transition-shadow hover:shadow-sm"
     >
       <div className="flex items-center gap-4 overflow-hidden">
-        <Image
-          src={imageSrc}
-          alt={post.text.substring(0, 50) || "Imagem do post"}
-          width={56}
-          height={56}
-          className="h-14 w-14 rounded-md bg-gray-100 object-cover"
-        />
+        {imageSrc.match(/\.(mp4|mov|webm)(\?|$)/i) ? (
+          <video
+            src={imageSrc}
+            className="h-14 w-14 rounded-md bg-gray-100 object-cover"
+            muted
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <Image
+            src={imageSrc}
+            alt={post.text.substring(0, 50) || "Imagem do post"}
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-md bg-gray-100 object-cover"
+          />
+        )}
         <div className="overflow-hidden">
           <h4 className="truncate text-base font-medium text-gray-900">
             {post.text.length > 50 ? post.text.substring(0, 50) + "..." : post.text}
@@ -286,12 +296,12 @@ function PostItem({
           </div>
 
           <div className="mt-1.5 flex items-center gap-4 text-xs text-gray-500">
-            {post.platforms?.includes("facebook") ? (
+            {post.platforms?.includes("facebook") && (
               <div className="flex items-center gap-1.5">
                 <Facebook className="h-3.5 w-3.5 text-blue-600" />
                 {post.pageName ? <span className="font-medium">{post.pageName}</span> : null}
               </div>
-            ) : null}
+            )}
             {post.platforms?.includes("instagram") && (
               <div className="flex items-center gap-1.5">
                 <Instagram className="h-3.5 w-3.5" />
@@ -300,6 +310,24 @@ function PostItem({
                 ) : (
                   <span className="font-medium">Instagram</span>
                 )}
+              </div>
+            )}
+            {post.platforms?.includes("tiktok") && (
+              <div className="flex items-center gap-1.5">
+                <TikTokIcon className="h-3.5 w-3.5 text-black" />
+                <span className="font-medium">TikTok</span>
+              </div>
+            )}
+            {post.platforms?.includes("linkedin") && (
+              <div className="flex items-center gap-1.5">
+                <Linkedin className="h-3.5 w-3.5 text-blue-700" />
+                <span className="font-medium">LinkedIn</span>
+              </div>
+            )}
+            {post.platforms?.includes("google") && (
+              <div className="flex items-center gap-1.5">
+                <Store className="h-3.5 w-3.5 text-green-600" />
+                <span className="font-medium">Google</span>
               </div>
             )}
           </div>
@@ -590,28 +618,41 @@ function ConnectionStatus({
         <div>
           <h4 className="text-sm font-semibold text-gray-800">{name}</h4>
           {isConnected ? (
-            <p className="truncate text-xs font-medium text-green-700" title={accountName}>
-              Conectado como {accountName}
-            </p>
+            <div key={`text-connected-${platform}`}>
+              <p className="truncate text-xs font-medium text-green-700" title={accountName}>
+                Conectado como <span>{accountName}</span>
+              </p>
+            </div>
           ) : (
-            <p className="text-xs text-red-600">Não conectado</p>
+            <div key={`text-disconnected-${platform}`}>
+              <p className="text-xs text-red-600">Não conectado</p>
+            </div>
           )}
         </div>
       </div>
 
       {isConnected ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDisconnect}
-          className="text-red-600 hover:bg-red-50 hover:text-red-700"
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <div key={`btn-connected-${platform}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDisconnect}
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       ) : (
-        <Button variant="outline" size="sm" onClick={onConnect} disabled={isLoading}>
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conectar"}
-        </Button>
+        <div key={`btn-disconnected-${platform}`}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onConnect} 
+            disabled={isLoading}
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Conectar</span>}
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -1107,8 +1148,7 @@ export default function Conteudo() {
       return;
     }
     const state = user?.uid || "";
-    const scope =
-      "r_organization_social w_organization_social rw_organization_admin r_basicprofile";
+    const scope = "r_organization_social w_organization_social rw_organization_admin openid profile email";
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
     window.location.href = authUrl;
   }, [user?.uid, toast]);
@@ -1228,6 +1268,14 @@ export default function Conteudo() {
       });
       return;
     }
+    if (republishPlatforms.includes("tiktok") && !tiktokConnection.isConnected) {
+      toast({
+        variant: "destructive",
+        title: "TikTok não conectado",
+        description: "Conecte o TikTok para republicar.",
+      });
+      return;
+    }
     if (republishPlatforms.includes("google") && !googleConnection.isConnected) {
       toast({
         variant: "destructive",
@@ -1336,6 +1384,8 @@ export default function Conteudo() {
     metaConnection,
     instagramConnection,
     googleConnection,
+    linkedinConnection,
+    tiktokConnection,
     postToRepublish,
     republishScheduleDate,
     republishScheduleType,
@@ -1538,6 +1588,33 @@ export default function Conteudo() {
                   >
                     <Linkedin className="h-5 w-5 text-blue-700" />
                     LinkedIn
+                  </Label>
+                </div>
+                <div
+                  className={cn(
+                    "flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-all duration-200",
+                    republishPlatforms.includes("tiktok") && tiktokConnection?.isConnected
+                      ? "border-[#0083C7] bg-blue-50/50 shadow-sm"
+                      : "border-gray-200 hover:bg-gray-50",
+                    !tiktokConnection?.isConnected &&
+                      "cursor-not-allowed bg-gray-100 opacity-60 hover:bg-gray-100"
+                  )}
+                >
+                  <Checkbox
+                    id="republish-tiktok"
+                    checked={republishPlatforms.includes("tiktok")}
+                    onCheckedChange={() => handleRepublishPlatformChange("tiktok")}
+                    disabled={!tiktokConnection?.isConnected}
+                  />
+                  <Label
+                    htmlFor="republish-tiktok"
+                    className={cn(
+                      "flex flex-1 cursor-pointer items-center gap-3 font-semibold text-gray-700",
+                      !tiktokConnection?.isConnected && "cursor-not-allowed"
+                    )}
+                  >
+                    <TikTokIcon className="h-5 w-5 text-black" />
+                    TikTok
                   </Label>
                 </div>
               </div>

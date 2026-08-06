@@ -85,35 +85,30 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) throw new Error("Token de acesso não retornado.");
 
-    // 2. Obter perfil do membro via /rest/me (scope r_basicprofile)
-    // Não usamos /v2/userinfo pois requer openid scope que conflita com Community Management API
+    // 2. Obter perfil do membro via /v2/userinfo (requer escopos openid profile email)
     let personName = "LinkedIn User";
     let personUrn = "";
     let profilePictureUrl: string | null = null;
 
     try {
-      const profileResponse = await fetch("https://api.linkedin.com/rest/me", {
+      const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "LinkedIn-Version": "202507",
-          "X-Restli-Protocol-Version": "2.0.0",
         },
       });
 
-      console.log("[LINKEDIN_CALLBACK_DEBUG] /rest/me status:", profileResponse.status);
+      console.log("[LINKEDIN_CALLBACK_DEBUG] /v2/userinfo status:", profileResponse.status);
 
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        personName =
-          profileData.localizedFirstName && profileData.localizedLastName
-            ? `${profileData.localizedFirstName} ${profileData.localizedLastName}`
-            : profileData.localizedFirstName || "LinkedIn User";
-        personUrn = profileData.id ? `urn:li:person:${profileData.id}` : "";
+        personName = profileData.name || "LinkedIn User";
+        personUrn = profileData.sub ? `urn:li:person:${profileData.sub}` : "";
+        profilePictureUrl = profileData.picture || null;
         console.log("[LINKEDIN_CALLBACK_DEBUG] Perfil obtido:", personName, personUrn);
       } else {
         const errText = await profileResponse.text();
         console.warn(
-          "[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /rest/me. Status:",
+          "[LINKEDIN_CALLBACK_WARN] Erro ao obter perfil via /v2/userinfo. Status:",
           profileResponse.status,
           errText
         );
@@ -123,14 +118,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Obter páginas de organizações (Company Pages) administradas pelo membro
-    // Endpoint: /rest/organizationAcls com scope rw_organization_admin (versão 202505)
-    const linkedinVersion = "202507";
-    const orgsUrl = "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee";
+    const orgsUrl = "https://api.linkedin.com/v2/organizationAcls?q=roleAssignee";
     const orgsResponse = await fetch(orgsUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "LinkedIn-Version": linkedinVersion,
-        "X-Restli-Protocol-Version": "2.0.0",
       },
     });
 
@@ -172,12 +163,10 @@ export async function GET(request: NextRequest) {
       const orgDetailsPromises = uniqueOrgUrns.map(async (urn: string) => {
         try {
           const orgId = urn.split(":").pop();
-          const detailUrl = `https://api.linkedin.com/rest/organizations/${orgId}`;
+          const detailUrl = `https://api.linkedin.com/v2/organizations/${orgId}`;
           const detailRes = await fetch(detailUrl, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
-              "LinkedIn-Version": linkedinVersion,
-              "X-Restli-Protocol-Version": "2.0.0",
             },
           });
           if (detailRes.ok) {

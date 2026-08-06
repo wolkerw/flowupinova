@@ -206,7 +206,7 @@ async function publishPostImmediately(
           userId,
           title: postData.text,
           videoUrl,
-          privacyLevel: "SELF_ONLY",
+          privacyLevel: "PUBLIC_TO_EVERYONE",
         };
       } else {
         // 'linkedin'
@@ -234,11 +234,22 @@ async function publishPostImmediately(
     });
 
     const responses = await Promise.all(publishPromises);
-    const results = await Promise.all(responses.map((res) => res.json()));
+    const results = await Promise.all(
+      responses.map(async (res, idx) => {
+        const data = await res.json();
+        return { ...data, _platform: postData.platforms[idx] };
+      })
+    );
 
     const failedResult = results.find((result) => !result.success);
     if (failedResult) {
-      throw new Error(failedResult.error || `Uma das plataformas falhou ao publicar.`);
+      console.log("[PUBLISH_ALL_PLATFORMS_RESULTS]", JSON.stringify(results, null, 2));
+      const platName = failedResult._platform || failedResult.platform || "plataforma desconhecida";
+      const errMsg = failedResult.error || "Uma das plataformas falhou ao publicar.";
+      const details = failedResult.details
+        ? `\n[Detalhes ${platName.toUpperCase()}]: ${typeof failedResult.details === "object" ? JSON.stringify(failedResult.details) : failedResult.details}`
+        : "";
+      throw new Error(`[Falha em: ${platName.toUpperCase()}] ${errMsg}${details}`);
     }
 
     const publishedMediaIds = results.map((result) => result.publishedMediaId).filter(Boolean);
@@ -325,7 +336,6 @@ export async function schedulePost(
         return mediaItem.publicUrl;
       }
 
-      // Se for um link 'blob:' ou 'data:' (base64), precisamos baixar/converter os dados binários para fazer o upload real no Storage
       if (
         mediaItem.publicUrl &&
         (mediaItem.publicUrl.startsWith("blob:") || mediaItem.publicUrl.startsWith("data:"))
@@ -333,11 +343,13 @@ export async function schedulePost(
         console.log(`[POST_SERVICE] Item ${index}: Convertendo URL temporária (blob/base64)...`);
         const response = await fetch(mediaItem.publicUrl);
         const blob = await response.blob();
-        const file = new File([blob], `generated_${Date.now()}.jpg`, {
-          type: blob.type,
+        const isVideo = blob.type.startsWith("video") || mediaItem.type === "video";
+        const ext = isVideo ? "mp4" : "jpg";
+        const file = new File([blob], `generated_${Date.now()}.${ext}`, {
+          type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
         });
         console.log(
-          `[POST_SERVICE] Item ${index}: Imagem convertida com sucesso, fazendo upload permanente no Firebase Storage...`
+          `[POST_SERVICE] Item ${index}: Mídia convertida com sucesso (${file.name}), fazendo upload permanente no Firebase Storage...`
         );
         return await uploadMediaAndGetURL(userId, file);
       }

@@ -66,6 +66,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   schedulePost,
+  uploadMediaAndGetURL,
   type PostDataInput,
   type MediaFileInput,
 } from "@/lib/services/posts-service";
@@ -1658,8 +1659,14 @@ export default function CriarConteudoPage() {
 
   const processSingleMediaItem = async (mediaItem: MediaItem): Promise<string> => {
     if (mediaItem.type === "video") {
-      // Placeholder: Video processing might be different, for now just returning preview
-      // In a real scenario, this would upload the video and return a public URL.
+      if (mediaItem.publicUrl && !mediaItem.publicUrl.startsWith("blob:")) {
+        return mediaItem.publicUrl;
+      }
+      if (mediaItem.file) {
+        if (!user?.uid) throw new Error("Usuário não autenticado para processar vídeo.");
+        console.log("[VIDEO_UPLOAD] Enviando vídeo para nuvem (preparando para streaming TikTok)...");
+        return await uploadMediaAndGetURL(user.uid, mediaItem.file);
+      }
       return mediaItem.previewUrl;
     }
 
@@ -1893,10 +1900,7 @@ export default function CriarConteudoPage() {
 
       try {
         const uploadPromises = mediaItems.map((item) => {
-          if (item.type === "image") {
-            return processSingleMediaItem(item);
-          }
-          return Promise.resolve(item.previewUrl);
+          return processSingleMediaItem(item);
         });
 
         const processedUrls = await Promise.all(uploadPromises);
@@ -1951,6 +1955,9 @@ export default function CriarConteudoPage() {
 
   const handleContentTypeSelect = (value: string) => {
     setSelectedType(value as ContentType);
+    if (value === "story") {
+      setPlatforms((prev) => prev.filter((p) => p !== "google" && p !== "linkedin"));
+    }
     setStep(2);
   };
 
@@ -2124,10 +2131,24 @@ export default function CriarConteudoPage() {
       description: "Fazendo upload da mídia e agendando o post.",
     });
 
+    const effectivePlatforms = selectedType === "story"
+      ? platforms.filter((p) => p !== "google" && p !== "linkedin")
+      : platforms;
+
+    if (effectivePlatforms.length === 0) {
+      setIsPublishing(false);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Publicar",
+        description: "Selecione pelo menos uma rede social compatível com o formato selecionado.",
+      });
+      return;
+    }
+
     const postInput: PostDataInput = {
       text: text,
       media: mediaToPublish,
-      platforms: platforms,
+      platforms: effectivePlatforms,
       isCarousel: selectedType === "carousel",
       scheduledAt:
         scheduleType === "schedule" && scheduleDate ? new Date(scheduleDate) : new Date(),
@@ -2135,16 +2156,16 @@ export default function CriarConteudoPage() {
       userTags: userTags.length > 0 ? userTags : undefined,
     };
 
-    if (platforms.includes("facebook") && metaConnection?.isConnected) {
+    if (effectivePlatforms.includes("facebook") && metaConnection?.isConnected) {
       postInput.metaConnection = metaConnection;
     }
-    if (platforms.includes("instagram") && instagramConnection?.isConnected) {
+    if (effectivePlatforms.includes("instagram") && instagramConnection?.isConnected) {
       postInput.instagramConnection = instagramConnection;
     }
-    if (platforms.includes("google") && googleConnection?.isConnected) {
+    if (effectivePlatforms.includes("google") && googleConnection?.isConnected) {
       postInput.googleConnection = googleConnection;
     }
-    if (platforms.includes("linkedin") && linkedinConnection?.isConnected) {
+    if (effectivePlatforms.includes("linkedin") && linkedinConnection?.isConnected) {
       postInput.linkedinConnection = linkedinConnection;
     }
 

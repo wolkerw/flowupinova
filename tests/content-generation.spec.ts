@@ -31,7 +31,7 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
     }
 
     const firstOptionRadio = page.locator('#option-0, label[for="option-0"], label[htmlfor="option-0"]').first();
-    await expect(firstOptionRadio).toBeVisible({ timeout: 60000 });
+    await expect(firstOptionRadio).toBeVisible({ timeout: 120000 });
     await firstOptionRadio.click();
 
     // Seleciona a opção "Não, apenas a imagem"

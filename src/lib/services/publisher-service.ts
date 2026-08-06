@@ -353,9 +353,10 @@ export async function publishToGoogle(
   };
 
   if (imageUrl) {
+    const isVideo = /\.(mp4|mov|avi|webm|mkv|flv|wmv)(\?|$)/i.test(imageUrl) || imageUrl.toLowerCase().includes("video") || imageUrl.toLowerCase().includes(".mp4");
     postPayload.media = [
       {
-        mediaFormat: "PHOTO",
+        mediaFormat: isVideo ? "VIDEO" : "PHOTO",
         sourceUrl: imageUrl,
       },
     ];
@@ -369,7 +370,7 @@ export async function publishToGoogle(
     };
   }
 
-  console.log(`[PUBLISHER_GOOGLE] Enviando post para ${googleName}...`);
+  console.log(`[PUBLISHER_GOOGLE] Enviando post (${postPayload.media?.[0]?.mediaFormat || "SEM_MIDIA"}) para ${googleName}...`);
   const apiResponse = await fetch(googleApiUrl, {
     method: "POST",
     headers: {
@@ -386,7 +387,11 @@ export async function publishToGoogle(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error?.message) {
-        errorMessage = errorJson.error.message;
+        if (errorJson.error.message === "Internal error encountered." || errorJson.error.status === "INTERNAL") {
+          errorMessage = "O Google Meu Negócio rejeitou o arquivo da publicação (Internal Error). Se for um vídeo ou imagem, verifique se o tamanho (máx 100MB para vídeo / 10MB para foto) e a resolução cumprem os requisitos do Google Meu Negócio.";
+        } else {
+          errorMessage = errorJson.error.message;
+        }
       }
     } catch (parseErr) {
       // Ignore
