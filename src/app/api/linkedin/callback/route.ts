@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       const profileResponse = await fetch("https://api.linkedin.com/rest/me", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "LinkedIn-Version": "202401", // Usar uma versão estável
+          "LinkedIn-Version": "202607", // Usar uma versão estável
           "X-Restli-Protocol-Version": "2.0.0",
         },
       });
