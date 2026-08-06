@@ -1895,7 +1895,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-1) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1905,7 +1905,7 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-image-1",
+            model: "gpt-image-2",
             prompt: prompt,
             n: 1,
             size: "1024x1024",
