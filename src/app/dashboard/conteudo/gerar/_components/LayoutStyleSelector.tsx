@@ -7,13 +7,15 @@ export type LayoutStyleId =
   | ""
   | "MAGAZINE_3D"
   | "CLEAN_LUXURY"
-  | "UGC_CINEMATIC";
+  | "UGC_CINEMATIC"
+  | "LIFESTYLE_HYBRID";
 
 /** IDs reais dos estilos (sem o AUTO vazio) — usado para sorteio */
 export const LAYOUT_STYLE_IDS: LayoutStyleId[] = [
   "MAGAZINE_3D",
   "CLEAN_LUXURY",
   "UGC_CINEMATIC",
+  "LIFESTYLE_HYBRID",
 ];
 
 export interface LayoutStyleOption {
@@ -62,6 +64,14 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     icon: "C",
     image: "/layout-styles/ugc-cinematic.png",
   },
+  {
+    id: "LIFESTYLE_HYBRID",
+    label: "Híbrido Lifestyle",
+    sublabel: "Pessoa + Produto",
+    description: "Pessoa em acao num cenario real, com o produto integrado de forma natural. Combina energia e elegancia num unico post.",
+    placeholderGradient: "from-green-800 via-emerald-600 to-teal-400",
+    icon: "H",
+  },
 ];
 
 export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
@@ -72,6 +82,8 @@ export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
     "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
   UGC_CINEMATIC:
     "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
+  LIFESTYLE_HYBRID:
+    "LAYOUT STYLE — LIFESTYLE_HYBRID: A person in dynamic action (running, exercising, working, or using the product) photographed in a real-world setting. Clean or subtly blurred background. Subject positioned on one side, leaving clean negative space on the opposite side for text. Energetic, polished, and premium feel. Sharp focus on subject, soft natural background light.",
 };
 
 interface LayoutStyleSelectorProps {

@@ -46,7 +46,7 @@ async function fetchWithRetry(
 
 export async function POST(request: Request) {
   try {
-    const { prompt, postId, fileName, userId, content } = await request.json();
+    const { prompt, postId, fileName, userId, content, layoutStyle } = await request.json();
 
     if (!prompt || !postId || !fileName || !userId) {
       return NextResponse.json(
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
           const colors = [];
           if (brandKit.primaryColor) colors.push(brandKit.primaryColor);
           if (brandKit.secondaryColor) colors.push(brandKit.secondaryColor);
-          brandEnhancements += ` Integre de forma harmoniosa elementos de cenário ou iluminação sutil que remetam aos tons de: ${colors.join(" e ")}.`;
+          brandEnhancements += ` Integre de forma harmôniosa elementos de cenário ou iluminação sutil que remetam aos tons de: ${colors.join(" e ")}.`;
         }
 
         if (brandEnhancements) {
@@ -101,6 +101,21 @@ export async function POST(request: Request) {
         "[GENERATE_IMAGES_NATIVE] Falha ao carregar diretrizes de marca do Firestore (usando prompt original):",
         dbError
       );
+    }
+
+    // 2. Injetar o estilo selecionado no início do prompt (user prompt layer)
+    // Isso garante que o modelo visual processe a instrução de estilo ANTES do conteúdo narrativo,
+    // mesmo que o gpt-image-2 tente reescrever o restante do prompt.
+    const STYLE_LABELS: Record<string, string> = {
+      MAGAZINE_3D: "Magazine Cover 3D Parallax Effect — subject breaks through the text plane, editorial serif headline behind the person",
+      CLEAN_LUXURY: "Clean Minimalist Luxury — large white negative space, soft diffused light, no clutter, ultra-premium aesthetic",
+      UGC_CINEMATIC: "Authentic Lifestyle UGC Cinematic — candid real moment, natural window light, cinematic color grade",
+      LIFESTYLE_HYBRID: "Lifestyle Hybrid — person in dynamic action on real-world setting, clean background, subject on one side with open space for text",
+    };
+    if (layoutStyle && STYLE_LABELS[layoutStyle]) {
+      const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;
+      finalPrompt = styleHeader + finalPrompt;
+      console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
     // 2. Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback

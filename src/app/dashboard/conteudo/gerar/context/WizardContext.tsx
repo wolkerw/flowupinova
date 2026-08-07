@@ -1293,6 +1293,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               content: selContent,
               businessProfile: businessProfile,
               userId: user.uid,
+              layoutStyle: layoutStyle || "",
             }),
           });
 

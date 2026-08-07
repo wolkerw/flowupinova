@@ -440,6 +440,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
       MAGAZINE_3D: "LAYOUT STYLE — MAGAZINE_3D: High-fashion depth-of-field, main subject overlaps and breaks through the typographic title plane creating a dramatic 3D parallax effect. Bold editorial serif headlines partially hidden behind the subject. Layered, complex composition. Magazine cover aesthetic.",
       CLEAN_LUXURY: "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
       UGC_CINEMATIC: "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
+      LIFESTYLE_HYBRID: "LAYOUT STYLE — LIFESTYLE_HYBRID: A person in dynamic action (running, exercising, working, or using the product) photographed in a real-world setting. Clean or subtly blurred background. Subject positioned on one side, leaving clean negative space on the opposite side for text. Energetic, polished, and premium feel. Sharp focus on subject, soft natural background light.",
     };
     // Sorteio de estilos aleatórios para garantir máxima variedade
     const allStyles = Object.keys(LAYOUT_TECHNICAL);
