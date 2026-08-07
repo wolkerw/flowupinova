@@ -33,6 +33,7 @@ export interface LayoutStyleOption {
   description: string;
   placeholderGradient: string;
   icon: string;
+  image?: string;
 }
 
 export const LAYOUT_STYLES: LayoutStyleOption[] = [
@@ -51,6 +52,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "O texto principal fica atras do produto ou da pessoa, criando um efeito de profundidade 3D digno de capa de revista.",
     placeholderGradient: "from-rose-900 via-pink-700 to-orange-500",
     icon: "P",
+    image: "/layout-styles/magazine-3d.png",
   },
   {
     id: "CLEAN_LUXURY",
@@ -148,7 +150,7 @@ export function LayoutStyleSelector({ value, onChange, previewImages }: LayoutSt
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {LAYOUT_STYLES.map((style) => {
           const isSelected = value === style.id;
-          const previewImg = previewImages?.[style.id];
+          const previewImg = previewImages?.[style.id] || style.image;
 
           return (
             <button
