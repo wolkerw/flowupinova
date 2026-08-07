@@ -51,6 +51,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Uma imagem limpa com bastante espaco em branco, iluminacao suave e texto discreto. Ideal para transmitir luxo e exclusividade.",
     placeholderGradient: "from-gray-100 via-stone-200 to-zinc-300",
     icon: "M",
+    image: "/layout-styles/clean-luxury.png",
   },
   {
     id: "UGC_CINEMATIC",
