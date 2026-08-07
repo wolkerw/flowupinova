@@ -1057,19 +1057,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
             toast({
               title: `✅ Geração Concluída!`,
-              description: "Imagem criada com sucesso pelo modelo Nano Banana Pro.",
+              description: "Sua imagem publicitária foi criada com sucesso.",
             });
             return;
           } catch (nanobananaError: any) {
             console.warn(
-              "[WIZARD] 🍌 Falha na geração via Nano Banana Pro, acionando fallback para Flux Kontext:",
+              "[WIZARD] 🍌 Falha na geração via modelo principal, acionando modelo alternativo:",
               nanobananaError.message || nanobananaError
             );
 
             toast({
               title: "🔄 Acionando Fallback Automático",
               description:
-                "O modelo principal de imagem está temporariamente instável. Gerando sua arte via Flux Kontext...",
+                "O modelo principal de imagem está temporariamente instável. Gerando sua arte via modelo alternativo...",
             });
 
             // Permite continuar para a geração padrão abaixo (Flux Kontext)
