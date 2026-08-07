@@ -495,7 +495,7 @@ CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slight
 LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
 SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
 LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
-COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
+COMPOSITION: You MUST strictly structure the composition, framing, and text placement according to the designated LAYOUT STYLE for Option 1. Do not default to the rule of thirds if the layout style dictates otherwise.
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
 ${option2Text}
