@@ -1210,9 +1210,9 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
+      // Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
       const MODELS_CHAIN = [
-        { provider: "openai", model: "dall-e-3" },
+        { provider: "openai", model: "gpt-image-2" },
         { provider: "google", model: "imagen-4.0-ultra-generate-001" },
       ];
 
@@ -1234,7 +1234,7 @@ ${yamlAnalysis}`;
                 "Authorization": `Bearer ${openaiKey}`,
               },
               body: JSON.stringify({
-                model: "dall-e-3",
+                model: "gpt-image-2",
                 prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
                 n: 1,
                 size: "1024x1024",
@@ -1879,7 +1879,7 @@ Cenário desejado e estilo: ${prompt}`;
         return NextResponse.json(
           {
             error:
-              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o dall-e-3.",
+              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o gpt-image-2.",
           },
           { status: 400 }
         );
@@ -1896,7 +1896,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (dall-e-3) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1906,7 +1906,7 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-2",
             prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
             n: 1,
             size: "1024x1024",
