@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { LayoutStyleSelector, LayoutStyleId, LAYOUT_STYLES } from "../dashboard/conteudo/gerar/_components/LayoutStyleSelector";
 
 const PROMPT_PRESETS = [
   {
@@ -161,6 +162,7 @@ export default function LaboratorioIAPage() {
   );
   
   const [prompts, setPrompts] = useState<{label: string; value: string}[]>(PROMPT_PRESETS);
+  const [testLayoutStyle, setTestLayoutStyle] = useState<string>("");
 
   useEffect(() => {
     const fetchPrompts = async () => {
@@ -435,6 +437,29 @@ export default function LaboratorioIAPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <h2 className="mb-4 font-semibold text-gray-800">5. Seletor de Estilo de Layout (Teste)</h2>
+            <LayoutStyleSelector
+              value={testLayoutStyle}
+              onChange={(style) => setTestLayoutStyle(style)}
+            />
+            {testLayoutStyle && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3 w-full"
+                onClick={() => {
+                  const styleDesc = LAYOUT_STYLES.find((s) => s.id === testLayoutStyle)?.description;
+                  if (styleDesc) {
+                    setSystemPrompt(prev => prev + "\n\n" + styleDesc);
+                  }
+                }}
+              >
+                Adicionar regra de estilo ao System Prompt
+              </Button>
+            )}
           </div>
 
           <Button 
