@@ -871,6 +871,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           formData.append("insertTextOnImage", String(shouldInsertText));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
+          if (layoutStyle) {
+            formData.append("layoutStyle", layoutStyle);
+          }
 
           response = await fetch("/api/generate-prompts", {
             method: "POST",
