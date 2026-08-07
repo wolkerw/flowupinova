@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { LayoutStyleSelector, LayoutStyleId, LAYOUT_STYLES } from "../dashboard/conteudo/gerar/_components/LayoutStyleSelector";
+import { LayoutStyleSelector, LayoutStyleId, LAYOUT_STYLES } from "@/app/dashboard/conteudo/gerar/_components/LayoutStyleSelector";
 
 const PROMPT_PRESETS = [
   {
