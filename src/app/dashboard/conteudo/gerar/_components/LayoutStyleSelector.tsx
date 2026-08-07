@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { cn } from "@/lib/utils";
 
 export type LayoutStyleId =
+  | ""
   | "MAGAZINE_3D"
   | "CLEAN_LUXURY"
   | "UGC_CINEMATIC"
@@ -12,6 +13,18 @@ export type LayoutStyleId =
   | "TYPOGRAPHIC_HERO"
   | "ENVIRONMENTAL_TEXT"
   | "DARK_SPOTLIGHT";
+
+/** IDs reais dos estilos (sem o AUTO vazio) — usado para sorteio */
+export const LAYOUT_STYLE_IDS: LayoutStyleId[] = [
+  "MAGAZINE_3D",
+  "CLEAN_LUXURY",
+  "UGC_CINEMATIC",
+  "SPLIT_LAYOUT",
+  "GLASSMORPHISM",
+  "TYPOGRAPHIC_HERO",
+  "ENVIRONMENTAL_TEXT",
+  "DARK_SPOTLIGHT",
+];
 
 export interface LayoutStyleOption {
   id: LayoutStyleId;
@@ -23,6 +36,14 @@ export interface LayoutStyleOption {
 }
 
 export const LAYOUT_STYLES: LayoutStyleOption[] = [
+  {
+    id: "",
+    label: "Automatico",
+    sublabel: "IA decide o estilo",
+    description: "A IA sorteia 2 estilos diferentes a cada geracao para maximo de variedade e surpresa criativa.",
+    placeholderGradient: "from-slate-700 via-slate-500 to-slate-400",
+    icon: "A",
+  },
   {
     id: "MAGAZINE_3D",
     label: "Efeito Capa de Revista",
@@ -109,7 +130,7 @@ export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
 };
 
 interface LayoutStyleSelectorProps {
-  value: LayoutStyleId;
+  value: string;
   onChange: (style: LayoutStyleId) => void;
   previewImages?: Partial<Record<LayoutStyleId, string>>;
 }
@@ -196,12 +217,18 @@ export function LayoutStyleSelector({ value, onChange, previewImages }: LayoutSt
         })}
       </div>
 
-      {LAYOUT_STYLES.find((s) => s.id === value) && (
+      {value && LAYOUT_STYLES.find((s) => s.id === value) && (
         <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
           <span className="font-medium text-gray-700">
             {LAYOUT_STYLES.find((s) => s.id === value)!.label}:
           </span>{" "}
           {LAYOUT_STYLES.find((s) => s.id === value)!.description}
+        </p>
+      )}
+      {!value && (
+        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+          <span className="font-medium text-gray-700">Automatico:</span>{" "}
+          A IA sorteia 2 estilos diferentes a cada geracao para maximo de variedade e surpresa.
         </p>
       )}
     </div>

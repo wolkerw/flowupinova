@@ -446,19 +446,47 @@ BRAND KIT ALIGNMENT (MANDATORY):
       ENVIRONMENTAL_TEXT: "LAYOUT STYLE — ENVIRONMENTAL_TEXT: The text is naturally integrated into the 3D scene environment, appearing as if it was painted, projected, or embossed onto real-world surfaces — walls, floors, windows, or objects. Realistic shadows and perspective distortion applied to text.",
       DARK_SPOTLIGHT: "LAYOUT STYLE — DARK_SPOTLIGHT: Dramatic, near-black background. Intense, narrow side-lighting or top-spot creates a theatrical spotlight effect on the product or subject. High-contrast white or luminous typography. Luxurious, powerful, night-premium aesthetic.",
     };
-    const selectedLayoutInstruction = LAYOUT_TECHNICAL[layoutStyle] || LAYOUT_TECHNICAL["CLEAN_LUXURY"];
+    // Sorteio de estilos aleatórios para garantir máxima variedade
+    const allStyles = Object.keys(LAYOUT_TECHNICAL);
+    const getRandomStyle = (exclude: string[] = []) => {
+       const available = allStyles.filter(s => !exclude.includes(s));
+       return available[Math.floor(Math.random() * available.length)];
+    };
+
+    let option1Style = "";
+    let option2Style = "";
+    let option3Style = "";
+
+    if (layoutStyle && LAYOUT_TECHNICAL[layoutStyle]) {
+       // Se o usuário selecionou um estilo, ele é o primário (Opção 1)
+       option1Style = layoutStyle;
+       option2Style = getRandomStyle([option1Style]);
+       option3Style = getRandomStyle([option1Style, option2Style]);
+    } else {
+       // Automático: Sorteia 3 estilos totalmente diferentes
+       option1Style = getRandomStyle();
+       option2Style = getRandomStyle([option1Style]);
+       option3Style = getRandomStyle([option1Style, option2Style]);
+    }
 
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
 You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
 
-# MANDATORY LAYOUT STYLE DIRECTIVE (HIGHEST PRIORITY — OVERRIDES ALL OTHER COMPOSITION RULES)
+# MANDATORY LAYOUT STYLE DIRECTIVES (HIGHEST PRIORITY — OVERRIDES ALL OTHER COMPOSITION RULES)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The user has explicitly selected a layout style. You MUST apply this layout and composition system to ALL 3 generated image prompts with zero exceptions. This directive overrides any generic composition preference.
+You MUST apply a specific layout and composition style for EACH of the 3 generated image options to guarantee maximum visual variety. This directive overrides any generic composition preference.
 
-${selectedLayoutInstruction}
+▶ FOR OPTION 1:
+${LAYOUT_TECHNICAL[option1Style]}
 
-You MUST explicitly describe this layout composition mechanics in every single prompt you generate. Do NOT ignore this rule.
+▶ FOR OPTION 2:
+${LAYOUT_TECHNICAL[option2Style]}
+
+▶ FOR OPTION 3:
+${LAYOUT_TECHNICAL[option3Style]}
+
+You MUST explicitly describe the designated layout composition mechanics in its respective prompt. Do NOT ignore this rule.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # CORE MISSION
