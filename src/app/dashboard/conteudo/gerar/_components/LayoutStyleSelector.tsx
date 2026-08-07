@@ -7,23 +7,13 @@ export type LayoutStyleId =
   | ""
   | "MAGAZINE_3D"
   | "CLEAN_LUXURY"
-  | "UGC_CINEMATIC"
-  | "SPLIT_LAYOUT"
-  | "GLASSMORPHISM"
-  | "TYPOGRAPHIC_HERO"
-  | "ENVIRONMENTAL_TEXT"
-  | "DARK_SPOTLIGHT";
+  | "UGC_CINEMATIC";
 
 /** IDs reais dos estilos (sem o AUTO vazio) — usado para sorteio */
 export const LAYOUT_STYLE_IDS: LayoutStyleId[] = [
   "MAGAZINE_3D",
   "CLEAN_LUXURY",
   "UGC_CINEMATIC",
-  "SPLIT_LAYOUT",
-  "GLASSMORPHISM",
-  "TYPOGRAPHIC_HERO",
-  "ENVIRONMENTAL_TEXT",
-  "DARK_SPOTLIGHT",
 ];
 
 export interface LayoutStyleOption {
@@ -70,65 +60,16 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     placeholderGradient: "from-amber-800 via-orange-600 to-yellow-500",
     icon: "C",
   },
-  {
-    id: "SPLIT_LAYOUT",
-    label: "Foto e Cartao de Texto",
-    sublabel: "Layout Lado a Lado",
-    description: "Divide o post em duas partes: de um lado a foto em destaque, do outro um bloco de cor com o texto super organizado.",
-    placeholderGradient: "from-blue-900 via-indigo-700 to-violet-600",
-    icon: "S",
-  },
-  {
-    id: "GLASSMORPHISM",
-    label: "Painel Moderno de Vidro",
-    sublabel: "Efeito Tecnologia",
-    description: "O texto fica dentro de um cartao flutuante com efeito de vidro fosco por cima da imagem. Perfeito para inovacao e tecnologia.",
-    placeholderGradient: "from-cyan-600 via-teal-500 to-emerald-400",
-    icon: "G",
-  },
-  {
-    id: "TYPOGRAPHIC_HERO",
-    label: "Frase em Destaque",
-    sublabel: "Texto Protagonista",
-    description: "Sua frase ou mensagem e a estrela do post com letras grandes e marcantes. A imagem entra em tamanho reduzido no canto.",
-    placeholderGradient: "from-fuchsia-900 via-purple-700 to-violet-500",
-    icon: "T",
-  },
-  {
-    id: "ENVIRONMENTAL_TEXT",
-    label: "Texto Integrado a Foto",
-    sublabel: "Projecao Realista",
-    description: "O texto parece ter sido gravado, desenhado ou projetado na propria parede, objeto ou cenario ao fundo da foto.",
-    placeholderGradient: "from-lime-700 via-green-600 to-emerald-500",
-    icon: "E",
-  },
-  {
-    id: "DARK_SPOTLIGHT",
-    label: "Efeito Holofote Escuro",
-    sublabel: "Modo Noturno Premium",
-    description: "Fundo escuro com foco de luz brilhante e direto no produto. Gera um visual forte, elegante e tecnologico.",
-    placeholderGradient: "from-gray-950 via-slate-800 to-zinc-700",
-    icon: "D",
-  },
 ];
 
 export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
+  "": "",
   MAGAZINE_3D:
     "LAYOUT STYLE — MAGAZINE_3D: High-fashion depth-of-field, main subject overlaps and breaks through the typographic title plane creating a dramatic 3D parallax effect. Bold editorial serif headlines partially hidden behind the subject. Layered, complex composition. Magazine cover aesthetic.",
   CLEAN_LUXURY:
     "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
   UGC_CINEMATIC:
     "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
-  SPLIT_LAYOUT:
-    "LAYOUT STYLE — SPLIT_LAYOUT: Geometric hard-edge division splits the frame into two distinct zones — one side contains a crisp high-resolution photo, the other is a solid bold-color container block holding structured typographic information. Sharp, editorial, corporate.",
-  GLASSMORPHISM:
-    "LAYOUT STYLE — GLASSMORPHISM: A semi-transparent frosted glass card floats in the center of the composition over a softly blurred bokeh backdrop. The text lives inside the glass panel. The background is dreamlike and out-of-focus. Futuristic, tech, modern.",
-  TYPOGRAPHIC_HERO:
-    "LAYOUT STYLE — TYPOGRAPHIC_HERO: Giant, expressive, bold headline text is the primary visual hero element — it occupies 60-70% of the frame. A small product or illustrative accent is anchored in a corner as a supporting element. Pure typographic power.",
-  ENVIRONMENTAL_TEXT:
-    "LAYOUT STYLE — ENVIRONMENTAL_TEXT: The text is naturally integrated into the 3D scene environment, appearing as if it was painted, projected, or embossed onto real-world surfaces — walls, floors, windows, or objects. Realistic shadows and perspective distortion applied to text.",
-  DARK_SPOTLIGHT:
-    "LAYOUT STYLE — DARK_SPOTLIGHT: Dramatic, near-black background. Intense, narrow side-lighting or top-spot creates a theatrical spotlight effect on the product or subject. High-contrast white or luminous typography. Luxurious, powerful, night-premium aesthetic.",
 };
 
 interface LayoutStyleSelectorProps {
