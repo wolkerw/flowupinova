@@ -103,9 +103,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
+    // 2. Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
     const MODELS_CHAIN = [
-      { provider: "openai", model: "gpt-image-2" },
+      { provider: "openai", model: "dall-e-3" },
       { provider: "google", model: "imagen-4.0-ultra-generate-001" },
     ];
 
@@ -132,9 +132,10 @@ export async function POST(request: Request) {
               },
               body: JSON.stringify({
                 model: config.model,
-                prompt: finalPrompt,
+                prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${finalPrompt}`,
                 n: 1,
                 size: "1024x1024",
+                style: "vivid",
               }),
             }
           );
