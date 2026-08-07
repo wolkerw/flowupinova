@@ -59,6 +59,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Cena natural do dia a dia com iluminacao de cinema. Passa a sensacao de um momento real e autentico capturado na hora.",
     placeholderGradient: "from-amber-800 via-orange-600 to-yellow-500",
     icon: "C",
+    image: "/layout-styles/ugc-cinematic.png",
   },
 ];
 
