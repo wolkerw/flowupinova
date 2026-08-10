@@ -190,6 +190,13 @@ export default function LaboratorioIAPage() {
           { label: "Extrator de Brand Kit (Leitor de PDF)", value: data.brand_kit_prompt, dbKey: "brand_kit_prompt" },
         ];
         
+        const customPresets = Object.keys(data)
+          .filter(k => k.startsWith("custom_"))
+          .map(k => {
+             const namePart = k.replace("custom_", "").split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+             return { label: `Customizado: ${namePart}`, value: data[k], dbKey: k };
+          });
+
         const merged = PROMPT_PRESETS.map(preset => {
           const matched = dynamicPresets.find(dp => dp.label === preset.label);
           if (matched && matched.value) {
@@ -198,7 +205,7 @@ export default function LaboratorioIAPage() {
           return preset;
         });
 
-        setPrompts(merged);
+        setPrompts([...merged, ...customPresets]);
         
         // Se o sistema estiver com o default original e ele veio atualizado do banco, atualiza:
         if (systemPrompt === PROMPT_PRESETS[0].value && merged[0].value !== PROMPT_PRESETS[0].value) {
@@ -225,16 +232,22 @@ export default function LaboratorioIAPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSavePrompt = async () => {
-    if (!selectedPresetKey) return;
+    let keyToSave = selectedPresetKey;
+    if (!keyToSave) {
+      const name = window.prompt("Digite um nome para salvar este novo prompt:");
+      if (!name) return; // Usuário cancelou
+      keyToSave = "custom_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    }
+
     setIsSavingPrompt(true);
     try {
       const res = await fetch("/api/admin/prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [selectedPresetKey]: systemPrompt }),
+        body: JSON.stringify({ [keyToSave]: systemPrompt }),
       });
       if (res.ok) {
-        alert("Prompt salvo com sucesso no banco de dados!");
+        alert("Prompt salvo com sucesso no banco de dados! Atualize a página para recarregar a lista.");
       } else {
         alert("Erro ao salvar o prompt.");
       }
@@ -424,7 +437,7 @@ export default function LaboratorioIAPage() {
                   variant="default"
                   className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
                   onClick={handleSavePrompt}
-                  disabled={isSavingPrompt || !selectedPresetKey}
+                  disabled={isSavingPrompt}
                 >
                   {isSavingPrompt ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                   Salvar
