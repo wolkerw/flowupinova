@@ -193,7 +193,7 @@ export default function LaboratorioIAPage() {
         const merged = PROMPT_PRESETS.map(preset => {
           const matched = dynamicPresets.find(dp => dp.label === preset.label);
           if (matched && matched.value) {
-            return { ...preset, value: matched.value };
+            return { ...preset, value: matched.value, dbKey: matched.dbKey || preset.dbKey };
           }
           return preset;
         });
@@ -419,18 +419,16 @@ export default function LaboratorioIAPage() {
                     <option key={index} value={preset.label}>{preset.label}</option>
                   ))}
                 </select>
-                {selectedPresetKey && (
-                  <Button 
-                    size="sm" 
-                    variant="default"
-                    className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
-                    onClick={handleSavePrompt}
-                    disabled={isSavingPrompt}
-                  >
-                    {isSavingPrompt ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                    Salvar
-                  </Button>
-                )}
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
+                  onClick={handleSavePrompt}
+                  disabled={isSavingPrompt || !selectedPresetKey}
+                >
+                  {isSavingPrompt ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                  Salvar
+                </Button>
               </div>
             </div>
             <Textarea
