@@ -95,8 +95,7 @@ export async function POST(request: NextRequest) {
           model: model,
           prompt: finalPrompt,
           n: 1,
-          size: "1024x1024",
-          style: "vivid"
+          size: "1024x1024"
         }),
       });
 
