@@ -256,6 +256,7 @@ export default function LaboratorioIAPage() {
           userPrompt,
           image1: image1Base64 ? { base64: image1Base64, mimeType: image1Mime } : null,
           image2: image2Base64 ? { base64: image2Base64, mimeType: image2Mime } : null,
+          layoutStyle: testLayoutStyle,
         }),
       });
 
