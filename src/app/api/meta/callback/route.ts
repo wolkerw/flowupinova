@@ -75,11 +75,20 @@ export async function POST(request: NextRequest) {
     } else if (userAccessToken) {
       let allPages: PageData[] = [];
       let pagesUrl: string | undefined =
-        `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
+        `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,tasks&limit=100`;
+
+      let pagesWithoutToken = 0;
 
       while (pagesUrl) {
         const pagesData = await fetchFromMetaAPI(pagesUrl);
         if (pagesData?.data) {
+          // Log para debug
+          const withoutToken = pagesData.data.filter((p: any) => !p.access_token);
+          if (withoutToken.length > 0) {
+            pagesWithoutToken += withoutToken.length;
+            console.log(`[META_CALLBACK_API] ${withoutToken.length} páginas ignoradas por não terem access_token (ex: ${withoutToken.map((p: any) => p.name).join(", ")})`);
+          }
+
           // Filtra para garantir que a página tenha um token de acesso próprio.
           allPages.push(...pagesData.data.filter((page: PageData) => page.access_token));
         }
@@ -88,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       if (allPages.length === 0) {
         throw new Error(
-          "Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta."
+          `Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta. Encontramos ${pagesWithoutToken} página(s), mas nenhuma possuía permissão de Token de Acesso (Access Token). Você precisa ter permissão de 'Gerenciar' ou 'Criar Conteúdo' na página.`
         );
       }
 
