@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     let inspirationFile: File | null = null;
 
     let insertTextOnImage = true;
+    let layoutStyle = "CLEAN_LUXURY";
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       if (formData.has("insertTextOnImage")) {
         insertTextOnImage = formData.get("insertTextOnImage") === "true";
       }
+      if (formData.has("layoutStyle")) {
+        layoutStyle = (formData.get("layoutStyle") as string) || "CLEAN_LUXURY";
+      }
     } else {
       const body = await request.json();
       selContent = body.content;
@@ -32,6 +36,9 @@ export async function POST(request: Request) {
       userId = body.userId;
       if (body.insertTextOnImage !== undefined) {
         insertTextOnImage = body.insertTextOnImage;
+      }
+      if (body.layoutStyle !== undefined) {
+        layoutStyle = body.layoutStyle;
       }
     }
 
@@ -302,18 +309,18 @@ Instruct the typography to be rendered using the specified Primary Font for titl
 `;
     }
 
-    let option3Text = "";
+    let option2Text = "";
     if (inspirationYaml) {
-      option3Text = `
+      option2Text = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING - OVERRIDES GENERIC BRANDING)
+## ⚡ OPTION 2 — ESTHETIC REPLICA FROM INSPIRATION (MANDATORY INSPIRATION MATCHING - OVERRIDES GENERIC BRANDING)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRITICAL INSTRUCTION FOR OPTION 3: You MUST generate an image prompt that DIRECTLY RECREATES AND MATCHES the visual scene, subject posture, architecture, furniture, background setting, and composition layout from the user's inspiration reference print analyzed below:
+CRITICAL INSTRUCTION FOR OPTION 2: You MUST generate an image prompt that DIRECTLY RECREATES AND MATCHES the visual scene, subject posture, architecture, furniture, background setting, and composition layout from the user's inspiration reference print analyzed below:
 
 ${inspirationYaml}
 
 REPLICATION REQUIREMENTS (HIGHEST PRIORITY):
-1. RECREATE THE EXACT SCENE & ENVIRONMENT: You MUST base the Option 3 prompt on the exact scenery, room, location, furniture, architecture, and background elements described in the YAML above. Do NOT replace the scene with a generic studio or workspace unless the inspiration reference image was literally a studio.
+1. RECREATE THE EXACT SCENE & ENVIRONMENT: You MUST base the Option 2 prompt on the exact scenery, room, location, furniture, architecture, and background elements described in the YAML above. Do NOT replace the scene with a generic studio or workspace unless the inspiration reference image was literally a studio.
 2. RECREATE THE COMPOSITION & FRAMING: Replicate the exact camera angle, subject positioning, distance, and negative space areas from the YAML.
 3. RECREATE THE LIGHTING & ATMOSPHERE: Mimic the exact lighting style, direction, color temperature, and atmospheric mood described in the YAML.
 4. BRAND PERSONALIZATION: Adapt the brand's primary and secondary colors subtly into props, lighting accents, or clothing details without altering the core scene architecture or layout.
@@ -325,9 +332,9 @@ ${
 }
 `;
     } else {
-      option3Text = `
+      option2Text = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 3 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: DRIBBBLE / DRIBBBLE / DESIGNI STYLE MATCHING SELECTED DESIGN REFERENCE)
+## ⚡ OPTION 2 — CONCEPTUAL / MINIMALIST / GRAPHIC STUDIO (MANDATORY RULE: STYLE MATCHING SELECTED DESIGN REFERENCE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SUBJECT & STYLE SELECTION:
 You MUST review the 30 visual design references below. Analyze the topic, title, and theme of the post, and choose the single design reference that best adapts to the context (e.g., choose #07 or #26 for romantic/dating/couple themes, #05 or #06 for traditional/São João themes, #02, #08, #29 or #30 for sports/competition, #15 for bright cartoonish retail promos, #10 or #27 for hiring/recruitment/imobiliaria, #16 for religious/church themes, #21 for sticker/collectible sports themes, #22 for music playlists, #23 for elegant profile portraits, #24 for car wash/split layout, #25 for pizza/food themes, #28 for birthdays, etc.).
@@ -416,8 +423,8 @@ BRAND KIT ALIGNMENT (MANDATORY):
     const textRules =
       selContent?.titulo && insertTextOnImage
         ? `
-2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt, instructing the AI to render it as a highly designed and styled layout on the image, avoiding boring linear text.
-   - Design Guidelines: Instruct the image generator to play with the text layout. Use typographic contrast (e.g., combining bold uppercase words with elegant lowercase clean sans-serif/serif letters). You can specify split-line layout, overlapping elements, or highlighting the key word of the title in the brand's primary color.
+2. TEXT ELEMENT (PORTUGUESE TITLE): Embed the post title literally in double quotes inside the prompt.
+   - Design Guidelines: You MUST integrate the text strictly according to the LAYOUT STYLE assigned to this option (e.g., if the layout is DARK_SPOTLIGHT, the text must be illuminated; if it is GLASSMORPHISM, it must be on a glass card). Do NOT force overlapping text or 3D parallax effects unless the assigned layout style explicitly asks for it. Use typographic contrast (bold/lowercase) to make it look premium.
    - DUPLICATION PREVENTION (CRITICAL): The prompt must strictly instruct the image creator to render ONLY the exact words from the title "${selContent.titulo}", and strictly forbid adding, repeating, or duplicating any words. Under no circumstances should the prompt describe words from the title as separate or standalone text elements, as this confuses the generator. For example, do NOT write: 'render "Sua Empresa Blindada" and also the word "Empresa" twice.' Instead, write: 'render the title "Sua Empresa Blindada" once, and style the word "Empresa" (which is already inside the title) in bold'. Explicitly append: "Do not render any other words, do not duplicate any words, and only write the words of the title once. Ensure that no word (such as the company name or the word 'empresa') is written or repeated twice on the canvas. The text must read exactly '${selContent.titulo}' and nothing else."
    - PORTUGUESE ACCENTUATION RULE (CRITICAL - ZERO TOLERANCE FOR ACCENT ERRORS): To ensure perfect Portuguese (pt_BR) spelling and characters (such as á, é, í, ó, ú, ç, ã, õ, ê, ô, â, ô), you MUST explicitly list and describe each accent mark in the prompt text.
      - Example: If the title is "Vídeos Curtos Virais", write: ...render the literal text "Vídeos Curtos Virais" with a clean acute accent mark on the letter "í" in "Vídeos". Ensure all accent marks and special characters (like á, é, í, ó, ú, ç, ã, õ) are rendered perfectly with no spelling errors or distorted glyphs, using a standard sans-serif font like Montserrat or Arial which has full UTF-8 character support.
@@ -428,13 +435,53 @@ BRAND KIT ALIGNMENT (MANDATORY):
 2. ABSOLUTE TEXT PROHIBITION (MANDATORY): The user specifically requested NO TEXT on the image. You MUST NOT instruct the AI to write any words, titles, phrases, logos, or slogans on the image. The image must be a clean graphic composition or photograph without any typography. The context/title "${selContent?.titulo || ""}" is just for inspiration of the scene and should NOT be written on the image.
 `;
 
+    // Mapa: id do layout -> instrução técnica para a IA
+    const LAYOUT_TECHNICAL: Record<string, string> = {
+      MAGAZINE_3D: "LAYOUT STYLE — MAGAZINE_3D: High-fashion depth-of-field, main subject overlaps and breaks through the typographic title plane creating a dramatic 3D parallax effect. Bold editorial serif headlines partially hidden behind the subject. Layered, complex composition. Magazine cover aesthetic.",
+      CLEAN_LUXURY: "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
+      UGC_CINEMATIC: "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
+      LIFESTYLE_HYBRID: "LAYOUT STYLE — LIFESTYLE_HYBRID: A person in dynamic action (running, exercising, working, or using the product) photographed in a real-world setting. Clean or subtly blurred background. Subject positioned on one side, leaving clean negative space on the opposite side for text. Energetic, polished, and premium feel. Sharp focus on subject, soft natural background light.",
+    };
+    // Sorteio de estilos aleatórios para garantir máxima variedade
+    const allStyles = Object.keys(LAYOUT_TECHNICAL);
+    const getRandomStyle = (exclude: string[] = []) => {
+       const available = allStyles.filter(s => !exclude.includes(s));
+       return available[Math.floor(Math.random() * available.length)];
+    };
+
+    let option1Style = "";
+    let option2Style = "";
+
+    if (layoutStyle && LAYOUT_TECHNICAL[layoutStyle]) {
+       // Se o usuário selecionou um estilo, ele é o primário (Opção 1)
+       option1Style = layoutStyle;
+       option2Style = getRandomStyle([option1Style]);
+    } else {
+       // Automático: Sorteia 2 estilos totalmente diferentes
+       option1Style = getRandomStyle();
+       option2Style = getRandomStyle([option1Style]);
+    }
+
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
 You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
 
+# MANDATORY LAYOUT STYLE DIRECTIVES (HIGHEST PRIORITY — OVERRIDES ALL OTHER COMPOSITION RULES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You MUST apply a specific layout and composition style for EACH of the 2 generated image options to guarantee maximum visual variety. This directive overrides any generic composition preference.
+
+▶ FOR OPTION 1:
+${LAYOUT_TECHNICAL[option1Style]}
+
+▶ FOR OPTION 2:
+${LAYOUT_TECHNICAL[option2Style]}
+
+You MUST explicitly describe the designated layout composition mechanics in its respective prompt. Do NOT ignore this rule.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 # CORE MISSION
-Generate EXACTLY 3 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
-CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 3 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
+Generate EXACTLY 2 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
+CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 2 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## ⚡ OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
@@ -444,29 +491,10 @@ CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slight
 LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
 SETTING: A rich, contextually relevant real-world environment (construction site, modern office, café, workshop, gym, outdoor street) — NOT a studio.
 LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g., "golden hour side light streaming through a factory window casting long shadows", "dramatic cinematic under-lighting in a modern kitchen").
-COMPOSITION: Rule of thirds. Person positioned on left or right third, leaving space for the text overlay on the other side.
+COMPOSITION: You MUST strictly structure the composition, framing, and text placement according to the designated LAYOUT STYLE for Option 1. Do not default to the rule of thirds if the layout style dictates otherwise.
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## ⚡ OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
-STYLE & LAYOUT:
-- **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
-- **Niche-Specific Metaphors:** The shapes/vectors must represent the brand's actual product or segment. Never default to generic tech startup graphics.
-- **Negative Space:** Maintain 30-40% of the frame as clean background area for text overlay, ensuring the graphics do not clutter the copy space.
-- **Typographic Integration (Differentiated Text Layout):** The literal text/title must NOT just be placed in a straight line at the bottom. Instead, integrate it dynamically into the scene. For example, render the text using a combination of a bold heading font for the main word and a light font for the secondary words (typographic contrast). Place the text aligned to the negative space side, using the brand's primary color for the key highlighted word and white or the secondary color for the rest.
-CAMERA & LENS:
-- Medium shot (waist up) or close-up portrait.
-- 50mm or 85mm lens, f/2.8 to keep the person and the nearest graphic elements in sharp focus while creating a soft blur in the deep background.
-LIGHTING:
-- Balanced studio lighting or modern office lighting. Use subtle colored gel lighting (using the brand's primary/secondary colors) reflecting on the person's face and bouncing off the graphics for a seamless visual blend.
-BRAND KIT ALIGNMENT (MANDATORY):
-- The graphic shapes, vectors, icons, and colored lights MUST strictly use the brand's Primary, Secondary, and Complementary colors.
-- The text overlay must match the brand's typography.
-MANDATORY PROHIBITION: Do NOT make the graphics look like cheap flat 2D clip art. If using 2D, it must look like premium minimalist vector icons or professional UI elements; if 3D, it must have depth, material textures (like glass, matte plastic, or metallic), and professional lighting.
- 
-${option3Text}
+${option2Text}
 
 ${approvedPromptsExamples}
 
@@ -478,7 +506,7 @@ ${brandingInstruction}
 1. LANGUAGE: Write all visual descriptions in English only.
 ${textRules}
 3. PREMIUM QUALITY TAGS: End every prompt with these quality booster tags: "ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4".
-4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 3 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
+4. RADICAL DIFFERENTIATION CHECK: Before outputting, mentally verify that the 2 prompts describe COMPLETELY DIFFERENT visual styles, color temperatures, settings, compositions, and moods. If two prompts feel similar, rewrite the weaker one to be more distinct.
 5. MINIMUM LENGTH: Each prompt must be at least 120 words to ensure sufficient detail.
 6. ZERO TOLERANCE ON HEX CODES, HASH SYMBOLS AND TECHNICAL LABELS (CRITICAL):
    - You MUST NOT output any hexadecimal color codes (e.g. #FFCC29, #373435, #000, #FFFFFF, etc.), the hash symbol (#), or CSS terms.
@@ -495,8 +523,7 @@ ${textRules}
 {
   "prompts": [
     "[OPTION 1 — LIFESTYLE] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
-    "[OPTION 2 — MACRO PRODUCT] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
-    "[OPTION 3 — CONCEPTUAL MINIMALIST] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
+    "[OPTION 2 — CONCEPTUAL / REPLICA] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
   ]
 }
 `;

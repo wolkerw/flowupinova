@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { model, temperature, systemPrompt, userPrompt, image1, image2 } = body;
+    const { model, temperature, systemPrompt, userPrompt, image1, image2, layoutStyle } = body;
 
     if (model.startsWith("manus")) {
       const manusKey = process.env.MANUS_API_KEY || process.env.MANUS_API;
@@ -60,14 +60,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Fluxo para OpenAI (GPT Image / DALL-E)
-    if (model.includes("gpt-image")) {
+    if (model.includes("gpt-image") || model.includes("chatgpt-image")) {
       const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
         return NextResponse.json({ error: "OPENAI_API_KEY não configurada no .env" }, { status: 500 });
       }
 
       const openaiUrl = "https://api.openai.com/v1/images/generations";
-      const finalPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
+      let finalPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
+
+      // 1. Injetar Estilo no topo (Mesma lógica do app)
+      const STYLE_LABELS: Record<string, string> = {
+        MAGAZINE_3D: "Magazine Cover 3D Parallax Effect — subject breaks through the text plane, editorial serif headline behind the person",
+        CLEAN_LUXURY: "Clean Minimalist Luxury — large white negative space, soft diffused light, no clutter, ultra-premium aesthetic",
+        UGC_CINEMATIC: "Authentic Lifestyle UGC Cinematic — candid real moment, natural window light, cinematic color grade",
+        LIFESTYLE_HYBRID: "Lifestyle Hybrid — person in dynamic action on real-world setting, clean background, subject on one side with open space for text",
+      };
+      if (layoutStyle && STYLE_LABELS[layoutStyle]) {
+        finalPrompt = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] ${finalPrompt}`;
+      }
+
+      // 2. Anti-rewriting para GPT Image 2
+      if (model === "gpt-image-2") {
+        finalPrompt = `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${finalPrompt}`;
+      }
 
       const response = await fetch(openaiUrl, {
         method: "POST",
@@ -124,7 +140,17 @@ export async function POST(request: NextRequest) {
     if (model.startsWith("imagen")) {
       // Fluxo para Imagen 4
       const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
-      const finalImagenPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
+      let finalImagenPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
+      
+      const STYLE_LABELS: Record<string, string> = {
+        MAGAZINE_3D: "Magazine Cover 3D Parallax Effect — subject breaks through the text plane, editorial serif headline behind the person",
+        CLEAN_LUXURY: "Clean Minimalist Luxury — large white negative space, soft diffused light, no clutter, ultra-premium aesthetic",
+        UGC_CINEMATIC: "Authentic Lifestyle UGC Cinematic — candid real moment, natural window light, cinematic color grade",
+        LIFESTYLE_HYBRID: "Lifestyle Hybrid — person in dynamic action on real-world setting, clean background, subject on one side with open space for text",
+      };
+      if (layoutStyle && STYLE_LABELS[layoutStyle]) {
+        finalImagenPrompt = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] ${finalImagenPrompt}`;
+      }
       
       const imagenResponse = await fetch(imagenUrl, {
         method: "POST",

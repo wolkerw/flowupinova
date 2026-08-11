@@ -146,6 +146,8 @@ interface WizardContextType {
   setInsertTextOnImage: (val: boolean | null) => void;
   generateTextSuggestions: boolean;
   setGenerateTextSuggestions: (val: boolean) => void;
+  layoutStyle: string;
+  setLayoutStyle: (style: string) => void;
   isUploading: boolean;
 
   // Computed & Refs
@@ -233,6 +235,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
+  const [layoutStyle, setLayoutStyle] = useState<string>("CLEAN_LUXURY");
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
@@ -868,6 +871,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           formData.append("insertTextOnImage", String(shouldInsertText));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
+          if (layoutStyle) {
+            formData.append("layoutStyle", layoutStyle);
+          }
 
           response = await fetch("/api/generate-prompts", {
             method: "POST",
@@ -882,6 +888,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               businessProfile: businessProfile,
               insertTextOnImage: shouldInsertText,
               userId: user.uid,
+              layoutStyle: layoutStyle,
             }),
           });
         }
@@ -1053,19 +1060,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
             toast({
               title: `✅ Geração Concluída!`,
-              description: "Imagem criada com sucesso pelo modelo Nano Banana Pro.",
+              description: "Sua imagem publicitária foi criada com sucesso.",
             });
             return;
           } catch (nanobananaError: any) {
             console.warn(
-              "[WIZARD] 🍌 Falha na geração via Nano Banana Pro, acionando fallback para Flux Kontext:",
+              "[WIZARD] 🍌 Falha na geração via modelo principal, acionando modelo alternativo:",
               nanobananaError.message || nanobananaError
             );
 
             toast({
               title: "🔄 Acionando Fallback Automático",
               description:
-                "O modelo principal de imagem está temporariamente instável. Gerando sua arte via Flux Kontext...",
+                "O modelo principal de imagem está temporariamente instável. Gerando sua arte via modelo alternativo...",
             });
 
             // Permite continuar para a geração padrão abaixo (Flux Kontext)
@@ -1286,6 +1293,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
               content: selContent,
               businessProfile: businessProfile,
               userId: user.uid,
+              layoutStyle: layoutStyle || "",
             }),
           });
 
@@ -1901,6 +1909,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setInsertTextOnImage,
         generateTextSuggestions,
         setGenerateTextSuggestions,
+        layoutStyle,
+        setLayoutStyle,
         isUploading,
         mode,
         user,

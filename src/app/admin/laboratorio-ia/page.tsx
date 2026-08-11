@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { LayoutStyleSelector, LayoutStyleId, LAYOUT_STYLES, LAYOUT_STYLE_TECHNICAL } from "@/app/dashboard/conteudo/gerar/_components/LayoutStyleSelector";
 
 const PROMPT_PRESETS = [
   {
@@ -12,6 +13,7 @@ const PROMPT_PRESETS = [
   },
   {
     label: "Gerador de Imagem: Conceito (UGC / Contexto)",
+    dbKey: "ugc_prompt",
     value: `You are an elite Creative Art Director, Ad Designer, and Prompt Engineer specialized in User-Generated Content (UGC) advertising and premium photographic product placement for image generation models (specifically Flux Kontext).
 
 # GOAL
@@ -30,6 +32,7 @@ Given a reference image description, the user's creative advertising ideas, and 
   },
   {
     label: "Gerador de Imagem: Foto de Produto",
+    dbKey: "produto_prompt",
     value: `Aqui está a foto de referência do produto (com fundo transparente/removido).
 Você é um Diretor de Fotografia Comercial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content). Gere uma imagem comercial realista de estilo de vida premium posicionando este produto no cenário descrito a seguir.
 
@@ -47,6 +50,7 @@ DIRETRIZES DE ESTÉTICA FOTOGRÁFICA UGC:
   },
   {
     label: "Gerador de Imagem: Híbrida (Produto + Cenário)",
+    dbKey: "hibrido_prompt",
     value: `Você é um Diretor de Fotografia, Retratista Editorial e Ad Designer Sênior especializado em campanhas de UGC (User-Generated Content) de alto nível.
 Com base nas duas imagens de referência fornecidas (Foto 1 e Foto 2), gere uma imagem comercial premium de estilo de vida realista (premium lifestyle portrait/ad) integrando ambos na cena.
 
@@ -62,6 +66,7 @@ DIRETRIZES DE CRIAÇÃO HÍBRIDA DO SEU FLUXO:
   },
   {
     label: "Gerador de Ideias de Posts (Referência)",
+    dbKey: "ideias_post_prompt",
     value: `Você é um especialista em Copywriting Sênior, Marketing e Diretor de Arte de redes sociais.
 CONTEXTO TEMPORAL: Estamos no ano de [ANO], no mês de [MES]. Sempre utilize esse ano/contexto atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
 
@@ -79,6 +84,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
   },
   {
     label: "Melhorador de Textos",
+    dbKey: "melhorar_texto_prompt",
     value: `Você é um especialista em Copywriting para Redes Sociais.
 Sua tarefa é melhorar a legenda fornecida pelo usuário.
 Diretrizes:
@@ -90,6 +96,7 @@ Diretrizes:
   },
   {
     label: "Copilot de Anúncios (Meta Ads)",
+    dbKey: "copilot_ads_prompt",
     value: `Você é um especialista em marketing digital da Meta (Facebook e Instagram) focado em pequenos e médios negócios locais brasileiros.
 CONTEXTO TEMPORAL: Estamos no ano de [ANO]. Sempre utilize esse ano atual caso precise citar datas, anos ou campanhas promocionais sazonais. Nunca cite o ano de 2024.
 Sua tarefa é criar títulos (headlines) magnéticos e copies altamente persuasivas para impulsionar um anúncio na região local.
@@ -115,6 +122,7 @@ Você deve responder estritamente com um objeto JSON válido, sem markdown ou fo
   },
   {
     label: "Extrator de Brand Kit (Leitor de PDF)",
+    dbKey: "brand_kit_prompt",
     value: `Você é um especialista em Branding, Direção de Arte e Marketing Estratégico.
 Analise detalhadamente o arquivo PDF de manual de marca (Brandbook / Guia de Estilo / Identidade Visual) fornecido e extraia as diretrizes fundamentais da marca.
 Seu objetivo é sintetizar as diretrizes visuais e conceituais para que nosso app de Inteligência Artificial possa utilizá-las para gerar posts de texto e imagens publicitárias consistentes com a marca do cliente.
@@ -160,7 +168,10 @@ export default function LaboratorioIAPage() {
     `Estilo visual: Cinematográfico`
   );
   
-  const [prompts, setPrompts] = useState<{label: string; value: string}[]>(PROMPT_PRESETS);
+  const [prompts, setPrompts] = useState<{label: string; value: string; dbKey?: string}[]>(PROMPT_PRESETS);
+  const [testLayoutStyle, setTestLayoutStyle] = useState<string>("");
+  const [selectedPresetKey, setSelectedPresetKey] = useState<string | null>(null);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
 
   useEffect(() => {
     const fetchPrompts = async () => {
@@ -170,23 +181,31 @@ export default function LaboratorioIAPage() {
         const data = await res.json();
         
         const dynamicPresets = [
-          { label: "Gerador de Imagem: Conceito (UGC / Contexto)", value: data.ugc_prompt },
-          { label: "Gerador de Imagem: Foto de Produto", value: data.produto_prompt },
-          { label: "Gerador de Imagem: Híbrida (Produto + Cenário)", value: data.hibrido_prompt },
-          { label: "Gerador de Ideias de Posts (Referência)", value: data.ideias_post_prompt },
-          { label: "Melhorador de Textos", value: data.melhorar_texto_prompt },
-          { label: "Copilot de Anúncios (Meta Ads)", value: data.copilot_ads_prompt },
+          { label: "Gerador de Imagem: Conceito (UGC / Contexto)", value: data.ugc_prompt, dbKey: "ugc_prompt" },
+          { label: "Gerador de Imagem: Foto de Produto", value: data.produto_prompt, dbKey: "produto_prompt" },
+          { label: "Gerador de Imagem: Híbrida (Produto + Cenário)", value: data.hibrido_prompt, dbKey: "hibrido_prompt" },
+          { label: "Gerador de Ideias de Posts (Referência)", value: data.ideias_post_prompt, dbKey: "ideias_post_prompt" },
+          { label: "Melhorador de Textos", value: data.melhorar_texto_prompt, dbKey: "melhorar_texto_prompt" },
+          { label: "Copilot de Anúncios (Meta Ads)", value: data.copilot_ads_prompt, dbKey: "copilot_ads_prompt" },
+          { label: "Extrator de Brand Kit (Leitor de PDF)", value: data.brand_kit_prompt, dbKey: "brand_kit_prompt" },
         ];
         
+        const customPresets = Object.keys(data)
+          .filter(k => k.startsWith("custom_"))
+          .map(k => {
+             const namePart = k.replace("custom_", "").split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+             return { label: `Customizado: ${namePart}`, value: data[k], dbKey: k };
+          });
+
         const merged = PROMPT_PRESETS.map(preset => {
           const matched = dynamicPresets.find(dp => dp.label === preset.label);
           if (matched && matched.value) {
-            return { ...preset, value: matched.value };
+            return { ...preset, value: matched.value, dbKey: matched.dbKey || preset.dbKey };
           }
           return preset;
         });
 
-        setPrompts(merged);
+        setPrompts([...merged, ...customPresets]);
         
         // Se o sistema estiver com o default original e ele veio atualizado do banco, atualiza:
         if (systemPrompt === PROMPT_PRESETS[0].value && merged[0].value !== PROMPT_PRESETS[0].value) {
@@ -211,6 +230,34 @@ export default function LaboratorioIAPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSavePrompt = async () => {
+    let keyToSave = selectedPresetKey;
+    if (!keyToSave) {
+      const name = window.prompt("Digite um nome para salvar este novo prompt:");
+      if (!name) return; // Usuário cancelou
+      keyToSave = "custom_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    }
+
+    setIsSavingPrompt(true);
+    try {
+      const res = await fetch("/api/admin/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [keyToSave]: systemPrompt }),
+      });
+      if (res.ok) {
+        alert("Prompt salvo com sucesso no banco de dados! Atualize a página para recarregar a lista.");
+      } else {
+        alert("Erro ao salvar o prompt.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar o prompt.");
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  };
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -254,6 +301,7 @@ export default function LaboratorioIAPage() {
           userPrompt,
           image1: image1Base64 ? { base64: image1Base64, mimeType: image1Mime } : null,
           image2: image2Base64 ? { base64: image2Base64, mimeType: image2Mime } : null,
+          layoutStyle: testLayoutStyle,
         }),
       });
 
@@ -367,19 +415,34 @@ export default function LaboratorioIAPage() {
           <div className="rounded-xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800">2. Prompt de Sistema (Instruções)</h2>
-              <select
-                className="rounded-md border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 max-w-[200px]"
-                defaultValue=""
-                onChange={(e) => {
-                  const preset = prompts.find(p => p.label === e.target.value);
-                  if (preset) setSystemPrompt(preset.value);
-                }}
-              >
-                <option value="" disabled>Carregar prompt original...</option>
-                {prompts.map((preset, index) => (
-                  <option key={index} value={preset.label}>{preset.label}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  className="rounded-md border border-gray-300 p-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 max-w-[200px]"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const preset = prompts.find(p => p.label === e.target.value);
+                    if (preset) {
+                      setSystemPrompt(preset.value);
+                      setSelectedPresetKey(preset.dbKey || null);
+                    }
+                  }}
+                >
+                  <option value="" disabled>Carregar prompt original...</option>
+                  {prompts.map((preset, index) => (
+                    <option key={index} value={preset.label}>{preset.label}</option>
+                  ))}
+                </select>
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
+                  onClick={handleSavePrompt}
+                  disabled={isSavingPrompt}
+                >
+                  {isSavingPrompt ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                  Salvar
+                </Button>
+              </div>
             </div>
             <Textarea
               value={systemPrompt}
@@ -435,6 +498,29 @@ export default function LaboratorioIAPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <h2 className="mb-4 font-semibold text-gray-800">5. Seletor de Estilo de Layout (Teste)</h2>
+            <LayoutStyleSelector
+              value={testLayoutStyle}
+              onChange={(style) => setTestLayoutStyle(style)}
+            />
+            {testLayoutStyle && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3 w-full"
+                onClick={() => {
+                  const styleDesc = LAYOUT_STYLE_TECHNICAL[testLayoutStyle as LayoutStyleId];
+                  if (styleDesc) {
+                    setSystemPrompt(prev => prev + "\n\n" + styleDesc);
+                  }
+                }}
+              >
+                Adicionar regra de estilo ao System Prompt
+              </Button>
+            )}
           </div>
 
           <Button 

@@ -143,11 +143,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Filtra apenas chaves válidas para evitar sujeira no banco
-    const keysToUpdate = Object.keys(DEFAULT_PROMPTS);
+    // Permite chaves default e chaves customizadas
     const updates: any = {};
-    for (const key of keysToUpdate) {
-      if (body[key] !== undefined) {
+    for (const key of Object.keys(body)) {
+      if (Object.keys(DEFAULT_PROMPTS).includes(key) || key.startsWith("custom_")) {
         updates[key] = body[key];
       }
     }

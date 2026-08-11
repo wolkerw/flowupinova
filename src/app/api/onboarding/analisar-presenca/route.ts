@@ -19,6 +19,9 @@ export async function POST(request: Request) {
 
 
     let scrapedData = "";
+    let ogImage = "";
+    let icon = "";
+    let images: string[] = [];
 
     // Tentar fazer o scraping do site se fornecido
     if (website) {
@@ -42,13 +45,12 @@ export async function POST(request: Request) {
           const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
           
           // Extrair Meta Tags Visuais (og:image, theme-color, icon)
-          const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "";
+          ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "";
           const themeColor = document.querySelector('meta[name="theme-color"]')?.getAttribute("content") || "";
-          const icon = document.querySelector('link[rel="icon"]')?.getAttribute("href") || 
+          icon = document.querySelector('link[rel="icon"]')?.getAttribute("href") || 
                        document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href") || "";
 
           // Extrair Imagens (procurando logos)
-          const images: string[] = [];
           document.querySelectorAll('img').forEach(img => {
             const src = img.getAttribute("src");
             const alt = (img.getAttribute("alt") || "").toLowerCase();
