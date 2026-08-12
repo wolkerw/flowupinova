@@ -56,6 +56,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Fotografia de estúdio, fundo neutro elegante, iluminação suave e uniforme.",
     placeholderGradient: "from-gray-100 via-zinc-200 to-slate-300",
     icon: "📸",
+    image: "/layout-styles/clean-luxury.png",
   },
   {
     id: "URBAN_LIFESTYLE",
