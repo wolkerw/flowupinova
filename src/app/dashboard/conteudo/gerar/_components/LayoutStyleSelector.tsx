@@ -66,6 +66,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Estilo lifestyle autêntico, ambiente urbano real, luz do dia natural.",
     placeholderGradient: "from-blue-800 via-indigo-600 to-sky-400",
     icon: "🏙️",
+    image: "/layout-styles/urban-lifestyle.png",
   },
   {
     id: "MINIMALIST",
