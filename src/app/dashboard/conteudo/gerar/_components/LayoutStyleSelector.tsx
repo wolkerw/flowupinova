@@ -75,6 +75,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Design minimalista, composição espaçosa, estética moderna, sofisticada e limpa.",
     placeholderGradient: "from-neutral-100 via-stone-200 to-zinc-400",
     icon: "✨",
+    image: "/layout-styles/minimalist.png",
   },
   {
     id: "TECH_3D",
