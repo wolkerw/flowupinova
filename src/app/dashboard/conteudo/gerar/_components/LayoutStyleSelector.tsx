@@ -80,6 +80,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Ilustração 3D premium, renderização estilo Octane/Redshift, cores vibrantes, materiais realistas.",
     placeholderGradient: "from-violet-900 via-purple-700 to-pink-500",
     icon: "💎",
+    image: "/layout-styles/tech-3d.png",
   },
   {
     id: "MAGAZINE_3D",
