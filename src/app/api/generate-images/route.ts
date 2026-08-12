@@ -147,10 +147,9 @@ export async function POST(request: Request) {
               },
               body: JSON.stringify({
                 model: config.model,
-                prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${finalPrompt}`,
+                prompt: finalPrompt,
                 n: 1,
                 size: "1024x1024",
-                style: "vivid",
               }),
             }
           );
