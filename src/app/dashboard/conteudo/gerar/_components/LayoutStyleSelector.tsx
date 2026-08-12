@@ -5,17 +5,21 @@ import { cn } from "@/lib/utils";
 
 export type LayoutStyleId =
   | ""
-  | "MAGAZINE_3D"
-  | "CLEAN_LUXURY"
-  | "UGC_CINEMATIC"
-  | "LIFESTYLE_HYBRID";
+  | "CINEMATIC"
+  | "STUDIO_CLEAN"
+  | "URBAN_LIFESTYLE"
+  | "MINIMALIST"
+  | "TECH_3D"
+  | "MAGAZINE_3D";
 
 /** IDs reais dos estilos (sem o AUTO vazio) — usado para sorteio */
 export const LAYOUT_STYLE_IDS: LayoutStyleId[] = [
+  "CINEMATIC",
+  "STUDIO_CLEAN",
+  "URBAN_LIFESTYLE",
+  "MINIMALIST",
+  "TECH_3D",
   "MAGAZINE_3D",
-  "CLEAN_LUXURY",
-  "UGC_CINEMATIC",
-  "LIFESTYLE_HYBRID",
 ];
 
 export interface LayoutStyleOption {
@@ -31,59 +35,77 @@ export interface LayoutStyleOption {
 export const LAYOUT_STYLES: LayoutStyleOption[] = [
   {
     id: "",
-    label: "Automatico",
+    label: "Automático",
     sublabel: "IA decide o estilo",
-    description: "A IA sorteia 2 estilos diferentes a cada geracao para maximo de variedade e surpresa criativa.",
+    description: "A IA sorteia 2 estilos diferentes a cada geração para máximo de variedade e surpresa criativa.",
     placeholderGradient: "from-slate-700 via-slate-500 to-slate-400",
     icon: "A",
   },
   {
+    id: "CINEMATIC",
+    label: "Cinematográfico",
+    sublabel: "Luz Dramática",
+    description: "Fotografia cinematográfica, luz dramática, sombras profundas, lente 85mm f/1.8.",
+    placeholderGradient: "from-amber-950 via-red-900 to-stone-900",
+    icon: "🎬",
+  },
+  {
+    id: "STUDIO_CLEAN",
+    label: "Estúdio Clean",
+    sublabel: "Fundo Neutro",
+    description: "Fotografia de estúdio, fundo neutro elegante, iluminação suave e uniforme.",
+    placeholderGradient: "from-gray-100 via-zinc-200 to-slate-300",
+    icon: "📸",
+  },
+  {
+    id: "URBAN_LIFESTYLE",
+    label: "Urbano / Lifestyle",
+    sublabel: "Dia a Dia Real",
+    description: "Estilo lifestyle autêntico, ambiente urbano real, luz do dia natural.",
+    placeholderGradient: "from-blue-800 via-indigo-600 to-sky-400",
+    icon: "🏙️",
+  },
+  {
+    id: "MINIMALIST",
+    label: "Minimalista",
+    sublabel: "Espaçoso & Sofisticado",
+    description: "Design minimalista, composição espaçosa, estética moderna, sofisticada e limpa.",
+    placeholderGradient: "from-neutral-100 via-stone-200 to-zinc-400",
+    icon: "✨",
+  },
+  {
+    id: "TECH_3D",
+    label: "Tecnologia 3D",
+    sublabel: "Octane / Redshift",
+    description: "Ilustração 3D premium, renderização estilo Octane/Redshift, cores vibrantes, materiais realistas.",
+    placeholderGradient: "from-violet-900 via-purple-700 to-pink-500",
+    icon: "💎",
+  },
+  {
     id: "MAGAZINE_3D",
-    label: "Efeito Capa de Revista",
-    sublabel: "Texto em 3D",
-    description: "O texto principal fica atras do produto ou da pessoa, criando um efeito de profundidade 3D digno de capa de revista.",
+    label: "Magazine 3D",
+    sublabel: "Capa de Revista",
+    description: "Estilo capa de revista de alta moda, tipografia integrada com profundidade 3D (sujeito sobrepõe parcialmente as letras do título).",
     placeholderGradient: "from-rose-900 via-pink-700 to-orange-500",
-    icon: "P",
+    icon: "📰",
     image: "/layout-styles/magazine-3d.png",
-  },
-  {
-    id: "CLEAN_LUXURY",
-    label: "Minimalista & Sofisticado",
-    sublabel: "Espaco Neutro",
-    description: "Uma imagem limpa com bastante espaco em branco, iluminacao suave e texto discreto. Ideal para transmitir luxo e exclusividade.",
-    placeholderGradient: "from-gray-100 via-stone-200 to-zinc-300",
-    icon: "M",
-    image: "/layout-styles/clean-luxury.png",
-  },
-  {
-    id: "UGC_CINEMATIC",
-    label: "Estilo Vida Real",
-    sublabel: "Foto Espontanea",
-    description: "Cena natural do dia a dia com iluminacao de cinema. Passa a sensacao de um momento real e autentico capturado na hora.",
-    placeholderGradient: "from-amber-800 via-orange-600 to-yellow-500",
-    icon: "C",
-    image: "/layout-styles/ugc-cinematic.png",
-  },
-  {
-    id: "LIFESTYLE_HYBRID",
-    label: "Híbrido Lifestyle",
-    sublabel: "Pessoa + Produto",
-    description: "Pessoa em acao num cenario real, com o produto integrado de forma natural. Combina energia e elegancia num unico post.",
-    placeholderGradient: "from-green-800 via-emerald-600 to-teal-400",
-    icon: "H",
   },
 ];
 
 export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
   "": "",
+  CINEMATIC:
+    "LAYOUT STYLE — CINEMATIC: Cinematic photography, dramatic lighting, deep cinematic shadows, 85mm f/1.8 lens, shallow depth of field, rich cinematic color grade, atmospheric lighting.",
+  STUDIO_CLEAN:
+    "LAYOUT STYLE — STUDIO_CLEAN: Professional studio photography, elegant seamless neutral backdrop, soft uniform diffused studio lighting, high-end commercial photo studio aesthetic.",
+  URBAN_LIFESTYLE:
+    "LAYOUT STYLE — URBAN_LIFESTYLE: Authentic lifestyle photography, real-world outdoor urban setting, natural daylight, candid energetic moment, relatable modern city environment.",
+  MINIMALIST:
+    "LAYOUT STYLE — MINIMALIST: Minimalist design, spacious composition with generous negative space (50-60%), modern clean aesthetic, sophisticated and quiet luxury feel.",
+  TECH_3D:
+    "LAYOUT STYLE — TECH_3D: Premium 3D illustration, Octane Render / Redshift render style, vibrant colors, realistic material textures (glass, metallic, polished plastic), futuristic tech aesthetic.",
   MAGAZINE_3D:
-    "LAYOUT STYLE — MAGAZINE_3D: High-fashion depth-of-field, main subject overlaps and breaks through the typographic title plane creating a dramatic 3D parallax effect. Bold editorial serif headlines partially hidden behind the subject. Layered, complex composition. Magazine cover aesthetic.",
-  CLEAN_LUXURY:
-    "LAYOUT STYLE — CLEAN_LUXURY: Generous negative space dominates the frame (50-60% clean area). Minimalist typography discreetly placed in corners or edges. Soft, diffused ambient light. Understated elegance, ultra-premium feel. No clutter.",
-  UGC_CINEMATIC:
-    "LAYOUT STYLE — UGC_CINEMATIC: Authentic lifestyle scene captured in a candid, spontaneous moment. Natural volumetric lighting from a window or outdoor source. Subtle, clean text legend overlay at the bottom. Real, human, and relatable atmosphere. Cinematic color grade.",
-  LIFESTYLE_HYBRID:
-    "LAYOUT STYLE — LIFESTYLE_HYBRID: A person in dynamic action (running, exercising, working, or using the product) photographed in a real-world setting. Clean or subtly blurred background. Subject positioned on one side, leaving clean negative space on the opposite side for text. Energetic, polished, and premium feel. Sharp focus on subject, soft natural background light.",
+    "LAYOUT STYLE — MAGAZINE_3D: High-fashion magazine cover style, integrated typography with 3D depth, subject partially overlaps and breaks through the title letters creating a dramatic 3D parallax effect.",
 };
 
 interface LayoutStyleSelectorProps {

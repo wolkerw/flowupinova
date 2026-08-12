@@ -71,18 +71,15 @@ export async function POST(request: NextRequest) {
 
       // 1. Injetar Estilo no topo (Mesma lógica do app)
       const STYLE_LABELS: Record<string, string> = {
-        MAGAZINE_3D: "Magazine Cover 3D Parallax Effect — subject breaks through the text plane, editorial serif headline behind the person",
-        CLEAN_LUXURY: "Clean Minimalist Luxury — large white negative space, soft diffused light, no clutter, ultra-premium aesthetic",
-        UGC_CINEMATIC: "Authentic Lifestyle UGC Cinematic — candid real moment, natural window light, cinematic color grade",
-        LIFESTYLE_HYBRID: "Lifestyle Hybrid — person in dynamic action on real-world setting, clean background, subject on one side with open space for text",
+        CINEMATIC: "Cinematic Photography — dramatic lighting, deep shadows, 85mm f/1.8 lens",
+        STUDIO_CLEAN: "Studio Clean Photography — elegant seamless neutral backdrop, soft uniform lighting",
+        URBAN_LIFESTYLE: "Authentic Urban Lifestyle — real outdoor city setting, natural daylight",
+        MINIMALIST: "Minimalist Design — spacious composition, 50-60% clean negative space, modern sophisticated aesthetic",
+        TECH_3D: "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
+        MAGAZINE_3D: "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
       };
       if (layoutStyle && STYLE_LABELS[layoutStyle]) {
         finalPrompt = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] ${finalPrompt}`;
-      }
-
-      // 2. Anti-rewriting para GPT Image 2
-      if (model === "gpt-image-2") {
-        finalPrompt = `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${finalPrompt}`;
       }
 
       const response = await fetch(openaiUrl, {
@@ -143,10 +140,12 @@ export async function POST(request: NextRequest) {
       let finalImagenPrompt = [systemPrompt, userPrompt].filter(Boolean).join("\n\n") || "Um objeto aleatório";
       
       const STYLE_LABELS: Record<string, string> = {
-        MAGAZINE_3D: "Magazine Cover 3D Parallax Effect — subject breaks through the text plane, editorial serif headline behind the person",
-        CLEAN_LUXURY: "Clean Minimalist Luxury — large white negative space, soft diffused light, no clutter, ultra-premium aesthetic",
-        UGC_CINEMATIC: "Authentic Lifestyle UGC Cinematic — candid real moment, natural window light, cinematic color grade",
-        LIFESTYLE_HYBRID: "Lifestyle Hybrid — person in dynamic action on real-world setting, clean background, subject on one side with open space for text",
+        CINEMATIC: "Cinematic Photography — dramatic lighting, deep shadows, 85mm f/1.8 lens",
+        STUDIO_CLEAN: "Studio Clean Photography — elegant seamless neutral backdrop, soft uniform lighting",
+        URBAN_LIFESTYLE: "Authentic Urban Lifestyle — real outdoor city setting, natural daylight",
+        MINIMALIST: "Minimalist Design — spacious composition, 50-60% clean negative space, modern sophisticated aesthetic",
+        TECH_3D: "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
+        MAGAZINE_3D: "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
       };
       if (layoutStyle && STYLE_LABELS[layoutStyle]) {
         finalImagenPrompt = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] ${finalImagenPrompt}`;
