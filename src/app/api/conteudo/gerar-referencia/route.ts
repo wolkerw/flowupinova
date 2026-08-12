@@ -1212,7 +1212,7 @@ ${yamlAnalysis}`;
 
       // Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
       const MODELS_CHAIN = [
-        { provider: "openai", model: "dall-e-3" },
+        { provider: "openai", model: "gpt-image-2" },
         { provider: "google", model: "imagen-4.0-ultra-generate-001" },
       ];
 
@@ -1234,11 +1234,10 @@ ${yamlAnalysis}`;
                 "Authorization": `Bearer ${openaiKey}`,
               },
               body: JSON.stringify({
-                model: "dall-e-3",
+                model: "gpt-image-2",
                 prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
                 n: 1,
                 size: "1024x1024",
-                style: "vivid",
               }),
             });
 
@@ -1346,7 +1345,7 @@ ${yamlAnalysis}`;
           userId,
           type: "image_generation",
           provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
-          model: modelUsed || "dall-e-3",
+          model: modelUsed || "gpt-image-2",
           costUsd: 0.03,
         });
       } catch (galleryErr) {
@@ -1879,7 +1878,7 @@ Cenário desejado e estilo: ${prompt}`;
         return NextResponse.json(
           {
             error:
-              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o dall-e-3.",
+              "Chave de API da OpenAI ausente no servidor (OPENAI_API_KEY). Adicione no arquivo .env.local para testar o gpt-image-2.",
           },
           { status: 400 }
         );
@@ -1896,7 +1895,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (dall-e-3) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1906,7 +1905,7 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-2",
             prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
             n: 1,
             size: "1024x1024",
@@ -1917,8 +1916,8 @@ Cenário desejado e estilo: ${prompt}`;
 
         if (!response.ok) {
           const errText = await response.text();
-          console.error("[GERAR_REFERENCIA] Erro na API da OpenAI (dall-e-3):", errText);
-          throw new Error(`Erro na API da OpenAI (dall-e-3): ${errText}`);
+          console.error("[GERAR_REFERENCIA] Erro na API da OpenAI (gpt-image-2):", errText);
+          throw new Error(`Erro na API da OpenAI (gpt-image-2): ${errText}`);
         }
 
         const resData = await response.json();
@@ -1977,9 +1976,9 @@ Cenário desejado e estilo: ${prompt}`;
           garmentPublicUrl: dalleImageUrl,
         });
       } catch (dalleErr: any) {
-        console.error("[GERAR_REFERENCIA] Falha na geração da OpenAI (dall-e-3):", dalleErr);
+        console.error("[GERAR_REFERENCIA] Falha na geração da OpenAI (gpt-image-2):", dalleErr);
         return NextResponse.json(
-          { error: "Falha ao gerar imagem na OpenAI (dall-e-3).", details: dalleErr.message },
+          { error: "Falha ao gerar imagem na OpenAI (gpt-image-2).", details: dalleErr.message },
           { status: 500 }
         );
       }
