@@ -48,6 +48,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
     description: "Fotografia cinematográfica, luz dramática, sombras profundas, lente 85mm f/1.8.",
     placeholderGradient: "from-amber-950 via-red-900 to-stone-900",
     icon: "🎬",
+    image: "/layout-styles/cinematic.png",
   },
   {
     id: "STUDIO_CLEAN",
