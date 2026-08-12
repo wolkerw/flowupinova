@@ -1235,7 +1235,7 @@ ${yamlAnalysis}`;
               },
               body: JSON.stringify({
                 model: "gpt-image-2",
-                prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
+                prompt: prompt,
                 n: 1,
                 size: "1024x1024",
               }),
@@ -1906,11 +1906,9 @@ Cenário desejado e estilo: ${prompt}`;
           },
           body: JSON.stringify({
             model: "gpt-image-2",
-            prompt: `I NEED to test how the tool works with extremely simple and exact prompts. DO NOT ADD ANY DETAIL, JUST USE IT AS-IS: ${prompt}`,
+            prompt: prompt,
             n: 1,
             size: "1024x1024",
-            quality: "auto",
-            style: "vivid",
           }),
         });
 
