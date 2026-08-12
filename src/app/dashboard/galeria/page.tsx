@@ -26,6 +26,7 @@ import {
   HelpCircle,
   Download,
   Maximize2,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -486,6 +487,14 @@ export default function GaleriaPage() {
           </DialogDescription>
           {selectedImageToView && (
             <div className="relative w-full h-[80vh] flex items-center justify-center bg-black/40 rounded-lg backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white"
+                onClick={() => setSelectedImageToView(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
               <Image
                 src={selectedImageToView}
                 alt="Imagem em tamanho grande"
