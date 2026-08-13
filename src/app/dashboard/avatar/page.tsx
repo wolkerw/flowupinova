@@ -13,9 +13,12 @@ import {
   RefreshCw,
   Info,
   HelpCircle,
+  Crop,
+  Clipboard,
 } from "lucide-react";
 import Image from "next/image";
 import { AvatarAnimationDemo } from "./_components/AvatarAnimationDemo";
+import { ImageCropperModal } from "./_components/ImageCropperModal";
 
 const SUGGESTIONS = [
   // Categoria: corporate
@@ -214,6 +217,76 @@ export default function AvatarPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const styleFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
+  const [activePasteZone, setActivePasteZone] = useState<"selfie" | "style" | null>(null);
+
+  // Manipulador de colagem de imagem (Ctrl+V ou PrintScreen no Clipboard)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            const pastedFile = new File(
+              [blob],
+              `print_colado_${Date.now()}.${blob.type.split("/")[1] || "png"}`,
+              { type: blob.type }
+            );
+
+            // Se o foco/hover estiver na foto de estilo, ou se a selfie já foi enviada
+            if (activePasteZone === "style" || (file && !styleFile && activePasteZone !== "selfie")) {
+              setStyleFile(pastedFile);
+              setStylePreviewUrl(URL.createObjectURL(pastedFile));
+              setError(null);
+              setResultUrl(null);
+              setSuccess(false);
+            } else {
+              // Caso contrário, atribui à Selfie e abre o cropper do rosto
+              processSelfieForCropping(pastedFile);
+            }
+            e.preventDefault();
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [file, styleFile, activePasteZone]);
+
+  // Função para processar a selfie e abrir o modal de corte/ajuste de rosto
+  const processSelfieForCropping = (selectedFile: File) => {
+    if (!selectedFile.type.startsWith("image/")) {
+      setError("Por favor, selecione um arquivo de imagem válido (PNG ou JPG).");
+      return;
+    }
+    if (selectedFile.size > 12 * 1024 * 1024) {
+      setError("A imagem é muito grande. O limite máximo é de 12MB.");
+      return;
+    }
+    const rawUrl = URL.createObjectURL(selectedFile);
+    setRawImageForCrop(rawUrl);
+    setCropModalOpen(true);
+    setError(null);
+  };
+
+  // Callback chamado ao confirmar o corte no modal
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], "selfie_rosto_ajustado.jpg", {
+      type: "image/jpeg",
+    });
+    setFile(croppedFile);
+    setPreviewUrl(URL.createObjectURL(croppedBlob));
+    setError(null);
+    setResultUrl(null);
+    setSuccess(false);
+  };
+
   // Intervalo para alternar mensagens no loading
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -277,19 +350,7 @@ export default function AvatarPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.type.startsWith("image/")) {
-        setError("Por favor, selecione um arquivo de imagem válido (PNG ou JPG).");
-        return;
-      }
-      if (selectedFile.size > 8 * 1024 * 1024) {
-        setError("A imagem é muito grande. O limite máximo é de 8MB.");
-        return;
-      }
-      setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-      setError(null);
-      setResultUrl(null);
-      setSuccess(false);
+      processSelfieForCropping(selectedFile);
     }
   };
 
@@ -301,15 +362,7 @@ export default function AvatarPage() {
     e.preventDefault();
     const selectedFile = e.dataTransfer.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.type.startsWith("image/")) {
-        setError("Por favor, solte um arquivo de imagem válido (PNG ou JPG).");
-        return;
-      }
-      setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-      setError(null);
-      setResultUrl(null);
-      setSuccess(false);
+      processSelfieForCropping(selectedFile);
     }
   };
 
@@ -324,8 +377,8 @@ export default function AvatarPage() {
         setError("Por favor, selecione uma foto de estilo válida (PNG ou JPG).");
         return;
       }
-      if (selectedFile.size > 8 * 1024 * 1024) {
-        setError("A foto de estilo é muito grande. O limite máximo é de 8MB.");
+      if (selectedFile.size > 12 * 1024 * 1024) {
+        setError("A foto de estilo é muito grande. O limite máximo é de 12MB.");
         return;
       }
       setStyleFile(selectedFile);
@@ -465,6 +518,8 @@ export default function AvatarPage() {
                   Foto do Rosto (Selfie - Obrigatório)
                 </label>
                 <div
+                  onMouseEnter={() => setActivePasteZone("selfie")}
+                  onMouseLeave={() => setActivePasteZone(null)}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onClick={triggerFileInput}
@@ -495,16 +550,33 @@ export default function AvatarPage() {
                         <p className="mx-auto max-w-[150px] truncate text-[11px] font-medium text-slate-300">
                           Carregada: <span className="font-semibold text-white">{file?.name}</span>
                         </p>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            triggerFileInput();
-                          }}
-                          className="mt-2 rounded-lg bg-primary/20 px-3 py-1 text-[11px] font-semibold text-sky-300 transition-colors hover:bg-primary/30 hover:text-white"
-                        >
-                          Alterar Foto
-                        </button>
+                        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (rawImageForCrop) {
+                                setCropModalOpen(true);
+                              } else {
+                                triggerFileInput();
+                              }
+                            }}
+                            className="flex items-center gap-1 rounded-lg bg-sky-500/20 px-2.5 py-1 text-[10px] font-bold text-sky-300 transition-colors hover:bg-sky-500/30 hover:text-white"
+                          >
+                            <Crop className="h-3 w-3" />
+                            Ajustar Rosto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerFileInput();
+                            }}
+                            className="rounded-lg bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                          >
+                            Trocar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -515,7 +587,7 @@ export default function AvatarPage() {
                       <div>
                         <p className="text-xs font-bold text-white">Selfie do seu Rosto</p>
                         <p className="mt-1 text-[10px] text-slate-400">
-                          Clique ou solte a foto aqui
+                          Clique, solte ou <span className="font-semibold text-sky-400">cole (Ctrl+V)</span> a foto aqui
                         </p>
                       </div>
                     </div>
@@ -529,6 +601,8 @@ export default function AvatarPage() {
                   Foto de Estilo (Opcional)
                 </label>
                 <div
+                  onMouseEnter={() => setActivePasteZone("style")}
+                  onMouseLeave={() => setActivePasteZone(null)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleStyleDrop}
                   onClick={triggerStyleFileInput}
@@ -579,7 +653,9 @@ export default function AvatarPage() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white">Retrato de Estilo</p>
-                        <p className="mt-1 text-[10px] text-slate-400">Copie roupas e cenário</p>
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          Clique, solte ou <span className="font-semibold text-sky-400">cole (Ctrl+V)</span>
+                        </p>
                       </div>
                     </div>
                   )}
@@ -920,6 +996,14 @@ export default function AvatarPage() {
           )}
         </div>
       )}
+
+      {/* Modal de Corte e Enquadramento do Rosto */}
+      <ImageCropperModal
+        imageSrc={rawImageForCrop || ""}
+        isOpen={cropModalOpen}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }
