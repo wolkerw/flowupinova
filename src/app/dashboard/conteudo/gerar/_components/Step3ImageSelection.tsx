@@ -14,11 +14,13 @@ import {
   Paintbrush,
   Type,
   SkipForward,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useWizard } from "../context/WizardContext";
 import { ImageInpaintModal, type EditorLayer } from "./ImageInpaintModal";
+import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 export const Step3ImageSelection = () => {
   const {
@@ -42,6 +44,7 @@ export const Step3ImageSelection = () => {
   const [activeImageToCorrect, setActiveImageToCorrect] = useState<string | null>(null);
   const [activeSlotName, setActiveSlotName] = useState<string>("");
   const [layersMap, setLayersMap] = useState<Record<string, { originalUrl: string; layers: EditorLayer[] }>>({});
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   const onBack = () => setStep(2);
   const onNext = () => {
@@ -126,19 +129,37 @@ export const Step3ImageSelection = () => {
                     <Check className="h-12 w-12 text-white" />
                   </div>
                 )}
-                {onDownload && (
+                {/* Ações de Hover (Ampliar e Baixar) */}
+                <div className="absolute right-2 top-2 z-20 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     size="icon"
                     variant="secondary"
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDownload(imgSrc);
+                      setZoomImage({ url: imgSrc, title: `Opção ${index + 1}` });
                     }}
-                    className="absolute right-2 top-2 z-10 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                    title="Ampliar Imagem"
+                    className="h-8 w-8 bg-black/70 text-white hover:bg-black/90 backdrop-blur-sm"
                   >
-                    <Download className="h-4 w-4" />
+                    <Maximize2 className="h-4 w-4" />
                   </Button>
-                )}
+                  {onDownload && (
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownload(imgSrc);
+                      }}
+                      title="Baixar Imagem"
+                      className="h-8 w-8 bg-black/70 text-white hover:bg-black/90 backdrop-blur-sm"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </motion.div>
             ))}
 
@@ -278,6 +299,15 @@ export const Step3ImageSelection = () => {
           }}
         />
       )}
+
+      {/* Modal de Zoom e Ampliação da Imagem */}
+      <ImageZoomModal
+        isOpen={!!zoomImage}
+        onClose={() => setZoomImage(null)}
+        imageUrl={zoomImage?.url || null}
+        title={zoomImage?.title || "Visualização da Imagem"}
+        onDownload={onDownload}
+      />
     </motion.div>
   );
 };
