@@ -288,10 +288,11 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
               const queueData = await queueResponse.json();
               const requestId = queueData.request_id;
               if (requestId) {
-                // Polling síncrono do status
-                const statusUrl = `https://queue.fal.run/fal-ai/flux-pro/requests/${requestId}`;
+                // Polling síncrono do status do Fal.ai
+                const statusUrl = `https://queue.fal.run/fal-ai/flux-pro/requests/${requestId}/status`;
+                const responseUrl = `https://queue.fal.run/fal-ai/flux-pro/requests/${requestId}`;
                 let attempts = 0;
-                while (attempts < 30) {
+                while (attempts < 45) {
                   await new Promise((r) => setTimeout(r, 2000));
                   attempts++;
 
@@ -300,18 +301,35 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
                   });
                   if (statusRes.ok) {
                     const statusData = await statusRes.json();
-                    if (statusData.status === "COMPLETED" && statusData.images?.[0]?.url) {
-                      generatedImageUrl = statusData.images[0].url;
-                      generatedBy = "falai_flux_kontext_nanobanana";
-                      console.log(`[AVATAR_GENERATE] ✅ Sucesso total via Fal.ai (Flux Kontext): ${generatedImageUrl}`);
-                      break;
+                    if (statusData.status === "COMPLETED") {
+                      const resResponse = await fetch(responseUrl, {
+                        headers: { Authorization: `Key ${rawFalKey}` },
+                      });
+                      if (resResponse.ok) {
+                        const resData = await resResponse.json();
+                        const imgUrl = resData.images?.[0]?.url || resData.image?.url;
+                        if (imgUrl) {
+                          generatedImageUrl = imgUrl;
+                          generatedBy = "falai_flux_kontext_nanobanana";
+                          console.log(
+                            `[AVATAR_GENERATE] ✅ Sucesso total via Fal.ai (Flux Kontext): ${generatedImageUrl}`
+                          );
+                          break;
+                        }
+                      }
                     }
                   }
                 }
               }
+            } else {
+              const errText = await queueResponse.text();
+              console.warn("[AVATAR_GENERATE_WARN] Falha na fila do Fal.ai:", errText);
             }
           } catch (falErr) {
-            console.warn("[AVATAR_GENERATE] Falha no Fal.ai Flux Kontext, tentando Gemini Multimodal Nano Banana...", falErr);
+            console.warn(
+              "[AVATAR_GENERATE] Falha no Fal.ai Flux Kontext:",
+              falErr
+            );
           }
         }
 
