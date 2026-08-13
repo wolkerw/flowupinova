@@ -150,6 +150,8 @@ export async function POST(request: NextRequest) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
         let styleJson: any = null;
+        let styleBase64: string | null = null;
+        let styleMime: string = "image/jpeg";
 
         // Se uma foto de estilo profissional foi fornecida, analisa via Gemini 3.5 Flash Vision
         if (styleFile && apiKey) {
@@ -158,8 +160,8 @@ export async function POST(request: NextRequest) {
           );
           const styleArrayBuffer = await styleFile.arrayBuffer();
           const styleBuffer = Buffer.from(styleArrayBuffer);
-          const styleBase64 = styleBuffer.toString("base64");
-          const styleMime = styleFile.type || "image/jpeg";
+          styleBase64 = styleBuffer.toString("base64");
+          styleMime = styleFile.type || "image/jpeg";
 
           try {
             const visionPrompt = `Analise detalhadamente a imagem fornecida (que representa um retrato profissional ideal) e descreva os seus elementos estéticos de forma estruturada.
@@ -243,18 +245,28 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         let lightingSection = `ILUMINAÇÃO: Aplique iluminação profissional suave de estúdio editorial.`;
 
         if (styleJson) {
-          clothingSection = `VESTUÁRIO DO RETRATO: Vista a pessoa exatamente com as seguintes roupas extraídas da imagem de estilo: ${styleJson.clothing || "terno moderno e camisa social"}. ${prompt ? `Complemento adicional de roupas: ${prompt}` : ""}`;
-          backgroundSection = `CENÁRIO DE FUNDO: Posicione a pessoa no cenário: ${styleJson.background || "fundo de escritório moderno desfocado"}. ${prompt ? `Complemento adicional de cenário: ${prompt}` : ""}`;
+          clothingSection = `VESTUÁRIO DO RETRATO: Vista a pessoa exatamente com as seguintes roupas extraídas da foto de estilo de referência: ${styleJson.clothing || "terno moderno e camisa social"}. ${prompt ? `Complemento adicional de roupas: ${prompt}` : ""}`;
+          backgroundSection = `CENÁRIO DE FUNDO: Posicione a pessoa exatamente no cenário visualmente inspirado na foto de estilo: ${styleJson.background || "fundo de escritório moderno desfocado"}. ${prompt ? `Complemento adicional de cenário: ${prompt}` : ""}`;
           if (styleJson.pose) {
-            poseSection = `ENQUADRAMENTO E COMPOSIÇÃO: Enquadre a pessoa simulando a seguinte pose e postura corporal: ${styleJson.pose}. ${prompt ? `Complemento adicional de pose: ${prompt}` : ""}`;
+            poseSection = `ENQUADRAMENTO E COMPOSIÇÃO: Enquadre a pessoa copiando a pose e a postura corporal da foto de estilo: ${styleJson.pose}. ${prompt ? `Complemento adicional de pose: ${prompt}` : ""}`;
           }
           if (styleJson.lighting) {
-            lightingSection = `ILUMINAÇÃO DO RETRATO: Simule a iluminação profissional: ${styleJson.lighting}. ${prompt ? `Complemento adicional de iluminação: ${prompt}` : ""}`;
+            lightingSection = `ILUMINAÇÃO DO RETRATO: Simule a iluminação profissional da foto de estilo: ${styleJson.lighting}. ${prompt ? `Complemento adicional de iluminação: ${prompt}` : ""}`;
           }
         }
 
+        const dualImageInstruction = styleBase64
+          ? `REGRA CRÍTICA DE COMBINAÇÃO DAS DUAS IMAGENS:
+Nesta requisição foram fornecidas DUAS IMAGENS de referência:
+- IMAGEM 1 (Selfie do Usuário): Extraia e preserve 100% da identidade facial da pessoa (rosto, traços, feição, olhos, tom de pele, cabelo e barba).
+- IMAGEM 2 (Foto de Inspiração/Estilo): Copie e replique o estilo de vestuário, a pose corporal, a composição do cenário de fundo e a iluminação desta imagem de referência.
+Sua missão é realizar a FUSÃO PERFEITA: coloque o rosto idêntico da pessoa da IMAGEM 1 vestindo a roupa, posando na atitude e no cenário inspirados na IMAGEM 2.`
+          : `REGRA CRÍTICA DE FIDELIDADE FACIAL: Preserve 100% da biometria facial, traços do rosto e tom de pele da pessoa da selfie enviada.`;
+
         const nanobananaPrompt = `Você é um Diretor de Fotografia e Retratista Editorial Sênior.
-Com base na imagem de referência da pessoa fornecida nesta selfie, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade.
+Com base nas imagens de referência fornecidas, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade.
+
+${dualImageInstruction}
 
 DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
 1. REPRODUÇÃO FIEL DA PESSOA: Mantenha estritamente a identidade biometria facial, características físicas, feição, formato dos olhos, expressão, tom de pele, tipo e cor do cabelo, e barba exatamente como estão na foto enviada.
@@ -366,6 +378,29 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
             "gemini-2.5-flash",
           ];
 
+          // Construção das partes multimodais (Selfie + Foto de Estilo se fornecida)
+          const contentsParts: any[] = [
+            { text: nanobananaPrompt },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Image,
+              },
+            },
+          ];
+
+          if (styleBase64) {
+            contentsParts.push({
+              inlineData: {
+                mimeType: styleMime,
+                data: styleBase64,
+              },
+            });
+            console.log(
+              "[AVATAR_GENERATE] 📸 Enviando 2 imagens para o Gemini Multimodal (Imagem 1: Selfie, Imagem 2: Foto de Estilo)..."
+            );
+          }
+
           for (const model of NANOBANANA_MODELS) {
             try {
               console.log(`[AVATAR_GENERATE] 🍌 Tentando Nano Banana Pro Multimodal com modelo ${model}...`);
@@ -378,15 +413,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
                   contents: [
                     {
                       role: "user",
-                      parts: [
-                        { text: nanobananaPrompt },
-                        {
-                          inlineData: {
-                            mimeType: mimeType,
-                            data: base64Image,
-                          },
-                        },
-                      ],
+                      parts: contentsParts,
                     },
                   ],
                   generationConfig: {
