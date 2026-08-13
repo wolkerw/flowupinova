@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const userStoragePath = await getUserStoragePathAdmin(userId);
 
-    // 3. Fazer o upload do arquivo de referência para o Firebase Storage
+    // 3. Fazer o upload da selfie de referência para o Firebase Storage
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -65,6 +65,28 @@ export async function POST(request: NextRequest) {
     const faceImageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef.name)}?alt=media&token=${refDownloadToken}`;
     console.log(`[AVATAR_GENERATE] Imagem de referência carregada: ${faceImageUrl}`);
 
+    // Upload da imagem de estilo profissional (se fornecida)
+    let styleImageUrl: string | null = null;
+    if (styleFile) {
+      const styleArrayBuffer = await styleFile.arrayBuffer();
+      const styleBuffer = Buffer.from(styleArrayBuffer);
+      const styleRefId = crypto.randomUUID();
+      const styleFileRef = bucket.file(`${userStoragePath}/avatar_references/${styleRefId}_style.jpg`);
+      const styleDownloadToken = crypto.randomUUID();
+
+      await styleFileRef.save(styleBuffer, {
+        metadata: {
+          contentType: styleFile.type || "image/jpeg",
+          metadata: {
+            firebaseStorageDownloadTokens: styleDownloadToken,
+          },
+        },
+      });
+
+      styleImageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(styleFileRef.name)}?alt=media&token=${styleDownloadToken}`;
+      console.log(`[AVATAR_GENERATE] Imagem de estilo carregada no Firebase: ${styleImageUrl}`);
+    }
+
     // 4. Buscar configurações do webhook do admin
     const settings = await getGlobalSettings();
     const webhookUrl = settings.generateAvatarWebhook;
@@ -72,22 +94,19 @@ export async function POST(request: NextRequest) {
     let generatedImageUrl = "";
     let generatedBy = "";
 
-    // 5. Tentar chamar o webhook do n8n
-    if (
-      webhookUrl &&
-      webhookUrl.startsWith("http") &&
-      !webhookUrl.includes("gerador_avatar_twin")
-    ) {
+    // 5. Tentar chamar o webhook do n8n (se URL for válida)
+    if (webhookUrl && webhookUrl.trim().startsWith("http")) {
       console.log(`[AVATAR_GENERATE] Disparando webhook do n8n: ${webhookUrl}`);
       try {
-        const response = await fetch(webhookUrl, {
+        const response = await fetch(webhookUrl.trim(), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Server-Timeout": settings.serverTimeout,
+            "X-Server-Timeout": String(settings.serverTimeout || 300),
           },
           body: JSON.stringify({
             faceImageUrl,
+            styleImageUrl,
             userPrompt: prompt,
             userId,
             engine,
@@ -98,7 +117,6 @@ export async function POST(request: NextRequest) {
           const resText = await response.text();
           try {
             const data = JSON.parse(resText);
-            // Procurar por uma URL nos formatos comuns de retorno do n8n/webhook
             generatedImageUrl =
               data.imageUrl || data.url || data.generatedImageUrl || data.data?.image?.url || "";
             if (generatedImageUrl) {
@@ -110,7 +128,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           console.warn(
-            `[AVATAR_GENERATE] Webhook retornou status ${response.status}. Acionando fallback...`
+            `[AVATAR_GENERATE] Webhook retornou status ${response.status}. Acionando fallback nativo...`
           );
         }
       } catch (webhookErr) {
@@ -121,25 +139,26 @@ export async function POST(request: NextRequest) {
     let imgBuffer: Buffer | null = null;
     let source = "nanobanana_ref";
 
-    // 6. Fallback Nativo: Chamar o Nano Banana Pro (Gemini 3 Pro Image) se o webhook não respondeu
+    // 6. Fallback Nativo: Google Imagen 4 / Imagen 3
     if (!generatedImageUrl) {
       console.log(
-        "[AVATAR_GENERATE] Iniciando fallback nativo via Nano Banana Pro (Gemini 3 Pro Image)..."
+        "[AVATAR_GENERATE] Iniciando fallback nativo via Google Imagen (Imagen 4 / Imagen 3)..."
       );
       try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
           return NextResponse.json(
-            { error: "Falha ao gerar o avatar. GEMINI_API_KEY ausente para o Nano Banana Pro." },
+            { error: "Falha ao gerar o avatar. GEMINI_API_KEY ausente no servidor." },
             { status: 500 }
           );
         }
 
         let styleJson: any = null;
 
+        // Se uma foto de estilo profissional foi fornecida, analisa ela via Gemini Vision
         if (styleFile) {
           console.log(
-            "[AVATAR_GENERATE] Imagem de estilo profissional fornecida. Analisando com Gemini 2.5 Flash Vision..."
+            "[AVATAR_GENERATE] Imagem de estilo profissional fornecida. Analisando com Gemini 3.5 Flash Vision..."
           );
           const styleArrayBuffer = await styleFile.arrayBuffer();
           const styleBuffer = Buffer.from(styleArrayBuffer);
@@ -185,21 +204,18 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
               const resData = await geminiVisionResponse.json();
               const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
-              // Registrar log de consumo do Vision (gemini-3.5-flash)
               const usage = resData?.usageMetadata;
               if (usage && userId) {
                 const pTokens = usage.promptTokenCount || 0;
                 const cTokens = usage.candidatesTokenCount || 0;
                 const costInput = pTokens * (0.075 / 1_000_000);
                 const costOutput = cTokens * (0.3 / 1_000_000);
-                const totalCost = costInput + costOutput;
-
                 logApiUsage({
                   userId,
                   type: "vision_analysis",
                   provider: "google_gemini",
                   model: "gemini-3.5-flash",
-                  costUsd: totalCost,
+                  costUsd: costInput + costOutput,
                   tokens: {
                     promptTokens: pTokens,
                     completionTokens: cTokens,
@@ -225,41 +241,11 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
                   rawText
                 );
               }
-            } else {
-              console.warn(
-                "[AVATAR_GENERATE] API do Gemini Vision retornou status de erro:",
-                geminiVisionResponse.status
-              );
             }
           } catch (geminiVisionErr) {
             console.error("[AVATAR_GENERATE] Erro ao chamar Gemini Vision:", geminiVisionErr);
           }
         }
-
-        let cropBuffer = buffer;
-        try {
-          const image = await Jimp.read(buffer);
-          const width = image.width;
-          const height = image.height;
-          if (width !== height) {
-            const size = Math.min(width, height);
-            const x = Math.max(0, Math.floor((width - size) / 2));
-            const y = Math.max(0, Math.floor((height - size) / 2));
-            image.crop({ x, y, w: size, h: size });
-            cropBuffer = await image.getBuffer("image/jpeg");
-          }
-        } catch (e) {
-          console.warn("[AVATAR_GENERATE] Falha no crop do Jimp:", e);
-        }
-
-        const base64Image = cropBuffer.toString("base64");
-        const mimeType = "image/jpeg";
-
-        const NANOBANANA_MODELS = [
-          "gemini-3-pro-image",
-          "gemini-3.1-flash-image",
-          "gemini-3.5-flash-image",
-        ];
 
         let clothingSection = `DIRETRIZES DE VESTUÁRIO: Vista a pessoa conforme as instruções fornecidas no prompt do usuário: "${prompt}".`;
         let backgroundSection = `CENÁRIO E AMBIENTE: Posicione a pessoa no cenário e fundo conforme as instruções fornecidas no prompt do usuário: "${prompt}".`;
@@ -267,7 +253,7 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         let lightingSection = `ILUMINAÇÃO: Aplique a iluminação conforme as instruções fornecidas no prompt do usuário: "${prompt}". Caso não especifique, use uma iluminação profissional suave de retrato.`;
 
         if (styleJson) {
-          clothingSection = `VESTUÁRIO DO RETRATO: Vista a pessoa exatamente com as seguintes roupas extraídas da imagem de estilo: ${styleJson.clothing || "terno moderno e camisa social"}. ${prompt ? `Complemento adicional de roupas e acessórios do usuário: ${prompt}` : ""}`;
+          clothingSection = `VESTUÁRIO DO RETRATO: Vista a pessoa exatamente com as seguintes roupas extraídas da imagem de estilo: ${styleJson.clothing || "terno moderno e camisa social"}. ${prompt ? `Complemento adicional de roupas do usuário: ${prompt}` : ""}`;
           backgroundSection = `CENÁRIO DE FUNDO: Posicione a pessoa exatamente no cenário descrito: ${styleJson.background || "fundo de escritório moderno desfocado"}. ${prompt ? `Complemento adicional de cenário do usuário: ${prompt}` : ""}`;
           if (styleJson.pose) {
             poseSection = `ENQUADRAMENTO E COMPOSIÇÃO: Posicione e enquadre a pessoa simulando a seguinte pose e postura corporal: ${styleJson.pose}. ${prompt ? `Complemento adicional de pose/ação do usuário: ${prompt}` : ""}`;
@@ -277,94 +263,84 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
           }
         }
 
-        const nanobananaPrompt = `Você é um Diretor de Fotografia e Retratista Editorial Sênior.
-Com base na imagem de referência da pessoa fornecida (selfie), gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade, mantendo estritamente as características físicas, expressão facial e consistência da identidade da pessoa (mesmo cabelo, barba, formato dos olhos e cor da pele).
+        const avatarPrompt = `A ultra-realistic, high-resolution professional executive portrait photograph of a confident professional subject.
+Photo style: Professional editorial portrait, 85mm prime lens f/2.8, sharp crystal-clear focus on subject's face with smooth soft blurred background bokeh. Preserve natural skin texture with real pores and fine detail.
+${clothingSection}
+${backgroundSection}
+${poseSection}
+${lightingSection}`;
 
-DIRETRIZES ESTÉTICAS E TÉCNICAS (CONSOLIDADO):
-1. ${poseSection}
-2. ${lightingSection}
-3. DETALHES DE CÂMERA E LENTE: Fotografia estilo retrato editorial, qualidade de câmera profissional DSLR com lente prime de 85mm ajustada em abertura f/2.8, foco perfeito e nítido nos olhos do sujeito com profundidade de campo rasa (fundo suavemente desfocado).
-4. QUALIDADE E TEXTURA DA PELE: Retoque de pele profissional que preserve texturas naturais de pele (poros e imperfeições reais), eliminando qualquer visual artificial de cera ou distorções plásticas.
-5. REGRAS NEGATIVAS: Sem textos escritos na imagem, sem logotipos, sem acessórios estranhos ou distorções anatômicas.
-
-DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
-- ${clothingSection}
-- ${backgroundSection}`;
+        // Modelos de Imagem Oficiais do Google Imagen
+        const IMAGEN_MODELS = [
+          "imagen-4.0-ultra-generate-001",
+          "imagen-3.0-generate-002",
+        ];
 
         let imageBytes: string | null = null;
         let modelUsed = "";
 
-        for (const model of NANOBANANA_MODELS) {
+        for (const model of IMAGEN_MODELS) {
           try {
-            console.log(`[AVATAR_GENERATE] Tentando Nano Banana Pro com modelo ${model}...`);
-            const nanobananaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            console.log(`[AVATAR_GENERATE] Tentando geração nativa com modelo ${model}...`);
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
 
-            const response = await fetch(nanobananaUrl, {
+            const response = await fetch(imagenUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      { text: nanobananaPrompt },
-                      {
-                        inlineData: {
-                          mimeType: mimeType,
-                          data: base64Image,
-                        },
-                      },
-                    ],
-                  },
-                ],
+                instances: [{ prompt: avatarPrompt }],
+                parameters: {
+                  sampleCount: 1,
+                  outputMimeType: "image/jpeg",
+                  aspectRatio: "1:1",
+                },
               }),
             });
 
             if (response.ok) {
               const data = await response.json();
-              const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              const bytes = data?.predictions?.[0]?.bytesBase64Encoded;
               if (bytes) {
                 imageBytes = bytes;
                 modelUsed = model;
-                console.log(
-                  `[AVATAR_GENERATE] ✅ Sucesso total com o modelo Nano Banana ${model}!`
-                );
+                console.log(`[AVATAR_GENERATE] ✅ Sucesso com o modelo Google Imagen ${model}!`);
                 break;
               }
+            } else {
+              const errText = await response.text();
+              console.warn(`[AVATAR_GENERATE_WARN] Falha no modelo ${model}:`, errText.substring(0, 200));
             }
           } catch (modelErr: any) {
-            console.warn(`[AVATAR_GENERATE] Erro no modelo ${model}:`, modelErr.message);
+            console.warn(`[AVATAR_GENERATE_WARN] Erro no modelo ${model}:`, modelErr.message);
           }
         }
 
         if (!imageBytes) {
-          throw new Error(
-            "Todos os modelos do Google Gemini Image (Nano Banana) falharam para a geração do avatar."
-          );
+          throw new Error("Todos os modelos de geração de imagem nativa falharam.");
         }
 
         imgBuffer = Buffer.from(imageBytes, "base64");
-        generatedBy = `nanobanana_pro_${modelUsed}`;
-        source = "nanobanana_ref";
-        console.log(`[AVATAR_GENERATE] Sucesso na geração via Nano Banana Pro (${modelUsed})`);
+        generatedBy = `imagen_${modelUsed}`;
+        source = "imagen_avatar";
+        console.log(`[AVATAR_GENERATE] Sucesso na geração nativa (${modelUsed})`);
 
-        // Registrar log de consumo real no Firestore
         logApiUsage({
           userId,
           type: "avatar_generation",
-          provider: "google_gemini",
+          provider: "google_imagen",
           model: modelUsed,
           costUsd: 0.03,
         });
-      } catch (bananaErr: any) {
-        console.error("[AVATAR_GENERATE] Falha catastrófica no Nano Banana Pro:", bananaErr);
+      } catch (genErr: any) {
+        console.error("[AVATAR_GENERATE] Falha na geração nativa de avatar:", genErr);
         return NextResponse.json(
-          { error: "Erro na geração do avatar via Nano Banana Pro.", details: bananaErr.message },
+          { error: "Erro na geração nativa do avatar.", details: genErr.message },
           { status: 500 }
         );
       }
     }
 
-    // 7. Fazer o download da imagem gerada se não tivermos ela em memória
+    // 7. Fazer o download da imagem gerada se vier do webhook
     if (!imgBuffer && generatedImageUrl) {
       console.log(`[AVATAR_GENERATE] Fazendo download da imagem gerada: ${generatedImageUrl}`);
       const imgResponse = await fetch(generatedImageUrl);
@@ -409,6 +385,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
       fileName: `avatar_${genId}.jpg`,
       generatedBy,
       referenceImageUrl: faceImageUrl,
+      styleImageUrl: styleImageUrl || null,
     });
 
     console.log(
