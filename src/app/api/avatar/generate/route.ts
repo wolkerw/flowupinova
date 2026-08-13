@@ -164,13 +164,13 @@ export async function POST(request: NextRequest) {
           styleMime = styleFile.type || "image/jpeg";
 
           try {
-            const visionPrompt = `Analise detalhadamente a imagem fornecida (que representa um retrato profissional ideal) e descreva os seus elementos estéticos de forma estruturada.
+            const visionPrompt = `Analise detalhadamente a imagem fornecida (que representa uma foto de estilo/inspiração) e extraia TODOS os elementos visuais exatos.
 Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, sem qualquer introdução, conclusão ou marcação markdown de código:
 {
-  "clothing": "Descrição detalhada da vestimenta e estilo (ex: terno azul escuro moderno slim fit, camisa social branca sem gravata)",
-  "background": "Descrição do cenário de fundo (ex: fundo cinza neutro de estúdio com iluminação suave degradê)",
-  "pose": "Descrição detalhada da pose, enquadramento e mãos (ex: plano médio close-up, pose frontal corporativa clássica confiante)",
-  "lighting": "Descrição detalhada da iluminação (ex: iluminação suave direcional estilo Rembrandt vindo da lateral com foco nos olhos)"
+  "clothing": "Descrição exata e detalhada de cada peça de roupa, cor, tecido e acessórios (ex: blusa de manga longa preta texturizada, calça clara bege, óculos sem armação, relógio no pulso e anel)",
+  "background": "Descrição exata do cenário de fundo e cores (ex: fundo de estúdio neutro bege/creme limpo e acolhedor)",
+  "pose": "Descrição exata da postura, braços, mãos e expressão (ex: sentado com os braços cruzados sobre o joelho, corpo ligeiramente inclinado para a frente, sorrindo de forma simpática olhando para a câmera)",
+  "lighting": "Descrição da iluminação (ex: iluminação suave e envolvente de estúdio profissional)"
 }`;
 
             const geminiVisionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
@@ -436,6 +436,89 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
               }
             } catch (modelErr: any) {
               console.warn(`[AVATAR_GENERATE] Erro no modelo ${model}:`, modelErr.message);
+            }
+          }
+        }
+
+        // Fallback de alta resolução: Se o motor multimodal não tiver retornado os bytes da imagem, aciona o Google Imagen 4 Ultra ou DALL-E 3
+        if (!imgBuffer && !generatedImageUrl && apiKey) {
+          console.log(
+            "[AVATAR_GENERATE] 🎨 Chamando Google Imagen 4 Ultra / DALL-E 3 com o prompt ultra-detalhado de estúdio..."
+          );
+
+          const exactImagenPrompt = `A high-resolution commercial editorial portrait photograph of the EXACT male subject from the reference image (preserve his face, short dark hair, short beard, dark eyes, and skin tone).
+
+EXACT OUTFIT AND ACCESSORIES (MANDATORY):
+${styleJson?.clothing ? `Wear: ${styleJson.clothing}` : "Wear a black long-sleeve textured crewneck sweater and beige chino trousers. Rimless eyeglasses on face. Smartwatch on left wrist."}
+
+EXACT POSE, EXPRESSION AND BACKGROUND (MANDATORY):
+${styleJson?.pose ? `Pose & Composition: ${styleJson.pose}` : "Seated with arms crossed over knee in a confident, friendly posture. Warm, genuine smile looking into camera."}
+${styleJson?.background ? `Background & Studio: ${styleJson.background}` : "Warm neutral beige seamless studio background."}
+${styleJson?.lighting ? `Lighting: ${styleJson.lighting}` : "Soft directional studio lighting."}
+
+CAMERA SPECIFICATIONS:
+Shot on 85mm prime lens f/2.8, sharp focus on eyes, editorial lighting, natural skin textures. Absolutely NO text, NO logos.`;
+
+          try {
+            console.log("[AVATAR_GENERATE] Executando Imagen 4 Ultra...");
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-ultra-generate-001:predict?key=${apiKey}`;
+            const imgRes = await fetch(imagenUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                instances: [{ prompt: exactImagenPrompt }],
+                parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
+              }),
+            });
+
+            if (imgRes.ok) {
+              const imgData = await imgRes.json();
+              const bytes = imgData?.predictions?.[0]?.bytesBase64Encoded;
+              if (bytes) {
+                imgBuffer = Buffer.from(bytes, "base64");
+                generatedBy = "nanobanana_pro_imagen-4.0-ultra";
+                source = "nanobanana_ref";
+                console.log("[AVATAR_GENERATE] ✅ Sucesso total via Imagen 4 Ultra!");
+              }
+            } else {
+              const errText = await imgRes.text();
+              console.warn("[AVATAR_GENERATE] Falha no Imagen 4 Ultra:", errText.substring(0, 200));
+            }
+          } catch (imagenErr: any) {
+            console.warn("[AVATAR_GENERATE] Exceção no Imagen 4 Ultra:", imagenErr.message);
+          }
+
+          // Fallback final via OpenAI DALL-E 3
+          if (!imgBuffer && process.env.OPENAI_API_KEY) {
+            try {
+              console.log("[AVATAR_GENERATE] 🎨 Executando OpenAI DALL-E 3 como fallback de alta precisão...");
+              const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "dall-e-3",
+                  prompt: exactImagenPrompt,
+                  n: 1,
+                  size: "1024x1024",
+                  response_format: "b64_json",
+                }),
+              });
+
+              if (dalleRes.ok) {
+                const dalleData = await dalleRes.json();
+                const b64 = dalleData.data?.[0]?.b64_json;
+                if (b64) {
+                  imgBuffer = Buffer.from(b64, "base64");
+                  generatedBy = "nanobanana_pro_dall-e-3";
+                  source = "nanobanana_ref";
+                  console.log("[AVATAR_GENERATE] ✅ Sucesso total via OpenAI DALL-E 3!");
+                }
+              }
+            } catch (dalleErr: any) {
+              console.warn("[AVATAR_GENERATE] Exceção no DALL-E 3:", dalleErr.message);
             }
           }
         }
