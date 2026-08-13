@@ -1099,7 +1099,13 @@ export default function Conteudo() {
   const handleConnectMeta = useCallback(() => {
     const origin = window.location.origin;
     const redirectUri = `${origin}/dashboard/conteudo`;
-    const authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${META_OAUTH.scope}&response_type=code`;
+    const configId = config.meta.configId;
+    let authUrl = "";
+    if (configId) {
+      authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&config_id=${configId}&response_type=code&override_default_response_type=true`;
+    } else {
+      authUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${META_OAUTH.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${user?.uid}&scope=${META_OAUTH.scope}&response_type=code`;
+    }
     window.location.href = authUrl;
   }, [user?.uid]);
 
