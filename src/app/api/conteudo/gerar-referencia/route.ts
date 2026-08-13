@@ -230,27 +230,28 @@ export async function POST(request: NextRequest) {
           if (brandKit.personas && brandKit.personas.length > 0) {
             const personasInfo = brandKit.personas
               .map((p: any, idx: number) => {
-                return `Persona ${idx + 1} (${p.name || "Sem nome"}):
-      * Perfil: ${p.profile || "N/A"}
-      * Dores/Desafios: ${p.painPoints || "N/A"}
-      * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
+                return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):
+      * Perfil/Nicho do Cliente Alvo: ${p.profile || "N/A"}
+      * Dores/Desafios deste Cliente: ${p.painPoints || "N/A"}
+      * Motivação de Compra deste Cliente: ${p.buyingMotivation || "N/A"}`;
               })
               .join("\n");
-            parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
+            parts.push(`- **PERSONAS COMPRADORAS / PÚBLICO-ALVO QUE A MARCA QUER ATRAIR**:\n${personasInfo}`);
           }
         }
 
         if (parts.length > 0) {
           businessContext = `
 # CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
-Você é o redator oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz correto:
+Você é o diretor criativo oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz e estilo corretos:
 ${parts.join("\n")}
 
-DIRETRIZES DE PERSONALIZAÇÃO:
-1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
-2. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo (ex: se for luxuoso, use linguagem mais refinada, sofisticada e exclusiva; se for rústico/casual/afetivo, use algo mais acolhedor, simples e próximo).
-3. **Público e Personas**: Comunique-se diretamente com o Público-Alvo e as Personas descritas, focando em suas dores e motivações de compra.
-4. **Benefícios e Posicionamento**: Sempre que possível, destaque os principais benefícios e o diferencial competitivo da marca listados acima, especialmente ao fazer chamadas para ação (CTAs).
+DIRETRIZES CRÍTICAS DE MARCA E PERSONAS (INVIOLÁVEL):
+1. **IDENTIDADE DA MARCA (O EMISSOR)**: A arte visual e os textos devem promover SEMPRE o negócio do usuário ("${businessProfile.name}" - Nicho: "${businessProfile.category || "negócios"}").
+2. **PAPEL DAS PERSONAS (CLIENTES ALVO, NÃO A EMPRESA)**: As personas representam os **CLIENTES COMPRADORES / ALVOS DE BUSCA** que a empresa quer atrair. NUNCA crie artes como se a empresa do usuário fosse a persona!
+   - *Exemplo*: Se a empresa do usuário for de Contabilidade (ex: MT Gestão Contábil) e a persona for uma Médica/Dona de Clínica, a arte deve representar a CONTABILIDADE oferecendo soluções de gestão e inteligência financeira PARA clínicas médicas. NUNCA crie uma arte de consultas médicas ou procedimento cirúrgico como se a empresa fosse um hospital.
+3. **Tom de Voz e Vibe**: Escreva legendas e prompts visuais aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
+4. **Benefícios e Posicionamento**: Sempre destaque os diferenciais e benefícios das soluções da empresa do usuário ao dialogar com a persona.
 `;
         }
       } else {
