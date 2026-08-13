@@ -120,10 +120,11 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // 2. Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
+    // 2. Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
     const MODELS_CHAIN = [
-      { provider: "openai", model: "gpt-image-2" },
+      { provider: "openai", model: "dall-e-3" },
       { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+      { provider: "google", model: "imagen-3.0-generate-002" },
     ];
 
     let imageBytes: string | null = null;
@@ -152,14 +153,23 @@ export async function POST(request: Request) {
                 prompt: finalPrompt,
                 n: 1,
                 size: "1024x1024",
+                response_format: "b64_json",
               }),
             }
           );
 
           if (response.ok) {
             const data = await response.json();
-            if (data?.data?.[0]?.b64_json) {
-              imageBytes = data.data[0].b64_json;
+            let b64 = data?.data?.[0]?.b64_json;
+            if (!b64 && data?.data?.[0]?.url) {
+              const imgRes = await fetch(data.data[0].url);
+              if (imgRes.ok) {
+                const ab = await imgRes.arrayBuffer();
+                b64 = Buffer.from(ab).toString("base64");
+              }
+            }
+            if (b64) {
+              imageBytes = b64;
               modelUsed = config.model;
               console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
               break;
