@@ -169,9 +169,29 @@ export default function LaboratorioIAPage() {
   );
   
   const [prompts, setPrompts] = useState<{label: string; value: string; dbKey?: string}[]>(PROMPT_PRESETS);
-  const [testLayoutStyle, setTestLayoutStyle] = useState<string>("");
+  const [testLayoutStyle, setTestLayoutStyle] = useState<string>("CINEMATIC");
   const [selectedPresetKey, setSelectedPresetKey] = useState<string | null>(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+
+  const STYLE_LABEL_MAP: Record<string, string> = {
+    "": "Automático",
+    CINEMATIC: "Cinematográfico",
+    STUDIO_CLEAN: "Estúdio Clean",
+    URBAN_LIFESTYLE: "Urbano/Lifestyle",
+    MINIMALIST: "Minimalista",
+    TECH_3D: "Tecnologia 3D",
+    MAGAZINE_3D: "Magazine 3D",
+  };
+
+  useEffect(() => {
+    const styleName = STYLE_LABEL_MAP[testLayoutStyle] || "Automático";
+    setUserPrompt((prev) => {
+      if (prev.includes("Estilo visual:")) {
+        return prev.replace(/Estilo visual:.*$/m, `Estilo visual: ${styleName}`);
+      }
+      return prev + `\nEstilo visual: ${styleName}`;
+    });
+  }, [testLayoutStyle]);
 
   useEffect(() => {
     const fetchPrompts = async () => {

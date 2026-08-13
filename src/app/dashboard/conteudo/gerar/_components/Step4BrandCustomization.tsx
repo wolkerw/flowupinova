@@ -72,6 +72,21 @@ export const Step4BrandCustomization = () => {
 
   const isSyncImageMode = mode === "reference-photo" || mode === "reference-hybrid";
 
+  const availableLogos = React.useMemo(() => {
+    if (!businessProfile) return [];
+    const logos = [];
+    if (businessProfile.logos?.horizontal?.url) logos.push({ id: 'horizontal', url: businessProfile.logos.horizontal.url, label: 'Horizontal' });
+    if (businessProfile.logos?.vertical?.url) logos.push({ id: 'vertical', url: businessProfile.logos.vertical.url, label: 'Vertical' });
+    if (businessProfile.logos?.symbol?.url) logos.push({ id: 'symbol', url: businessProfile.logos.symbol.url, label: 'Símbolo' });
+    if (businessProfile.logos?.avatar?.url) logos.push({ id: 'avatar', url: businessProfile.logos.avatar.url, label: 'Avatar' });
+    
+    if (logos.length === 0 && businessProfile.logo?.url) {
+      logos.push({ id: 'default', url: businessProfile.logo.url, label: 'Principal' });
+    }
+    
+    return logos;
+  }, [businessProfile]);
+
   const onBack = () => {
     if (isSyncImageMode) {
       setStep(generateTextSuggestions ? 2 : 1);
@@ -119,14 +134,35 @@ export const Step4BrandCustomization = () => {
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Sua Logomarca</Label>
                 {!logoPreviewUrl ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => logoInputRef.current?.click()}
-                  >
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    Anexar Logomarca
-                  </Button>
+                  <div className="space-y-4">
+                    {availableLogos.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {availableLogos.map(logo => (
+                          <div 
+                            key={logo.id} 
+                            className="cursor-pointer border rounded-lg p-2 flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
+                            onClick={() => {
+                              setLogoPreviewUrl(logo.url);
+                              setLogoFile(null);
+                            }}
+                          >
+                            <div className="relative w-full h-12 mb-1">
+                              <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                            </div>
+                            <span className="text-[10px] text-gray-500 font-medium uppercase text-center w-full block">{logo.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      <UploadCloud className="mr-2 h-4 w-4" />
+                      Anexar {availableLogos.length > 0 ? "Outra " : ""}Logomarca
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between rounded-lg border bg-gray-50 p-2">
@@ -139,7 +175,7 @@ export const Step4BrandCustomization = () => {
                           className="rounded object-contain"
                         />
                         <span className="max-w-[150px] truncate text-sm text-gray-600">
-                          {logoFile?.name}
+                          {logoFile?.name || "Logomarca Selecionada"}
                         </span>
                       </div>
                       <Button

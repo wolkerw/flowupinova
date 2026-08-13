@@ -25,10 +25,13 @@ import {
   CheckCircle,
   HelpCircle,
   Download,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface GalleryMediaItem {
   id: string;
@@ -51,6 +54,7 @@ export default function GaleriaPage() {
   const [activeTab, setActiveTab] = useState<"all" | "unused" | "used">("unused");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
 
   // Escutar a subcoleção de imagens da galeria do Firestore em tempo real
   useEffect(() => {
@@ -371,6 +375,14 @@ export default function GaleriaPage() {
                         </Button>
                         <Button
                           size="icon"
+                          variant="secondary"
+                          className="h-8 w-8 rounded-full shadow-md transition-colors hover:bg-white hover:text-gray-900"
+                          onClick={() => setSelectedImageToView(item.url)}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
                           variant="destructive"
                           className="h-8 w-8 rounded-full shadow-md"
                           onClick={() => handleDeleteItem(item)}
@@ -466,6 +478,34 @@ export default function GaleriaPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedImageToView} onOpenChange={(open) => !open && setSelectedImageToView(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-2xl">
+          <DialogTitle className="sr-only">Visualizar Imagem</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualização em tamanho grande da imagem selecionada.
+          </DialogDescription>
+          {selectedImageToView && (
+            <div className="relative w-full h-[80vh] flex items-center justify-center bg-black/40 rounded-lg backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4 z-50 h-10 w-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white"
+                onClick={() => setSelectedImageToView(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              <Image
+                src={selectedImageToView}
+                alt="Imagem em tamanho grande"
+                layout="fill"
+                objectFit="contain"
+                unoptimized
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
