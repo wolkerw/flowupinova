@@ -20,11 +20,13 @@ import {
   ChevronDown,
   Repeat,
   Send,
+  Maximize2,
 } from "lucide-react";
 import { GeneratedContent, Platform } from "../types";
 import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 import { LinkedInConnectionData } from "@/lib/services/linkedin-service";
+import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 interface PostPreviewProps {
   imageUrl: string | null;
@@ -49,6 +51,8 @@ export const PostPreview = ({
   businessProfile = null,
   platforms,
 }: PostPreviewProps) => {
+  const [zoomUrl, setZoomUrl] = React.useState<string | null>(null);
+
   const getAvatarFallback = (type: "facebook" | "instagram" | "google" | "linkedin") => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
     if (type === "facebook" && metaConnection?.pageName)
@@ -80,15 +84,25 @@ export const PostPreview = ({
           {instagramConnection?.instagramUsername || "seu_usuario"}
         </span>
       </div>
-      <div className="relative aspect-square bg-gray-200">
+      <div className="group relative aspect-square bg-gray-200 overflow-hidden">
         {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt="Preview"
-            layout="fill"
-            className="h-full w-full object-cover"
-            unoptimized
-          />
+          <>
+            <Image
+              src={imageUrl}
+              alt="Preview"
+              layout="fill"
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+            <button
+              type="button"
+              onClick={() => setZoomUrl(imageUrl)}
+              title="Ampliar Imagem"
+              className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm hover:bg-black/90"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
             <ImageIcon className="mb-4 h-16 w-16 text-gray-400" />
@@ -364,6 +378,13 @@ export const PostPreview = ({
           <LinkedInPreview />
         </TabsContent>
       </Tabs>
+
+      <ImageZoomModal
+        isOpen={!!zoomUrl}
+        onClose={() => setZoomUrl(null)}
+        imageUrl={zoomUrl}
+        title="Preview do Post"
+      />
     </div>
   );
 };

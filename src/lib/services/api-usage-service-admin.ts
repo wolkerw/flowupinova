@@ -9,7 +9,7 @@ export interface ApiUsageLogInput {
     | "chat"
     | "vision_analysis"
     | "background_removal";
-  provider: "falai" | "google_vertex" | "google_gemini";
+  provider: "falai" | "google_vertex" | "google_gemini" | "google_imagen" | "openai";
   model: string;
   costUsd: number;
   tokens?: {

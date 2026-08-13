@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FlaskConical, Image as ImageIcon, Send, Loader2 } from "lucide-react";
+import { FlaskConical, Image as ImageIcon, Send, Loader2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { LayoutStyleSelector, LayoutStyleId, LAYOUT_STYLES, LAYOUT_STYLE_TECHNICAL } from "@/app/dashboard/conteudo/gerar/_components/LayoutStyleSelector";
+import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 const PROMPT_PRESETS = [
   {
@@ -172,6 +173,7 @@ export default function LaboratorioIAPage() {
   const [testLayoutStyle, setTestLayoutStyle] = useState<string>("CINEMATIC");
   const [selectedPresetKey, setSelectedPresetKey] = useState<string | null>(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [labZoomUrl, setLabZoomUrl] = useState<string | null>(null);
 
   const STYLE_LABEL_MAP: Record<string, string> = {
     "": "Automático",
@@ -576,8 +578,23 @@ export default function LaboratorioIAPage() {
           {!isLoading && result && (
             <div className="flex-1 flex flex-col gap-4 overflow-auto rounded-md bg-black p-4 font-mono text-sm text-green-400">
               {result.imageUrl && (
-                <div className="w-full flex justify-center bg-gray-800 p-2 rounded-md">
-                  <img src={result.imageUrl} alt="Imagem gerada" className="max-h-[400px] object-contain rounded-md shadow-md" />
+                <div className="group relative w-full flex justify-center bg-gray-800 p-2 rounded-md overflow-hidden">
+                  <img
+                    src={result.imageUrl}
+                    alt="Imagem gerada"
+                    className="max-h-[400px] object-contain rounded-md shadow-md cursor-pointer"
+                    onClick={() => setLabZoomUrl(result.imageUrl)}
+                  />
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    type="button"
+                    onClick={() => setLabZoomUrl(result.imageUrl)}
+                    title="Ampliar Imagem"
+                    className="absolute right-3 top-3 z-20 h-8 w-8 bg-black/70 text-white hover:bg-black/90 backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
               {!result.imageUrl && (
@@ -593,6 +610,14 @@ export default function LaboratorioIAPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Ampliação de Imagem do Laboratório */}
+      <ImageZoomModal
+        isOpen={!!labZoomUrl}
+        onClose={() => setLabZoomUrl(null)}
+        imageUrl={labZoomUrl}
+        title="Resultado - Laboratório IA"
+      />
     </div>
   );
 }

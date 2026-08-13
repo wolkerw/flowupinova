@@ -16,15 +16,18 @@ import {
   Loader2,
   Sparkles,
   Paintbrush,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoPosition } from "../types";
 import { CircularProgressLoader } from "./CircularProgressLoader";
 import { ImageInpaintModal, type EditorLayer } from "./ImageInpaintModal";
+import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
 
 import { useWizard } from "../context/WizardContext";
 
 export const Step4BrandCustomization = () => {
+  const [isZoomOpen, setIsZoomOpen] = React.useState(false);
   const {
     selectedImage,
     logoFile,
@@ -261,6 +264,17 @@ export const Step4BrandCustomization = () => {
                       alt="Imagem selecionada"
                       unoptimized
                     />
+                    {/* Botão de Ampliar Preview */}
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      type="button"
+                      onClick={() => setIsZoomOpen(true)}
+                      title="Ampliar Imagem"
+                      className="absolute right-2 top-2 z-30 h-8 w-8 bg-black/70 text-white hover:bg-black/90 backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
 
                     {/* Logo Overlay Preview */}
                     {logoPreviewUrl && (
@@ -380,6 +394,14 @@ export const Step4BrandCustomization = () => {
           }}
         />
       )}
+
+      {/* Modal de Zoom da Imagem Selecionada */}
+      <ImageZoomModal
+        isOpen={isZoomOpen}
+        onClose={() => setIsZoomOpen(false)}
+        imageUrl={previewImageUrl || selectedImage}
+        title="Preview da Imagem Selecionada"
+      />
     </motion.div>
   );
 };

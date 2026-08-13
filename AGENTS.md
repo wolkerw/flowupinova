@@ -31,6 +31,7 @@ Welcome, AI Agent! This file provides essential guidelines, context, and configu
    - Buttons: Solid colors only (no gradients).
 4. **Garantir o envio das imagens fixas**: Sempre inclua e comite no repositório todas as imagens estáticas/fixas utilizadas pelas páginas do site (na pasta `public/`), para que estejam sempre visíveis nos ambientes de deploy e homologação.
 5. **Sincronização de Prompts no Admin**: Sempre que atualizar alguma regra, instrução ou parâmetro nos prompts de IA ou modelos de imagens no back-end (endpoints/APIs), lembre-se de atualizar também a exibição desses prompts e modelos na tela de "Configurações" (painel admin) para manter a interface de auditoria do usuário 100% fiel e sincronizada.
+6. **CONGELAMENTO DEFINITIVO DO FLUXO DO AVATAR IA (REGRA INVIOLÁVEL)**: O fluxo de geração do Avatar IA em `src/app/api/avatar/generate/route.ts` está **congelado e homologado pelo usuário**. Ele utiliza **exclusivamente** os modelos da família **Google Gemini Nano Banana Pro** (`gemini-3-pro-image`, `gemini-2.0-flash-exp`, `gemini-3.5-flash`, `gemini-2.5-flash`) com o envio multimodal dual de imagens (Selfie no `parts[1]` e Foto de Estilo no `parts[2]`) e `responseModalities: ["IMAGE"]`. **NUNCA altere os modelos, a estrutura de prompt ou troque por Imagen 4 / Fal.ai / Flux Kontext sem autorização prévia e expressa do usuário.**
 
 ## 🧪 Testing and Mocking Guidelines
 

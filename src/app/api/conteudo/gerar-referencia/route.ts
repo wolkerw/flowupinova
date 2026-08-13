@@ -938,7 +938,7 @@ ${yamlAnalysis}`;
               "content-type": "application/json",
             },
             body: JSON.stringify({
-              model: "claude-sonnet-5",
+              model: "claude-3-5-sonnet-20241022",
               max_tokens: 2000,
               system: geminiSystemInstruction,
               messages: [
@@ -950,11 +950,11 @@ ${yamlAnalysis}`;
             }),
           });
 
-          // Se der erro de modelo não encontrado, tentar Sonnet v1 (20240620)
+          // Se der erro de modelo não encontrado, tentar Haiku 3.5
           if (!response.ok) {
             const errText = await response.text();
             console.warn(
-              "[GERAR_REFERENCIA] Falha com Claude Sonnet v2 (Prompt), tentando v1:",
+              "[GERAR_REFERENCIA] Falha com Claude Sonnet 3.5 (Prompt), tentando Haiku:",
               errText
             );
 
@@ -966,7 +966,7 @@ ${yamlAnalysis}`;
                 "content-type": "application/json",
               },
               body: JSON.stringify({
-                model: "claude-sonnet-4-5-20250929",
+                model: "claude-3-5-haiku-20241022",
                 max_tokens: 2000,
                 system: geminiSystemInstruction,
                 messages: [
@@ -1210,10 +1210,11 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: gpt-image-2 primeiro, depois Imagen 4 Ultra como fallback
+      // Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
       const MODELS_CHAIN = [
-        { provider: "openai", model: "gpt-image-2" },
+        { provider: "openai", model: "dall-e-3" },
         { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+        { provider: "google", model: "imagen-3.0-generate-002" },
       ];
 
       let imageBytes: string | null = null;
@@ -1230,11 +1231,11 @@ ${yamlAnalysis}`;
             const response = await fetch("https://api.openai.com/v1/images/generations", {
               method: "POST",
               headers: {
+                Authorization: `Bearer ${openaiKey}`,
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${openaiKey}`,
               },
               body: JSON.stringify({
-                model: "gpt-image-2",
+                model: "dall-e-3",
                 prompt: prompt,
                 n: 1,
                 size: "1024x1024",
@@ -1895,7 +1896,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (dall-e-3) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1905,10 +1906,11 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-image-2",
+            model: "dall-e-3",
             prompt: prompt,
             n: 1,
             size: "1024x1024",
+            response_format: "b64_json",
           }),
         });
 
