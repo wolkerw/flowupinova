@@ -355,10 +355,10 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
           const mimeType = "image/jpeg";
 
           const NANOBANANA_MODELS = [
+            "gemini-3-pro-image",
+            "gemini-2.0-flash-exp",
             "gemini-3.5-flash",
             "gemini-2.5-flash",
-            "gemini-3.1-flash-lite",
-            "gemini-2.5-pro",
           ];
 
           for (const model of NANOBANANA_MODELS) {
@@ -372,6 +372,7 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
                 body: JSON.stringify({
                   contents: [
                     {
+                      role: "user",
                       parts: [
                         { text: nanobananaPrompt },
                         {
@@ -383,15 +384,20 @@ DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
                       ],
                     },
                   ],
+                  generationConfig: {
+                    responseModalities: ["IMAGE"],
+                  },
                 }),
               });
 
               if (response.ok) {
                 const data = await response.json();
-                const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const part = data?.candidates?.[0]?.content?.parts?.[0];
+                const bytes = part?.inlineData?.data;
                 if (bytes) {
                   imgBuffer = Buffer.from(bytes, "base64");
                   generatedBy = `nanobanana_pro_${model}`;
+                  source = "nanobanana_ref";
                   console.log(`[AVATAR_GENERATE] ✅ Sucesso total via Nano Banana Pro Multimodal (${model})!`);
                   break;
                 }
