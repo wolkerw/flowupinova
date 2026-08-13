@@ -254,14 +254,19 @@ Você DEVE responder exclusivamente no formato JSON abaixo, de forma estrita, se
         }
 
         const nanobananaPrompt = `Você é um Diretor de Fotografia e Retratista Editorial Sênior.
-Com base na imagem de referência da pessoa fornecida nesta selfie, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade, mantendo estritamente as características físicas, expressão facial, traços do rosto e consistência da identidade da pessoa (mesmo cabelo, barba, formato dos olhos e cor da pele da selfie).
+Com base na imagem de referência da pessoa fornecida nesta selfie, gere um retrato fotográfico profissional e ultra realista de altíssima fidelidade.
+
+DIRETRIZES CRÍTICAS DE FIDELIDADE FACIAL E RECONSTRUÇÃO:
+1. REPRODUÇÃO FIEL DA PESSOA: Mantenha estritamente a identidade biometria facial, características físicas, feição, formato dos olhos, expressão, tom de pele, tipo e cor do cabelo, e barba exatamente como estão na foto enviada.
+2. RECONSTRUÇÃO ANATÔMICA HARMONIOSA: Caso a foto de referência enviada exiba apenas o rosto ou busto (selfie), recrie e complete harmonicamente as partes do corpo que não são oferecidas na foto original (ombros, torso, braços e postura) de forma anatomicamente perfeita e integrada no plano médio ou plano americano.
+3. APRIMORAMENTO E RECRIAÇÃO DO VESTUÁRIO: A roupa da pessoa pode ser melhorada, ajustada ou totalmente recriada com IA para um estilo fotográfico de alta elegância e sofisticação (como alfaiataria fina, terno bem cortado ou figurino de estilo de vida premium), combinando com as instruções de estilo e cenário.
 
 DIRETRIZES ESTÉTICAS E TÉCNICAS (CONSOLIDADO):
-1. ${poseSection}
-2. ${lightingSection}
-3. DETALHES DE CÂMERA E LENTE: Fotografia estilo retrato editorial, qualidade de câmera profissional DSLR com lente prime de 85mm ajustada em abertura f/2.8, foco perfeito e nítido nos olhos do sujeito com profundidade de campo rasa (fundo suavemente desfocado).
-4. QUALIDADE E TEXTURA DA PELE: Retoque de pele profissional que preserve texturas naturais de pele (poros e imperfeições reais), eliminando qualquer visual artificial de cera ou distorções plásticas.
-5. REGRAS NEGATIVAS: Sem textos escritos na imagem, sem logotipos, sem acessórios estranhos ou distorções anatômicas.
+- ${poseSection}
+- ${lightingSection}
+- DETALHES DE CÂMERA E LENTE: Fotografia estilo retrato editorial, qualidade de câmera profissional DSLR com lente prime de 85mm ajustada em abertura f/2.8, foco perfeito e nítido nos olhos do sujeito com profundidade de campo rasa (fundo suavemente desfocado).
+- QUALIDADE E TEXTURA DA PELE: Retoque de pele profissional que preserve texturas naturais de pele (poros e imperfeições reais), eliminando qualquer visual artificial de cera ou distorções plásticas.
+- REGRAS NEGATIVAS: Sem textos escritos na imagem, sem logotipos, sem acessórios estranhos ou distorções anatômicas.
 
 DIRETRIZES DE ESTILO, VESTUÁRIO E AMBIENTE:
 - ${clothingSection}
