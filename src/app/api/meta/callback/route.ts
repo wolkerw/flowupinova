@@ -73,31 +73,137 @@ export async function POST(request: NextRequest) {
 
       // Se um 'userAccessToken' for fornecido, buscamos as páginas associadas.
     } else if (userAccessToken) {
-      let allPages: PageData[] = [];
+      const pagesMap = new Map<string, PageData>();
+
+      // =====================================================================
+      // CAMADA 1: /me/accounts — Fonte primária de páginas
+      // =====================================================================
+      let pagesWithoutToken: { id: string; name: string }[] = [];
       let pagesUrl: string | undefined =
         `https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}&fields=id,name,access_token,tasks&limit=100`;
-
-      let pagesWithoutToken = 0;
 
       while (pagesUrl) {
         const pagesData = await fetchFromMetaAPI(pagesUrl);
         if (pagesData?.data) {
-          // Log para debug
-          const withoutToken = pagesData.data.filter((p: any) => !p.access_token);
-          if (withoutToken.length > 0) {
-            pagesWithoutToken += withoutToken.length;
-            console.log(`[META_CALLBACK_API] ${withoutToken.length} páginas ignoradas por não terem access_token (ex: ${withoutToken.map((p: any) => p.name).join(", ")})`);
+          for (const page of pagesData.data) {
+            if (page.access_token) {
+              pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
+            } else {
+              pagesWithoutToken.push({ id: page.id, name: page.name });
+            }
           }
-
-          // Filtra para garantir que a página tenha um token de acesso próprio.
-          allPages.push(...pagesData.data.filter((page: PageData) => page.access_token));
         }
         pagesUrl = pagesData?.paging?.next;
       }
 
+      console.log(
+        `[META_CALLBACK_API] Camada 1 (/me/accounts): ${pagesMap.size} páginas com token, ${pagesWithoutToken.length} sem token.`
+      );
+
+      // =====================================================================
+      // CAMADA 2: Gerar tokens individualmente para páginas sem token
+      // =====================================================================
+      if (pagesWithoutToken.length > 0) {
+        console.log(
+          `[META_CALLBACK_API] Camada 2: Tentando gerar tokens para ${pagesWithoutToken.length} páginas: ${pagesWithoutToken.map((p) => p.name).join(", ")}`
+        );
+
+        const tokenPromises = pagesWithoutToken.map(async (page) => {
+          try {
+            const tokenUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=id,name,access_token&access_token=${userAccessToken}`;
+            const tokenData = await fetchFromMetaAPI(tokenUrl);
+            if (tokenData?.access_token) {
+              console.log(`[META_CALLBACK_API] Camada 2: Token gerado com sucesso para "${page.name}" (${page.id})`);
+              return { id: tokenData.id || page.id, name: tokenData.name || page.name, access_token: tokenData.access_token } as PageData;
+            }
+          } catch (err: any) {
+            console.warn(`[META_CALLBACK_API] Camada 2: Falha ao gerar token para "${page.name}" (${page.id}): ${err.message}`);
+          }
+          return null;
+        });
+
+        const tokenResults = await Promise.allSettled(tokenPromises);
+        let layer2Count = 0;
+        for (const result of tokenResults) {
+          if (result.status === "fulfilled" && result.value) {
+            if (!pagesMap.has(result.value.id)) {
+              pagesMap.set(result.value.id, result.value);
+              layer2Count++;
+            }
+          }
+        }
+        console.log(`[META_CALLBACK_API] Camada 2: ${layer2Count} páginas recuperadas com token individual.`);
+      }
+
+      // =====================================================================
+      // CAMADA 3: Varrer Business Managers do usuário
+      // =====================================================================
+      try {
+        const businessesUrl = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}&fields=id,name&limit=50`;
+        const businessesData = await fetchFromMetaAPI(businessesUrl);
+
+        if (businessesData?.data && businessesData.data.length > 0) {
+          console.log(
+            `[META_CALLBACK_API] Camada 3: Encontrados ${businessesData.data.length} Business Manager(s): ${businessesData.data.map((b: any) => b.name).join(", ")}`
+          );
+
+          for (const bm of businessesData.data) {
+            // 3a: Páginas próprias do BM
+            try {
+              let ownedUrl: string | undefined =
+                `https://graph.facebook.com/v20.0/${bm.id}/owned_pages?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
+              while (ownedUrl) {
+                const ownedData = await fetchFromMetaAPI(ownedUrl);
+                if (ownedData?.data) {
+                  for (const page of ownedData.data) {
+                    if (page.access_token && !pagesMap.has(page.id)) {
+                      pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
+                    }
+                  }
+                }
+                ownedUrl = ownedData?.paging?.next;
+              }
+            } catch (err: any) {
+              console.warn(`[META_CALLBACK_API] Camada 3: Falha ao buscar owned_pages do BM "${bm.name}": ${err.message}`);
+            }
+
+            // 3b: Páginas de clientes gerenciadas pelo BM
+            try {
+              let clientUrl: string | undefined =
+                `https://graph.facebook.com/v20.0/${bm.id}/client_pages?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
+              while (clientUrl) {
+                const clientData = await fetchFromMetaAPI(clientUrl);
+                if (clientData?.data) {
+                  for (const page of clientData.data) {
+                    if (page.access_token && !pagesMap.has(page.id)) {
+                      pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
+                    }
+                  }
+                }
+                clientUrl = clientData?.paging?.next;
+              }
+            } catch (err: any) {
+              console.warn(`[META_CALLBACK_API] Camada 3: Falha ao buscar client_pages do BM "${bm.name}": ${err.message}`);
+            }
+          }
+
+          console.log(`[META_CALLBACK_API] Camada 3: Total acumulado após varredura de BMs: ${pagesMap.size} páginas.`);
+        }
+      } catch (err: any) {
+        // Se /me/businesses falhar (ex: usuário sem BM), não é um erro crítico.
+        console.warn(`[META_CALLBACK_API] Camada 3: Não foi possível listar Business Managers (normal se o usuário não tiver BM): ${err.message}`);
+      }
+
+      // =====================================================================
+      // RESULTADO FINAL
+      // =====================================================================
+      const allPages = Array.from(pagesMap.values());
+
+      console.log(`[META_CALLBACK_API] Total final: ${allPages.length} páginas únicas com token de acesso.`);
+
       if (allPages.length === 0) {
         throw new Error(
-          `Nenhuma Página do Facebook foi encontrada para este usuário. Verifique suas permissões no diálogo da Meta. Encontramos ${pagesWithoutToken} página(s), mas nenhuma possuía permissão de Token de Acesso (Access Token). Você precisa ter permissão de 'Gerenciar' ou 'Criar Conteúdo' na página.`
+          `Nenhuma Página do Facebook foi encontrada para este usuário. Verificamos 3 fontes de dados (páginas diretas, tokens individuais e Business Managers) e nenhuma retornou um Token de Acesso válido. Verifique se você possui permissão de 'Gerenciar' ou 'Criar Conteúdo' (Controle Total) na página.`
         );
       }
 
@@ -123,3 +229,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
