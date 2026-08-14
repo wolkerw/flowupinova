@@ -693,6 +693,7 @@ export default function Conteudo() {
 
   // Connection flow
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingPlatform, setConnectingPlatform] = useState<"facebook" | "linkedin" | null>(null);
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<FacebookPage[]>([]);
   const [pendingLinkedInOrgs, setPendingLinkedInOrgs] = useState<{ urn: string; name: string }[]>(
@@ -825,6 +826,7 @@ export default function Conteudo() {
         });
       } finally {
         setIsConnecting(false);
+        setConnectingPlatform(null);
         setPendingPages([]);
       }
     },
@@ -858,6 +860,7 @@ export default function Conteudo() {
         });
       } finally {
         setIsConnecting(false);
+        setConnectingPlatform(null);
         setPendingLinkedInOrgs([]);
       }
     },
@@ -924,6 +927,7 @@ export default function Conteudo() {
       if (!code) return;
       effectRan.current = true;
       setIsConnecting(true);
+      setConnectingPlatform("facebook");
 
       try {
         const tokenResponse = await fetch("/api/meta/callback", {
@@ -963,6 +967,7 @@ export default function Conteudo() {
           duration: 9000,
         });
         setIsConnecting(false);
+        setConnectingPlatform(null);
         router.replace("/dashboard/conteudo", undefined);
       }
     };
@@ -1415,6 +1420,34 @@ export default function Conteudo() {
   return (
     <>
       <style>{CALENDAR_DOT_STYLES}</style>
+
+      {/* Overlay de Loading durante conexão de redes sociais */}
+      {isConnecting && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 flex max-w-sm flex-col items-center gap-4 rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="relative">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#0083C7]" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {connectingPlatform === "facebook"
+                  ? "Conectando ao Facebook..."
+                  : connectingPlatform === "linkedin"
+                    ? "Conectando ao LinkedIn..."
+                    : "Conectando..."}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {connectingPlatform === "facebook"
+                  ? "Buscando suas páginas. Isso pode levar alguns segundos..."
+                  : connectingPlatform === "linkedin"
+                    ? "Buscando suas páginas corporativas..."
+                    : "Processando sua conexão..."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1710,6 +1743,7 @@ export default function Conteudo() {
           setIsSelectionModalOpen(false);
           setPendingPages([]);
           setIsConnecting(false);
+        setConnectingPlatform(null);
         }}
       />
       <LinkedInOrgSelectionModal
@@ -1720,6 +1754,7 @@ export default function Conteudo() {
           setIsLinkedInSelectionModalOpen(false);
           setPendingLinkedInOrgs([]);
           setIsConnecting(false);
+        setConnectingPlatform(null);
         }}
       />
 
