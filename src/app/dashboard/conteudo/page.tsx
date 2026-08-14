@@ -952,9 +952,13 @@ export default function Conteudo() {
 
         const pages: FacebookPage[] = pagesResult.pages || [];
         if (pages.length > 1) {
+          setIsConnecting(false);
+          setConnectingPlatform(null);
           setPendingPages(pages);
           setIsSelectionModalOpen(true);
         } else if (pages.length === 1) {
+          setIsConnecting(false);
+          setConnectingPlatform(null);
           await handlePageSelection(pages[0]);
         } else {
           throw new Error("Nenhuma página do Facebook foi encontrada para conectar.");
