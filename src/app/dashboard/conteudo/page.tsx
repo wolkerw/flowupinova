@@ -609,13 +609,13 @@ function ConnectionStatus({
 
   return (
     <div className="flex items-center justify-between rounded-lg p-3 hover:bg-gray-50/50">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-1 items-center gap-3 min-w-0">
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm`}
         >
           <Icon className={`h-5 w-5 ${color}`} />
         </div>
-        <div>
+        <div className="min-w-0">
           <h4 className="text-sm font-semibold text-gray-800">{name}</h4>
           {isConnected ? (
             <div key={`text-connected-${platform}`}>
