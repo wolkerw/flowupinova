@@ -101,28 +101,32 @@ export async function POST(request: NextRequest) {
       );
 
       // =====================================================================
-      // CAMADA 2: Gerar tokens individualmente para páginas sem token
+      // CAMADAS 2 e 3 em PARALELO para máxima velocidade
       // =====================================================================
-      if (pagesWithoutToken.length > 0) {
+
+      // Camada 2: Gerar tokens individualmente para páginas sem token
+      const layer2Promise = (async () => {
+        if (pagesWithoutToken.length === 0) return;
+
         console.log(
-          `[META_CALLBACK_API] Camada 2: Tentando gerar tokens para ${pagesWithoutToken.length} páginas: ${pagesWithoutToken.map((p) => p.name).join(", ")}`
+          `[META_CALLBACK_API] Camada 2: Tentando gerar tokens para ${pagesWithoutToken.length} páginas em paralelo...`
         );
 
-        const tokenPromises = pagesWithoutToken.map(async (page) => {
-          try {
-            const tokenUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=id,name,access_token&access_token=${userAccessToken}`;
-            const tokenData = await fetchFromMetaAPI(tokenUrl);
-            if (tokenData?.access_token) {
-              console.log(`[META_CALLBACK_API] Camada 2: Token gerado com sucesso para "${page.name}" (${page.id})`);
-              return { id: tokenData.id || page.id, name: tokenData.name || page.name, access_token: tokenData.access_token } as PageData;
+        const tokenResults = await Promise.allSettled(
+          pagesWithoutToken.map(async (page) => {
+            try {
+              const tokenUrl = `https://graph.facebook.com/v20.0/${page.id}?fields=id,name,access_token&access_token=${userAccessToken}`;
+              const tokenData = await fetchFromMetaAPI(tokenUrl);
+              if (tokenData?.access_token) {
+                return { id: tokenData.id || page.id, name: tokenData.name || page.name, access_token: tokenData.access_token } as PageData;
+              }
+            } catch (err: any) {
+              // Silencioso — falha individual não é crítica
             }
-          } catch (err: any) {
-            console.warn(`[META_CALLBACK_API] Camada 2: Falha ao gerar token para "${page.name}" (${page.id}): ${err.message}`);
-          }
-          return null;
-        });
+            return null;
+          })
+        );
 
-        const tokenResults = await Promise.allSettled(tokenPromises);
         let layer2Count = 0;
         for (const result of tokenResults) {
           if (result.status === "fulfilled" && result.value) {
@@ -132,67 +136,59 @@ export async function POST(request: NextRequest) {
             }
           }
         }
-        console.log(`[META_CALLBACK_API] Camada 2: ${layer2Count} páginas recuperadas com token individual.`);
-      }
+        console.log(`[META_CALLBACK_API] Camada 2: ${layer2Count} páginas recuperadas.`);
+      })();
 
-      // =====================================================================
-      // CAMADA 3: Varrer Business Managers do usuário
-      // =====================================================================
-      try {
-        const businessesUrl = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}&fields=id,name&limit=50`;
-        const businessesData = await fetchFromMetaAPI(businessesUrl);
+      // Camada 3: Varrer Business Managers do usuário
+      const layer3Promise = (async () => {
+        try {
+          const businessesUrl = `https://graph.facebook.com/v20.0/me/businesses?access_token=${userAccessToken}&fields=id,name&limit=50`;
+          const businessesData = await fetchFromMetaAPI(businessesUrl);
 
-        if (businessesData?.data && businessesData.data.length > 0) {
+          if (!businessesData?.data || businessesData.data.length === 0) return;
+
           console.log(
-            `[META_CALLBACK_API] Camada 3: Encontrados ${businessesData.data.length} Business Manager(s): ${businessesData.data.map((b: any) => b.name).join(", ")}`
+            `[META_CALLBACK_API] Camada 3: Varrendo ${businessesData.data.length} Business Manager(s) em paralelo...`
           );
 
-          for (const bm of businessesData.data) {
-            // 3a: Páginas próprias do BM
-            try {
-              let ownedUrl: string | undefined =
-                `https://graph.facebook.com/v20.0/${bm.id}/owned_pages?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
-              while (ownedUrl) {
-                const ownedData = await fetchFromMetaAPI(ownedUrl);
-                if (ownedData?.data) {
-                  for (const page of ownedData.data) {
-                    if (page.access_token && !pagesMap.has(page.id)) {
-                      pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
+          // Varre todos os BMs em paralelo (owned_pages + client_pages de cada um)
+          await Promise.allSettled(
+            businessesData.data.map(async (bm: any) => {
+              const fetchPages = async (endpoint: string) => {
+                try {
+                  let url: string | undefined =
+                    `https://graph.facebook.com/v20.0/${bm.id}/${endpoint}?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
+                  while (url) {
+                    const data = await fetchFromMetaAPI(url);
+                    if (data?.data) {
+                      for (const page of data.data) {
+                        if (page.access_token && !pagesMap.has(page.id)) {
+                          pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
+                        }
+                      }
                     }
+                    url = data?.paging?.next;
                   }
+                } catch {
+                  // Silencioso — falha em um BM não impede os outros
                 }
-                ownedUrl = ownedData?.paging?.next;
-              }
-            } catch (err: any) {
-              console.warn(`[META_CALLBACK_API] Camada 3: Falha ao buscar owned_pages do BM "${bm.name}": ${err.message}`);
-            }
+              };
 
-            // 3b: Páginas de clientes gerenciadas pelo BM
-            try {
-              let clientUrl: string | undefined =
-                `https://graph.facebook.com/v20.0/${bm.id}/client_pages?access_token=${userAccessToken}&fields=id,name,access_token&limit=100`;
-              while (clientUrl) {
-                const clientData = await fetchFromMetaAPI(clientUrl);
-                if (clientData?.data) {
-                  for (const page of clientData.data) {
-                    if (page.access_token && !pagesMap.has(page.id)) {
-                      pagesMap.set(page.id, { id: page.id, name: page.name, access_token: page.access_token });
-                    }
-                  }
-                }
-                clientUrl = clientData?.paging?.next;
-              }
-            } catch (err: any) {
-              console.warn(`[META_CALLBACK_API] Camada 3: Falha ao buscar client_pages do BM "${bm.name}": ${err.message}`);
-            }
-          }
+              await Promise.all([
+                fetchPages("owned_pages"),
+                fetchPages("client_pages"),
+              ]);
+            })
+          );
 
-          console.log(`[META_CALLBACK_API] Camada 3: Total acumulado após varredura de BMs: ${pagesMap.size} páginas.`);
+          console.log(`[META_CALLBACK_API] Camada 3: Total acumulado após BMs: ${pagesMap.size} páginas.`);
+        } catch (err: any) {
+          console.warn(`[META_CALLBACK_API] Camada 3: Sem Business Managers (normal): ${err.message}`);
         }
-      } catch (err: any) {
-        // Se /me/businesses falhar (ex: usuário sem BM), não é um erro crítico.
-        console.warn(`[META_CALLBACK_API] Camada 3: Não foi possível listar Business Managers (normal se o usuário não tiver BM): ${err.message}`);
-      }
+      })();
+
+      // Aguarda ambas as camadas terminarem ao mesmo tempo
+      await Promise.all([layer2Promise, layer3Promise]);
 
       // =====================================================================
       // RESULTADO FINAL
