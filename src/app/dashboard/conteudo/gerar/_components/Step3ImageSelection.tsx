@@ -243,7 +243,7 @@ export const Step3ImageSelection = () => {
           </Button>
           <Button
             onClick={onNext}
-            disabled={!selectedImage || isGeneratingImages}
+            disabled={!selectedImage}
             className="bg-accent text-white shadow-md hover:bg-accent/90"
           >
             Avançar

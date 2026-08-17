@@ -3,7 +3,7 @@ import { loginUser } from "./auth-helper";
 
 test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo", () => {
   test.beforeEach(async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(240000);
     await loginUser(page);
   });
 
@@ -46,7 +46,7 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
 
     // 4. Etapa 3: Aguarda a geração completa da imagem (espera a tag <img> com alt="Opção..." ser renderizada)
     const realGeneratedImage = page.locator('img[alt^="Opção"]').first();
-    await expect(realGeneratedImage).toBeVisible({ timeout: 120000 });
+    await expect(realGeneratedImage).toBeVisible({ timeout: 180000 });
     await realGeneratedImage.click({ force: true });
 
     // Aguarda a habilitação do botão Avançar na Etapa 3

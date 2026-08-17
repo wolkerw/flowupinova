@@ -153,7 +153,15 @@ Return the description strictly in YAML format:
   color_palette: "..."
   full_detailed_scene_prompt: "Write a comprehensive 100-word English photographic prompt describing this exact visual scene, backdrop, lighting, and composition."`;
 
-        const visionModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
+        const visionModels = [
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-1.5-flash",
+          "gemini-flash-latest",
+          "gemini-3.5-flash",
+          "gemini-3.1-flash-lite",
+          "gemini-2.5-pro",
+        ];
         for (const model of visionModels) {
           try {
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -566,7 +574,16 @@ Since the primary engine may be gpt-image-2 (DALL-E 3), you can be slightly more
 `;
 
     // 2. Chamar a API do Gemini com Fallback Resiliente
-    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-pro"];
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-flash-latest",
+      "gemini-pro-latest",
+      "gemini-3.5-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-2.5-pro",
+    ];
     let aiResponseText = "";
     let lastError: any = null;
 
