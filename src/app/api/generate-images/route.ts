@@ -120,11 +120,11 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // 2. Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
+    // 2. Cadeia de modelos: gpt-image-2 como oficial primário
     const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2" },
+      { provider: "openai", model: "chatgpt-image-latest" },
       { provider: "openai", model: "dall-e-3" },
-      { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-      { provider: "google", model: "imagen-3.0-generate-002" },
     ];
 
     let imageBytes: string | null = null;
@@ -139,7 +139,20 @@ export async function POST(request: Request) {
 
       try {
         if (config.provider === "openai") {
-          if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
+          if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+          
+          const payload: any = {
+            model: config.model,
+            prompt: finalPrompt,
+            n: 1,
+            size: "1024x1024",
+          };
+
+          // Apenas envia response_format se o modelo explicitamente exigir
+          if (config.model === "dall-e-3" || config.model === "dall-e-2") {
+            payload.response_format = "b64_json";
+          }
+
           const response = await fetchWithRetry(
             "https://api.openai.com/v1/images/generations",
             {
@@ -148,13 +161,7 @@ export async function POST(request: Request) {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${openaiKey}`,
               },
-              body: JSON.stringify({
-                model: config.model,
-                prompt: finalPrompt,
-                n: 1,
-                size: "1024x1024",
-                response_format: "b64_json",
-              }),
+              body: JSON.stringify(payload),
             }
           );
 
@@ -162,6 +169,7 @@ export async function POST(request: Request) {
             const data = await response.json();
             let b64 = data?.data?.[0]?.b64_json;
             if (!b64 && data?.data?.[0]?.url) {
+              console.log(`[GENERATE_IMAGES_NATIVE] URL recebida da OpenAI (${config.model}), baixando imagem...`);
               const imgRes = await fetch(data.data[0].url);
               if (imgRes.ok) {
                 const ab = await imgRes.arrayBuffer();
@@ -171,12 +179,13 @@ export async function POST(request: Request) {
             if (b64) {
               imageBytes = b64;
               modelUsed = config.model;
-              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              console.log(`[GENERATE_IMAGES_NATIVE] ✅ Sucesso com o modelo ${config.model}!`);
               break;
             }
           }
           const errText = await response.text().catch(() => `status ${response.status}`);
-          lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 200)}`;
+          lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+          console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
           throw new Error(lastError);
         } else {
           // Google Imagen
@@ -199,24 +208,25 @@ export async function POST(request: Request) {
             if (data?.predictions?.[0]?.bytesBase64Encoded) {
               imageBytes = data.predictions[0].bytesBase64Encoded;
               modelUsed = config.model;
-              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              console.log(`[GENERATE_IMAGES_NATIVE] ✅ Sucesso com o modelo ${config.model}!`);
               break;
             }
           }
           const errText = await response.text().catch(() => `status ${response.status}`);
-          lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 200)}`;
+          lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 250)}`;
+          console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
           throw new Error(lastError);
         }
       } catch (err: any) {
-        console.warn(`[GENERATE_IMAGES_NATIVE] Exceção na tentativa: ${err.message}. Tentando próximo modelo...`);
+        console.warn(`[GENERATE_IMAGES_NATIVE] Exceção na tentativa (${config.model}): ${err.message}. Tentando próximo modelo...`);
       }
     }
 
     if (!imageBytes) {
       console.error(
-        `[GENERATE_IMAGES_NATIVE] Todos os modelos Imagen falharam. Último erro: ${lastError}`
+        `[GENERATE_IMAGES_NATIVE] Todos os modelos de imagem falharam. Último erro: ${lastError}`
       );
-      throw new Error(`Todos os modelos do Google Imagen falharam. ${lastError}`);
+      throw new Error(`Falha na geração de imagem. ${lastError}`);
     }
 
 

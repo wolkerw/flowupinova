@@ -1211,15 +1211,16 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
+      // Cadeia de modelos: gpt-image-2 primeiro como oficial
       const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "openai", model: "chatgpt-image-latest" },
         { provider: "openai", model: "dall-e-3" },
-        { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-        { provider: "google", model: "imagen-3.0-generate-002" },
       ];
 
       let imageBytes: string | null = null;
       let modelUsed = "";
+      let lastError = "";
       const openaiKey = process.env.OPENAI_API_KEY;
 
       for (const config of MODELS_CHAIN) {
@@ -1228,26 +1229,42 @@ ${yamlAnalysis}`;
           let bytes: string | null = null;
 
           if (config.provider === "openai") {
-            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
+            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+            const payload: any = {
+              model: config.model,
+              prompt: prompt,
+              n: 1,
+              size: "1024x1024",
+            };
+            if (config.model === "dall-e-3" || config.model === "dall-e-2") {
+              payload.response_format = "b64_json";
+            }
+
             const response = await fetch("https://api.openai.com/v1/images/generations", {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${openaiKey}`,
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                model: "dall-e-3",
-                prompt: prompt,
-                n: 1,
-                size: "1024x1024",
-              }),
+              body: JSON.stringify(payload),
             });
 
             if (response.ok) {
               const data = await response.json();
               bytes = data?.data?.[0]?.b64_json;
+              if (!bytes && data?.data?.[0]?.url) {
+                console.log(`[IMAGE_REF] URL recebida da OpenAI (${config.model}), baixando imagem...`);
+                const imgRes = await fetch(data.data[0].url);
+                if (imgRes.ok) {
+                  const ab = await imgRes.arrayBuffer();
+                  bytes = Buffer.from(ab).toString("base64");
+                }
+              }
             } else {
-              throw new Error(await response.text());
+              const errText = await response.text();
+              lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
             }
           } else {
             const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:predict?key=${apiKey}`;
@@ -1264,7 +1281,10 @@ ${yamlAnalysis}`;
               const data = await imagenResponse.json();
               bytes = data?.predictions?.[0]?.bytesBase64Encoded;
             } else {
-              throw new Error(await imagenResponse.text());
+              const errText = await imagenResponse.text();
+              lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
             }
           }
 
@@ -1281,7 +1301,7 @@ ${yamlAnalysis}`;
 
       if (!imageBytes) {
         return NextResponse.json(
-          { error: "Todos os modelos do Google Imagen falharam para a geração de referência." },
+          { error: `Falha na geração de imagem. ${lastError}` },
           { status: 500 }
         );
       }
@@ -1897,7 +1917,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (dall-e-3) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1907,11 +1927,10 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-2",
             prompt: prompt,
             n: 1,
             size: "1024x1024",
-            response_format: "b64_json",
           }),
         });
 
