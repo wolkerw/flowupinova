@@ -49,7 +49,77 @@ export function getFriendlyErrorMessage(error: string): string {
     return "Falha de conexão com o servidor. Verifique sua internet ou tente novamente.";
   }
 
+  // Erros de JSON / Parsing da IA
+  if (
+    errorLower.includes("json at position") ||
+    errorLower.includes("expected property name") ||
+    errorLower.includes("unexpected token")
+  ) {
+    return "A IA gerou uma resposta formatada incorretamente. Por favor, tente novamente.";
+  }
+
   return error; // Retorna o erro original se não houver tradução específica
+}
+
+/**
+ * Realiza o parse de respostas JSON de LLMs de forma resiliente.
+ */
+export function safeParseJSON<T = any>(rawText: string): T {
+  if (!rawText || typeof rawText !== "string") {
+    throw new Error("O texto para parse de JSON está vazio ou inválido.");
+  }
+
+  let cleaned = rawText
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const firstBrace = cleaned.search(/[\{\[]/);
+  const lastBrace = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (err1: any) {
+    try {
+      const repairedStrings = cleaned.replace(
+        /"((?:[^"\\]|\\.)*)"/g,
+        (match, group1) => {
+          const sanitizedGroup = group1
+            .replace(/\n/g, "\\n")
+            .replace(/\r/g, "\\r")
+            .replace(/\t/g, "\\t");
+          return `"${sanitizedGroup}"`;
+        }
+      );
+      return JSON.parse(repairedStrings);
+    } catch (err2: any) {
+      try {
+        const repairedTrailingCommas = cleaned
+          .replace(/"((?:[^"\\]|\\.)*)"/g, (match, group1) => {
+            const sanitizedGroup = group1
+              .replace(/\n/g, "\\n")
+              .replace(/\r/g, "\\r")
+              .replace(/\t/g, "\\t");
+            return `"${sanitizedGroup}"`;
+          })
+          .replace(/,\s*([\}\]])/g, "$1");
+        return JSON.parse(repairedTrailingCommas);
+      } catch (err3: any) {
+        console.error("[SAFE_PARSE_JSON] Falha ao reparar JSON da IA:", {
+          originalLength: rawText.length,
+          snippet: rawText.substring(0, 200),
+          error: err1?.message || err1,
+        });
+        throw new Error(
+          `Falha ao converter resposta da IA em formato JSON válido: ${err1?.message || String(err1)}`
+        );
+      }
+    }
+  }
 }
 
 /**

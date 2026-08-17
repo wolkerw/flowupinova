@@ -6,30 +6,17 @@ import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
 function safeJsonParse(rawText: any, fallback = null) {
   if (!rawText || typeof rawText !== "string") return fallback;
-  let cleaned = rawText.trim();
-  if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
-  else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
-  if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
   try {
-    return JSON.parse(cleaned);
+    return safeParseJSON(rawText);
   } catch (e) {
-    console.error(
-      "[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):",
-      cleaned.substring(0, 1500)
-    );
-    try {
-      const sanitized = cleaned.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-      return JSON.parse(sanitized);
-    } catch (e2) {
-      if (fallback) return fallback;
-      throw e;
-    }
+    if (fallback !== null) return fallback;
+    throw e;
   }
 }
 

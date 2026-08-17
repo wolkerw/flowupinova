@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -224,18 +225,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
     }
 
     // 3. Processar e estruturar o JSON de retorno
-    let parsedData: any;
-    try {
-      parsedData = JSON.parse(aiResponseText);
-    } catch (e) {
-      const cleanedText = aiResponseText.replace(/```json|```/g, "").trim();
-      try {
-        parsedData = JSON.parse(cleanedText);
-      } catch (e2) {
-        const sanitized = cleanedText.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-        parsedData = JSON.parse(sanitized);
-      }
-    }
+    const parsedData = safeParseJSON(aiResponseText);
 
     const publicacoes = parsedData.publicacoes || parsedData;
 

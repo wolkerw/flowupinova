@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Jimp } from "jimp";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -641,17 +642,7 @@ Since the primary engine may be gpt-image-2 (DALL-E 3), you can be slightly more
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
     let parsedData: any;
     try {
-      let cleanText = aiResponseText.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-      try {
-        parsedData = JSON.parse(cleanText);
-      } catch (e1) {
-        const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        if (match) {
-          parsedData = JSON.parse(match[0]);
-        } else {
-          throw e1;
-        }
-      }
+      parsedData = safeParseJSON(aiResponseText);
     } catch (e) {
       console.error("[GENERATE_PROMPTS_ERROR] Erro ao fazer parse do JSON retornado:", aiResponseText);
       // Tentativa extrema: extração por regex dos itens do array de prompts

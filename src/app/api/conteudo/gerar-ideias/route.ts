@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300; // Define o timeout máximo no Vercel (5 minutos)
 
 function safeJsonParse(rawText: any, fallback = null) {
   if (!rawText || typeof rawText !== "string") return fallback;
-  let cleaned = rawText.trim();
-  if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
-  else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
-  if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
   try {
-    return JSON.parse(cleaned);
+    return safeParseJSON(rawText);
   } catch (e) {
-    console.error("[GERAR_IDEIAS] Erro no JSON.parse. Raw text:", cleaned.substring(0, 500));
-    try {
-      const sanitized = cleaned.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-      return JSON.parse(sanitized);
-    } catch (e2) {
-      if (fallback) return fallback;
-      throw e;
-    }
+    if (fallback !== null) return fallback;
+    throw e;
   }
 }
 
