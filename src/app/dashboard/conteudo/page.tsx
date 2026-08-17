@@ -141,7 +141,7 @@ interface FacebookPage {
 
 type HistoryFilter = "last-7-days" | "this-month" | "this-year" | "all-time";
 type RepublishScheduleType = "now" | "schedule";
-type Platform = "instagram" | "facebook" | "linkedin" | "google";
+type Platform = "instagram" | "facebook" | "linkedin" | "google" | "tiktok";
 
 /* -------------------------------------------------------------------------------------------------
  * Constants / Utils
@@ -649,10 +649,10 @@ function ConnectionStatus({
               Em Breve
             </span>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onConnect} 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onConnect}
             disabled={isLoading || platform === "linkedin"}
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Conectar</span>}
@@ -731,15 +731,21 @@ export default function Conteudo() {
     setCheckingConnection(true);
 
     try {
-      const [postsResults, metaResult, instagramResult, googleResult, linkedinResult, tiktokResult] =
-        await Promise.all([
-          getScheduledPosts(user.uid),
-          getMetaConnection(user.uid),
-          getInstagramConnection(user.uid),
-          getGoogleConnection(user.uid),
-          getLinkedInConnection(user.uid),
-          getTikTokConnection(user.uid),
-        ]);
+      const [
+        postsResults,
+        metaResult,
+        instagramResult,
+        googleResult,
+        linkedinResult,
+        tiktokResult,
+      ] = await Promise.all([
+        getScheduledPosts(user.uid),
+        getMetaConnection(user.uid),
+        getInstagramConnection(user.uid),
+        getGoogleConnection(user.uid),
+        getLinkedInConnection(user.uid),
+        getTikTokConnection(user.uid),
+      ]);
 
       if (Array.isArray(postsResults) && !postsResults[0]?.error) {
         setAllPosts(
@@ -1783,90 +1789,90 @@ export default function Conteudo() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Botão 1 - Conceito com IA */}
-                <button
-                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
-                  className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
-                    <Lightbulb size={120} />
-                  </div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                      <Sparkles className="h-6 w-6 text-white" />
+                  {/* Botão 1 - Conceito com IA */}
+                  <button
+                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
+                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
+                      <Lightbulb size={120} />
                     </div>
-                    <h3 className="text-xl font-black leading-tight">
-                      Com IA
-                    </h3>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do post.
-                  </p>
-                </button>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                        <Sparkles className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black leading-tight">Com IA</h3>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white/80">
+                      Dê uma ideia e a IA gera imagens relevantes ao seu negócio e ao objetivo do
+                      post.
+                    </p>
+                  </button>
 
-                {/* Botão 2 - Referência Foto com IA */}
-                <button
-                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-photo")}
-                  className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
-                    <Camera size={120} />
-                  </div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                      <ImageIcon className="h-6 w-6 text-white" />
+                  {/* Botão 2 - Referência Foto com IA */}
+                  <button
+                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-photo")}
+                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
+                      <Camera size={120} />
                     </div>
-                    <h3 className="text-xl font-black leading-tight">
-                      Enviando Foto de Produto
-                    </h3>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Mande uma foto do seu produto e a IA gera imagem e texto profissionais para você usar.
-                  </p>
-                </button>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                        <ImageIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black leading-tight">Enviando Foto de Produto</h3>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white/80">
+                      Mande uma foto do seu produto e a IA gera imagem e texto profissionais para
+                      você usar.
+                    </p>
+                  </button>
 
-                {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
-                <button
-                  onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-hybrid")}
-                  className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
-                    <RefreshCw size={120} />
-                  </div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                      <Sparkles className="h-6 w-6 text-white" />
+                  {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
+                  <button
+                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-hybrid")}
+                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
+                      <RefreshCw size={120} />
                     </div>
-                    <h3 className="text-xl font-black leading-tight">
-                      Enviando Imagem de Pessoa e Produto/Projeto
-                    </h3>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de alta qualidade.
-                  </p>
-                </button>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                        <Sparkles className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black leading-tight">
+                        Enviando Imagem de Pessoa e Produto/Projeto
+                      </h3>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white/80">
+                      Gere uma imagem juntando uma pessoa com um produto ou projeto em cenários de
+                      alta qualidade.
+                    </p>
+                  </button>
 
-                {/* Botão 4 - Conteúdo Manual */}
-                <button
-                  onClick={() => router.push("/dashboard/conteudo/criar")}
-                  className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-left text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
-                    <UploadCloud size={120} />
-                  </div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
-                      <Plus className="h-6 w-6 text-white" />
+                  {/* Botão 4 - Conteúdo Manual */}
+                  <button
+                    onClick={() => router.push("/dashboard/conteudo/criar")}
+                    className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-left text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
+                      <UploadCloud size={120} />
                     </div>
-                    <h3 className="text-xl font-black leading-tight">Manual</h3>
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">
-                    Envie sua própria imagem a ser postada, escreva sua legenda livremente e agende para as redes sociais.
-                  </p>
-                </button>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="shrink-0 rounded-2xl bg-white/20 p-3 transition-colors group-hover:bg-white/30">
+                        <Plus className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black leading-tight">Manual</h3>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white/80">
+                      Envie sua própria imagem a ser postada, escreva sua legenda livremente e
+                      agende para as redes sociais.
+                    </p>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
             <Card className="border-none shadow-lg">
               <CardHeader>

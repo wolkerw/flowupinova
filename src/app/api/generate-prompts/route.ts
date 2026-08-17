@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Jimp } from "jimp";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -244,6 +245,13 @@ Return the description strictly in YAML format:
       if (stylisticPreferences)
         memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
+      if (brandKit?.personas && brandKit.personas.length > 0) {
+        const personasText = brandKit.personas
+          .map((p: any, idx: number) => `Target Persona ${idx + 1}: ${p.name || "Client"} (${p.profile || "N/A"}) - Pains: ${p.painPoints || "N/A"}`)
+          .join(" | ");
+        memoryText += `- Target Buyer Personas to Reach: ${personasText}\n`;
+      }
+
       let fontsText = "";
       if (brandKit?.fonts) {
         if (brandKit.fonts.primaryFont) {
@@ -260,6 +268,11 @@ Return the description strictly in YAML format:
       brandingInstruction = `
 # BRANDING AND VISUAL IDENTITY RULES (MANDATORY PERSONALIZATION)
 You are generating advertising images for the brand "${name || "a premium brand"}" which operates in the "${category || "general"}" niche.
+CRITICAL ROLE DISTINCTION:
+- The brand "${name || "the brand"}" (Niche: "${category || "general"}") is the SERVICE PROVIDER / ADVERTISER.
+- Any Target Personas listed are the BUYER CLIENTS that the brand wants to attract with its accounting/business solutions.
+- MANDATORY RULE: NEVER create image prompts portraying the brand as if it WERE the persona's business (e.g. if the brand is Accounting and the persona is a Medical Clinic owner, the scene MUST feature Accounting/Financial solutions for medical clinics, NOT medical surgeries or hospital procedures).
+
 The brand's visual identity is defined by the following palette:
 - Primary Color Hex: ${primaryHex}
 - Secondary Color Hex: ${secondaryHex}
@@ -485,9 +498,9 @@ You MUST explicitly describe the designated layout composition mechanics in its 
 Generate EXACTLY 2 ultra-detailed image prompts in ENGLISH from the given post title and subtitle.
 CRITICAL: Each prompt MUST look like it was shot on a COMPLETELY DIFFERENT DAY, in a COMPLETELY DIFFERENT LOCATION, by a COMPLETELY DIFFERENT PHOTOGRAPHER, for a COMPLETELY DIFFERENT CAMPAIGN. If a viewer sees all 2 images side by side, they should NOT be able to tell they belong to the same brand from the visual style alone.
 
-================================================================================
+--------------------------------------------------------------------------------
 ## 🎨 OPTION 1 — HUMAN FOCUS / LIFESTYLE (MANDATORY RULE: MUST HAVE PEOPLE)
-================================================================================
+--------------------------------------------------------------------------------
 SUBJECT: One or two REAL people (professional workers, satisfied customers, athletes, entrepreneurs — chosen based on the post topic) with confident, natural body language and expressions.
 CAMERA: Medium shot (waist up) or American shot (thigh up). Camera angle: slightly low angle for authority, OR eye-level for approachability.
 LENS: 50mm or 85mm prime lens, f/1.8, sharp focus on face/hands, beautiful background bokeh.
@@ -496,9 +509,9 @@ LIGHTING: Describe natural and dramatic outdoor or indoor ambient lighting (e.g.
 COMPOSITION: You MUST strictly structure the composition, framing, and text placement according to the designated LAYOUT STYLE for Option 1. Do not default to the rule of thirds if the layout style dictates otherwise.
 MANDATORY PROHIBITION: Do NOT describe any studio backdrop, geometric shapes, flat lays, or isolated products in this option.
 
-================================================================================
+--------------------------------------------------------------------------------
 ## 🎨 OPTION 2 — LIFESTYLE HYBRID COLLAGE (MANDATORY RULE: MUST HAVE PEOPLE AND INTEGRATED GRAPHICS/VECTORS ALIGNED TO NICHE)
-================================================================================
+--------------------------------------------------------------------------------
 SUBJECT: A confident real person (professional, entrepreneur, creator) in a modern setting, dynamically integrated with floating premium graphic elements, interface vectors, or conceptual icons related to the brand's niche and products (CRITICAL: Do NOT show generic financial bar charts or arrows unless the brand is in finance. For instance, if the brand sells blinds/curtains, show floating stylized blinds, curtain folds, or window light reflections. The graphic style can vary: it can be 3D shapes, elegant flat 2D vectors, or minimal thin line art).
 STYLE & LAYOUT:
 - **Photo-Graphic Fusion:** Blending realistic human photography with high-end, clean graphic design assets (which can be 3D shapes, flat 2D graphics, or elegant line-art vectors). The graphics must float naturally in the air, casting soft reflections or realistic shadows if they are 3D, or overlaying cleanly as modern UI/graphic elements.
@@ -521,9 +534,9 @@ ${approvedPromptsExamples}
 
 ${brandingInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-================================================================================
+--------------------------------------------------------------------------------
 # CRITICAL PROMPT ENGINEERING RULES
-================================================================================
+--------------------------------------------------------------------------------
 1. LANGUAGE: Write all visual descriptions in English only.
 ${textRules}
 SPECIAL TEXT RULE FOR GPT-IMAGE-2 (DALL-E 3) COMPATIBILITY: 
@@ -629,17 +642,7 @@ Since the primary engine may be gpt-image-2 (DALL-E 3), you can be slightly more
     // 3. Processar e estruturar o JSON de retorno no padrão do n8n esperado pelo frontend
     let parsedData: any;
     try {
-      let cleanText = aiResponseText.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-      try {
-        parsedData = JSON.parse(cleanText);
-      } catch (e1) {
-        const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        if (match) {
-          parsedData = JSON.parse(match[0]);
-        } else {
-          throw e1;
-        }
-      }
+      parsedData = safeParseJSON(aiResponseText);
     } catch (e) {
       console.error("[GENERATE_PROMPTS_ERROR] Erro ao fazer parse do JSON retornado:", aiResponseText);
       // Tentativa extrema: extração por regex dos itens do array de prompts

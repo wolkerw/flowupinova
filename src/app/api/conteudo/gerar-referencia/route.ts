@@ -6,30 +6,17 @@ import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { getSemanticCache, setSemanticCache } from "@/lib/services/semantic-cache";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
 function safeJsonParse(rawText: any, fallback = null) {
   if (!rawText || typeof rawText !== "string") return fallback;
-  let cleaned = rawText.trim();
-  if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
-  else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
-  if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3);
-  cleaned = cleaned.trim();
   try {
-    return JSON.parse(cleaned);
+    return safeParseJSON(rawText);
   } catch (e) {
-    console.error(
-      "[GERAR_REFERENCIA] Erro no JSON.parse. Raw text (first 1500 chars):",
-      cleaned.substring(0, 1500)
-    );
-    try {
-      const sanitized = cleaned.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-      return JSON.parse(sanitized);
-    } catch (e2) {
-      if (fallback) return fallback;
-      throw e;
-    }
+    if (fallback !== null) return fallback;
+    throw e;
   }
 }
 
@@ -230,27 +217,28 @@ export async function POST(request: NextRequest) {
           if (brandKit.personas && brandKit.personas.length > 0) {
             const personasInfo = brandKit.personas
               .map((p: any, idx: number) => {
-                return `Persona ${idx + 1} (${p.name || "Sem nome"}):
-      * Perfil: ${p.profile || "N/A"}
-      * Dores/Desafios: ${p.painPoints || "N/A"}
-      * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
+                return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):
+      * Perfil/Nicho do Cliente Alvo: ${p.profile || "N/A"}
+      * Dores/Desafios deste Cliente: ${p.painPoints || "N/A"}
+      * Motivação de Compra deste Cliente: ${p.buyingMotivation || "N/A"}`;
               })
               .join("\n");
-            parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
+            parts.push(`- **PERSONAS COMPRADORAS / PÚBLICO-ALVO QUE A MARCA QUER ATRAIR**:\n${personasInfo}`);
           }
         }
 
         if (parts.length > 0) {
           businessContext = `
 # CONTEXTO DE MARCA E IDENTIDADE DO NEGÓCIO DO USUÁRIO
-Você é o redator oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz correto:
+Você é o diretor criativo oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz e estilo corretos:
 ${parts.join("\n")}
 
-DIRETRIZES DE PERSONALIZAÇÃO:
-1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
-2. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo (ex: se for luxuoso, use linguagem mais refinada, sofisticada e exclusiva; se for rústico/casual/afetivo, use algo mais acolhedor, simples e próximo).
-3. **Público e Personas**: Comunique-se diretamente com o Público-Alvo e as Personas descritas, focando em suas dores e motivações de compra.
-4. **Benefícios e Posicionamento**: Sempre que possível, destaque os principais benefícios e o diferencial competitivo da marca listados acima, especialmente ao fazer chamadas para ação (CTAs).
+DIRETRIZES CRÍTICAS DE MARCA E PERSONAS (INVIOLÁVEL):
+1. **IDENTIDADE DA MARCA (O EMISSOR)**: A arte visual e os textos devem promover SEMPRE o negócio do usuário ("${businessProfile.name}" - Nicho: "${businessProfile.category || "negócios"}").
+2. **PAPEL DAS PERSONAS (CLIENTES ALVO, NÃO A EMPRESA)**: As personas representam os **CLIENTES COMPRADORES / ALVOS DE BUSCA** que a empresa quer atrair. NUNCA crie artes como se a empresa do usuário fosse a persona!
+   - *Exemplo*: Se a empresa do usuário for de Contabilidade (ex: MT Gestão Contábil) e a persona for uma Médica/Dona de Clínica, a arte deve representar a CONTABILIDADE oferecendo soluções de gestão e inteligência financeira PARA clínicas médicas. NUNCA crie uma arte de consultas médicas ou procedimento cirúrgico como se a empresa fosse um hospital.
+3. **Tom de Voz e Vibe**: Escreva legendas e prompts visuais aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}).
+4. **Benefícios e Posicionamento**: Sempre destaque os diferenciais e benefícios das soluções da empresa do usuário ao dialogar com a persona.
 `;
         }
       } else {
@@ -1210,15 +1198,16 @@ ${yamlAnalysis}`;
         `[IMAGEN4_REF] Iniciando geração via Imagen 4 (modo benchmark) para o post ${postId}...`
       );
 
-      // Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
+      // Cadeia de modelos: gpt-image-2 primeiro como oficial
       const MODELS_CHAIN = [
+        { provider: "openai", model: "gpt-image-2" },
+        { provider: "openai", model: "chatgpt-image-latest" },
         { provider: "openai", model: "dall-e-3" },
-        { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-        { provider: "google", model: "imagen-3.0-generate-002" },
       ];
 
       let imageBytes: string | null = null;
       let modelUsed = "";
+      let lastError = "";
       const openaiKey = process.env.OPENAI_API_KEY;
 
       for (const config of MODELS_CHAIN) {
@@ -1227,26 +1216,42 @@ ${yamlAnalysis}`;
           let bytes: string | null = null;
 
           if (config.provider === "openai") {
-            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
+            if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+            const payload: any = {
+              model: config.model,
+              prompt: prompt,
+              n: 1,
+              size: "1024x1024",
+            };
+            if (config.model === "dall-e-3" || config.model === "dall-e-2") {
+              payload.response_format = "b64_json";
+            }
+
             const response = await fetch("https://api.openai.com/v1/images/generations", {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${openaiKey}`,
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                model: "dall-e-3",
-                prompt: prompt,
-                n: 1,
-                size: "1024x1024",
-              }),
+              body: JSON.stringify(payload),
             });
 
             if (response.ok) {
               const data = await response.json();
               bytes = data?.data?.[0]?.b64_json;
+              if (!bytes && data?.data?.[0]?.url) {
+                console.log(`[IMAGE_REF] URL recebida da OpenAI (${config.model}), baixando imagem...`);
+                const imgRes = await fetch(data.data[0].url);
+                if (imgRes.ok) {
+                  const ab = await imgRes.arrayBuffer();
+                  bytes = Buffer.from(ab).toString("base64");
+                }
+              }
             } else {
-              throw new Error(await response.text());
+              const errText = await response.text();
+              lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
             }
           } else {
             const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:predict?key=${apiKey}`;
@@ -1263,7 +1268,10 @@ ${yamlAnalysis}`;
               const data = await imagenResponse.json();
               bytes = data?.predictions?.[0]?.bytesBase64Encoded;
             } else {
-              throw new Error(await imagenResponse.text());
+              const errText = await imagenResponse.text();
+              lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 250)}`;
+              console.error(`[IMAGE_REF] ${lastError}`);
+              throw new Error(lastError);
             }
           }
 
@@ -1280,7 +1288,7 @@ ${yamlAnalysis}`;
 
       if (!imageBytes) {
         return NextResponse.json(
-          { error: "Todos os modelos do Google Imagen falharam para a geração de referência." },
+          { error: `Falha na geração de imagem. ${lastError}` },
           { status: 500 }
         );
       }
@@ -1896,7 +1904,7 @@ Cenário desejado e estilo: ${prompt}`;
       }
 
       console.log(
-        "[GERAR_REFERENCIA] Chamando OpenAI (dall-e-3) para gerar imagem conceitual..."
+        "[GERAR_REFERENCIA] Chamando OpenAI (gpt-image-2) para gerar imagem conceitual..."
       );
       try {
         const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -1906,11 +1914,10 @@ Cenário desejado e estilo: ${prompt}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-2",
             prompt: prompt,
             n: 1,
             size: "1024x1024",
-            response_format: "b64_json",
           }),
         });
 

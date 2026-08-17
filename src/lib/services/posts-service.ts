@@ -56,6 +56,7 @@ export interface PostData {
 export interface MediaFileInput {
   file: File;
   publicUrl?: string;
+  type?: string;
 }
 
 // Interface for data coming from the client
@@ -200,8 +201,8 @@ async function publishPostImmediately(
           postData.mediaFiles && postData.mediaFiles.length > 0
             ? postData.mediaFiles[0].url
             : postData.imageUrls && postData.imageUrls.length > 0
-            ? postData.imageUrls[0]
-            : undefined;
+              ? postData.imageUrls[0]
+              : undefined;
         payload = {
           userId,
           title: postData.text,

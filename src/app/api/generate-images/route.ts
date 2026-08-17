@@ -108,11 +108,15 @@ export async function POST(request: Request) {
     // mesmo que o gpt-image-2 tente reescrever o restante do prompt.
     const STYLE_LABELS: Record<string, string> = {
       CINEMATIC: "Cinematic Photography — dramatic lighting, deep shadows, 85mm f/1.8 lens",
-      STUDIO_CLEAN: "Studio Clean Photography — elegant seamless neutral backdrop, soft uniform lighting",
+      STUDIO_CLEAN:
+        "Studio Clean Photography — elegant seamless neutral backdrop, soft uniform lighting",
       URBAN_LIFESTYLE: "Authentic Urban Lifestyle — real outdoor city setting, natural daylight",
-      MINIMALIST: "Minimalist Design — spacious composition, 50-60% clean negative space, modern sophisticated aesthetic",
-      TECH_3D: "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
-      MAGAZINE_3D: "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
+      MINIMALIST:
+        "Minimalist Design — spacious composition, 50-60% clean negative space, modern sophisticated aesthetic",
+      TECH_3D:
+        "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
+      MAGAZINE_3D:
+        "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
       const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;
@@ -120,8 +124,10 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // 2. Cadeia de modelos: dall-e-3 primeiro, depois Imagen 4 Ultra como fallback
+    // 2. Cadeia de modelos: GPT como oficial primário e Imagen 4.0 / Imagen como fallback
     const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2" },
+      { provider: "openai", model: "chatgpt-image-latest" },
       { provider: "openai", model: "dall-e-3" },
       { provider: "google", model: "imagen-4.0-ultra-generate-001" },
       { provider: "google", model: "imagen-3.0-generate-002" },
@@ -139,29 +145,36 @@ export async function POST(request: Request) {
 
       try {
         if (config.provider === "openai") {
-          if (!openaiKey) throw new Error("OPENAI_API_KEY ausente");
-          const response = await fetchWithRetry(
-            "https://api.openai.com/v1/images/generations",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${openaiKey}`,
-              },
-              body: JSON.stringify({
-                model: config.model,
-                prompt: finalPrompt,
-                n: 1,
-                size: "1024x1024",
-                response_format: "b64_json",
-              }),
-            }
-          );
+          if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+
+          const payload: any = {
+            model: config.model,
+            prompt: finalPrompt,
+            n: 1,
+            size: "1024x1024",
+          };
+
+          // Apenas envia response_format se o modelo explicitamente exigir
+          if (config.model === "dall-e-3" || config.model === "dall-e-2") {
+            payload.response_format = "b64_json";
+          }
+
+          const response = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${openaiKey}`,
+            },
+            body: JSON.stringify(payload),
+          });
 
           if (response.ok) {
             const data = await response.json();
             let b64 = data?.data?.[0]?.b64_json;
             if (!b64 && data?.data?.[0]?.url) {
+              console.log(
+                `[GENERATE_IMAGES_NATIVE] URL recebida da OpenAI (${config.model}), baixando imagem...`
+              );
               const imgRes = await fetch(data.data[0].url);
               if (imgRes.ok) {
                 const ab = await imgRes.arrayBuffer();
@@ -171,12 +184,13 @@ export async function POST(request: Request) {
             if (b64) {
               imageBytes = b64;
               modelUsed = config.model;
-              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              console.log(`[GENERATE_IMAGES_NATIVE] ✅ Sucesso com o modelo ${config.model}!`);
               break;
             }
           }
           const errText = await response.text().catch(() => `status ${response.status}`);
-          lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 200)}`;
+          lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+          console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
           throw new Error(lastError);
         } else {
           // Google Imagen
@@ -199,27 +213,28 @@ export async function POST(request: Request) {
             if (data?.predictions?.[0]?.bytesBase64Encoded) {
               imageBytes = data.predictions[0].bytesBase64Encoded;
               modelUsed = config.model;
-              console.log(`[GENERATE_IMAGES_NATIVE] Sucesso com o modelo ${config.model}!`);
+              console.log(`[GENERATE_IMAGES_NATIVE] ✅ Sucesso com o modelo ${config.model}!`);
               break;
             }
           }
           const errText = await response.text().catch(() => `status ${response.status}`);
-          lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 200)}`;
+          lastError = `Modelo Google ${config.model} falhou: ${errText.substring(0, 250)}`;
+          console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
           throw new Error(lastError);
         }
       } catch (err: any) {
-        console.warn(`[GENERATE_IMAGES_NATIVE] Exceção na tentativa: ${err.message}. Tentando próximo modelo...`);
+        console.warn(
+          `[GENERATE_IMAGES_NATIVE] Exceção na tentativa (${config.model}): ${err.message}. Tentando próximo modelo...`
+        );
       }
     }
 
     if (!imageBytes) {
       console.error(
-        `[GENERATE_IMAGES_NATIVE] Todos os modelos Imagen falharam. Último erro: ${lastError}`
+        `[GENERATE_IMAGES_NATIVE] Todos os modelos de imagem falharam. Último erro: ${lastError}`
       );
-      throw new Error(`Todos os modelos do Google Imagen falharam. ${lastError}`);
+      throw new Error(`Falha na geração de imagem. ${lastError}`);
     }
-
-
 
     if (!imageBytes) {
       console.error(
@@ -239,7 +254,9 @@ export async function POST(request: Request) {
 
     // Caminho da imagem conceito estruturado no Storage
     const userStoragePath = await getUserStoragePathAdmin(userId);
-    const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/concepts/image_${fileName}.jpg`);
+    const fileRef = bucket.file(
+      `${userStoragePath}/posts/${postId}/concepts/image_${fileName}.jpg`
+    );
     const downloadToken = crypto.randomUUID();
 
     await fileRef.save(buffer, {
@@ -284,14 +301,14 @@ export async function POST(request: Request) {
         `[GENERATE_IMAGES_NATIVE] Imagem catalogada com sucesso na subcoleção mediaGallery do Firestore: ${galleryMediaId}`
       );
 
-        // Log opcional de faturamento interno
-        logApiUsage({
-          userId,
-          type: "image_generation",
-          provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
-          model: modelUsed || "gpt-image-2",
-          costUsd: 0.03, // custo estimado padrão
-        });
+      // Log opcional de faturamento interno
+      logApiUsage({
+        userId,
+        type: "image_generation",
+        provider: modelUsed.includes("gpt") ? "openai" : "google_vertex",
+        model: modelUsed || "gpt-image-2",
+        costUsd: 0.03, // custo estimado padrão
+      });
     } catch (firestoreError) {
       console.error(
         "[GENERATE_IMAGES_NATIVE_ERROR] Falha ao catalogar imagem gerada no Firestore:",

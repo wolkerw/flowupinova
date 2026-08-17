@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeParseJSON } from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -89,13 +90,13 @@ export async function POST(request: Request) {
         if (brandKit.personas && brandKit.personas.length > 0) {
           const personasInfo = brandKit.personas
             .map((p: any, idx: number) => {
-              return `Persona ${idx + 1} (${p.name || "Sem nome"}):
-    * Perfil: ${p.profile || "N/A"}
-    * Dores/Desafios: ${p.painPoints || "N/A"}
-    * Motivação de Compra: ${p.buyingMotivation || "N/A"}`;
+              return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):
+    * Perfil/Nicho do Cliente Alvo: ${p.profile || "N/A"}
+    * Dores/Desafios deste Cliente: ${p.painPoints || "N/A"}
+    * Motivação de Compra deste Cliente: ${p.buyingMotivation || "N/A"}`;
             })
             .join("\n");
-          parts.push(`- **Personas Identificadas para Direcionamento**:\n${personasInfo}`);
+          parts.push(`- **PERSONAS COMPRADORAS / PÚBLICO-ALVO QUE A MARCA QUER ATRAIR**:\n${personasInfo}`);
         }
       }
 
@@ -105,17 +106,17 @@ export async function POST(request: Request) {
 Você é o redator oficial desta marca específica. Use as informações reais do negócio abaixo para adaptar as abordagens, criar títulos contextualizados e aplicar o tom de voz correto:
 ${parts.join("\n")}
 
-DIRETRIZES DE PERSONALIZAÇÃO:
-1. **Nome e Slogan**: Faça alusão ou use o nome da marca nos posts se fizer sentido comercial.
-2. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo (ex: se for luxuoso, use linguagem mais refinada, sofisticada e exclusiva; se for rústico/casual/afetivo, use algo mais acolhedor, simples e próximo).
-3. **Foco, Diferenciais e Produtos**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo / Perfil do Cliente ideal da memória. Destaque fortemente o Diferencial/Posicionamento da Marca (se presente na memória) e cite ou crie ganchos baseados nos Produtos/Serviços Principais coletados na memória.
-4. **Hashtags do Nicho**: Suas sugestões de hashtags devem incluir de 2 a 3 hashtags exclusivas e relevantes ao nicho de atuação (${businessProfile.category || "negócios"}).
-5. **Segmentação por Personas**: Como você deve propor exatamente 3 postagens (Ideias 1, 2 e 3):
-   - Se houver **Personas da Marca** descritas no contexto acima, você DEVE direcionar cada uma das 3 propostas de post de forma personalizada para uma das personas cadastradas.
-   - O Post 1 deve ser escrito especificamente para resolver as dores e apelar às motivações de compra da **Persona 1**.
-   - O Post 2 deve fazer o mesmo para a **Persona 2** (se houver, caso contrário use a Persona 1 com outra abordagem).
-   - O Post 3 deve fazer o mesmo para a **Persona 3** (se houver, caso contrário use outra persona disponível).
-   - Ajuste sutilmente o tom da escrita de cada legenda para ressonar com o perfil específico dessa persona (ex: falar de homologação e segurança para o comprador técnico, ou facilidade e resultados rápidos para o gerente operacional).
+DIRETRIZES DE PERSONALIZAÇÃO E REGRAS CRÍTICAS DE PERSONAS:
+1. **EMISSOR DO CONTEÚDO (INVIOLÁVEL)**: O emissor das postagens É SEMPRE a empresa do usuário ("${businessProfile.name}" - Categoria/Nicho: "${businessProfile.category || "negócios"}"). Todas as propostas de posts devem oferecer os serviços, soluções e autoridade DA EMPRESA DO USUÁRIO.
+2. **ORIENTAÇÃO DAS PERSONAS (ALVO DE BUSCA, NÃO A EMPRESA)**: As personas listadas acima representam os **CLIENTES ALVO (BUYER PERSONAS)** que a empresa quer atrair. NUNCA confunda a persona com a empresa!
+   - *Exemplo de Regra*: Se a empresa do usuário for de Contabilidade (ex: MT Gestão Contábil) e a persona for uma Médica/Dona de Clínica ou Dono de Agência, os posts devem ser a CONTABILIDADE oferecendo soluções tributárias, fiscais e de gestão financeira PARA médicos/clínicas/agências. NUNCA crie posts como se a empresa do usuário fosse uma clínica oferecendo exames/consultas ou uma agência oferecendo tráfego pago.
+3. **Tom de Voz e Vibe**: Escreva as legendas aplicando de forma consistente o Tom de Voz definido (${businessProfile.toneOfVoice || "profissional e persuasivo"}). Se houver "Preferências Estilísticas/Vibe" na memória, adapte a linguagem para harmonizar com esse estilo.
+4. **Foco, Diferenciais e Produtos**: Direcione os ganchos mentais e os benefícios dos posts ao Público-Alvo / Perfil do Cliente ideal da memória. Destaque fortemente o Diferencial/Posicionamento da Marca e cite os Produtos/Serviços Principais da empresa do usuário.
+5. **Hashtags do Nicho**: Suas sugestões de hashtags devem incluir de 2 a 3 hashtags exclusivas e relevantes ao nicho de atuação da empresa (${businessProfile.category || "negócios"}).
+6. **Segmentação das 3 Ideias por Personas**:
+   - O Post 1 deve ser escrito pela empresa do usuário direcionado especificamente para resolver as dores e apelar às motivações de compra da **Persona 1**.
+   - O Post 2 deve ser escrito pela empresa do usuário direcionado para a **Persona 2** (se houver, ou abordando outra dor da Persona 1).
+   - O Post 3 deve ser escrito pela empresa do usuário direcionado para a **Persona 3** (se houver).
 `;
       }
     }
@@ -224,18 +225,7 @@ Responda exclusivamente no formato JSON abaixo, sem qualquer introdução, concl
     }
 
     // 3. Processar e estruturar o JSON de retorno
-    let parsedData: any;
-    try {
-      parsedData = JSON.parse(aiResponseText);
-    } catch (e) {
-      const cleanedText = aiResponseText.replace(/```json|```/g, "").trim();
-      try {
-        parsedData = JSON.parse(cleanedText);
-      } catch (e2) {
-        const sanitized = cleanedText.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-        parsedData = JSON.parse(sanitized);
-      }
-    }
+    const parsedData = safeParseJSON(aiResponseText);
 
     const publicacoes = parsedData.publicacoes || parsedData;
 
