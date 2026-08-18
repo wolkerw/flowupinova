@@ -37,6 +37,59 @@ const GEO_TARGET_BRAZIL_REGIONS: Record<string, string> = {
   "20093": "Roraima",
 };
 
+const GEO_TARGET_BRAZIL_CITIES: Record<string, string> = {
+  "1001773": "São Paulo",
+  "1001772": "Rio de Janeiro",
+  "1001533": "Belém",
+  "1001650": "Curitiba",
+  "1001538": "Belo Horizonte",
+  "1001625": "Brasília",
+  "1001768": "Porto Alegre",
+  "1001780": "Salvador",
+  "1001658": "Fortaleza",
+  "1001769": "Recife",
+  "1001672": "Goiânia",
+  "1001652": "Florianópolis",
+  "1001594": "Campinas",
+  "1001676": "Guarulhos",
+  "1001784": "Santos",
+  "1001764": "Ribeirão Preto",
+  "1001646": "Cuiabá",
+  "1001584": "Campo Grande",
+  "1001726": "Manaus",
+  "1001740": "Natal",
+  "1001704": "João Pessoa",
+  "1001718": "Maceió",
+  "1001524": "Aracaju",
+  "1001804": "Teresina",
+  "1001782": "São Luís",
+  "1001758": "Porto Velho",
+  "1001736": "Palmas",
+  "1001750": "Macapá",
+  "1001532": "Boa Vista",
+  "1001756": "Rio Branco",
+  "1001519": "Anápolis",
+  "1001527": "Bauru",
+  "1001537": "Betim",
+  "1001540": "Blumenau",
+  "1001570": "Caxias do Sul",
+  "1001587": "Contagem",
+  "1001618": "Feira de Santana",
+  "1001659": "Foz do Iguaçu",
+  "1001679": "Joinville",
+  "1001691": "Londrina",
+  "1001706": "Maringá",
+  "1001728": "Niterói",
+  "1001733": "Osasco",
+  "1001765": "Santo André",
+  "1001766": "São Bernardo do Campo",
+  "1001774": "São José dos Campos",
+  "1001777": "Sorocaba",
+  "1001792": "Uberlândia",
+  "1001799": "Vila Velha",
+  "1001800": "Vitória",
+};
+
 /**
  * Retorna os headers padrões para requisições na API do Google Ads
  */
@@ -409,6 +462,7 @@ export async function getGoogleAdsCampaigns(
         geographic_view.country_criterion_id,
         geographic_view.location_type,
         segments.geo_target_region,
+        segments.geo_target_city,
         campaign.id,
         metrics.impressions,
         metrics.clicks,
@@ -416,7 +470,7 @@ export async function getGoogleAdsCampaigns(
       FROM geographic_view
       WHERE segments.date ${dateClause}
       ORDER BY metrics.impressions DESC
-      LIMIT 20
+      LIMIT 50
     `;
 
     const safeGoogleAdsSearch = async (query: string, label: string) => {
@@ -644,23 +698,48 @@ export async function getGoogleAdsCampaigns(
         ? geoRes.value.results
         : [];
 
-    // Mapear regiões geográficas
+    // Mapear regiões geográficas (Estados e Cidades separados)
     const geoByCampaignMap = new Map<string, any[]>();
+    const citiesByCampaignMap = new Map<string, any[]>();
+
     geoResults.forEach((item: any) => {
       const campId = String(item.campaign?.id || "");
       if (!campId) return;
-      const rawGeoId = (item.segments?.geoTargetRegion || "").replace("geoTargetConstants/", "");
-      const regionName = GEO_TARGET_BRAZIL_REGIONS[rawGeoId] || "Brasil";
+
       const spentMicros = Number(item.metrics?.costMicros || 0);
-      const currentList = geoByCampaignMap.get(campId) || [];
-      currentList.push({
-        region: regionName,
-        impressions: Number(item.metrics?.impressions || 0),
-        clicks: Number(item.metrics?.clicks || 0),
-        amountSpent: spentMicros / 1_000_000,
-        spent: spentMicros / 1_000_000,
-      });
-      geoByCampaignMap.set(campId, currentList);
+      const imp = Number(item.metrics?.impressions || 0);
+      const clicks = Number(item.metrics?.clicks || 0);
+      const spent = spentMicros / 1_000_000;
+
+      // 1. Estados (apenas estados reconhecidos pelo ID do Brasil)
+      const rawGeoId = (item.segments?.geoTargetRegion || "").replace("geoTargetConstants/", "");
+      const regionName = GEO_TARGET_BRAZIL_REGIONS[rawGeoId];
+      if (regionName) {
+        const currentRegions = geoByCampaignMap.get(campId) || [];
+        currentRegions.push({
+          region: regionName,
+          impressions: imp,
+          clicks,
+          amountSpent: spent,
+          spent,
+        });
+        geoByCampaignMap.set(campId, currentRegions);
+      }
+
+      // 2. Cidades (cidades reconhecidas pelo ID da API)
+      const rawCityId = (item.segments?.geoTargetCity || "").replace("geoTargetConstants/", "");
+      const cityName = GEO_TARGET_BRAZIL_CITIES[rawCityId];
+      if (cityName) {
+        const currentCities = citiesByCampaignMap.get(campId) || [];
+        currentCities.push({
+          city: cityName,
+          impressions: imp,
+          clicks,
+          amountSpent: spent,
+          spent,
+        });
+        citiesByCampaignMap.set(campId, currentCities);
+      }
     });
 
     return campaignResults.map((item: any) => {
@@ -719,6 +798,7 @@ export async function getGoogleAdsCampaigns(
         searchTerms: searchTermsByCampaignMap.get(campId) || [],
         deviceBreakdown: devicesByCampaignMap.get(campId) || [],
         regions: geoByCampaignMap.get(campId) || [],
+        cities: citiesByCampaignMap.get(campId) || [],
         topImpressionPercentage: Number(item.metrics?.topImpressionPercentage || 0) * 100,
         absoluteTopImpressionPercentage: Number(item.metrics?.absoluteTopImpressionPercentage || 0) * 100,
       };
