@@ -8,6 +8,74 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
   });
 
   test("Jornada Completa do Usuário: Gerar Post (mode=concept) até a Publicação", async ({ page }) => {
+    // Interceptar rotas de IA para garantir execução confiável e determinística no E2E
+    await page.route("**/api/generate-text**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          publicacoes: [
+            {
+              titulo: "Dicas de IA para o seu negócio",
+              subtitulo: "Aumente sua produtividade em até 10x com nossas ferramentas inovadoras.",
+              hashtags: ["#ia", "#negocios", "#numvapt"],
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.route("**/api/generate-prompts**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            output: {
+              prompt: [
+                "A modern commercial photo of a product on a sleek background",
+                "A creative marketing photo with high contrast lighting",
+              ],
+            },
+          },
+        ]),
+      });
+    });
+
+    await page.route("**/api/generate-images**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          imageUrl: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800",
+        }),
+      });
+    });
+
+    await page.route("**/api/fal/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          images: [{ url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800" }],
+          status: "COMPLETED",
+          response: {
+            images: [{ url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800" }],
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/imagen4/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          image_url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800",
+        }),
+      });
+    });
+
     // 1. Acesso direto com modo conceito (Concept / Ideia livre)
     await page.goto("/dashboard/posts/gerar?mode=concept");
     await page.waitForLoadState("domcontentloaded");
@@ -16,9 +84,10 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
     const textarea = page.locator("textarea").first();
     await expect(textarea).toBeVisible({ timeout: 15000 });
     await textarea.fill("Novidades da semana: Dicas imperdíveis para impulsionar seu negócio em 2026 com IA!");
+    await page.waitForTimeout(500);
 
     // Clica no botão de avançar na Etapa 1
-    const nextButtonStep1 = page.getByRole("button", { name: /(Avançar|Gerar|Próximo)/i }).first();
+    const nextButtonStep1 = page.locator('button:has-text("Avançar")').last();
     await expect(nextButtonStep1).toBeEnabled({ timeout: 10000 });
     await nextButtonStep1.click();
 

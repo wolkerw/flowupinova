@@ -607,7 +607,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       textToGenerate = referenceDescription;
     }
 
-    if (!textToGenerate.trim() || isLoading || !user) return null;
+    if (!textToGenerate.trim() || isLoading) return null;
     setIsLoading(true);
 
     try {
@@ -634,11 +634,15 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
         setGeneratedContent(mappedContent);
         setSelectedContentId("0");
-        if (!summary) {
-          await saveContentHistory(user.uid, mappedContent);
-          await fetchContentHistory();
-        }
         setStep(2);
+        if (!summary && user) {
+          saveContentHistory(user.uid, mappedContent).catch((e) =>
+            console.warn("Erro ao salvar histórico de conteúdo:", e)
+          );
+          fetchContentHistory().catch((e) =>
+            console.warn("Erro ao atualizar histórico de conteúdo:", e)
+          );
+        }
         return mappedContent;
       } else {
         throw new Error("O formato da resposta da IA é inesperado.");
