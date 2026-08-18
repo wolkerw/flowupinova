@@ -42,6 +42,7 @@ import {
   Plus,
   MessageSquare,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -4989,242 +4990,354 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
       {/* WIZARD DE CRIAÇÃO DE ANÚNCIO GOOGLE ADS */}
       <Dialog open={isCreatingGoogleAd} onOpenChange={setIsCreatingGoogleAd}>
-        <DialogContent className="max-w-lg font-sans">
-          <DialogHeader>
-            <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
-              <Sparkles className="h-5 w-5 text-[#4285F4]" />
-              Criar Campanha no Google Ads
-            </DialogTitle>
+        <DialogContent className="flex max-h-[88vh] max-w-4xl flex-col p-6 font-sans overflow-hidden">
+          <DialogHeader className="border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between pr-6">
+              <DialogTitle className="font-poppins flex items-center gap-2 text-lg font-bold text-slate-900">
+                <svg className="h-5 w-5 fill-[#4285F4]" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                </svg>
+                Criar Campanha no Google Ads
+              </DialogTitle>
+              <Badge className="bg-blue-50 text-[#4285F4] border-blue-200 text-[10px] font-bold">
+                Pesquisa Local
+              </Badge>
+            </div>
             <DialogDescription className="text-xs text-slate-500">
-              Configure seu anúncio para aparecer no topo das pesquisas locais do Google.
+              Configure seu anúncio para posicionar seu negócio no topo das buscas do Google na sua região.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="my-4 space-y-4">
-            {/* Nome da Campanha */}
-            <div className="space-y-1.5 text-left">
-              <Label htmlFor="g-campaign-name" className="text-xs font-bold text-slate-700">
-                Nome da Campanha
-              </Label>
-              <Input
-                id="g-campaign-name"
-                placeholder="Ex: Campanha Promoção Sorvetes"
-                value={googleAdName}
-                onChange={(e) => setGoogleAdName(e.target.value)}
-                className="h-10 rounded-lg text-xs"
-              />
-            </div>
-
-            {/* Títulos do Anúncio */}
-            <div className="space-y-2 text-left">
-              <span className="block text-xs font-bold text-slate-700">
-                Títulos do Anúncio (Mínimo de 3 obrigatórios)
-              </span>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="relative">
-                  <Input
-                    placeholder="Título 1 (Ex: Sorvetes Artesanais)"
-                    maxLength={30}
-                    value={googleHeadline1}
-                    onChange={(e) => setGoogleHeadline1(e.target.value)}
-                    className="h-10 rounded-lg pr-12 text-xs"
-                  />
-                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
-                    {googleHeadline1.length}/30
-                  </span>
+          {/* CORPO EM GRID: FORMULÁRIO (ESQ) + LIVE PREVIEW (DIR) */}
+          <div className="flex-1 overflow-y-auto py-3 pr-1">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+              {/* FORMULÁRIO (7 COLUNAS) */}
+              <div className="space-y-4 lg:col-span-7 text-left">
+                {/* Nome da Campanha & Link de Destino */}
+                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="g-campaign-name" className="text-[11px] font-bold text-slate-700">
+                        Nome da Campanha *
+                      </Label>
+                      <Input
+                        id="g-campaign-name"
+                        placeholder="Ex: Promoção Almoço Executivo"
+                        value={googleAdName}
+                        onChange={(e) => setGoogleAdName(e.target.value)}
+                        className="h-9 rounded-lg text-xs bg-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="g-website-url" className="text-[11px] font-bold text-slate-700">
+                        Link de Destino (Site / WhatsApp) *
+                      </Label>
+                      <Input
+                        id="g-website-url"
+                        placeholder="Ex: seusite.com.br"
+                        value={googleWebsiteUrl}
+                        onChange={(e) => setGoogleWebsiteUrl(e.target.value)}
+                        className="h-9 rounded-lg text-xs bg-white"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="relative">
-                  <Input
-                    placeholder="Título 2 (Ex: Feitos à Mão Diariamente)"
-                    maxLength={30}
-                    value={googleHeadline2}
-                    onChange={(e) => setGoogleHeadline2(e.target.value)}
-                    className="h-10 rounded-lg pr-12 text-xs"
-                  />
-                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
-                    {googleHeadline2.length}/30
-                  </span>
-                </div>
-                <div className="relative">
-                  <Input
-                    placeholder="Título 3 (Ex: Compre 1 Leve 2)"
-                    maxLength={30}
-                    value={googleHeadline3}
-                    onChange={(e) => setGoogleHeadline3(e.target.value)}
-                    className="h-10 rounded-lg pr-12 text-xs"
-                  />
-                  <span className="absolute right-3 top-3 text-[9px] font-bold text-slate-400">
-                    {googleHeadline3.length}/30
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Descrições */}
-            <div className="space-y-2 text-left">
-              <span className="block text-xs font-bold text-slate-700">
-                Descrições (Mínimo de 2 obrigatórias)
-              </span>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="relative">
-                  <Textarea
-                    placeholder="Descrição 1 (Ex: Venha saborear os melhores sorvetes da região feitos com ingredientes selecionados.)"
-                    maxLength={90}
-                    value={googleDescription1}
-                    onChange={(e) => setGoogleDescription1(e.target.value)}
-                    className="min-h-[60px] rounded-lg pr-12 text-xs"
-                  />
-                  <span className="absolute bottom-2 right-3 text-[9px] font-bold text-slate-400">
-                    {googleDescription1.length}/90
-                  </span>
-                </div>
-                <div className="relative">
-                  <Textarea
-                    placeholder="Descrição 2 (Ex: Aberto todos os dias das 10h às 22h. Estacionamento gratuito no local.)"
-                    maxLength={90}
-                    value={googleDescription2}
-                    onChange={(e) => setGoogleDescription2(e.target.value)}
-                    className="min-h-[60px] rounded-lg pr-12 text-xs"
-                  />
-                  <span className="absolute bottom-2 right-3 text-[9px] font-bold text-slate-400">
-                    {googleDescription2.length}/90
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* URL de Destino */}
-            <div className="space-y-1.5 text-left">
-              <Label htmlFor="g-website-url" className="text-xs font-bold text-slate-700">
-                URL de Destino (Site, Landing Page ou link do Instagram)
-              </Label>
-              <Input
-                id="g-website-url"
-                placeholder="Ex: www.sorveteriagourmet.com"
-                value={googleWebsiteUrl}
-                onChange={(e) => setGoogleWebsiteUrl(e.target.value)}
-                className="h-10 rounded-lg text-xs"
-              />
-            </div>
-
-            {/* Palavras-chave */}
-            <div className="space-y-2 text-left">
-              <Label className="text-xs font-bold text-slate-700">
-                Palavras-chave (Mínimo de 1 obrigatória)
-              </Label>
-              
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ex: melhor sorvete (Pressione Enter ou clique em Adicionar)"
-                  value={newKeywordInput}
-                  onChange={(e) => setNewKeywordInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const val = newKeywordInput.trim();
-                      if (val && !googleKeywords.includes(val)) {
-                        setGoogleKeywords([...googleKeywords, val]);
-                        setNewKeywordInput("");
-                      }
-                    }
-                  }}
-                  className="h-10 rounded-lg text-xs flex-1"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const val = newKeywordInput.trim();
-                    if (val && !googleKeywords.includes(val)) {
-                      setGoogleKeywords([...googleKeywords, val]);
-                      setNewKeywordInput("");
-                    }
-                  }}
-                  className="h-10 rounded-lg px-4 bg-primary text-xs font-bold text-white active:scale-95 hover:bg-primary/95"
-                >
-                  Adicionar
-                </Button>
-              </div>
-
-              {/* Lista de tags de palavras-chave adicionadas */}
-              {googleKeywords.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2 max-h-[80px] overflow-y-auto p-1.5 bg-slate-50 border border-slate-200/60 rounded-lg">
-                  {googleKeywords.map((kw, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs animate-in fade-in zoom-in-95 duration-100"
-                    >
-                      {kw}
-                      <button
-                        type="button"
-                        onClick={() => setGoogleKeywords(googleKeywords.filter((_, i) => i !== idx))}
-                        className="text-slate-400 hover:text-red-500 font-bold ml-0.5 text-xs transition-colors"
-                      >
-                        ×
-                      </button>
+                {/* Títulos do Anúncio (3 Obrigatórios) */}
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      Títulos do Anúncio (3 obrigatórios)
                     </span>
-                  ))}
+                    <span className="text-[10px] text-slate-400">máx 30 letras cada</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="relative">
+                      <Input
+                        placeholder="Título 1 (Ex: Restaurante Sabor Caseiro)"
+                        maxLength={30}
+                        value={googleHeadline1}
+                        onChange={(e) => setGoogleHeadline1(e.target.value)}
+                        className="h-8 rounded-lg pr-12 text-xs"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
+                        {googleHeadline1.length}/30
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        placeholder="Título 2 (Ex: Pratos Executivos e Marmitex)"
+                        maxLength={30}
+                        value={googleHeadline2}
+                        onChange={(e) => setGoogleHeadline2(e.target.value)}
+                        className="h-8 rounded-lg pr-12 text-xs"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
+                        {googleHeadline2.length}/30
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        placeholder="Título 3 (Ex: Peça Online com Desconto)"
+                        maxLength={30}
+                        value={googleHeadline3}
+                        onChange={(e) => setGoogleHeadline3(e.target.value)}
+                        className="h-8 rounded-lg pr-12 text-xs"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
+                        {googleHeadline3.length}/30
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Orçamento e Duração */}
-            <div className="grid grid-cols-2 gap-4 text-left">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Orçamento Diário (R$)</Label>
-                <Input
-                  type="number"
-                  min={5}
-                  value={googleDailyBudget}
-                  onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
-                  className="h-10 rounded-lg text-xs"
-                />
+                {/* Descrições (2 Obrigatórias) */}
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      Descrições (2 obrigatórias)
+                    </span>
+                    <span className="text-[10px] text-slate-400">máx 90 letras cada</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Descrição 1 (Ex: O melhor da culinária caseira no centro da cidade. Ingredientes frescos e entrega rápida.)"
+                        maxLength={90}
+                        rows={2}
+                        value={googleDescription1}
+                        onChange={(e) => setGoogleDescription1(e.target.value)}
+                        className="min-h-[50px] resize-none rounded-lg pr-12 text-xs"
+                      />
+                      <span className="absolute bottom-1.5 right-2.5 text-[9px] font-bold text-slate-400">
+                        {googleDescription1.length}/90
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Descrição 2 (Ex: Aberto de segunda a sábado das 11h às 15h. Faça sua reserva ou peça pelo WhatsApp.)"
+                        maxLength={90}
+                        rows={2}
+                        value={googleDescription2}
+                        onChange={(e) => setGoogleDescription2(e.target.value)}
+                        className="min-h-[50px] resize-none rounded-lg pr-12 text-xs"
+                      />
+                      <span className="absolute bottom-1.5 right-2.5 text-[9px] font-bold text-slate-400">
+                        {googleDescription2.length}/90
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Palavras-chave */}
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2 shadow-2xs">
+                  <Label className="text-[11px] font-bold text-slate-700">
+                    Palavras-chave de Busca
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: restaurante no centro, marmitex entrega (Enter para adicionar)"
+                      value={newKeywordInput}
+                      onChange={(e) => setNewKeywordInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = newKeywordInput.trim();
+                          if (val && !googleKeywords.includes(val)) {
+                            setGoogleKeywords([...googleKeywords, val]);
+                            setNewKeywordInput("");
+                          }
+                        }
+                      }}
+                      className="h-8.5 rounded-lg text-xs flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        const val = newKeywordInput.trim();
+                        if (val && !googleKeywords.includes(val)) {
+                          setGoogleKeywords([...googleKeywords, val]);
+                          setNewKeywordInput("");
+                        }
+                      }}
+                      className="h-8.5 rounded-lg px-3 bg-primary text-xs font-bold text-white active:scale-95 hover:bg-primary/95"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
+
+                  {/* Lista de tags de palavras-chave adicionadas */}
+                  {googleKeywords.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5 max-h-[70px] overflow-y-auto p-1.5 bg-slate-50 border border-slate-200/60 rounded-lg">
+                      {googleKeywords.map((kw, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs"
+                        >
+                          #{kw}
+                          <button
+                            type="button"
+                            onClick={() => setGoogleKeywords(googleKeywords.filter((_, i) => i !== idx))}
+                            className="text-slate-400 hover:text-red-500 font-bold ml-0.5 text-xs transition-colors"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Orçamento & Duração */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700">Orçamento Diário (R$)</Label>
+                    <Input
+                      type="number"
+                      min={5}
+                      value={googleDailyBudget}
+                      onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
+                      className="h-8.5 rounded-lg text-xs bg-white"
+                    />
+                  </div>
+                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700">Duração (Dias)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={googleDurationDays}
+                      onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
+                      className="h-8.5 rounded-lg text-xs bg-white"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Duração (Dias)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={googleDurationDays}
-                  onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
-                  className="h-10 rounded-lg text-xs"
-                />
+
+              {/* LIVE PREVIEW NO GOOGLE SEARCH (5 COLUNAS) */}
+              <div className="hidden lg:flex lg:col-span-5 flex-col gap-3 text-left sticky top-0">
+                <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-[#4285F4]" />
+                      Prévia do Google Search
+                    </span>
+                    <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                      Ao Vivo
+                    </span>
+                  </div>
+
+                  {/* CARD DE RESULTADO DO GOOGLE */}
+                  <div className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                        <Globe className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-[11px] font-bold text-slate-800 leading-tight">
+                          {businessProfile?.name || "Meu Negócio"}
+                        </span>
+                        <span className="block truncate text-[9.5px] text-slate-400 leading-none">
+                          {googleWebsiteUrl
+                            ? googleWebsiteUrl.replace(/^https?:\/\//, "")
+                            : "www.seusite.com.br"}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                        Patrocinado
+                      </span>
+                    </div>
+
+                    <a
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                      className="block text-[13px] font-semibold text-[#1a0dab] leading-snug line-clamp-2 hover:underline"
+                    >
+                      {[googleHeadline1, googleHeadline2, googleHeadline3]
+                        .filter(Boolean)
+                        .join(" | ") || "Título 1 | Título 2 | Título 3"}
+                    </a>
+
+                    <p className="text-[11px] text-[#4d5156] leading-relaxed line-clamp-3">
+                      {[googleDescription1, googleDescription2]
+                        .filter(Boolean)
+                        .join(" ") ||
+                        "As descrições do seu anúncio aparecerão aqui exatamente como os clientes verão nos resultados de busca do Google."}
+                    </p>
+
+                    {googleKeywords.length > 0 && (
+                      <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-1">
+                        {googleKeywords.slice(0, 4).map((kw, i) => (
+                          <span
+                            key={i}
+                            className="text-[9px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-150"
+                          >
+                            #{kw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resumo do Investimento */}
+                  <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-600">Total Estimado:</span>
+                      <span className="font-extrabold text-[#0083C7] text-sm">
+                        R$ {(Number(googleDailyBudget || 0) * Number(googleDurationDays || 1)).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-slate-500">
+                      R$ {Number(googleDailyBudget || 0).toFixed(2)}/dia durante {googleDurationDays || 1} dias
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="mt-6 flex justify-end gap-2">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setIsCreatingGoogleAd(false)}
-              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handlePublishGoogleCampaign}
-              disabled={
-                isSubmittingGoogle ||
-                !googleAdName.trim() ||
-                !googleHeadline1.trim() ||
-                !googleHeadline2.trim() ||
-                !googleHeadline3.trim() ||
-                !googleDescription1.trim() ||
-                !googleDescription2.trim() ||
-                googleKeywords.length === 0 ||
-                !googleWebsiteUrl.trim()
-              }
-              className="h-10 rounded-lg bg-primary px-6 text-xs font-bold text-white"
-            >
-              {isSubmittingGoogle ? (
-                <>
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  Publicando...
-                </>
-              ) : (
-                "Publicar Campanha"
-              )}
-            </Button>
+          <DialogFooter className="border-t border-slate-100 pt-3 flex flex-row items-center justify-between">
+            <div className="text-left">
+              <span className="text-xs text-slate-500 font-medium">Investimento: </span>
+              <span className="text-xs font-bold text-slate-900">
+                R$ {(Number(googleDailyBudget || 0) * Number(googleDurationDays || 1)).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setIsCreatingGoogleAd(false)}
+                className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handlePublishGoogleCampaign}
+                disabled={
+                  isSubmittingGoogle ||
+                  !googleAdName.trim() ||
+                  !googleHeadline1.trim() ||
+                  !googleHeadline2.trim() ||
+                  !googleHeadline3.trim() ||
+                  !googleDescription1.trim() ||
+                  !googleDescription2.trim() ||
+                  googleKeywords.length === 0 ||
+                  !googleWebsiteUrl.trim()
+                }
+                className="h-9 rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-xs"
+              >
+                {isSubmittingGoogle ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Publicando...
+                  </>
+                ) : (
+                  "Publicar Campanha"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
