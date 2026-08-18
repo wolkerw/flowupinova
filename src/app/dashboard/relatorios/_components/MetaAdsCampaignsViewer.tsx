@@ -26,6 +26,9 @@ import {
   Smartphone,
   Monitor,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  Search,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,6 +38,9 @@ interface MetaAdsCampaignsViewerProps {
   breakdowns?: {
     platforms?: any[];
     devices?: any[];
+    ageGender?: any[];
+    placements?: any[];
+    regions?: any[];
   };
   isConnected: boolean;
   adAccountName?: string;
