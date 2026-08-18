@@ -313,41 +313,57 @@ export function GoogleAdsCampaignsViewer({
                           </Badge>
                         </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                          {budget > 0 && (
-                            <>
-                              <span>
-                                Orçamento:{" "}
-                                <strong className="text-slate-800">
-                                  {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                  /dia
-                                </strong>
-                              </span>
-                              <span>•</span>
-                            </>
-                          )}
-                          <span>
-                            Custo no período:{" "}
-                            <strong className="text-slate-800">
-                              {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                            </strong>
-                          </span>
-                        </div>
+                        {budget > 0 && (
+                          <div className="mt-1.5 flex items-center text-xs text-slate-500">
+                            <span>
+                              Orçamento:{" "}
+                              <strong className="text-slate-700">
+                                {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                /dia
+                              </strong>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Métricas Rápidas com foco no Objetivo */}
-                    <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right min-w-[180px]">
-                      <div>
-                        <span className="text-[11px] font-medium uppercase text-slate-400">
+                    {/* Métricas em Colunas Alinhadas */}
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
+                      {/* 1. Investimento */}
+                      <div className="min-w-[80px]">
+                        <span className="text-[11px] font-semibold uppercase text-slate-400">
+                          Investimento
+                        </span>
+                        <p className="font-poppins text-sm font-bold text-slate-800">
+                          {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                      </div>
+
+                      {/* 2. Impressões */}
+                      <div className="min-w-[80px]">
+                        <span className="text-[11px] font-semibold uppercase text-slate-400">
                           Impressões
                         </span>
-                        <p className="font-semibold text-slate-800">
+                        <p className="font-poppins text-sm font-bold text-slate-800">
                           {impressions.toLocaleString("pt-BR")}
                         </p>
                       </div>
-                      <div>
-                        <span className="text-[11px] font-semibold uppercase text-[#EA4335]">
+
+                      {/* 3. Cliques (se a métrica principal não for Cliques) */}
+                      {keyMetric.label !== "Cliques na Busca" && (
+                        <div className="min-w-[70px]">
+                          <span className="text-[11px] font-semibold uppercase text-slate-400">
+                            Cliques
+                          </span>
+                          <p className="font-poppins text-sm font-bold text-slate-800">
+                            {Number(camp.metrics?.clicks || 0).toLocaleString("pt-BR")}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 4. Métrica Principal */}
+                      <div className="min-w-[100px]">
+                        <span className="text-[11px] font-bold uppercase text-[#EA4335]">
                           {keyMetric.label}
                         </span>
                         <p className="font-poppins text-base font-bold text-[#EA4335]">

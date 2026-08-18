@@ -112,36 +112,72 @@ export async function GET(request: NextRequest) {
       let linkClicksCount = 0;
 
       if (Array.isArray(insight?.actions)) {
-        insight.actions.forEach((act: any) => {
-          const val = parseInt(act.value || "0");
-          const type = (act.action_type || "").toLowerCase();
-          if (type.includes("messaging") || type.includes("message")) {
-            messagesCount += val;
-          } else if (type.includes("lead")) {
-            leadsCount += val;
-          } else if (type.includes("purchase") || type.includes("buy")) {
-            salesCount += val;
-          } else if (type.includes("video_view")) {
-            videoViewsCount += val;
-          } else if (type.includes("post_engagement") || type.includes("like") || type.includes("comment")) {
-            postEngagementCount += val;
-          } else if (type.includes("app_install") || type.includes("mobile_activate")) {
-            appInstallsCount += val;
-          } else if (type === "link_click") {
-            linkClicksCount += val;
-          }
-        });
-      }
+        // 1. Leads: Meta retorna múltiplos aliases ('onsite_conversion.lead_grouped', 'lead', 'offsite_conversion.fb_pixel_lead')
+        const onsiteLead = insight.actions.find((a: any) => a.action_type === "onsite_conversion.lead_grouped");
+        const standardLead = insight.actions.find((a: any) => a.action_type === "lead");
+        const pixelLead = insight.actions.find((a: any) => a.action_type === "offsite_conversion.fb_pixel_lead");
+        if (onsiteLead) {
+          leadsCount = parseInt(onsiteLead.value || "0");
+        } else if (standardLead) {
+          leadsCount = parseInt(standardLead.value || "0");
+        } else if (pixelLead) {
+          leadsCount = parseInt(pixelLead.value || "0");
+        }
 
-      let actions = clicks;
-      if (insight?.actions) {
-        const linkClicksAction = insight.actions.find(
-          (act: any) => act.action_type === "link_click"
+        // 2. Mensagens / Conversas iniciadas (WhatsApp / Direct)
+        const msgStarted = insight.actions.find((a: any) =>
+          a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
+          a.action_type === "messaging_conversation_started_7d" ||
+          a.action_type?.includes("messaging_conversation_started")
         );
-        if (linkClicksAction) {
-          actions = parseInt(linkClicksAction.value || "0");
+        const generalMsg = insight.actions.find((a: any) => a.action_type === "messages");
+        if (msgStarted) {
+          messagesCount = parseInt(msgStarted.value || "0");
+        } else if (generalMsg) {
+          messagesCount = parseInt(generalMsg.value || "0");
+        }
+
+        // 3. Vendas / Compras
+        const omniPurchase = insight.actions.find((a: any) => a.action_type === "omni_purchase");
+        const stdPurchase = insight.actions.find((a: any) => a.action_type === "purchase");
+        const pixelPurchase = insight.actions.find((a: any) => a.action_type === "offsite_conversion.fb_pixel_purchase");
+        if (omniPurchase) {
+          salesCount = parseInt(omniPurchase.value || "0");
+        } else if (stdPurchase) {
+          salesCount = parseInt(stdPurchase.value || "0");
+        } else if (pixelPurchase) {
+          salesCount = parseInt(pixelPurchase.value || "0");
+        }
+
+        // 4. Cliques no link
+        const linkClickAction = insight.actions.find((a: any) => a.action_type === "link_click");
+        if (linkClickAction) {
+          linkClicksCount = parseInt(linkClickAction.value || "0");
+        }
+
+        // 5. Visualizações de vídeo
+        const videoViewAction = insight.actions.find((a: any) => a.action_type === "video_view");
+        if (videoViewAction) {
+          videoViewsCount = parseInt(videoViewAction.value || "0");
+        }
+
+        // 6. Engajamento no post
+        const postEngagementAction = insight.actions.find((a: any) => a.action_type === "post_engagement");
+        if (postEngagementAction) {
+          postEngagementCount = parseInt(postEngagementAction.value || "0");
+        }
+
+        // 7. Instalações de app
+        const appInstallAction = insight.actions.find((a: any) =>
+          a.action_type === "app_custom_event.fb_mobile_activate_app" ||
+          a.action_type === "mobile_app_install"
+        );
+        if (appInstallAction) {
+          appInstallsCount = parseInt(appInstallAction.value || "0");
         }
       }
+
+      let actions = linkClicksCount || clicks;
 
       // Orçamento real configurado (conversão de centavos)
       let budgetAmount = 0;
