@@ -235,7 +235,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
-  const [layoutStyle, setLayoutStyle] = useState<string>("");
+  const [layoutStyle, setLayoutStyle] = useState<string>("CLEAN_LUXURY");
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
@@ -1272,7 +1272,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         // Modo conceito (sem referenceImageFile)
         const filenames = inspirationFile ? ["1"] : ["1", "2"];
         console.log(
-          `[WIZARD] Iniciando geração simultânea de ${filenames.length} imagens via Google Imagen...`
+          `[WIZARD] Iniciando geração simultânea de ${filenames.length} imagens...`
         );
 
         const imagePromises = filenames.map(async (fname, i) => {

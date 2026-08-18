@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 export type LayoutStyleId =
   | ""
+  | "CLEAN_LUXURY"
   | "CINEMATIC"
   | "STUDIO_CLEAN"
   | "URBAN_LIFESTYLE"
@@ -34,7 +35,7 @@ export interface LayoutStyleOption {
 
 export const LAYOUT_STYLES: LayoutStyleOption[] = [
   {
-    id: "",
+    id: "CLEAN_LUXURY",
     label: "Automático",
     sublabel: "IA decide o estilo",
     description: "A IA sorteia 2 estilos diferentes a cada geração para máximo de variedade e surpresa criativa.",
@@ -99,6 +100,7 @@ export const LAYOUT_STYLES: LayoutStyleOption[] = [
 
 export const LAYOUT_STYLE_TECHNICAL: Record<LayoutStyleId, string> = {
   "": "",
+  CLEAN_LUXURY: "",
   CINEMATIC:
     "LAYOUT STYLE — CINEMATIC: Cinematic photography, dramatic lighting, deep cinematic shadows, 85mm f/1.8 lens, shallow depth of field, rich cinematic color grade, atmospheric lighting.",
   STUDIO_CLEAN:
@@ -131,7 +133,9 @@ export function LayoutStyleSelector({ value, onChange, previewImages }: LayoutSt
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {LAYOUT_STYLES.map((style) => {
-          const isSelected = value === style.id;
+          const isSelected =
+            value === style.id ||
+            (style.id === "CLEAN_LUXURY" && (value === "CLEAN_LUXURY" || value === "" || !value));
           const previewImg = previewImages?.[style.id] || style.image;
 
           return (

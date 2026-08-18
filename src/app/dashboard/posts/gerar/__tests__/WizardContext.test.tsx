@@ -109,7 +109,7 @@ describe("WizardContext", () => {
     );
 
     expect(screen.getByTestId("step")).toHaveTextContent("1");
-    expect(screen.getByTestId("layout-style")).toHaveTextContent("");
+    expect(screen.getByTestId("layout-style")).toHaveTextContent("CLEAN_LUXURY");
     expect(screen.getByTestId("insert-text")).toHaveTextContent("true");
 
     await act(async () => {
