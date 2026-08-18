@@ -295,13 +295,11 @@ export async function getGoogleAdsCampaigns(
         campaign_budget.amount_micros, 
         metrics.impressions, 
         metrics.clicks, 
-        metrics.cost_micros,
-        metrics.ctr,
-        metrics.average_cpc,
-        metrics.conversions,
-        metrics.cost_per_conversion,
-        metrics.video_views,
-        metrics.average_cpv
+        metrics.cost_micros, 
+        metrics.ctr, 
+        metrics.average_cpc, 
+        metrics.conversions, 
+        metrics.cost_per_conversion
       FROM campaign
       WHERE segments.date ${dateClause}
       ORDER BY campaign.id DESC
@@ -325,9 +323,7 @@ export async function getGoogleAdsCampaigns(
         metrics.cost_micros,
         metrics.conversions,
         metrics.ctr,
-        metrics.average_cpc,
-        metrics.video_views,
-        metrics.average_cpv
+        metrics.average_cpc
       FROM ad_group_ad
       WHERE segments.date ${dateClause}
       ORDER BY metrics.impressions DESC
@@ -379,13 +375,13 @@ export async function getGoogleAdsCampaigns(
     ]);
 
     if (campaignsRes.status === "fulfilled" && campaignsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de campanhas:", campaignsRes.value.error);
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de campanhas:", JSON.stringify(campaignsRes.value.error, null, 2));
     }
     if (adsRes.status === "fulfilled" && adsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de anúncios:", adsRes.value.error);
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de anúncios:", JSON.stringify(adsRes.value.error, null, 2));
     }
     if (keywordsRes.status === "fulfilled" && keywordsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de palavras-chave:", keywordsRes.value.error);
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de palavras-chave:", JSON.stringify(keywordsRes.value.error, null, 2));
     }
 
     const campaignResults =
