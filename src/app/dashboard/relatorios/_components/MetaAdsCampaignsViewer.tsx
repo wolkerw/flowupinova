@@ -765,7 +765,7 @@ export function MetaAdsCampaignsViewer({
                   Principais Regiões
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Estados e cidades com maior volume de exibições
+                  Estados com maior volume de exibições
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 pt-1">
