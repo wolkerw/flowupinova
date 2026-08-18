@@ -4285,7 +4285,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 </svg>
-                Google Ads (Pesquisa Local)
+                Google Ads
               </button>
             </div>
           )}
@@ -4372,9 +4372,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           <div className="space-y-5 text-left">
             <div className="rounded-r-lg border-l-4 border-slate-200 bg-slate-50/50 p-1 pl-3 transition-all duration-300">
               <h3 className="font-poppins text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                {activePlatformTab === "meta"
-                  ? "📱 Histórico de Campanhas Sociais (Meta)"
-                  : "🔎 Histórico de Campanhas de Busca (Google)"}
+                Histórico de Campanhas
               </h3>
             </div>
             {/* SELETOR DE ABAS SEGMENT CONTROL */}
