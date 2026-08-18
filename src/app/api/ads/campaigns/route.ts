@@ -56,12 +56,24 @@ export async function GET(request: NextRequest) {
 
     // 2. Buscar insights agregados por campanha no período selecionado
     const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
-    const insightsRes = await fetch(insightsUrl);
-    const insightsData = await insightsRes.json();
+    const platformsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
+    const devicesUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=device_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
 
-    const insightsList = insightsRes.ok && insightsData.data ? insightsData.data : [];
+    const [insightsRes, platformsRes, devicesRes] = await Promise.allSettled([
+      fetch(insightsUrl).then((r) => r.json()),
+      fetch(platformsUrl).then((r) => r.json()),
+      fetch(devicesUrl).then((r) => r.json()),
+    ]);
+
+    const insightsData =
+      insightsRes.status === "fulfilled" && insightsRes.value?.data ? insightsRes.value.data : [];
+    const platformsData =
+      platformsRes.status === "fulfilled" && platformsRes.value?.data ? platformsRes.value.data : [];
+    const devicesData =
+      devicesRes.status === "fulfilled" && devicesRes.value?.data ? devicesRes.value.data : [];
+
     const insightsMap = new Map();
-    insightsList.forEach((ins: any) => {
+    insightsData.forEach((ins: any) => {
       insightsMap.set(ins.campaign_id, ins);
     });
 
@@ -90,6 +102,24 @@ export async function GET(request: NextRequest) {
       const cpm = parseFloat(insight?.cpm || "0") || (impressions > 0 ? (spend / impressions) * 1000 : 0);
       const cpc = parseFloat(insight?.cpc || "0") || (clicks > 0 ? spend / clicks : 0);
       const ctr = parseFloat(insight?.ctr || "0") || (impressions > 0 ? (clicks / impressions) * 100 : 0);
+
+      let messagesCount = 0;
+      let leadsCount = 0;
+      let linkClicksCount = 0;
+
+      if (Array.isArray(insight?.actions)) {
+        insight.actions.forEach((act: any) => {
+          const val = parseInt(act.value || "0");
+          const type = (act.action_type || "").toLowerCase();
+          if (type.includes("messaging") || type.includes("message")) {
+            messagesCount += val;
+          } else if (type.includes("lead")) {
+            leadsCount += val;
+          } else if (type === "link_click") {
+            linkClicksCount += val;
+          }
+        });
+      }
 
       let actions = clicks;
       if (insight?.actions) {
@@ -136,6 +166,9 @@ export async function GET(request: NextRequest) {
           impressions,
           clicks,
           actions,
+          messagesCount,
+          leadsCount,
+          linkClicksCount,
           amountSpent: spend,
           reach,
           frequency,
@@ -151,7 +184,14 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, campaigns });
+    return NextResponse.json({
+      success: true,
+      campaigns,
+      breakdowns: {
+        platforms: platformsData,
+        devices: devicesData,
+      },
+    });
   } catch (error: any) {
     console.error("[API_ADS_CAMPAIGNS_GET] Erro geral:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

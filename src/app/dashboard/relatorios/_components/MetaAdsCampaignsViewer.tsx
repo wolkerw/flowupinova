@@ -26,14 +26,16 @@ import {
   Smartphone,
   Monitor,
   Calendar,
-  Zap,
-  PieChart as PieChartIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 interface MetaAdsCampaignsViewerProps {
   campaigns: any[];
+  breakdowns?: {
+    platforms?: any[];
+    devices?: any[];
+  };
   isConnected: boolean;
   adAccountName?: string;
   pageName?: string;
@@ -43,6 +45,7 @@ interface MetaAdsCampaignsViewerProps {
 
 export function MetaAdsCampaignsViewer({
   campaigns,
+  breakdowns,
   isConnected,
   adAccountName,
   pageName,
@@ -93,20 +96,98 @@ export function MetaAdsCampaignsViewer({
     (acc, c) => acc + (Number(c.metrics?.clicks) || 0),
     0
   );
-  const totalActions = activeCampaigns.reduce(
-    (acc, c) => acc + (Number(c.metrics?.actions) || 0),
-    0
-  );
 
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
-  const costPerAction = totalActions > 0 ? totalSpent / totalActions : 0;
 
-  // Cidades e localizações extraídas das campanhas
-  const activeLocations = activeCampaigns
-    .map((c) => c.targeting?.address)
-    .filter(Boolean)
-    .filter((v, i, a) => a.indexOf(v) === i);
+  // Processar dados reais de breakdown de plataforma (se retornados pela Meta)
+  const platformList = breakdowns?.platforms || [];
+  let instaImpressions = 0;
+  let fbImpressions = 0;
+  platformList.forEach((item: any) => {
+    const imp = parseInt(item.impressions || "0");
+    if (item.publisher_platform === "instagram") instaImpressions += imp;
+    if (item.publisher_platform === "facebook") fbImpressions += imp;
+  });
+  const totalPlatformImp = instaImpressions + fbImpressions;
+  const instaShare = totalPlatformImp > 0 ? Math.round((instaImpressions / totalPlatformImp) * 100) : 0;
+  const fbShare = totalPlatformImp > 0 ? Math.round((fbImpressions / totalPlatformImp) * 100) : 0;
+
+  // Processar dados reais de breakdown de dispositivo (se retornados pela Meta)
+  const deviceList = breakdowns?.devices || [];
+  let mobileImpressions = 0;
+  let desktopImpressions = 0;
+  deviceList.forEach((item: any) => {
+    const imp = parseInt(item.impressions || "0");
+    if (item.device_platform === "mobile") mobileImpressions += imp;
+    if (item.device_platform === "desktop") desktopImpressions += imp;
+  });
+  const totalDeviceImp = mobileImpressions + desktopImpressions;
+  const mobileShare = totalDeviceImp > 0 ? Math.round((mobileImpressions / totalDeviceImp) * 100) : 0;
+  const desktopShare = totalDeviceImp > 0 ? Math.round((desktopImpressions / totalDeviceImp) * 100) : 0;
+
+  // Função para identificar o objetivo e a métrica chave correspondente da campanha
+  const getCampaignKeyMetric = (camp: any) => {
+    const obj = (camp.objective || "").toUpperCase();
+    const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
+    const clicks = Number(camp.metrics?.clicks) || 0;
+    const impressions = Number(camp.metrics?.impressions) || 0;
+    const reach = Number(camp.metrics?.reach) || impressions;
+    const messages = Number(camp.metrics?.messagesCount) || 0;
+    const leads = Number(camp.metrics?.leadsCount) || 0;
+    const linkClicks = Number(camp.metrics?.linkClicksCount) || clicks;
+
+    if (obj.includes("MESSAGE") || messages > 0) {
+      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
+      const cpa = count > 0 ? spent / count : 0;
+      return {
+        label: "Conversas / Mensagens",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: cpa > 0 ? `Custo/Conversa: ${cpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Mensagens no WhatsApp",
+        badge: "💬 Mensagens WhatsApp",
+      };
+    }
+
+    if (obj.includes("LEAD") || leads > 0) {
+      const count = leads > 0 ? leads : Number(camp.metrics?.actions) || clicks;
+      const cpa = count > 0 ? spent / count : 0;
+      return {
+        label: "Cadastros / Leads",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: cpa > 0 ? `Custo/Lead: ${cpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Formulários preenchidos",
+        badge: "📋 Geração de Leads",
+      };
+    }
+
+    if (obj.includes("TRAFFIC") || linkClicks > 0) {
+      const count = linkClicks > 0 ? linkClicks : clicks;
+      const cpc = count > 0 ? spent / count : 0;
+      return {
+        label: "Cliques no Link",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: cpc > 0 ? `CPC: ${cpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques na página/site",
+        badge: "🎯 Tráfego no Link",
+      };
+    }
+
+    if (obj.includes("AWARENESS") || obj.includes("REACH")) {
+      const cpm = impressions > 0 ? (spent / impressions) * 1000 : 0;
+      return {
+        label: "Pessoas Alcançadas",
+        value: reach.toLocaleString("pt-BR"),
+        subLabel: cpm > 0 ? `CPM: ${cpm.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações únicas",
+        badge: "📢 Alcance e Marca",
+      };
+    }
+
+    // Default
+    return {
+      label: "Cliques / Ações",
+      value: (Number(camp.metrics?.actions) || clicks).toLocaleString("pt-BR"),
+      subLabel: clicks > 0 ? `CPC: ${(spent / clicks).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Interações no anúncio",
+      badge: "⚡ Engajamento",
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -141,8 +222,8 @@ export function MetaAdsCampaignsViewer({
         </div>
       </div>
 
-      {/* 4 Cards de Métricas Principais Consolidadas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 3 Cards de Métricas Principais Consolidadas */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Investimento */}
         <Card className="border border-slate-200 bg-white shadow-xs">
           <CardContent className="p-5">
@@ -179,7 +260,7 @@ export function MetaAdsCampaignsViewer({
                 {totalImpressions.toLocaleString("pt-BR")}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Exibições no feed e stories</p>
+            <p className="mt-1 text-xs text-slate-500">Exibições no feed, reels e stories</p>
           </CardContent>
         </Card>
 
@@ -209,30 +290,6 @@ export function MetaAdsCampaignsViewer({
             </p>
           </CardContent>
         </Card>
-
-        {/* Ações / Conversões */}
-        <Card className="border border-slate-200 bg-white shadow-xs">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Ações de Conversão
-              </span>
-              <div className="rounded-lg bg-purple-50 p-2 text-purple-600">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-poppins text-2xl font-bold text-slate-900">
-                {totalActions.toLocaleString("pt-BR")}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">
-              {costPerAction > 0
-                ? `Custo/Ação: ${costPerAction.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
-                : "Mensagens WhatsApp/Direct e cliques"}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Lista de Campanhas da Meta com atividade no período */}
@@ -244,7 +301,7 @@ export function MetaAdsCampaignsViewer({
                 Campanhas Veiculadas no Período ({activeCampaigns.length})
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Desempenho individualizado de cada anúncio veiculado no Facebook e Instagram
+                Desempenho individualizado de cada anúncio de acordo com o seu objetivo específico
               </CardDescription>
             </div>
 
@@ -296,11 +353,10 @@ export function MetaAdsCampaignsViewer({
               {activeCampaigns.map((camp: any) => {
                 const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
                 const impressions = Number(camp.metrics?.impressions) || 0;
-                const clicks = Number(camp.metrics?.clicks) || 0;
-                const actions = Number(camp.metrics?.actions) || clicks;
                 const budget = Number(camp.budget?.amount) || 0;
                 const isActive = camp.status === "active";
                 const isPaused = camp.status === "paused";
+                const keyMetric = getCampaignKeyMetric(camp);
 
                 return (
                   <div
@@ -339,6 +395,9 @@ export function MetaAdsCampaignsViewer({
                           >
                             {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
                           </Badge>
+                          <Badge variant="outline" className="text-[10px] font-medium text-blue-700 bg-blue-50 border-blue-200">
+                            {keyMetric.badge}
+                          </Badge>
                         </div>
 
                         {camp.targeting?.address && (
@@ -371,8 +430,8 @@ export function MetaAdsCampaignsViewer({
                       </div>
                     </div>
 
-                    {/* Métricas Rápidas */}
-                    <div className="grid grid-cols-3 gap-3 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
+                    {/* Métricas Dinâmicas Conforme o Objetivo */}
+                    <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right min-w-[180px]">
                       <div>
                         <span className="text-[11px] font-medium uppercase text-slate-400">
                           Impressões
@@ -382,20 +441,15 @@ export function MetaAdsCampaignsViewer({
                         </p>
                       </div>
                       <div>
-                        <span className="text-[11px] font-medium uppercase text-slate-400">
-                          Cliques
+                        <span className="text-[11px] font-semibold uppercase text-[#0083C7]">
+                          {keyMetric.label}
                         </span>
-                        <p className="font-semibold text-slate-800">
-                          {clicks.toLocaleString("pt-BR")}
+                        <p className="font-poppins text-base font-bold text-[#0083C7]">
+                          {keyMetric.value}
                         </p>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium uppercase text-slate-400">
-                          Ações
+                        <span className="block text-[10px] text-slate-500">
+                          {keyMetric.subLabel}
                         </span>
-                        <p className="font-semibold text-[#0083C7]">
-                          {actions.toLocaleString("pt-BR")}
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -405,6 +459,85 @@ export function MetaAdsCampaignsViewer({
           )}
         </CardContent>
       </Card>
+
+      {/* Breakdowns Reais da API da Meta (se retornados) */}
+      {totalPlatformImp > 0 && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Plataforma */}
+          <Card className="border border-slate-200 bg-white shadow-xs">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Instagram className="h-4 w-4 text-pink-600" />
+                Exibição por Plataforma (Dados Reais Meta)
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Distribuição real de impressões apuradas pela Meta no período
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-1">
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="flex items-center gap-1.5 text-slate-700">
+                    <Instagram className="h-3.5 w-3.5 text-pink-600" />
+                    Instagram
+                  </span>
+                  <span className="font-semibold text-slate-900">{instaShare}% ({instaImpressions.toLocaleString("pt-BR")} imp)</span>
+                </div>
+                <Progress value={instaShare} className="h-2 bg-slate-100" />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="flex items-center gap-1.5 text-slate-700">
+                    <Facebook className="h-3.5 w-3.5 text-[#1877F2]" />
+                    Facebook
+                  </span>
+                  <span className="font-semibold text-slate-900">{fbShare}% ({fbImpressions.toLocaleString("pt-BR")} imp)</span>
+                </div>
+                <Progress value={fbShare} className="h-2 bg-slate-100" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dispositivos */}
+          {totalDeviceImp > 0 && (
+            <Card className="border border-slate-200 bg-white shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Smartphone className="h-4 w-4 text-emerald-600" />
+                  Dispositivos de Acesso (Dados Reais Meta)
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Aparelhos onde os usuários visualizaram seus anúncios
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-1">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="flex items-center gap-1.5 text-slate-700">
+                      <Smartphone className="h-3.5 w-3.5 text-slate-600" />
+                      Mobile (Smartphones)
+                    </span>
+                    <span className="font-semibold text-slate-900">{mobileShare}% ({mobileImpressions.toLocaleString("pt-BR")} imp)</span>
+                  </div>
+                  <Progress value={mobileShare} className="h-2 bg-slate-100" />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="flex items-center gap-1.5 text-slate-700">
+                      <Monitor className="h-3.5 w-3.5 text-slate-600" />
+                      Desktop (Computadores)
+                    </span>
+                    <span className="font-semibold text-slate-900">{desktopShare}% ({desktopImpressions.toLocaleString("pt-BR")} imp)</span>
+                  </div>
+                  <Progress value={desktopShare} className="h-2 bg-slate-100" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

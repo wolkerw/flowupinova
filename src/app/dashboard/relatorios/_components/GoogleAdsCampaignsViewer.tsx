@@ -4,7 +4,6 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   TrendingUp,
@@ -15,11 +14,6 @@ import {
   Search,
   Target,
   Calendar,
-  Smartphone,
-  Monitor,
-  Clock,
-  MapPin,
-  Compass,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -88,6 +82,39 @@ export function GoogleAdsCampaignsViewer({
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
 
+  const getChannelLabel = (channel: string) => {
+    const c = (channel || "").toUpperCase();
+    if (c.includes("SEARCH")) return "🔍 Rede de Pesquisa";
+    if (c.includes("DISPLAY")) return "🖼️ Rede de Display";
+    if (c.includes("PERFORMANCE_MAX")) return "🚀 Performance Max";
+    if (c.includes("SHOPPING")) return "🛍️ Google Shopping";
+    if (c.includes("VIDEO") || c.includes("YOUTUBE")) return "▶️ YouTube Ads";
+    if (c.includes("LOCAL")) return "📍 Google Maps / Local";
+    return "🔍 Pesquisa Google";
+  };
+
+  const getCampaignKeyMetric = (camp: any) => {
+    const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
+    const clicks = Number(camp.metrics?.clicks) || 0;
+    const conversions = Number(camp.metrics?.conversions) || 0;
+    const costPerConv = Number(camp.metrics?.costPerConversion) || (conversions > 0 ? spent / conversions : 0);
+    const avgCpc = Number(camp.metrics?.averageCpc) || (clicks > 0 ? spent / clicks : 0);
+
+    if (conversions > 0) {
+      return {
+        label: "Conversões",
+        value: conversions.toLocaleString("pt-BR"),
+        subLabel: costPerConv > 0 ? `Custo/Conv: ${costPerConv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Ações de valor",
+      };
+    }
+
+    return {
+      label: "Cliques na Busca",
+      value: clicks.toLocaleString("pt-BR"),
+      subLabel: avgCpc > 0 ? `CPC Médio: ${avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques nos anúncios",
+    };
+  };
+
   return (
     <div className="space-y-6">
       {/* Header com Status da Conexão */}
@@ -119,8 +146,8 @@ export function GoogleAdsCampaignsViewer({
         </Link>
       </div>
 
-      {/* 4 Cards de Métricas Principais Consolidadas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 3 Cards de Métricas Principais Consolidadas */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Investimento */}
         <Card className="border border-slate-200 bg-white shadow-xs">
           <CardContent className="p-5">
@@ -183,30 +210,8 @@ export function GoogleAdsCampaignsViewer({
               )}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Taxa de cliques nas pesquisas
+              CPC Médio: {avgCpc > 0 ? avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}
             </p>
-          </CardContent>
-        </Card>
-
-        {/* CPC Médio */}
-        <Card className="border border-slate-200 bg-white shadow-xs">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                CPC Médio
-              </span>
-              <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-poppins text-2xl font-bold text-slate-900">
-                {avgCpc > 0
-                  ? avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                  : "R$ 0,00"}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Custo médio por palavra-chave clicada</p>
           </CardContent>
         </Card>
       </div>
@@ -272,10 +277,10 @@ export function GoogleAdsCampaignsViewer({
               {activeCampaigns.map((camp: any) => {
                 const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
                 const impressions = Number(camp.metrics?.impressions) || 0;
-                const clicks = Number(camp.metrics?.clicks) || 0;
                 const budget = Number(camp.budgetAmount) || 0;
                 const isActive = camp.status === "active";
                 const isPaused = camp.status === "paused";
+                const keyMetric = getCampaignKeyMetric(camp);
 
                 return (
                   <div
@@ -303,6 +308,9 @@ export function GoogleAdsCampaignsViewer({
                           >
                             {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
                           </Badge>
+                          <Badge variant="outline" className="text-[10px] font-medium text-red-700 bg-red-50 border-red-200">
+                            {getChannelLabel(camp.channelType)}
+                          </Badge>
                         </div>
 
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
@@ -328,8 +336,8 @@ export function GoogleAdsCampaignsViewer({
                       </div>
                     </div>
 
-                    {/* Métricas Rápidas */}
-                    <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
+                    {/* Métricas Rápidas com foco no Objetivo */}
+                    <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right min-w-[180px]">
                       <div>
                         <span className="text-[11px] font-medium uppercase text-slate-400">
                           Impressões
@@ -339,12 +347,15 @@ export function GoogleAdsCampaignsViewer({
                         </p>
                       </div>
                       <div>
-                        <span className="text-[11px] font-medium uppercase text-slate-400">
-                          Cliques
+                        <span className="text-[11px] font-semibold uppercase text-[#EA4335]">
+                          {keyMetric.label}
                         </span>
-                        <p className="font-semibold text-slate-800">
-                          {clicks.toLocaleString("pt-BR")}
+                        <p className="font-poppins text-base font-bold text-[#EA4335]">
+                          {keyMetric.value}
                         </p>
+                        <span className="block text-[10px] text-slate-500">
+                          {keyMetric.subLabel}
+                        </span>
                       </div>
                     </div>
                   </div>

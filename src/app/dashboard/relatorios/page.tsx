@@ -1012,6 +1012,7 @@ export default function Relatorios() {
   );
 
   const [metaCampaigns, setMetaCampaigns] = useState<any[]>([]);
+  const [metaBreakdowns, setMetaBreakdowns] = useState<any>(null);
   const [googleCampaigns, setGoogleCampaigns] = useState<any[]>([]);
 
   useEffect(() => {
@@ -1040,15 +1041,19 @@ export default function Relatorios() {
             const campaignsData = await campaignsRes.json();
             if (campaignsData.success) {
               setMetaCampaigns(campaignsData.campaigns || []);
+              setMetaBreakdowns(campaignsData.breakdowns || null);
             } else {
               setMetaCampaigns([]);
+              setMetaBreakdowns(null);
             }
           } catch (e) {
             console.warn("Erro ao buscar campanhas Meta em relatórios:", e);
             setMetaCampaigns([]);
+            setMetaBreakdowns(null);
           }
         } else {
           setMetaCampaigns([]);
+          setMetaBreakdowns(null);
         }
 
         // Buscar campanhas do Google Ads se conectada (com filtro de período real)
@@ -1234,6 +1239,7 @@ export default function Relatorios() {
                   <TabsContent value="meta" className="mt-6">
                     <MetaAdsCampaignsViewer
                       campaigns={metaCampaigns}
+                      breakdowns={metaBreakdowns}
                       isConnected={!!(metaConnection?.isConnected && metaConnection?.adAccountId)}
                       adAccountName={metaConnection?.adAccountName}
                       pageName={metaConnection?.pageName}
