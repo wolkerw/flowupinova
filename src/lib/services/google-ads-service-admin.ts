@@ -248,7 +248,7 @@ export async function getGoogleAdsCampaigns(
       dateClause = "DURING LAST_30_DAYS"; // Google Ads API core standard range
     }
 
-    const query = `
+    const campaignQuery = `
       SELECT 
         campaign.id, 
         campaign.name, 
@@ -269,24 +269,155 @@ export async function getGoogleAdsCampaigns(
       LIMIT 50
     `;
 
-    const response = await fetch(
-      `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ query }),
-      }
-    );
+    const adQuery = `
+      SELECT
+        ad_group_ad.ad.id,
+        ad_group_ad.ad.name,
+        ad_group_ad.ad.type,
+        ad_group_ad.status,
+        ad_group_ad.ad.responsive_search_ad.headlines,
+        ad_group_ad.ad.responsive_search_ad.descriptions,
+        ad_group_ad.ad.responsive_search_ad.path1,
+        ad_group_ad.ad.responsive_search_ad.path2,
+        ad_group_ad.ad.final_urls,
+        campaign.id,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr,
+        metrics.average_cpc
+      FROM ad_group_ad
+      WHERE segments.date ${dateClause}
+      ORDER BY metrics.impressions DESC
+      LIMIT 100
+    `;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || "Erro ao consultar campanhas.");
-    }
+    const keywordQuery = `
+      SELECT
+        ad_group_criterion.keyword.text,
+        ad_group_criterion.keyword.match_type,
+        campaign.id,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.ctr,
+        metrics.average_cpc
+      FROM keyword_view
+      WHERE segments.date ${dateClause}
+      ORDER BY metrics.clicks DESC
+      LIMIT 50
+    `;
 
-    const data = await response.json();
-    const results = data.results || [];
+    const [campaignsRes, adsRes, keywordsRes] = await Promise.allSettled([
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: campaignQuery }),
+        }
+      ).then((r) => r.json()),
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: adQuery }),
+        }
+      ).then((r) => r.json()),
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: keywordQuery }),
+        }
+      ).then((r) => r.json()),
+    ]);
 
-    return results.map((item: any) => {
+    const campaignResults =
+      campaignsRes.status === "fulfilled" && campaignsRes.value?.results
+        ? campaignsRes.value.results
+        : [];
+    const adsResults =
+      adsRes.status === "fulfilled" && adsRes.value?.results
+        ? adsRes.value.results
+        : [];
+    const keywordsResults =
+      keywordsRes.status === "fulfilled" && keywordsRes.value?.results
+        ? keywordsRes.value.results
+        : [];
+
+    // Mapear anúncios individuais por campanha
+    const adsByCampaignMap = new Map<string, any[]>();
+    adsResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const avgCpcMicros = Number(item.metrics?.averageCpc || 0);
+      const rawStatus = item.adGroupAd?.status?.toLowerCase();
+      const status = rawStatus === "enabled" ? "active" : rawStatus;
+
+      const rsa = item.adGroupAd?.ad?.responsiveSearchAd;
+      const headlines = rsa?.headlines?.map((h: any) => h.text).filter(Boolean) || [];
+      const descriptions = rsa?.descriptions?.map((d: any) => d.text).filter(Boolean) || [];
+      const path1 = rsa?.path1 || "";
+      const path2 = rsa?.path2 || "";
+      const finalUrls = item.adGroupAd?.ad?.finalUrls || [];
+
+      const currentList = adsByCampaignMap.get(campId) || [];
+      currentList.push({
+        id: item.adGroupAd?.ad?.id,
+        name: item.adGroupAd?.ad?.name,
+        status,
+        type: item.adGroupAd?.ad?.type || "RESPONSIVE_SEARCH_AD",
+        headlines,
+        descriptions,
+        path1,
+        path2,
+        finalUrls,
+        metrics: {
+          impressions: Number(item.metrics?.impressions || 0),
+          clicks: Number(item.metrics?.clicks || 0),
+          amountSpent: spentMicros / 1_000_000,
+          spent: spentMicros / 1_000_000,
+          ctr: Number(item.metrics?.ctr || 0) * 100,
+          averageCpc: avgCpcMicros / 1_000_000,
+          conversions: Number(item.metrics?.conversions || 0),
+        },
+      });
+      adsByCampaignMap.set(campId, currentList);
+    });
+
+    // Mapear palavras-chave por campanha
+    const keywordsByCampaignMap = new Map<string, any[]>();
+    keywordsResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const avgCpcMicros = Number(item.metrics?.averageCpc || 0);
+
+      const currentList = keywordsByCampaignMap.get(campId) || [];
+      currentList.push({
+        text: item.adGroupCriterion?.keyword?.text,
+        matchType: item.adGroupCriterion?.keyword?.matchType || "BROAD",
+        impressions: Number(item.metrics?.impressions || 0),
+        clicks: Number(item.metrics?.clicks || 0),
+        amountSpent: spentMicros / 1_000_000,
+        spent: spentMicros / 1_000_000,
+        ctr: Number(item.metrics?.ctr || 0) * 100,
+        averageCpc: avgCpcMicros / 1_000_000,
+        conversions: Number(item.metrics?.conversions || 0),
+      });
+      keywordsByCampaignMap.set(campId, currentList);
+    });
+
+    return campaignResults.map((item: any) => {
+      const campId = String(item.campaign?.id || "");
       const budgetMicros = Number(item.campaignBudget?.amountMicros || 0);
       const spentMicros = Number(item.metrics?.costMicros || 0);
       const avgCpcMicros = Number(item.metrics?.averageCpc || 0);
@@ -312,6 +443,8 @@ export async function getGoogleAdsCampaigns(
           conversions: Number(item.metrics?.conversions || 0),
           costPerConversion: costPerConvMicros / 1_000_000,
         },
+        ads: adsByCampaignMap.get(campId) || [],
+        keywords: keywordsByCampaignMap.get(campId) || [],
       };
     });
   } catch (error: any) {

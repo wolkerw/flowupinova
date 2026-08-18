@@ -4,6 +4,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   TrendingUp,
@@ -14,6 +15,18 @@ import {
   Search,
   Target,
   Calendar,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Key,
+  Globe,
+  Smartphone,
+  Monitor,
+  Video,
+  Sparkles,
+  PhoneCall,
+  Flame,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,6 +47,15 @@ export function GoogleAdsCampaignsViewer({
   periodDays,
   onPeriodChange,
 }: GoogleAdsCampaignsViewerProps) {
+  const [expandedCampaigns, setExpandedCampaigns] = React.useState<Record<string, boolean>>({});
+
+  const toggleExpand = (campId: string) => {
+    setExpandedCampaigns((prev) => ({
+      ...prev,
+      [campId]: !prev[campId],
+    }));
+  };
+
   if (!isConnected) {
     return (
       <Card className="border border-slate-200 bg-white p-8 text-center shadow-xs">
@@ -78,19 +100,22 @@ export function GoogleAdsCampaignsViewer({
     (acc, c) => acc + (Number(c.metrics?.clicks) || 0),
     0
   );
+  const totalConversions = activeCampaigns.reduce(
+    (acc, c) => acc + (Number(c.metrics?.conversions) || 0),
+    0
+  );
 
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
 
   const getChannelLabel = (channel: string) => {
     const c = (channel || "").toUpperCase();
-    if (c.includes("SEARCH")) return "🔍 Rede de Pesquisa";
-    if (c.includes("DISPLAY")) return "🖼️ Rede de Display";
-    if (c.includes("PERFORMANCE_MAX")) return "🚀 Performance Max";
-    if (c.includes("SHOPPING")) return "🛍️ Google Shopping";
-    if (c.includes("VIDEO") || c.includes("YOUTUBE")) return "▶️ YouTube Ads";
-    if (c.includes("LOCAL")) return "📍 Google Maps / Local";
-    return "🔍 Pesquisa Google";
+    if (c.includes("SEARCH")) return { label: "Rede de Pesquisa", icon: Search, color: "text-blue-700 bg-blue-50 border-blue-200" };
+    if (c.includes("PERFORMANCE_MAX")) return { label: "Performance Max", icon: Sparkles, color: "text-purple-700 bg-purple-50 border-purple-200" };
+    if (c.includes("VIDEO") || c.includes("YOUTUBE")) return { label: "YouTube Ads", icon: Video, color: "text-red-700 bg-red-50 border-red-200" };
+    if (c.includes("DISPLAY")) return { label: "Rede de Display", icon: Globe, color: "text-amber-700 bg-amber-50 border-amber-200" };
+    if (c.includes("SHOPPING")) return { label: "Shopping", icon: Target, color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    return { label: "Pesquisa Google", icon: Search, color: "text-blue-700 bg-blue-50 border-blue-200" };
   };
 
   const getCampaignKeyMetric = (camp: any) => {
@@ -98,21 +123,30 @@ export function GoogleAdsCampaignsViewer({
     const clicks = Number(camp.metrics?.clicks) || 0;
     const conversions = Number(camp.metrics?.conversions) || 0;
     const costPerConv = Number(camp.metrics?.costPerConversion) || (conversions > 0 ? spent / conversions : 0);
-    const avgCpc = Number(camp.metrics?.averageCpc) || (clicks > 0 ? spent / clicks : 0);
+    const cpc = Number(camp.metrics?.averageCpc) || (clicks > 0 ? spent / clicks : 0);
 
     if (conversions > 0) {
       return {
         label: "Conversões",
         value: conversions.toLocaleString("pt-BR"),
         subLabel: costPerConv > 0 ? `Custo/Conv: ${costPerConv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Ações de valor",
+        badge: "Conversões",
       };
     }
 
     return {
       label: "Cliques na Busca",
       value: clicks.toLocaleString("pt-BR"),
-      subLabel: avgCpc > 0 ? `CPC Médio: ${avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques nos anúncios",
+      subLabel: cpc > 0 ? `CPC Médio: ${cpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques nos anúncios",
+      badge: "Cliques",
     };
+  };
+
+  const getMatchTypeBadge = (matchType: string) => {
+    const m = (matchType || "").toUpperCase();
+    if (m === "EXACT") return <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">[Exata]</span>;
+    if (m === "PHRASE") return <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">&quot;Frase&quot;</span>;
+    return <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border border-slate-200">Ampla</span>;
   };
 
   return (
@@ -270,82 +304,126 @@ export function GoogleAdsCampaignsViewer({
           ) : (
             <div className="divide-y divide-slate-100">
               {activeCampaigns.map((camp: any) => {
+                const campUniqueId = String(camp.id);
                 const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
                 const impressions = Number(camp.metrics?.impressions) || 0;
                 const budget = Number(camp.budgetAmount) || 0;
                 const isActive = camp.status === "active";
                 const isPaused = camp.status === "paused";
                 const keyMetric = getCampaignKeyMetric(camp);
+                const isExpanded = !!expandedCampaigns[campUniqueId];
+                const channel = getChannelLabel(camp.channelType);
+                const ChannelIcon = channel.icon;
+
+                // Filtrar anúncios ativos e ordenar pelos que mais geraram cliques/conversões
+                const rawAds: any[] = camp.ads || [];
+                const activeAds = rawAds
+                  .filter((a: any) => (a.status || "").toLowerCase() === "active")
+                  .sort((a: any, b: any) => {
+                    const convDiff = (Number(b.metrics?.conversions) || 0) - (Number(a.metrics?.conversions) || 0);
+                    if (convDiff !== 0) return convDiff;
+                    const clicksDiff = (Number(b.metrics?.clicks) || 0) - (Number(a.metrics?.clicks) || 0);
+                    if (clicksDiff !== 0) return clicksDiff;
+                    return (Number(b.metrics?.impressions) || 0) - (Number(a.metrics?.impressions) || 0);
+                  });
+
+                const keywordsList: any[] = (camp.keywords || []).sort(
+                  (a: any, b: any) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0)
+                );
+
+                const hasExpandableContent = activeAds.length > 0 || keywordsList.length > 0;
 
                 return (
-                  <div
-                    key={camp.id}
-                    className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex items-start gap-3.5">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#EA4335]">
-                        <Search className="h-6 w-6" />
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h5 className="font-poppins text-sm font-semibold text-slate-900 truncate max-w-xs sm:max-w-md">
-                            {camp.name || "Campanha Google Ads"}
-                          </h5>
-                          <Badge
-                            className={`text-[10px] font-medium ${
-                              isActive
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                                : isPaused
-                                ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
-                                : "bg-slate-100 text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] font-medium text-red-700 bg-red-50 border-red-200">
-                            {getChannelLabel(camp.channelType)}
-                          </Badge>
+                  <div key={campUniqueId} className="py-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3.5">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#EA4335]">
+                          <ChannelIcon className="h-6 w-6" />
                         </div>
 
-                        {budget > 0 && (
-                          <div className="mt-1.5 flex items-center text-xs text-slate-500">
-                            <span>
-                              Orçamento:{" "}
-                              <strong className="text-slate-700">
-                                {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                /dia
-                              </strong>
-                            </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h5 className="font-poppins text-sm font-semibold text-slate-900 truncate max-w-xs sm:max-w-md">
+                              {camp.name || "Campanha Google Ads"}
+                            </h5>
+                            <Badge
+                              className={`text-[10px] font-medium ${
+                                isActive
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                                  : isPaused
+                                  ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                                  : "bg-slate-100 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
+                            </Badge>
+                            <Badge variant="outline" className={`text-[10px] font-medium ${channel.color}`}>
+                              {channel.label}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Métricas em Colunas Alinhadas */}
-                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
-                      {/* 1. Investimento */}
-                      <div className="min-w-[80px]">
-                        <span className="text-[11px] font-semibold uppercase text-slate-400">
-                          Investimento
-                        </span>
-                        <p className="font-poppins text-sm font-bold text-slate-800">
-                          {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                        </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                            {budget > 0 && (
+                              <div className="flex items-center text-xs text-slate-500">
+                                <span>
+                                  Orçamento:{" "}
+                                  <strong className="text-slate-700">
+                                    {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                    /dia
+                                  </strong>
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Botão de Ver Anúncios Ativos / Detalhes */}
+                            {hasExpandableContent && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(campUniqueId)}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50/70 px-2 py-0.5 text-[11px] font-semibold text-[#EA4335] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer"
+                              >
+                                <Layers className="h-3 w-3 text-[#EA4335]" />
+                                <span>
+                                  {isExpanded
+                                    ? "Ocultar detalhes"
+                                    : activeAds.length > 0
+                                    ? `Ver anúncios ativos (${activeAds.length})`
+                                    : `Ver palavras-chave (${keywordsList.length})`}
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-3 w-3 text-[#EA4335]" />
+                                ) : (
+                                  <ChevronDown className="h-3 w-3 text-[#EA4335]" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* 2. Impressões */}
-                      <div className="min-w-[80px]">
-                        <span className="text-[11px] font-semibold uppercase text-slate-400">
-                          Impressões
-                        </span>
-                        <p className="font-poppins text-sm font-bold text-slate-800">
-                          {impressions.toLocaleString("pt-BR")}
-                        </p>
-                      </div>
+                      {/* Métricas em Colunas Alinhadas */}
+                      <div className="flex flex-wrap items-center justify-between sm:justify-end gap-5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
+                        {/* 1. Investimento */}
+                        <div className="min-w-[80px]">
+                          <span className="text-[11px] font-semibold uppercase text-slate-400">
+                            Investimento
+                          </span>
+                          <p className="font-poppins text-sm font-bold text-slate-800">
+                            {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </p>
+                        </div>
 
-                      {/* 3. Cliques (se a métrica principal não for Cliques) */}
-                      {keyMetric.label !== "Cliques na Busca" && (
+                        {/* 2. Impressões */}
+                        <div className="min-w-[80px]">
+                          <span className="text-[11px] font-semibold uppercase text-slate-400">
+                            Impressões
+                          </span>
+                          <p className="font-poppins text-sm font-bold text-slate-800">
+                            {impressions.toLocaleString("pt-BR")}
+                          </p>
+                        </div>
+
+                        {/* 3. Cliques */}
                         <div className="min-w-[70px]">
                           <span className="text-[11px] font-semibold uppercase text-slate-400">
                             Cliques
@@ -354,21 +432,238 @@ export function GoogleAdsCampaignsViewer({
                             {Number(camp.metrics?.clicks || 0).toLocaleString("pt-BR")}
                           </p>
                         </div>
-                      )}
 
-                      {/* 4. Métrica Principal */}
-                      <div className="min-w-[100px]">
-                        <span className="text-[11px] font-bold uppercase text-[#EA4335]">
-                          {keyMetric.label}
-                        </span>
-                        <p className="font-poppins text-base font-bold text-[#EA4335]">
-                          {keyMetric.value}
-                        </p>
-                        <span className="block text-[10px] text-slate-500">
-                          {keyMetric.subLabel}
-                        </span>
+                        {/* 4. Métrica Principal */}
+                        <div className="min-w-[100px]">
+                          <span className="text-[11px] font-bold uppercase text-[#EA4335]">
+                            {keyMetric.label}
+                          </span>
+                          <p className="font-poppins text-base font-bold text-[#EA4335]">
+                            {keyMetric.value}
+                          </p>
+                          <span className="block text-[10px] text-slate-500">
+                            {keyMetric.subLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Gaveta Expansível de Anúncios e Palavras-Chave */}
+                    {isExpanded && hasExpandableContent && (
+                      <div className="mt-4 space-y-5 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
+                        {/* 1. Anúncios Ativos com Mockup Fiel do Google */}
+                        {activeAds.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80">
+                              <Layers className="h-4 w-4 text-[#EA4335]" />
+                              <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
+                                Anúncios Ativos ({activeAds.length})
+                              </h6>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                              {activeAds.map((ad: any, idx: number) => {
+                                const adSpent = Number(ad.metrics?.amountSpent) || Number(ad.metrics?.spent) || 0;
+                                const adImpressions = Number(ad.metrics?.impressions) || 0;
+                                const adClicks = Number(ad.metrics?.clicks) || 0;
+                                const adCtr = Number(ad.metrics?.ctr) || 0;
+                                const adCpc = Number(ad.metrics?.averageCpc) || 0;
+                                const adConversions = Number(ad.metrics?.conversions) || 0;
+
+                                const headlines = ad.headlines || [];
+                                const descriptions = ad.descriptions || [];
+                                const finalUrl = ad.finalUrls?.[0] || "";
+                                let displayDomain = "seusite.com.br";
+                                try {
+                                  if (finalUrl) {
+                                    const parsed = new URL(finalUrl);
+                                    displayDomain = parsed.hostname.replace(/^www\./, "");
+                                  }
+                                } catch (e) {}
+
+                                const pathString = [ad.path1, ad.path2].filter(Boolean).join(" › ");
+
+                                return (
+                                  <div
+                                    key={ad.id || idx}
+                                    className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                                  >
+                                    {/* Mockup Fiel da Busca do Google (Google SERP Result) */}
+                                    <div className="p-4 space-y-2.5 bg-white border-b border-slate-100 flex-1">
+                                      {/* Header Google: Favicon + URL + Patrocinado */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs min-w-0">
+                                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-600">
+                                            G
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-700 truncate">
+                                              <span className="font-semibold">{displayDomain}</span>
+                                              {pathString && <span className="text-slate-400">› {pathString}</span>}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-700 border border-slate-200">
+                                          Patrocinado
+                                        </span>
+                                      </div>
+
+                                      {/* Título em Azul Google (#1a0dab) */}
+                                      <div>
+                                        <h4 className="font-poppins text-sm sm:text-base font-semibold text-[#1a0dab] leading-snug hover:underline cursor-pointer">
+                                          {headlines.length > 0
+                                            ? headlines.slice(0, 3).join(" | ")
+                                            : camp.name || "Anúncio na Rede de Pesquisa Google"}
+                                        </h4>
+                                      </div>
+
+                                      {/* Descrição em Cinza Escuro Google (#4d5156) */}
+                                      <p className="text-xs text-[#4d5156] leading-relaxed">
+                                        {descriptions.length > 0
+                                          ? descriptions.join(" ")
+                                          : "Atendimento ágil, produtos de extrema qualidade e suporte completo. Clique e fale com nossos especialistas agora mesmo."}
+                                      </p>
+
+                                      {/* Sitelinks / Extensões Rápidas de Ação */}
+                                      <div className="pt-2 flex flex-wrap items-center gap-2">
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50/70 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-[#1a0dab]">
+                                          <PhoneCall className="h-3 w-3" />
+                                          Ligar / WhatsApp
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                                          🎯 Fazer Orçamento
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                                          📍 Localização
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Barra de Métricas Individuais deste Anúncio */}
+                                    <div className="bg-slate-50/80 p-3">
+                                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                        <div>
+                                          <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                          <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                            {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                          <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                            {adImpressions.toLocaleString("pt-BR")}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] uppercase font-semibold text-[#EA4335]">Cliques</span>
+                                          <p className="font-poppins font-bold text-[#EA4335] text-[11px]">
+                                            {adClicks.toLocaleString("pt-BR")}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] uppercase font-semibold text-emerald-600">
+                                            {adConversions > 0 ? "Conv." : "CTR"}
+                                          </span>
+                                          <p className="font-poppins font-bold text-emerald-600 text-[11px]">
+                                            {adConversions > 0 ? adConversions.toLocaleString("pt-BR") : `${adCtr.toFixed(1)}%`}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Link Externo se disponível */}
+                                      {finalUrl && (
+                                        <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex justify-center">
+                                          <a
+                                            href={finalUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#EA4335] hover:underline"
+                                          >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Visitar página de destino
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. Palavras-Chave de Maior Desempenho (Keywords) */}
+                        {keywordsList.length > 0 && (
+                          <div className="space-y-3 pt-2">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                              <div className="flex items-center gap-2">
+                                <Key className="h-4 w-4 text-[#EA4335]" />
+                                <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
+                                  Top Palavras-Chave Acionadas ({keywordsList.length})
+                                </h6>
+                              </div>
+                              <span className="text-[11px] text-slate-500">
+                                Termos que geraram mais buscas e cliques
+                              </span>
+                            </div>
+
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                              <table className="w-full text-left text-xs">
+                                <thead className="bg-slate-50 text-[10px] uppercase font-semibold text-slate-500 border-b border-slate-200">
+                                  <tr>
+                                    <th className="px-3.5 py-2.5">Palavra-Chave</th>
+                                    <th className="px-3 py-2.5 text-center">Tipo</th>
+                                    <th className="px-3 py-2.5 text-right">Cliques</th>
+                                    <th className="px-3 py-2.5 text-right">Impressões</th>
+                                    <th className="px-3 py-2.5 text-right">CTR</th>
+                                    <th className="px-3 py-2.5 text-right">CPC Médio</th>
+                                    <th className="px-3.5 py-2.5 text-right">Investimento</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {keywordsList.slice(0, 10).map((kw: any, kIdx: number) => {
+                                    const kwSpent = Number(kw.amountSpent) || Number(kw.spent) || 0;
+                                    const kwClicks = Number(kw.clicks) || 0;
+                                    const kwImpressions = Number(kw.impressions) || 0;
+                                    const kwCtr = Number(kw.ctr) || 0;
+                                    const kwCpc = Number(kw.averageCpc) || (kwClicks > 0 ? kwSpent / kwClicks : 0);
+
+                                    return (
+                                      <tr key={kIdx} className="hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-3.5 py-2.5 font-medium text-slate-900">
+                                          <div className="flex items-center gap-1.5">
+                                            <Search className="h-3 w-3 text-slate-400 shrink-0" />
+                                            <span>{kw.text}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                          {getMatchTypeBadge(kw.matchType)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right font-bold text-[#EA4335]">
+                                          {kwClicks.toLocaleString("pt-BR")}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right text-slate-600">
+                                          {kwImpressions.toLocaleString("pt-BR")}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right text-slate-600">
+                                          {kwCtr.toFixed(1)}%
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right text-slate-600">
+                                          {kwCpc > 0 ? kwCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
+                                        </td>
+                                        <td className="px-3.5 py-2.5 text-right font-semibold text-slate-900">
+                                          {kwSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
