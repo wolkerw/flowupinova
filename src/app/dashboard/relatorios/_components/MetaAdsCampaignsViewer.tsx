@@ -349,6 +349,27 @@ export function MetaAdsCampaignsViewer({
     };
   };
 
+  const [expandedCampaigns, setExpandedCampaigns] = React.useState<Record<string, boolean>>({});
+
+  const toggleExpand = (campId: string) => {
+    setExpandedCampaigns((prev) => ({
+      ...prev,
+      [campId]: !prev[campId],
+    }));
+  };
+
+  const getCtaLabel = (ctaType: string) => {
+    const c = (ctaType || "").toUpperCase();
+    if (c.includes("MESSAGE") || c.includes("WHATSAPP")) return "💬 Enviar mensagem no WhatsApp";
+    if (c.includes("LEARN_MORE")) return "🎯 Saiba mais";
+    if (c.includes("SIGN_UP") || c.includes("SUBSCRIBE")) return "📋 Cadastre-se";
+    if (c.includes("SHOP_NOW") || c.includes("ORDER_NOW") || c.includes("BUY")) return "🛒 Comprar agora";
+    if (c.includes("CONTACT_US")) return "📞 Fale conosco";
+    if (c.includes("DOWNLOAD") || c.includes("INSTALL")) return "📲 Baixar app";
+    if (c.includes("GET_OFFER") || c.includes("GET_QUOTE")) return "🏷️ Obter oferta";
+    return "🎯 Saiba mais";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header com Status da Conexão */}
@@ -487,7 +508,7 @@ export function MetaAdsCampaignsViewer({
         <CardContent>
           {activeCampaigns.length === 0 ? (
             <div className="py-12 text-center text-slate-500">
-              <Megaphone className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+              <Search className="mx-auto mb-3 h-10 w-10 text-slate-300" />
               <p className="font-medium text-slate-700">Nenhuma campanha com veiculação neste período</p>
               <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">
                 Não foram registrados gastos ou impressões nos últimos {periodDays} dias para esta conta de anúncios.
@@ -503,123 +524,303 @@ export function MetaAdsCampaignsViewer({
           ) : (
             <div className="divide-y divide-slate-100">
               {activeCampaigns.map((camp: any) => {
+                const campUniqueId = camp.id || camp.metaCampaignId;
                 const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
                 const impressions = Number(camp.metrics?.impressions) || 0;
                 const budget = Number(camp.budget?.amount) || 0;
                 const isActive = camp.status === "active";
                 const isPaused = camp.status === "paused";
                 const keyMetric = getCampaignKeyMetric(camp);
+                const isExpanded = !!expandedCampaigns[campUniqueId];
+                const adsList: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : (camp.creative?.imageUrl ? [{
+                  id: `local-${campUniqueId}`,
+                  name: camp.name,
+                  status: camp.status,
+                  imageUrl: camp.creative.imageUrl,
+                  title: camp.name,
+                  body: "",
+                  callToActionType: camp.creative.ctaType,
+                  metrics: camp.metrics,
+                }] : []);
 
                 return (
-                  <div
-                    key={camp.id || camp.metaCampaignId}
-                    className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex items-start gap-3.5">
-                      {camp.creative?.imageUrl ? (
-                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                          <Image
-                            src={camp.creative.imageUrl}
-                            alt={camp.name || "Criativo"}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0083C7]">
-                          <Facebook className="h-6 w-6" />
-                        </div>
-                      )}
-
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h5 className="font-poppins text-sm font-semibold text-slate-900 truncate max-w-xs sm:max-w-md">
-                            {camp.name || "Campanha Meta Ads"}
-                          </h5>
-                          <Badge
-                            className={`text-[10px] font-medium ${
-                              isActive
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                                : isPaused
-                                ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
-                                : "bg-slate-100 text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] font-medium text-blue-700 bg-blue-50 border-blue-200">
-                            {keyMetric.badge}
-                          </Badge>
-                        </div>
-
-                        {camp.targeting?.address && (
-                          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                            <MapPin className="h-3 w-3 text-slate-400" />
-                            {camp.targeting.address} ({camp.targeting.radiusKm || 5}km)
-                          </p>
-                        )}
-
-                        {budget > 0 && (
-                          <div className="mt-1.5 flex items-center text-xs text-slate-500">
-                            <span>
-                              Orçamento:{" "}
-                              <strong className="text-slate-700">
-                                {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                /dia
-                              </strong>
-                            </span>
+                  <div key={campUniqueId} className="py-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3.5">
+                        {camp.creative?.imageUrl || (adsList[0]?.imageUrl) ? (
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                            <Image
+                              src={camp.creative?.imageUrl || adsList[0]?.imageUrl}
+                              alt={camp.name || "Criativo"}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0083C7]">
+                            <Facebook className="h-6 w-6" />
                           </div>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Métricas em Colunas Alinhadas */}
-                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
-                      {/* 1. Investimento */}
-                      <div className="min-w-[80px]">
-                        <span className="text-[11px] font-semibold uppercase text-slate-400">
-                          Investimento
-                        </span>
-                        <p className="font-poppins text-sm font-bold text-slate-800">
-                          {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                        </p>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h5 className="font-poppins text-sm font-semibold text-slate-900 truncate max-w-xs sm:max-w-md">
+                              {camp.name || "Campanha Meta Ads"}
+                            </h5>
+                            <Badge
+                              className={`text-[10px] font-medium ${
+                                isActive
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                                  : isPaused
+                                  ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                                  : "bg-slate-100 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {isActive ? "Ativa" : isPaused ? "Pausada" : camp.status || "Concluída"}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] font-medium text-blue-700 bg-blue-50 border-blue-200">
+                              {keyMetric.badge}
+                            </Badge>
+                          </div>
+
+                          {camp.targeting?.address && (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                              <MapPin className="h-3 w-3 text-slate-400" />
+                              {camp.targeting.address} ({camp.targeting.radiusKm || 5}km)
+                            </p>
+                          )}
+
+                          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                            {budget > 0 && (
+                              <div className="flex items-center text-xs text-slate-500">
+                                <span>
+                                  Orçamento:{" "}
+                                  <strong className="text-slate-700">
+                                    {budget.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                    /dia
+                                  </strong>
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Botão de Ver Anúncios / Criativos */}
+                            {adsList.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(campUniqueId)}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 px-2 py-0.5 text-[11px] font-semibold text-[#0083C7] hover:bg-blue-100 hover:border-blue-300 transition-all cursor-pointer"
+                              >
+                                <Layers className="h-3 w-3 text-[#0083C7]" />
+                                <span>{isExpanded ? "Ocultar Anúncios" : `Ver Anúncios (${adsList.length})`}</span>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-3 w-3 text-[#0083C7]" />
+                                ) : (
+                                  <ChevronDown className="h-3 w-3 text-[#0083C7]" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* 2. Impressões */}
-                      <div className="min-w-[80px]">
-                        <span className="text-[11px] font-semibold uppercase text-slate-400">
-                          Impressões
-                        </span>
-                        <p className="font-poppins text-sm font-bold text-slate-800">
-                          {impressions.toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-
-                      {/* 3. Cliques (se a métrica principal não for Cliques) */}
-                      {keyMetric.label !== "Cliques" && (
-                        <div className="min-w-[70px]">
+                      {/* Métricas em Colunas Alinhadas */}
+                      <div className="flex flex-wrap items-center justify-between sm:justify-end gap-5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0 text-center sm:text-right">
+                        {/* 1. Investimento */}
+                        <div className="min-w-[80px]">
                           <span className="text-[11px] font-semibold uppercase text-slate-400">
-                            Cliques
+                            Investimento
                           </span>
                           <p className="font-poppins text-sm font-bold text-slate-800">
-                            {Number(camp.metrics?.clicks || 0).toLocaleString("pt-BR")}
+                            {spent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </p>
                         </div>
-                      )}
 
-                      {/* 4. Métrica Principal do Objetivo */}
-                      <div className="min-w-[100px]">
-                        <span className="text-[11px] font-bold uppercase text-[#0083C7]">
-                          {keyMetric.label}
-                        </span>
-                        <p className="font-poppins text-base font-bold text-[#0083C7]">
-                          {keyMetric.value}
-                        </p>
-                        <span className="block text-[10px] text-slate-500">
-                          {keyMetric.subLabel}
-                        </span>
+                        {/* 2. Impressões */}
+                        <div className="min-w-[80px]">
+                          <span className="text-[11px] font-semibold uppercase text-slate-400">
+                            Impressões
+                          </span>
+                          <p className="font-poppins text-sm font-bold text-slate-800">
+                            {impressions.toLocaleString("pt-BR")}
+                          </p>
+                        </div>
+
+                        {/* 3. Cliques (se a métrica principal não for Cliques) */}
+                        {keyMetric.label !== "Cliques" && (
+                          <div className="min-w-[70px]">
+                            <span className="text-[11px] font-semibold uppercase text-slate-400">
+                              Cliques
+                            </span>
+                            <p className="font-poppins text-sm font-bold text-slate-800">
+                              {Number(camp.metrics?.clicks || 0).toLocaleString("pt-BR")}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* 4. Métrica Principal do Objetivo */}
+                        <div className="min-w-[100px]">
+                          <span className="text-[11px] font-bold uppercase text-[#0083C7]">
+                            {keyMetric.label}
+                          </span>
+                          <p className="font-poppins text-base font-bold text-[#0083C7]">
+                            {keyMetric.value}
+                          </p>
+                          <span className="block text-[10px] text-slate-500">
+                            {keyMetric.subLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Galeria de Anúncios e Criativos Expansível com Extrema Qualidade */}
+                    {isExpanded && adsList.length > 0 && (
+                      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4 pb-3 border-b border-slate-200/80">
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-[#0083C7]" />
+                            <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
+                              Anúncios e Criativos Ativos ({adsList.length})
+                            </h6>
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            Visualização fiel com imagem em alta resolução, cópia e CTA
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          {adsList.map((ad: any, idx: number) => {
+                            const isAdActive = ad.status === "active";
+                            const adSpent = Number(ad.metrics?.spend) || 0;
+                            const adImpressions = Number(ad.metrics?.impressions) || 0;
+                            const adClicks = Number(ad.metrics?.clicks) || 0;
+                            const adMessages = Number(ad.metrics?.messagesCount) || 0;
+                            const adLeads = Number(ad.metrics?.leadsCount) || 0;
+
+                            return (
+                              <div
+                                key={ad.id || idx}
+                                className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                              >
+                                {/* Header do Mockup do Post */}
+                                <div className="flex items-center justify-between p-3 border-b border-slate-100 bg-white">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white p-0.5">
+                                      <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-slate-800">
+                                        <Instagram className="h-4 w-4 text-pink-600" />
+                                      </div>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-poppins text-xs font-semibold text-slate-900 truncate">
+                                        {pageName || adAccountName || "Anúncio Oficial"}
+                                      </p>
+                                      <p className="text-[10px] text-slate-400">Patrocinado</p>
+                                    </div>
+                                  </div>
+                                  <Badge
+                                    className={`text-[9px] font-medium ${
+                                      isAdActive
+                                        ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                                        : "bg-slate-100 text-slate-700 hover:bg-slate-100"
+                                    }`}
+                                  >
+                                    {isAdActive ? "Ativo" : "Pausado"}
+                                  </Badge>
+                                </div>
+
+                                {/* Imagem / Mídia do Criativo em Alta Resolução */}
+                                <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+                                  {ad.imageUrl ? (
+                                    <Image
+                                      src={ad.imageUrl}
+                                      alt={ad.title || ad.name || "Criativo"}
+                                      fill
+                                      className="object-cover transition-transform duration-300 hover:scale-105"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                                      <Facebook className="h-10 w-10 opacity-30" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Barra de CTA do Anúncio */}
+                                <div className="flex items-center justify-between bg-slate-50 px-3.5 py-2.5 border-y border-slate-100">
+                                  <div className="min-w-0 pr-2">
+                                    <p className="text-xs font-bold text-slate-900 truncate">
+                                      {ad.title || "Anúncio Meta"}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 rounded-md bg-[#0083C7] px-2.5 py-1 text-[10px] font-semibold text-white shadow-2xs">
+                                    {getCtaLabel(ad.callToActionType)}
+                                  </span>
+                                </div>
+
+                                {/* Copy / Legenda do Anúncio */}
+                                {ad.body ? (
+                                  <div className="p-3 text-xs text-slate-600 border-b border-slate-100 flex-1">
+                                    <p className="line-clamp-4 leading-relaxed whitespace-pre-line">
+                                      {ad.body}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 text-xs text-slate-400 italic border-b border-slate-100 flex-1">
+                                    Criativo direto sem texto adicional
+                                  </div>
+                                )}
+
+                                {/* Métricas Individuais deste Anúncio */}
+                                <div className="bg-slate-50/80 p-3">
+                                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                      <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                        {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                      <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                        {adImpressions.toLocaleString("pt-BR")}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-[#0083C7]">
+                                        {adMessages > 0 ? "Msgs" : adLeads > 0 ? "Leads" : "Cliques"}
+                                      </span>
+                                      <p className="font-poppins font-bold text-[#0083C7] text-[11px]">
+                                        {adMessages > 0
+                                          ? adMessages.toLocaleString("pt-BR")
+                                          : adLeads > 0
+                                          ? adLeads.toLocaleString("pt-BR")
+                                          : adClicks.toLocaleString("pt-BR")}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Link Externo se disponível */}
+                                  {(ad.instagramPermalinkUrl || ad.effectiveObjectStoryId) && (
+                                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex justify-center">
+                                      <a
+                                        href={
+                                          ad.instagramPermalinkUrl ||
+                                          `https://facebook.com/${ad.effectiveObjectStoryId}`
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0083C7] hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Ver no {ad.instagramPermalinkUrl ? "Instagram" : "Facebook"}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

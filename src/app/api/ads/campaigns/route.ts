@@ -54,19 +54,21 @@ export async function GET(request: NextRequest) {
     if (period === "14") datePreset = "last_14d";
     if (period === "90") datePreset = "last_90d";
 
-    // 2. Buscar insights agregados por campanha e detalhamentos oficiais no período selecionado
+    // 2. Buscar insights agregados por campanha, detalhamentos e anúncios individuais
     const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const platformsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
     const ageGenderUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=age,gender&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const placementsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform,platform_position&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=50&access_token=${accessToken}`;
     const regionsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=region&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=10&access_token=${accessToken}`;
+    const adsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/ads?fields=id,name,status,campaign_id,creative{id,name,image_url,thumbnail_url,body,title,call_to_action_type,effective_object_story_id,instagram_permalink_url},insights.date_preset(${datePreset}){impressions,clicks,spend,actions,reach,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
 
-    const [insightsRes, platformsRes, ageGenderRes, placementsRes, regionsRes] = await Promise.allSettled([
+    const [insightsRes, platformsRes, ageGenderRes, placementsRes, regionsRes, adsRes] = await Promise.allSettled([
       fetch(insightsUrl).then((r) => r.json()),
       fetch(platformsUrl).then((r) => r.json()),
       fetch(ageGenderUrl).then((r) => r.json()),
       fetch(placementsUrl).then((r) => r.json()),
       fetch(regionsUrl).then((r) => r.json()),
+      fetch(adsUrl).then((r) => r.json()),
     ]);
 
     const insightsData =
@@ -79,10 +81,77 @@ export async function GET(request: NextRequest) {
       placementsRes.status === "fulfilled" && placementsRes.value?.data ? placementsRes.value.data : [];
     const regionsData =
       regionsRes.status === "fulfilled" && regionsRes.value?.data ? regionsRes.value.data : [];
+    const adsData =
+      adsRes.status === "fulfilled" && adsRes.value?.data ? adsRes.value.data : [];
 
     const insightsMap = new Map();
     insightsData.forEach((ins: any) => {
       insightsMap.set(ins.campaign_id, ins);
+    });
+
+    // Mapear anúncios individuais por campanha com métricas específicas
+    const adsByCampaignMap = new Map<string, any[]>();
+    adsData.forEach((ad: any) => {
+      const campId = ad.campaign_id;
+      if (!campId) return;
+
+      const adInsight = ad.insights?.data?.[0];
+      const spent = parseFloat(adInsight?.spend || "0");
+      const impressions = parseInt(adInsight?.impressions || "0");
+      const clicks = parseInt(adInsight?.clicks || "0");
+
+      let messagesCount = 0;
+      let leadsCount = 0;
+      let salesCount = 0;
+
+      if (Array.isArray(adInsight?.actions)) {
+        const onsiteLead = adInsight.actions.find((a: any) => a.action_type === "onsite_conversion.lead_grouped");
+        const stdLead = adInsight.actions.find((a: any) => a.action_type === "lead");
+        if (onsiteLead) leadsCount = parseInt(onsiteLead.value || "0");
+        else if (stdLead) leadsCount = parseInt(stdLead.value || "0");
+
+        const msgStarted = adInsight.actions.find((a: any) =>
+          a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
+          a.action_type === "messaging_conversation_started_7d" ||
+          a.action_type?.includes("messaging_conversation_started") ||
+          a.action_type?.includes("lead_generation_messaging")
+        );
+        const generalMsg = adInsight.actions.find((a: any) =>
+          a.action_type === "messages" ||
+          a.action_type === "onsite_conversion.messaging_first_reply"
+        );
+        if (msgStarted) messagesCount = parseInt(msgStarted.value || "0");
+        else if (generalMsg) messagesCount = parseInt(generalMsg.value || "0");
+
+        const omniPurchase = adInsight.actions.find((a: any) => a.action_type === "omni_purchase");
+        const stdPurchase = adInsight.actions.find((a: any) => a.action_type === "purchase");
+        if (omniPurchase) salesCount = parseInt(omniPurchase.value || "0");
+        else if (stdPurchase) salesCount = parseInt(stdPurchase.value || "0");
+      }
+
+      const creative = ad.creative || {};
+      const currentList = adsByCampaignMap.get(campId) || [];
+      currentList.push({
+        id: ad.id,
+        name: ad.name,
+        status: ad.status ? ad.status.toLowerCase() : "active",
+        imageUrl: creative.image_url || creative.thumbnail_url || "",
+        title: creative.title || "",
+        body: creative.body || "",
+        callToActionType: creative.call_to_action_type || "",
+        effectiveObjectStoryId: creative.effective_object_story_id || "",
+        instagramPermalinkUrl: creative.instagram_permalink_url || "",
+        metrics: {
+          spend: spent,
+          impressions,
+          clicks,
+          messagesCount,
+          leadsCount,
+          salesCount,
+          cpc: clicks > 0 ? spent / clicks : 0,
+        },
+      });
+      adsByCampaignMap.set(campId, currentList);
     });
 
     // 3. Buscar os metadados locais salvos no Firestore (imagens criativas, CTA, raio e endereço formatado)
@@ -252,6 +321,7 @@ export async function GET(request: NextRequest) {
             ? firestoreData.createdAt.toDate().toISOString()
             : firestoreData.createdAt
           : new Date().toISOString()),
+        ads: adsByCampaignMap.get(metaCamp.id) || [],
       };
     });
 
