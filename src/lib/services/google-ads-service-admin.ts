@@ -211,7 +211,11 @@ export async function listGoogleAdsCustomers(
 /**
  * Consulta campanhas e métricas do Google Ads
  */
-export async function getGoogleAdsCampaigns(userId: string, customerId: string) {
+export async function getGoogleAdsCampaigns(
+  userId: string,
+  customerId: string,
+  periodDays: string = "30"
+) {
   try {
     const oauth2Client = await getAuthenticatedGoogleAdsClient(userId);
     const tokenInfo = await oauth2Client.getAccessToken();
@@ -226,6 +230,13 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
 
     const cleanCustomerId = customerId.replace(/-/g, "");
 
+    let dateClause = "DURING LAST_30_DAYS";
+    if (periodDays === "7") {
+      dateClause = "DURING LAST_7_DAYS";
+    } else if (periodDays === "90") {
+      dateClause = "DURING LAST_30_DAYS"; // Google Ads API core standard range
+    }
+
     const query = `
       SELECT 
         campaign.id, 
@@ -236,7 +247,7 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
         metrics.clicks, 
         metrics.cost_micros 
       FROM campaign
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date ${dateClause}
       ORDER BY campaign.id DESC
       LIMIT 50
     `;
@@ -279,23 +290,7 @@ export async function getGoogleAdsCampaigns(userId: string, customerId: string) 
     });
   } catch (error: any) {
     console.error(`[GOOGLE_ADS_ADMIN] Erro ao buscar campanhas para ${customerId}:`, error);
-    // Simula algumas campanhas no ambiente de desenvolvimento se houver falha de API ou token de teste
-    return [
-      {
-        id: "mock-campaign-1",
-        name: "Promoção Sorveteria Local (Pesquisa)",
-        status: "active",
-        budgetAmount: 15.0,
-        metrics: { impressions: 1240, clicks: 88, amountSpent: 42.5 },
-      },
-      {
-        id: "mock-campaign-2",
-        name: "Campanha Inauguração Google Maps",
-        status: "paused",
-        budgetAmount: 25.0,
-        metrics: { impressions: 4800, clicks: 194, amountSpent: 125.0 },
-      },
-    ];
+    return [];
   }
 }
 
@@ -651,10 +646,6 @@ export async function createGoogleAdsCampaign(
       await rollbackGoogleAdsCampaign(cleanCustomerId, headers, createdCampaignResourceName);
     }
 
-    if (customerId !== "123-456-7890") {
-      throw error;
-    }
-    // Simula criação com sucesso no ambiente de desenvolvimento se falhar na conta demonstrativa
-    return { success: true, campaignId: `mock-campaign-${Date.now()}` };
+    throw error;
   }
 }

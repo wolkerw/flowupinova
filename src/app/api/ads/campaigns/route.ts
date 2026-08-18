@@ -48,8 +48,13 @@ export async function GET(request: NextRequest) {
 
     const rawMetaCampaigns = campaignsData.data || [];
 
-    // 2. Buscar insights agregados por campanha nos últimos 30 dias para alimentar os relatórios de performance
-    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions&date_preset=last_30d&limit=100&access_token=${accessToken}`;
+    const period = request.nextUrl.searchParams.get("period") || "30";
+    let datePreset = "last_30d";
+    if (period === "7") datePreset = "last_7d";
+    if (period === "90") datePreset = "last_90d";
+
+    // 2. Buscar insights agregados por campanha no período selecionado
+    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const insightsRes = await fetch(insightsUrl);
     const insightsData = await insightsRes.json();
 
@@ -70,73 +75,70 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 4. Mesclar campanhas reais da Meta com dados locais e de insights
-    const campaigns = rawMetaCampaigns
-      .map((metaCamp: any) => {
-        const firestoreData = localCampaignsMap.get(metaCamp.id);
-        if (!firestoreData) return null; // Filter out campaigns not created by NumVapt
+    // 4. Mesclar todas as campanhas reais da conta Meta com dados locais e insights
+    const campaigns = rawMetaCampaigns.map((metaCamp: any) => {
+      const firestoreData = localCampaignsMap.get(metaCamp.id);
+      const insight = insightsMap.get(metaCamp.id);
 
-        const insight = insightsMap.get(metaCamp.id);
+      // Métricas reais da Meta Ads
+      const impressions = parseInt(insight?.impressions || "0");
+      const clicks = parseInt(insight?.clicks || "0");
+      const spend = parseFloat(insight?.spend || "0");
 
-        // Métricas reais da Meta Ads
-        const impressions = parseInt(insight?.impressions || "0");
-        const clicks = parseInt(insight?.clicks || "0");
-        const spend = parseFloat(insight?.spend || "0");
-
-        let actions = clicks;
-        if (insight?.actions) {
-          const linkClicksAction = insight.actions.find(
-            (act: any) => act.action_type === "link_click"
-          );
-          if (linkClicksAction) {
-            actions = parseInt(linkClicksAction.value || "0");
-          }
+      let actions = clicks;
+      if (insight?.actions) {
+        const linkClicksAction = insight.actions.find(
+          (act: any) => act.action_type === "link_click"
+        );
+        if (linkClicksAction) {
+          actions = parseInt(linkClicksAction.value || "0");
         }
+      }
 
-        // Orçamento real configurado (conversão de centavos)
-        let budgetAmount = 0;
-        if (metaCamp.daily_budget) {
-          budgetAmount = Number(metaCamp.daily_budget) / 100;
-        } else if (metaCamp.lifetime_budget) {
-          budgetAmount = Number(metaCamp.lifetime_budget) / 100;
-        } else {
-          budgetAmount = firestoreData.budget?.amount || 15;
-        }
+      // Orçamento real configurado (conversão de centavos)
+      let budgetAmount = 0;
+      if (metaCamp.daily_budget) {
+        budgetAmount = Number(metaCamp.daily_budget) / 100;
+      } else if (metaCamp.lifetime_budget) {
+        budgetAmount = Number(metaCamp.lifetime_budget) / 100;
+      } else if (firestoreData?.budget?.amount) {
+        budgetAmount = firestoreData.budget.amount;
+      }
 
-        const totalDays = firestoreData.durationDays || 7;
+      const totalDays = firestoreData?.durationDays || 7;
 
-        return {
-          id: firestoreData.firestoreId || metaCamp.id,
-          metaCampaignId: metaCamp.id,
-          name: firestoreData.name || metaCamp.name,
-          status: metaCamp.status.toLowerCase(), // 'active', 'paused', etc.
-          budget: {
-            amount: budgetAmount,
-          },
-          durationDays: totalDays,
-          creative: {
-            imageUrl: firestoreData.creative?.imageUrl || "",
-            ctaType: firestoreData.creative?.ctaType || "NONE",
-            ctaLink: firestoreData.creative?.ctaLink || "",
-          },
-          targeting: {
-            radiusKm: firestoreData.targeting?.radiusKm || 5,
-            address: firestoreData.targeting?.address || "Região Selecionada",
-          },
-          metrics: {
-            impressions,
-            clicks,
-            actions,
-            amountSpent: spend,
-          },
-          createdAt: firestoreData.createdAt
-            ? firestoreData.createdAt.toDate
-              ? firestoreData.createdAt.toDate().toISOString()
-              : firestoreData.createdAt
-            : metaCamp.created_time,
-        };
-      })
-      .filter((c: any) => c !== null);
+      return {
+        id: firestoreData?.firestoreId || metaCamp.id,
+        metaCampaignId: metaCamp.id,
+        name: metaCamp.name || firestoreData?.name || "Campanha Meta Ads",
+        status: metaCamp.status ? metaCamp.status.toLowerCase() : "active",
+        objective: metaCamp.objective || "OUTCOME_TRAFFIC",
+        budget: {
+          amount: budgetAmount,
+        },
+        durationDays: totalDays,
+        creative: {
+          imageUrl: firestoreData?.creative?.imageUrl || "",
+          ctaType: firestoreData?.creative?.ctaType || "NONE",
+          ctaLink: firestoreData?.creative?.ctaLink || "",
+        },
+        targeting: {
+          radiusKm: firestoreData?.targeting?.radiusKm || null,
+          address: firestoreData?.targeting?.address || "",
+        },
+        metrics: {
+          impressions,
+          clicks,
+          actions,
+          amountSpent: spend,
+        },
+        createdAt: metaCamp.created_time || (firestoreData?.createdAt
+          ? firestoreData.createdAt.toDate
+            ? firestoreData.createdAt.toDate().toISOString()
+            : firestoreData.createdAt
+          : new Date().toISOString()),
+      };
+    });
 
     return NextResponse.json({ success: true, campaigns });
   } catch (error: any) {

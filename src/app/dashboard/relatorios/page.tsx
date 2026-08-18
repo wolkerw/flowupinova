@@ -95,9 +95,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { config } from "@/lib/config";
+import {
+  getGoogleAdsConnection,
+  type GoogleAdsConnectionData,
+} from "@/lib/services/google-ads-service";
+import { getGoogleAdsCampaigns } from "@/lib/services/google-ads-service-admin";
 import { LinkedInPostsViewer } from "./_components/LinkedInPostsViewer";
 import { SocialMediaInsightsSummary } from "./_components/SocialMediaInsightsSummary";
+import { MetaAdsCampaignsViewer } from "./_components/MetaAdsCampaignsViewer";
+import { GoogleAdsCampaignsViewer } from "./_components/GoogleAdsCampaignsViewer";
 
 
 const performanceData = [
@@ -988,6 +994,11 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
 export default function Relatorios() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [mainTab, setMainTab] = useState<"organic" | "campaigns">("organic");
+  const [periodDays, setPeriodDays] = useState("30");
+  const [campaignsSubTab, setCampaignsSubTab] = useState<"meta" | "google">("meta");
+
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(
     null
@@ -995,6 +1006,12 @@ export default function Relatorios() {
   const [linkedInConnection, setLinkedInConnection] = useState<LinkedInConnectionData | null>(
     null
   );
+  const [googleAdsConnection, setGoogleAdsConnection] = useState<GoogleAdsConnectionData | null>(
+    null
+  );
+
+  const [metaCampaigns, setMetaCampaigns] = useState<any[]>([]);
+  const [googleCampaigns, setGoogleCampaigns] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -1002,23 +1019,62 @@ export default function Relatorios() {
     async function fetchData() {
       if (!user) return;
       setLoading(true);
+      setLoadingCampaigns(true);
       try {
-        const [metaResult, instagramResult, linkedInResult] = await Promise.all([
+        const [metaResult, instagramResult, linkedInResult, googleAdsResult] = await Promise.all([
           getMetaConnection(user.uid),
           getInstagramConnection(user.uid),
           getLinkedInConnection(user.uid),
+          getGoogleAdsConnection(user.uid),
         ]);
         setMetaConnection(metaResult);
         setInstagramConnection(instagramResult);
         setLinkedInConnection(linkedInResult);
+        setGoogleAdsConnection(googleAdsResult);
+
+        // Buscar campanhas da Meta se conectada (com filtro de período real)
+        if (metaResult.isConnected && metaResult.adAccountId) {
+          try {
+            const campaignsRes = await fetch(`/api/ads/campaigns?period=${periodDays}`);
+            const campaignsData = await campaignsRes.json();
+            if (campaignsData.success) {
+              setMetaCampaigns(campaignsData.campaigns || []);
+            } else {
+              setMetaCampaigns([]);
+            }
+          } catch (e) {
+            console.warn("Erro ao buscar campanhas Meta em relatórios:", e);
+            setMetaCampaigns([]);
+          }
+        } else {
+          setMetaCampaigns([]);
+        }
+
+        // Buscar campanhas do Google Ads se conectada (com filtro de período real)
+        if (googleAdsResult.isConnected && googleAdsResult.adAccountId) {
+          try {
+            const googleResults = await getGoogleAdsCampaigns(
+              user.uid,
+              googleAdsResult.adAccountId,
+              periodDays
+            );
+            setGoogleCampaigns(googleResults || []);
+          } catch (e) {
+            console.warn("Erro ao buscar campanhas Google Ads em relatórios:", e);
+            setGoogleCampaigns([]);
+          }
+        } else {
+          setGoogleCampaigns([]);
+        }
       } catch (error) {
         console.error("Erro ao buscar conexões:", error);
       } finally {
         setLoading(false);
+        setLoadingCampaigns(false);
       }
     }
     fetchData();
-  }, [user]);
+  }, [user?.uid, periodDays]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -1030,7 +1086,7 @@ export default function Relatorios() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Select defaultValue="30">
+          <Select value={periodDays} onValueChange={setPeriodDays}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -1048,13 +1104,17 @@ export default function Relatorios() {
         </div>
       </div>
 
-      <Tabs defaultValue="organic" className="w-full">
+      <Tabs
+        value={mainTab}
+        onValueChange={(val) => setMainTab(val as "organic" | "campaigns")}
+        className="w-full"
+      >
         <TabsList className="mx-auto grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="organic">
             <Newspaper className="mr-2 h-4 w-4" />
             Orgânico
           </TabsTrigger>
-          <TabsTrigger value="campaigns" disabled>
+          <TabsTrigger value="campaigns">
             <BarChart3 className="mr-2 h-4 w-4" />
             Campanhas
           </TabsTrigger>
@@ -1120,206 +1180,65 @@ export default function Relatorios() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="campaigns" className="mt-6 space-y-8">
-          {/* KPIs principais */}
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-            {kpis.map((kpi, index) => (
-              <motion.div
-                key={kpi.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="border-none shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">{kpi.title}</p>
-                        <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
-                        <div className={`mt-1 flex items-center gap-1 text-sm ${kpi.color}`}>
-                          {kpi.trend === "up" ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          <span>{kpi.change}</span>
-                        </div>
-                      </div>
-                      <kpi.icon
-                        className={`h-8 w-8 ${kpi.color.replace("text-", "text-").split("-")[1] === "green" ? "text-green-500" : "text-red-500"}`}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            {/* Gráfico de performance */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <Card className="border-none shadow-lg">
-                <CardHeader>
+        <TabsContent value="campaigns" className="mt-6 space-y-6">
+          <Card className="border-none shadow-lg">
+            <CardHeader>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
-                    <LineChartIcon className="h-5 w-5 text-blue-500" />
-                    Performance Mensal
+                    Performance de Campanhas Pagas
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RechartsBarChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="impressions" fill="#3B82F6" name="Impressões" />
-                      <Bar dataKey="clicks" fill="#8B5CF6" name="Cliques" />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Distribuição por canal */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              <Card className="border-none shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChartIcon className="h-5 w-5 text-purple-500" />
-                    Distribuição por Canal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-6 flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={channelData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {channelData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="space-y-3">
-                    {channelData.map((channel) => (
-                      <div key={channel.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: channel.color }}
-                          ></div>
-                          <span className="text-sm text-gray-700">{channel.name}</span>
-                        </div>
-                        <span className="font-semibold">{channel.value}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* Gráfico de conversões */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-          >
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
-                  Tendência de Conversões
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="conversions"
-                      stroke="#10B981"
-                      strokeWidth={3}
-                      name="Conversões"
-                      dot={{ fill: "#10B981", strokeWidth: 2, r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Insights e recomendações */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-          >
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-orange-500" />
-                  Insights & Recomendações
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                    <h4 className="mb-2 font-semibold text-green-900">📈 Performance Positiva</h4>
-                    <p className="text-sm text-green-700">
-                      Suas campanhas no Google Ads estão 15% acima da média do setor. Continue
-                      investindo neste canal.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                    <h4 className="mb-2 font-semibold text-yellow-900">⚠️ Atenção Necessária</h4>
-                    <p className="text-sm text-yellow-700">
-                      O CTR do Facebook diminuiu. Considere testar novos criativos ou ajustar o
-                      público-alvo.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                    <h4 className="mb-2 font-semibold text-blue-900">💡 Oportunidade</h4>
-                    <p className="text-sm text-blue-700">
-                      LinkedIn mostra potencial de crescimento. Teste aumentar o orçamento em 20%.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                    <h4 className="mb-2 font-semibold text-purple-900">🎯 Meta do Mês</h4>
-                    <p className="text-sm text-purple-700">
-                      Você está 78% perto da meta de conversões. Faltam apenas 25 conversões.
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-600">
+                    Resultados detalhados de tráfego pago da sua conta conectada na Meta Ads e no Google Ads.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingCampaigns ? (
+                <div className="flex h-48 items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Tabs
+                  value={campaignsSubTab}
+                  onValueChange={(val) => setCampaignsSubTab(val as "meta" | "google")}
+                  className="w-full"
+                >
+                  <TabsList className="mx-auto grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="meta">
+                      <Facebook className="mr-2 h-4 w-4 text-[#1877F2]" />
+                      Meta Ads
+                    </TabsTrigger>
+                    <TabsTrigger value="google">
+                      <Globe className="mr-2 h-4 w-4 text-[#EA4335]" />
+                      Google Ads
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="meta" className="mt-6">
+                    <MetaAdsCampaignsViewer
+                      campaigns={metaCampaigns}
+                      isConnected={!!(metaConnection?.isConnected && metaConnection?.adAccountId)}
+                      adAccountName={metaConnection?.adAccountName}
+                      pageName={metaConnection?.pageName}
+                      periodDays={periodDays}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="google" className="mt-6">
+                    <GoogleAdsCampaignsViewer
+                      campaigns={googleCampaigns}
+                      isConnected={!!(googleAdsConnection?.isConnected && googleAdsConnection?.adAccountId)}
+                      adAccountId={googleAdsConnection?.adAccountId}
+                      adAccountName={googleAdsConnection?.adAccountName}
+                      periodDays={periodDays}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

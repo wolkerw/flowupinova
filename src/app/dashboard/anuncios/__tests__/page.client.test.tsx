@@ -75,8 +75,8 @@ vi.mock("@/lib/services/google-ads-service", () => ({
 vi.mock("@/lib/services/google-ads-service-admin", () => ({
   getGoogleAdsCampaigns: vi.fn().mockResolvedValue([
     {
-      id: "mock-campaign-1",
-      name: "Promoção Sorveteria Local (Pesquisa)",
+      id: "google-campaign-1",
+      name: "Campanha Pesquisa Google Ads",
       status: "active",
       budgetAmount: 15.0,
       metrics: { impressions: 1240, clicks: 88, amountSpent: 42.5 },
@@ -259,9 +259,9 @@ describe("AnunciosPageClient", () => {
     const googleTabButton = screen.getByRole("button", { name: /Google Ads/i });
     fireEvent.click(googleTabButton);
 
-    // Deve mostrar a campanha mockada do Google Ads
+    // Deve mostrar a campanha do Google Ads
     await waitFor(() => {
-      expect(screen.getByText("Promoção Sorveteria Local (Pesquisa)")).toBeInTheDocument();
+      expect(screen.getByText("Campanha Pesquisa Google Ads")).toBeInTheDocument();
     });
 
     // Deve mostrar o botão de criar anúncio no Google
