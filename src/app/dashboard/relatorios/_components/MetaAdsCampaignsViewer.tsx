@@ -361,11 +361,11 @@ export function MetaAdsCampaignsViewer({
                 {totalImpressions.toLocaleString("pt-BR")}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Exibições no feed, reels e stories</p>
+            <p className="mt-1 text-xs text-slate-500">Total de exibições no período</p>
           </CardContent>
         </Card>
 
-        {/* Cliques & CTR */}
+        {/* Cliques */}
         <Card className="border border-slate-200 bg-white shadow-xs">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -380,14 +380,9 @@ export function MetaAdsCampaignsViewer({
               <span className="font-poppins text-2xl font-bold text-slate-900">
                 {totalClicks.toLocaleString("pt-BR")}
               </span>
-              {avgCtr > 0 && (
-                <Badge variant="outline" className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border-emerald-200">
-                  CTR {avgCtr.toFixed(1)}%
-                </Badge>
-              )}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              CPC Médio: {avgCpc > 0 ? avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}
+              Custo por Clique: {avgCpc > 0 ? avgCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}
             </p>
           </CardContent>
         </Card>
