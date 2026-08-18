@@ -160,12 +160,11 @@ export function GoogleAdsCampaignsViewer({
     };
   };
 
-  const getMatchTypeBadge = (matchType: string) => {
-    const m = (matchType || "").toUpperCase();
-    if (m === "EXACT") return <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">[Exata]</span>;
-    if (m === "PHRASE") return <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">&quot;Frase&quot;</span>;
-    return <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border border-slate-200">Ampla</span>;
-  };
+  // Consolidar palavras-chave das campanhas de pesquisa para a seção inferior dedicada
+  const allKeywords = activeCampaigns
+    .flatMap((c) => (c.keywords || []).map((k: any) => ({ ...k, campaignName: c.name })))
+    .filter((kw) => (Number(kw.clicks) || 0) > 0 || (Number(kw.impressions) || 0) > 0 || (Number(kw.amountSpent) || Number(kw.spent) || 0) > 0)
+    .sort((a, b) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0));
 
   return (
     <div className="space-y-6">
@@ -276,7 +275,7 @@ export function GoogleAdsCampaignsViewer({
               </CardDescription>
             </div>
 
-            {/* Filtro de data sincronizado na parte inferior */}
+            {/* Filtro de data sincronizado */}
             {onPeriodChange && (
               <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
                 <Calendar className="ml-1.5 mr-1 h-3.5 w-3.5 text-[#EA4335]" />
@@ -362,12 +361,6 @@ export function GoogleAdsCampaignsViewer({
                     return (Number(b.metrics?.impressions) || 0) - (Number(a.metrics?.impressions) || 0);
                   });
 
-                const keywordsList: any[] = isSearchChannel ? (camp.keywords || []).sort(
-                  (a: any, b: any) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0)
-                ) : [];
-
-                const hasExpandableContent = activeAds.length > 0 || keywordsList.length > 0;
-
                 return (
                   <div key={campUniqueId} className="py-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -410,8 +403,8 @@ export function GoogleAdsCampaignsViewer({
                               </div>
                             )}
 
-                            {/* Botão de Ver Anúncios Ativos / Detalhes */}
-                            {hasExpandableContent && (
+                            {/* Botão de Ver Anúncios Ativos */}
+                            {activeAds.length > 0 && (
                               <button
                                 type="button"
                                 onClick={() => toggleExpand(campUniqueId)}
@@ -420,10 +413,8 @@ export function GoogleAdsCampaignsViewer({
                                 <Layers className="h-3 w-3 text-[#EA4335]" />
                                 <span>
                                   {isExpanded
-                                    ? "Ocultar detalhes"
-                                    : activeAds.length > 0
-                                    ? `Ver anúncios ativos (${activeAds.length})`
-                                    : `Ver palavras-chave (${keywordsList.length})`}
+                                    ? "Ocultar anúncios"
+                                    : `Ver anúncios ativos (${activeAds.length})`}
                                 </span>
                                 {isExpanded ? (
                                   <ChevronUp className="h-3 w-3 text-[#EA4335]" />
@@ -483,372 +474,290 @@ export function GoogleAdsCampaignsViewer({
                       </div>
                     </div>
 
-                    {/* Gaveta Expansível de Anúncios e Palavras-Chave */}
-                    {isExpanded && hasExpandableContent && (
-                      <div className="mt-4 space-y-5 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
-                        {/* 1. Anúncios Ativos com Layout Adequado por Canal */}
-                        {activeAds.length > 0 && (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80">
-                              <Layers className="h-4 w-4 text-[#EA4335]" />
-                              <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
-                                Anúncios Ativos ({activeAds.length})
-                              </h6>
-                            </div>
+                    {/* Gaveta Expansível EXCLUSIVA de Anúncios Ativos */}
+                    {isExpanded && activeAds.length > 0 && (
+                      <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80">
+                          <Layers className="h-4 w-4 text-[#EA4335]" />
+                          <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Anúncios Ativos ({activeAds.length})
+                          </h6>
+                        </div>
 
-                            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                              {activeAds.map((ad: any, idx: number) => {
-                                const adSpent = Number(ad.metrics?.amountSpent) || Number(ad.metrics?.spent) || 0;
-                                const adImpressions = Number(ad.metrics?.impressions) || 0;
-                                const adClicks = Number(ad.metrics?.clicks) || 0;
-                                const adCtr = Number(ad.metrics?.ctr) || 0;
-                                const adCpc = Number(ad.metrics?.averageCpc) || 0;
-                                const adConversions = Number(ad.metrics?.conversions) || 0;
-                                const adVideoViews = Number(ad.metrics?.videoViews) || 0;
-                                const adCpv = Number(ad.metrics?.averageCpv) || (adVideoViews > 0 ? adSpent / adVideoViews : 0);
+                        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                          {activeAds.map((ad: any, idx: number) => {
+                            const adSpent = Number(ad.metrics?.amountSpent) || Number(ad.metrics?.spent) || 0;
+                            const adImpressions = Number(ad.metrics?.impressions) || 0;
+                            const adClicks = Number(ad.metrics?.clicks) || 0;
+                            const adCtr = Number(ad.metrics?.ctr) || 0;
+                            const adConversions = Number(ad.metrics?.conversions) || 0;
+                            const adVideoViews = Number(ad.metrics?.videoViews) || 0;
+                            const adCpv = Number(ad.metrics?.averageCpv) || (adVideoViews > 0 ? adSpent / adVideoViews : 0);
 
-                                const headlines = ad.headlines || [];
-                                const descriptions = ad.descriptions || [];
-                                const finalUrl = ad.finalUrls?.[0] || "";
-                                let displayDomain = "seusite.com.br";
-                                try {
-                                  if (finalUrl) {
-                                    const parsed = new URL(finalUrl);
-                                    displayDomain = parsed.hostname.replace(/^www\./, "");
-                                  }
-                                } catch (e) {}
+                            const headlines = ad.headlines || [];
+                            const descriptions = ad.descriptions || [];
+                            const finalUrl = ad.finalUrls?.[0] || "";
+                            let displayDomain = "seusite.com.br";
+                            try {
+                              if (finalUrl) {
+                                const parsed = new URL(finalUrl);
+                                displayDomain = parsed.hostname.replace(/^www\./, "");
+                              }
+                            } catch (e) {}
 
-                                const pathString = [ad.path1, ad.path2].filter(Boolean).join(" › ");
+                            const pathString = [ad.path1, ad.path2].filter(Boolean).join(" › ");
 
-                                // RENDERIZADOR A: YOUTUBE / VÍDEO
-                                if (isVideoChannel) {
-                                  return (
-                                    <div
-                                      key={ad.id || idx}
-                                      className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
-                                    >
-                                      {/* Mockup do YouTube */}
-                                      <div className="p-4 space-y-3 bg-white border-b border-slate-100 flex-1">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-red-600 text-white font-bold text-[10px]">
-                                              ▶
-                                            </div>
-                                            <span className="text-xs font-semibold text-slate-800">
-                                              YouTube Video Ad
-                                            </span>
-                                          </div>
-                                          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700 border border-red-200">
-                                            Anúncio em Vídeo
-                                          </span>
+                            // RENDERIZADOR A: YOUTUBE / VÍDEO
+                            if (isVideoChannel) {
+                              return (
+                                <div
+                                  key={ad.id || idx}
+                                  className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                                >
+                                  <div className="p-4 space-y-3 bg-white border-b border-slate-100 flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-red-600 text-white font-bold text-[10px]">
+                                          ▶
                                         </div>
-
-                                        {/* Frame de Vídeo Estilo Player do YouTube */}
-                                        <div className="relative aspect-video w-full rounded-lg bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden shadow-inner">
-                                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600/90 text-white shadow-lg transition-transform hover:scale-110">
-                                            <Video className="h-6 w-6" />
-                                          </div>
-                                          <span className="mt-2 text-xs font-medium text-slate-300">
-                                            {ad.name || camp.name || "Vídeo Publicitário"}
-                                          </span>
-                                          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-slate-400">
-                                            <span>▶ 0:00 / HD</span>
-                                            <span className="rounded bg-black/60 px-1 py-0.5">In-Stream / In-Feed</span>
-                                          </div>
-                                        </div>
-
-                                        <div>
-                                          <h4 className="font-poppins text-sm font-semibold text-slate-900 leading-snug">
-                                            {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
-                                          </h4>
-                                          <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                                            {descriptions.length > 0
-                                              ? descriptions.join(" ")
-                                              : "Campanha em vídeo veiculada no YouTube para aumento de alcance e visualizações de marca."}
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      {/* Barra de Métricas de Vídeo */}
-                                      <div className="bg-slate-50/80 p-3">
-                                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
-                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                              {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
-                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                              {adImpressions.toLocaleString("pt-BR")}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-red-600">Views</span>
-                                            <p className="font-poppins font-bold text-red-600 text-[11px]">
-                                              {(adVideoViews > 0 ? adVideoViews : adImpressions).toLocaleString("pt-BR")}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-slate-600">CPV Médio</span>
-                                            <p className="font-poppins font-bold text-slate-700 text-[11px]">
-                                              {adCpv > 0 ? adCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-
-                                // RENDERIZADOR B: PERFORMANCE MAX
-                                if (isPMaxChannel) {
-                                  return (
-                                    <div
-                                      key={ad.id || idx}
-                                      className="flex flex-col overflow-hidden rounded-xl border border-purple-200 bg-white shadow-xs transition-shadow hover:shadow-md"
-                                    >
-                                      <div className="p-4 space-y-2.5 bg-white border-b border-purple-100 flex-1">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <Sparkles className="h-4 w-4 text-purple-600" />
-                                            <span className="text-xs font-semibold text-purple-900">
-                                              Grupo de Recursos PMax
-                                            </span>
-                                          </div>
-                                          <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-purple-700 border border-purple-200">
-                                            Multi-Canal
-                                          </span>
-                                        </div>
-
-                                        <h4 className="font-poppins text-sm font-semibold text-slate-900">
-                                          {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
-                                        </h4>
-                                        <p className="text-xs text-slate-600">
-                                          {descriptions.length > 0 ? descriptions.join(" ") : "Recursos inteligentes distribuídos automaticamente entre Pesquisa, YouTube, Display, Maps e Gmail."}
-                                        </p>
-
-                                        <div className="pt-1 flex flex-wrap gap-1.5">
-                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🔍 Pesquisa</span>
-                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">▶️ YouTube</span>
-                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🖼️ Display</span>
-                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">📍 Maps</span>
-                                        </div>
-                                      </div>
-
-                                      <div className="bg-purple-50/50 p-3">
-                                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
-                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                              {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
-                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                              {adImpressions.toLocaleString("pt-BR")}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-purple-700">Cliques</span>
-                                            <p className="font-poppins font-bold text-purple-700 text-[11px]">
-                                              {adClicks.toLocaleString("pt-BR")}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="text-[10px] uppercase font-semibold text-emerald-600">Conv.</span>
-                                            <p className="font-poppins font-bold text-emerald-600 text-[11px]">
-                                              {adConversions.toLocaleString("pt-BR")}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-
-                                // RENDERIZADOR C: REDE DE PESQUISA (GOOGLE SEARCH SERP)
-                                return (
-                                  <div
-                                    key={ad.id || idx}
-                                    className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
-                                  >
-                                    {/* Mockup Fiel da Busca do Google (Google SERP Result) */}
-                                    <div className="p-4 space-y-2.5 bg-white border-b border-slate-100 flex-1">
-                                      {/* Header Google: Favicon + URL + Patrocinado */}
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-xs min-w-0">
-                                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-600">
-                                            G
-                                          </div>
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-700 truncate">
-                                              <span className="font-semibold">{displayDomain}</span>
-                                              {pathString && <span className="text-slate-400">› {pathString}</span>}
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-700 border border-slate-200">
-                                          Patrocinado
+                                        <span className="text-xs font-semibold text-slate-800">
+                                          YouTube Video Ad
                                         </span>
                                       </div>
+                                      <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700 border border-red-200">
+                                        Vídeo
+                                      </span>
+                                    </div>
 
-                                      {/* Título em Azul Google (#1a0dab) */}
-                                      <div>
-                                        <h4 className="font-poppins text-sm sm:text-base font-semibold text-[#1a0dab] leading-snug hover:underline cursor-pointer">
-                                          {headlines.length > 0
-                                            ? headlines.slice(0, 3).join(" | ")
-                                            : ad.name || camp.name || "Anúncio na Rede de Pesquisa Google"}
-                                        </h4>
+                                    <div className="relative aspect-video w-full rounded-lg bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden shadow-inner">
+                                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600/90 text-white shadow-lg transition-transform hover:scale-110">
+                                        <Video className="h-6 w-6" />
                                       </div>
+                                      <span className="mt-2 text-xs font-medium text-slate-300">
+                                        {ad.name || camp.name || "Vídeo Publicitário"}
+                                      </span>
+                                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-slate-400">
+                                        <span>▶ 0:00 / HD</span>
+                                        <span className="rounded bg-black/60 px-1 py-0.5">In-Stream / In-Feed</span>
+                                      </div>
+                                    </div>
 
-                                      {/* Descrição em Cinza Escuro Google (#4d5156) */}
-                                      <p className="text-xs text-[#4d5156] leading-relaxed">
+                                    <div>
+                                      <h4 className="font-poppins text-sm font-semibold text-slate-900 leading-snug">
+                                        {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
+                                      </h4>
+                                      <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                                         {descriptions.length > 0
                                           ? descriptions.join(" ")
-                                          : "Atendimento ágil, produtos de extrema qualidade e suporte completo. Clique e fale com nossos especialistas agora mesmo."}
+                                          : "Campanha em vídeo veiculada no YouTube para alcance e engajamento com a marca."}
                                       </p>
-
-                                      {/* Sitelinks / Extensões Rápidas de Ação */}
-                                      <div className="pt-2 flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50/70 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-[#1a0dab]">
-                                          <PhoneCall className="h-3 w-3" />
-                                          Ligar / WhatsApp
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                                          🎯 Fazer Orçamento
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                                          📍 Localização
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Barra de Métricas Individuais deste Anúncio */}
-                                    <div className="bg-slate-50/80 p-3">
-                                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                                        <div>
-                                          <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
-                                          <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                            {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
-                                          <p className="font-poppins font-bold text-slate-800 text-[11px]">
-                                            {adImpressions.toLocaleString("pt-BR")}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="text-[10px] uppercase font-semibold text-[#EA4335]">Cliques</span>
-                                          <p className="font-poppins font-bold text-[#EA4335] text-[11px]">
-                                            {adClicks.toLocaleString("pt-BR")}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="text-[10px] uppercase font-semibold text-emerald-600">
-                                            {adConversions > 0 ? "Conv." : "CTR"}
-                                          </span>
-                                          <p className="font-poppins font-bold text-emerald-600 text-[11px]">
-                                            {adConversions > 0 ? adConversions.toLocaleString("pt-BR") : `${adCtr.toFixed(1)}%`}
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      {/* Link Externo se disponível */}
-                                      {finalUrl && (
-                                        <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex justify-center">
-                                          <a
-                                            href={finalUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#EA4335] hover:underline"
-                                          >
-                                            <ExternalLink className="h-3 w-3" />
-                                            Visitar página de destino
-                                          </a>
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
 
-                        {/* 2. Palavras-Chave de Maior Desempenho (Keywords) - Apenas para Campanhas de Pesquisa */}
-                        {isSearchChannel && keywordsList.length > 0 && (
-                          <div className="space-y-3 pt-2">
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
-                              <div className="flex items-center gap-2">
-                                <Key className="h-4 w-4 text-[#EA4335]" />
-                                <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
-                                  Top Palavras-Chave Acionadas ({keywordsList.length})
-                                </h6>
+                                  <div className="bg-slate-50/80 p-3">
+                                    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                        <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                          {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                        <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                          {adImpressions.toLocaleString("pt-BR")}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-red-600">Views</span>
+                                        <p className="font-poppins font-bold text-red-600 text-[11px]">
+                                          {(adVideoViews > 0 ? adVideoViews : adImpressions).toLocaleString("pt-BR")}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-slate-600">CPV Médio</span>
+                                        <p className="font-poppins font-bold text-slate-700 text-[11px]">
+                                          {adCpv > 0 ? adCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // RENDERIZADOR B: PERFORMANCE MAX
+                            if (isPMaxChannel) {
+                              return (
+                                <div
+                                  key={ad.id || idx}
+                                  className="flex flex-col overflow-hidden rounded-xl border border-purple-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                                >
+                                  <div className="p-4 space-y-2.5 bg-white border-b border-purple-100 flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-purple-600" />
+                                        <span className="text-xs font-semibold text-purple-900">
+                                          Grupo de Recursos PMax
+                                        </span>
+                                      </div>
+                                      <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-purple-700 border border-purple-200">
+                                        Multi-Canal
+                                      </span>
+                                    </div>
+
+                                    <h4 className="font-poppins text-sm font-semibold text-slate-900">
+                                      {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
+                                    </h4>
+                                    <p className="text-xs text-slate-600">
+                                      {descriptions.length > 0 ? descriptions.join(" ") : "Recursos inteligentes distribuídos automaticamente entre Pesquisa, YouTube, Display, Maps e Gmail."}
+                                    </p>
+
+                                    <div className="pt-1 flex flex-wrap gap-1.5">
+                                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🔍 Pesquisa</span>
+                                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">▶️ YouTube</span>
+                                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🖼️ Display</span>
+                                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">📍 Maps</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-purple-50/50 p-3">
+                                    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                        <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                          {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                        <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                          {adImpressions.toLocaleString("pt-BR")}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-purple-700">Cliques</span>
+                                        <p className="font-poppins font-bold text-purple-700 text-[11px]">
+                                          {adClicks.toLocaleString("pt-BR")}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-emerald-600">Conv.</span>
+                                        <p className="font-poppins font-bold text-emerald-600 text-[11px]">
+                                          {adConversions.toLocaleString("pt-BR")}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // RENDERIZADOR C: REDE DE PESQUISA (GOOGLE SEARCH SERP MOCKUP)
+                            return (
+                              <div
+                                key={ad.id || idx}
+                                className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                              >
+                                <div className="p-4 space-y-2.5 bg-white border-b border-slate-100 flex-1">
+                                  {/* Header Google: Favicon + URL + Patrocinado */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-xs min-w-0">
+                                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-600">
+                                        G
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5 text-[11px] text-slate-700 truncate">
+                                          <span className="font-semibold">{displayDomain}</span>
+                                          {pathString && <span className="text-slate-400">› {pathString}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-700 border border-slate-200">
+                                      Patrocinado
+                                    </span>
+                                  </div>
+
+                                  {/* Título em Azul Google (#1a0dab) */}
+                                  <div>
+                                    <h4 className="font-poppins text-sm sm:text-base font-semibold text-[#1a0dab] leading-snug hover:underline cursor-pointer">
+                                      {headlines.length > 0
+                                        ? headlines.slice(0, 3).join(" | ")
+                                        : ad.name || camp.name || "Anúncio na Rede de Pesquisa Google"}
+                                    </h4>
+                                  </div>
+
+                                  {/* Descrição em Cinza Escuro Google (#4d5156) */}
+                                  <p className="text-xs text-[#4d5156] leading-relaxed">
+                                    {descriptions.length > 0
+                                      ? descriptions.join(" ")
+                                      : "Atendimento ágil, serviços especializados e suporte completo. Clique e fale com nossos especialistas agora mesmo."}
+                                  </p>
+
+                                  {/* Sitelinks / Extensões Rápidas de Ação */}
+                                  <div className="pt-2 flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50/70 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-[#1a0dab]">
+                                      <PhoneCall className="h-3 w-3" />
+                                      Ligar / WhatsApp
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                                      🎯 Fazer Orçamento
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                                      📍 Localização
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Barra de Métricas Individuais deste Anúncio */}
+                                <div className="bg-slate-50/80 p-3">
+                                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                      <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                        {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                      <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                        {adImpressions.toLocaleString("pt-BR")}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-[#EA4335]">Cliques</span>
+                                      <p className="font-poppins font-bold text-[#EA4335] text-[11px]">
+                                        {adClicks.toLocaleString("pt-BR")}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase font-semibold text-emerald-600">
+                                        {adConversions > 0 ? "Conv." : "CTR"}
+                                      </span>
+                                      <p className="font-poppins font-bold text-emerald-600 text-[11px]">
+                                        {adConversions > 0 ? adConversions.toLocaleString("pt-BR") : `${adCtr.toFixed(1)}%`}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {finalUrl && (
+                                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex justify-center">
+                                      <a
+                                        href={finalUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#EA4335] hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Visitar página de destino
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              <span className="text-[11px] text-slate-500">
-                                Termos que geraram mais buscas e cliques
-                              </span>
-                            </div>
-
-                            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                              <table className="w-full text-left text-xs">
-                                <thead className="bg-slate-50 text-[10px] uppercase font-semibold text-slate-500 border-b border-slate-200">
-                                  <tr>
-                                    <th className="px-3.5 py-2.5">Palavra-Chave</th>
-                                    <th className="px-3 py-2.5 text-center">Tipo</th>
-                                    <th className="px-3 py-2.5 text-right">Cliques</th>
-                                    <th className="px-3 py-2.5 text-right">Impressões</th>
-                                    <th className="px-3 py-2.5 text-right">CTR</th>
-                                    <th className="px-3 py-2.5 text-right">CPC Médio</th>
-                                    <th className="px-3.5 py-2.5 text-right">Investimento</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {keywordsList.slice(0, 10).map((kw: any, kIdx: number) => {
-                                    const kwSpent = Number(kw.amountSpent) || Number(kw.spent) || 0;
-                                    const kwClicks = Number(kw.clicks) || 0;
-                                    const kwImpressions = Number(kw.impressions) || 0;
-                                    const kwCtr = Number(kw.ctr) || 0;
-                                    const kwCpc = Number(kw.averageCpc) || (kwClicks > 0 ? kwSpent / kwClicks : 0);
-
-                                    return (
-                                      <tr key={kIdx} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-3.5 py-2.5 font-medium text-slate-900">
-                                          <div className="flex items-center gap-1.5">
-                                            <Search className="h-3 w-3 text-slate-400 shrink-0" />
-                                            <span>{kw.text}</span>
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-2.5 text-center">
-                                          {getMatchTypeBadge(kw.matchType)}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-right font-bold text-[#EA4335]">
-                                          {kwClicks.toLocaleString("pt-BR")}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-right text-slate-600">
-                                          {kwImpressions.toLocaleString("pt-BR")}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-right text-slate-600">
-                                          {kwCtr.toFixed(1)}%
-                                        </td>
-                                        <td className="px-3 py-2.5 text-right text-slate-600">
-                                          {kwCpc > 0 ? kwCpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
-                                        </td>
-                                        <td className="px-3.5 py-2.5 text-right font-semibold text-slate-900">
-                                          {kwSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -858,6 +767,68 @@ export function GoogleAdsCampaignsViewer({
           )}
         </CardContent>
       </Card>
+
+      {/* SEÇÃO INFERIOR DEDICADA: TOP PALAVRAS-CHAVE DE PESQUISA (ORGANIZADA & LIMPA) */}
+      {allKeywords.length > 0 && (
+        <Card className="border border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-[#EA4335]">
+                <Key className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Top Palavras-Chave de Pesquisa
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Termos mais buscados e acionados que geraram tráfego no Google
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-[11px] uppercase font-semibold text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3">Palavra-Chave</th>
+                    <th className="px-4 py-3 text-right">Investimento</th>
+                    <th className="px-4 py-3 text-right">Impressões</th>
+                    <th className="px-4 py-3 text-right">Cliques</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {allKeywords.slice(0, 15).map((kw: any, idx: number) => {
+                    const kwSpent = Number(kw.amountSpent) || Number(kw.spent) || 0;
+                    const kwImpressions = Number(kw.impressions) || 0;
+                    const kwClicks = Number(kw.clicks) || 0;
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          <div className="flex items-center gap-2">
+                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="font-semibold text-slate-800">{kw.text}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                          {kwSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          {kwImpressions.toLocaleString("pt-BR")}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-[#EA4335]">
+                          {kwClicks.toLocaleString("pt-BR")}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
