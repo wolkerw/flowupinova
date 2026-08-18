@@ -5,7 +5,7 @@ import { google } from "googleapis";
 import type { GoogleAdsConnectionData } from "./google-ads-service";
 
 const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "TEST_DEVELOPER_TOKEN";
-const GOOGLE_ADS_API_VERSION = "v21";
+const GOOGLE_ADS_API_VERSION = "v25";
 
 /**
  * Retorna os headers padrões para requisições na API do Google Ads
@@ -93,13 +93,27 @@ export async function listGoogleAdsCustomers(
       }
     );
 
+    const rawText = await response.text();
     if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}));
-      console.warn("[GOOGLE_ADS_ADMIN] Erro ao listar contas do Google Ads:", errBody);
-      throw new Error(errBody.error?.message || "Erro de API do Google Ads.");
+      console.warn(
+        `[GOOGLE_ADS_ADMIN] Erro HTTP ${response.status} (${response.statusText}) ao listar contas:`,
+        rawText
+      );
+      let parsedError: any = {};
+      try {
+        parsedError = JSON.parse(rawText);
+      } catch {}
+      const detailMsg =
+        parsedError.error?.details?.[0]?.errors?.[0]?.message ||
+        parsedError.error?.message ||
+        `Erro ${response.status} na API do Google Ads: ${rawText.substring(0, 100)}`;
+      throw new Error(detailMsg);
     }
 
-    const data = await response.json();
+    let data: any = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch {}
     const resourceNames: string[] = data.resourceNames || [];
     const accounts: Array<{ id: string; name: string; managerCustomerId?: string }> = [];
 
@@ -138,6 +152,7 @@ export async function listGoogleAdsCustomers(
                   Authorization: `Bearer ${accessToken}`,
                   "developer-token": DEVELOPER_TOKEN,
                   "Content-Type": "application/json",
+                  "login-customer-id": customerId.replace(/-/g, ""),
                 },
                 body: JSON.stringify({
                   query: `
@@ -146,7 +161,7 @@ export async function listGoogleAdsCustomers(
                       customer_client.descriptive_name, 
                       customer_client.manager 
                     FROM customer_client 
-                    WHERE customer_client.level = 1 AND customer_client.manager = false
+                    WHERE customer_client.manager = false
                   `,
                 }),
               }
@@ -197,8 +212,8 @@ export async function listGoogleAdsCustomers(
 
     return accounts;
   } catch (error: any) {
-    console.error("[GOOGLE_ADS_ADMIN] Falha no fluxo listGoogleAdsCustomers:", error);
-    return [];
+    console.error("[GOOGLE_ADS_ADMIN] Falha no fluxo listGoogleAdsCustomers:", error.message || error);
+    throw error;
   }
 }
 
@@ -238,10 +253,16 @@ export async function getGoogleAdsCampaigns(
         campaign.id, 
         campaign.name, 
         campaign.status, 
+        campaign.advertising_channel_type,
+        campaign.bidding_strategy_type,
         campaign_budget.amount_micros, 
         metrics.impressions, 
         metrics.clicks, 
-        metrics.cost_micros 
+        metrics.cost_micros,
+        metrics.ctr,
+        metrics.average_cpc,
+        metrics.conversions,
+        metrics.cost_per_conversion
       FROM campaign
       WHERE segments.date ${dateClause}
       ORDER BY campaign.id DESC
@@ -268,6 +289,8 @@ export async function getGoogleAdsCampaigns(
     return results.map((item: any) => {
       const budgetMicros = Number(item.campaignBudget?.amountMicros || 0);
       const spentMicros = Number(item.metrics?.costMicros || 0);
+      const avgCpcMicros = Number(item.metrics?.averageCpc || 0);
+      const costPerConvMicros = Number(item.metrics?.costPerConversion || 0);
 
       const rawStatus = item.campaign?.status?.toLowerCase();
       const status = rawStatus === "enabled" ? "active" : rawStatus;
@@ -276,11 +299,18 @@ export async function getGoogleAdsCampaigns(
         id: item.campaign?.id,
         name: item.campaign?.name,
         status,
+        channelType: item.campaign?.advertisingChannelType || "SEARCH",
+        biddingStrategy: item.campaign?.biddingStrategyType || "",
         budgetAmount: budgetMicros / 1_000_000,
         metrics: {
           impressions: Number(item.metrics?.impressions || 0),
           clicks: Number(item.metrics?.clicks || 0),
           amountSpent: spentMicros / 1_000_000,
+          spent: spentMicros / 1_000_000,
+          ctr: Number(item.metrics?.ctr || 0) * 100,
+          averageCpc: avgCpcMicros / 1_000_000,
+          conversions: Number(item.metrics?.conversions || 0),
+          costPerConversion: costPerConvMicros / 1_000_000,
         },
       };
     });

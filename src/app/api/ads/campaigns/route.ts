@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (period === "90") datePreset = "last_90d";
 
     // 2. Buscar insights agregados por campanha no período selecionado
-    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
+    const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const insightsRes = await fetch(insightsUrl);
     const insightsData = await insightsRes.json();
 
@@ -85,6 +85,11 @@ export async function GET(request: NextRequest) {
       const impressions = parseInt(insight?.impressions || "0");
       const clicks = parseInt(insight?.clicks || "0");
       const spend = parseFloat(insight?.spend || "0");
+      const reach = parseInt(insight?.reach || "0") || impressions;
+      const frequency = parseFloat(insight?.frequency || "1");
+      const cpm = parseFloat(insight?.cpm || "0") || (impressions > 0 ? (spend / impressions) * 1000 : 0);
+      const cpc = parseFloat(insight?.cpc || "0") || (clicks > 0 ? spend / clicks : 0);
+      const ctr = parseFloat(insight?.ctr || "0") || (impressions > 0 ? (clicks / impressions) * 100 : 0);
 
       let actions = clicks;
       if (insight?.actions) {
@@ -132,6 +137,11 @@ export async function GET(request: NextRequest) {
           clicks,
           actions,
           amountSpent: spend,
+          reach,
+          frequency,
+          cpm,
+          cpc,
+          ctr,
         },
         createdAt: metaCamp.created_time || (firestoreData?.createdAt
           ? firestoreData.createdAt.toDate

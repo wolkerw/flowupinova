@@ -1238,6 +1238,7 @@ export default function Relatorios() {
                       adAccountName={metaConnection?.adAccountName}
                       pageName={metaConnection?.pageName}
                       periodDays={periodDays}
+                      onPeriodChange={setPeriodDays}
                     />
                   </TabsContent>
 
@@ -1248,6 +1249,7 @@ export default function Relatorios() {
                       adAccountId={googleAdsConnection?.adAccountId}
                       adAccountName={googleAdsConnection?.adAccountName}
                       periodDays={periodDays}
+                      onPeriodChange={setPeriodDays}
                     />
                   </TabsContent>
                 </Tabs>
