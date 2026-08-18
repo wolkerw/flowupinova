@@ -244,6 +244,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
   const [activeModalTab, setActiveModalTab] = useState<"numvapt" | "instagram">("numvapt");
   const [campaigns, setCampaigns] = useState<AdCampaignData[]>([]);
   const [activeDashboardTab, setActiveDashboardTab] = useState<"active" | "history">("active");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
   const [loading, setLoading] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(
@@ -4256,6 +4258,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 onClick={() => {
                   setActivePlatformTab("meta");
                   setActiveDashboardTab("active");
+                  setCurrentPage(1);
                 }}
                 className={`font-poppins flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs font-extrabold transition-all duration-300 ${
                   activePlatformTab === "meta"
@@ -4271,6 +4274,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 onClick={() => {
                   setActivePlatformTab("google");
                   setActiveDashboardTab("active");
+                  setCurrentPage(1);
                 }}
                 className={`font-poppins flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs font-extrabold transition-all duration-300 ${
                   activePlatformTab === "google"
@@ -4378,7 +4382,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
               <div className="inline-flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100/80 p-1">
                 <button
                   type="button"
-                  onClick={() => setActiveDashboardTab("active")}
+                  onClick={() => {
+                    setActiveDashboardTab("active");
+                    setCurrentPage(1);
+                  }}
                   className={`font-poppins flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold transition-all duration-200 ${
                     activeDashboardTab === "active"
                       ? "shadow-xs bg-white text-slate-900"
@@ -4402,7 +4409,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveDashboardTab("history")}
+                  onClick={() => {
+                    setActiveDashboardTab("history");
+                    setCurrentPage(1);
+                  }}
                   className={`font-poppins flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold transition-all duration-200 ${
                     activeDashboardTab === "history"
                       ? "shadow-xs bg-white text-slate-900"
@@ -4445,6 +4455,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     ? c.status === "active"
                     : c.status !== "active";
                 });
+                const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE) || 1;
+                const safeCurrentPage = Math.min(currentPage, totalPages);
+                const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+                const paginatedCampaigns = filteredCampaigns.slice(
+                  startIndex,
+                  startIndex + ITEMS_PER_PAGE
+                );
 
                 if (filteredCampaigns.length === 0) {
                   return (
@@ -4507,7 +4524,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           </tr>
                         </thead>
                         <tbody className="divide-slate-150/40 font-inter text-slate-650 divide-y text-xs">
-                          {filteredCampaigns.map((c) => {
+                          {paginatedCampaigns.map((c) => {
                             const totalDays = c.durationDays || 7;
                             let daysPassed = 1;
                             if (c.createdAt) {
@@ -4715,6 +4732,42 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                         </tbody>
                       </table>
                     </div>
+
+                    {/* PAGINAÇÃO (5 ITENS POR PÁGINA) */}
+                    {filteredCampaigns.length > ITEMS_PER_PAGE && (
+                      <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 font-inter">
+                        <div>
+                          Mostrando <span className="font-bold text-slate-800">{startIndex + 1}</span> a{" "}
+                          <span className="font-bold text-slate-800">
+                            {Math.min(startIndex + ITEMS_PER_PAGE, filteredCampaigns.length)}
+                          </span>{" "}
+                          de <span className="font-bold text-slate-800">{filteredCampaigns.length}</span> anúncios
+                        </div>
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={safeCurrentPage === 1}
+                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                            className="h-7 px-2.5 text-xs font-semibold text-slate-700 hover:bg-white"
+                          >
+                            Anterior
+                          </Button>
+                          <span className="px-2 text-xs font-medium text-slate-600">
+                            Página {safeCurrentPage} de {totalPages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={safeCurrentPage >= totalPages}
+                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                            className="h-7 px-2.5 text-xs font-semibold text-slate-700 hover:bg-white"
+                          >
+                            Próxima
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()
