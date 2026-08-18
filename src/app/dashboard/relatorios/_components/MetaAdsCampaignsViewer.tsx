@@ -215,7 +215,7 @@ export function MetaAdsCampaignsViewer({
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Ações Principais
+                Ações de Conversão
               </span>
               <div className="rounded-lg bg-purple-50 p-2 text-purple-600">
                 <MessageSquare className="h-5 w-5" />
@@ -229,7 +229,7 @@ export function MetaAdsCampaignsViewer({
             <p className="mt-1 text-xs text-slate-500">
               {costPerAction > 0
                 ? `Custo/Ação: ${costPerAction.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
-                : "Cliques diretos em mensagens / CTA"}
+                : "Mensagens WhatsApp/Direct e cliques"}
             </p>
           </CardContent>
         </Card>
@@ -405,137 +405,6 @@ export function MetaAdsCampaignsViewer({
           )}
         </CardContent>
       </Card>
-
-      {/* ========================================================================= */}
-      {/* SEÇÕES RICAS DE INSIGHTS (Abaixo das Campanhas) */}
-      {/* ========================================================================= */}
-      {activeCampaigns.length > 0 && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Card 1: Distribuição por Plataforma (Instagram vs Facebook) */}
-          <Card className="border border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Instagram className="h-4 w-4 text-pink-600" />
-                Onde seus anúncios aparecem
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Distribuição estimada de veiculação no ecossistema Meta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-1">
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-700">
-                    <Instagram className="h-3.5 w-3.5 text-pink-600" />
-                    Instagram (Feed & Stories)
-                  </span>
-                  <span className="font-semibold text-slate-900">68%</span>
-                </div>
-                <Progress value={68} className="h-2 bg-slate-100" />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-700">
-                    <Facebook className="h-3.5 w-3.5 text-[#1877F2]" />
-                    Facebook (Feed & Vídeos)
-                  </span>
-                  <span className="font-semibold text-slate-900">32%</span>
-                </div>
-                <Progress value={32} className="h-2 bg-slate-100" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Perfil do Público & Faixa Etária */}
-          <Card className="border border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Users className="h-4 w-4 text-[#0083C7]" />
-                Faixa Etária Predominante
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Público que mais interagiu com seus anúncios
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-1">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-600">25 - 34 anos (Principal)</span>
-                  <span className="font-semibold text-slate-900">42%</span>
-                </div>
-                <Progress value={42} className="h-1.5 bg-slate-100" />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-600">35 - 44 anos</span>
-                  <span className="font-semibold text-slate-900">31%</span>
-                </div>
-                <Progress value={31} className="h-1.5 bg-slate-100" />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-600">18 - 24 anos</span>
-                  <span className="font-semibold text-slate-900">16%</span>
-                </div>
-                <Progress value={16} className="h-1.5 bg-slate-100" />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-600">45+ anos</span>
-                  <span className="font-semibold text-slate-900">11%</span>
-                </div>
-                <Progress value={11} className="h-1.5 bg-slate-100" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 3: Dispositivos & Região */}
-          <Card className="border border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Smartphone className="h-4 w-4 text-emerald-600" />
-                Dispositivos & Regiões
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Como e onde o seu público acessa
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3.5 pt-1">
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                  <Smartphone className="mx-auto mb-1 h-4 w-4 text-slate-600" />
-                  <span className="block text-xs font-semibold text-slate-800">94% Mobile</span>
-                  <span className="text-[10px] text-slate-500">Smartphones</span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                  <Monitor className="mx-auto mb-1 h-4 w-4 text-slate-600" />
-                  <span className="block text-xs font-semibold text-slate-800">6% Desktop</span>
-                  <span className="text-[10px] text-slate-500">Computadores</span>
-                </div>
-              </div>
-
-              {activeLocations.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">
-                    Regiões Ativas:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeLocations.slice(0, 3).map((loc, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-[10px] font-normal text-slate-700 bg-slate-100 truncate max-w-full">
-                        📍 {loc}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
