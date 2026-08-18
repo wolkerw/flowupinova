@@ -105,10 +105,18 @@ export async function GET(request: NextRequest) {
       let salesCount = 0;
 
       if (Array.isArray(adInsight?.actions)) {
-        const onsiteLead = adInsight.actions.find((a: any) => a.action_type === "onsite_conversion.lead_grouped");
+        const onsiteLead = adInsight.actions.find(
+          (a: any) =>
+            a.action_type === "onsite_conversion.lead_grouped" ||
+            a.action_type === "leadgen_grouped" ||
+            a.action_type === "onsite_conversion.lead" ||
+            a.action_type?.includes("lead_grouped")
+        );
         const stdLead = adInsight.actions.find((a: any) => a.action_type === "lead");
+        const pixelLead = adInsight.actions.find((a: any) => a.action_type === "offsite_conversion.fb_pixel_lead");
         if (onsiteLead) leadsCount = parseInt(onsiteLead.value || "0");
         else if (stdLead) leadsCount = parseInt(stdLead.value || "0");
+        else if (pixelLead) leadsCount = parseInt(pixelLead.value || "0");
 
         const msgStarted = adInsight.actions.find((a: any) =>
           a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
@@ -222,8 +230,14 @@ export async function GET(request: NextRequest) {
       let linkClicksCount = 0;
 
       if (Array.isArray(insight?.actions)) {
-        // 1. Leads: Meta retorna múltiplos aliases ('onsite_conversion.lead_grouped', 'lead', 'offsite_conversion.fb_pixel_lead')
-        const onsiteLead = insight.actions.find((a: any) => a.action_type === "onsite_conversion.lead_grouped");
+        // 1. Leads: Meta retorna múltiplos aliases ('onsite_conversion.lead_grouped', 'leadgen_grouped', 'lead', 'offsite_conversion.fb_pixel_lead')
+        const onsiteLead = insight.actions.find(
+          (a: any) =>
+            a.action_type === "onsite_conversion.lead_grouped" ||
+            a.action_type === "leadgen_grouped" ||
+            a.action_type === "onsite_conversion.lead" ||
+            a.action_type?.includes("lead_grouped")
+        );
         const standardLead = insight.actions.find((a: any) => a.action_type === "lead");
         const pixelLead = insight.actions.find((a: any) => a.action_type === "offsite_conversion.fb_pixel_lead");
         if (onsiteLead) {

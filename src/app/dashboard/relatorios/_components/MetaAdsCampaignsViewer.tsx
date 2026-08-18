@@ -212,93 +212,121 @@ export function MetaAdsCampaignsViewer({
     const appInstalls = Number(camp.metrics?.appInstallsCount) || 0;
     const linkClicks = Number(camp.metrics?.linkClicksCount) || clicks;
 
-    // 1. MENSAGENS (WhatsApp / Messenger / Direct / Meta ODAX com destino em Mensagem)
-    const isMessaging =
+    // 1. LEADS (Formulários instantâneos / Geração de cadastros nativa da Meta)
+    // Ocorre quando o objetivo oficial é OUTCOME_LEADS / LEAD_GENERATION ou goal é LEAD_GENERATION / QUALITY_LEAD / LEAD ou dest é ON_AD
+    const isLeadsObjective =
+      obj.includes("LEAD") ||
+      goal.includes("LEAD") ||
+      dest.includes("ON_AD");
+
+    if (isLeadsObjective) {
+      // Se o destino configurado na Meta for explicitamente WhatsApp / Mensagens, é campanha de leads via mensagem
+      const isLeadViaMessaging =
+        dest.includes("WHATSAPP") ||
+        dest.includes("MESSENGER") ||
+        dest.includes("INSTAGRAM_DIRECT") ||
+        dest.includes("MESSAGING") ||
+        goal.includes("CONVERSATION");
+
+      if (isLeadViaMessaging) {
+        const unitCost = messages > 0 ? spent / messages : 0;
+        return {
+          label: "Mensagens",
+          value: messages.toLocaleString("pt-BR"),
+          subLabel: unitCost > 0 ? `Custo/Mensagem: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Conversas iniciadas",
+          badge: "Mensagens",
+        };
+      }
+
+      // Caso contrário (ex: Formulários instantâneos ON_AD / Cadastros de leads)
+      const unitCost = leads > 0 ? spent / leads : 0;
+      return {
+        label: "Leads",
+        value: leads.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `Custo/Lead: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cadastros gerados",
+        badge: "Leads",
+      };
+    }
+
+    // 2. MENSAGENS (WhatsApp / Messenger / Direct / Conversas)
+    const isMessagingObjective =
       dest.includes("WHATSAPP") ||
       dest.includes("MESSENGER") ||
       dest.includes("INSTAGRAM_DIRECT") ||
       dest.includes("MESSAGING") ||
       goal.includes("CONVERSATION") ||
       goal.includes("MESSAGING") ||
-      obj.includes("MESSAGE") ||
-      messages > 0;
+      obj.includes("MESSAGE");
 
-    if (isMessaging) {
-      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
-      const unitCost = count > 0 ? spent / count : 0;
+    if (isMessagingObjective) {
+      const unitCost = messages > 0 ? spent / messages : 0;
       return {
         label: "Mensagens",
-        value: count.toLocaleString("pt-BR"),
+        value: messages.toLocaleString("pt-BR"),
         subLabel: unitCost > 0 ? `Custo/Mensagem: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Conversas iniciadas",
         badge: "Mensagens",
       };
     }
 
-    // 2. LEADS (Formulários instantâneos / Geração de cadastros nativa da Meta)
-    const isLeads =
-      goal.includes("LEAD") ||
-      dest.includes("ON_AD") ||
-      obj.includes("LEAD") ||
-      leads > 0;
-
-    if (isLeads) {
-      const count = leads > 0 ? leads : Number(camp.metrics?.actions) || clicks;
-      const unitCost = count > 0 ? spent / count : 0;
-      return {
-        label: "Leads",
-        value: count.toLocaleString("pt-BR"),
-        subLabel: unitCost > 0 ? `Custo/Lead: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cadastros gerados",
-        badge: "Leads",
-      };
-    }
-
-    // 3. VENDAS (E-commerce / Catálogo / Conversões no site)
-    const isSales =
+    // 3. VENDAS (E-commerce / Catálogo / Conversões / Compras)
+    const isSalesObjective =
       goal.includes("OFFSITE_CONVERSIONS") ||
       goal.includes("PURCHASE") ||
       goal.includes("VALUE") ||
       obj.includes("SALE") ||
       obj.includes("PURCHASE") ||
-      obj.includes("CONVERSION") ||
-      sales > 0;
+      obj.includes("CONVERSION");
 
-    if (isSales) {
-      const count = sales > 0 ? sales : Number(camp.metrics?.actions) || clicks;
-      const unitCost = count > 0 ? spent / count : 0;
+    if (isSalesObjective) {
+      const unitCost = sales > 0 ? spent / sales : 0;
       return {
         label: "Vendas",
-        value: count.toLocaleString("pt-BR"),
+        value: sales.toLocaleString("pt-BR"),
         subLabel: unitCost > 0 ? `Custo/Venda: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Vendas realizadas",
         badge: "Vendas",
       };
     }
 
     // 4. DOWNLOADS / APP PROMOTION
-    const isApp =
+    const isAppObjective =
       goal.includes("APP_INSTALL") ||
       dest.includes("APP") ||
-      obj.includes("APP") ||
-      appInstalls > 0;
+      obj.includes("APP");
 
-    if (isApp) {
-      const count = appInstalls > 0 ? appInstalls : Number(camp.metrics?.actions) || clicks;
-      const unitCost = count > 0 ? spent / count : 0;
+    if (isAppObjective) {
+      const unitCost = appInstalls > 0 ? spent / appInstalls : 0;
       return {
         label: "Downloads",
-        value: count.toLocaleString("pt-BR"),
+        value: appInstalls.toLocaleString("pt-BR"),
         subLabel: unitCost > 0 ? `Custo/Download: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Instalações do app",
         badge: "Downloads",
       };
     }
 
-    // 5. TRÁFEGO (Cliques no link / Visitas à página de destino)
-    const isTraffic =
+    // 5. VISUALIZAÇÕES DE VÍDEO (ThruPlay / Video Views)
+    const isVideoObjective =
+      goal.includes("THRUPLAY") ||
+      goal.includes("VIDEO") ||
+      obj.includes("VIDEO");
+
+    if (isVideoObjective) {
+      const unitCost = videoViews > 0 ? spent / videoViews : 0;
+      return {
+        label: "Visualizações",
+        value: videoViews.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `CPV: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações do vídeo",
+        badge: "Visualizações",
+      };
+    }
+
+    // 6. TRÁFEGO (Cliques no link / Visitas à página de destino)
+    const isTrafficObjective =
       goal.includes("LINK_CLICK") ||
       goal.includes("LANDING_PAGE_VIEW") ||
       obj.includes("TRAFFIC") ||
       obj.includes("LINK_CLICK");
 
-    if (isTraffic) {
+    if (isTrafficObjective) {
       const count = linkClicks > 0 ? linkClicks : clicks;
       const unitCost = count > 0 ? spent / count : cpc;
       return {
@@ -309,15 +337,15 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 6. ALCANCE / RECONHECIMENTO (Pessoas únicas alcançadas / Impressões)
-    const isAwareness =
+    // 7. ALCANCE / RECONHECIMENTO (Pessoas únicas alcançadas / Impressões)
+    const isAwarenessObjective =
       goal.includes("REACH") ||
       goal.includes("IMPRESSION") ||
       obj.includes("AWARENESS") ||
       obj.includes("REACH") ||
       obj.includes("BRAND");
 
-    if (isAwareness) {
+    if (isAwarenessObjective) {
       return {
         label: "Alcance",
         value: reach.toLocaleString("pt-BR"),
@@ -326,32 +354,29 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 7. VISUALIZAÇÕES DE VÍDEO (ThruPlay / Video Views)
-    const isVideo =
-      goal.includes("THRUPLAY") ||
-      goal.includes("VIDEO") ||
-      obj.includes("VIDEO") ||
-      videoViews > 0;
+    // 8. ENGAJAMENTO NO POST (Post Engagement / Curtidas)
+    const isEngagementObjective =
+      goal.includes("ENGAGEMENT") ||
+      goal.includes("PAGE_LIKES") ||
+      obj.includes("ENGAGEMENT");
 
-    if (isVideo) {
-      const count = videoViews > 0 ? videoViews : Number(camp.metrics?.actions) || clicks;
+    if (isEngagementObjective) {
+      const count = postEngagement > 0 ? postEngagement : clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
-        label: "Visualizações",
+        label: "Engajamento",
         value: count.toLocaleString("pt-BR"),
-        subLabel: unitCost > 0 ? `CPV: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações do vídeo",
-        badge: "Visualizações",
+        subLabel: unitCost > 0 ? `Custo/Engajamento: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Curtidas e comentários",
+        badge: "Engajamento",
       };
     }
 
-    // 8. INTERAÇÕES GERAIS / ENGAJAMENTO (Post Engagement)
-    const interactionCount = postEngagement > 0 ? postEngagement : Number(camp.metrics?.actions) || clicks;
-    const unitCost = interactionCount > 0 ? spent / interactionCount : 0;
+    // Fallback padrão seguro: Cliques
     return {
-      label: "Interações",
-      value: interactionCount.toLocaleString("pt-BR"),
-      subLabel: unitCost > 0 ? `Custo/Interação: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Curtidas e comentários",
-      badge: "Interações",
+      label: "Cliques",
+      value: clicks.toLocaleString("pt-BR"),
+      subLabel: cpc > 0 ? `CPC: ${cpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques no anúncio",
+      badge: "Cliques",
     };
   };
 
