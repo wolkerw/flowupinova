@@ -712,16 +712,11 @@ export function MetaAdsCampaignsViewer({
                     {/* Galeria de Anúncios e Criativos Expansível com Extrema Qualidade */}
                     {isExpanded && activeAds.length > 0 && (
                       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
-                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4 pb-3 border-b border-slate-200/80">
-                          <div className="flex items-center gap-2">
-                            <Layers className="h-4 w-4 text-[#0083C7]" />
-                            <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
-                              Anúncios Ativos ({activeAds.length})
-                            </h6>
-                          </div>
-                          <span className="text-[11px] text-slate-500">
-                            Visualização em alta resolução, copy, CTA e performance
-                          </span>
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-200/80">
+                          <Layers className="h-4 w-4 text-[#0083C7]" />
+                          <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
+                            Anúncios Ativos ({activeAds.length})
+                          </h6>
                         </div>
 
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
