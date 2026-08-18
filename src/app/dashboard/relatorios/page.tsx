@@ -94,7 +94,7 @@ import { format, formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import {
   getGoogleAdsConnection,
@@ -994,11 +994,28 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
 
 export default function Relatorios() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [mainTab, setMainTab] = useState<"organic" | "campaigns">("organic");
   const [periodDays, setPeriodDays] = useState("30");
   const [campaignsSubTab, setCampaignsSubTab] = useState<"meta" | "google">("meta");
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "meta") {
+      setMainTab("campaigns");
+      setCampaignsSubTab("meta");
+    } else if (tabParam === "google") {
+      setMainTab("campaigns");
+      setCampaignsSubTab("google");
+    } else if (tabParam === "campaigns" || tabParam === "trafego") {
+      setMainTab("campaigns");
+    } else if (tabParam === "organic" || tabParam === "organico") {
+      setMainTab("organic");
+    }
+  }, [searchParams]);
 
   const [metaConnection, setMetaConnection] = useState<MetaConnectionData | null>(null);
   const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionData | null>(

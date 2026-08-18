@@ -4337,37 +4337,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
           )}
 
-          {/* BANNER OPERACIONAL & ATALHO PARA RELATÓRIOS DETALHADOS */}
-          <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 p-5 shadow-xs transition-all">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3.5">
-                <div className="rounded-xl bg-[#0083C7]/10 p-3 text-[#0083C7] shrink-0">
-                  <BarChart3 className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-poppins text-sm font-bold text-slate-900">
-                      Relatórios & Inteligência de Performance
-                    </h4>
-                    <Badge className="bg-sky-100 text-[#0083C7] border-sky-200 text-[10px] font-semibold">
-                      Métricas & Criativos
-                    </Badge>
-                  </div>
-                  <p className="mt-1 max-w-xl text-xs text-slate-500 leading-relaxed">
-                    Consulte criativos reais dos anúncios, quebras por estado, cidades, dispositivos e gráficos de conversão na central de relatórios.
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                href={`/dashboard/relatorios?tab=${activePlatformTab === "meta" ? "meta" : "google"}`}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0083C7] hover:bg-[#006ca7] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all active:scale-95 shrink-0"
-              >
-                Ver Relatório Completo <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-
           {/* GERENCIAMENTO DE CAMPANHAS EM VEICULAÇÃO OU HISTÓRICO */}
           <div className="space-y-5 text-left">
             <div className="rounded-r-lg border-l-4 border-slate-200 bg-slate-50/50 p-1 pl-3 transition-all duration-300">
@@ -4770,6 +4739,37 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 );
               })()
             )}
+          </div>
+
+          {/* BANNER OPERACIONAL & ATALHO PARA RELATÓRIOS DETALHADOS (ABAIXO DAS CAMPANHAS) */}
+          <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 p-5 shadow-xs transition-all">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3.5">
+                <div className="rounded-xl bg-[#0083C7]/10 p-3 text-[#0083C7] shrink-0">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-poppins text-sm font-bold text-slate-900">
+                      Relatórios & Inteligência de Performance
+                    </h4>
+                    <Badge className="bg-sky-100 text-[#0083C7] border-sky-200 text-[10px] font-semibold">
+                      Métricas & Criativos
+                    </Badge>
+                  </div>
+                  <p className="mt-1 max-w-xl text-xs text-slate-500 leading-relaxed">
+                    Consulte criativos reais dos anúncios, quebras por estado, cidades, dispositivos e gráficos de conversão na central de relatórios.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/dashboard/relatorios?tab=${activePlatformTab === "meta" ? "meta" : "google"}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0083C7] hover:bg-[#006ca7] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all active:scale-95 shrink-0"
+              >
+                Ver Relatório Completo <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
 
           {/* O grid de posts foi movido para o Dialog de seleção */}
