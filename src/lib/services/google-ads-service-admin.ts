@@ -5,7 +5,7 @@ import { google } from "googleapis";
 import type { GoogleAdsConnectionData } from "./google-ads-service";
 
 const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "TEST_DEVELOPER_TOKEN";
-const GOOGLE_ADS_API_VERSION = "v18";
+const GOOGLE_ADS_API_VERSION = "v24";
 
 const GEO_TARGET_BRAZIL_REGIONS: Record<string, string> = {
   "20067": "São Paulo",
