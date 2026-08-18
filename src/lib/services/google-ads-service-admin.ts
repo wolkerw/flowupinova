@@ -457,11 +457,25 @@ export async function getGoogleAdsCampaigns(
       LIMIT 50
     `;
 
-    const geoQuery = `
+    const geoRegionQuery = `
       SELECT
         geographic_view.country_criterion_id,
         geographic_view.location_type,
         segments.geo_target_region,
+        campaign.id,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros
+      FROM geographic_view
+      WHERE segments.date ${dateClause}
+      ORDER BY metrics.impressions DESC
+      LIMIT 20
+    `;
+
+    const geoCityQuery = `
+      SELECT
+        geographic_view.country_criterion_id,
+        geographic_view.location_type,
         segments.geo_target_city,
         campaign.id,
         metrics.impressions,
@@ -470,7 +484,7 @@ export async function getGoogleAdsCampaigns(
       FROM geographic_view
       WHERE segments.date ${dateClause}
       ORDER BY metrics.impressions DESC
-      LIMIT 50
+      LIMIT 20
     `;
 
     const safeGoogleAdsSearch = async (query: string, label: string) => {
@@ -500,13 +514,14 @@ export async function getGoogleAdsCampaigns(
       }
     };
 
-    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes, geoRes] = await Promise.allSettled([
+    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes, geoRegionRes, geoCityRes] = await Promise.allSettled([
       safeGoogleAdsSearch(campaignQuery, "campaignQuery"),
       safeGoogleAdsSearch(adQuery, "adQuery"),
       safeGoogleAdsSearch(keywordQuery, "keywordQuery"),
       safeGoogleAdsSearch(deviceQuery, "deviceQuery"),
       safeGoogleAdsSearch(searchTermQuery, "searchTermQuery"),
-      safeGoogleAdsSearch(geoQuery, "geoQuery"),
+      safeGoogleAdsSearch(geoRegionQuery, "geoRegionQuery"),
+      safeGoogleAdsSearch(geoCityQuery, "geoCityQuery"),
     ]);
 
     let campaignResults =
@@ -693,16 +708,21 @@ export async function getGoogleAdsCampaigns(
       devicesByCampaignMap.set(campId, currentList);
     });
 
-    const geoResults =
-      geoRes.status === "fulfilled" && geoRes.value?.results
-        ? geoRes.value.results
+    const geoRegionResults =
+      geoRegionRes.status === "fulfilled" && geoRegionRes.value?.results
+        ? geoRegionRes.value.results
+        : [];
+    const geoCityResults =
+      geoCityRes.status === "fulfilled" && geoCityRes.value?.results
+        ? geoCityRes.value.results
         : [];
 
     // Mapear regiões geográficas (Estados e Cidades separados)
     const geoByCampaignMap = new Map<string, any[]>();
     const citiesByCampaignMap = new Map<string, any[]>();
 
-    geoResults.forEach((item: any) => {
+    // 1. Estados
+    geoRegionResults.forEach((item: any) => {
       const campId = String(item.campaign?.id || "");
       if (!campId) return;
 
@@ -711,7 +731,6 @@ export async function getGoogleAdsCampaigns(
       const clicks = Number(item.metrics?.clicks || 0);
       const spent = spentMicros / 1_000_000;
 
-      // 1. Estados (apenas estados reconhecidos pelo ID do Brasil)
       const rawGeoId = (item.segments?.geoTargetRegion || "").replace("geoTargetConstants/", "");
       const regionName = GEO_TARGET_BRAZIL_REGIONS[rawGeoId];
       if (regionName) {
@@ -725,8 +744,18 @@ export async function getGoogleAdsCampaigns(
         });
         geoByCampaignMap.set(campId, currentRegions);
       }
+    });
 
-      // 2. Cidades (cidades reconhecidas pelo ID da API)
+    // 2. Cidades
+    geoCityResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const imp = Number(item.metrics?.impressions || 0);
+      const clicks = Number(item.metrics?.clicks || 0);
+      const spent = spentMicros / 1_000_000;
+
       const rawCityId = (item.segments?.geoTargetCity || "").replace("geoTargetConstants/", "");
       const cityName = GEO_TARGET_BRAZIL_CITIES[rawCityId];
       if (cityName) {
