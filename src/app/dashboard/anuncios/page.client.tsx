@@ -1785,7 +1785,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         <div className="max-w-3xl text-left">
           <h1 className="font-poppins flex items-center gap-2.5 text-2xl font-extrabold tracking-tight text-slate-900">
             <Megaphone className="h-7 w-7 text-primary" />
-            Central de Anúncios Locais
+            Central de Anúncios
           </h1>
           <p className="font-inter mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
             Atraia novos clientes para o seu negócio impulsionando publicações no Instagram/Facebook
@@ -1841,30 +1841,6 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             )}
           </div>
         </div>
-
-        {/* Botão de Ação Primária da Plataforma Ativa */}
-        {!isCreating && (
-          <div className="shrink-0 self-start md:self-center">
-            {activePlatformTab === "meta" && isMetaActive && publishedPosts.length > 0 && (
-              <Button
-                onClick={() => setIsChoosePostModalOpen(true)}
-                className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-xs font-bold text-white shadow-sm transition-transform duration-200 hover:bg-primary/95 active:scale-95"
-              >
-                <Sparkles className="h-4 w-4" />
-                Impulsionar Publicação
-              </Button>
-            )}
-            {activePlatformTab === "google" && isGoogleActive && (
-              <Button
-                onClick={() => setIsCreatingGoogleAd(true)}
-                className="font-poppins flex items-center gap-2 rounded-lg bg-[#4285F4] px-5 py-3 text-xs font-bold text-white shadow-sm transition-transform duration-200 hover:bg-[#4285F4]/95 active:scale-95"
-              >
-                <Plus className="h-4 w-4" />
-                Criar Anúncio Google
-              </Button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* BANNER DE PREVENÇÃO DE COBRANÇA PENDENTE */}
@@ -4339,10 +4315,34 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
           {/* GERENCIAMENTO DE CAMPANHAS EM VEICULAÇÃO OU HISTÓRICO */}
           <div className="space-y-5 text-left">
-            <div className="rounded-r-lg border-l-4 border-slate-200 bg-slate-50/50 p-1 pl-3 transition-all duration-300">
-              <h3 className="font-poppins text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                Histórico de Campanhas
-              </h3>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="rounded-r-lg border-l-4 border-slate-200 bg-slate-50/50 p-1 pl-3 transition-all duration-300">
+                <h3 className="font-poppins text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                  Histórico de Campanhas
+                </h3>
+              </div>
+
+              {/* Botão de Ação Primária Padronizado e Próximo às Campanhas */}
+              <div>
+                {activePlatformTab === "meta" && isMetaActive && (
+                  <Button
+                    onClick={() => setIsChoosePostModalOpen(true)}
+                    className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-transform duration-200 hover:bg-primary/95 active:scale-95"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Impulsionar Publicação
+                  </Button>
+                )}
+                {activePlatformTab === "google" && isGoogleActive && (
+                  <Button
+                    onClick={() => setIsCreatingGoogleAd(true)}
+                    className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-transform duration-200 hover:bg-primary/95 active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Criar Anúncio no Google
+                  </Button>
+                )}
+              </div>
             </div>
             {/* SELETOR DE ABAS SEGMENT CONTROL */}
             <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -4749,16 +4749,11 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                   <BarChart3 className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-poppins text-sm font-bold text-slate-900">
-                      Relatórios & Inteligência de Performance
-                    </h4>
-                    <Badge className="bg-sky-100 text-[#0083C7] border-sky-200 text-[10px] font-semibold">
-                      Métricas & Criativos
-                    </Badge>
-                  </div>
+                  <h4 className="font-poppins text-sm font-bold text-slate-900">
+                    Relatórios de Performance
+                  </h4>
                   <p className="mt-1 max-w-xl text-xs text-slate-500 leading-relaxed">
-                    Consulte criativos reais dos anúncios, quebras por estado, cidades, dispositivos e gráficos de conversão na central de relatórios.
+                    Acompanhe o desempenho detalhado, criativos e métricas de conversão das suas campanhas.
                   </p>
                 </div>
               </div>

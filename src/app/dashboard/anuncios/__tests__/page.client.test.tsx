@@ -186,13 +186,13 @@ describe("AnunciosPageClient", () => {
     // Deve mostrar o título principal após o carregamento
     await waitFor(
       () => {
-        expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
+        expect(screen.getByText("Central de Anúncios")).toBeInTheDocument();
       },
       { timeout: 5000 }
     );
 
     // Deve mostrar o banner operacional com link para relatórios detalhados
-    expect(screen.getByText("Relatórios & Inteligência de Performance")).toBeInTheDocument();
+    expect(screen.getByText("Relatórios de Performance")).toBeInTheDocument();
     expect(screen.getByText("Ver Relatório Completo")).toBeInTheDocument();
 
     // Deve exibir a campanha ativa no gerenciamento
@@ -264,7 +264,7 @@ describe("AnunciosPageClient", () => {
     });
 
     // Deve mostrar o botão de criar anúncio no Google
-    const createAdButton = screen.getByRole("button", { name: /Criar Anúncio Google/i });
+    const createAdButton = screen.getByRole("button", { name: /Criar Anúncio no Google/i });
     expect(createAdButton).toBeInTheDocument();
 
     // Clica para abrir o modal de criação do Google Ads

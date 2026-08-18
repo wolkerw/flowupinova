@@ -78,6 +78,6 @@ describe("Anuncios Page", () => {
         {jsx}
       </AuthProvider>
     );
-    expect(screen.getByText("Central de Anúncios Locais")).toBeInTheDocument();
+    expect(screen.getByText("Central de Anúncios")).toBeInTheDocument();
   });
 });
