@@ -44,6 +44,9 @@ import {
   ExternalLink,
   Globe,
   Instagram,
+  ArrowLeft,
+  CheckCircle2,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -285,11 +288,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
   // Estados do Wizard do Google Ads
   const [isCreatingGoogleAd, setIsCreatingGoogleAd] = useState(false);
-  const [googleHeadline1, setGoogleHeadline1] = useState("");
-  const [googleHeadline2, setGoogleHeadline2] = useState("");
-  const [googleHeadline3, setGoogleHeadline3] = useState("");
-  const [googleDescription1, setGoogleDescription1] = useState("");
-  const [googleDescription2, setGoogleDescription2] = useState("");
+  const [googleWizardStep, setGoogleWizardStep] = useState<1 | 2 | 3>(1);
+  const [googleHeadlines, setGoogleHeadlines] = useState<string[]>(["", "", ""]);
+  const [googleDescriptions, setGoogleDescriptions] = useState<string[]>(["", ""]);
   const [googleKeywords, setGoogleKeywords] = useState<string[]>([]);
   const [newKeywordInput, setNewKeywordInput] = useState("");
   const [googleDailyBudget, setGoogleDailyBudget] = useState(15);
@@ -1131,71 +1132,138 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   };
 
-  const handlePublishGoogleCampaign = async () => {
-    if (!user || !googleAdsConnection.adAccountId) return;
-    
-    // Validações obrigatórias exigidas pela API do Google Ads
+  // Handlers para Títulos dinâmicos do Google Ads (Mínimo 3, Máximo 15)
+  const handleAddGoogleHeadline = () => {
+    if (googleHeadlines.length < 15) {
+      setGoogleHeadlines([...googleHeadlines, ""]);
+    }
+  };
+
+  const handleRemoveGoogleHeadline = (index: number) => {
+    if (googleHeadlines.length > 3) {
+      setGoogleHeadlines(googleHeadlines.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleUpdateGoogleHeadline = (index: number, value: string) => {
+    const updated = [...googleHeadlines];
+    updated[index] = value;
+    setGoogleHeadlines(updated);
+  };
+
+  // Handlers para Descrições dinâmicas do Google Ads (Mínimo 2, Máximo 4)
+  const handleAddGoogleDescription = () => {
+    if (googleDescriptions.length < 4) {
+      setGoogleDescriptions([...googleDescriptions, ""]);
+    }
+  };
+
+  const handleRemoveGoogleDescription = (index: number) => {
+    if (googleDescriptions.length > 2) {
+      setGoogleDescriptions(googleDescriptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleUpdateGoogleDescription = (index: number, value: string) => {
+    const updated = [...googleDescriptions];
+    updated[index] = value;
+    setGoogleDescriptions(updated);
+  };
+
+  // Sugestões inteligentes de Títulos com 1 clique
+  const handleApplyHeadlineSuggestion = (suggestion: string) => {
+    const emptyIndex = googleHeadlines.findIndex((h) => !h.trim());
+    if (emptyIndex !== -1) {
+      handleUpdateGoogleHeadline(emptyIndex, suggestion);
+    } else if (googleHeadlines.length < 15) {
+      setGoogleHeadlines([...googleHeadlines, suggestion]);
+    }
+  };
+
+  // Sugestões inteligentes de Descrições com 1 clique
+  const handleApplyDescriptionSuggestion = (suggestion: string) => {
+    const emptyIndex = googleDescriptions.findIndex((d) => !d.trim());
+    if (emptyIndex !== -1) {
+      handleUpdateGoogleDescription(emptyIndex, suggestion);
+    } else if (googleDescriptions.length < 4) {
+      setGoogleDescriptions([...googleDescriptions, suggestion]);
+    }
+  };
+
+  // Sugestão de Palavra-chave com 1 clique
+  const handleAddKeywordSuggestion = (keyword: string) => {
+    if (!googleKeywords.includes(keyword)) {
+      setGoogleKeywords([...googleKeywords, keyword]);
+    }
+  };
+
+  // Validação da Etapa 1
+  const validateGoogleStep1 = () => {
     if (!googleAdName.trim()) {
       toast({
         variant: "destructive",
-        title: "Nome obrigatório",
+        title: "Nome da Campanha Obrigatório",
         description: "Por favor, defina um nome para a sua campanha.",
       });
-      return;
+      return false;
     }
-    
-    if (!googleDailyBudget || googleDailyBudget <= 0) {
+    if (!googleWebsiteUrl.trim()) {
       toast({
         variant: "destructive",
-        title: "Orçamento obrigatório",
-        description: "Por favor, defina um orçamento diário válido maior que zero.",
+        title: "Link de Destino Obrigatório",
+        description: "Por favor, insira o link de destino (site ou WhatsApp).",
       });
-      return;
+      return false;
     }
+    return true;
+  };
 
-    if (!googleHeadline1.trim() || !googleHeadline2.trim() || !googleHeadline3.trim()) {
+  // Validação da Etapa 2
+  const validateGoogleStep2 = () => {
+    const validHeadlines = googleHeadlines.map((h) => h.trim()).filter(Boolean);
+    if (validHeadlines.length < 3) {
       toast({
         variant: "destructive",
-        title: "Títulos obrigatórios",
-        description: "O Google Ads exige exatamente 3 títulos para configurar o anúncio.",
+        title: "Mínimo de 3 Títulos Obrigatórios",
+        description: "O Google Ads exige pelo menos 3 títulos preenchidos.",
       });
-      return;
+      return false;
     }
 
-    if (!googleDescription1.trim() || !googleDescription2.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Descrições obrigatórias",
-        description: "O Google Ads exige exatamente 2 descrições para configurar o anúncio.",
-      });
-      return;
-    }
-
-    // Previsão de Políticas do Google Ads (Validações Locais)
-    const hlList = [googleHeadline1, googleHeadline2, googleHeadline3];
-    for (let i = 0; i < hlList.length; i++) {
-      const h = hlList[i].trim();
+    for (let i = 0; i < googleHeadlines.length; i++) {
+      const h = googleHeadlines[i].trim();
+      if (!h) continue;
       if (h.includes("!")) {
         toast({
           variant: "destructive",
           title: "Regra do Google Ads",
           description: `O Título ${i + 1} não pode conter pontos de exclamação (!). O Google proíbe exclamações em títulos.`,
         });
-        return;
+        return false;
       }
-      if (h === h.toUpperCase() && /[A-Z]/.test(h)) {
+      if (h === h.toUpperCase() && /[A-Z]/.test(h) && h.length > 3) {
         toast({
           variant: "destructive",
           title: "Regra do Google Ads",
-          description: `O Título ${i + 1} não deve ser escrito inteiramente em MAIÚSCULAS (ex: COMPRE). Use apenas a primeira letra maiúscula.`,
+          description: `O Título ${i + 1} não deve ser escrito inteiramente em MAIÚSCULAS.`,
         });
-        return;
+        return false;
       }
     }
 
-    const descList = [googleDescription1, googleDescription2];
-    for (let i = 0; i < descList.length; i++) {
-      const d = descList[i].trim();
+    const validDescriptions = googleDescriptions.map((d) => d.trim()).filter(Boolean);
+    if (validDescriptions.length < 2) {
+      toast({
+        variant: "destructive",
+        title: "Mínimo de 2 Descrições Obrigatórias",
+        description: "O Google Ads exige pelo menos 2 descrições preenchidas.",
+      });
+      return false;
+    }
+
+    for (let i = 0; i < googleDescriptions.length; i++) {
+      const d = googleDescriptions[i].trim();
+      if (!d) continue;
       const exclamations = (d.match(/!/g) || []).length;
       if (exclamations > 1) {
         toast({
@@ -1203,7 +1271,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           title: "Regra do Google Ads",
           description: `A Descrição ${i + 1} pode conter no máximo um (1) único ponto de exclamação (!).`,
         });
-        return;
+        return false;
       }
       if (d.includes("!!")) {
         toast({
@@ -1211,16 +1279,49 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           title: "Regra do Google Ads",
           description: `A Descrição ${i + 1} não pode conter exclamações repetidas (ex: !!).`,
         });
-        return;
+        return false;
       }
-      if (d === d.toUpperCase() && /[A-Z]/.test(d)) {
+      if (d === d.toUpperCase() && /[A-Z]/.test(d) && d.length > 5) {
         toast({
           variant: "destructive",
           title: "Regra do Google Ads",
           description: `A Descrição ${i + 1} não deve ser escrita inteiramente em MAIÚSCULAS.`,
         });
-        return;
+        return false;
       }
+    }
+
+    return true;
+  };
+
+  // Validação da Etapa 3
+  const validateGoogleStep3 = () => {
+    if (googleKeywords.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Palavras-chave Obrigatórias",
+        description: "Por favor, adicione pelo menos uma palavra-chave para os clientes encontrarem seu anúncio.",
+      });
+      return false;
+    }
+
+    if (!googleDailyBudget || googleDailyBudget <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Orçamento Obrigatório",
+        description: "Por favor, defina um orçamento diário válido maior que zero.",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handlePublishGoogleCampaign = async () => {
+    if (!user || !googleAdsConnection.adAccountId) return;
+    
+    if (!validateGoogleStep1() || !validateGoogleStep2() || !validateGoogleStep3()) {
+      return;
     }
 
     let websiteUrl = googleWebsiteUrl.trim();
@@ -1228,28 +1329,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       websiteUrl = `https://${websiteUrl}`;
     }
 
-    if (!websiteUrl) {
-      toast({
-        variant: "destructive",
-        title: "URL de Destino obrigatória",
-        description: "Por favor, insira o site ou link de destino para a campanha.",
-      });
-      return;
-    }
-
-    const keywords = googleKeywords;
-
-    if (keywords.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Palavras-chave obrigatórias",
-        description: "Por favor, insira pelo menos uma palavra-chave para a busca.",
-      });
-      return;
-    }
-
     setIsSubmittingGoogle(true);
     try {
+      const activeHeadlines = googleHeadlines.map((h) => h.trim()).filter(Boolean);
+      const activeDescriptions = googleDescriptions.map((d) => d.trim()).filter(Boolean);
 
       const response = await fetch("/api/google-ads/campaign", {
         method: "POST",
@@ -1260,12 +1343,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
           name: googleAdName,
           dailyBudget: googleDailyBudget,
           durationDays: googleDurationDays,
-          headline1: googleHeadline1,
-          headline2: googleHeadline2,
-          headline3: googleHeadline3,
-          description1: googleDescription1,
-          description2: googleDescription2,
-          keywords,
+          headline1: activeHeadlines[0] || googleAdName,
+          headline2: activeHeadlines[1] || "",
+          headline3: activeHeadlines[2] || "",
+          headlines: activeHeadlines,
+          description1: activeDescriptions[0] || "",
+          description2: activeDescriptions[1] || "",
+          descriptions: activeDescriptions,
+          keywords: googleKeywords,
           finalUrl: websiteUrl,
         }),
       });
@@ -1276,18 +1361,16 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
       }
 
       toast({
-        title: "Sucesso!",
-        description: "Sua campanha foi publicada com sucesso no Google Ads.",
+        title: "Campanha Publicada no Google Ads!",
+        description: "Seu anúncio de pesquisa local já foi configurado e enviado com sucesso.",
       });
 
       setIsCreatingGoogleAd(false);
+      setGoogleWizardStep(1);
       // Limpa formulário
       setGoogleAdName("");
-      setGoogleHeadline1("");
-      setGoogleHeadline2("");
-      setGoogleHeadline3("");
-      setGoogleDescription1("");
-      setGoogleDescription2("");
+      setGoogleHeadlines(["", "", ""]);
+      setGoogleDescriptions(["", ""]);
       setGoogleKeywords([]);
       setNewKeywordInput("");
       setGoogleWebsiteUrl("");
@@ -4893,12 +4976,23 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             ) : instagramFeedPosts.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200/80 bg-slate-50 p-8 text-center text-slate-400">
                 <Instagram className="mx-auto mb-2.5 h-8 w-8 text-pink-500/70" />
-                <p className="text-xs font-semibold text-slate-700">
-                  Nenhuma publicação externa encontrada no feed do Instagram
+                <p className="text-xs font-bold text-slate-700">
+                  Instagram não conectado
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-[11.5px] leading-relaxed text-slate-500">
-                  Para impulsionar posts diretamente do feed do Instagram, certifique-se de que sua conta comercial está vinculada à Página no Meta Business Suite, ou impulsione qualquer criativo criado no NumVapt na aba <strong>Criados no NumVapt</strong>.
+                  Para carregar e impulsionar publicações diretamente do feed do seu Instagram, conecte sua conta na página <strong>Posts</strong>.
                 </p>
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <Link href="/dashboard/posts">
+                    <Button
+                      size="sm"
+                      className="font-poppins h-8.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 px-4 text-xs font-bold text-white shadow-sm hover:opacity-90 active:scale-95"
+                    >
+                      <Instagram className="mr-1.5 h-3.5 w-3.5" />
+                      Conectar Instagram na página Posts
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
@@ -5013,8 +5107,14 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         </DialogContent>
       </Dialog>
 
-      {/* WIZARD DE CRIAÇÃO DE ANÚNCIO GOOGLE ADS */}
-      <Dialog open={isCreatingGoogleAd} onOpenChange={setIsCreatingGoogleAd}>
+      {/* WIZARD DE CRIAÇÃO DE ANÚNCIO GOOGLE ADS EM 3 ETAPAS */}
+      <Dialog
+        open={isCreatingGoogleAd}
+        onOpenChange={(open) => {
+          setIsCreatingGoogleAd(open);
+          if (open) setGoogleWizardStep(1);
+        }}
+      >
         <DialogContent className="flex max-h-[88vh] max-w-4xl flex-col p-6 font-sans overflow-hidden">
           <DialogHeader className="border-b border-slate-100 pb-3">
             <div className="flex items-center justify-between pr-6">
@@ -5028,219 +5128,495 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 Pesquisa Local
               </Badge>
             </div>
-            <DialogDescription className="text-xs text-slate-500">
-              Configure seu anúncio para posicionar seu negócio no topo das buscas do Google na sua região.
-            </DialogDescription>
+
+            {/* STEPPER DE NAVEGAÇÃO DO WIZARD */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGoogleWizardStep(1)}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  googleWizardStep === 1
+                    ? "bg-[#4285F4] text-white shadow-2xs"
+                    : googleWizardStep > 1
+                    ? "bg-blue-50 text-[#4285F4] hover:bg-blue-100"
+                    : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+                  1
+                </span>
+                Destino
+              </button>
+
+              <div className="h-0.5 w-4 bg-slate-200" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (validateGoogleStep1()) setGoogleWizardStep(2);
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  googleWizardStep === 2
+                    ? "bg-[#4285F4] text-white shadow-2xs"
+                    : googleWizardStep > 2
+                    ? "bg-blue-50 text-[#4285F4] hover:bg-blue-100"
+                    : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+                  2
+                </span>
+                Anúncio
+              </button>
+
+              <div className="h-0.5 w-4 bg-slate-200" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (validateGoogleStep1() && validateGoogleStep2()) setGoogleWizardStep(3);
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  googleWizardStep === 3
+                    ? "bg-[#4285F4] text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+                  3
+                </span>
+                Orçamento & Busca
+              </button>
+            </div>
           </DialogHeader>
 
-          {/* CORPO EM GRID: FORMULÁRIO (ESQ) + LIVE PREVIEW (DIR) */}
+          {/* CORPO EM GRID: ETAPAS DO FORMULÁRIO (ESQ) + LIVE PREVIEW (DIR) */}
           <div className="flex-1 overflow-y-auto py-3 pr-1">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-              {/* FORMULÁRIO (7 COLUNAS) */}
+              {/* COLUNA DO FORMULÁRIO (7 COLUNAS) */}
               <div className="space-y-4 lg:col-span-7 text-left">
-                {/* Nome da Campanha & Link de Destino */}
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="g-campaign-name" className="text-[11px] font-bold text-slate-700">
-                        Nome da Campanha *
-                      </Label>
-                      <Input
-                        id="g-campaign-name"
-                        placeholder="Ex: Promoção Almoço Executivo"
-                        value={googleAdName}
-                        onChange={(e) => setGoogleAdName(e.target.value)}
-                        className="h-9 rounded-lg text-xs bg-white"
-                      />
+                {/* ETAPA 1: OBJETIVO E DESTINO */}
+                {googleWizardStep === 1 && (
+                  <div className="space-y-4 animate-in fade-in-50 duration-200">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                        <Lightbulb className="h-4 w-4 text-[#4285F4]" />
+                        Etapa 1: Onde seus clientes vão chegar?
+                      </div>
+                      <p className="text-[11.5px] text-slate-500">
+                        Quando um cliente pesquisar pelo seu negócio no Google e clicar no anúncio, ele será redirecionado para este endereço.
+                      </p>
                     </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="g-website-url" className="text-[11px] font-bold text-slate-700">
-                        Link de Destino (Site / WhatsApp) *
-                      </Label>
-                      <Input
-                        id="g-website-url"
-                        placeholder="Ex: seusite.com.br"
-                        value={googleWebsiteUrl}
-                        onChange={(e) => setGoogleWebsiteUrl(e.target.value)}
-                        className="h-9 rounded-lg text-xs bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                {/* Títulos do Anúncio (3 Obrigatórios) */}
-                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-700">
-                      Títulos do Anúncio (3 obrigatórios)
-                    </span>
-                    <span className="text-[10px] text-slate-400">máx 30 letras cada</span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="relative">
-                      <Input
-                        placeholder="Título 1 (Ex: Restaurante Sabor Caseiro)"
-                        maxLength={30}
-                        value={googleHeadline1}
-                        onChange={(e) => setGoogleHeadline1(e.target.value)}
-                        className="h-8 rounded-lg pr-12 text-xs"
-                      />
-                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
-                        {googleHeadline1.length}/30
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder="Título 2 (Ex: Pratos Executivos e Marmitex)"
-                        maxLength={30}
-                        value={googleHeadline2}
-                        onChange={(e) => setGoogleHeadline2(e.target.value)}
-                        className="h-8 rounded-lg pr-12 text-xs"
-                      />
-                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
-                        {googleHeadline2.length}/30
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Input
-                        placeholder="Título 3 (Ex: Peça Online com Desconto)"
-                        maxLength={30}
-                        value={googleHeadline3}
-                        onChange={(e) => setGoogleHeadline3(e.target.value)}
-                        className="h-8 rounded-lg pr-12 text-xs"
-                      />
-                      <span className="absolute right-2.5 top-2 text-[9px] font-bold text-slate-400">
-                        {googleHeadline3.length}/30
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-3.5 shadow-2xs">
+                      {/* Nome da Campanha */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="g-campaign-name" className="text-xs font-bold text-slate-700">
+                            Nome da Campanha *
+                          </Label>
+                          {businessProfile?.name && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setGoogleAdName(`${businessProfile.name} - Pesquisa Local`)
+                              }
+                              className="text-[10px] font-semibold text-primary hover:underline"
+                            >
+                              ✨ Usar nome da empresa
+                            </button>
+                          )}
+                        </div>
+                        <Input
+                          id="g-campaign-name"
+                          placeholder="Ex: Promoção Almoço Executivo, Atendimento Dental..."
+                          value={googleAdName}
+                          onChange={(e) => setGoogleAdName(e.target.value)}
+                          className="h-9 rounded-lg text-xs"
+                        />
+                        <p className="text-[10px] text-slate-400">
+                          Nome apenas para sua identificação e controle no painel.
+                        </p>
+                      </div>
 
-                {/* Descrições (2 Obrigatórias) */}
-                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-700">
-                      Descrições (2 obrigatórias)
-                    </span>
-                    <span className="text-[10px] text-slate-400">máx 90 letras cada</span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Descrição 1 (Ex: O melhor da culinária caseira no centro da cidade. Ingredientes frescos e entrega rápida.)"
-                        maxLength={90}
-                        rows={2}
-                        value={googleDescription1}
-                        onChange={(e) => setGoogleDescription1(e.target.value)}
-                        className="min-h-[50px] resize-none rounded-lg pr-12 text-xs"
-                      />
-                      <span className="absolute bottom-1.5 right-2.5 text-[9px] font-bold text-slate-400">
-                        {googleDescription1.length}/90
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Descrição 2 (Ex: Aberto de segunda a sábado das 11h às 15h. Faça sua reserva ou peça pelo WhatsApp.)"
-                        maxLength={90}
-                        rows={2}
-                        value={googleDescription2}
-                        onChange={(e) => setGoogleDescription2(e.target.value)}
-                        className="min-h-[50px] resize-none rounded-lg pr-12 text-xs"
-                      />
-                      <span className="absolute bottom-1.5 right-2.5 text-[9px] font-bold text-slate-400">
-                        {googleDescription2.length}/90
-                      </span>
+                      {/* Link de Destino */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="g-website-url" className="text-xs font-bold text-slate-700">
+                            Link de Destino *
+                          </Label>
+                          {businessProfile?.website && (
+                            <button
+                              type="button"
+                              onClick={() => setGoogleWebsiteUrl(businessProfile.website || "")}
+                              className="text-[10px] font-semibold text-primary hover:underline"
+                            >
+                              Usar site cadastrado
+                            </button>
+                          )}
+                        </div>
+                        <Input
+                          id="g-website-url"
+                          placeholder="Ex: www.seusite.com.br ou link do seu WhatsApp"
+                          value={googleWebsiteUrl}
+                          onChange={(e) => setGoogleWebsiteUrl(e.target.value)}
+                          className="h-9 rounded-lg text-xs"
+                        />
+                        <p className="text-[10px] text-slate-400">
+                          Pode ser o site da sua empresa, página de agendamento ou link direto do WhatsApp.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Palavras-chave */}
-                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 space-y-2 shadow-2xs">
-                  <Label className="text-[11px] font-bold text-slate-700">
-                    Palavras-chave de Busca
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Ex: restaurante no centro, marmitex entrega (Enter para adicionar)"
-                      value={newKeywordInput}
-                      onChange={(e) => setNewKeywordInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          const val = newKeywordInput.trim();
-                          if (val && !googleKeywords.includes(val)) {
-                            setGoogleKeywords([...googleKeywords, val]);
-                            setNewKeywordInput("");
-                          }
-                        }
-                      }}
-                      className="h-8.5 rounded-lg text-xs flex-1"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const val = newKeywordInput.trim();
-                        if (val && !googleKeywords.includes(val)) {
-                          setGoogleKeywords([...googleKeywords, val]);
-                          setNewKeywordInput("");
-                        }
-                      }}
-                      className="h-8.5 rounded-lg px-3 bg-primary text-xs font-bold text-white active:scale-95 hover:bg-primary/95"
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      Adicionar
-                    </Button>
-                  </div>
+                {/* ETAPA 2: TEXTOS E CRIATIVOS DO ANÚNCIO (TÍTULOS E DESCRIÇÕES) */}
+                {googleWizardStep === 2 && (
+                  <div className="space-y-4 animate-in fade-in-50 duration-200">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                        <Sparkles className="h-4 w-4 text-[#4285F4]" />
+                        Etapa 2: Textos do Anúncio (Pesquisa Responsiva)
+                      </div>
+                      <p className="text-[11.5px] text-slate-500">
+                        O Google combina seus títulos e descrições para encontrar a melhor combinação para cada busca do usuário.
+                      </p>
+                    </div>
 
-                  {/* Lista de tags de palavras-chave adicionadas */}
-                  {googleKeywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1.5 max-h-[70px] overflow-y-auto p-1.5 bg-slate-50 border border-slate-200/60 rounded-lg">
-                      {googleKeywords.map((kw, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs"
-                        >
-                          #{kw}
-                          <button
-                            type="button"
-                            onClick={() => setGoogleKeywords(googleKeywords.filter((_, i) => i !== idx))}
-                            className="text-slate-400 hover:text-red-500 font-bold ml-0.5 text-xs transition-colors"
-                          >
-                            ×
-                          </button>
+                    {/* TÍTULOS DO ANÚNCIO */}
+                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800">
+                            Títulos do Anúncio
+                          </span>
+                          <span className="block text-[10.5px] text-slate-400">
+                            Mínimo 3 obrigatórios (Adicione até 15 para melhor performance)
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          {googleHeadlines.filter((h) => h.trim()).length}/15 adicionados
                         </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
 
-                {/* Orçamento & Duração */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700">Orçamento Diário (R$)</Label>
-                    <Input
-                      type="number"
-                      min={5}
-                      value={googleDailyBudget}
-                      onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
-                      className="h-8.5 rounded-lg text-xs bg-white"
-                    />
+                      <div className="space-y-2">
+                        {googleHeadlines.map((headline, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                placeholder={`Título ${idx + 1} ${
+                                  idx === 0
+                                    ? `(Ex: ${businessProfile?.name || "Nome da Empresa"})`
+                                    : idx === 1
+                                    ? "(Ex: Atendimento de Excelência)"
+                                    : idx === 2
+                                    ? "(Ex: Peça Online com Desconto)"
+                                    : "(Ex: Destaque ou Oferta)"
+                                }`}
+                                maxLength={30}
+                                value={headline}
+                                onChange={(e) => handleUpdateGoogleHeadline(idx, e.target.value)}
+                                className="h-8.5 rounded-lg pr-12 text-xs"
+                              />
+                              <span className="absolute right-2.5 top-2.5 text-[9px] font-bold text-slate-400">
+                                {headline.length}/30
+                              </span>
+                            </div>
+                            {googleHeadlines.length > 3 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGoogleHeadline(idx)}
+                                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                title="Remover título"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {googleHeadlines.length < 15 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddGoogleHeadline}
+                          className="h-8 w-full border-dashed border-slate-300 text-[11px] font-bold text-slate-600 hover:border-primary hover:text-primary"
+                        >
+                          <Plus className="mr-1.5 h-3.5 w-3.5" />
+                          Adicionar mais um título ({googleHeadlines.length}/15)
+                        </Button>
+                      )}
+
+                      {/* Sugestões de Títulos com 1 clique */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                          💡 Ideias rápidas (Clique para preencher):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            businessProfile?.name ? `${businessProfile.name}` : null,
+                            "Melhor Preço da Região",
+                            "Atendimento Imediato",
+                            "Peça pelo WhatsApp",
+                            "Qualidade Garantida",
+                            "Faça seu Orçamento Grátis",
+                          ]
+                            .filter(Boolean)
+                            .map((idea, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => handleApplyHeadlineSuggestion(idea as string)}
+                                className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 transition-colors hover:border-[#4285F4] hover:bg-blue-50 hover:text-[#4285F4]"
+                              >
+                                + {idea}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* DESCRIÇÕES DO ANÚNCIO */}
+                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800">
+                            Descrições do Anúncio
+                          </span>
+                          <span className="block text-[10.5px] text-slate-400">
+                            Mínimo 2 obrigatórias (Adicione até 4)
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          {googleDescriptions.filter((d) => d.trim()).length}/4 adicionadas
+                        </span>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        {googleDescriptions.map((desc, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <div className="relative flex-1">
+                              <Textarea
+                                placeholder={`Descrição ${idx + 1} ${
+                                  idx === 0
+                                    ? "(Ex: Venha conhecer nossos produtos e serviços de alta qualidade no centro da cidade.)"
+                                    : "(Ex: Aberto de segunda a sábado. Faça seu pedido ou tire dúvidas pelo WhatsApp.)"
+                                }`}
+                                maxLength={90}
+                                rows={2}
+                                value={desc}
+                                onChange={(e) => handleUpdateGoogleDescription(idx, e.target.value)}
+                                className="min-h-[50px] resize-none rounded-lg pr-12 text-xs"
+                              />
+                              <span className="absolute bottom-2 right-2.5 text-[9px] font-bold text-slate-400">
+                                {desc.length}/90
+                              </span>
+                            </div>
+                            {googleDescriptions.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGoogleDescription(idx)}
+                                className="mt-1 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                                title="Remover descrição"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {googleDescriptions.length < 4 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddGoogleDescription}
+                          className="h-8 w-full border-dashed border-slate-300 text-[11px] font-bold text-slate-600 hover:border-primary hover:text-primary"
+                        >
+                          <Plus className="mr-1.5 h-3.5 w-3.5" />
+                          Adicionar mais uma descrição ({googleDescriptions.length}/4)
+                        </Button>
+                      )}
+
+                      {/* Sugestões de Descrições com 1 clique */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                          💡 Ideias de descrição (Clique para preencher):
+                        </span>
+                        <div className="flex flex-col gap-1.5">
+                          {[
+                            `Atendimento especializado e produtos de primeira linha. Fale conosco!`,
+                            `Faça seu pedido hoje mesmo e aproveite nossas condições exclusivas.`,
+                          ].map((idea, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => handleApplyDescriptionSuggestion(idea)}
+                              className="text-left rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-[10.5px] font-medium text-slate-600 transition-colors hover:border-[#4285F4] hover:bg-blue-50 hover:text-[#4285F4]"
+                            >
+                              + {idea}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700">Duração (Dias)</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={googleDurationDays}
-                      onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
-                      className="h-8.5 rounded-lg text-xs bg-white"
-                    />
+                )}
+
+                {/* ETAPA 3: PALAVRAS-CHAVE E ORÇAMENTO */}
+                {googleWizardStep === 3 && (
+                  <div className="space-y-4 animate-in fade-in-50 duration-200">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                        <Target className="h-4 w-4 text-[#4285F4]" />
+                        Etapa 3: Quem vai ver seu anúncio e quanto investir?
+                      </div>
+                      <p className="text-[11.5px] text-slate-500">
+                        Defina os termos de busca que ativarão o seu anúncio e o orçamento diário da sua campanha.
+                      </p>
+                    </div>
+
+                    {/* PALAVRAS-CHAVE */}
+                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-3 shadow-2xs">
+                      <Label className="text-xs font-bold text-slate-800">
+                        Palavras-chave de Busca *
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Ex: restaurante no centro, marmitex entrega (Enter para adicionar)"
+                          value={newKeywordInput}
+                          onChange={(e) => setNewKeywordInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const val = newKeywordInput.trim();
+                              if (val && !googleKeywords.includes(val)) {
+                                setGoogleKeywords([...googleKeywords, val]);
+                                setNewKeywordInput("");
+                              }
+                            }
+                          }}
+                          className="h-9 rounded-lg text-xs flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const val = newKeywordInput.trim();
+                            if (val && !googleKeywords.includes(val)) {
+                              setGoogleKeywords([...googleKeywords, val]);
+                              setNewKeywordInput("");
+                            }
+                          }}
+                          className="h-9 rounded-lg px-4 bg-primary text-xs font-bold text-white hover:bg-primary/95"
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Adicionar
+                        </Button>
+                      </div>
+
+                      {/* Sugestões de Palavras-chave com 1 clique */}
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                          💡 Sugestões baseadas no seu perfil (Clique para adicionar):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            businessProfile?.category
+                              ? `${businessProfile.category.toLowerCase()} perto de mim`
+                              : "serviço perto de mim",
+                            businessProfile?.name
+                              ? `${businessProfile.name.toLowerCase()}`
+                              : "comércio local",
+                            "melhor atendimento da região",
+                            "pedir online",
+                            "atendimento rápido",
+                            "comprar com desconto",
+                          ].map((kw, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => handleAddKeywordSuggestion(kw)}
+                              disabled={googleKeywords.includes(kw)}
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                                googleKeywords.includes(kw)
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                                  : "border-slate-200 bg-slate-50 text-slate-600 hover:border-[#4285F4] hover:bg-blue-50 hover:text-[#4285F4]"
+                              }`}
+                            >
+                              {googleKeywords.includes(kw) ? "✓ " : "+ "}
+                              {kw}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Lista de tags de palavras-chave adicionadas */}
+                      {googleKeywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2 max-h-[80px] overflow-y-auto p-2 bg-slate-50 border border-slate-200/60 rounded-lg">
+                          {googleKeywords.map((kw, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs"
+                            >
+                              #{kw}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setGoogleKeywords(googleKeywords.filter((_, i) => i !== idx))
+                                }
+                                className="text-slate-400 hover:text-red-500 font-bold ml-0.5 text-xs transition-colors"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ORÇAMENTO E DURAÇÃO */}
+                    <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-700">
+                            Orçamento Diário (R$) *
+                          </Label>
+                          <Input
+                            type="number"
+                            min={5}
+                            value={googleDailyBudget}
+                            onChange={(e) => setGoogleDailyBudget(Number(e.target.value))}
+                            className="h-9 rounded-lg text-xs"
+                          />
+                          <p className="text-[10px] text-slate-400">
+                            Cobrado apenas quando clicarem no anúncio.
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-slate-700">
+                            Duração (Dias) *
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={googleDurationDays}
+                            onChange={(e) => setGoogleDurationDays(Number(e.target.value))}
+                            className="h-9 rounded-lg text-xs"
+                          />
+                          <p className="text-[10px] text-slate-400">
+                            Pode pausar a campanha quando quiser.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* LIVE PREVIEW NO GOOGLE SEARCH (5 COLUNAS) */}
+              {/* COLUNA DIREITA: PRÉVIA AO VIVO NO GOOGLE SEARCH (5 COLUNAS) */}
               <div className="hidden lg:flex lg:col-span-5 flex-col gap-3 text-left sticky top-0">
                 <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
@@ -5253,7 +5629,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     </span>
                   </div>
 
-                  {/* CARD DE RESULTADO DO GOOGLE */}
+                  {/* CARD DE RESULTADO REALISTA DO GOOGLE */}
                   <div className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs space-y-1.5">
                     <div className="flex items-center gap-2">
                       <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
@@ -5279,15 +5655,12 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                       onClick={(e) => e.preventDefault()}
                       className="block text-[13px] font-semibold text-[#1a0dab] leading-snug line-clamp-2 hover:underline"
                     >
-                      {[googleHeadline1, googleHeadline2, googleHeadline3]
-                        .filter(Boolean)
-                        .join(" | ") || "Título 1 | Título 2 | Título 3"}
+                      {googleHeadlines.filter((h) => h.trim()).slice(0, 3).join(" | ") ||
+                        "Título 1 | Título 2 | Título 3"}
                     </a>
 
                     <p className="text-[11px] text-[#4d5156] leading-relaxed line-clamp-3">
-                      {[googleDescription1, googleDescription2]
-                        .filter(Boolean)
-                        .join(" ") ||
+                      {googleDescriptions.filter((d) => d.trim()).join(" ") ||
                         "As descrições do seu anúncio aparecerão aqui exatamente como os clientes verão nos resultados de busca do Google."}
                     </p>
 
@@ -5324,44 +5697,83 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
 
           <DialogFooter className="border-t border-slate-100 pt-3 flex flex-row items-center justify-between">
             <div className="text-left">
-              <span className="text-xs text-slate-500 font-medium">Investimento: </span>
+              <span className="text-[11px] text-slate-400">
+                Etapa {googleWizardStep} de 3 •{" "}
+              </span>
               <span className="text-xs font-bold text-slate-900">
-                R$ {(Number(googleDailyBudget || 0) * Number(googleDurationDays || 1)).toFixed(2)}
+                Total: R${" "}
+                {(Number(googleDailyBudget || 0) * Number(googleDurationDays || 1)).toFixed(2)}
               </span>
             </div>
+
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setIsCreatingGoogleAd(false)}
-                className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handlePublishGoogleCampaign}
-                disabled={
-                  isSubmittingGoogle ||
-                  !googleAdName.trim() ||
-                  !googleHeadline1.trim() ||
-                  !googleHeadline2.trim() ||
-                  !googleHeadline3.trim() ||
-                  !googleDescription1.trim() ||
-                  !googleDescription2.trim() ||
-                  googleKeywords.length === 0 ||
-                  !googleWebsiteUrl.trim()
-                }
-                className="h-9 rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-xs"
-              >
-                {isSubmittingGoogle ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Publicando...
-                  </>
-                ) : (
-                  "Publicar Campanha"
-                )}
-              </Button>
+              {googleWizardStep === 1 ? (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setIsCreatingGoogleAd(false)}
+                  className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold"
+                >
+                  Cancelar
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setGoogleWizardStep((prev) => (prev > 1 ? ((prev - 1) as any) : 1))}
+                  className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold"
+                >
+                  <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+                  Voltar
+                </Button>
+              )}
+
+              {googleWizardStep === 1 && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (validateGoogleStep1()) setGoogleWizardStep(2);
+                  }}
+                  className="h-9 rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-xs"
+                >
+                  Continuar para Anúncio
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {googleWizardStep === 2 && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (validateGoogleStep2()) setGoogleWizardStep(3);
+                  }}
+                  className="h-9 rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-xs"
+                >
+                  Continuar para Orçamento
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {googleWizardStep === 3 && (
+                <Button
+                  type="button"
+                  onClick={handlePublishGoogleCampaign}
+                  disabled={isSubmittingGoogle}
+                  className="h-9 rounded-lg bg-primary px-5 text-xs font-bold text-white shadow-xs"
+                >
+                  {isSubmittingGoogle ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Publicando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                      Publicar Campanha
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>

@@ -961,11 +961,13 @@ export async function createGoogleAdsCampaign(
   campaignData: {
     name: string;
     dailyBudget: number;
-    headline1: string;
-    headline2: string;
-    headline3: string;
-    description1: string;
-    description2: string;
+    headline1?: string;
+    headline2?: string;
+    headline3?: string;
+    description1?: string;
+    description2?: string;
+    headlines?: string[];
+    descriptions?: string[];
     keywords: string[];
     finalUrl?: string;
   }
@@ -1105,16 +1107,20 @@ export async function createGoogleAdsCampaign(
     }
 
     // 4. Cria Anúncio de Pesquisa Responsivo (Responsive Search Ad)
-    const headlines = [
-      { text: campaignData.headline1 },
-      { text: campaignData.headline2 },
-      { text: campaignData.headline3 },
-    ].filter((h) => !!h.text);
+    const headlines = (campaignData.headlines && campaignData.headlines.length >= 3)
+      ? campaignData.headlines.filter(Boolean).map((text) => ({ text }))
+      : [
+          { text: campaignData.headline1 },
+          { text: campaignData.headline2 },
+          { text: campaignData.headline3 },
+        ].filter((h) => !!h.text);
 
-    const descriptions = [
-      { text: campaignData.description1 },
-      { text: campaignData.description2 },
-    ].filter((d) => !!d.text);
+    const descriptions = (campaignData.descriptions && campaignData.descriptions.length >= 2)
+      ? campaignData.descriptions.filter(Boolean).map((text) => ({ text }))
+      : [
+          { text: campaignData.description1 },
+          { text: campaignData.description2 },
+        ].filter((d) => !!d.text);
 
     let finalUrl = campaignData.finalUrl || process.env.NEXT_PUBLIC_APP_URL || "https://numvapt.com";
     if (finalUrl.includes("localhost") || finalUrl.includes("127.0.0.1")) {
