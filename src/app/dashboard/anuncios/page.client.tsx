@@ -43,6 +43,7 @@ import {
   MessageSquare,
   ExternalLink,
   Globe,
+  Instagram,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -729,22 +730,20 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     }
   }, [userId]);
 
-  // Carrega campanhas e posts publicados
+  // Carrega campanhas e posts publicados em paralelo
   const fetchData = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setLoadingPosts(true);
     try {
-      // Buscar posts e filtrar apenas publicados
-      const postsResult = await getScheduledPosts(userId);
-      const filteredPosts = postsResult
-        .filter((r: any) => r.success && r.post && r.post.status === "published")
-        .map((r: any) => r.post);
-      setPublishedPosts(filteredPosts);
-      setLoadingPosts(false);
+      // 1. Buscar conexões e posts em paralelo de forma ultra rápida
+      const [postsResult, metaConn, googleAdsConn] = await Promise.all([
+        getScheduledPosts(userId),
+        getMetaConnection(userId),
+        getGoogleAdsConnection(userId),
+      ]);
 
-      // Buscar conexão da Meta
-      const metaConn = await getMetaConnection(userId);
+      // Atualizar conexões imediatamente para a UI não dar flash
       setMetaConnection(metaConn);
       if (metaConn.userAccessToken) {
         setExchangeToken(metaConn.userAccessToken);
@@ -753,31 +752,57 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
         setAdAccountId(metaConn.adAccountId);
         setAdAccountName(metaConn.adAccountName || "");
         fetchBillingStatus();
+      }
 
-        // Buscar campanhas reais e insights diretamente da Meta Ads API em tempo real
-        const campaignsRes = await fetch("/api/ads/campaigns");
-        const campaignsData = await campaignsRes.json();
-        if (campaignsData.success) {
-          setCampaigns(campaignsData.campaigns || []);
-        } else {
-          console.warn("Falha ao buscar campanhas reais da Meta:", campaignsData.error);
-        }
+      setGoogleAdsConnection(googleAdsConn);
+
+      // Posts publicados
+      const filteredPosts = postsResult
+        .filter((r: any) => r.success && r.post && r.post.status === "published")
+        .map((r: any) => r.post);
+      setPublishedPosts(filteredPosts);
+      setLoadingPosts(false);
+
+      // 2. Buscar campanhas de ambas as plataformas em paralelo
+      const campaignPromises: Promise<any>[] = [];
+
+      if (metaConn.isConnected && metaConn.adAccountId) {
+        campaignPromises.push(
+          fetch("/api/ads/campaigns")
+            .then((r) => r.json())
+            .then((campaignsData) => {
+              if (campaignsData.success) {
+                setCampaigns(campaignsData.campaigns || []);
+              } else {
+                console.warn("Falha ao buscar campanhas reais da Meta:", campaignsData.error);
+                setCampaigns([]);
+              }
+            })
+            .catch((err) => {
+              console.warn("Erro ao buscar campanhas Meta:", err);
+              setCampaigns([]);
+            })
+        );
       } else {
         setCampaigns([]);
       }
 
-      // Buscar conexão do Google Ads
-      const googleAdsConn = await getGoogleAdsConnection(userId);
-      setGoogleAdsConnection(googleAdsConn);
       if (googleAdsConn.isConnected && googleAdsConn.adAccountId) {
-        const googleCampaignsResult = await getGoogleAdsCampaigns(
-          userId,
-          googleAdsConn.adAccountId
+        campaignPromises.push(
+          getGoogleAdsCampaigns(userId, googleAdsConn.adAccountId)
+            .then((googleCampaignsResult) => {
+              setGoogleCampaigns(googleCampaignsResult || []);
+            })
+            .catch((err) => {
+              console.warn("Erro ao buscar campanhas Google:", err);
+              setGoogleCampaigns([]);
+            })
         );
-        setGoogleCampaigns(googleCampaignsResult || []);
       } else {
         setGoogleCampaigns([]);
       }
+
+      await Promise.all(campaignPromises);
     } catch (err) {
       console.error("Erro ao carregar dados da página:", err);
       toast({
