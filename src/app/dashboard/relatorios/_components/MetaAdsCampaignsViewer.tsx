@@ -539,7 +539,34 @@ export function MetaAdsCampaignsViewer({
                 const keyMetric = getCampaignKeyMetric(camp);
                 const isExpanded = !!expandedCampaigns[campUniqueId];
 
-                // Filtrar ESTRITAMENTE anúncios ATIVOS da campanha
+                // Métrica padronizada e coerente com o objetivo da campanha
+                const getAdTargetMetric = (ad: any) => {
+                  const label = keyMetric.label;
+                  if (label === "Mensagens") {
+                    const msgs = Number(ad.metrics?.messagesCount) || 0;
+                    return { title: "MSGS", value: msgs.toLocaleString("pt-BR"), score: msgs };
+                  }
+                  if (label === "Leads") {
+                    const leads = Number(ad.metrics?.leadsCount) || 0;
+                    return { title: "LEADS", value: leads.toLocaleString("pt-BR"), score: leads };
+                  }
+                  if (label === "Vendas") {
+                    const sales = Number(ad.metrics?.salesCount) || 0;
+                    return { title: "VENDAS", value: sales.toLocaleString("pt-BR"), score: sales };
+                  }
+                  if (label === "Downloads") {
+                    const installs = Number(ad.metrics?.appInstallsCount) || 0;
+                    return { title: "DOWNLOADS", value: installs.toLocaleString("pt-BR"), score: installs };
+                  }
+                  if (label === "Visualizações") {
+                    const views = Number(ad.metrics?.videoViewsCount) || 0;
+                    return { title: "VIEWS", value: views.toLocaleString("pt-BR"), score: views };
+                  }
+                  const clicks = Number(ad.metrics?.clicks) || 0;
+                  return { title: "CLIQUES", value: clicks.toLocaleString("pt-BR"), score: clicks };
+                };
+
+                // Filtrar ESTRITAMENTE anúncios ATIVOS e ordenar pelos que mais geraram o resultado principal primeiro
                 const rawAds: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : (camp.creative?.imageUrl ? [{
                   id: `local-${campUniqueId}`,
                   name: camp.name,
@@ -550,34 +577,16 @@ export function MetaAdsCampaignsViewer({
                   callToActionType: camp.creative.ctaType,
                   metrics: camp.metrics,
                 }] : []);
-                const activeAds = rawAds.filter((a: any) => (a.status || "").toLowerCase() === "active");
-
-                // Métrica padronizada e coerente com o objetivo da campanha
-                const getAdTargetMetric = (ad: any) => {
-                  const label = keyMetric.label;
-                  if (label === "Mensagens") {
-                    const msgs = Number(ad.metrics?.messagesCount) || 0;
-                    return { title: "MSGS", value: msgs.toLocaleString("pt-BR") };
-                  }
-                  if (label === "Leads") {
-                    const leads = Number(ad.metrics?.leadsCount) || 0;
-                    return { title: "LEADS", value: leads.toLocaleString("pt-BR") };
-                  }
-                  if (label === "Vendas") {
-                    const sales = Number(ad.metrics?.salesCount) || 0;
-                    return { title: "VENDAS", value: sales.toLocaleString("pt-BR") };
-                  }
-                  if (label === "Downloads") {
-                    const installs = Number(ad.metrics?.appInstallsCount) || 0;
-                    return { title: "DOWNLOADS", value: installs.toLocaleString("pt-BR") };
-                  }
-                  if (label === "Visualizações") {
-                    const views = Number(ad.metrics?.videoViewsCount) || 0;
-                    return { title: "VIEWS", value: views.toLocaleString("pt-BR") };
-                  }
-                  const clicks = Number(ad.metrics?.clicks) || 0;
-                  return { title: "CLIQUES", value: clicks.toLocaleString("pt-BR") };
-                };
+                const activeAds = rawAds
+                  .filter((a: any) => (a.status || "").toLowerCase() === "active")
+                  .sort((a: any, b: any) => {
+                    const scoreA = getAdTargetMetric(a).score;
+                    const scoreB = getAdTargetMetric(b).score;
+                    if (scoreB !== scoreA) return scoreB - scoreA;
+                    const clicksDiff = (Number(b.metrics?.clicks) || 0) - (Number(a.metrics?.clicks) || 0);
+                    if (clicksDiff !== 0) return clicksDiff;
+                    return (Number(b.metrics?.impressions) || 0) - (Number(a.metrics?.impressions) || 0);
+                  });
 
                 return (
                   <div key={campUniqueId} className="py-4">
