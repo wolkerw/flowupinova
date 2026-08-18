@@ -195,16 +195,10 @@ export async function listGoogleAdsCustomers(
       }
     }
 
-    // Se nenhuma conta foi encontrada na API real, gera uma conta demo para desenvolvimento
-    if (accounts.length === 0) {
-      return [{ id: "123-456-7890", name: "Conta Demonstrativa Google Ads" }];
-    }
-
     return accounts;
   } catch (error: any) {
     console.error("[GOOGLE_ADS_ADMIN] Falha no fluxo listGoogleAdsCustomers:", error);
-    // Retorna conta demo em caso de erro para não travar a UI de desenvolvimento
-    return [{ id: "123-456-7890", name: "Conta Demonstrativa Google Ads" }];
+    return [];
   }
 }
 
@@ -233,6 +227,8 @@ export async function getGoogleAdsCampaigns(
     let dateClause = "DURING LAST_30_DAYS";
     if (periodDays === "7") {
       dateClause = "DURING LAST_7_DAYS";
+    } else if (periodDays === "14") {
+      dateClause = "DURING LAST_14_DAYS";
     } else if (periodDays === "90") {
       dateClause = "DURING LAST_30_DAYS"; // Google Ads API core standard range
     }

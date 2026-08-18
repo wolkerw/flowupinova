@@ -8,6 +8,7 @@ import {
   DollarSign,
   TrendingUp,
   MousePointer,
+  MousePointerClick,
   Eye,
   Megaphone,
   CheckCircle2,
@@ -58,7 +59,7 @@ export function GoogleAdsCampaignsViewer({
 
   // Cálculos consolidados Google Ads
   const totalSpent = campaigns.reduce(
-    (acc, c) => acc + (Number(c.metrics?.spent) || 0),
+    (acc, c) => acc + (Number(c.metrics?.amountSpent) || Number(c.metrics?.spent) || 0),
     0
   );
   const totalImpressions = campaigns.reduce(
@@ -72,6 +73,13 @@ export function GoogleAdsCampaignsViewer({
 
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
+
+  // Filtrar apenas campanhas com custo > 0 ou impressões > 0 no período selecionado
+  const activeCampaigns = campaigns.filter((c) => {
+    const spent = Number(c.metrics?.amountSpent) || Number(c.metrics?.spent) || 0;
+    const impressions = Number(c.metrics?.impressions) || 0;
+    return spent > 0 || impressions > 0;
+  });
 
   return (
     <div className="space-y-6">
@@ -142,11 +150,11 @@ export function GoogleAdsCampaignsViewer({
                 {totalImpressions.toLocaleString("pt-BR")}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Exibições nas pesquisas do Google</p>
+            <p className="mt-1 text-xs text-slate-500">Exibições nos resultados do Google</p>
           </CardContent>
         </Card>
 
-        {/* Cliques & CTR */}
+        {/* Cliques */}
         <Card className="border border-slate-200 bg-white shadow-xs">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -154,7 +162,7 @@ export function GoogleAdsCampaignsViewer({
                 Cliques Obtidos
               </span>
               <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
-                <MousePointer className="h-5 w-5" />
+                <MousePointerClick className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
@@ -162,12 +170,14 @@ export function GoogleAdsCampaignsViewer({
                 {totalClicks.toLocaleString("pt-BR")}
               </span>
               {avgCtr > 0 && (
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-[10px]">
+                <Badge variant="outline" className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border-emerald-200">
                   CTR {avgCtr.toFixed(1)}%
                 </Badge>
               )}
             </div>
-            <p className="mt-1 text-xs text-slate-500">Visitas ao seu site/landing page</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Taxa de cliques nas pesquisas
+            </p>
           </CardContent>
         </Card>
 
@@ -194,38 +204,43 @@ export function GoogleAdsCampaignsViewer({
         </Card>
       </div>
 
-      {/* Lista de Campanhas do Google Ads */}
+      {/* Lista de Campanhas do Google Ads com atividade no período */}
       <Card className="border border-slate-200 bg-white shadow-xs">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base font-semibold text-slate-800">
-                Campanhas Google Ads ({campaigns.length})
+                Campanhas Veiculadas no Período ({activeCampaigns.length})
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Campanhas ativas e históricas na Rede de Pesquisa do Google
+                Exibindo apenas campanhas com custo ou impressões nos últimos {periodDays} dias
               </CardDescription>
             </div>
+            <Badge variant="outline" className="w-fit text-xs font-medium text-slate-600 bg-slate-50">
+              Últimos {periodDays} dias
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          {campaigns.length === 0 ? (
+          {activeCampaigns.length === 0 ? (
             <div className="py-12 text-center text-slate-500">
               <Search className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-              <p className="font-medium text-slate-700">Nenhuma campanha encontrada</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Crie anúncios de pesquisa no Google Ads para começar a receber relatórios em tempo real.
+              <p className="font-medium text-slate-700">Nenhuma campanha com veiculação neste período</p>
+              <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">
+                Não foram registrados gastos ou impressões nos últimos {periodDays} dias para esta conta do Google Ads.
               </p>
-              <Link href="/dashboard/anuncios">
-                <Button size="sm" className="mt-4 bg-[#EA4335] text-white hover:bg-[#D33828]">
-                  Criar Anúncio no Google
-                </Button>
-              </Link>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <Link href="/dashboard/anuncios">
+                  <Button size="sm" className="bg-[#EA4335] text-white hover:bg-[#D33828]">
+                    Criar Anúncio no Google
+                  </Button>
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {campaigns.map((camp: any) => {
-                const spent = Number(camp.metrics?.spent) || 0;
+              {activeCampaigns.map((camp: any) => {
+                const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
                 const impressions = Number(camp.metrics?.impressions) || 0;
                 const clicks = Number(camp.metrics?.clicks) || 0;
                 const budget = Number(camp.budgetAmount) || 0;

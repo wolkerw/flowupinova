@@ -49,6 +49,7 @@ import {
   PlayCircle,
   BarChart2,
   Trophy,
+  Calendar,
 } from "lucide-react";
 import {
   Dialog,
@@ -1079,28 +1080,42 @@ export default function Relatorios() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
       {/* Cabeçalho */}
-      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Relatórios</h1>
-          <p className="mt-1 text-gray-600">Análise detalhada de performance</p>
+          <h1 className="text-3xl font-bold text-gray-900 font-poppins">Relatórios</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Acompanhe a performance de posts orgânicos e anúncios pagos em tempo real.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Select value={periodDays} onValueChange={setPeriodDays}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">7 dias</SelectItem>
-              <SelectItem value="30">30 dias</SelectItem>
-              <SelectItem value="90">90 dias</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
+        {/* Filtro de Período Premium com Pills & Calendário */}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-500">
+            <Calendar className="h-3.5 w-3.5 text-[#0083C7]" />
+            <span>Período:</span>
+          </div>
+          {[
+            { label: "7 dias", value: "7" },
+            { label: "14 dias", value: "14" },
+            { label: "30 dias", value: "30" },
+            { label: "90 dias", value: "90" },
+          ].map((option) => {
+            const isSelected = periodDays === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPeriodDays(option.value)}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  isSelected
+                    ? "bg-[#0083C7] text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

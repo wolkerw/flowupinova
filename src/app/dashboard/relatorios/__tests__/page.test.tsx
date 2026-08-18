@@ -120,7 +120,9 @@ describe("Relatorios Page", () => {
       </AuthProvider>
     );
     expect(await screen.findByText("Relatórios")).toBeInTheDocument();
-    expect(screen.getByText("Análise detalhada de performance")).toBeInTheDocument();
+    expect(
+      screen.getByText("Acompanhe a performance de posts orgânicos e anúncios pagos em tempo real.")
+    ).toBeInTheDocument();
   });
 
   it("renders Instagram, Facebook, and LinkedIn tab triggers after data loads", async () => {
@@ -151,13 +153,13 @@ describe("Relatorios Page", () => {
     expect(screen.getByRole("tab", { name: /google ads/i })).toBeInTheDocument();
 
     // Verify Meta Ads renders by default
-    expect(await screen.findByText(/Campanhas Meta Ads/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Campanhas Veiculadas no Período/i)).toBeInTheDocument();
     expect(screen.getByText("Campanha Black Friday Meta")).toBeInTheDocument();
 
     // Switch to Google Ads subtab
     const googleSubTab = screen.getByRole("tab", { name: /google ads/i });
     activateTab(googleSubTab);
-    expect(await screen.findByText(/Campanhas Google Ads/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Campanhas Veiculadas no Período/i)).toBeInTheDocument();
     expect(screen.getByText("Campanha Pesquisa Google")).toBeInTheDocument();
   });
 });

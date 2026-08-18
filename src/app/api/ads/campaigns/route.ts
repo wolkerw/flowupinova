@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     const period = request.nextUrl.searchParams.get("period") || "30";
     let datePreset = "last_30d";
     if (period === "7") datePreset = "last_7d";
+    if (period === "14") datePreset = "last_14d";
     if (period === "90") datePreset = "last_90d";
 
     // 2. Buscar insights agregados por campanha no período selecionado
