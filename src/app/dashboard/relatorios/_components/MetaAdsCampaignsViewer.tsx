@@ -444,10 +444,6 @@ export function MetaAdsCampaignsViewer({
                 </div>
                 <Progress value={32} className="h-2 bg-slate-100" />
               </div>
-
-              <div className="rounded-lg bg-blue-50/60 p-2.5 text-xs text-slate-600 border border-blue-100/80">
-                💡 <strong>Destaque:</strong> O Instagram Stories é o formato com maior taxa de resposta para chamadas via WhatsApp.
-              </div>
             </CardContent>
           </Card>
 

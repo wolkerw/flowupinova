@@ -393,10 +393,6 @@ export function GoogleAdsCampaignsViewer({
                 </div>
                 <Progress value={14} className="h-2 bg-slate-100" />
               </div>
-
-              <div className="rounded-lg bg-red-50/60 p-2.5 text-xs text-slate-600 border border-red-100/80">
-                💡 <strong>Destaque:</strong> 100% dos cliques vieram de usuários com intenção direta de compra buscando pelas suas palavras-chave.
-              </div>
             </CardContent>
           </Card>
 
@@ -461,10 +457,6 @@ export function GoogleAdsCampaignsViewer({
                   <span className="block text-xs font-semibold text-slate-800">11% Desktop</span>
                   <span className="text-[10px] text-slate-500">Computadores</span>
                 </div>
-              </div>
-
-              <div className="rounded-lg bg-emerald-50/60 p-2.5 text-xs text-slate-600 border border-emerald-100/80">
-                📱 <strong>Dica Mobile:</strong> Quase 9 em cada 10 buscas acontecem pelo celular. Garanta que o botão de ligação ou WhatsApp esteja sempre acessível.
               </div>
             </CardContent>
           </Card>
