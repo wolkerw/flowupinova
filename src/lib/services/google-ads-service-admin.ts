@@ -300,7 +300,9 @@ export async function getGoogleAdsCampaigns(
         metrics.ctr, 
         metrics.average_cpc, 
         metrics.conversions, 
-        metrics.cost_per_conversion
+        metrics.cost_per_conversion,
+        metrics.top_impression_percentage,
+        metrics.absolute_top_impression_percentage
       FROM campaign
       WHERE segments.date ${dateClause}
       ORDER BY campaign.id DESC
@@ -348,7 +350,33 @@ export async function getGoogleAdsCampaigns(
       LIMIT 50
     `;
 
-    const [campaignsRes, adsRes, keywordsRes] = await Promise.allSettled([
+    const deviceQuery = `
+      SELECT
+        campaign.id,
+        segments.device,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros
+      FROM campaign
+      WHERE segments.date ${dateClause}
+      LIMIT 100
+    `;
+
+    const searchTermQuery = `
+      SELECT
+        search_term_view.search_term,
+        campaign.id,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros,
+        metrics.conversions
+      FROM search_term_view
+      WHERE segments.date ${dateClause}
+      ORDER BY metrics.clicks DESC
+      LIMIT 50
+    `;
+
+    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes] = await Promise.allSettled([
       fetch(
         `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
         {
@@ -373,6 +401,22 @@ export async function getGoogleAdsCampaigns(
           body: JSON.stringify({ query: keywordQuery }),
         }
       ).then((r) => r.json()),
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: deviceQuery }),
+        }
+      ).then((r) => r.json()),
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: searchTermQuery }),
+        }
+      ).then((r) => r.json()),
     ]);
 
     if (campaignsRes.status === "fulfilled" && campaignsRes.value?.error) {
@@ -383,6 +427,12 @@ export async function getGoogleAdsCampaigns(
     }
     if (keywordsRes.status === "fulfilled" && keywordsRes.value?.error) {
       console.warn("[GOOGLE_ADS_ADMIN] Erro na query de palavras-chave:", JSON.stringify(keywordsRes.value.error, null, 2));
+    }
+    if (devicesRes.status === "fulfilled" && devicesRes.value?.error) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de dispositivos:", JSON.stringify(devicesRes.value.error, null, 2));
+    }
+    if (searchTermsRes.status === "fulfilled" && searchTermsRes.value?.error) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de termos de pesquisa:", JSON.stringify(searchTermsRes.value.error, null, 2));
     }
 
     const campaignResults =
@@ -396,6 +446,14 @@ export async function getGoogleAdsCampaigns(
     const keywordsResults =
       keywordsRes.status === "fulfilled" && keywordsRes.value?.results
         ? keywordsRes.value.results
+        : [];
+    const devicesResults =
+      devicesRes.status === "fulfilled" && devicesRes.value?.results
+        ? devicesRes.value.results
+        : [];
+    const searchTermsResults =
+      searchTermsRes.status === "fulfilled" && searchTermsRes.value?.results
+        ? searchTermsRes.value.results
         : [];
 
     // Mapear anúncios individuais por campanha
@@ -467,6 +525,41 @@ export async function getGoogleAdsCampaigns(
       keywordsByCampaignMap.set(campId, currentList);
     });
 
+    // Mapear termos de pesquisa reais
+    const searchTermsByCampaignMap = new Map<string, any[]>();
+    searchTermsResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const currentList = searchTermsByCampaignMap.get(campId) || [];
+      currentList.push({
+        text: item.searchTermView?.searchTerm || "",
+        impressions: Number(item.metrics?.impressions || 0),
+        clicks: Number(item.metrics?.clicks || 0),
+        amountSpent: spentMicros / 1_000_000,
+        spent: spentMicros / 1_000_000,
+        conversions: Number(item.metrics?.conversions || 0),
+      });
+      searchTermsByCampaignMap.set(campId, currentList);
+    });
+
+    // Mapear distribuição por dispositivo
+    const devicesByCampaignMap = new Map<string, any[]>();
+    devicesResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const currentList = devicesByCampaignMap.get(campId) || [];
+      currentList.push({
+        device: item.segments?.device || "UNKNOWN",
+        impressions: Number(item.metrics?.impressions || 0),
+        clicks: Number(item.metrics?.clicks || 0),
+        amountSpent: spentMicros / 1_000_000,
+        spent: spentMicros / 1_000_000,
+      });
+      devicesByCampaignMap.set(campId, currentList);
+    });
+
     return campaignResults.map((item: any) => {
       const campId = String(item.campaign?.id || "");
       const budgetMicros = Number(item.campaignBudget?.amountMicros || 0);
@@ -520,6 +613,10 @@ export async function getGoogleAdsCampaigns(
         },
         ads: adsByCampaignMap.get(campId) || [],
         keywords: keywordsByCampaignMap.get(campId) || [],
+        searchTerms: searchTermsByCampaignMap.get(campId) || [],
+        deviceBreakdown: devicesByCampaignMap.get(campId) || [],
+        topImpressionPercentage: Number(item.metrics?.topImpressionPercentage || 0) * 100,
+        absoluteTopImpressionPercentage: Number(item.metrics?.absoluteTopImpressionPercentage || 0) * 100,
       };
     });
   } catch (error: any) {
