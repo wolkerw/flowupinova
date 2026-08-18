@@ -4329,7 +4329,7 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                     onClick={() => setIsChoosePostModalOpen(true)}
                     className="font-poppins flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-transform duration-200 hover:bg-primary/95 active:scale-95"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                     Impulsionar Publicação
                   </Button>
                 )}
@@ -4452,8 +4452,8 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                 onClick={() => setIsChoosePostModalOpen(true)}
                                 className="font-poppins flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-primary/95 active:scale-95"
                               >
-                                <Sparkles className="h-3.5 w-3.5" />
-                                Impulsionar um Post
+                                <Plus className="h-3.5 w-3.5" />
+                                Impulsionar Publicação
                               </Button>
                             ) : (
                               <p className="rounded-lg border border-amber-100/60 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-600">
@@ -4464,10 +4464,10 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                           ) : (
                             <Button
                               onClick={() => setIsCreatingGoogleAd(true)}
-                              className="font-poppins flex items-center gap-1.5 rounded-lg bg-[#4285F4] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-[#4285F4]/95 active:scale-95"
+                              className="font-poppins flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-primary/95 active:scale-95"
                             >
                               <Plus className="h-3.5 w-3.5" />
-                              Nova Campanha Google
+                              Criar Anúncio no Google
                             </Button>
                           )}
                         </div>
