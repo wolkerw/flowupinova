@@ -85,13 +85,17 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 const TestComponent = () => {
-  const { step, setStep, postSummary, setPostSummary } = useWizard();
+  const { step, setStep, postSummary, setPostSummary, layoutStyle, setLayoutStyle, insertTextOnImage, setInsertTextOnImage } = useWizard();
   return (
     <div>
       <span data-testid="step">{step}</span>
       <span data-testid="summary">{postSummary}</span>
+      <span data-testid="layout-style">{layoutStyle}</span>
+      <span data-testid="insert-text">{String(insertTextOnImage)}</span>
       <button onClick={() => setStep(2)}>Next Step</button>
       <button onClick={() => setPostSummary("New Idea")}>Set Summary</button>
+      <button onClick={() => setLayoutStyle("CINEMATIC")}>Set Cinematic</button>
+      <button onClick={() => setInsertTextOnImage(false)}>Disable Insert Text</button>
     </div>
   );
 };
@@ -105,6 +109,8 @@ describe("WizardContext", () => {
     );
 
     expect(screen.getByTestId("step")).toHaveTextContent("1");
+    expect(screen.getByTestId("layout-style")).toHaveTextContent("");
+    expect(screen.getByTestId("insert-text")).toHaveTextContent("true");
 
     await act(async () => {
       screen.getByText("Next Step").click();
@@ -117,5 +123,17 @@ describe("WizardContext", () => {
     });
 
     expect(screen.getByTestId("summary")).toHaveTextContent("New Idea");
+
+    await act(async () => {
+      screen.getByText("Set Cinematic").click();
+    });
+
+    expect(screen.getByTestId("layout-style")).toHaveTextContent("CINEMATIC");
+
+    await act(async () => {
+      screen.getByText("Disable Insert Text").click();
+    });
+
+    expect(screen.getByTestId("insert-text")).toHaveTextContent("false");
   });
 });

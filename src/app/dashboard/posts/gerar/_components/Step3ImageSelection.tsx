@@ -190,7 +190,7 @@ export const Step3ImageSelection = () => {
 
                     {/* Conteúdo central do slot */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
-                      {isActiveSlot && isGeneratingImages ? (
+                      {isGeneratingImages ? (
                         <>
                           {/* Ícone girando para o slot ativo */}
                           <div className="relative">
@@ -225,7 +225,7 @@ export const Step3ImageSelection = () => {
                             Opção {slotNumber}
                           </span>
                           <span className="text-center text-[10px] text-muted-foreground/60">
-                            Na fila...
+                            Aguardando geração...
                           </span>
                         </>
                       )}

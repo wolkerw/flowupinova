@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     let inspirationFile: File | null = null;
 
     let insertTextOnImage = true;
-    let layoutStyle = "CLEAN_LUXURY";
+    let layoutStyle = "";
 
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         insertTextOnImage = formData.get("insertTextOnImage") === "true";
       }
       if (formData.has("layoutStyle")) {
-        layoutStyle = (formData.get("layoutStyle") as string) || "CLEAN_LUXURY";
+        layoutStyle = (formData.get("layoutStyle") as string) || "";
       }
     } else {
       const body = await request.json();

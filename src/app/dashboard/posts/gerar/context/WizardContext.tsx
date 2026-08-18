@@ -235,7 +235,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRetailStyle, setIsRetailStyle] = useState<boolean>(false);
   const [useImagen4Ref, setUseImagen4Ref] = useState<boolean>(false);
   const [useNanoBananaRef, setUseNanoBananaRef] = useState<boolean>(true);
-  const [layoutStyle, setLayoutStyle] = useState<string>("CLEAN_LUXURY");
+  const [layoutStyle, setLayoutStyle] = useState<string>("");
   const [fluxImageUrl, setFluxImageUrl] = useState<string | null>(null);
 
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
@@ -273,7 +273,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontWeight, setFontWeight] = useState("bold");
   const [isItalic, setIsItalic] = useState(false);
-  const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(null);
+  const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
 
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1270,22 +1270,19 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         }, 2000);
       } else {
         // Modo conceito (sem referenceImageFile)
+        const filenames = inspirationFile ? ["1"] : ["1", "2"];
         console.log(
-          "[WIZARD] Iniciando geração das imagens de forma sequencial via Google Imagen..."
+          `[WIZARD] Iniciando geração simultânea de ${filenames.length} imagens via Google Imagen...`
         );
 
-        const filenames = inspirationFile ? ["1"] : ["1", "2"];
-        const imageUrls: string[] = [];
-
-        for (let i = 0; i < filenames.length; i++) {
-          const fname = filenames[i];
+        const imagePromises = filenames.map(async (fname, i) => {
           const promptIndex = inspirationFile ? 2 : i;
           const singlePrompt = Array.isArray(promptToUse)
             ? promptToUse[promptIndex] || promptToUse[0] || ""
             : promptToUse;
 
           console.log(
-            `[WIZARD] Gerando imagem conceito ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`
+            `[WIZARD] Disparando geração simultânea da imagem ${fname} com o prompt: "${singlePrompt.substring(0, 60)}..."`
           );
           const imgResponse = await fetch("/api/generate-images", {
             method: "POST",
@@ -1307,24 +1304,20 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           const imgData = await imgResponse.json();
-          imageUrls.push(imgData.imageUrl);
 
           // Atualizar o estado do front imediatamente para dar feedback visual em tempo real
           setGeneratedImages((prev) => {
-            const updated = [...prev, imgData.imageUrl];
-            if (updated.length === 1) {
-              setSelectedImage(imgData.imageUrl);
-            }
+            const updated = prev.includes(imgData.imageUrl) ? prev : [...prev, imgData.imageUrl];
+            setSelectedImage((currentSelected) => currentSelected || imgData.imageUrl);
             return updated;
           });
 
-          // Delay de 4s entre requisições sequenciais para aliviar taxa de cota do Gemini API para o Imagen 4 Ultra
-          if (fname !== "2") {
-            await new Promise((resolve) => setTimeout(resolve, 4000));
-          }
-        }
+          return imgData.imageUrl;
+        });
+
+        const imageUrls = await Promise.all(imagePromises);
         console.log(
-          `[WIZARD] Sucesso absoluto! As ${filenames.length} imagens foram geradas e salvas no Firebase Storage:`,
+          `[WIZARD] Sucesso absoluto! As ${filenames.length} imagens foram geradas simultaneamente e salvas no Firebase Storage:`,
           imageUrls
         );
 
