@@ -77,11 +77,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const hasPaymentMethod = !!(
-      resData.funding_source ||
-      resData.funding_source_details ||
-      parsedBalance > 0
-    );
+    // Na API da Meta:
+    // account_status: 1 = ACTIVE, 201 = ANY_ACTIVE, 3 = UNSETTLED, 8 = PENDING_SETTLEMENT
+    // disable_reason: 0 = NONE, 3 = RISK_PAYMENT
+    const isAccountHealthy =
+      resData.account_status === 1 || resData.account_status === 201 || resData.account_status === undefined;
+
+    const hasPaymentIssue =
+      resData.account_status === 3 ||
+      resData.account_status === 8 ||
+      resData.disable_reason === 3;
+
+    // Se a conta está Ativa (status 1) e sem pendência de liquidação (disable_reason 0), a forma de pagamento é válida
+    const hasPaymentMethod =
+      !hasPaymentIssue &&
+      (isAccountHealthy ||
+        !!resData.funding_source ||
+        !!resData.funding_source_details ||
+        parsedBalance > 0);
 
     const businessId = resData.business?.id || "";
 
@@ -96,7 +109,8 @@ export async function GET(request: NextRequest) {
       fundingType === 1 ||
       fundingType === 2 ||
       fundingType === 3 ||
-      fundingType === 20
+      fundingType === 20 ||
+      (isAccountHealthy && parsedBalance === 0)
     );
     const isPrepaid = !isPostpaid;
 
