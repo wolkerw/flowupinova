@@ -401,9 +401,6 @@ export function MetaAdsCampaignsViewer({
               <CardTitle className="text-base font-semibold text-slate-900">
                 Campanhas Veiculadas no Período ({activeCampaigns.length})
               </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Desempenho individualizado de cada anúncio de acordo com o seu objetivo específico
-              </CardDescription>
             </div>
 
             {/* Filtro de data sincronizado na parte inferior */}
@@ -577,7 +574,7 @@ export function MetaAdsCampaignsViewer({
         </CardContent>
       </Card>
 
-      {/* Breakdowns Reais da API da Meta (se retornados) */}
+      {/* Breakdowns da API da Meta (se retornados) */}
       {totalPlatformImp > 0 && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* Plataforma */}
@@ -585,10 +582,10 @@ export function MetaAdsCampaignsViewer({
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <Instagram className="h-4 w-4 text-pink-600" />
-                Exibição por Plataforma (Dados Reais Meta)
+                Exibição por Plataforma
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Distribuição real de impressões apuradas pela Meta no período
+                Distribuição de impressões no período
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 pt-1">
@@ -622,7 +619,7 @@ export function MetaAdsCampaignsViewer({
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                   <Smartphone className="h-4 w-4 text-emerald-600" />
-                  Dispositivos de Acesso (Dados Reais Meta)
+                  Dispositivos de Acesso
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
                   Aparelhos onde os usuários visualizaram seus anúncios
