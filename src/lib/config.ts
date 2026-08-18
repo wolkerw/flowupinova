@@ -21,7 +21,7 @@ export const config = {
   meta: {
     appId: process.env.NEXT_PUBLIC_META_APP_ID || process.env.META_CLIENT_ID!,
     appSecret: process.env.META_APP_SECRET || process.env.META_CLIENT_SECRET!,
-    redirectUri: process.env.NEXT_PUBLIC_META_REDIRECT_URI || `${aplicationURL}/dashboard/conteudo`,
+    redirectUri: process.env.NEXT_PUBLIC_META_REDIRECT_URI || `${aplicationURL}/dashboard/posts`,
     configId: process.env.NEXT_PUBLIC_META_CONFIG_ID!,
   },
   google: {

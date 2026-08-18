@@ -78,18 +78,18 @@ describe("DashboardLayout", () => {
 
     // Verifica se os itens de menu estão presentes e na ordem correta
     expect(screen.getByText("Meu Negócio")).toBeInTheDocument();
-    expect(screen.getByText("Conteúdo")).toBeInTheDocument();
+    expect(screen.getByText("Posts")).toBeInTheDocument();
     expect(screen.getByText("Relacionamento")).toBeInTheDocument();
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
 
-    // Valida se 'Conteúdo' vem antes de 'Meu Negócio' na barra de navegação
+    // Valida se 'Posts' vem antes de 'Meu Negócio' na barra de navegação
     const menuLinks = screen.getAllByRole("link");
     const menuTitles = menuLinks.map((link) => link.textContent || "");
-    const indexConteudo = menuTitles.findIndex((title) => title.includes("Conteúdo"));
+    const indexPosts = menuTitles.findIndex((title) => title.includes("Posts"));
     const indexMeuNegocio = menuTitles.findIndex((title) => title.includes("Meu Negócio"));
-    expect(indexConteudo).toBeGreaterThan(-1);
+    expect(indexPosts).toBeGreaterThan(-1);
     expect(indexMeuNegocio).toBeGreaterThan(-1);
-    expect(indexConteudo).toBeLessThan(indexMeuNegocio);
+    expect(indexPosts).toBeLessThan(indexMeuNegocio);
 
     // Verifica se o botão SidebarTrigger (hambúrguer) está presente no cabeçalho
     expect(screen.getByRole("button", { name: /toggle sidebar/i })).toBeInTheDocument();

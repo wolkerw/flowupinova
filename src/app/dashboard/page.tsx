@@ -672,9 +672,9 @@ export default function Dashboard() {
           className="bg-primary text-white shadow-md transition-shadow hover:bg-primary/90 hover:shadow-lg"
           size="lg"
         >
-          <Link href="/dashboard/conteudo">
+          <Link href="/dashboard/posts">
             <Plus className="mr-2 h-5 w-5" />
-            Criar conteúdo
+            Criar post
           </Link>
         </Button>
       </div>
@@ -1012,7 +1012,7 @@ export default function Dashboard() {
                     <StepItem
                       title="2. Conecte suas Redes Sociais"
                       description="Integre seu Instagram e Facebook para começar a publicar e agendar."
-                      href="/dashboard/conteudo"
+                      href="/dashboard/posts"
                       isCompleted={metaConnection?.isConnected || false}
                       isCurrent={!!businessProfile?.logo?.url && !metaConnection?.isConnected}
                     />
@@ -1028,9 +1028,9 @@ export default function Dashboard() {
                       }
                     />
                     <StepItem
-                      title="4. Crie sua Primeira Publicação"
+                      title="4. Crie seu Primeiro Post"
                       description="Use nossa IA para gerar e agendar seu primeiro post incrível."
-                      href="/dashboard/conteudo/gerar"
+                      href="/dashboard/posts/gerar"
                       isCompleted={false}
                       isCurrent={allStepsCompleted}
                     />

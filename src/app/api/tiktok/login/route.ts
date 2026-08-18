@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const clientKey = config.tiktok.clientKey;
   if (!clientKey) {
     return NextResponse.redirect(
-      new URL("/dashboard/conteudo?tiktok_error=server_config_missing", origin)
+      new URL("/dashboard/posts?tiktok_error=server_config_missing", origin)
     );
   }
 

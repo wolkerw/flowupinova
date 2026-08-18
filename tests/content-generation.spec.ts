@@ -9,7 +9,7 @@ test.describe("Fluxos Críticos - Geração e Publicação Completa de Conteúdo
 
   test("Jornada Completa do Usuário: Gerar Post (mode=concept) até a Publicação", async ({ page }) => {
     // 1. Acesso direto com modo conceito (Concept / Ideia livre)
-    await page.goto("/dashboard/conteudo/gerar?mode=concept");
+    await page.goto("/dashboard/posts/gerar?mode=concept");
     await page.waitForLoadState("domcontentloaded");
 
     // 2. Etapa 1: Preenchimento da ideia/prompt

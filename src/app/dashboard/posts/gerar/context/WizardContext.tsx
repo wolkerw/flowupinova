@@ -1716,7 +1716,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        router.push("/dashboard/conteudo");
+        router.push("/dashboard/posts");
       } else {
         throw new Error(result.error);
       }

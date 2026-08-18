@@ -136,7 +136,7 @@ export default function GaleriaPage() {
         title: "Carregando imagem...",
         description: "Redirecionando você para o Criador de Post Manual.",
       });
-      router.push("/dashboard/conteudo/criar?from_gallery=true");
+      router.push("/dashboard/posts/criar?from_gallery=true");
     } catch (e) {
       console.error(e);
     }

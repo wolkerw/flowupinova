@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (code) {
       // Usa a origem enviada pelo cliente (front-end) ou a detectada pelo servidor
       const origin = clientOrigin || serverOrigin;
-      const redirectUri = clientRedirectUri || `${origin}/dashboard/conteudo`;
+      const redirectUri = clientRedirectUri || `${origin}/dashboard/posts`;
 
       const clientId = config.meta.appId;
       const clientSecret = config.meta.appSecret;

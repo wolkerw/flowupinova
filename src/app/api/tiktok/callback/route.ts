@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const requestOrigin = `${protocol}://${host}`;
   const finalOrigin = originFromState || requestOrigin;
 
-  const redirectUrl = new URL("/dashboard/conteudo", finalOrigin);
+  const redirectUrl = new URL("/dashboard/posts", finalOrigin);
   redirectUrl.search = "";
 
   if (error) {

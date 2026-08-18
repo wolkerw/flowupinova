@@ -142,7 +142,7 @@ export function LinkedInPostsViewer({ connection }: LinkedInPostsViewerProps) {
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button asChild className="bg-[#0077B5] hover:bg-[#005e93] text-white font-semibold shadow-sm">
-            <Link href="/dashboard/conteudo">
+            <Link href="/dashboard/posts">
               <Linkedin className="mr-2 h-4 w-4" />
               Conectar LinkedIn
             </Link>

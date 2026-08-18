@@ -1,12 +1,13 @@
 # Regras de Git e Deploy para Agentes de IA
 
-## 🚨 REGRA INVIOLÁVEL: PROIBIDO `git push` AUTOMÁTICO
+## 🚨 REGRA INVIOLÁVEL: NUNCA SUBIR AUTOMATICAMENTE (GIT PUSH SÓ SOB PEDIDO EXPLÍCITO)
 
-1. **Aprovação Expressa Obrigatória**:
-   - Mesmo que o usuário esteja utilizando o modo **"Always Proceed"** ou permissões automáticas no terminal, **NENHUM agente de IA pode executar `git push` por iniciativa própria**.
-   - O agente pode criar branches locais, fazer `git add` e `git commit`, rodar todos os testes de validação, mas **DEVE OBRIGATORIAMENTE PARAR** e solicitar confirmação explícita ao usuário:
-     > *"As alterações foram validadas e commitadas localmente. Deseja que eu realize o `git push` para a branch `uat` agora?"*
+1. **Proibição Total de Push Automático**:
+   - Mesmo com opções como **"Always Proceed"** habilitadas no IDE, **NENHUM agente de IA tem permissão para executar `git push` automaticamente**.
+   - O agente NUNCA deve subir código para repositórios remotos (`origin/uat`, `origin/main` ou qualquer outra branch) a menos que o usuário dê a ordem direta e expressa na conversa (ex: *"suba para uat"*, *"faça o push"*).
+   - Conclua sempre as alterações, faça o commit local, valide os testes e informe ao usuário o status atual. O `git push` só ocorrerá se o usuário solicitar nominalmente.
 
 2. **Fluxo de Branches**:
    - Todo desenvolvimento deve ser realizado na branch `uat`.
-   - A branch `main` só recebe merge/push após execução e aprovação 100% dos testes de E2E do Playwright (`npm run test:e2e`).
+   - A branch `main` só recebe merge/push após execução e aprovação 100% dos testes de E2E do Playwright (`npm run test:e2e`) e autorização expressa do usuário.
+

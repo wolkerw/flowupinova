@@ -79,6 +79,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/conteudo",
+        destination: "/dashboard/posts",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/conteudo/:path*",
+        destination: "/dashboard/posts/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

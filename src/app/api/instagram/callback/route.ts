@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const origin = `${protocol}://${host}`;
 
   // Constrói a URL de redirecionamento final para o dashboard
-  const redirectUrl = new URL("/dashboard/conteudo", origin);
+  const redirectUrl = new URL("/dashboard/posts", origin);
   redirectUrl.search = "";
 
   if (error) {

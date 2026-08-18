@@ -2196,7 +2196,7 @@ export default function CriarConteudoPage() {
             ? "Seu post foi enviado para as redes sociais."
             : "Seu post foi agendado com sucesso.",
       });
-      router.push("/dashboard/conteudo");
+      router.push("/dashboard/posts");
     } else {
       toast({
         variant: "destructive",

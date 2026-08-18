@@ -588,10 +588,10 @@ const InstagramMediaViewer = ({ connection }: { connection: InstagramConnectionD
         <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
         <h3 className="text-lg font-semibold">Conta do Instagram não conectada</h3>
         <p className="mb-4 text-sm">
-          Conecte sua conta na página de "Conteúdo" para ver as análises.
+          Conecte sua conta na página de "Posts" para ver as análises.
         </p>
         <Button asChild>
-          <Link href="/dashboard/conteudo">
+          <Link href="/dashboard/posts">
             <Instagram className="mr-2 h-4 w-4" />
             Conectar Instagram
           </Link>
@@ -825,10 +825,10 @@ const MetaPagePostsViewer = ({ connection }: { connection: MetaConnectionData })
         <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-gray-400" />
         <h3 className="text-lg font-semibold">Conta do Facebook não conectada</h3>
         <p className="mb-4 text-sm">
-          Conecte sua conta na página de "Conteúdo" para ver as análises.
+          Conecte sua conta na página de "Posts" para ver as análises.
         </p>
         <Button asChild>
-          <Link href="/dashboard/conteudo">
+          <Link href="/dashboard/posts">
             <Facebook className="mr-2 h-4 w-4" />
             Conectar Página
           </Link>

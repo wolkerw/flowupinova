@@ -899,7 +899,7 @@ export default function Conteudo() {
         title: "Erro no TikTok",
         description: decodeURIComponent(errorDesc || "Falha na autenticação"),
       });
-      router.replace("/dashboard/conteudo", undefined);
+      router.replace("/dashboard/posts", undefined);
       return;
     }
 
@@ -912,7 +912,7 @@ export default function Conteudo() {
         description: `Conexão com ${tiktokName || "TikTok"} estabelecida com sucesso.`,
       });
       fetchPageData();
-      router.replace("/dashboard/conteudo", undefined);
+      router.replace("/dashboard/posts", undefined);
       return;
     }
 
@@ -924,7 +924,7 @@ export default function Conteudo() {
         title: "Erro no LinkedIn",
         description: decodeURIComponent(errorDesc || "Falha na autenticação"),
       });
-      router.replace("/dashboard/conteudo", undefined);
+      router.replace("/dashboard/posts", undefined);
       return;
     }
 
@@ -946,7 +946,7 @@ export default function Conteudo() {
         const { userAccessToken } = tokenResult;
 
         await updateMetaConnection(user.uid, { userAccessToken, pending: true });
-        router.replace("/dashboard/conteudo", undefined);
+        router.replace("/dashboard/posts", undefined);
 
         const pagesResponse = await fetch("/api/meta/callback", {
           method: "POST",
@@ -978,7 +978,7 @@ export default function Conteudo() {
         });
         setIsConnecting(false);
         setConnectingPlatform(null);
-        router.replace("/dashboard/conteudo", undefined);
+        router.replace("/dashboard/posts", undefined);
       }
     };
 
@@ -995,7 +995,7 @@ export default function Conteudo() {
           title: "Falha de Segurança",
           description: "Incompatibilidade de usuários na autenticação.",
         });
-        router.replace("/dashboard/conteudo", undefined);
+        router.replace("/dashboard/posts", undefined);
         return;
       }
 
@@ -1019,7 +1019,7 @@ export default function Conteudo() {
           description: "Dados insuficientes retornados pelo Instagram.",
         });
       }
-      router.replace("/dashboard/conteudo", undefined);
+      router.replace("/dashboard/posts", undefined);
     };
 
     const handleLinkedInCallback = async () => {
@@ -1033,11 +1033,11 @@ export default function Conteudo() {
           title: "Falha de Segurança",
           description: "Incompatibilidade de usuários na autenticação.",
         });
-        router.replace("/dashboard/conteudo", undefined);
+        router.replace("/dashboard/posts", undefined);
         return;
       }
 
-      router.replace("/dashboard/conteudo", undefined);
+      router.replace("/dashboard/posts", undefined);
 
       try {
         const linkedinResult = await getLinkedInConnection(user.uid);
@@ -1113,7 +1113,7 @@ export default function Conteudo() {
 
   const handleConnectMeta = useCallback(() => {
     const origin = window.location.origin;
-    const redirectUri = `${origin}/dashboard/conteudo`;
+    const redirectUri = `${origin}/dashboard/posts`;
     const configId = config.meta.configId;
     let authUrl = "";
     if (configId) {
@@ -1774,9 +1774,9 @@ export default function Conteudo() {
           <div className="space-y-8 lg:col-span-2">
             <div className="space-y-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Conteúdo & Marketing</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Posts & Conteúdos</h1>
                 <p className="mt-1 text-gray-600">
-                  Crie, agende e analise posts e conteúdos para suas redes sociais.
+                  Crie, agende e analise os posts para suas redes sociais.
                 </p>
               </div>
 
@@ -1784,14 +1784,14 @@ export default function Conteudo() {
                 <div className="flex items-center gap-2.5">
                   <div className="h-5 w-1 rounded-full bg-[#0083C7]" />
                   <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
-                    Criar nova publicação
+                    Criar novo post
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {/* Botão 1 - Conceito com IA */}
                   <button
-                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=concept")}
+                    onClick={() => router.push("/dashboard/posts/gerar?mode=concept")}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-left text-white shadow-xl shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1811,7 +1811,7 @@ export default function Conteudo() {
 
                   {/* Botão 2 - Referência Foto com IA */}
                   <button
-                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-photo")}
+                    onClick={() => router.push("/dashboard/posts/gerar?mode=reference-photo")}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-left text-white shadow-xl shadow-pink-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1831,7 +1831,7 @@ export default function Conteudo() {
 
                   {/* Botão 3 - Gerar Híbrido (Pessoa + Produto) */}
                   <button
-                    onClick={() => router.push("/dashboard/conteudo/gerar?mode=reference-hybrid")}
+                    onClick={() => router.push("/dashboard/posts/gerar?mode=reference-hybrid")}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-left text-white shadow-xl shadow-orange-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1853,7 +1853,7 @@ export default function Conteudo() {
 
                   {/* Botão 4 - Conteúdo Manual */}
                   <button
-                    onClick={() => router.push("/dashboard/conteudo/criar")}
+                    onClick={() => router.push("/dashboard/posts/criar")}
                     className="group relative flex flex-col items-start overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-left text-white shadow-xl shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <div className="absolute right-[-20px] top-[-20px] opacity-10 transition-transform duration-500 group-hover:scale-110">
@@ -1878,7 +1878,7 @@ export default function Conteudo() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Clock className="h-5 w-5 text-blue-500" />
-                  Publicações Agendadas
+                  Posts Agendados
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1901,7 +1901,7 @@ export default function Conteudo() {
                     ) : (
                       <div className="py-6 text-center text-gray-500">
                         <Clock className="mx-auto mb-2 h-8 w-8 text-gray-400" />
-                        <p>Nenhuma publicação agendada.</p>
+                        <p>Nenhum post agendado.</p>
                       </div>
                     )}
                   </AnimatePresence>
@@ -1912,7 +1912,7 @@ export default function Conteudo() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <History className="h-5 w-5 text-purple-500" />
-                  Histórico de Publicações
+                  Histórico de Posts
                 </CardTitle>
                 <Select
                   value={historyFilter}

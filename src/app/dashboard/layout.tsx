@@ -82,8 +82,8 @@ const allNavigationItems: {
     icon: LayoutDashboard,
   },
   {
-    title: "Conteúdo",
-    url: "/dashboard/conteudo",
+    title: "Posts",
+    url: "/dashboard/posts",
     icon: FileText,
   },
   {

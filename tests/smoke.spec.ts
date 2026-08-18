@@ -27,9 +27,9 @@ test.describe("Smoke Tests - Navegação Padrão", () => {
       await expect(page.getByText("Meu Negócio", { exact: false }).first()).toBeVisible();
     });
 
-    test("Acesso a Conteúdo", async ({ page }) => {
-      await page.goto("/dashboard/conteudo");
-      await expect(page.getByRole("heading", { name: /Conteúdo/i }).first()).toBeVisible();
+    test("Acesso a Posts", async ({ page }) => {
+      await page.goto("/dashboard/posts");
+      await expect(page.getByRole("heading", { name: /Posts/i }).first()).toBeVisible();
     });
 
     test("Acesso a Relatórios", async ({ page }) => {

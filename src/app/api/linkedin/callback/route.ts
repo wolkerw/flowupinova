@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const protocol = request.headers.get("x-forwarded-proto") || "https";
   const origin = `${protocol}://${host}`;
 
-  const redirectUrl = new URL("/dashboard/conteudo", origin);
+  const redirectUrl = new URL("/dashboard/posts", origin);
   redirectUrl.search = "";
 
   if (error) {

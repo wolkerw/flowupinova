@@ -44,7 +44,7 @@ vi.mock("@/lib/services/meta-service", () => ({
   updateMetaConnection: vi.fn().mockResolvedValue(undefined),
 }));
 
-describe("Conteudo Page", () => {
+describe("Posts Page", () => {
   it("renders the main title and section header", async () => {
     render(
       <AuthProvider>
@@ -52,8 +52,8 @@ describe("Conteudo Page", () => {
         <Conteudo />
       </AuthProvider>
     );
-    expect(await screen.findByText("Conteúdo & Marketing")).toBeInTheDocument();
-    expect(screen.getByText("Criar nova publicação")).toBeInTheDocument();
+    expect(await screen.findByText("Posts & Conteúdos")).toBeInTheDocument();
+    expect(screen.getByText("Criar novo post")).toBeInTheDocument();
     expect(screen.getByText("Com IA")).toBeInTheDocument();
     expect(screen.getByText("Enviando Foto de Produto")).toBeInTheDocument();
     expect(screen.getByText("Enviando Imagem de Pessoa e Produto/Projeto")).toBeInTheDocument();
