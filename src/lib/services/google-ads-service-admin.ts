@@ -48,9 +48,9 @@ export async function getAuthenticatedGoogleAdsClient(userId: string) {
   }
 
   const connectionData = await getGoogleAdsConnectionAdmin(userId);
-  if (!connectionData.refreshToken) {
+  if (!connectionData.refreshToken && !connectionData.accessToken) {
     throw new Error(
-      "Token de atualização do Google Ads não encontrado. Por favor, conecte sua conta."
+      "Token de acesso do Google Ads não encontrado. Por favor, conecte ou reconecte sua conta."
     );
   }
 
@@ -60,6 +60,7 @@ export async function getAuthenticatedGoogleAdsClient(userId: string) {
   );
 
   oauth2Client.setCredentials({
+    access_token: connectionData.accessToken,
     refresh_token: connectionData.refreshToken,
   });
 
@@ -255,14 +256,22 @@ export async function getGoogleAdsCampaigns(
 ) {
   try {
     const oauth2Client = await getAuthenticatedGoogleAdsClient(userId);
-    const tokenInfo = await oauth2Client.getAccessToken();
-    const accessToken = tokenInfo.token;
-
+    const connectionData = await getGoogleAdsConnectionAdmin(userId);
+    let accessToken: string | null | undefined = null;
+    try {
+      const tokenInfo = await oauth2Client.getAccessToken();
+      accessToken = tokenInfo?.token;
+    } catch (e) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro ao obter token via oauth2Client, usando accessToken direto:", e);
+    }
     if (!accessToken) {
-      throw new Error("Não foi possível gerar token de acesso.");
+      accessToken = connectionData.accessToken;
     }
 
-    const connectionData = await getGoogleAdsConnectionAdmin(userId);
+    if (!accessToken) {
+      throw new Error("Não foi possível gerar token de acesso do Google Ads. Por favor, reconecte sua conta.");
+    }
+
     const headers = getGoogleAdsHeaders(accessToken, connectionData.managerCustomerId);
 
     const cleanCustomerId = customerId.replace(/-/g, "");
