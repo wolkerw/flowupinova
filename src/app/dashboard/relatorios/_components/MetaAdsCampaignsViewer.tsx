@@ -113,18 +113,77 @@ export function MetaAdsCampaignsViewer({
   const instaShare = totalPlatformImp > 0 ? Math.round((instaImpressions / totalPlatformImp) * 100) : 0;
   const fbShare = totalPlatformImp > 0 ? Math.round((fbImpressions / totalPlatformImp) * 100) : 0;
 
-  // Processar dados reais de breakdown de dispositivo (se retornados pela Meta)
-  const deviceList = breakdowns?.devices || [];
-  let mobileImpressions = 0;
-  let desktopImpressions = 0;
-  deviceList.forEach((item: any) => {
+  // Processar dados reais de Público (Idade e Gênero)
+  const ageGenderList = breakdowns?.ageGender || [];
+  let femaleImpressions = 0;
+  let maleImpressions = 0;
+  const ageMap = new Map<string, number>();
+
+  ageGenderList.forEach((item: any) => {
     const imp = parseInt(item.impressions || "0");
-    if (item.device_platform === "mobile") mobileImpressions += imp;
-    if (item.device_platform === "desktop") desktopImpressions += imp;
+    const gender = (item.gender || "").toLowerCase();
+    const age = item.age || "Outros";
+
+    if (gender === "female") femaleImpressions += imp;
+    if (gender === "male") maleImpressions += imp;
+
+    ageMap.set(age, (ageMap.get(age) || 0) + imp);
   });
-  const totalDeviceImp = mobileImpressions + desktopImpressions;
-  const mobileShare = totalDeviceImp > 0 ? Math.round((mobileImpressions / totalDeviceImp) * 100) : 0;
-  const desktopShare = totalDeviceImp > 0 ? Math.round((desktopImpressions / totalDeviceImp) * 100) : 0;
+
+  const totalGenderImp = femaleImpressions + maleImpressions;
+  const femaleShare = totalGenderImp > 0 ? Math.round((femaleImpressions / totalGenderImp) * 100) : 0;
+  const maleShare = totalGenderImp > 0 ? Math.round((maleImpressions / totalGenderImp) * 100) : 0;
+
+  const totalAgeImp = Array.from(ageMap.values()).reduce((a, b) => a + b, 0);
+  const standardAgeBrackets = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+  const ageDistribution = standardAgeBrackets
+    .map((age) => {
+      const imp = ageMap.get(age) || 0;
+      const share = totalAgeImp > 0 ? Math.round((imp / totalAgeImp) * 100) : 0;
+      return { age, imp, share };
+    })
+    .filter((a) => a.imp > 0);
+
+  // Processar dados reais de Posicionamentos (Feed, Stories, Reels)
+  const placementList = breakdowns?.placements || [];
+  let feedImpressions = 0;
+  let storyImpressions = 0;
+  let reelsImpressions = 0;
+  let otherPlacementImpressions = 0;
+
+  placementList.forEach((item: any) => {
+    const imp = parseInt(item.impressions || "0");
+    const pos = (item.platform_position || "").toLowerCase();
+    if (pos.includes("feed")) feedImpressions += imp;
+    else if (pos.includes("story") || pos.includes("stories")) storyImpressions += imp;
+    else if (pos.includes("reels") || pos.includes("reel")) reelsImpressions += imp;
+    else otherPlacementImpressions += imp;
+  });
+
+  const totalPlacementImp = feedImpressions + storyImpressions + reelsImpressions + otherPlacementImpressions;
+  const feedShare = totalPlacementImp > 0 ? Math.round((feedImpressions / totalPlacementImp) * 100) : 0;
+  const storyShare = totalPlacementImp > 0 ? Math.round((storyImpressions / totalPlacementImp) * 100) : 0;
+  const reelsShare = totalPlacementImp > 0 ? Math.round((reelsImpressions / totalPlacementImp) * 100) : 0;
+
+  // Processar dados reais de Regiões / Estados
+  const regionList = breakdowns?.regions || [];
+  const regionMap = new Map<string, { impressions: number; clicks: number }>();
+  regionList.forEach((item: any) => {
+    const name = item.region || "Outros";
+    const imp = parseInt(item.impressions || "0");
+    const clicks = parseInt(item.clicks || "0");
+    const current = regionMap.get(name) || { impressions: 0, clicks: 0 };
+    regionMap.set(name, {
+      impressions: current.impressions + imp,
+      clicks: current.clicks + clicks,
+    });
+  });
+
+  const topRegions = Array.from(regionMap.entries())
+    .map(([region, data]) => ({ region, ...data }))
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 4);
+  const totalRegionImp = topRegions.reduce((acc, r) => acc + r.impressions, 0);
 
   // Função para identificar o objetivo e a métrica chave correspondente da campanha 100% via API da Meta
   const getCampaignKeyMetric = (camp: any) => {
@@ -569,79 +628,161 @@ export function MetaAdsCampaignsViewer({
         </CardContent>
       </Card>
 
-      {/* Breakdowns da API da Meta (se retornados) */}
-      {totalPlatformImp > 0 && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Plataforma */}
-          <Card className="border border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Instagram className="h-4 w-4 text-pink-600" />
-                Exibição por Plataforma
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Distribuição de impressões no período
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-1">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-700">
-                    <Instagram className="h-3.5 w-3.5 text-pink-600" />
-                    Instagram
-                  </span>
-                  <span className="font-semibold text-slate-900">{instaShare}% ({instaImpressions.toLocaleString("pt-BR")} imp)</span>
-                </div>
-                <Progress value={instaShare} className="h-2 bg-slate-100" />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-700">
-                    <Facebook className="h-3.5 w-3.5 text-[#1877F2]" />
-                    Facebook
-                  </span>
-                  <span className="font-semibold text-slate-900">{fbShare}% ({fbImpressions.toLocaleString("pt-BR")} imp)</span>
-                </div>
-                <Progress value={fbShare} className="h-2 bg-slate-100" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Dispositivos */}
-          {totalDeviceImp > 0 && (
+      {/* Detalhamentos Oficiais da Meta Ads API (se retornados) */}
+      {(totalGenderImp > 0 || totalPlatformImp > 0 || topRegions.length > 0 || totalPlacementImp > 0) && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* 1. Público: Idade e Gênero */}
+          {totalGenderImp > 0 && (
             <Card className="border border-slate-200 bg-white shadow-xs">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <Smartphone className="h-4 w-4 text-emerald-600" />
-                  Dispositivos de Acesso
+                  <Users className="h-4 w-4 text-[#0083C7]" />
+                  Público: Idade e Gênero
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Aparelhos onde os usuários visualizaram seus anúncios
+                  Distribuição de quem visualizou seus anúncios
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 pt-1">
+              <CardContent className="space-y-4 pt-1">
+                {/* Proporção de Gênero */}
+                <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
+                    <span className="flex items-center gap-1.5 text-pink-600">
+                      👩 Mulheres ({femaleShare}%)
+                    </span>
+                    <span className="flex items-center gap-1.5 text-blue-600">
+                      👨 Homens ({maleShare}%)
+                    </span>
+                  </div>
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="bg-pink-500 transition-all"
+                      style={{ width: `${femaleShare}%` }}
+                    />
+                    <div
+                      className="bg-blue-600 transition-all"
+                      style={{ width: `${maleShare}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Distribuição por Faixas Etárias */}
+                {ageDistribution.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      Faixas Etárias
+                    </span>
+                    <div className="space-y-2">
+                      {ageDistribution.map((item) => (
+                        <div key={item.age} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-medium text-slate-700">{item.age} anos</span>
+                            <span className="font-semibold text-slate-900">
+                              {item.share}% ({item.imp.toLocaleString("pt-BR")} imp)
+                            </span>
+                          </div>
+                          <Progress value={item.share} className="h-1.5 bg-slate-100" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 2. Exibição por Plataforma (Instagram vs Facebook) */}
+          {totalPlatformImp > 0 && (
+            <Card className="border border-slate-200 bg-white shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Instagram className="h-4 w-4 text-pink-600" />
+                  Exibição por Plataforma
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Distribuição de impressões no período
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-1">
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="flex items-center gap-1.5 text-slate-700">
-                      <Smartphone className="h-3.5 w-3.5 text-slate-600" />
-                      Mobile (Smartphones)
+                      <Instagram className="h-3.5 w-3.5 text-pink-600" />
+                      Instagram
                     </span>
-                    <span className="font-semibold text-slate-900">{mobileShare}% ({mobileImpressions.toLocaleString("pt-BR")} imp)</span>
+                    <span className="font-semibold text-slate-900">
+                      {instaShare}% ({instaImpressions.toLocaleString("pt-BR")} imp)
+                    </span>
                   </div>
-                  <Progress value={mobileShare} className="h-2 bg-slate-100" />
+                  <Progress value={instaShare} className="h-2 bg-slate-100" />
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="flex items-center gap-1.5 text-slate-700">
-                      <Monitor className="h-3.5 w-3.5 text-slate-600" />
-                      Desktop (Computadores)
+                      <Facebook className="h-3.5 w-3.5 text-[#1877F2]" />
+                      Facebook
                     </span>
-                    <span className="font-semibold text-slate-900">{desktopShare}% ({desktopImpressions.toLocaleString("pt-BR")} imp)</span>
+                    <span className="font-semibold text-slate-900">
+                      {fbShare}% ({fbImpressions.toLocaleString("pt-BR")} imp)
+                    </span>
                   </div>
-                  <Progress value={desktopShare} className="h-2 bg-slate-100" />
+                  <Progress value={fbShare} className="h-2 bg-slate-100" />
                 </div>
+
+                {/* Formatos / Posicionamentos (se houver dados) */}
+                {totalPlacementImp > 0 && (
+                  <div className="border-t border-slate-100 pt-3 space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      Formatos com Mais Entrega
+                    </span>
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                        <span className="text-[11px] text-slate-500 block">Feed</span>
+                        <strong className="text-slate-800 font-poppins">{feedShare}%</strong>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                        <span className="text-[11px] text-slate-500 block">Stories</span>
+                        <strong className="text-slate-800 font-poppins">{storyShare}%</strong>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                        <span className="text-[11px] text-slate-500 block">Reels</span>
+                        <strong className="text-slate-800 font-poppins">{reelsShare}%</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 3. Principais Regiões (se houver dados) */}
+          {topRegions.length > 0 && (
+            <Card className="border border-slate-200 bg-white shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <MapPin className="h-4 w-4 text-emerald-600" />
+                  Principais Regiões
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Estados e cidades com maior volume de exibições
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-1">
+                {topRegions.map((r) => {
+                  const share = totalRegionImp > 0 ? Math.round((r.impressions / totalRegionImp) * 100) : 0;
+                  return (
+                    <div key={r.region} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium text-slate-700">{r.region}</span>
+                        <span className="font-semibold text-slate-900">
+                          {share}% ({r.impressions.toLocaleString("pt-BR")} imp)
+                        </span>
+                      </div>
+                      <Progress value={share} className="h-1.5 bg-slate-100" />
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           )}

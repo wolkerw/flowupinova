@@ -54,23 +54,31 @@ export async function GET(request: NextRequest) {
     if (period === "14") datePreset = "last_14d";
     if (period === "90") datePreset = "last_90d";
 
-    // 2. Buscar insights agregados por campanha no período selecionado
+    // 2. Buscar insights agregados por campanha e detalhamentos oficiais no período selecionado
     const insightsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?level=campaign&fields=campaign_id,impressions,clicks,spend,actions,reach,frequency,cpc,cpm,ctr&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const platformsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
-    const devicesUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=device_platform&fields=impressions,clicks,spend&date_preset=${datePreset}&access_token=${accessToken}`;
+    const ageGenderUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=age,gender&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
+    const placementsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform,platform_position&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=50&access_token=${accessToken}`;
+    const regionsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=region&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=10&access_token=${accessToken}`;
 
-    const [insightsRes, platformsRes, devicesRes] = await Promise.allSettled([
+    const [insightsRes, platformsRes, ageGenderRes, placementsRes, regionsRes] = await Promise.allSettled([
       fetch(insightsUrl).then((r) => r.json()),
       fetch(platformsUrl).then((r) => r.json()),
-      fetch(devicesUrl).then((r) => r.json()),
+      fetch(ageGenderUrl).then((r) => r.json()),
+      fetch(placementsUrl).then((r) => r.json()),
+      fetch(regionsUrl).then((r) => r.json()),
     ]);
 
     const insightsData =
       insightsRes.status === "fulfilled" && insightsRes.value?.data ? insightsRes.value.data : [];
     const platformsData =
       platformsRes.status === "fulfilled" && platformsRes.value?.data ? platformsRes.value.data : [];
-    const devicesData =
-      devicesRes.status === "fulfilled" && devicesRes.value?.data ? devicesRes.value.data : [];
+    const ageGenderData =
+      ageGenderRes.status === "fulfilled" && ageGenderRes.value?.data ? ageGenderRes.value.data : [];
+    const placementsData =
+      placementsRes.status === "fulfilled" && placementsRes.value?.data ? placementsRes.value.data : [];
+    const regionsData =
+      regionsRes.status === "fulfilled" && regionsRes.value?.data ? regionsRes.value.data : [];
 
     const insightsMap = new Map();
     insightsData.forEach((ins: any) => {
@@ -252,7 +260,9 @@ export async function GET(request: NextRequest) {
       campaigns,
       breakdowns: {
         platforms: platformsData,
-        devices: devicesData,
+        ageGender: ageGenderData,
+        placements: placementsData,
+        regions: regionsData,
       },
     });
   } catch (error: any) {
