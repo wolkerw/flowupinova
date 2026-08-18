@@ -291,6 +291,7 @@ export async function getGoogleAdsCampaigns(
         campaign.name, 
         campaign.status, 
         campaign.advertising_channel_type,
+        campaign.advertising_channel_sub_type,
         campaign.bidding_strategy_type,
         campaign_budget.amount_micros, 
         metrics.impressions, 
@@ -476,11 +477,35 @@ export async function getGoogleAdsCampaigns(
       const rawStatus = item.campaign?.status?.toLowerCase();
       const status = rawStatus === "enabled" ? "active" : rawStatus;
 
+      const rawChannelType = (item.campaign?.advertisingChannelType || "").toUpperCase();
+      const rawSubType = (item.campaign?.advertisingChannelSubType || "").toUpperCase();
+      const campName = (item.campaign?.name || "").toLowerCase();
+
+      let channelType = rawChannelType || "SEARCH";
+      if (
+        rawChannelType === "VIDEO" ||
+        rawSubType.includes("VIDEO") ||
+        campName.includes("youtube") ||
+        campName.includes("video") ||
+        campName.includes("vídeo")
+      ) {
+        channelType = "VIDEO";
+      } else if (rawChannelType.includes("PERFORMANCE_MAX")) {
+        channelType = "PERFORMANCE_MAX";
+      } else if (rawChannelType.includes("DISPLAY")) {
+        channelType = "DISPLAY";
+      } else if (rawChannelType.includes("SHOPPING")) {
+        channelType = "SHOPPING";
+      } else if (rawChannelType.includes("SEARCH")) {
+        channelType = "SEARCH";
+      }
+
       return {
         id: item.campaign?.id,
         name: item.campaign?.name,
         status,
-        channelType: item.campaign?.advertisingChannelType || "SEARCH",
+        channelType,
+        channelSubType: rawSubType,
         biddingStrategy: item.campaign?.biddingStrategyType || "",
         budgetAmount: budgetMicros / 1_000_000,
         metrics: {

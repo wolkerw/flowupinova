@@ -108,19 +108,38 @@ export function GoogleAdsCampaignsViewer({
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgCpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
 
-  const getChannelLabel = (channel: string) => {
+  const getChannelLabel = (channel: string, name?: string) => {
     const c = (channel || "").toUpperCase();
-    if (c.includes("SEARCH")) return { label: "Rede de Pesquisa", icon: Search, color: "text-blue-700 bg-blue-50 border-blue-200" };
+    const n = (name || "").toLowerCase();
+    if (
+      c.includes("VIDEO") ||
+      c.includes("YOUTUBE") ||
+      n.includes("youtube") ||
+      n.includes("video") ||
+      n.includes("vídeo") ||
+      n.includes("yt -") ||
+      n.includes("yt_")
+    ) {
+      return { label: "YouTube Ads", icon: Video, color: "text-red-700 bg-red-50 border-red-200" };
+    }
     if (c.includes("PERFORMANCE_MAX")) return { label: "Performance Max", icon: Sparkles, color: "text-purple-700 bg-purple-50 border-purple-200" };
-    if (c.includes("VIDEO") || c.includes("YOUTUBE")) return { label: "YouTube Ads", icon: Video, color: "text-red-700 bg-red-50 border-red-200" };
     if (c.includes("DISPLAY")) return { label: "Rede de Display", icon: Globe, color: "text-amber-700 bg-amber-50 border-amber-200" };
     if (c.includes("SHOPPING")) return { label: "Shopping", icon: Target, color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
-    return { label: "Pesquisa Google", icon: Search, color: "text-blue-700 bg-blue-50 border-blue-200" };
+    return { label: "Rede de Pesquisa", icon: Search, color: "text-blue-700 bg-blue-50 border-blue-200" };
   };
 
   const getCampaignKeyMetric = (camp: any) => {
     const channelType = (camp.channelType || "").toUpperCase();
-    const isVideoChannel = channelType.includes("VIDEO") || channelType.includes("YOUTUBE");
+    const campName = (camp.name || "").toLowerCase();
+    const isVideoChannel =
+      channelType.includes("VIDEO") ||
+      channelType.includes("YOUTUBE") ||
+      campName.includes("youtube") ||
+      campName.includes("video") ||
+      campName.includes("vídeo") ||
+      campName.includes("yt -") ||
+      campName.includes("yt_");
+
     const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
     const clicks = Number(camp.metrics?.clicks) || 0;
     const impressions = Number(camp.metrics?.impressions) || 0;
@@ -136,7 +155,7 @@ export function GoogleAdsCampaignsViewer({
       return {
         label: "Visualizações",
         value: views.toLocaleString("pt-BR"),
-        subLabel: avgCpv > 0 ? `CPV Médio: ${avgCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações do vídeo",
+        subLabel: avgCpv > 0 ? `CPV Médio: ${avgCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações no YouTube",
         badge: "YouTube Ads",
       };
     }
@@ -329,11 +348,18 @@ export function GoogleAdsCampaignsViewer({
                 const isPaused = camp.status === "paused";
                 const keyMetric = getCampaignKeyMetric(camp);
                 const isExpanded = !!expandedCampaigns[campUniqueId];
-                const channel = getChannelLabel(camp.channelType);
+                const isVideoChannel =
+                  (camp.channelType || "").toUpperCase().includes("VIDEO") ||
+                  (camp.channelType || "").toUpperCase().includes("YOUTUBE") ||
+                  (camp.name || "").toLowerCase().includes("youtube") ||
+                  (camp.name || "").toLowerCase().includes("video") ||
+                  (camp.name || "").toLowerCase().includes("vídeo") ||
+                  (camp.name || "").toLowerCase().includes("yt -") ||
+                  (camp.name || "").toLowerCase().includes("yt_");
+                const isSearchChannel = !isVideoChannel && (camp.channelType || "").toUpperCase().includes("SEARCH");
+                const isPMaxChannel = !isVideoChannel && (camp.channelType || "").toUpperCase().includes("PERFORMANCE_MAX");
+                const channel = getChannelLabel(camp.channelType, camp.name);
                 const ChannelIcon = channel.icon;
-                const isVideoChannel = (camp.channelType || "").toUpperCase().includes("VIDEO") || (camp.channelType || "").toUpperCase().includes("YOUTUBE");
-                const isSearchChannel = (camp.channelType || "").toUpperCase().includes("SEARCH");
-                const isPMaxChannel = (camp.channelType || "").toUpperCase().includes("PERFORMANCE_MAX");
 
                 // Filtrar anúncios ativos e ordenar pelos que mais geraram cliques/conversões/views
                 const rawAds: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : [{
@@ -505,10 +531,16 @@ export function GoogleAdsCampaignsViewer({
                               }
                             } catch (e) {}
 
-                            const pathString = [ad.path1, ad.path2].filter(Boolean).join(" › ");
+                            const isThisAdVideo =
+                              isVideoChannel ||
+                              (ad.type || "").toUpperCase().includes("VIDEO") ||
+                              (ad.type || "").toUpperCase().includes("YOUTUBE") ||
+                              (ad.name || "").toLowerCase().includes("video") ||
+                              (ad.name || "").toLowerCase().includes("vídeo") ||
+                              (ad.name || "").toLowerCase().includes("youtube");
 
                             // RENDERIZADOR A: YOUTUBE / VÍDEO
-                            if (isVideoChannel) {
+                            if (isThisAdVideo) {
                               return (
                                 <div
                                   key={ad.id || idx}
