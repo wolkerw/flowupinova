@@ -133,59 +133,108 @@ export function MetaAdsCampaignsViewer({
     const clicks = Number(camp.metrics?.clicks) || 0;
     const impressions = Number(camp.metrics?.impressions) || 0;
     const reach = Number(camp.metrics?.reach) || impressions;
+    const cpm = Number(camp.metrics?.cpm) || (impressions > 0 ? (spent / impressions) * 1000 : 0);
+    const cpc = Number(camp.metrics?.cpc) || (clicks > 0 ? spent / clicks : 0);
+
     const messages = Number(camp.metrics?.messagesCount) || 0;
     const leads = Number(camp.metrics?.leadsCount) || 0;
+    const sales = Number(camp.metrics?.salesCount) || 0;
+    const videoViews = Number(camp.metrics?.videoViewsCount) || 0;
+    const postEngagement = Number(camp.metrics?.postEngagementCount) || 0;
+    const appInstalls = Number(camp.metrics?.appInstallsCount) || 0;
     const linkClicks = Number(camp.metrics?.linkClicksCount) || clicks;
 
-    if (obj.includes("MESSAGE") || messages > 0) {
-      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
-      const cpa = count > 0 ? spent / count : 0;
+    // 1. TRÁFEGO (OUTCOME_TRAFFIC / LINK_CLICKS)
+    if (obj.includes("TRAFFIC") || obj.includes("LINK_CLICK")) {
+      const count = linkClicks > 0 ? linkClicks : clicks;
+      const unitCost = count > 0 ? spent / count : cpc;
       return {
-        label: "Conversas / Mensagens",
+        label: "Cliques",
         value: count.toLocaleString("pt-BR"),
-        subLabel: cpa > 0 ? `Custo/Conversa: ${cpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Mensagens no WhatsApp",
-        badge: "💬 Mensagens WhatsApp",
+        subLabel: unitCost > 0 ? `CPC: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques no link",
+        badge: "Tráfego",
       };
     }
 
+    // 2. LEADS (OUTCOME_LEADS / LEAD_GENERATION)
     if (obj.includes("LEAD") || leads > 0) {
       const count = leads > 0 ? leads : Number(camp.metrics?.actions) || clicks;
-      const cpa = count > 0 ? spent / count : 0;
+      const unitCost = count > 0 ? spent / count : 0;
       return {
-        label: "Cadastros / Leads",
+        label: "Leads",
         value: count.toLocaleString("pt-BR"),
-        subLabel: cpa > 0 ? `Custo/Lead: ${cpa.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Formulários preenchidos",
-        badge: "📋 Geração de Leads",
+        subLabel: unitCost > 0 ? `Custo/Lead: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cadastros gerados",
+        badge: "Leads",
       };
     }
 
-    if (obj.includes("TRAFFIC") || linkClicks > 0) {
-      const count = linkClicks > 0 ? linkClicks : clicks;
-      const cpc = count > 0 ? spent / count : 0;
+    // 3. VENDAS (OUTCOME_SALES / CONVERSIONS / PRODUCT_CATALOG_SALES)
+    if (obj.includes("SALE") || obj.includes("PURCHASE") || obj.includes("CONVERSION") || sales > 0) {
+      const count = sales > 0 ? sales : Number(camp.metrics?.actions) || clicks;
+      const unitCost = count > 0 ? spent / count : 0;
       return {
-        label: "Cliques no Link",
+        label: "Vendas",
         value: count.toLocaleString("pt-BR"),
-        subLabel: cpc > 0 ? `CPC: ${cpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques na página/site",
-        badge: "🎯 Tráfego no Link",
+        subLabel: unitCost > 0 ? `Custo/Venda: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Vendas realizadas",
+        badge: "Vendas",
       };
     }
 
-    if (obj.includes("AWARENESS") || obj.includes("REACH")) {
-      const cpm = impressions > 0 ? (spent / impressions) * 1000 : 0;
+    // 4. DOWNLOADS / APP PROMOTION (OUTCOME_APP_PROMOTION / APP_INSTALLS)
+    if (obj.includes("APP") || appInstalls > 0) {
+      const count = appInstalls > 0 ? appInstalls : Number(camp.metrics?.actions) || clicks;
+      const unitCost = count > 0 ? spent / count : 0;
       return {
-        label: "Pessoas Alcançadas",
+        label: "Downloads",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `Custo/Download: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Instalações do app",
+        badge: "Downloads",
+      };
+    }
+
+    // 5. ALCANCE / RECONHECIMENTO (OUTCOME_AWARENESS / REACH / BRAND_AWARENESS)
+    if (obj.includes("AWARENESS") || obj.includes("REACH") || obj.includes("BRAND")) {
+      return {
+        label: "Alcance",
         value: reach.toLocaleString("pt-BR"),
-        subLabel: cpm > 0 ? `CPM: ${cpm.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações únicas",
-        badge: "📢 Alcance e Marca",
+        subLabel: cpm > 0 ? `CPM: ${cpm.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Pessoas alcançadas",
+        badge: "Alcance",
       };
     }
 
-    // Default
+    // 6. ENGAJAMENTO (OUTCOME_ENGAGEMENT / POST_ENGAGEMENT / MESSAGES)
+    // Se for mensagens (WhatsApp, Direct, Messenger)
+    if (obj.includes("MESSAGE") || messages > 0) {
+      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
+      const unitCost = count > 0 ? spent / count : 0;
+      return {
+        label: "Mensagens",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `Custo/Mensagem: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Conversas iniciadas",
+        badge: "Mensagens",
+      };
+    }
+
+    // Se for visualizações de vídeo
+    if (obj.includes("VIDEO") || videoViews > 0) {
+      const count = videoViews > 0 ? videoViews : Number(camp.metrics?.actions) || clicks;
+      const unitCost = count > 0 ? spent / count : 0;
+      return {
+        label: "Visualizações",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `CPV: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações do vídeo",
+        badge: "Visualizações",
+      };
+    }
+
+    // Interações gerais / engajamento com post
+    const interactionCount = postEngagement > 0 ? postEngagement : Number(camp.metrics?.actions) || clicks;
+    const unitCost = interactionCount > 0 ? spent / interactionCount : 0;
     return {
-      label: "Cliques / Ações",
-      value: (Number(camp.metrics?.actions) || clicks).toLocaleString("pt-BR"),
-      subLabel: clicks > 0 ? `CPC: ${(spent / clicks).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Interações no anúncio",
-      badge: "⚡ Engajamento",
+      label: "Interações",
+      value: interactionCount.toLocaleString("pt-BR"),
+      subLabel: unitCost > 0 ? `Custo/Interação: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Curtidas e comentários",
+      badge: "Interações",
     };
   };
 

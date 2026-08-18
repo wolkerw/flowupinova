@@ -105,6 +105,10 @@ export async function GET(request: NextRequest) {
 
       let messagesCount = 0;
       let leadsCount = 0;
+      let salesCount = 0;
+      let videoViewsCount = 0;
+      let postEngagementCount = 0;
+      let appInstallsCount = 0;
       let linkClicksCount = 0;
 
       if (Array.isArray(insight?.actions)) {
@@ -115,6 +119,14 @@ export async function GET(request: NextRequest) {
             messagesCount += val;
           } else if (type.includes("lead")) {
             leadsCount += val;
+          } else if (type.includes("purchase") || type.includes("buy")) {
+            salesCount += val;
+          } else if (type.includes("video_view")) {
+            videoViewsCount += val;
+          } else if (type.includes("post_engagement") || type.includes("like") || type.includes("comment")) {
+            postEngagementCount += val;
+          } else if (type.includes("app_install") || type.includes("mobile_activate")) {
+            appInstallsCount += val;
           } else if (type === "link_click") {
             linkClicksCount += val;
           }
@@ -168,6 +180,10 @@ export async function GET(request: NextRequest) {
           actions,
           messagesCount,
           leadsCount,
+          salesCount,
+          videoViewsCount,
+          postEngagementCount,
+          appInstallsCount,
           linkClicksCount,
           amountSpent: spend,
           reach,
