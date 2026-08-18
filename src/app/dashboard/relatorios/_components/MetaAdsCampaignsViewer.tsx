@@ -129,6 +129,7 @@ export function MetaAdsCampaignsViewer({
   // Função para identificar o objetivo e a métrica chave correspondente da campanha
   const getCampaignKeyMetric = (camp: any) => {
     const obj = (camp.objective || "").toUpperCase();
+    const nameUpper = (camp.name || "").toUpperCase();
     const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
     const clicks = Number(camp.metrics?.clicks) || 0;
     const impressions = Number(camp.metrics?.impressions) || 0;
@@ -144,20 +145,26 @@ export function MetaAdsCampaignsViewer({
     const appInstalls = Number(camp.metrics?.appInstallsCount) || 0;
     const linkClicks = Number(camp.metrics?.linkClicksCount) || clicks;
 
-    // 1. TRÁFEGO (OUTCOME_TRAFFIC / LINK_CLICKS)
-    if (obj.includes("TRAFFIC") || obj.includes("LINK_CLICK")) {
-      const count = linkClicks > 0 ? linkClicks : clicks;
-      const unitCost = count > 0 ? spent / count : cpc;
+    const isMsgNamed =
+      nameUpper.includes("[MSG]") ||
+      nameUpper.includes("WHATSAPP") ||
+      nameUpper.includes("MENSAGEM") ||
+      nameUpper.includes("DIRECT");
+
+    // 1. MENSAGENS / WHATSAPP (Prioridade quando gerou conversas ou campanha é de Lead > Mensagem)
+    if (messages > 0 || (isMsgNamed && messages >= leads) || obj.includes("MESSAGE")) {
+      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
+      const unitCost = count > 0 ? spent / count : 0;
       return {
-        label: "Cliques",
+        label: "Mensagens",
         value: count.toLocaleString("pt-BR"),
-        subLabel: unitCost > 0 ? `CPC: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques no link",
-        badge: "Tráfego",
+        subLabel: unitCost > 0 ? `Custo/Mensagem: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Conversas iniciadas",
+        badge: "Mensagens",
       };
     }
 
-    // 2. LEADS (OUTCOME_LEADS / LEAD_GENERATION)
-    if (obj.includes("LEAD") || leads > 0) {
+    // 2. LEADS / FORMULÁRIO (OUTCOME_LEADS / LEAD_GENERATION)
+    if (leads > 0 || obj.includes("LEAD")) {
       const count = leads > 0 ? leads : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -169,7 +176,7 @@ export function MetaAdsCampaignsViewer({
     }
 
     // 3. VENDAS (OUTCOME_SALES / CONVERSIONS / PRODUCT_CATALOG_SALES)
-    if (obj.includes("SALE") || obj.includes("PURCHASE") || obj.includes("CONVERSION") || sales > 0) {
+    if (sales > 0 || obj.includes("SALE") || obj.includes("PURCHASE") || obj.includes("CONVERSION")) {
       const count = sales > 0 ? sales : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -181,7 +188,7 @@ export function MetaAdsCampaignsViewer({
     }
 
     // 4. DOWNLOADS / APP PROMOTION (OUTCOME_APP_PROMOTION / APP_INSTALLS)
-    if (obj.includes("APP") || appInstalls > 0) {
+    if (appInstalls > 0 || obj.includes("APP")) {
       const count = appInstalls > 0 ? appInstalls : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -192,7 +199,19 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 5. ALCANCE / RECONHECIMENTO (OUTCOME_AWARENESS / REACH / BRAND_AWARENESS)
+    // 5. TRÁFEGO (OUTCOME_TRAFFIC / LINK_CLICKS)
+    if (obj.includes("TRAFFIC") || obj.includes("LINK_CLICK")) {
+      const count = linkClicks > 0 ? linkClicks : clicks;
+      const unitCost = count > 0 ? spent / count : cpc;
+      return {
+        label: "Cliques",
+        value: count.toLocaleString("pt-BR"),
+        subLabel: unitCost > 0 ? `CPC: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques no link",
+        badge: "Tráfego",
+      };
+    }
+
+    // 6. ALCANCE / RECONHECIMENTO (OUTCOME_AWARENESS / REACH / BRAND_AWARENESS)
     if (obj.includes("AWARENESS") || obj.includes("REACH") || obj.includes("BRAND")) {
       return {
         label: "Alcance",
@@ -202,21 +221,8 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 6. ENGAJAMENTO (OUTCOME_ENGAGEMENT / POST_ENGAGEMENT / MESSAGES)
-    // Se for mensagens (WhatsApp, Direct, Messenger)
-    if (obj.includes("MESSAGE") || messages > 0) {
-      const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
-      const unitCost = count > 0 ? spent / count : 0;
-      return {
-        label: "Mensagens",
-        value: count.toLocaleString("pt-BR"),
-        subLabel: unitCost > 0 ? `Custo/Mensagem: ${unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Conversas iniciadas",
-        badge: "Mensagens",
-      };
-    }
-
-    // Se for visualizações de vídeo
-    if (obj.includes("VIDEO") || videoViews > 0) {
+    // 7. VISUALIZAÇÕES DE VÍDEO
+    if (videoViews > 0 || obj.includes("VIDEO")) {
       const count = videoViews > 0 ? videoViews : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -227,7 +233,7 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // Interações gerais / engajamento com post
+    // 8. INTERAÇÕES GERAIS / ENGAJAMENTO
     const interactionCount = postEngagement > 0 ? postEngagement : Number(camp.metrics?.actions) || clicks;
     const unitCost = interactionCount > 0 ? spent / interactionCount : 0;
     return {

@@ -124,13 +124,18 @@ export async function GET(request: NextRequest) {
           leadsCount = parseInt(pixelLead.value || "0");
         }
 
-        // 2. Mensagens / Conversas iniciadas (WhatsApp / Direct)
+        // 2. Mensagens / Conversas iniciadas (WhatsApp / Direct / Messenger / Leads via Mensagem)
         const msgStarted = insight.actions.find((a: any) =>
           a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
           a.action_type === "messaging_conversation_started_7d" ||
-          a.action_type?.includes("messaging_conversation_started")
+          a.action_type?.includes("messaging_conversation_started") ||
+          a.action_type?.includes("lead_generation_messaging")
         );
-        const generalMsg = insight.actions.find((a: any) => a.action_type === "messages");
+        const generalMsg = insight.actions.find((a: any) =>
+          a.action_type === "messages" ||
+          a.action_type === "onsite_conversion.messaging_first_reply" ||
+          a.action_type === "contact_total"
+        );
         if (msgStarted) {
           messagesCount = parseInt(msgStarted.value || "0");
         } else if (generalMsg) {
