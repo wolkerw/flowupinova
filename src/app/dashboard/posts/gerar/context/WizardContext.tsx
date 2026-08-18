@@ -760,6 +760,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         text: fullCaption,
         status: "draft",
         promoText: postSummary.trim() || "",
+        promptUsed: postSummary.trim() || "",
         isRetailStyle: isRetailStyle,
         createdAt: serverTimestamp(),
         scheduledAt: serverTimestamp(),

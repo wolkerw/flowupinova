@@ -865,9 +865,8 @@ export default function AdminConteudoPage() {
                         <span>Prompt Inicial do Usuário</span>
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs italic leading-relaxed text-slate-200">
-                        {post.promptUsed ||
-                          (post.isDraftMedia ? post.text : null) ||
-                          "Prompt inicial não registrado"}
+                        "{post.promptUsed ||
+                          (post.text ? post.text.split("\n")[0].trim() : "Orientação inicial enviada pelo usuário")}"
                       </p>
                     </div>
 
@@ -997,7 +996,7 @@ export default function AdminConteudoPage() {
                 Prompt Inicial Digitado pelo Usuário:
               </span>
               <div className="rounded-lg border border-pink-500/20 bg-pink-500/5 p-3 text-xs italic text-slate-200">
-                "{selectedPost.promptUsed || (selectedPost.isDraftMedia ? selectedPost.text : "Nenhum prompt registrado")}"
+                "{selectedPost.promptUsed || (selectedPost.text ? selectedPost.text.split("\n")[0].trim() : "Orientação inicial enviada pelo usuário")}"
               </div>
             </div>
 

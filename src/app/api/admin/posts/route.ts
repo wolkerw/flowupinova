@@ -4,6 +4,42 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export const maxDuration = 120; // 2 minutos máximo
 
+function extractPromptFromDoc(data: any): string | null {
+  if (!data) return null;
+  const candidate =
+    data.promptUsed ||
+    data.prompt ||
+    data.promoText ||
+    data.userPrompt ||
+    data.initialPrompt ||
+    data.summary ||
+    data.postSummary ||
+    data.referenceDescription ||
+    data.idea ||
+    data.topic ||
+    data.theme;
+
+  if (candidate && typeof candidate === "string" && candidate.trim().length > 0) {
+    return candidate.trim();
+  }
+
+  if (data.text && typeof data.text === "string" && data.text.trim().length > 0) {
+    const lines = data.text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      return lines[0];
+    }
+  }
+
+  if (data.caption && typeof data.caption === "string" && data.caption.trim().length > 0) {
+    const lines = data.caption.split("\n").map((l: string) => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      return lines[0];
+    }
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("firebase-id-token")?.value ?? null;
   const admin = await validateAdminToken(token);
@@ -45,14 +81,7 @@ export async function GET(request: NextRequest) {
           imageUrl: data.imageUrl || null,
           imageUrls: data.imageUrls || [],
           conceptUrls: data.conceptUrls || [],
-          promptUsed:
-            data.promptUsed ||
-            data.prompt ||
-            data.promoText ||
-            data.userPrompt ||
-            data.initialPrompt ||
-            data.summary ||
-            null,
+          promptUsed: extractPromptFromDoc(data),
           status: data.status || "completed",
           platforms: data.platforms || [],
           createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -87,13 +116,7 @@ export async function GET(request: NextRequest) {
               imageUrl: imgUrl,
               imageUrls: [imgUrl],
               conceptUrls: [],
-              promptUsed:
-                data.promptUsed ||
-                data.prompt ||
-                data.userPrompt ||
-                data.initialPrompt ||
-                data.summary ||
-                null,
+              promptUsed: extractPromptFromDoc(data),
               status: "completed",
               platforms: [],
               createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -141,13 +164,7 @@ export async function GET(request: NextRequest) {
               imageUrl: data.imageUrl || null,
               imageUrls: data.imageUrls || [],
               conceptUrls: data.conceptUrls || [],
-              promptUsed:
-                data.promptUsed ||
-                data.prompt ||
-                data.initialPrompt ||
-                data.userPrompt ||
-                data.summary ||
-                null,
+              promptUsed: extractPromptFromDoc(data),
               status: data.status || "completed",
               platforms: data.platforms || [],
               createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -173,13 +190,7 @@ export async function GET(request: NextRequest) {
                 imageUrl: imgUrl,
                 imageUrls: [imgUrl],
                 conceptUrls: [],
-                promptUsed:
-                  data.promptUsed ||
-                  data.prompt ||
-                  data.userPrompt ||
-                  data.initialPrompt ||
-                  data.summary ||
-                  null,
+                promptUsed: extractPromptFromDoc(data),
                 status: "completed",
                 platforms: [],
                 createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
