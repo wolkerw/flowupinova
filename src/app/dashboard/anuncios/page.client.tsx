@@ -714,27 +714,19 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
     try {
       const res = await fetch("/api/ads/instagram-posts");
       const data = await res.json();
-      if (data.success && data.posts) {
+      if (data.success && Array.isArray(data.posts)) {
         setInstagramFeedPosts(data.posts);
       } else {
-        console.warn("Falha ao buscar posts do feed do Instagram:", data.error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar Instagram",
-          description: data.error || "Não foi possível carregar as publicações do Instagram.",
-        });
+        console.warn("Nenhum post retornado do Instagram:", data?.error || data?.message);
+        setInstagramFeedPosts([]);
       }
     } catch (e) {
       console.error("Erro ao buscar posts do Instagram:", e);
-      toast({
-        variant: "destructive",
-        title: "Erro de Conexão",
-        description: "Falha de rede ao conectar com o serviço do Instagram.",
-      });
+      setInstagramFeedPosts([]);
     } finally {
       setLoadingInstagramPosts(false);
     }
-  }, [userId, toast]);
+  }, [userId]);
 
   // Carrega campanhas e posts publicados
   const fetchData = useCallback(async () => {
@@ -4873,12 +4865,13 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : instagramFeedPosts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200/80 bg-slate-50 p-10 text-center text-slate-400">
-                <p className="text-xs font-semibold text-slate-500">
-                  Nenhum post encontrado no feed do seu Instagram conectado.
+              <div className="rounded-xl border border-dashed border-slate-200/80 bg-slate-50 p-8 text-center text-slate-400">
+                <Instagram className="mx-auto mb-2.5 h-8 w-8 text-pink-500/70" />
+                <p className="text-xs font-semibold text-slate-700">
+                  Nenhuma publicação externa encontrada no feed do Instagram
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Publique algo no seu perfil do Instagram para começar a impulsionar!
+                <p className="mx-auto mt-1 max-w-md text-[11.5px] leading-relaxed text-slate-500">
+                  Para impulsionar posts diretamente do feed do Instagram, certifique-se de que sua conta comercial está vinculada à Página no Meta Business Suite, ou impulsione qualquer criativo criado no NumVapt na aba <strong>Criados no NumVapt</strong>.
                 </p>
               </div>
             ) : (
