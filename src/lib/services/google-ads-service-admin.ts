@@ -299,7 +299,9 @@ export async function getGoogleAdsCampaigns(
         metrics.ctr,
         metrics.average_cpc,
         metrics.conversions,
-        metrics.cost_per_conversion
+        metrics.cost_per_conversion,
+        metrics.video_views,
+        metrics.average_cpv
       FROM campaign
       WHERE segments.date ${dateClause}
       ORDER BY campaign.id DESC
@@ -323,7 +325,9 @@ export async function getGoogleAdsCampaigns(
         metrics.cost_micros,
         metrics.conversions,
         metrics.ctr,
-        metrics.average_cpc
+        metrics.average_cpc,
+        metrics.video_views,
+        metrics.average_cpv
       FROM ad_group_ad
       WHERE segments.date ${dateClause}
       ORDER BY metrics.impressions DESC
@@ -374,6 +378,16 @@ export async function getGoogleAdsCampaigns(
       ).then((r) => r.json()),
     ]);
 
+    if (campaignsRes.status === "fulfilled" && campaignsRes.value?.error) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de campanhas:", campaignsRes.value.error);
+    }
+    if (adsRes.status === "fulfilled" && adsRes.value?.error) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de anúncios:", adsRes.value.error);
+    }
+    if (keywordsRes.status === "fulfilled" && keywordsRes.value?.error) {
+      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de palavras-chave:", keywordsRes.value.error);
+    }
+
     const campaignResults =
       campaignsRes.status === "fulfilled" && campaignsRes.value?.results
         ? campaignsRes.value.results
@@ -395,6 +409,7 @@ export async function getGoogleAdsCampaigns(
 
       const spentMicros = Number(item.metrics?.costMicros || 0);
       const avgCpcMicros = Number(item.metrics?.averageCpc || 0);
+      const avgCpvMicros = Number(item.metrics?.averageCpv || 0);
       const rawStatus = item.adGroupAd?.status?.toLowerCase();
       const status = rawStatus === "enabled" ? "active" : rawStatus;
 
@@ -423,7 +438,9 @@ export async function getGoogleAdsCampaigns(
           spent: spentMicros / 1_000_000,
           ctr: Number(item.metrics?.ctr || 0) * 100,
           averageCpc: avgCpcMicros / 1_000_000,
+          averageCpv: avgCpvMicros / 1_000_000,
           conversions: Number(item.metrics?.conversions || 0),
+          videoViews: Number(item.metrics?.videoViews || 0),
         },
       });
       adsByCampaignMap.set(campId, currentList);

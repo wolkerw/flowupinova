@@ -119,12 +119,29 @@ export function GoogleAdsCampaignsViewer({
   };
 
   const getCampaignKeyMetric = (camp: any) => {
+    const channelType = (camp.channelType || "").toUpperCase();
+    const isVideoChannel = channelType.includes("VIDEO") || channelType.includes("YOUTUBE");
     const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
     const clicks = Number(camp.metrics?.clicks) || 0;
+    const impressions = Number(camp.metrics?.impressions) || 0;
     const conversions = Number(camp.metrics?.conversions) || 0;
     const costPerConv = Number(camp.metrics?.costPerConversion) || (conversions > 0 ? spent / conversions : 0);
     const cpc = Number(camp.metrics?.averageCpc) || (clicks > 0 ? spent / clicks : 0);
+    const videoViews = Number(camp.metrics?.videoViews) || 0;
+    const avgCpv = Number(camp.metrics?.averageCpv) || (videoViews > 0 ? spent / videoViews : 0);
 
+    // 1. YouTube / Vídeo
+    if (isVideoChannel) {
+      const views = videoViews > 0 ? videoViews : impressions;
+      return {
+        label: "Visualizações",
+        value: views.toLocaleString("pt-BR"),
+        subLabel: avgCpv > 0 ? `CPV Médio: ${avgCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Visualizações do vídeo",
+        badge: "YouTube Ads",
+      };
+    }
+
+    // 2. Conversões (se registradas)
     if (conversions > 0) {
       return {
         label: "Conversões",
@@ -134,8 +151,9 @@ export function GoogleAdsCampaignsViewer({
       };
     }
 
+    // 3. Rede de Pesquisa / PMax (Cliques)
     return {
-      label: "Cliques na Busca",
+      label: channelType.includes("SEARCH") ? "Cliques na Busca" : "Cliques",
       value: clicks.toLocaleString("pt-BR"),
       subLabel: cpc > 0 ? `CPC Médio: ${cpc.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Cliques nos anúncios",
       badge: "Cliques",
@@ -314,12 +332,29 @@ export function GoogleAdsCampaignsViewer({
                 const isExpanded = !!expandedCampaigns[campUniqueId];
                 const channel = getChannelLabel(camp.channelType);
                 const ChannelIcon = channel.icon;
+                const isVideoChannel = (camp.channelType || "").toUpperCase().includes("VIDEO") || (camp.channelType || "").toUpperCase().includes("YOUTUBE");
+                const isSearchChannel = (camp.channelType || "").toUpperCase().includes("SEARCH");
+                const isPMaxChannel = (camp.channelType || "").toUpperCase().includes("PERFORMANCE_MAX");
 
-                // Filtrar anúncios ativos e ordenar pelos que mais geraram cliques/conversões
-                const rawAds: any[] = camp.ads || [];
+                // Filtrar anúncios ativos e ordenar pelos que mais geraram cliques/conversões/views
+                const rawAds: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : [{
+                  id: `local-${campUniqueId}`,
+                  name: camp.name || "Anúncio Principal",
+                  status: camp.status || "active",
+                  type: isVideoChannel ? "VIDEO_AD" : isSearchChannel ? "RESPONSIVE_SEARCH_AD" : "RESPONSIVE_DISPLAY_AD",
+                  headlines: [camp.name],
+                  descriptions: [],
+                  finalUrls: [],
+                  metrics: camp.metrics,
+                }];
+
                 const activeAds = rawAds
                   .filter((a: any) => (a.status || "").toLowerCase() === "active")
                   .sort((a: any, b: any) => {
+                    if (isVideoChannel) {
+                      const viewsDiff = (Number(b.metrics?.videoViews) || 0) - (Number(a.metrics?.videoViews) || 0);
+                      if (viewsDiff !== 0) return viewsDiff;
+                    }
                     const convDiff = (Number(b.metrics?.conversions) || 0) - (Number(a.metrics?.conversions) || 0);
                     if (convDiff !== 0) return convDiff;
                     const clicksDiff = (Number(b.metrics?.clicks) || 0) - (Number(a.metrics?.clicks) || 0);
@@ -327,9 +362,9 @@ export function GoogleAdsCampaignsViewer({
                     return (Number(b.metrics?.impressions) || 0) - (Number(a.metrics?.impressions) || 0);
                   });
 
-                const keywordsList: any[] = (camp.keywords || []).sort(
+                const keywordsList: any[] = isSearchChannel ? (camp.keywords || []).sort(
                   (a: any, b: any) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0)
-                );
+                ) : [];
 
                 const hasExpandableContent = activeAds.length > 0 || keywordsList.length > 0;
 
@@ -451,7 +486,7 @@ export function GoogleAdsCampaignsViewer({
                     {/* Gaveta Expansível de Anúncios e Palavras-Chave */}
                     {isExpanded && hasExpandableContent && (
                       <div className="mt-4 space-y-5 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
-                        {/* 1. Anúncios Ativos com Mockup Fiel do Google */}
+                        {/* 1. Anúncios Ativos com Layout Adequado por Canal */}
                         {activeAds.length > 0 && (
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80">
@@ -469,6 +504,8 @@ export function GoogleAdsCampaignsViewer({
                                 const adCtr = Number(ad.metrics?.ctr) || 0;
                                 const adCpc = Number(ad.metrics?.averageCpc) || 0;
                                 const adConversions = Number(ad.metrics?.conversions) || 0;
+                                const adVideoViews = Number(ad.metrics?.videoViews) || 0;
+                                const adCpv = Number(ad.metrics?.averageCpv) || (adVideoViews > 0 ? adSpent / adVideoViews : 0);
 
                                 const headlines = ad.headlines || [];
                                 const descriptions = ad.descriptions || [];
@@ -483,6 +520,156 @@ export function GoogleAdsCampaignsViewer({
 
                                 const pathString = [ad.path1, ad.path2].filter(Boolean).join(" › ");
 
+                                // RENDERIZADOR A: YOUTUBE / VÍDEO
+                                if (isVideoChannel) {
+                                  return (
+                                    <div
+                                      key={ad.id || idx}
+                                      className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                                    >
+                                      {/* Mockup do YouTube */}
+                                      <div className="p-4 space-y-3 bg-white border-b border-slate-100 flex-1">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-red-600 text-white font-bold text-[10px]">
+                                              ▶
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-800">
+                                              YouTube Video Ad
+                                            </span>
+                                          </div>
+                                          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700 border border-red-200">
+                                            Anúncio em Vídeo
+                                          </span>
+                                        </div>
+
+                                        {/* Frame de Vídeo Estilo Player do YouTube */}
+                                        <div className="relative aspect-video w-full rounded-lg bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden shadow-inner">
+                                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600/90 text-white shadow-lg transition-transform hover:scale-110">
+                                            <Video className="h-6 w-6" />
+                                          </div>
+                                          <span className="mt-2 text-xs font-medium text-slate-300">
+                                            {ad.name || camp.name || "Vídeo Publicitário"}
+                                          </span>
+                                          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-slate-400">
+                                            <span>▶ 0:00 / HD</span>
+                                            <span className="rounded bg-black/60 px-1 py-0.5">In-Stream / In-Feed</span>
+                                          </div>
+                                        </div>
+
+                                        <div>
+                                          <h4 className="font-poppins text-sm font-semibold text-slate-900 leading-snug">
+                                            {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
+                                          </h4>
+                                          <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                                            {descriptions.length > 0
+                                              ? descriptions.join(" ")
+                                              : "Campanha em vídeo veiculada no YouTube para aumento de alcance e visualizações de marca."}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Barra de Métricas de Vídeo */}
+                                      <div className="bg-slate-50/80 p-3">
+                                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                              {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                              {adImpressions.toLocaleString("pt-BR")}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-red-600">Views</span>
+                                            <p className="font-poppins font-bold text-red-600 text-[11px]">
+                                              {(adVideoViews > 0 ? adVideoViews : adImpressions).toLocaleString("pt-BR")}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-slate-600">CPV Médio</span>
+                                            <p className="font-poppins font-bold text-slate-700 text-[11px]">
+                                              {adCpv > 0 ? adCpv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // RENDERIZADOR B: PERFORMANCE MAX
+                                if (isPMaxChannel) {
+                                  return (
+                                    <div
+                                      key={ad.id || idx}
+                                      className="flex flex-col overflow-hidden rounded-xl border border-purple-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                                    >
+                                      <div className="p-4 space-y-2.5 bg-white border-b border-purple-100 flex-1">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Sparkles className="h-4 w-4 text-purple-600" />
+                                            <span className="text-xs font-semibold text-purple-900">
+                                              Grupo de Recursos PMax
+                                            </span>
+                                          </div>
+                                          <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-purple-700 border border-purple-200">
+                                            Multi-Canal
+                                          </span>
+                                        </div>
+
+                                        <h4 className="font-poppins text-sm font-semibold text-slate-900">
+                                          {headlines.length > 0 ? headlines.join(" | ") : ad.name || camp.name}
+                                        </h4>
+                                        <p className="text-xs text-slate-600">
+                                          {descriptions.length > 0 ? descriptions.join(" ") : "Recursos inteligentes distribuídos automaticamente entre Pesquisa, YouTube, Display, Maps e Gmail."}
+                                        </p>
+
+                                        <div className="pt-1 flex flex-wrap gap-1.5">
+                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🔍 Pesquisa</span>
+                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">▶️ YouTube</span>
+                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">🖼️ Display</span>
+                                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">📍 Maps</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="bg-purple-50/50 p-3">
+                                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Gasto</span>
+                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                              {adSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-slate-400">Impressões</span>
+                                            <p className="font-poppins font-bold text-slate-800 text-[11px]">
+                                              {adImpressions.toLocaleString("pt-BR")}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-purple-700">Cliques</span>
+                                            <p className="font-poppins font-bold text-purple-700 text-[11px]">
+                                              {adClicks.toLocaleString("pt-BR")}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-[10px] uppercase font-semibold text-emerald-600">Conv.</span>
+                                            <p className="font-poppins font-bold text-emerald-600 text-[11px]">
+                                              {adConversions.toLocaleString("pt-BR")}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // RENDERIZADOR C: REDE DE PESQUISA (GOOGLE SEARCH SERP)
                                 return (
                                   <div
                                     key={ad.id || idx}
@@ -513,7 +700,7 @@ export function GoogleAdsCampaignsViewer({
                                         <h4 className="font-poppins text-sm sm:text-base font-semibold text-[#1a0dab] leading-snug hover:underline cursor-pointer">
                                           {headlines.length > 0
                                             ? headlines.slice(0, 3).join(" | ")
-                                            : camp.name || "Anúncio na Rede de Pesquisa Google"}
+                                            : ad.name || camp.name || "Anúncio na Rede de Pesquisa Google"}
                                         </h4>
                                       </div>
 
@@ -592,8 +779,8 @@ export function GoogleAdsCampaignsViewer({
                           </div>
                         )}
 
-                        {/* 2. Palavras-Chave de Maior Desempenho (Keywords) */}
-                        {keywordsList.length > 0 && (
+                        {/* 2. Palavras-Chave de Maior Desempenho (Keywords) - Apenas para Campanhas de Pesquisa */}
+                        {isSearchChannel && keywordsList.length > 0 && (
                           <div className="space-y-3 pt-2">
                             <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
                               <div className="flex items-center gap-2">
