@@ -126,10 +126,12 @@ export function MetaAdsCampaignsViewer({
   const mobileShare = totalDeviceImp > 0 ? Math.round((mobileImpressions / totalDeviceImp) * 100) : 0;
   const desktopShare = totalDeviceImp > 0 ? Math.round((desktopImpressions / totalDeviceImp) * 100) : 0;
 
-  // Função para identificar o objetivo e a métrica chave correspondente da campanha
+  // Função para identificar o objetivo e a métrica chave correspondente da campanha 100% via API da Meta
   const getCampaignKeyMetric = (camp: any) => {
     const obj = (camp.objective || "").toUpperCase();
-    const nameUpper = (camp.name || "").toUpperCase();
+    const dest = (camp.destinationType || "").toUpperCase();
+    const goal = (camp.optimizationGoal || "").toUpperCase();
+
     const spent = Number(camp.metrics?.amountSpent) || Number(camp.metrics?.spent) || 0;
     const clicks = Number(camp.metrics?.clicks) || 0;
     const impressions = Number(camp.metrics?.impressions) || 0;
@@ -145,14 +147,18 @@ export function MetaAdsCampaignsViewer({
     const appInstalls = Number(camp.metrics?.appInstallsCount) || 0;
     const linkClicks = Number(camp.metrics?.linkClicksCount) || clicks;
 
-    const isMsgNamed =
-      nameUpper.includes("[MSG]") ||
-      nameUpper.includes("WHATSAPP") ||
-      nameUpper.includes("MENSAGEM") ||
-      nameUpper.includes("DIRECT");
+    // 1. MENSAGENS (WhatsApp / Messenger / Direct / Meta ODAX com destino em Mensagem)
+    const isMessaging =
+      dest.includes("WHATSAPP") ||
+      dest.includes("MESSENGER") ||
+      dest.includes("INSTAGRAM_DIRECT") ||
+      dest.includes("MESSAGING") ||
+      goal.includes("CONVERSATION") ||
+      goal.includes("MESSAGING") ||
+      obj.includes("MESSAGE") ||
+      messages > 0;
 
-    // 1. MENSAGENS / WHATSAPP (Prioridade quando gerou conversas ou campanha é de Lead > Mensagem)
-    if (messages > 0 || (isMsgNamed && messages >= leads) || obj.includes("MESSAGE")) {
+    if (isMessaging) {
       const count = messages > 0 ? messages : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -163,8 +169,14 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 2. LEADS / FORMULÁRIO (OUTCOME_LEADS / LEAD_GENERATION)
-    if (leads > 0 || obj.includes("LEAD")) {
+    // 2. LEADS (Formulários instantâneos / Geração de cadastros nativa da Meta)
+    const isLeads =
+      goal.includes("LEAD") ||
+      dest.includes("ON_AD") ||
+      obj.includes("LEAD") ||
+      leads > 0;
+
+    if (isLeads) {
       const count = leads > 0 ? leads : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -175,8 +187,17 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 3. VENDAS (OUTCOME_SALES / CONVERSIONS / PRODUCT_CATALOG_SALES)
-    if (sales > 0 || obj.includes("SALE") || obj.includes("PURCHASE") || obj.includes("CONVERSION")) {
+    // 3. VENDAS (E-commerce / Catálogo / Conversões no site)
+    const isSales =
+      goal.includes("OFFSITE_CONVERSIONS") ||
+      goal.includes("PURCHASE") ||
+      goal.includes("VALUE") ||
+      obj.includes("SALE") ||
+      obj.includes("PURCHASE") ||
+      obj.includes("CONVERSION") ||
+      sales > 0;
+
+    if (isSales) {
       const count = sales > 0 ? sales : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -187,8 +208,14 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 4. DOWNLOADS / APP PROMOTION (OUTCOME_APP_PROMOTION / APP_INSTALLS)
-    if (appInstalls > 0 || obj.includes("APP")) {
+    // 4. DOWNLOADS / APP PROMOTION
+    const isApp =
+      goal.includes("APP_INSTALL") ||
+      dest.includes("APP") ||
+      obj.includes("APP") ||
+      appInstalls > 0;
+
+    if (isApp) {
       const count = appInstalls > 0 ? appInstalls : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -199,8 +226,14 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 5. TRÁFEGO (OUTCOME_TRAFFIC / LINK_CLICKS)
-    if (obj.includes("TRAFFIC") || obj.includes("LINK_CLICK")) {
+    // 5. TRÁFEGO (Cliques no link / Visitas à página de destino)
+    const isTraffic =
+      goal.includes("LINK_CLICK") ||
+      goal.includes("LANDING_PAGE_VIEW") ||
+      obj.includes("TRAFFIC") ||
+      obj.includes("LINK_CLICK");
+
+    if (isTraffic) {
       const count = linkClicks > 0 ? linkClicks : clicks;
       const unitCost = count > 0 ? spent / count : cpc;
       return {
@@ -211,8 +244,15 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 6. ALCANCE / RECONHECIMENTO (OUTCOME_AWARENESS / REACH / BRAND_AWARENESS)
-    if (obj.includes("AWARENESS") || obj.includes("REACH") || obj.includes("BRAND")) {
+    // 6. ALCANCE / RECONHECIMENTO (Pessoas únicas alcançadas / Impressões)
+    const isAwareness =
+      goal.includes("REACH") ||
+      goal.includes("IMPRESSION") ||
+      obj.includes("AWARENESS") ||
+      obj.includes("REACH") ||
+      obj.includes("BRAND");
+
+    if (isAwareness) {
       return {
         label: "Alcance",
         value: reach.toLocaleString("pt-BR"),
@@ -221,8 +261,14 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 7. VISUALIZAÇÕES DE VÍDEO
-    if (videoViews > 0 || obj.includes("VIDEO")) {
+    // 7. VISUALIZAÇÕES DE VÍDEO (ThruPlay / Video Views)
+    const isVideo =
+      goal.includes("THRUPLAY") ||
+      goal.includes("VIDEO") ||
+      obj.includes("VIDEO") ||
+      videoViews > 0;
+
+    if (isVideo) {
       const count = videoViews > 0 ? videoViews : Number(camp.metrics?.actions) || clicks;
       const unitCost = count > 0 ? spent / count : 0;
       return {
@@ -233,7 +279,7 @@ export function MetaAdsCampaignsViewer({
       };
     }
 
-    // 8. INTERAÇÕES GERAIS / ENGAJAMENTO
+    // 8. INTERAÇÕES GERAIS / ENGAJAMENTO (Post Engagement)
     const interactionCount = postEngagement > 0 ? postEngagement : Number(camp.metrics?.actions) || clicks;
     const unitCost = interactionCount > 0 ? spent / interactionCount : 0;
     return {

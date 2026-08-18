@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
 
     const cleanAdAccountId = adAccountId.replace("act_", "");
 
-    // 1. Buscar todas as campanhas da conta de anúncios na Meta (limite de 100 itens)
-    const campaignsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,created_time,start_time,stop_time&limit=100&access_token=${accessToken}`;
+    // 1. Buscar todas as campanhas da conta de anúncios na Meta com dados de conjunto (destino e meta de otimização)
+    const campaignsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,created_time,start_time,stop_time,adsets{optimization_goal,destination_type}&limit=100&access_token=${accessToken}`;
     const campaignsRes = await fetch(campaignsUrl);
     const campaignsData = await campaignsRes.json();
 
@@ -196,12 +196,18 @@ export async function GET(request: NextRequest) {
 
       const totalDays = firestoreData?.durationDays || 7;
 
+      const adset = metaCamp.adsets?.data?.[0];
+      const destinationType = (adset?.destination_type || "").toUpperCase();
+      const optimizationGoal = (adset?.optimization_goal || "").toUpperCase();
+
       return {
         id: firestoreData?.firestoreId || metaCamp.id,
         metaCampaignId: metaCamp.id,
         name: metaCamp.name || firestoreData?.name || "Campanha Meta Ads",
         status: metaCamp.status ? metaCamp.status.toLowerCase() : "active",
         objective: metaCamp.objective || "OUTCOME_TRAFFIC",
+        destinationType,
+        optimizationGoal,
         budget: {
           amount: budgetAmount,
         },
