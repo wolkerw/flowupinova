@@ -419,72 +419,41 @@ export async function getGoogleAdsCampaigns(
       LIMIT 20
     `;
 
-    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes, geoRes] = await Promise.allSettled([
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: campaignQuery }),
+    const safeGoogleAdsSearch = async (query: string, label: string) => {
+      try {
+        const res = await fetch(
+          `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ query }),
+          }
+        );
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          if (json.error) {
+            console.warn(`[GOOGLE_ADS_ADMIN] Erro retornado na query (${label}):`, JSON.stringify(json.error, null, 2));
+          }
+          return json;
+        } catch {
+          console.warn(`[GOOGLE_ADS_ADMIN] Resposta não-JSON recebida na query (${label}) - Status ${res.status}:`, text.slice(0, 300));
+          return { error: { message: `HTTP ${res.status}: ${text.slice(0, 200)}` } };
         }
-      ).then((r) => r.json()),
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: adQuery }),
-        }
-      ).then((r) => r.json()),
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: keywordQuery }),
-        }
-      ).then((r) => r.json()),
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: deviceQuery }),
-        }
-      ).then((r) => r.json()),
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: searchTermQuery }),
-        }
-      ).then((r) => r.json()),
-      fetch(
-        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ query: geoQuery }),
-        }
-      ).then((r) => r.json()),
-    ]);
+      } catch (e: any) {
+        console.warn(`[GOOGLE_ADS_ADMIN] Falha de rede na query (${label}):`, e.message || e);
+        return { error: { message: e.message || "Network error" } };
+      }
+    };
 
-    if (campaignsRes.status === "fulfilled" && campaignsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de campanhas:", JSON.stringify(campaignsRes.value.error, null, 2));
-    }
-    if (adsRes.status === "fulfilled" && adsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de anúncios:", JSON.stringify(adsRes.value.error, null, 2));
-    }
-    if (keywordsRes.status === "fulfilled" && keywordsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de palavras-chave:", JSON.stringify(keywordsRes.value.error, null, 2));
-    }
-    if (devicesRes.status === "fulfilled" && devicesRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de dispositivos:", JSON.stringify(devicesRes.value.error, null, 2));
-    }
-    if (searchTermsRes.status === "fulfilled" && searchTermsRes.value?.error) {
-      console.warn("[GOOGLE_ADS_ADMIN] Erro na query de termos de pesquisa:", JSON.stringify(searchTermsRes.value.error, null, 2));
-    }
+    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes, geoRes] = await Promise.allSettled([
+      safeGoogleAdsSearch(campaignQuery, "campaignQuery"),
+      safeGoogleAdsSearch(adQuery, "adQuery"),
+      safeGoogleAdsSearch(keywordQuery, "keywordQuery"),
+      safeGoogleAdsSearch(deviceQuery, "deviceQuery"),
+      safeGoogleAdsSearch(searchTermQuery, "searchTermQuery"),
+      safeGoogleAdsSearch(geoQuery, "geoQuery"),
+    ]);
 
     let campaignResults =
       campaignsRes.status === "fulfilled" && campaignsRes.value?.results
@@ -497,84 +466,60 @@ export async function getGoogleAdsCampaigns(
 
     // Se nenhuma campanha com métricas no período exato foi retornada, buscar todas as campanhas ativas/pausadas da conta
     if (campaignResults.length === 0) {
-      try {
-        const fallbackCampaignQuery = `
-          SELECT 
-            campaign.id, 
-            campaign.name, 
-            campaign.status, 
-            campaign.advertising_channel_type,
-            campaign.advertising_channel_sub_type,
-            campaign.bidding_strategy_type,
-            campaign_budget.amount_micros, 
-            metrics.impressions, 
-            metrics.clicks, 
-            metrics.cost_micros, 
-            metrics.ctr, 
-            metrics.average_cpc, 
-            metrics.conversions, 
-            metrics.cost_per_conversion
-          FROM campaign
-          WHERE campaign.status != 'REMOVED'
-          ORDER BY campaign.id DESC
-          LIMIT 50
-        `;
-        const fallbackRes = await fetch(
-          `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ query: fallbackCampaignQuery }),
-          }
-        ).then((r) => r.json());
-
-        if (fallbackRes?.results) {
-          campaignResults = fallbackRes.results;
-        }
-      } catch (e) {
-        console.warn("[GOOGLE_ADS_ADMIN] Erro ao buscar fallback de campanhas:", e);
+      const fallbackCampaignQuery = `
+        SELECT 
+          campaign.id, 
+          campaign.name, 
+          campaign.status, 
+          campaign.advertising_channel_type,
+          campaign.advertising_channel_sub_type,
+          campaign.bidding_strategy_type,
+          campaign_budget.amount_micros, 
+          metrics.impressions, 
+          metrics.clicks, 
+          metrics.cost_micros, 
+          metrics.ctr, 
+          metrics.average_cpc, 
+          metrics.conversions, 
+          metrics.cost_per_conversion
+        FROM campaign
+        WHERE campaign.status != 'REMOVED'
+        ORDER BY campaign.id DESC
+        LIMIT 50
+      `;
+      const fallbackRes = await safeGoogleAdsSearch(fallbackCampaignQuery, "fallbackCampaignQuery");
+      if (fallbackRes?.results) {
+        campaignResults = fallbackRes.results;
       }
     }
 
     if (adsResults.length === 0) {
-      try {
-        const fallbackAdQuery = `
-          SELECT
-            ad_group_ad.ad.id,
-            ad_group_ad.ad.name,
-            ad_group_ad.ad.type,
-            ad_group_ad.status,
-            ad_group_ad.ad.responsive_search_ad.headlines,
-            ad_group_ad.ad.responsive_search_ad.descriptions,
-            ad_group_ad.ad.responsive_search_ad.path1,
-            ad_group_ad.ad.responsive_search_ad.path2,
-            ad_group_ad.ad.final_urls,
-            campaign.id,
-            metrics.impressions,
-            metrics.clicks,
-            metrics.cost_micros,
-            metrics.conversions,
-            metrics.ctr,
-            metrics.average_cpc
-          FROM ad_group_ad
-          WHERE ad_group_ad.status != 'REMOVED'
-          ORDER BY ad_group_ad.ad.id DESC
-          LIMIT 100
-        `;
-        const fallbackAdsRes = await fetch(
-          `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ query: fallbackAdQuery }),
-          }
-        ).then((r) => r.json());
-
-        if (fallbackAdsRes?.results) {
-          adsResults = fallbackAdsRes.results;
-        }
-      } catch (e) {
-        console.warn("[GOOGLE_ADS_ADMIN] Erro ao buscar fallback de anúncios:", e);
+      const fallbackAdQuery = `
+        SELECT
+          ad_group_ad.ad.id,
+          ad_group_ad.ad.name,
+          ad_group_ad.ad.type,
+          ad_group_ad.status,
+          ad_group_ad.ad.responsive_search_ad.headlines,
+          ad_group_ad.ad.responsive_search_ad.descriptions,
+          ad_group_ad.ad.responsive_search_ad.path1,
+          ad_group_ad.ad.responsive_search_ad.path2,
+          ad_group_ad.ad.final_urls,
+          campaign.id,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.cost_micros,
+          metrics.conversions,
+          metrics.ctr,
+          metrics.average_cpc
+        FROM ad_group_ad
+        WHERE ad_group_ad.status != 'REMOVED'
+        ORDER BY ad_group_ad.ad.id DESC
+        LIMIT 100
+      `;
+      const fallbackAdsRes = await safeGoogleAdsSearch(fallbackAdQuery, "fallbackAdQuery");
+      if (fallbackAdsRes?.results) {
+        adsResults = fallbackAdsRes.results;
       }
     }
     const keywordsResults =
