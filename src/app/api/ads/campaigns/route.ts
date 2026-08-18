@@ -37,13 +37,17 @@ export async function GET(request: NextRequest) {
     const campaignsData = await campaignsRes.json();
 
     if (!campaignsRes.ok) {
-      console.error(
-        "[API_ADS_CAMPAIGNS_GET] Erro ao buscar campanhas na Meta:",
-        campaignsData.error
+      console.warn(
+        "[API_ADS_CAMPAIGNS_GET] Aviso ao buscar campanhas na Meta (possível rate limit):",
+        campaignsData.error?.message
       );
-      throw new Error(
-        campaignsData.error?.message || "Falha ao consultar campanhas na Meta Ads API."
-      );
+      return NextResponse.json({
+        success: true,
+        campaigns: [],
+        breakdowns: null,
+        rateLimited: true,
+        error: campaignsData.error?.message,
+      });
     }
 
     const rawMetaCampaigns = campaignsData.data || [];
