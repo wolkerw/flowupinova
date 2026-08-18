@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 import {
   Megaphone,
   TrendingUp,
@@ -24,6 +25,8 @@ import {
   Loader2,
   Eye,
   ArrowRight,
+  ArrowUpRight,
+  BarChart3,
   Info,
   AlertCircle,
   HelpCircle,
@@ -4330,88 +4333,34 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
             </div>
           )}
 
-          {/* PAINEL DE MÉTRICAS GERAIS SIMPLIFICADAS (TOPO) */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div
-              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
-                activePlatformTab === "meta"
-                  ? "border-slate-100 hover:border-[#1877F2]/30"
-                  : "border-slate-100 hover:border-[#4285F4]/30"
-              }`}
-            >
-              <div
-                className={`shrink-0 rounded-xl p-3.5 transition-colors duration-300 ${
-                  activePlatformTab === "meta"
-                    ? "bg-[#1877F2]/5 text-[#1877F2]"
-                    : "bg-[#4285F4]/5 text-[#4285F4]"
-                }`}
-              >
-                <DollarSign className="h-5 w-5" />
+          {/* BANNER OPERACIONAL & ATALHO PARA RELATÓRIOS DETALHADOS */}
+          <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 p-5 shadow-xs transition-all">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3.5">
+                <div className="rounded-xl bg-[#0083C7]/10 p-3 text-[#0083C7] shrink-0">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-poppins text-sm font-bold text-slate-900">
+                      Relatórios & Inteligência de Performance
+                    </h4>
+                    <Badge className="bg-sky-100 text-[#0083C7] border-sky-200 text-[10px] font-semibold">
+                      Métricas & Criativos
+                    </Badge>
+                  </div>
+                  <p className="mt-1 max-w-xl text-xs text-slate-500 leading-relaxed">
+                    Consulte criativos reais dos anúncios, quebras por estado, cidades, dispositivos e gráficos de conversão na central de relatórios.
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold text-slate-500">Valor Investido</span>
-                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
-                  R${" "}
-                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
-                    .reduce((acc, curr) => acc + (curr.metrics?.amountSpent || 0), 0)
-                    .toFixed(2)}
-                </span>
-                <span className="mt-0.5 block truncate text-xs text-slate-400">
-                  Valor usado nos últimos 30 dias
-                </span>
-              </div>
-            </div>
 
-            <div
-              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
-                activePlatformTab === "meta"
-                  ? "border-slate-100 hover:border-[#1877F2]/30"
-                  : "border-slate-100 hover:border-[#4285F4]/30"
-              }`}
-            >
-              <div className="shrink-0 rounded-xl bg-emerald-500/5 p-3.5 text-emerald-600">
-                <Users className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold text-slate-500">Visualizações</span>
-                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
-                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
-                    .reduce((acc, curr) => acc + (curr.metrics?.impressions || 0), 0)
-                    .toLocaleString("pt-BR")}
-                </span>
-                <span className="font-inter mt-0.5 block truncate text-xs text-slate-400">
-                  Visualizações estimadas de público
-                </span>
-              </div>
-            </div>
-
-            <div
-              className={`shadow-xs flex items-center gap-5 rounded-2xl border bg-white p-6 transition-all duration-300 ${
-                activePlatformTab === "meta"
-                  ? "border-slate-100 hover:border-[#1877F2]/30"
-                  : "border-slate-100 hover:border-[#4285F4]/30"
-              }`}
-            >
-              <div
-                className={`shrink-0 rounded-xl p-3.5 transition-colors duration-300 ${
-                  activePlatformTab === "meta"
-                    ? "bg-indigo-500/5 text-indigo-600"
-                    : "bg-amber-500/5 text-amber-600"
-                }`}
+              <Link
+                href={`/dashboard/relatorios?tab=${activePlatformTab === "meta" ? "meta" : "google"}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0083C7] hover:bg-[#006ca7] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all active:scale-95 shrink-0"
               >
-                <TrendingUp className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-xs font-semibold text-slate-500">Cliques</span>
-                <span className="font-poppins mt-0.5 block truncate text-3xl font-bold tracking-tight text-slate-900">
-                  {(activePlatformTab === "meta" ? campaigns : googleCampaigns)
-                    .reduce((acc, curr) => acc + (curr.metrics?.clicks || 0), 0)
-                    .toLocaleString("pt-BR")}
-                </span>
-                <span className="font-inter mt-0.5 block truncate text-xs text-slate-400">
-                  Cliques nos links / ações do anúncio
-                </span>
-              </div>
+                Ver Relatório Completo <ArrowUpRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
 
@@ -4552,11 +4501,9 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                             <th className="px-5 py-3.5 font-semibold">Anúncio</th>
                             <th className="px-5 py-3.5 font-semibold">Status</th>
                             <th className="px-5 py-3.5 font-semibold">Duração</th>
-                            <th className="px-5 py-3.5 font-semibold">Verba</th>
+                            <th className="px-5 py-3.5 font-semibold">Orçamento</th>
                             <th className="px-5 py-3.5 font-semibold text-primary">Investido</th>
-                            <th className="px-5 py-3.5 font-semibold">Visualizações</th>
-                            <th className="px-5 py-3.5 font-semibold">Cliques</th>
-                            <th className="px-5 py-3.5 text-right font-semibold">Gerenciar</th>
+                            <th className="px-5 py-3.5 text-right font-semibold">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-slate-150/40 font-inter text-slate-650 divide-y text-xs">
@@ -4699,23 +4646,17 @@ export default function AnunciosPageClient({ initialProfile }: AnunciosPageClien
                                   </span>
                                 </td>
 
-                                {/* VISUALIZAÇÕES */}
-                                <td className="px-5 py-3.5">
-                                  <span className="text-xs font-semibold text-slate-800">
-                                    {c.metrics?.impressions?.toLocaleString("pt-BR") || 0}
-                                  </span>
-                                </td>
-
-                                {/* CLIQUES */}
-                                <td className="px-5 py-3.5">
-                                  <span className="text-xs font-semibold text-slate-800">
-                                    {c.metrics?.clicks?.toLocaleString("pt-BR") || 0}
-                                  </span>
-                                </td>
-
                                 {/* GERENCIAR (AÇÕES) */}
                                 <td className="px-5 py-3.5 text-right">
-                                  <div className="flex items-center justify-end gap-1.5">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Link
+                                      href={`/dashboard/relatorios?tab=${activePlatformTab === "meta" ? "meta" : "google"}`}
+                                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:text-primary"
+                                      title="Ver relatório detalhado com criativos e quebras"
+                                    >
+                                      <BarChart3 className="h-3 w-3 text-primary" />
+                                      Relatório
+                                    </Link>
                                     {c.status === "active" ? (
                                       <Button
                                         variant="outline"

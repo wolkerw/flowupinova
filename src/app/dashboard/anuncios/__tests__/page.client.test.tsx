@@ -191,12 +191,11 @@ describe("AnunciosPageClient", () => {
       { timeout: 5000 }
     );
 
-    // Deve mostrar os cards de métricas simplificados para leigos
-    expect(screen.getByText("Valor Investido")).toBeInTheDocument();
-    expect(screen.getAllByText("Visualizações").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Cliques").length).toBeGreaterThan(0);
+    // Deve mostrar o banner operacional com link para relatórios detalhados
+    expect(screen.getByText("Relatórios & Inteligência de Performance")).toBeInTheDocument();
+    expect(screen.getByText("Ver Relatório Completo")).toBeInTheDocument();
 
-    // Deve exibir a campanha ativa no histórico
+    // Deve exibir a campanha ativa no gerenciamento
     expect(screen.getByText("[NUMVAPT] Promoção especial de pizza artesanal!")).toBeInTheDocument();
   });
 
