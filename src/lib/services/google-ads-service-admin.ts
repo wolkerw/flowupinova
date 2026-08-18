@@ -5,7 +5,37 @@ import { google } from "googleapis";
 import type { GoogleAdsConnectionData } from "./google-ads-service";
 
 const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "TEST_DEVELOPER_TOKEN";
-const GOOGLE_ADS_API_VERSION = "v25";
+const GOOGLE_ADS_API_VERSION = "v18";
+
+const GEO_TARGET_BRAZIL_REGIONS: Record<string, string> = {
+  "20067": "São Paulo",
+  "20068": "Rio de Janeiro",
+  "20069": "Minas Gerais",
+  "20070": "Paraná",
+  "20071": "Rio Grande do Sul",
+  "20072": "Santa Catarina",
+  "20073": "Bahia",
+  "20074": "Distrito Federal",
+  "20075": "Goiás",
+  "20076": "Pernambuco",
+  "20077": "Ceará",
+  "20078": "Espírito Santo",
+  "20079": "Mato Grosso",
+  "20080": "Mato Grosso do Sul",
+  "20081": "Amazonas",
+  "20082": "Paraíba",
+  "20083": "Rio Grande do Norte",
+  "20084": "Alagoas",
+  "20085": "Piauí",
+  "20086": "Maranhão",
+  "20087": "Pará",
+  "20088": "Sergipe",
+  "20089": "Rondônia",
+  "20090": "Tocantins",
+  "20091": "Acre",
+  "20092": "Amapá",
+  "20093": "Roraima",
+};
 
 /**
  * Retorna os headers padrões para requisições na API do Google Ads
@@ -376,7 +406,22 @@ export async function getGoogleAdsCampaigns(
       LIMIT 50
     `;
 
-    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes] = await Promise.allSettled([
+    const geoQuery = `
+      SELECT
+        geographic_view.country_criterion_id,
+        geographic_view.location_type,
+        segments.geo_target_region,
+        campaign.id,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.cost_micros
+      FROM geographic_view
+      WHERE segments.date ${dateClause}
+      ORDER BY metrics.impressions DESC
+      LIMIT 20
+    `;
+
+    const [campaignsRes, adsRes, keywordsRes, devicesRes, searchTermsRes, geoRes] = await Promise.allSettled([
       fetch(
         `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
         {
@@ -415,6 +460,14 @@ export async function getGoogleAdsCampaigns(
           method: "POST",
           headers,
           body: JSON.stringify({ query: searchTermQuery }),
+        }
+      ).then((r) => r.json()),
+      fetch(
+        `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ query: geoQuery }),
         }
       ).then((r) => r.json()),
     ]);
@@ -560,6 +613,30 @@ export async function getGoogleAdsCampaigns(
       devicesByCampaignMap.set(campId, currentList);
     });
 
+    const geoResults =
+      geoRes.status === "fulfilled" && geoRes.value?.results
+        ? geoRes.value.results
+        : [];
+
+    // Mapear regiões geográficas
+    const geoByCampaignMap = new Map<string, any[]>();
+    geoResults.forEach((item: any) => {
+      const campId = String(item.campaign?.id || "");
+      if (!campId) return;
+      const rawGeoId = (item.segments?.geoTargetRegion || "").replace("geoTargetConstants/", "");
+      const regionName = GEO_TARGET_BRAZIL_REGIONS[rawGeoId] || "Brasil";
+      const spentMicros = Number(item.metrics?.costMicros || 0);
+      const currentList = geoByCampaignMap.get(campId) || [];
+      currentList.push({
+        region: regionName,
+        impressions: Number(item.metrics?.impressions || 0),
+        clicks: Number(item.metrics?.clicks || 0),
+        amountSpent: spentMicros / 1_000_000,
+        spent: spentMicros / 1_000_000,
+      });
+      geoByCampaignMap.set(campId, currentList);
+    });
+
     return campaignResults.map((item: any) => {
       const campId = String(item.campaign?.id || "");
       const budgetMicros = Number(item.campaignBudget?.amountMicros || 0);
@@ -615,6 +692,7 @@ export async function getGoogleAdsCampaigns(
         keywords: keywordsByCampaignMap.get(campId) || [],
         searchTerms: searchTermsByCampaignMap.get(campId) || [],
         deviceBreakdown: devicesByCampaignMap.get(campId) || [],
+        regions: geoByCampaignMap.get(campId) || [],
         topImpressionPercentage: Number(item.metrics?.topImpressionPercentage || 0) * 100,
         absoluteTopImpressionPercentage: Number(item.metrics?.absoluteTopImpressionPercentage || 0) * 100,
       };
