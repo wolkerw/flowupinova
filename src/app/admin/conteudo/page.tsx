@@ -54,6 +54,7 @@ interface PostItem {
   imageUrl: string | null;
   imageUrls: string[];
   conceptUrls?: string[];
+  promptUsed?: string | null;
   status: "scheduled" | "publishing" | "published" | "failed" | "completed";
   platforms: string[];
   createdAt: string | null;
@@ -259,6 +260,7 @@ export default function AdminConteudoPage() {
     const userDetails = getUserInfo(post.userId);
     const matchesSearch =
       post.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.promptUsed && post.promptUsed.toLowerCase().includes(searchTerm.toLowerCase())) ||
       userDetails.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userDetails.email.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -856,6 +858,19 @@ export default function AdminConteudoPage() {
                       </div>
                     )}
 
+                    {/* Prompt Inicial Digitado pelo Usuário */}
+                    <div className="border-b border-slate-800/80 bg-slate-950/70 px-4 py-2.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-pink-400">
+                        <Sparkles className="h-3 w-3 text-pink-400" />
+                        <span>Prompt Inicial do Usuário</span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs italic leading-relaxed text-slate-200">
+                        {post.promptUsed ||
+                          (post.isDraftMedia ? post.text : null) ||
+                          "Prompt inicial não registrado"}
+                      </p>
+                    </div>
+
                     {/* Dados do Criador */}
                     <div className="border-b border-slate-800/80 bg-slate-900/20 px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -874,15 +889,18 @@ export default function AdminConteudoPage() {
                     {/* Texto/Legenda do Post */}
                     <div className="flex flex-1 flex-col justify-between p-4">
                       <div className="space-y-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Legenda Gerada
+                        </div>
                         <p className="line-clamp-3 text-xs leading-relaxed text-slate-300">
                           {post.text || <em className="text-slate-500">Nenhum texto gerado</em>}
                         </p>
-                        {post.text && post.text.length > 130 && (
+                        {(post.text?.length > 100 || post.promptUsed) && (
                           <button
                             onClick={() => setSelectedPost(post)}
                             className="text-[11px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
                           >
-                            Ler Legenda Completa →
+                            Ver Detalhes e Legenda Completa →
                           </button>
                         )}
                       </div>
@@ -929,14 +947,16 @@ export default function AdminConteudoPage() {
         </div>
       )}
 
-      {/* Modal: Visualizar Legenda Completa */}
+      {/* Modal: Visualizar Detalhes e Legenda Completa */}
       {selectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="animate-scaleIn w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-violet-400" />
-                <h3 className="text-sm font-semibold text-white">Legenda Completa do Post</h3>
+                <Sparkles className="h-5 w-5 text-pink-400" />
+                <h3 className="text-sm font-semibold text-white">
+                  Detalhes do Conteúdo & Prompt Inicial
+                </h3>
               </div>
               <button
                 onClick={() => setSelectedPost(null)}
@@ -959,14 +979,36 @@ export default function AdminConteudoPage() {
                 <p className="text-slate-400">Data:</p>
                 <p className="font-bold text-white">
                   {selectedPost.createdAt
-                    ? new Date(selectedPost.createdAt).toLocaleDateString("pt-BR")
+                    ? new Date(selectedPost.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
                     : "N/A"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
-              {selectedPost.text}
+            {/* Prompt Inicial do Usuário */}
+            <div className="mt-4 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400">
+                Prompt Inicial Digitado pelo Usuário:
+              </span>
+              <div className="rounded-lg border border-pink-500/20 bg-pink-500/5 p-3 text-xs italic text-slate-200">
+                "{selectedPost.promptUsed || (selectedPost.isDraftMedia ? selectedPost.text : "Nenhum prompt registrado")}"
+              </div>
+            </div>
+
+            {/* Legenda do Post */}
+            <div className="mt-4 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Legenda Gerada do Post:
+              </span>
+              <div className="max-h-52 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
+                {selectedPost.text}
+              </div>
             </div>
 
             <div className="mt-5 flex justify-end">

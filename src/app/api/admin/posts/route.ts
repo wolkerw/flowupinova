@@ -45,6 +45,13 @@ export async function GET(request: NextRequest) {
           imageUrl: data.imageUrl || null,
           imageUrls: data.imageUrls || [],
           conceptUrls: data.conceptUrls || [],
+          promptUsed:
+            data.promptUsed ||
+            data.prompt ||
+            data.initialPrompt ||
+            data.userPrompt ||
+            data.summary ||
+            null,
           status: data.status || "completed",
           platforms: data.platforms || [],
           createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -79,6 +86,13 @@ export async function GET(request: NextRequest) {
               imageUrl: imgUrl,
               imageUrls: [imgUrl],
               conceptUrls: [],
+              promptUsed:
+                data.promptUsed ||
+                data.prompt ||
+                data.userPrompt ||
+                data.initialPrompt ||
+                data.summary ||
+                null,
               status: "completed",
               platforms: [],
               createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -126,6 +140,13 @@ export async function GET(request: NextRequest) {
               imageUrl: data.imageUrl || null,
               imageUrls: data.imageUrls || [],
               conceptUrls: data.conceptUrls || [],
+              promptUsed:
+                data.promptUsed ||
+                data.prompt ||
+                data.initialPrompt ||
+                data.userPrompt ||
+                data.summary ||
+                null,
               status: data.status || "completed",
               platforms: data.platforms || [],
               createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
@@ -151,6 +172,13 @@ export async function GET(request: NextRequest) {
                 imageUrl: imgUrl,
                 imageUrls: [imgUrl],
                 conceptUrls: [],
+                promptUsed:
+                  data.promptUsed ||
+                  data.prompt ||
+                  data.userPrompt ||
+                  data.initialPrompt ||
+                  data.summary ||
+                  null,
                 status: "completed",
                 platforms: [],
                 createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
