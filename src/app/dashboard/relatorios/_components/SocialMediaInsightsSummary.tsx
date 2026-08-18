@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Eye,
   Heart,
-  TrendingUp,
   Zap,
 } from "lucide-react";
 
@@ -46,9 +45,6 @@ export function SocialMediaInsightsSummary({
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalReach.toLocaleString("pt-BR")}
               </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +21.5%
-              </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Contas únicas alcançadas</p>
           </CardContent>
@@ -68,9 +64,6 @@ export function SocialMediaInsightsSummary({
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {totalInteractions.toLocaleString("pt-BR")}
               </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> +16.8%
-              </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Curtidas, comentários & salvos</p>
           </CardContent>
@@ -89,9 +82,6 @@ export function SocialMediaInsightsSummary({
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-poppins text-3xl font-bold text-slate-900">
                 {avgEngagementRate}
-              </span>
-              <span className="flex items-center text-xs font-semibold text-emerald-600">
-                <TrendingUp className="mr-0.5 h-3.5 w-3.5" /> Acima da média
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Interações / Alcance</p>
