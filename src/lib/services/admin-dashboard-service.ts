@@ -29,6 +29,18 @@ export interface UserSummary {
   subscriptionExpiresAt?: string | null;
 }
 
+export interface OpenAIPlatformStats {
+  connected: boolean;
+  totalRequests: number;
+  gptImage2Requests: number;
+  gptImage2CostUsd: number;
+  gptImage2CostBrl: number;
+  openaiTotalCostUsd: number;
+  openaiTotalCostBrl: number;
+  avgCostPerGptImage2Usd: number;
+  avgCostPerGptImage2Brl: number;
+}
+
 export interface PlatformStats {
   totalUsers: number;
   newUsersToday: number;
@@ -44,7 +56,9 @@ export interface PlatformStats {
   estimatedCostImagen4: number;
   estimatedCostNanoBanana: number;
   estimatedCostGemini: number;
+  estimatedCostGptImage2: number;
   estimatedCostTotal: number;
+  openaiPlatform: OpenAIPlatformStats;
 }
 
 export interface SignupDataPoint {
@@ -134,6 +148,11 @@ export async function getPlatformStats(days: number | null = 30): Promise<Platfo
   let estimatedCostImagen4 = 0;
   let estimatedCostNanoBanana = 0;
   let estimatedCostGemini = 0;
+  let estimatedCostGptImage2 = 0;
+
+  let openaiTotalRequests = 0;
+  let gptImage2Requests = 0;
+  let openaiTotalCostUsd = 0;
 
   try {
     const usageSnap = await adminDb.collection("apiUsageLogs").get();
@@ -145,9 +164,25 @@ export async function getPlatformStats(days: number | null = 30): Promise<Platfo
         return;
       }
 
-      const cost = data.costUsd || 0;
+      const cost = Number(data.costUsd || 0);
 
-      if (data.provider === "falai") {
+      if (
+        data.provider === "openai" ||
+        data.model?.includes("gpt-image") ||
+        data.model === "dall-e-3"
+      ) {
+        openaiTotalRequests++;
+        const effectiveCost = cost > 0 ? cost : 0.04;
+        openaiTotalCostUsd += effectiveCost;
+        if (
+          data.model === "gpt-image-2" ||
+          data.model?.includes("gpt-image") ||
+          data.type === "image_generation"
+        ) {
+          gptImage2Requests++;
+          estimatedCostGptImage2 += effectiveCost;
+        }
+      } else if (data.provider === "falai") {
         estimatedCostFalai += cost;
       } else if (data.provider === "google_vertex") {
         estimatedCostImagen4 += cost;
@@ -170,6 +205,23 @@ export async function getPlatformStats(days: number | null = 30): Promise<Platfo
     console.error("[ADMIN_DASHBOARD] Erro ao carregar logs de consumo de APIs:", err);
   }
 
+  const usdToBrlRate = 5.65;
+  const openaiConnected = !!process.env.OPENAI_API_KEY;
+  const avgCostPerGptImage2Usd =
+    gptImage2Requests > 0 ? estimatedCostGptImage2 / gptImage2Requests : 0.04;
+
+  const openaiPlatform: OpenAIPlatformStats = {
+    connected: openaiConnected,
+    totalRequests: openaiTotalRequests,
+    gptImage2Requests: gptImage2Requests,
+    gptImage2CostUsd: estimatedCostGptImage2,
+    gptImage2CostBrl: estimatedCostGptImage2 * usdToBrlRate,
+    openaiTotalCostUsd: openaiTotalCostUsd,
+    openaiTotalCostBrl: openaiTotalCostUsd * usdToBrlRate,
+    avgCostPerGptImage2Usd,
+    avgCostPerGptImage2Brl: avgCostPerGptImage2Usd * usdToBrlRate,
+  };
+
   return {
     totalUsers,
     newUsersToday,
@@ -185,8 +237,14 @@ export async function getPlatformStats(days: number | null = 30): Promise<Platfo
     estimatedCostImagen4,
     estimatedCostNanoBanana,
     estimatedCostGemini,
+    estimatedCostGptImage2,
     estimatedCostTotal:
-      estimatedCostFalai + estimatedCostImagen4 + estimatedCostNanoBanana + estimatedCostGemini,
+      estimatedCostFalai +
+      estimatedCostImagen4 +
+      estimatedCostNanoBanana +
+      estimatedCostGemini +
+      estimatedCostGptImage2,
+    openaiPlatform,
   };
 }
 

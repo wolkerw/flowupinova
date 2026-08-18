@@ -101,6 +101,18 @@ export const CustomPieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+interface OpenAIPlatformStats {
+  connected: boolean;
+  totalRequests: number;
+  gptImage2Requests: number;
+  gptImage2CostUsd: number;
+  gptImage2CostBrl: number;
+  openaiTotalCostUsd: number;
+  openaiTotalCostBrl: number;
+  avgCostPerGptImage2Usd: number;
+  avgCostPerGptImage2Brl: number;
+}
+
 interface PlatformStats {
   totalUsers: number;
   newUsersToday: number;
@@ -116,7 +128,9 @@ interface PlatformStats {
   estimatedCostImagen4: number;
   estimatedCostNanoBanana: number;
   estimatedCostGemini: number;
+  estimatedCostGptImage2?: number;
   estimatedCostTotal: number;
+  openaiPlatform?: OpenAIPlatformStats;
 }
 
 interface SignupDataPoint {
@@ -594,6 +608,14 @@ export default function AdminDashboardPage() {
             format="currency"
           />
           <KpiCard
+            title="OpenAI (GPT-Image-2)"
+            value={stats?.estimatedCostGptImage2 ?? stats?.openaiPlatform?.gptImage2CostUsd ?? 0}
+            subtitle="~$0.04 por imagem"
+            icon={DollarSign}
+            color="text-emerald-400"
+            format="currency"
+          />
+          <KpiCard
             title="Custo Total Estimado"
             value={stats?.estimatedCostTotal ?? 0}
             subtitle="Valor acumulado total"
@@ -601,6 +623,73 @@ export default function AdminDashboardPage() {
             color="text-violet-400"
             format="currency"
           />
+        </div>
+
+        {/* Seção Dedicada: Integração OpenAI Platform (platform.openai.com) */}
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <Sparkles className="h-4 w-4 text-emerald-400" />
+              Integração OpenAI Platform (platform.openai.com) — {getPeriodLabel(selectedPeriod)}
+            </h2>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                stats?.openaiPlatform?.connected
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+              }`}
+            >
+              {stats?.openaiPlatform?.connected ? (
+                <CheckCircle className="h-3 w-3" />
+              ) : (
+                <AlertTriangle className="h-3 w-3" />
+              )}
+              {stats?.openaiPlatform?.connected
+                ? "OpenAI Platform Conectado"
+                : "OpenAI Platform Desconectado"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <KpiCard
+              title="Custo Total OpenAI"
+              value={stats?.openaiPlatform?.openaiTotalCostUsd ?? 0}
+              subtitle={`R$ ${(stats?.openaiPlatform?.openaiTotalCostBrl ?? 0).toFixed(2)} (USD/BRL ~5.65)`}
+              icon={DollarSign}
+              color="text-emerald-400"
+              format="currency"
+            />
+            <KpiCard
+              title="Requisições OpenAI"
+              value={stats?.openaiPlatform?.totalRequests ?? 0}
+              subtitle="Solicitações totais"
+              icon={Activity}
+              color="text-sky-400"
+            />
+            <KpiCard
+              title="Gerações GPT-Image-2"
+              value={stats?.openaiPlatform?.gptImage2Requests ?? 0}
+              subtitle="Imagens criadas pelo modelo"
+              icon={ImageIcon}
+              color="text-emerald-400"
+            />
+            <KpiCard
+              title="Custo GPT-Image-2"
+              value={stats?.openaiPlatform?.gptImage2CostUsd ?? 0}
+              subtitle={`R$ ${(stats?.openaiPlatform?.gptImage2CostBrl ?? 0).toFixed(2)} (acumulado)`}
+              icon={DollarSign}
+              color="text-teal-400"
+              format="currency"
+            />
+            <KpiCard
+              title="Custo Médio / Arte"
+              value={stats?.openaiPlatform?.avgCostPerGptImage2Usd ?? 0.04}
+              subtitle={`~R$ ${(stats?.openaiPlatform?.avgCostPerGptImage2Brl ?? 0.23).toFixed(2)} por geração`}
+              icon={BarChart3}
+              color="text-indigo-400"
+              format="currency"
+            />
+          </div>
         </div>
 
         {/* Tabela de Consumo por Modelo do Google AI Studio */}
