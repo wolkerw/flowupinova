@@ -174,11 +174,11 @@ export async function listGoogleAdsCustomers(
               for (const childItem of childResults) {
                 const childInfo = childItem.customerClient;
                 if (childInfo && childInfo.clientCustomer) {
-                  const childId = childInfo.clientCustomer.replace("customers/", "");
+                  const childId = childInfo.clientCustomer.replace("customers/", "").replace(/-/g, "");
                   accounts.push({
                     id: childId,
                     name: childInfo.descriptiveName || `Conta Google Ads (${childId})`,
-                    managerCustomerId: customerId,
+                    managerCustomerId: customerId.replace(/-/g, ""),
                   });
                 }
               }
@@ -187,14 +187,13 @@ export async function listGoogleAdsCustomers(
                 `[GOOGLE_ADS_ADMIN] Falha ao obter subcontas de ${customerId}:`,
                 await childResponse.text().catch(() => "")
               );
-              accounts.push({ id: customerId, name });
             }
           } else {
-            accounts.push({ id: customerId, name });
+            accounts.push({ id: customerId.replace(/-/g, ""), name });
           }
         } else {
           accounts.push({
-            id: customerId,
+            id: customerId.replace(/-/g, ""),
             name: `Conta Google Ads (${customerId})`,
           });
         }
@@ -204,13 +203,42 @@ export async function listGoogleAdsCustomers(
           innerErr
         );
         accounts.push({
-          id: customerId,
+          id: customerId.replace(/-/g, ""),
           name: `Conta Google Ads (${customerId})`,
         });
       }
     }
 
-    return accounts;
+    // Deduplicação estrita de contas por ID
+    const uniqueAccountsMap = new Map<string, { id: string; name: string; managerCustomerId?: string }>();
+
+    for (const acc of accounts) {
+      const cleanId = String(acc.id || "").replace(/-/g, "").trim();
+      if (!cleanId) continue;
+
+      if (!uniqueAccountsMap.has(cleanId)) {
+        uniqueAccountsMap.set(cleanId, {
+          ...acc,
+          id: cleanId,
+        });
+      } else {
+        const existing = uniqueAccountsMap.get(cleanId)!;
+        // Priorizar managerCustomerId se disponível (para autenticação correta via MCC)
+        const bestManagerId = existing.managerCustomerId || acc.managerCustomerId;
+        // Priorizar nome amigável descritivo ao invés de fallback "Conta Google Ads (XXX)"
+        const isExistingFallback = existing.name.startsWith("Conta Google Ads (");
+        const isNewFallback = acc.name.startsWith("Conta Google Ads (");
+        const bestName = isExistingFallback && !isNewFallback ? acc.name : existing.name;
+
+        uniqueAccountsMap.set(cleanId, {
+          id: cleanId,
+          name: bestName,
+          ...(bestManagerId ? { managerCustomerId: bestManagerId } : {}),
+        });
+      }
+    }
+
+    return Array.from(uniqueAccountsMap.values());
   } catch (error: any) {
     console.error("[GOOGLE_ADS_ADMIN] Falha no fluxo listGoogleAdsCustomers:", error.message || error);
     throw error;
