@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const ageGenderUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=age,gender&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=100&access_token=${accessToken}`;
     const placementsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=publisher_platform,platform_position&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=50&access_token=${accessToken}`;
     const regionsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/insights?breakdowns=region&fields=impressions,clicks,spend&date_preset=${datePreset}&limit=10&access_token=${accessToken}`;
-    const adsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/ads?fields=id,name,status,campaign_id,creative{id,name,image_url,thumbnail_url,body,title,call_to_action_type,effective_object_story_id,instagram_permalink_url},insights.date_preset(${datePreset}){impressions,clicks,spend,actions,reach,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
+    const adsUrl = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}/ads?fields=id,name,status,campaign_id,creative{id,name,image_url,thumbnail_url,body,title,call_to_action_type,effective_object_story_id,instagram_permalink_url,object_story_spec,asset_feed_spec,video_id},insights.date_preset(${datePreset}){impressions,clicks,spend,actions,reach,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
 
     const [insightsRes, platformsRes, ageGenderRes, placementsRes, regionsRes, adsRes] = await Promise.allSettled([
       fetch(insightsUrl).then((r) => r.json()),
@@ -130,15 +130,48 @@ export async function GET(request: NextRequest) {
       }
 
       const creative = ad.creative || {};
+      const oss = creative.object_story_spec;
+      const afs = creative.asset_feed_spec;
+      const bestImageUrl =
+        creative.image_url ||
+        oss?.video_data?.image_url ||
+        oss?.link_data?.image_url ||
+        oss?.photo_data?.image_url ||
+        afs?.images?.[0]?.url ||
+        afs?.videos?.[0]?.thumbnail_url ||
+        creative.thumbnail_url ||
+        "";
+
+      const title =
+        creative.title ||
+        oss?.video_data?.title ||
+        oss?.link_data?.name ||
+        oss?.link_data?.title ||
+        "";
+
+      const body =
+        creative.body ||
+        oss?.video_data?.message ||
+        oss?.link_data?.message ||
+        oss?.photo_data?.message ||
+        afs?.bodies?.[0]?.text ||
+        "";
+
+      const cta =
+        creative.call_to_action_type ||
+        oss?.video_data?.call_to_action?.type ||
+        oss?.link_data?.call_to_action?.type ||
+        "";
+
       const currentList = adsByCampaignMap.get(campId) || [];
       currentList.push({
         id: ad.id,
         name: ad.name,
         status: ad.status ? ad.status.toLowerCase() : "active",
-        imageUrl: creative.image_url || creative.thumbnail_url || "",
-        title: creative.title || "",
-        body: creative.body || "",
-        callToActionType: creative.call_to_action_type || "",
+        imageUrl: bestImageUrl,
+        title,
+        body,
+        callToActionType: cta,
         effectiveObjectStoryId: creative.effective_object_story_id || "",
         instagramPermalinkUrl: creative.instagram_permalink_url || "",
         metrics: {

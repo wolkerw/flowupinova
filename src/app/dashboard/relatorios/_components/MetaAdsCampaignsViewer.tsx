@@ -538,27 +538,58 @@ export function MetaAdsCampaignsViewer({
                 const isPaused = camp.status === "paused";
                 const keyMetric = getCampaignKeyMetric(camp);
                 const isExpanded = !!expandedCampaigns[campUniqueId];
-                const adsList: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : (camp.creative?.imageUrl ? [{
+
+                // Filtrar ESTRITAMENTE anúncios ATIVOS da campanha
+                const rawAds: any[] = camp.ads && camp.ads.length > 0 ? camp.ads : (camp.creative?.imageUrl ? [{
                   id: `local-${campUniqueId}`,
                   name: camp.name,
-                  status: camp.status,
+                  status: camp.status || "active",
                   imageUrl: camp.creative.imageUrl,
                   title: camp.name,
                   body: "",
                   callToActionType: camp.creative.ctaType,
                   metrics: camp.metrics,
                 }] : []);
+                const activeAds = rawAds.filter((a: any) => (a.status || "").toLowerCase() === "active");
+
+                // Métrica padronizada e coerente com o objetivo da campanha
+                const getAdTargetMetric = (ad: any) => {
+                  const label = keyMetric.label;
+                  if (label === "Mensagens") {
+                    const msgs = Number(ad.metrics?.messagesCount) || 0;
+                    return { title: "MSGS", value: msgs.toLocaleString("pt-BR") };
+                  }
+                  if (label === "Leads") {
+                    const leads = Number(ad.metrics?.leadsCount) || 0;
+                    return { title: "LEADS", value: leads.toLocaleString("pt-BR") };
+                  }
+                  if (label === "Vendas") {
+                    const sales = Number(ad.metrics?.salesCount) || 0;
+                    return { title: "VENDAS", value: sales.toLocaleString("pt-BR") };
+                  }
+                  if (label === "Downloads") {
+                    const installs = Number(ad.metrics?.appInstallsCount) || 0;
+                    return { title: "DOWNLOADS", value: installs.toLocaleString("pt-BR") };
+                  }
+                  if (label === "Visualizações") {
+                    const views = Number(ad.metrics?.videoViewsCount) || 0;
+                    return { title: "VIEWS", value: views.toLocaleString("pt-BR") };
+                  }
+                  const clicks = Number(ad.metrics?.clicks) || 0;
+                  return { title: "CLIQUES", value: clicks.toLocaleString("pt-BR") };
+                };
 
                 return (
                   <div key={campUniqueId} className="py-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start gap-3.5">
-                        {camp.creative?.imageUrl || (adsList[0]?.imageUrl) ? (
+                        {camp.creative?.imageUrl || (activeAds[0]?.imageUrl) ? (
                           <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                             <Image
-                              src={camp.creative?.imageUrl || adsList[0]?.imageUrl}
+                              src={camp.creative?.imageUrl || activeAds[0]?.imageUrl}
                               alt={camp.name || "Criativo"}
                               fill
+                              unoptimized
                               className="object-cover"
                             />
                           </div>
@@ -609,15 +640,15 @@ export function MetaAdsCampaignsViewer({
                               </div>
                             )}
 
-                            {/* Botão de Ver Anúncios / Criativos */}
-                            {adsList.length > 0 && (
+                            {/* Botão de Ver Anúncios Ativos */}
+                            {activeAds.length > 0 && (
                               <button
                                 type="button"
                                 onClick={() => toggleExpand(campUniqueId)}
                                 className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 px-2 py-0.5 text-[11px] font-semibold text-[#0083C7] hover:bg-blue-100 hover:border-blue-300 transition-all cursor-pointer"
                               >
                                 <Layers className="h-3 w-3 text-[#0083C7]" />
-                                <span>{isExpanded ? "Ocultar Anúncios" : `Ver Anúncios (${adsList.length})`}</span>
+                                <span>{isExpanded ? "Ocultar anúncios" : `Ver anúncios ativos (${activeAds.length})`}</span>
                                 {isExpanded ? (
                                   <ChevronUp className="h-3 w-3 text-[#0083C7]" />
                                 ) : (
@@ -679,28 +710,26 @@ export function MetaAdsCampaignsViewer({
                     </div>
 
                     {/* Galeria de Anúncios e Criativos Expansível com Extrema Qualidade */}
-                    {isExpanded && adsList.length > 0 && (
+                    {isExpanded && activeAds.length > 0 && (
                       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 transition-all">
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4 pb-3 border-b border-slate-200/80">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-[#0083C7]" />
                             <h6 className="font-poppins text-xs font-bold uppercase tracking-wider text-slate-800">
-                              Anúncios e Criativos Ativos ({adsList.length})
+                              Anúncios Ativos ({activeAds.length})
                             </h6>
                           </div>
                           <span className="text-[11px] text-slate-500">
-                            Visualização fiel com imagem em alta resolução, cópia e CTA
+                            Visualização em alta resolução, copy, CTA e performance
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                          {adsList.map((ad: any, idx: number) => {
-                            const isAdActive = ad.status === "active";
+                          {activeAds.map((ad: any, idx: number) => {
+                            const isAdActive = (ad.status || "").toLowerCase() === "active";
                             const adSpent = Number(ad.metrics?.spend) || 0;
                             const adImpressions = Number(ad.metrics?.impressions) || 0;
-                            const adClicks = Number(ad.metrics?.clicks) || 0;
-                            const adMessages = Number(ad.metrics?.messagesCount) || 0;
-                            const adLeads = Number(ad.metrics?.leadsCount) || 0;
+                            const targetMetric = getAdTargetMetric(ad);
 
                             return (
                               <div
@@ -734,16 +763,18 @@ export function MetaAdsCampaignsViewer({
                                 </div>
 
                                 {/* Imagem / Mídia do Criativo em Alta Resolução */}
-                                <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+                                <div className="relative aspect-square w-full overflow-hidden bg-slate-900">
                                   {ad.imageUrl ? (
                                     <Image
                                       src={ad.imageUrl}
                                       alt={ad.title || ad.name || "Criativo"}
                                       fill
-                                      className="object-cover transition-transform duration-300 hover:scale-105"
+                                      unoptimized
+                                      sizes="(max-width: 768px) 100vw, 400px"
+                                      className="object-cover object-center transition-transform duration-300 hover:scale-105"
                                     />
                                   ) : (
-                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-slate-400">
                                       <Facebook className="h-10 w-10 opacity-30" />
                                     </div>
                                   )}
@@ -791,14 +822,10 @@ export function MetaAdsCampaignsViewer({
                                     </div>
                                     <div>
                                       <span className="text-[10px] uppercase font-semibold text-[#0083C7]">
-                                        {adMessages > 0 ? "Msgs" : adLeads > 0 ? "Leads" : "Cliques"}
+                                        {targetMetric.title}
                                       </span>
                                       <p className="font-poppins font-bold text-[#0083C7] text-[11px]">
-                                        {adMessages > 0
-                                          ? adMessages.toLocaleString("pt-BR")
-                                          : adLeads > 0
-                                          ? adLeads.toLocaleString("pt-BR")
-                                          : adClicks.toLocaleString("pt-BR")}
+                                        {targetMetric.value}
                                       </p>
                                     </div>
                                   </div>
