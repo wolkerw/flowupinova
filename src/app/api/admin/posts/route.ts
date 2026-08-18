@@ -48,8 +48,9 @@ export async function GET(request: NextRequest) {
           promptUsed:
             data.promptUsed ||
             data.prompt ||
-            data.initialPrompt ||
+            data.promoText ||
             data.userPrompt ||
+            data.initialPrompt ||
             data.summary ||
             null,
           status: data.status || "completed",
