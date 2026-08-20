@@ -38,6 +38,7 @@ export const Step4BrandCustomization = () => {
     handleLogoFileChange: onLogoUpload,
     setLogoFile,
     setLogoPreviewUrl,
+    selectLogoFromBrandKit,
     setLogoPosition: onPositionChange,
     setLogoScale: onScaleChange,
     setLogoOpacity: onOpacityChange,
@@ -140,21 +141,35 @@ export const Step4BrandCustomization = () => {
                   <div className="space-y-4">
                     {availableLogos.length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {availableLogos.map(logo => (
-                          <div 
-                            key={logo.id} 
-                            className="cursor-pointer border rounded-lg p-2 flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
-                            onClick={() => {
-                              setLogoPreviewUrl(logo.url);
-                              setLogoFile(null);
-                            }}
-                          >
-                            <div className="relative w-full h-12 mb-1">
-                              <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                        {availableLogos.map((logo) => {
+                          const isSelected = logoPreviewUrl === logo.url;
+                          return (
+                            <div
+                              key={logo.id}
+                              className={cn(
+                                "cursor-pointer border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all",
+                                isSelected
+                                  ? "border-primary bg-primary/10 shadow-sm"
+                                  : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50"
+                              )}
+                              onClick={() => {
+                                selectLogoFromBrandKit(logo.url, logo.label);
+                              }}
+                            >
+                              <div className="relative w-full h-12 mb-1">
+                                <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                              </div>
+                              <span
+                                className={cn(
+                                  "text-[10px] font-semibold uppercase text-center w-full block truncate",
+                                  isSelected ? "text-primary font-bold" : "text-gray-500"
+                                )}
+                              >
+                                {logo.label}
+                              </span>
                             </div>
-                            <span className="text-[10px] text-gray-500 font-medium uppercase text-center w-full block">{logo.label}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     <Button
@@ -168,6 +183,44 @@ export const Step4BrandCustomization = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Grade de troca rápida entre logos do Brand Kit */}
+                    {availableLogos.length > 1 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Trocar por outra logo do Brand Kit:</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {availableLogos.map((logo) => {
+                            const isSelected = logoPreviewUrl === logo.url;
+                            return (
+                              <div
+                                key={logo.id}
+                                className={cn(
+                                  "cursor-pointer border-2 rounded-lg p-1.5 flex flex-col items-center justify-center transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
+                                    : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50"
+                                )}
+                                onClick={() => {
+                                  selectLogoFromBrandKit(logo.url, logo.label);
+                                }}
+                              >
+                                <div className="relative w-full h-8 mb-1">
+                                  <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                                </div>
+                                <span
+                                  className={cn(
+                                    "text-[9px] font-semibold uppercase text-center w-full block truncate",
+                                    isSelected ? "text-primary font-bold" : "text-gray-500"
+                                  )}
+                                >
+                                  {logo.label} {isSelected ? "✓" : ""}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between rounded-lg border bg-gray-50 p-2">
                       <div className="flex items-center gap-2">
                         <Image

@@ -173,6 +173,7 @@ interface WizardContextType {
   handleSecondaryReferenceImageChange: (file: File | null) => void;
   handleDownloadImage: (url: string) => Promise<void>;
   handleLogoFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  selectLogoFromBrandKit: (url: string, label?: string) => Promise<void>;
   isGeneratingCaption: boolean;
   handleGenerateCaption: () => Promise<void>;
 }
@@ -1355,6 +1356,51 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const selectLogoFromBrandKit = async (url: string, label: string = "Logomarca") => {
+    setLogoPreviewUrl(url);
+    if (!url) {
+      setLogoFile(null);
+      return;
+    }
+
+    try {
+      let blob: Blob | null = null;
+
+      if (url.startsWith("blob:") || url.startsWith("data:")) {
+        const res = await fetch(url);
+        if (res.ok) blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          }
+        } catch (directErr) {
+          console.warn("[WIZARD] Direct fetch da logo falhou, tentando proxy:", directErr);
+        }
+
+        if (!blob && url.startsWith("http")) {
+          const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
+          const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+          if (proxyRes.ok) {
+            blob = await proxyRes.blob();
+          }
+        }
+      }
+
+      if (blob) {
+        const fileName = `${label.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "logo"}.png`;
+        const file = new File([blob], fileName, {
+          type: blob.type || "image/png",
+        });
+        setLogoFile(file);
+        console.log("[WIZARD] Logomarca do Brand Kit carregada com sucesso no estado:", fileName, file.size);
+      }
+    } catch (err: any) {
+      console.warn("[WIZARD] Aviso ao pré-carregar logo do Brand Kit:", err.message || err);
+    }
+  };
+
   const handleLogoProcessing = async () => {
     let targetImg = selectedImage || (generatedImages.length > 0 ? generatedImages[0] : null);
     if (!targetImg) {
@@ -1380,21 +1426,37 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!activeLogoFile && effectiveLogoUrl) {
       try {
-        const logoUrlToFetch = effectiveLogoUrl.startsWith("http")
-          ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(effectiveLogoUrl)}`
-          : effectiveLogoUrl;
-        const logoBlob = await fetch(logoUrlToFetch, {
-          signal: AbortSignal.timeout(3000),
-        }).then((r) => r.blob());
-        activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
-          type: logoBlob.type || "image/png",
-        });
+        let logoBlob: Blob | null = null;
+        if (effectiveLogoUrl.startsWith("blob:") || effectiveLogoUrl.startsWith("data:")) {
+          const res = await fetch(effectiveLogoUrl);
+          if (res.ok) logoBlob = await res.blob();
+        } else {
+          try {
+            const directRes = await fetch(effectiveLogoUrl, { signal: AbortSignal.timeout(5000) });
+            if (directRes.ok) logoBlob = await directRes.blob();
+          } catch {
+            // Direct fetch falhou
+          }
+
+          if (!logoBlob && effectiveLogoUrl.startsWith("http")) {
+            const logoUrlToFetch = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(effectiveLogoUrl)}`;
+            const proxyRes = await fetch(logoUrlToFetch, { signal: AbortSignal.timeout(10000) });
+            if (proxyRes.ok) logoBlob = await proxyRes.blob();
+          }
+        }
+
+        if (logoBlob) {
+          activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
+            type: logoBlob.type || "image/png",
+          });
+          setLogoFile(activeLogoFile);
+        }
       } catch (errLogo) {
         console.error("[WIZARD] Erro ao carregar blob da logo para envio:", errLogo);
       }
     }
 
-    if (!activeLogoFile) {
+    if (!activeLogoFile && !effectiveLogoUrl) {
       if (!targetImg.startsWith("blob:")) {
         setProcessedImageUrl(null);
         setStep(isSyncImageMode ? 4 : 5);
@@ -1417,7 +1479,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           const finalNoLogoUrl = result[0].url_post;
           setProcessedImageUrl(finalNoLogoUrl);
 
-          // Atualizar o rascunho temporário no Firestore local com a URL convertida (caso exista rascunho)
           if (currentPostId && user) {
             try {
               const postDocRef = doc(db, "users", user.uid, "posts", currentPostId);
@@ -1504,11 +1565,12 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
 
       // Obter proporção original da logo para calcular a altura real em pixels
-      let logoPixelHeight = logoPixelWidth; // fallback quadrado
-      if (logoPreviewUrl) {
+      let logoPixelHeight = logoPixelWidth;
+      const logoDimensionSource = logoPreviewUrl || (activeLogoFile ? URL.createObjectURL(activeLogoFile) : null);
+      if (logoDimensionSource) {
         try {
           const { width: logoImgWidth, height: logoImgHeight } =
-            await getImageDimensions(logoPreviewUrl);
+            await getImageDimensions(logoDimensionSource);
           if (logoImgWidth > 0) {
             logoPixelHeight = logoPixelWidth * (logoImgHeight / logoImgWidth);
           }
@@ -1520,7 +1582,6 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       let positionX = 0,
         positionY = 0;
 
-      // Margem proporcional baseada em 16px em relação ao tamanho máximo de 384px (max-w-sm) do preview no front
       const margin = mainImageWidth * 0.04167;
 
       switch (logoPosition) {
@@ -1562,26 +1623,78 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           break;
       }
 
-      const formData = new FormData();
-      const imageUrlToFetch = targetImg.startsWith("http")
-        ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
-        : targetImg;
-      const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
-      formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
-      formData.append("logo", activeLogoFile);
-      formData.append("logoScale", logoScale.toString());
-      formData.append("logoOpacity", logoOpacity.toString());
-      formData.append("positionX", Math.round(positionX).toString());
-      formData.append("positionY", Math.round(positionY).toString());
+      let finalLogoUrl: string | null = null;
 
-      const response = await fetch("/api/proxy-webhook?target=post_manual", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error("Falha no webhook de personalização.");
+      // 1. Tenta compor via backend / webhook
+      if (activeLogoFile) {
+        try {
+          const formData = new FormData();
+          const imageUrlToFetch = targetImg.startsWith("http")
+            ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
+            : targetImg;
+          const imageBlob = await fetch(imageUrlToFetch).then((r) => r.blob());
+          formData.append("file", new File([imageBlob], "image.jpg", { type: imageBlob.type }));
+          formData.append("logo", activeLogoFile);
+          formData.append("logoScale", logoScale.toString());
+          formData.append("logoOpacity", logoOpacity.toString());
+          formData.append("positionX", Math.round(positionX).toString());
+          formData.append("positionY", Math.round(positionY).toString());
 
-      const finalLogoUrl = result?.[0]?.url_post;
+          const response = await fetch("/api/proxy-webhook?target=post_manual", {
+            method: "POST",
+            body: formData,
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result?.[0]?.url_post) {
+              finalLogoUrl = result[0].url_post;
+            }
+          }
+        } catch (webhookErr) {
+          console.warn("[WIZARD] Webhook post_manual falhou, acionando fallback de Canvas:", webhookErr);
+        }
+      }
+
+      // 2. Fallback de composição resiliente via Canvas no navegador se o webhook não retornar
+      if (!finalLogoUrl && typeof window !== "undefined") {
+        try {
+          finalLogoUrl = await new Promise<string>((resolve, reject) => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject(new Error("Canvas context indisponível"));
+
+            const baseImg = new window.Image();
+            baseImg.crossOrigin = "anonymous";
+            baseImg.onload = () => {
+              canvas.width = baseImg.naturalWidth || baseImg.width || 1024;
+              canvas.height = baseImg.naturalHeight || baseImg.height || 1024;
+              ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+
+              const overlayLogo = new window.Image();
+              overlayLogo.crossOrigin = "anonymous";
+              overlayLogo.onload = () => {
+                ctx.globalAlpha = Math.max(0.1, Math.min(1, logoOpacity / 100));
+                ctx.drawImage(overlayLogo, positionX, positionY, logoPixelWidth, logoPixelHeight);
+                ctx.globalAlpha = 1.0;
+                resolve(canvas.toDataURL("image/jpeg", 0.95));
+              };
+              overlayLogo.onerror = (e) => reject(e);
+              overlayLogo.src = logoPreviewUrl || (activeLogoFile ? URL.createObjectURL(activeLogoFile) : "");
+            };
+            baseImg.onerror = (e) => reject(e);
+            baseImg.src = targetImg.startsWith("http")
+              ? `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(targetImg)}`
+              : targetImg;
+          });
+        } catch (canvasErr) {
+          console.error("[WIZARD] Falha na composição de canvas:", canvasErr);
+        }
+      }
+
+      if (!finalLogoUrl) {
+        throw new Error("Falha ao aplicar logomarca na imagem.");
+      }
+
       setProcessedImageUrl(finalLogoUrl);
 
       // Atualizar o rascunho temporário no Firestore local com a URL final com o logotipo aplicado
@@ -1944,6 +2057,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         handleSecondaryReferenceImageChange,
         handleDownloadImage,
         handleLogoFileChange,
+        selectLogoFromBrandKit,
       }}
     >
       {children}
