@@ -344,7 +344,7 @@ const adaptImageToStory = (
           const proxyLogoUrl =
             logoUrl.startsWith("blob:") || logoUrl.startsWith("data:") || logoUrl.startsWith("/")
               ? logoUrl
-              : `/api/download?url=${encodeURIComponent(logoUrl)}`;
+              : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoUrl)}`;
           logoImg.src = proxyLogoUrl;
         } else {
           canvas.toBlob(
@@ -369,7 +369,7 @@ const adaptImageToStory = (
     const proxyImageUrl =
       imageUrl.startsWith("blob:") || imageUrl.startsWith("data:") || imageUrl.startsWith("/")
         ? imageUrl
-        : `/api/download?url=${encodeURIComponent(imageUrl)}`;
+        : `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(imageUrl)}`;
     img.src = proxyImageUrl;
   });
 };
@@ -1672,6 +1672,51 @@ export default function CriarConteudoPage() {
     });
   };
 
+  const selectLogoFromBrandKit = async (url: string, label: string = "Logomarca") => {
+    setLogoPreviewUrl(url);
+    if (!url) {
+      setLogoFile(null);
+      return;
+    }
+
+    try {
+      let blob: Blob | null = null;
+
+      if (url.startsWith("blob:") || url.startsWith("data:")) {
+        const res = await fetch(url);
+        if (res.ok) blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          }
+        } catch (directErr) {
+          console.warn("[POST_MANUAL] Direct fetch da logo falhou, tentando proxy:", directErr);
+        }
+
+        if (!blob && url.startsWith("http")) {
+          const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
+          const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+          if (proxyRes.ok) {
+            blob = await proxyRes.blob();
+          }
+        }
+      }
+
+      if (blob) {
+        const fileName = `${label.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "logo"}.png`;
+        const file = new File([blob], fileName, {
+          type: blob.type || "image/png",
+        });
+        setLogoFile(file);
+        console.log("[POST_MANUAL] Logomarca do Brand Kit carregada com sucesso no estado:", fileName, file.size);
+      }
+    } catch (err: any) {
+      console.warn("[POST_MANUAL] Aviso ao pré-carregar logo do Brand Kit:", err.message || err);
+    }
+  };
+
   const processSingleMediaItem = async (mediaItem: MediaItem): Promise<string> => {
     if (mediaItem.type === "video") {
       if (mediaItem.publicUrl && !mediaItem.publicUrl.startsWith("blob:")) {
@@ -1689,8 +1734,42 @@ export default function CriarConteudoPage() {
     const imageUrl =
       mediaItem.publicUrl || (isUrl(mediaItem.previewUrl) ? mediaItem.previewUrl : "");
 
+    // Resolver activeLogoFile caso exista logoPreviewUrl mas logoFile ainda não tenha sido populado
+    let activeLogoFile = logoFile;
+    if (!activeLogoFile && logoPreviewUrl) {
+      try {
+        let logoBlob: Blob | null = null;
+        if (logoPreviewUrl.startsWith("blob:") || logoPreviewUrl.startsWith("data:")) {
+          const res = await fetch(logoPreviewUrl);
+          if (res.ok) logoBlob = await res.blob();
+        } else {
+          try {
+            const directRes = await fetch(logoPreviewUrl, { signal: AbortSignal.timeout(5000) });
+            if (directRes.ok) logoBlob = await directRes.blob();
+          } catch {
+            // direct fetch falhou
+          }
+
+          if (!logoBlob && logoPreviewUrl.startsWith("http")) {
+            const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(logoPreviewUrl)}`;
+            const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+            if (proxyRes.ok) logoBlob = await proxyRes.blob();
+          }
+        }
+
+        if (logoBlob) {
+          activeLogoFile = new File([logoBlob], "logo-brandkit.png", {
+            type: logoBlob.type || "image/png",
+          });
+          setLogoFile(activeLogoFile);
+        }
+      } catch (errLogo) {
+        console.error("[POST_MANUAL] Erro ao carregar blob da logo para envio:", errLogo);
+      }
+    }
+
     // Se não há logotipo e a imagem já possui URL remota, retornamos ela de imediato
-    if (!logoFile && imageUrl) {
+    if (!activeLogoFile && !logoPreviewUrl && imageUrl) {
       console.log(
         "[MANUAL_GALLERY] Imagem sem logo com URL remota existente: pulando webhook e usando URL direta."
       );
@@ -1700,9 +1779,9 @@ export default function CriarConteudoPage() {
     let imageFile = mediaItem.file;
 
     // Se veio da galeria ou inpainting (nulo ou sem tamanho, mas com URL) e precisa aplicar logo, baixamos os bytes de volta usando o proxy
-    if ((!imageFile || imageFile.size === 0) && imageUrl && logoFile) {
+    if ((!imageFile || imageFile.size === 0) && imageUrl && (activeLogoFile || logoPreviewUrl)) {
       try {
-        const proxyUrl = `/api/download?url=${encodeURIComponent(imageUrl)}`;
+        const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(imageUrl)}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) {
           throw new Error(`Erro na resposta do proxy: ${response.status}`);
@@ -1722,24 +1801,15 @@ export default function CriarConteudoPage() {
       throw new Error("Arquivo de imagem inválido para processamento.");
     }
 
-    const formData = new FormData();
-    formData.append("file", imageFile);
+    let publicUrl: string | null = null;
 
-    let webhookUrl = "";
-
-    if (logoFile) {
-      // Usar proxy interno com fallback resiliente em vez de chamar webhook externo diretamente
-      webhookUrl = "/api/proxy-webhook?target=post_manual";
+    if (activeLogoFile) {
       const { width: mainImageWidth, height: mainImageHeight } =
         await getImageDimensions(imageFile);
 
       // Obter proporções reais da logomarca para evitar deformações ou posicionamento incorreto
-      const { width: logoOrigWidth, height: logoOrigHeight } = await getImageDimensions(logoFile);
-      const logoAspectRatio = logoOrigHeight / logoOrigWidth;
-
-      formData.append("logo", logoFile);
-      formData.append("logoScale", logoScale.toString());
-      formData.append("logoOpacity", logoOpacity.toString());
+      const { width: logoOrigWidth, height: logoOrigHeight } = await getImageDimensions(activeLogoFile);
+      const logoAspectRatio = logoOrigHeight / (logoOrigWidth || 1);
 
       const logoPixelWidth = mainImageWidth * (visualLogoScale / 100);
       const logoPixelHeight = logoPixelWidth * logoAspectRatio; // Altura real e proporcional da logo
@@ -1789,32 +1859,72 @@ export default function CriarConteudoPage() {
           break;
       }
 
-      formData.append("positionX", Math.round(positionX).toString());
-      formData.append("positionY", Math.round(positionY).toString());
-    } else {
-      // Usar proxy interno com fallback resiliente em vez de chamar webhook externo diretamente
-      webhookUrl = "/api/proxy-webhook?target=imagem_sem_logo";
-    }
-
-    const response = await fetch(webhookUrl, { method: "POST", body: formData });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorDetails = errorText;
+      // 1. Tenta envio pelo proxy-webhook
       try {
-        const errorJson = JSON.parse(errorText);
-        errorDetails = errorJson.details || errorJson.error || errorText;
-      } catch (e) {
-        /* Use plain text */
-      }
-      throw new Error(errorDetails || `Falha ao chamar o webhook: ${"error"}`);
-    }
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        formData.append("logo", activeLogoFile);
+        formData.append("logoScale", logoScale.toString());
+        formData.append("logoOpacity", logoOpacity.toString());
+        formData.append("positionX", Math.round(positionX).toString());
+        formData.append("positionY", Math.round(positionY).toString());
 
-    const result = await response.json();
-    const publicUrl = result?.[0]?.url_post;
+        const response = await fetch("/api/proxy-webhook?target=post_manual", { method: "POST", body: formData });
+        if (response.ok) {
+          const result = await response.json();
+          if (result?.[0]?.url_post) {
+            publicUrl = result[0].url_post;
+          }
+        }
+      } catch (webhookErr) {
+        console.warn("[POST_MANUAL] Webhook post_manual falhou, acionando fallback de Canvas:", webhookErr);
+      }
+
+      // 2. Fallback de Canvas no cliente caso o webhook falhe
+      if (!publicUrl && typeof window !== "undefined") {
+        try {
+          publicUrl = await new Promise<string>((resolve, reject) => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject(new Error("Canvas context indisponível"));
+
+            const mainImg = new window.Image();
+            mainImg.crossOrigin = "anonymous";
+            mainImg.onload = () => {
+              canvas.width = mainImg.naturalWidth || mainImg.width || 1024;
+              canvas.height = mainImg.naturalHeight || mainImg.height || 1024;
+              ctx.drawImage(mainImg, 0, 0, canvas.width, canvas.height);
+
+              const logoImg = new window.Image();
+              logoImg.crossOrigin = "anonymous";
+              logoImg.onload = () => {
+                ctx.globalAlpha = Math.max(0.1, Math.min(1, logoOpacity / 100));
+                ctx.drawImage(logoImg, positionX, positionY, logoPixelWidth, logoPixelHeight);
+                ctx.globalAlpha = 1.0;
+                resolve(canvas.toDataURL("image/jpeg", 0.95));
+              };
+              logoImg.onerror = (e) => reject(e);
+              logoImg.src = logoPreviewUrl || URL.createObjectURL(activeLogoFile!);
+            };
+            mainImg.onerror = (e) => reject(e);
+            mainImg.src = URL.createObjectURL(imageFile);
+          });
+        } catch (canvasErr) {
+          console.error("[POST_MANUAL] Falha no fallback de canvas:", canvasErr);
+        }
+      }
+    } else {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      const response = await fetch("/api/proxy-webhook?target=imagem_sem_logo", { method: "POST", body: formData });
+      if (response.ok) {
+        const result = await response.json();
+        publicUrl = result?.[0]?.url_post;
+      }
+    }
 
     if (!publicUrl) {
-      throw new Error("A resposta do webhook não continha uma 'url_post' válida.");
+      throw new Error("Não foi possível processar a imagem do post.");
     }
 
     return publicUrl;
@@ -2577,21 +2687,35 @@ export default function CriarConteudoPage() {
                     <div className="space-y-4">
                       {availableLogos.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {availableLogos.map(logo => (
-                            <div 
-                              key={logo.id} 
-                              className="cursor-pointer border rounded-lg p-2 flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
-                              onClick={() => {
-                                setLogoPreviewUrl(logo.url);
-                                setLogoFile(null);
-                              }}
-                            >
-                              <div className="relative w-full h-12 mb-1">
-                                <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                          {availableLogos.map((logo) => {
+                            const isSelected = logoPreviewUrl === logo.url;
+                            return (
+                              <div
+                                key={logo.id}
+                                className={cn(
+                                  "cursor-pointer border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary/10 shadow-sm"
+                                    : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50"
+                                )}
+                                onClick={() => {
+                                  selectLogoFromBrandKit(logo.url, logo.label);
+                                }}
+                              >
+                                <div className="relative w-full h-12 mb-1">
+                                  <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                                </div>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-semibold uppercase text-center w-full block truncate",
+                                    isSelected ? "text-primary font-bold" : "text-gray-500"
+                                  )}
+                                >
+                                  {logo.label}
+                                </span>
                               </div>
-                              <span className="text-[10px] text-gray-500 font-medium uppercase text-center w-full block">{logo.label}</span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                       <Button
@@ -2605,6 +2729,44 @@ export default function CriarConteudoPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Grade de troca rápida entre logos do Brand Kit */}
+                      {availableLogos.length > 1 && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Trocar por outra logo do Brand Kit:</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {availableLogos.map((logo) => {
+                              const isSelected = logoPreviewUrl === logo.url;
+                              return (
+                                <div
+                                  key={logo.id}
+                                  className={cn(
+                                    "cursor-pointer border-2 rounded-lg p-1.5 flex flex-col items-center justify-center transition-all",
+                                    isSelected
+                                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
+                                      : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50"
+                                  )}
+                                  onClick={() => {
+                                    selectLogoFromBrandKit(logo.url, logo.label);
+                                  }}
+                                >
+                                  <div className="relative w-full h-8 mb-1">
+                                    <Image src={logo.url} alt={logo.label} layout="fill" objectFit="contain" />
+                                  </div>
+                                  <span
+                                    className={cn(
+                                      "text-[9px] font-semibold uppercase text-center w-full block truncate",
+                                      isSelected ? "text-primary font-bold" : "text-gray-500"
+                                    )}
+                                  >
+                                    {logo.label} {isSelected ? "✓" : ""}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between rounded-lg border bg-gray-50 p-2">
                         <div className="flex items-center gap-2">
                           <Image
