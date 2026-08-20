@@ -424,6 +424,25 @@ export async function schedulePost(
       console.log(`Pending notification created for post ${docRef.id}`);
     }
 
+    // Atualizar os registros correspondentes da mediaGallery para marcar como usados
+    try {
+      const galleryRef = collection(db, "users", userId, "mediaGallery");
+      const gallerySnap = await getDocs(galleryRef);
+      gallerySnap.forEach(async (docSnap) => {
+        const itemData = docSnap.data();
+        if (
+          itemData.url &&
+          imageUrls.some((u) => u === itemData.url || (itemData.fileName && u.includes(itemData.fileName)))
+        ) {
+          await updateDoc(docSnap.ref, {
+            usedInPostId: docRef.id,
+          });
+        }
+      });
+    } catch (galleryErr) {
+      console.warn("[POST_SERVICE] Aviso ao sincronizar mediaGallery:", galleryErr);
+    }
+
     return {
       success: true,
       post: {

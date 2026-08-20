@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -43,6 +43,9 @@ interface GalleryMediaItem {
   usedInPostId: string | null;
   fileName: string;
   caption?: string | null;
+  isPublished?: boolean;
+  publishedPlatforms?: string[];
+  publishedAt?: any;
 }
 
 export default function GaleriaPage() {
@@ -56,21 +59,146 @@ export default function GaleriaPage() {
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [selectedImageToView, setSelectedImageToView] = useState<string | null>(null);
 
-  // Escutar a subcoleção de imagens da galeria do Firestore em tempo real
+  // Escutar tanto a subcoleção mediaGallery quanto os posts publicados do usuário em tempo real
   useEffect(() => {
     if (!user) return;
 
     setIsLoading(true);
     const galleryRef = collection(db, "users", user.uid, "mediaGallery");
-    const q = query(galleryRef, orderBy("createdAt", "desc"));
+    const galleryQuery = query(galleryRef, orderBy("createdAt", "desc"));
 
-    const unsubscribe = onSnapshot(
-      q,
+    const postsRef = collection(db, "users", user.uid, "posts");
+    const postsQuery = query(postsRef, orderBy("scheduledAt", "desc"));
+
+    let rawGalleryItems: GalleryMediaItem[] = [];
+    let rawPosts: any[] = [];
+
+    const syncItems = () => {
+      // 1. Mapear todas as URLs de posts que foram publicados ou agendados
+      const publishedUrls = new Set<string>();
+      const postMetaByUrl = new Map<
+        string,
+        { postId: string; platforms: string[]; scheduledAt: any; text?: string }
+      >();
+
+      rawPosts.forEach((post) => {
+        const isPostPublished =
+          post.status === "published" ||
+          post.status === "scheduled" ||
+          Boolean(post.publishedMediaId);
+
+        if (isPostPublished) {
+          const urls: string[] = [];
+          if (post.imageUrl) urls.push(post.imageUrl);
+          if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
+          if (Array.isArray(post.mediaFiles)) {
+            urls.push(...post.mediaFiles.map((m: any) => m.url).filter(Boolean));
+          }
+
+          urls.forEach((u) => {
+            if (u) {
+              publishedUrls.add(u);
+              postMetaByUrl.set(u, {
+                postId: post.id,
+                platforms: post.platforms || [],
+                scheduledAt: post.scheduledAt || post.createdAt,
+                text: post.text || "",
+              });
+            }
+          });
+        }
+      });
+
+      // 2. Classificar cada item da galeria
+      const existingUrls = new Set<string>();
+      const processedGalleryItems: GalleryMediaItem[] = rawGalleryItems.map((item) => {
+        existingUrls.add(item.url);
+
+        let isItemPub = Boolean(
+          item.usedInPostId && item.usedInPostId !== "" && item.usedInPostId !== "null"
+        );
+        let postMeta = postMetaByUrl.get(item.url);
+
+        if (!isItemPub) {
+          if (publishedUrls.has(item.url)) {
+            isItemPub = true;
+            postMeta = postMetaByUrl.get(item.url);
+          } else if (item.fileName) {
+            for (const pubUrl of publishedUrls) {
+              if (pubUrl.includes(item.fileName)) {
+                isItemPub = true;
+                postMeta = postMetaByUrl.get(pubUrl);
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          ...item,
+          usedInPostId: isItemPub ? item.usedInPostId || postMeta?.postId || "published" : null,
+          isPublished: isItemPub,
+          publishedPlatforms: postMeta?.platforms,
+          publishedAt: postMeta?.scheduledAt,
+          caption: item.caption || postMeta?.text || null,
+        };
+      });
+
+      // 3. Incluir também posts publicados do Firestore cujas imagens ainda não estejam catalogadas na galeria
+      rawPosts.forEach((post) => {
+        const isPostPublished =
+          post.status === "published" ||
+          post.status === "scheduled" ||
+          Boolean(post.publishedMediaId);
+
+        if (isPostPublished) {
+          const urls: string[] = [];
+          if (post.imageUrl) urls.push(post.imageUrl);
+          if (Array.isArray(post.imageUrls)) urls.push(...post.imageUrls);
+
+          urls.forEach((u, idx) => {
+            if (u && !existingUrls.has(u) && !u.startsWith("blob:") && !u.startsWith("data:")) {
+              existingUrls.add(u);
+              processedGalleryItems.push({
+                id: `post_media_${post.id}_${idx}`,
+                url: u,
+                storagePath: "",
+                source: "published_post",
+                prompt: null,
+                createdAt: post.scheduledAt || post.createdAt || new Date(),
+                usedInPostId: post.id,
+                fileName: `publicacao_${idx + 1}.jpg`,
+                caption: post.text || null,
+                isPublished: true,
+                publishedPlatforms: post.platforms || [],
+                publishedAt: post.scheduledAt || post.createdAt,
+              });
+            }
+          });
+        }
+      });
+
+      // Ordenar por data mais recente
+      processedGalleryItems.sort((a, b) => {
+        const dateA = a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : new Date(a.createdAt || 0).getTime();
+        const dateB = b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+
+      setMediaItems(processedGalleryItems);
+      setIsLoading(false);
+    };
+
+    const unsubGallery = onSnapshot(
+      galleryQuery,
       (snapshot) => {
-        const items: GalleryMediaItem[] = [];
-        snapshot.forEach((docSnap) => {
+        rawGalleryItems = snapshot.docs.map((docSnap) => {
           const data = docSnap.data();
-          items.push({
+          return {
             id: docSnap.id,
             url: data.url,
             storagePath: data.storagePath,
@@ -80,32 +208,48 @@ export default function GaleriaPage() {
             usedInPostId: data.usedInPostId || null,
             fileName: data.fileName || "imagem.jpg",
             caption: data.caption || null,
-          });
+          };
         });
-        setMediaItems(items);
-        setIsLoading(false);
+        syncItems();
       },
-      (error) => {
-        console.error("Erro ao escutar galeria do Firestore:", error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao Carregar Galeria",
-          description: "Não foi possível carregar as imagens do seu acervo.",
-        });
+      (err) => {
+        console.error("Erro ao escutar mediaGallery:", err);
         setIsLoading(false);
       }
     );
 
-    return () => unsubscribe();
-  }, [user, toast]);
+    const unsubPosts = onSnapshot(
+      postsQuery,
+      (snapshot) => {
+        rawPosts = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+        syncItems();
+      },
+      (err) => {
+        console.error("Erro ao escutar posts:", err);
+      }
+    );
 
-  // Filtrar os itens de mídia conforme a aba ativa
-  const filteredItems = mediaItems.filter((item) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "unused") return item.usedInPostId === null;
-    if (activeTab === "used") return item.usedInPostId !== null;
-    return true;
-  });
+    return () => {
+      unsubGallery();
+      unsubPosts();
+    };
+  }, [user]);
+
+  // Filtrar com precisão os itens conforme a aba ativa
+  const filteredItems = useMemo(() => {
+    return mediaItems.filter((item) => {
+      if (activeTab === "all") return true;
+      if (activeTab === "unused") return !item.isPublished;
+      if (activeTab === "used") return item.isPublished === true;
+      return true;
+    });
+  }, [mediaItems, activeTab]);
+
+  const unusedCount = useMemo(() => mediaItems.filter((i) => !i.isPublished).length, [mediaItems]);
+  const usedCount = useMemo(() => mediaItems.filter((i) => i.isPublished).length, [mediaItems]);
 
   const handleCopyText = (text: string | null, id: string, isCaption: boolean = true) => {
     if (!text) return;
@@ -159,11 +303,13 @@ export default function GaleriaPage() {
     });
 
     try {
-      // 1. Deletar o documento do Firestore
-      const docRef = doc(db, "users", user.uid, "mediaGallery", item.id);
-      await deleteDoc(docRef);
+      // 1. Deletar o documento do Firestore se for da subcoleção mediaGallery
+      if (!item.id.startsWith("post_media_")) {
+        const docRef = doc(db, "users", user.uid, "mediaGallery", item.id);
+        await deleteDoc(docRef);
+      }
 
-      // 2. Deletar o arquivo físico no Firebase Storage
+      // 2. Deletar o arquivo físico no Firebase Storage se existir storagePath
       if (item.storagePath) {
         const fileStorageRef = ref(storage, item.storagePath);
         await deleteObject(fileStorageRef);
@@ -192,7 +338,7 @@ export default function GaleriaPage() {
         description: "Preparando a imagem para download.",
       });
 
-      const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
+      const proxyUrl = `/api/conteudo/gerar-referencia?action=proxy&url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error("Falha na resposta da rede");
       const blob = await response.blob();
@@ -212,7 +358,6 @@ export default function GaleriaPage() {
       });
     } catch (error) {
       console.error("Erro ao baixar imagem por blob, tentando fallback de nova aba:", error);
-      // Fallback: abrir em uma nova aba para o usuário salvar manualmente
       window.open(url, "_blank");
       toast({
         title: "Download Iniciado",
@@ -261,17 +406,17 @@ export default function GaleriaPage() {
             <div className="flex flex-col items-start justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
               <TabsList className="grid w-full max-w-md grid-cols-3 bg-gray-100/80 p-1">
                 <TabsTrigger value="unused" className="rounded-md py-1.5 text-xs font-medium">
-                  Não Publicadas
+                  Não Publicadas ({unusedCount})
                 </TabsTrigger>
                 <TabsTrigger value="used" className="rounded-md py-1.5 text-xs font-medium">
-                  Já Publicadas
+                  Já Publicadas ({usedCount})
                 </TabsTrigger>
                 <TabsTrigger value="all" className="rounded-md py-1.5 text-xs font-medium">
-                  Todas
+                  Todas ({mediaItems.length})
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 text-gray-500">
+              <div className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
                 <ImageIcon className="h-4 w-4" />
                 Total no acervo: <span className="font-bold">{mediaItems.length} imagens</span>
               </div>
@@ -294,17 +439,17 @@ export default function GaleriaPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {activeTab === "unused" && "Nenhuma imagem disponível"}
+                  {activeTab === "unused" && "Nenhuma imagem disponível para publicação"}
                   {activeTab === "used" && "Nenhum post publicado com imagens do acervo"}
                   {activeTab === "all" && "Sua galeria está vazia"}
                 </h3>
                 <p className="mt-1 max-w-sm text-sm text-gray-600">
                   {activeTab === "unused" &&
-                    "Todas as imagens de IA geradas no assistente já foram publicadas! Gere novos posts automatizados para alimentar seu acervo."}
+                    "Todas as imagens geradas já foram publicadas! Crie novos posts para gerar novas imagens."}
                   {activeTab === "used" &&
-                    "As imagens que você usar e publicar no assistente aparecerão marcadas aqui."}
+                    "As imagens que você usar e publicar aparecerão marcadas aqui."}
                   {activeTab === "all" &&
-                    "Gere ideias com o assistente de IA. Todos os conceitos gerados (como do Imagen 4 Ultra) serão salvos aqui automaticamente!"}
+                    "Gere ideias com o assistente de IA. Todos os conceitos gerados serão salvos aqui automaticamente!"}
                 </p>
               </div>
             </div>
@@ -336,14 +481,14 @@ export default function GaleriaPage() {
                       />
 
                       {/* Badge de Status */}
-                      <div className="absolute left-3 top-3 z-10">
-                        {item.usedInPostId === null ? (
+                      <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-1">
+                        {!item.isPublished ? (
                           <Badge className="flex items-center gap-1 rounded-full border-none bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm hover:bg-emerald-600">
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                             Disponível
                           </Badge>
                         ) : (
-                          <Badge className="rounded-full border-none bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm hover:bg-blue-600">
+                          <Badge className="rounded-full border-none bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm hover:bg-blue-700">
                             Publicada
                           </Badge>
                         )}
