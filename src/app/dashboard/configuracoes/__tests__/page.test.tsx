@@ -116,4 +116,27 @@ describe("Configurações da Marca - Gestão de Personas", () => {
     expect(await screen.findByText("Nova Persona da Marca")).toBeInTheDocument();
     expect(screen.getByLabelText(/Nome ou Identificador da Persona/i)).toBeInTheDocument();
   });
+
+  it("renderiza todas as novas opções de logomarca e abre o modal de variação extra", async () => {
+    render(
+      <AuthProvider>
+        <ConfiguracoesPage />
+      </AuthProvider>
+    );
+
+    await screen.findByText("Configurações da Marca");
+
+    expect(screen.getAllByText(/Logo Horizontal/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Logo Vertical/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Logo para Fundo Escuro/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Logo para Fundo Claro/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Logo Secundária/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Outras Variações da Logomarca/i)).toBeInTheDocument();
+
+    const addExtraLogoBtn = screen.getByRole("button", { name: /Adicionar Variação/i });
+    fireEvent.click(addExtraLogoBtn);
+
+    expect(await screen.findByText("Adicionar Variação da Logomarca")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nome \/ Etiqueta da Variação/i)).toBeInTheDocument();
+  });
 });

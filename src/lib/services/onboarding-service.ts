@@ -16,6 +16,22 @@ export interface OnboardingPersona {
   buyingMotivation: string;
 }
 
+export interface OnboardingExtraLogoData extends OnboardingLogoData {
+  id: string;
+  name: string;
+}
+
+export interface OnboardingLogosCollection {
+  horizontal?: OnboardingLogoData;
+  vertical?: OnboardingLogoData;
+  symbol?: OnboardingLogoData;
+  avatar?: OnboardingLogoData;
+  dark?: OnboardingLogoData;
+  light?: OnboardingLogoData;
+  secondary?: OnboardingLogoData;
+  extraLogos?: OnboardingExtraLogoData[];
+}
+
 export interface OnboardingProfileData {
   name: string;
   category: string;
@@ -35,12 +51,7 @@ export interface OnboardingProfileData {
   cnpj?: string;
   cnpjLocked?: boolean;
   hasPendingCnpjRequest?: boolean;
-  logos?: {
-    horizontal?: OnboardingLogoData;
-    vertical?: OnboardingLogoData;
-    symbol?: OnboardingLogoData;
-    avatar?: OnboardingLogoData;
-  };
+  logos?: OnboardingLogosCollection;
   brandKit?: {
     primaryColor?: string;
     secondaryColor?: string;

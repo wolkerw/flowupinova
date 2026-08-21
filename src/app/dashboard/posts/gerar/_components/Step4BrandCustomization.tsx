@@ -83,6 +83,21 @@ export const Step4BrandCustomization = () => {
     if (businessProfile.logos?.vertical?.url) logos.push({ id: 'vertical', url: businessProfile.logos.vertical.url, label: 'Vertical' });
     if (businessProfile.logos?.symbol?.url) logos.push({ id: 'symbol', url: businessProfile.logos.symbol.url, label: 'Símbolo' });
     if (businessProfile.logos?.avatar?.url) logos.push({ id: 'avatar', url: businessProfile.logos.avatar.url, label: 'Avatar' });
+    if (businessProfile.logos?.dark?.url) logos.push({ id: 'dark', url: businessProfile.logos.dark.url, label: 'Fundo Escuro' });
+    if (businessProfile.logos?.light?.url) logos.push({ id: 'light', url: businessProfile.logos.light.url, label: 'Fundo Claro' });
+    if (businessProfile.logos?.secondary?.url) logos.push({ id: 'secondary', url: businessProfile.logos.secondary.url, label: 'Secundária' });
+
+    if (Array.isArray(businessProfile.logos?.extraLogos)) {
+      businessProfile.logos.extraLogos.forEach((extra: any, idx: number) => {
+        if (extra?.url) {
+          logos.push({
+            id: extra.id || `extra_${idx}`,
+            url: extra.url,
+            label: extra.name || `Variação ${idx + 1}`,
+          });
+        }
+      });
+    }
     
     if (logos.length === 0 && businessProfile.logo?.url) {
       logos.push({ id: 'default', url: businessProfile.logo.url, label: 'Principal' });

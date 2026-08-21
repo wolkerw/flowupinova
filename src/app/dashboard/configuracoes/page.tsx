@@ -265,7 +265,7 @@ export default function ConfiguracoesPage() {
 
   const fileInputRefPdf = useRef<HTMLInputElement>(null);
 
-  // Logos Individuais
+  // Logos Individuais e Variações Oficiais
   const [logoHorizontal, setLogoHorizontal] = useState<OnboardingLogoData>({
     url: "",
     width: 0,
@@ -286,15 +286,43 @@ export default function ConfiguracoesPage() {
     width: 0,
     height: 0,
   });
+  const [logoDark, setLogoDark] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [logoLight, setLogoLight] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [logoSecondary, setLogoSecondary] = useState<OnboardingLogoData>({
+    url: "",
+    width: 0,
+    height: 0,
+  });
+  const [extraLogos, setExtraLogos] = useState<
+    { id: string; name: string; url: string; width: number; height: number }[]
+  >([]);
 
   const [uploadingType, setUploadingType] = useState<
-    "horizontal" | "vertical" | "symbol" | "avatar" | null
+    "horizontal" | "vertical" | "symbol" | "avatar" | "dark" | "light" | "secondary" | "extra" | null
   >(null);
 
   const fileInputRefHorizontal = useRef<HTMLInputElement>(null);
   const fileInputRefVertical = useRef<HTMLInputElement>(null);
   const fileInputRefSymbol = useRef<HTMLInputElement>(null);
   const fileInputRefAvatar = useRef<HTMLInputElement>(null);
+  const fileInputRefDark = useRef<HTMLInputElement>(null);
+  const fileInputRefLight = useRef<HTMLInputElement>(null);
+  const fileInputRefSecondary = useRef<HTMLInputElement>(null);
+
+  // Modal para criar nova variação extra de logo
+  const [isExtraLogoModalOpen, setIsExtraLogoModalOpen] = useState(false);
+  const [extraLogoName, setExtraLogoName] = useState("");
+  const [extraLogoFile, setExtraLogoFile] = useState<File | null>(null);
+  const [extraLogoPreview, setExtraLogoPreview] = useState<string | null>(null);
+  const fileInputRefExtraModal = useRef<HTMLInputElement>(null);
 
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropType, setCropType] = useState<"avatar" | null>(null);
@@ -445,6 +473,10 @@ export default function ConfiguracoesPage() {
       setLogoVertical(data.logos?.vertical || { url: "", width: 0, height: 0 });
       setLogoSymbol(data.logos?.symbol || { url: "", width: 0, height: 0 });
       setLogoAvatar(data.logos?.avatar || { url: "", width: 0, height: 0 });
+      setLogoDark(data.logos?.dark || { url: "", width: 0, height: 0 });
+      setLogoLight(data.logos?.light || { url: "", width: 0, height: 0 });
+      setLogoSecondary(data.logos?.secondary || { url: "", width: 0, height: 0 });
+      setExtraLogos(data.logos?.extraLogos || []);
       setVisualGuidelines(data.brandKit?.visualGuidelines || "");
       setPdfManualPath(data.brandKit?.pdfManualPath || "");
       setPdfManualUrl(data.brandKit?.pdfManualUrl || "");
@@ -501,7 +533,7 @@ export default function ConfiguracoesPage() {
 
   const handleLogoUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    type: "horizontal" | "vertical" | "symbol" | "avatar"
+    type: "horizontal" | "vertical" | "symbol" | "avatar" | "dark" | "light" | "secondary"
   ) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -530,10 +562,20 @@ export default function ConfiguracoesPage() {
 
   const performUpload = async (
     file: File,
-    type: "horizontal" | "vertical" | "symbol" | "avatar"
+    type: "horizontal" | "vertical" | "symbol" | "avatar" | "dark" | "light" | "secondary"
   ) => {
     setUploadingType(type);
-    toast({ title: `Enviando logo ${type}...`, description: "Aguarde a conclusão do upload." });
+    const typeLabelMap: Record<string, string> = {
+      horizontal: "Horizontal",
+      vertical: "Vertical",
+      symbol: "Símbolo",
+      avatar: "Avatar",
+      dark: "Fundo Escuro",
+      light: "Fundo Claro",
+      secondary: "Secundária",
+    };
+    const label = typeLabelMap[type] || type;
+    toast({ title: `Enviando logo ${label}...`, description: "Aguarde a conclusão do upload." });
 
     if (!user) return;
     try {
@@ -555,7 +597,6 @@ export default function ConfiguracoesPage() {
         setLogoVertical(newLogo);
       } else if (type === "horizontal") {
         setLogoHorizontal(newLogo);
-        // Se não houver vertical salva, usamos a horizontal como a logo principal
         if (!logoVertical.url) {
           logoPrincipal = newLogo;
         }
@@ -563,6 +604,12 @@ export default function ConfiguracoesPage() {
         setLogoSymbol(newLogo);
       } else if (type === "avatar") {
         setLogoAvatar(newLogo);
+      } else if (type === "dark") {
+        setLogoDark(newLogo);
+      } else if (type === "light") {
+        setLogoLight(newLogo);
+      } else if (type === "secondary") {
+        setLogoSecondary(newLogo);
       }
 
       await updateOnboardingProfile(user.uid, {
@@ -572,6 +619,10 @@ export default function ConfiguracoesPage() {
           vertical: type === "vertical" ? newLogo : logoVertical,
           symbol: type === "symbol" ? newLogo : logoSymbol,
           avatar: type === "avatar" ? newLogo : logoAvatar,
+          dark: type === "dark" ? newLogo : logoDark,
+          light: type === "light" ? newLogo : logoLight,
+          secondary: type === "secondary" ? newLogo : logoSecondary,
+          extraLogos: extraLogos,
         },
       });
 
@@ -579,7 +630,7 @@ export default function ConfiguracoesPage() {
       await loadProfile();
       toast({
         title: "Sucesso!",
-        description: `Logomarca ${type} salva com sucesso.`,
+        description: `Logomarca (${label}) salva com sucesso.`,
         variant: "success",
       });
     } catch (error: any) {
@@ -590,10 +641,12 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  const handleRemoveLogo = async (type: "horizontal" | "vertical" | "symbol" | "avatar") => {
+  const handleRemoveLogo = async (
+    type: "horizontal" | "vertical" | "symbol" | "avatar" | "dark" | "light" | "secondary"
+  ) => {
     if (!user) return;
     setUploadingType(type);
-    toast({ title: `Removendo logo ${type}...` });
+    toast({ title: `Removendo logo...` });
 
     try {
       const emptyLogo: OnboardingLogoData = { url: "", width: 0, height: 0 };
@@ -603,11 +656,9 @@ export default function ConfiguracoesPage() {
 
       if (type === "vertical") {
         setLogoVertical(emptyLogo);
-        // Se remover a vertical, a logo principal vira a horizontal (se houver), ou limpa
         logoPrincipal = logoHorizontal.url ? logoHorizontal : emptyLogo;
       } else if (type === "horizontal") {
         setLogoHorizontal(emptyLogo);
-        // Se a logo principal era a horizontal e foi removida, a logo principal vira a vertical (se houver)
         if (logoPrincipal.url === logoHorizontal.url) {
           logoPrincipal = logoVertical.url ? logoVertical : emptyLogo;
         }
@@ -615,6 +666,12 @@ export default function ConfiguracoesPage() {
         setLogoSymbol(emptyLogo);
       } else if (type === "avatar") {
         setLogoAvatar(emptyLogo);
+      } else if (type === "dark") {
+        setLogoDark(emptyLogo);
+      } else if (type === "light") {
+        setLogoLight(emptyLogo);
+      } else if (type === "secondary") {
+        setLogoSecondary(emptyLogo);
       }
 
       await updateOnboardingProfile(user.uid, {
@@ -624,16 +681,108 @@ export default function ConfiguracoesPage() {
           vertical: type === "vertical" ? emptyLogo : logoVertical,
           symbol: type === "symbol" ? emptyLogo : logoSymbol,
           avatar: type === "avatar" ? emptyLogo : logoAvatar,
+          dark: type === "dark" ? emptyLogo : logoDark,
+          light: type === "light" ? emptyLogo : logoLight,
+          secondary: type === "secondary" ? emptyLogo : logoSecondary,
+          extraLogos: extraLogos,
         },
       });
 
       await loadProfile();
-      toast({ title: "Sucesso!", description: `Logomarca ${type} removida.`, variant: "success" });
+      toast({ title: "Sucesso!", description: `Logomarca removida.`, variant: "success" });
     } catch (error: any) {
       console.error(`Erro ao remover logo ${type}:`, error);
       toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
     } finally {
       setUploadingType(null);
+    }
+  };
+
+  const handleAddExtraLogo = async () => {
+    if (!user || !extraLogoFile) return;
+    if (!extraLogoName.trim()) {
+      toast({
+        title: "Nome Obrigatório",
+        description: "Informe um nome ou etiqueta para esta variação da logomarca.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingType("extra");
+    try {
+      const userStoragePath = getUserStoragePathClient(user);
+      const storageRef = ref(storage, `${userStoragePath}/logos/extra_${Date.now()}`);
+      const uploadResult = await uploadBytes(storageRef, extraLogoFile);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+      const { width, height } = await getImageDimensions(extraLogoFile);
+
+      const newExtraItem = {
+        id: `extra_${Date.now()}`,
+        name: extraLogoName.trim(),
+        url: downloadUrl,
+        width,
+        height,
+      };
+
+      const updatedExtraLogos = [...extraLogos, newExtraItem];
+      setExtraLogos(updatedExtraLogos);
+
+      await updateOnboardingProfile(user.uid, {
+        logos: {
+          horizontal: logoHorizontal,
+          vertical: logoVertical,
+          symbol: logoSymbol,
+          avatar: logoAvatar,
+          dark: logoDark,
+          light: logoLight,
+          secondary: logoSecondary,
+          extraLogos: updatedExtraLogos,
+        },
+      });
+
+      setIsExtraLogoModalOpen(false);
+      setExtraLogoName("");
+      setExtraLogoFile(null);
+      setExtraLogoPreview(null);
+      await loadProfile();
+      toast({
+        title: "Sucesso!",
+        description: `Variação "${newExtraItem.name}" adicionada com sucesso.`,
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Erro ao adicionar variação extra:", error);
+      toast({ title: "Erro de Upload", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingType(null);
+    }
+  };
+
+  const handleRemoveExtraLogo = async (id: string) => {
+    if (!user) return;
+    const target = extraLogos.find((l) => l.id === id);
+    if (confirm(`Tem certeza que deseja remover a variação "${target?.name || "Logo Extra"}"?`)) {
+      const updated = extraLogos.filter((l) => l.id !== id);
+      setExtraLogos(updated);
+      try {
+        await updateOnboardingProfile(user.uid, {
+          logos: {
+            horizontal: logoHorizontal,
+            vertical: logoVertical,
+            symbol: logoSymbol,
+            avatar: logoAvatar,
+            dark: logoDark,
+            light: logoLight,
+            secondary: logoSecondary,
+            extraLogos: updated,
+          },
+        });
+        toast({ title: "Variação Removida", description: "Variação excluída com sucesso.", variant: "success" });
+        await loadProfile();
+      } catch (error: any) {
+        toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      }
     }
   };
 
@@ -804,6 +953,9 @@ export default function ConfiguracoesPage() {
       let finalLogoVertical = { ...logoVertical };
       let finalLogoSymbol = { ...logoSymbol };
       let finalLogoAvatar = { ...logoAvatar };
+      let finalLogoDark = { ...logoDark };
+      let finalLogoLight = { ...logoLight };
+      let finalLogoSecondary = { ...logoSecondary };
 
       if (logoHorizontal.url && logoHorizontal.url.startsWith("data:image")) {
         toast({ title: "Migrando logo horizontal..." });
@@ -828,6 +980,21 @@ export default function ConfiguracoesPage() {
         const url = await uploadBase64ToStorage(logoAvatar.url, "avatar");
         finalLogoAvatar.url = url;
         setLogoAvatar(finalLogoAvatar);
+      }
+      if (logoDark.url && logoDark.url.startsWith("data:image")) {
+        const url = await uploadBase64ToStorage(logoDark.url, "dark");
+        finalLogoDark.url = url;
+        setLogoDark(finalLogoDark);
+      }
+      if (logoLight.url && logoLight.url.startsWith("data:image")) {
+        const url = await uploadBase64ToStorage(logoLight.url, "light");
+        finalLogoLight.url = url;
+        setLogoLight(finalLogoLight);
+      }
+      if (logoSecondary.url && logoSecondary.url.startsWith("data:image")) {
+        const url = await uploadBase64ToStorage(logoSecondary.url, "secondary");
+        finalLogoSecondary.url = url;
+        setLogoSecondary(finalLogoSecondary);
       }
 
       // Sincronização inteligente de segurança para a logo principal
@@ -866,6 +1033,10 @@ export default function ConfiguracoesPage() {
             vertical: finalLogoVertical,
             symbol: finalLogoSymbol,
             avatar: finalLogoAvatar,
+            dark: finalLogoDark,
+            light: finalLogoLight,
+            secondary: finalLogoSecondary,
+            extraLogos: extraLogos,
           },
           brandKit: {
             ...profile?.brandKit,
@@ -1347,6 +1518,262 @@ export default function ConfiguracoesPage() {
                       )}
                       Enviar Símbolo da Marca
                     </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Logo para Fundo Escuro / Negativa */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Logo para Fundo Escuro (Versão Branca / Negativa)
+                </Label>
+                {logoDark.url ? (
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-slate-900 p-1">
+                        <img
+                          src={logoDark.url}
+                          alt="Logo Fundo Escuro"
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Fundo Escuro Salva
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoDark.width}x{logoDark.height}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-red-500 hover:bg-red-50"
+                      onClick={() => handleRemoveLogo("dark")}
+                      disabled={uploadingType !== null}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRefDark}
+                      className="hidden"
+                      onChange={(e) => handleLogoUpload(e, "dark")}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-dashed"
+                      onClick={() => fileInputRefDark.current?.click()}
+                      disabled={uploadingType !== null}
+                    >
+                      {uploadingType === "dark" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                      )}
+                      Enviar Logo Fundo Escuro
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Logo para Fundo Claro / Positiva */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Logo para Fundo Claro (Versão Escura / Positiva)
+                </Label>
+                {logoLight.url ? (
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                        <img
+                          src={logoLight.url}
+                          alt="Logo Fundo Claro"
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Fundo Claro Salva
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoLight.width}x{logoLight.height}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-red-500 hover:bg-red-50"
+                      onClick={() => handleRemoveLogo("light")}
+                      disabled={uploadingType !== null}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRefLight}
+                      className="hidden"
+                      onChange={(e) => handleLogoUpload(e, "light")}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-dashed"
+                      onClick={() => fileInputRefLight.current?.click()}
+                      disabled={uploadingType !== null}
+                    >
+                      {uploadingType === "light" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                      )}
+                      Enviar Logo Fundo Claro
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Logo Secundária / Compacta */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Logo Secundária (Versão Alternativa / Reduzida)
+                </Label>
+                {logoSecondary.url ? (
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50/40 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                        <img
+                          src={logoSecondary.url}
+                          alt="Logo Secundária"
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-green-800">
+                          Secundária Salva
+                        </p>
+                        <p className="text-[10px] text-green-700">
+                          {logoSecondary.width}x{logoSecondary.height}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-red-500 hover:bg-red-50"
+                      onClick={() => handleRemoveLogo("secondary")}
+                      disabled={uploadingType !== null}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRefSecondary}
+                      className="hidden"
+                      onChange={(e) => handleLogoUpload(e, "secondary")}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-dashed"
+                      onClick={() => fileInputRefSecondary.current?.click()}
+                      disabled={uploadingType !== null}
+                    >
+                      {uploadingType === "secondary" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                      )}
+                      Enviar Logo Secundária
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* 7. Variações Extras Personalizadas */}
+              <div className="space-y-3 border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-800">
+                      Outras Variações da Logomarca
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Selos comemorativos, versões com slogan, etc.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setExtraLogoName("");
+                      setExtraLogoFile(null);
+                      setExtraLogoPreview(null);
+                      setIsExtraLogoModalOpen(true);
+                    }}
+                    className="h-8 border-primary/40 text-xs font-semibold text-primary hover:bg-primary/5"
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Adicionar Variação
+                  </Button>
+                </div>
+
+                {extraLogos && extraLogos.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {extraLogos.map((extra) => (
+                      <div
+                        key={extra.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative flex h-9 w-12 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                            <img
+                              src={extra.url}
+                              alt={extra.name}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-slate-800">
+                              {extra.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {extra.width}x{extra.height}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-red-500 hover:bg-red-50"
+                          onClick={() => handleRemoveExtraLogo(extra.id)}
+                          disabled={uploadingType !== null}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma variação extra cadastrada.
+                    </p>
                   </div>
                 )}
               </div>
@@ -2377,6 +2804,130 @@ export default function ConfiguracoesPage() {
               className="bg-primary text-white hover:bg-primary/90"
             >
               {editingPersonaIndex !== null ? "Salvar Alterações" : "Adicionar Persona"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Adicionar Variação Extra da Logo */}
+      <Dialog open={isExtraLogoModalOpen} onOpenChange={setIsExtraLogoModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              Adicionar Variação da Logomarca
+            </DialogTitle>
+            <DialogDescription>
+              Cadastre uma versão específica da sua logomarca (ex: Versão Dourada, Selo 10 Anos, Logo com Slogan).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="extra-logo-name" className="text-xs font-bold text-slate-700">
+                Nome / Etiqueta da Variação <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="extra-logo-name"
+                placeholder="Ex: Selo 10 Anos / Versão Dourada / Logo com Slogan"
+                value={extraLogoName}
+                onChange={(e) => setExtraLogoName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-700">
+                Arquivo da Imagem <span className="text-red-500">*</span>
+              </Label>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRefExtraModal}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setExtraLogoFile(file);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setExtraLogoPreview(ev.target?.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+
+              {extraLogoPreview ? (
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded border bg-white p-1">
+                      <img
+                        src={extraLogoPreview}
+                        alt="Preview da Logo"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-slate-800">
+                        {extraLogoFile?.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {((extraLogoFile?.size || 0) / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRefExtraModal.current?.click()}
+                    className="text-xs"
+                  >
+                    Trocar
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed py-6"
+                  onClick={() => fileInputRefExtraModal.current?.click()}
+                >
+                  <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+                  Selecionar Imagem da Logomarca
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsExtraLogoModalOpen(false);
+                setExtraLogoFile(null);
+                setExtraLogoPreview(null);
+                setExtraLogoName("");
+              }}
+              disabled={uploadingType === "extra"}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAddExtraLogo}
+              disabled={uploadingType === "extra" || !extraLogoFile || !extraLogoName.trim()}
+              className="bg-primary text-white hover:bg-primary/90"
+            >
+              {uploadingType === "extra" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                "Salvar Variação"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
