@@ -5,10 +5,21 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
-    const { summary, businessProfile } = await request.json();
+    const { summary, businessProfile, selectedPersona: explicitPersona } = await request.json();
 
     if (!summary) {
       return NextResponse.json({ error: "Resumo/tema não enviado" }, { status: 400 });
+    }
+
+    let selectedPersona = explicitPersona;
+    if (
+      (!selectedPersona || selectedPersona === "all") &&
+      businessProfile?.brandKit?.selectedPersonaStrategy &&
+      businessProfile.brandKit.selectedPersonaStrategy !== "all"
+    ) {
+      selectedPersona = businessProfile.brandKit.personas?.find(
+        (p: any) => p.name === businessProfile.brandKit.selectedPersonaStrategy
+      ) || null;
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

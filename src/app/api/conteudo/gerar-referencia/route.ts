@@ -226,6 +226,17 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          if (
+            (!lockedPersona || lockedPersona === "all") &&
+            brandKit?.selectedPersonaStrategy &&
+            brandKit.selectedPersonaStrategy !== "all"
+          ) {
+            lockedPersona =
+              brandKit.personas?.find(
+                (p: any) => p.name === brandKit.selectedPersonaStrategy
+              ) || null;
+          }
+
           if (lockedPersona && typeof lockedPersona === "object") {
             parts.push(`- **PERSONA COMPRADORA ALVO TRAVADA PARA ESTA GERAÇÃO (FOCO EXCLUSIVO)**:
     * Nome da Persona: ${lockedPersona.name || "Persona Alvo"}

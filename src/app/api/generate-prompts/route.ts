@@ -281,10 +281,21 @@ Return the description strictly in YAML format:
       if (stylisticPreferences)
         memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
-      const lockedPersona =
+      let lockedPersona =
         selectedPersona && selectedPersona !== "all" && typeof selectedPersona === "object"
           ? selectedPersona
           : null;
+
+      if (
+        (!lockedPersona || lockedPersona === "all") &&
+        brandKit?.selectedPersonaStrategy &&
+        brandKit.selectedPersonaStrategy !== "all"
+      ) {
+        lockedPersona =
+          brandKit.personas?.find(
+            (p: any) => p.name === brandKit.selectedPersonaStrategy
+          ) || null;
+      }
 
       if (lockedPersona) {
         memoryText += `- TARGET BUYER PERSONA LOCKED BY USER (EXCLUSIVE TARGET FOCUS): Name: "${lockedPersona.name || "Target Persona"}" | Profile: "${lockedPersona.profile || "N/A"}" | Pain Points to Address: "${lockedPersona.painPoints || "N/A"}" | Buying Motivation: "${lockedPersona.buyingMotivation || "N/A"}"\n`;
