@@ -52,6 +52,8 @@ import {
   Compass,
   Smile,
   Palette,
+  Plus,
+  Pencil,
 } from "lucide-react";
 import Image from "next/image";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
@@ -145,6 +147,87 @@ export default function ConfiguracoesPage() {
   const [complementaryColor, setComplementaryColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [personas, setPersonas] = useState<OnboardingPersona[]>([]);
+
+  // Estados e Handlers para Gestão Interativa de Personas
+  const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
+  const [editingPersonaIndex, setEditingPersonaIndex] = useState<number | null>(null);
+  const [personaName, setPersonaName] = useState("");
+  const [personaProfile, setPersonaProfile] = useState("");
+  const [personaPainPoints, setPersonaPainPoints] = useState("");
+  const [personaBuyingMotivation, setPersonaBuyingMotivation] = useState("");
+
+  const handleOpenAddPersona = () => {
+    setEditingPersonaIndex(null);
+    setPersonaName("");
+    setPersonaProfile("");
+    setPersonaPainPoints("");
+    setPersonaBuyingMotivation("");
+    setIsPersonaModalOpen(true);
+  };
+
+  const handleOpenEditPersona = (index: number) => {
+    const target = personas[index];
+    if (!target) return;
+    setEditingPersonaIndex(index);
+    setPersonaName(target.name || "");
+    setPersonaProfile(target.profile || "");
+    setPersonaPainPoints(target.painPoints || "");
+    setPersonaBuyingMotivation(target.buyingMotivation || "");
+    setIsPersonaModalOpen(true);
+  };
+
+  const handleSavePersona = () => {
+    if (!personaName.trim()) {
+      toast({
+        title: "Nome Obrigatório",
+        description: "Por favor, informe o nome ou identificador da persona.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedPersona: OnboardingPersona = {
+      name: personaName.trim(),
+      profile: personaProfile.trim() || "Cliente Ideal",
+      painPoints: personaPainPoints.trim() || "",
+      buyingMotivation: personaBuyingMotivation.trim() || "",
+    };
+
+    if (editingPersonaIndex !== null && editingPersonaIndex >= 0) {
+      setPersonas((prev) => {
+        const next = [...prev];
+        next[editingPersonaIndex] = updatedPersona;
+        return next;
+      });
+      toast({
+        title: "Persona Atualizada!",
+        description: `As informações de ${updatedPersona.name} foram atualizadas com sucesso. Clique em 'Salvar Alterações' no topo para persistir.`,
+        variant: "success",
+      });
+    } else {
+      setPersonas((prev) => [...prev, updatedPersona]);
+      toast({
+        title: "Persona Adicionada!",
+        description: `${updatedPersona.name} foi adicionada às personas da sua marca. Clique em 'Salvar Alterações' no topo para persistir.`,
+        variant: "success",
+      });
+    }
+
+    setIsPersonaModalOpen(false);
+  };
+
+  const handleRemovePersona = (index: number) => {
+    const target = personas[index];
+    const personaLabel = target?.name || `Persona ${index + 1}`;
+    if (confirm(`Tem certeza que deseja remover a persona "${personaLabel}"?`)) {
+      setPersonas((prev) => prev.filter((_, i) => i !== index));
+      toast({
+        title: "Persona Removida",
+        description: `A persona "${personaLabel}" foi removida. Clique em 'Salvar Alterações' para persistir.`,
+        variant: "success",
+      });
+    }
+  };
 
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [pdfProgressText, setPdfProgressText] = useState("");
@@ -1677,55 +1760,120 @@ export default function ConfiguracoesPage() {
 
           {/* Personas do Negócio */}
           <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5 text-primary" />
-                Personas da Marca
-              </CardTitle>
-              <CardDescription>
-                Perfis de compradores ideais mapeados a partir do manual da agência
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                  Personas da Marca
+                </CardTitle>
+                <CardDescription>
+                  Perfis de compradores ideais que orientam a criação de conteúdo da IA
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleOpenAddPersona}
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5 hover:text-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Persona
+              </Button>
             </CardHeader>
             <CardContent>
               {personas.length === 0 ? (
-                <div className="rounded-lg border border-dashed bg-slate-50/50 p-6 text-center text-sm text-muted-foreground">
-                  <p className="font-semibold">Nenhuma persona cadastrada.</p>
-                  <p className="mt-1 text-xs">
-                    Envie o manual de branding em PDF para que nossa IA mapeie e gere os perfis de
-                    compradores ideais automaticamente!
+                <div className="rounded-lg border border-dashed bg-slate-50/50 p-8 text-center text-sm text-muted-foreground">
+                  <Users className="mx-auto h-8 w-8 text-slate-400 mb-2 opacity-50" />
+                  <p className="font-semibold text-slate-700">Nenhuma persona cadastrada.</p>
+                  <p className="mt-1 text-xs max-w-md mx-auto">
+                    Cadastre suas personas manualmente ou envie o manual de branding em PDF para orientar as publicações da inteligência artificial.
                   </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleOpenAddPersona}
+                    className="mt-4 gap-1.5 bg-primary text-white hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Primeira Persona
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {personas.map((persona, index) => (
                     <div
-                      key={persona.name || index}
-                      className="relative space-y-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4 transition-all hover:shadow-sm"
+                      key={`${persona.name || "persona"}_${index}`}
+                      className="group relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-primary/40 hover:shadow-md"
                     >
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-bold text-slate-800">
-                          {persona.name || `Persona ${index + 1}`}
-                        </h4>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                          {persona.profile || "Colaborador"}
-                        </p>
-                      </div>
-                      <div className="space-y-2 border-t pt-2 text-xs text-slate-600">
-                        <div>
-                          <strong className="block text-[10px] uppercase text-slate-700">
-                            Desafios/Dores:
-                          </strong>
-                          <p className="mt-0.5 line-clamp-3 leading-relaxed">
-                            {persona.painPoints || "Sem descrição"}
-                          </p>
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1 pr-2">
+                            <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                              {persona.name || `Persona ${index + 1}`}
+                            </h4>
+                            <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                              {persona.profile || "Cliente Ideal"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                                    onClick={() => handleOpenEditPersona(index)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar persona</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleRemovePersona(index)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remover persona</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
-                        <div>
-                          <strong className="block text-[10px] uppercase text-slate-700">
-                            Motivação de Compra:
-                          </strong>
-                          <p className="mt-0.5 line-clamp-3 leading-relaxed">
-                            {persona.buyingMotivation || "Sem descrição"}
-                          </p>
+
+                        <div className="space-y-2 border-t pt-2 text-xs text-slate-600">
+                          {persona.painPoints && (
+                            <div>
+                              <strong className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                                Desafios / Dores:
+                              </strong>
+                              <p className="mt-0.5 line-clamp-3 leading-relaxed text-slate-700">
+                                {persona.painPoints}
+                              </p>
+                            </div>
+                          )}
+                          {persona.buyingMotivation && (
+                            <div>
+                              <strong className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                                Motivação de Compra:
+                              </strong>
+                              <p className="mt-0.5 line-clamp-3 leading-relaxed text-slate-700">
+                                {persona.buyingMotivation}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2017,6 +2165,99 @@ export default function ConfiguracoesPage() {
               onClick={handleAcceptExtractedBranding}
             >
               Aplicar ao Meu Negócio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Adicionar / Editar Persona */}
+      <Dialog open={isPersonaModalOpen} onOpenChange={setIsPersonaModalOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              {editingPersonaIndex !== null ? "Editar Persona da Marca" : "Nova Persona da Marca"}
+            </DialogTitle>
+            <DialogDescription>
+              Defina o perfil de cliente comprador ideal que orientará os textos, temas e imagens gerados pela inteligência artificial.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="persona-name" className="text-xs font-bold text-slate-700">
+                Nome ou Identificador da Persona <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="persona-name"
+                placeholder="Ex: Mariana Silva - Gerente de RH"
+                value={personaName}
+                onChange={(e) => setPersonaName(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Um nome representativo para identificar facilmente este perfil.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="persona-profile" className="text-xs font-bold text-slate-700">
+                Perfil / Cargo / Segmento
+              </Label>
+              <Input
+                id="persona-profile"
+                placeholder="Ex: Decisora B2B / Consumidor Final / Profissional Liberal"
+                value={personaProfile}
+                onChange={(e) => setPersonaProfile(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="persona-pain-points" className="text-xs font-bold text-slate-700">
+                Desafios, Dores e Frustrações
+              </Label>
+              <Textarea
+                id="persona-pain-points"
+                placeholder="Ex: Falta de tempo, processos manuais lentos, custos ocultos, insegurança..."
+                value={personaPainPoints}
+                onChange={(e) => setPersonaPainPoints(e.target.value)}
+                rows={3}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                O que tira o sono deste cliente e que o seu produto/serviço soluciona.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="persona-buying-motivation" className="text-xs font-bold text-slate-700">
+                Motivação de Compra / O que Busca
+              </Label>
+              <Textarea
+                id="persona-buying-motivation"
+                placeholder="Ex: Busca agilidade comprovada, atendimento humanizado, bom custo-benefício e segurança..."
+                value={personaBuyingMotivation}
+                onChange={(e) => setPersonaBuyingMotivation(e.target.value)}
+                rows={3}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                O que faz esse cliente decidir fechar negócio com a sua empresa.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsPersonaModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSavePersona}
+              className="bg-primary text-white hover:bg-primary/90"
+            >
+              {editingPersonaIndex !== null ? "Salvar Alterações" : "Adicionar Persona"}
             </Button>
           </DialogFooter>
         </DialogContent>
