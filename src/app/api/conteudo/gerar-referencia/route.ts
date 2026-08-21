@@ -214,7 +214,27 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          if (brandKit.personas && brandKit.personas.length > 0) {
+          const personaParam =
+            (formData.get("selected_persona") as string) ||
+            (formData.get("selectedPersona") as string);
+          let lockedPersona: any = null;
+          if (personaParam) {
+            try {
+              lockedPersona = JSON.parse(personaParam);
+            } catch {
+              lockedPersona = personaParam;
+            }
+          }
+
+          if (lockedPersona && typeof lockedPersona === "object") {
+            parts.push(`- **PERSONA COMPRADORA ALVO TRAVADA PARA ESTA GERAÇÃO (FOCO EXCLUSIVO)**:
+    * Nome da Persona: ${lockedPersona.name || "Persona Alvo"}
+    * Perfil/Segmento: ${lockedPersona.profile || "N/A"}
+    * Dores/Desafios deste Cliente: ${lockedPersona.painPoints || "N/A"}
+    * Motivação de Compra deste Cliente: ${lockedPersona.buyingMotivation || "N/A"}
+
+    REGRA DE FOCO VISUAL: A composição visual deve ser projetada para atrair a atenção e dialogar com o universo deste comprador alvo (${lockedPersona.name || "Cliente Alvo"}).`);
+          } else if (brandKit.personas && brandKit.personas.length > 0) {
             const personasInfo = brandKit.personas
               .map((p: any, idx: number) => {
                 return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):

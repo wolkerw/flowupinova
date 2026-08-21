@@ -61,6 +61,33 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
+const genericPersonaPresets = [
+  {
+    name: "Pequenos Empresários / Empreendedores",
+    profile: "Donos de pequenos e médios negócios (PMEs) / Comerciantes",
+    painPoints: "Falta de tempo para divulgação, processos manuais, necessidade de aumentar vendas com controle de custos.",
+    buyingMotivation: "Praticidade comprovada, soluções ágeis, bom custo-benefício e suporte de confiança.",
+  },
+  {
+    name: "Consumidores Finais (B2C)",
+    profile: "Clientes residenciais e compradores em busca de comodidade e qualidade",
+    painPoints: "Incerteza na escolha, mau atendimento em outros locais, falta de clareza nos preços e prazos demorados.",
+    buyingMotivation: "Atendimento humanizado, transparência, segurança, qualidade superior e recomendação positiva.",
+  },
+  {
+    name: "Gestores e Decisores Corporativos (B2B)",
+    profile: "Diretores, gerentes e tomadores de decisão em empresas",
+    painPoints: "Gargalos operacionais, relatórios inconsistentes, pressão por eficiência e cumprimento de prazos rígidos.",
+    buyingMotivation: "Confiabilidade técnica, facilidade de integração, escalabilidade e garantia de resultados.",
+  },
+  {
+    name: "Profissionais Liberais e Autônomos",
+    profile: "Especialistas, consultores, advogados, médicos e prestadores de serviços",
+    painPoints: "Sobrecarga de rotinas operacionais, dificuldade em conciliar execução técnica com atração de clientes.",
+    buyingMotivation: "Otimização de tempo, posicionamento de autoridade no mercado e facilidade de uso.",
+  },
+];
+
 const presetPalettes = [
   {
     name: "Elegante & Minimalista",
@@ -2184,6 +2211,30 @@ export default function ConfiguracoesPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-3">
+            {/* Atalhos de Predefinições Genéricas */}
+            <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
+                Preencher com modelo abrangente sugerido:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {genericPersonaPresets.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setPersonaName(preset.name);
+                      setPersonaProfile(preset.profile);
+                      setPersonaPainPoints(preset.painPoints);
+                      setPersonaBuyingMotivation(preset.buyingMotivation);
+                    }}
+                    className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+                  >
+                    + {preset.name.split("/")[0].trim()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="persona-name" className="text-xs font-bold text-slate-700">
                 Nome ou Identificador da Persona <span className="text-red-500">*</span>

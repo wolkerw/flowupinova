@@ -833,6 +833,9 @@ export const Step1Idea = () => {
     setProductWorkflow,
     layoutStyle,
     setLayoutStyle,
+    businessProfile,
+    selectedPersona,
+    setSelectedPersona,
   } = useWizard();
 
   const hideImageOption = mode === "concept";
@@ -1298,7 +1301,74 @@ export const Step1Idea = () => {
           )}
 
           {mode !== "reference-photo" && !isHybridMode && (
-            <div className="space-y-2 border-t pt-4">
+            <div className="space-y-3 border-t pt-4">
+              {/* Seletor e Trava de Personas da Marca */}
+              {businessProfile?.brandKit?.personas && businessProfile.brandKit.personas.length > 0 && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                      <User className="h-4 w-4 text-primary" />
+                      <span>Persona Alvo / Foco da IA:</span>
+                    </div>
+                    {selectedPersona && selectedPersona !== "all" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        🔒 Persona Travada para esta Criação
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPersona("all")}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        selectedPersona === "all" || !selectedPersona
+                          ? "bg-primary text-white shadow-sm"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      ✨ Todas as Personas da Marca
+                    </button>
+
+                    {businessProfile.brandKit.personas.map((p, idx) => {
+                      const isSelected =
+                        typeof selectedPersona === "object" &&
+                        selectedPersona !== null &&
+                        (selectedPersona.name === p.name || (selectedPersona as any).id === (p as any).id);
+
+                      return (
+                        <button
+                          key={p.name || idx}
+                          type="button"
+                          onClick={() => setSelectedPersona(p)}
+                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                            isSelected
+                              ? "bg-slate-900 text-white shadow-sm ring-2 ring-primary/40"
+                              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{p.name}</span>
+                          {isSelected && <span className="text-[10px] text-emerald-400">🔒</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {typeof selectedPersona === "object" && selectedPersona !== null && (
+                    <div className="rounded-lg bg-white/80 p-2.5 text-[11px] text-slate-600 border border-blue-100/80 space-y-1">
+                      <p>
+                        <strong className="text-slate-800">Perfil:</strong> {selectedPersona.profile || "Público-Alvo"}
+                      </p>
+                      {selectedPersona.painPoints && (
+                        <p>
+                          <strong className="text-slate-800">Dores focadas:</strong> {selectedPersona.painPoints}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Label className="text-base font-semibold">
                 {isLinkMode ? "Ideia do Conteúdo / Promoção" : "Ideia do Conteúdo"}
               </Label>

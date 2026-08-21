@@ -34,12 +34,21 @@ export async function POST(request: Request) {
     let layoutStyle = "CLEAN_LUXURY";
 
     const contentType = request.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data")) {
+    let selectedPersona: any = null;
+    if (contentType?.includes("multipart/form-data")) {
       const formData = await request.formData();
       const contentStr = formData.get("content") as string;
       if (contentStr) selContent = JSON.parse(contentStr);
       const profileStr = formData.get("businessProfile") as string;
       if (profileStr) businessProfile = JSON.parse(profileStr);
+      const personaStr = formData.get("selectedPersona") as string;
+      if (personaStr) {
+        try {
+          selectedPersona = JSON.parse(personaStr);
+        } catch {
+          selectedPersona = personaStr;
+        }
+      }
       userId = (formData.get("userId") as string) || "";
       inspirationFile = formData.get("inspiration_file") as File | null;
       if (formData.has("insertTextOnImage")) {
@@ -52,6 +61,7 @@ export async function POST(request: Request) {
       const body = await request.json();
       selContent = body.content;
       businessProfile = body.businessProfile;
+      selectedPersona = body.selectedPersona;
       userId = body.userId;
       if (body.insertTextOnImage !== undefined) {
         insertTextOnImage = body.insertTextOnImage;
@@ -271,7 +281,14 @@ Return the description strictly in YAML format:
       if (stylisticPreferences)
         memoryText += `- Stylistic and Visual Preferences: ${stylisticPreferences}\n`;
 
-      if (brandKit?.personas && brandKit.personas.length > 0) {
+      const lockedPersona =
+        selectedPersona && selectedPersona !== "all" && typeof selectedPersona === "object"
+          ? selectedPersona
+          : null;
+
+      if (lockedPersona) {
+        memoryText += `- TARGET BUYER PERSONA LOCKED BY USER (EXCLUSIVE TARGET FOCUS): Name: "${lockedPersona.name || "Target Persona"}" | Profile: "${lockedPersona.profile || "N/A"}" | Pain Points to Address: "${lockedPersona.painPoints || "N/A"}" | Buying Motivation: "${lockedPersona.buyingMotivation || "N/A"}"\n`;
+      } else if (brandKit?.personas && brandKit.personas.length > 0) {
         const personasText = brandKit.personas
           .map((p: any, idx: number) => `Target Persona ${idx + 1}: ${p.name || "Client"} (${p.profile || "N/A"}) - Pains: ${p.painPoints || "N/A"}`)
           .join(" | ");

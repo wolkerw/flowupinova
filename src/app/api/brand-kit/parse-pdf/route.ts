@@ -92,15 +92,15 @@ Você DEVE responder obrigatoriamente no formato JSON abaixo, contendo exatament
   },
   "personas": [
     {
-      "name": "Nome fictício ou representativo da Persona (ex: Eng. Carlos, Gerente Ana)",
-      "profile": "Perfil profissional, demográfico e hábitos da persona no contexto de compra",
-      "painPoints": "Desafios, dores, problemas ou gargalos que a persona enfrenta e que o negócio ajuda a resolver",
-      "buyingMotivation": "O que motiva essa persona a fechar contrato ou comprar da marca (ex: segurança, homologação rápida)"
+      "name": "Nome representativo e abrangente da Persona (ex: Pequenos Empresários / Empreendedores, Gestores e Decisores B2B, Consumidores Finais)",
+      "profile": "Perfil profissional ou segmento da persona no contexto amplo de compra da marca",
+      "painPoints": "Desafios, dores e gargalos reais que a persona enfrenta e que o negócio do usuário ajuda a solucionar",
+      "buyingMotivation": "O que motiva essa persona a fechar negócio e comprar da marca (ex: praticidade, redução de custos, atendimento humanizado, segurança)"
     }
   ]
 }
 
-Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 perfis identificados ou inferidos a partir do público-alvo no manual.`;
+Atenção especial: O array de personas deve conter no mínimo 1 e no máximo 3 perfis identificados ou inferidos a partir do público-alvo no manual. Priorize personas abrangentes e genéricas (como Pequenos Empresários, Gestores Comerciais ou Consumidores Finais) em vez de caricaturas ultra-específicas de profissões isoladas, a menos que o manual seja estritamente restrito a um único nicho.`;
 
     // 4. Invocar a API do Gemini 2.5 Flash
     let parsedData = null;

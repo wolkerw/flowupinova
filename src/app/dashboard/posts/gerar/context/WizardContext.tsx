@@ -150,6 +150,10 @@ interface WizardContextType {
   setLayoutStyle: (style: string) => void;
   isUploading: boolean;
 
+  // Persona Locking
+  selectedPersona: OnboardingPersona | "all" | null;
+  setSelectedPersona: (persona: OnboardingPersona | "all" | null) => void;
+
   // Computed & Refs
   mode: string | null;
   user: any;
@@ -276,6 +280,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isItalic, setIsItalic] = useState(false);
   const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
 
+  const [selectedPersona, setSelectedPersona] = useState<OnboardingPersona | "all" | null>("all");
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -478,7 +483,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         const response = await fetch("/api/generate-text", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ summary: textToGenerate, businessProfile }),
+          body: JSON.stringify({
+            summary: textToGenerate,
+            businessProfile,
+            selectedPersona: selectedPersona !== "all" ? selectedPersona : null,
+          }),
         });
 
         const data = await response.json();
@@ -615,7 +624,11 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch("/api/generate-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: textToGenerate, businessProfile }),
+        body: JSON.stringify({
+          summary: textToGenerate,
+          businessProfile,
+          selectedPersona: selectedPersona !== "all" ? selectedPersona : null,
+        }),
       });
 
       const data = await response.json();
@@ -831,6 +844,10 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         if (businessProfile) {
           promptFormData.append("businessProfile", JSON.stringify(businessProfile));
         }
+        if (selectedPersona && selectedPersona !== "all") {
+          promptFormData.append("selected_persona", JSON.stringify(selectedPersona));
+          promptFormData.append("selectedPersona", JSON.stringify(selectedPersona));
+        }
         if (mode === "reference-link" && inspirationFile) {
           promptFormData.append("inspiration_file", inspirationFile);
         }
@@ -874,6 +891,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           if (businessProfile) {
             formData.append("businessProfile", JSON.stringify(businessProfile));
           }
+          if (selectedPersona && selectedPersona !== "all") {
+            formData.append("selectedPersona", JSON.stringify(selectedPersona));
+          }
           formData.append("insertTextOnImage", String(shouldInsertText));
           formData.append("userId", user.uid);
           formData.append("inspiration_file", inspirationFile);
@@ -892,6 +912,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             body: JSON.stringify({
               content: contentForPrompt,
               businessProfile: businessProfile,
+              selectedPersona: selectedPersona !== "all" ? selectedPersona : null,
               insertTextOnImage: shouldInsertText,
               userId: user.uid,
               layoutStyle: layoutStyle,
@@ -2029,6 +2050,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         instagramConnection,
         linkedinConnection,
         businessProfile,
+        selectedPersona,
+        setSelectedPersona,
         currentPostId,
         visualLogoScale,
         selectedContent,

@@ -87,7 +87,20 @@ export async function POST(request: Request) {
           }
         }
 
-        if (brandKit.personas && brandKit.personas.length > 0) {
+        const lockedPersona =
+          selectedPersona && selectedPersona !== "all" && typeof selectedPersona === "object"
+            ? selectedPersona
+            : null;
+
+        if (lockedPersona) {
+          parts.push(`- **PERSONA COMPRADORA ALVO TRAVADA PARA ESTA GERAÇÃO (FOCO EXCLUSIVO)**:
+    * Nome da Persona: ${lockedPersona.name || "Persona Alvo"}
+    * Perfil/Segmento: ${lockedPersona.profile || "N/A"}
+    * Dores/Desafios deste Cliente: ${lockedPersona.painPoints || "N/A"}
+    * Motivação de Compra deste Cliente: ${lockedPersona.buyingMotivation || "N/A"}
+
+    ATENÇÃO MANDATÓRIA DE PERSONA TRAVADA: O usuário selecionou e travou EXCLUSIVAMENTE a persona "${lockedPersona.name || "Cliente Alvo"}". TODAS as 3 ideias de post sugeridas DEVEM ser criadas pela empresa do usuário direcionadas 100% para atrair, resolver as dores e conectar com as motivações desta persona específica.`);
+        } else if (brandKit.personas && brandKit.personas.length > 0) {
           const personasInfo = brandKit.personas
             .map((p: any, idx: number) => {
               return `Persona Alvo ${idx + 1} (${p.name || "Sem nome"}):
