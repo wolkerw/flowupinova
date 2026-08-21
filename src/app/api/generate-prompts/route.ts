@@ -2,11 +2,29 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Jimp } from "jimp";
 import { safeParseJSON } from "@/lib/utils";
+import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const { success, limit, reset, remaining } = await aiRateLimit.limit(ip);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
+    }
+
     let selContent: any = null;
     let businessProfile: any = null;
     let userId = "";

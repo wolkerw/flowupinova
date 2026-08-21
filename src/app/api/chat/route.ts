@@ -1,14 +1,40 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
+import { z } from "zod";
 
+const chatSchema = z.object({
+  message: z.string().min(1, "Mensagem não pode estar vazia"),
+  userId: z.string().optional(),
+  history: z.array(z.any()).optional().default([]),
+});
 export async function POST(request: NextRequest) {
   try {
-    const { message, history = [], userId } = await request.json();
-
-    if (!message) {
-      return NextResponse.json({ error: "Mensagem não enviada" }, { status: 400 });
+    const ip = getIpFromRequest(request);
+    const { success, limit, reset, remaining } = await aiRateLimit.limit(ip);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
     }
+
+    const body = await request.json();
+    const parsed = chatSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+    }
+
+    const { message, history, userId } = parsed.data;
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

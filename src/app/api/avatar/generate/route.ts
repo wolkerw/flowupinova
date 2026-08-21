@@ -6,11 +6,29 @@ import { getGlobalSettings } from "@/lib/services/settings-service-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import { fal } from "@fal-ai/client";
 import { Jimp } from "jimp";
+import { aiRateLimit, getIpFromRequest } from "@/lib/rate-limit";
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIpFromRequest(request);
+    const { success, limit, reset, remaining } = await aiRateLimit.limit(ip);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
+    }
+
     // 1. Obter chaves do ambiente e configurar Fal SDK
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
     const rawFalKey = falKey
