@@ -345,8 +345,22 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         ]);
         setMetaConnection(metaConn);
         setInstagramConnection(instaConn);
-        setLinkedinConnection(linkedinConn);
         setBusinessProfile(busProfile);
+
+        // Inicializar a estratégia de persona definida em Configurações do Negócio
+        const savedPersonaStrategy = (busProfile as any)?.brandKit?.selectedPersonaStrategy;
+        if (savedPersonaStrategy && savedPersonaStrategy !== "all") {
+          const matchingPersona = busProfile?.brandKit?.personas?.find(
+            (p: any) => p.name === savedPersonaStrategy
+          );
+          if (matchingPersona) {
+            setSelectedPersona(matchingPersona);
+          } else {
+            setSelectedPersona("all");
+          }
+        } else {
+          setSelectedPersona("all");
+        }
 
         const initialPlatforms: Platform[] = [];
         if (metaConn?.isConnected) initialPlatforms.push("facebook");

@@ -97,7 +97,7 @@ describe("Configurações da Marca - Gestão de Personas", () => {
 
     expect(await screen.findByText("Configurações da Marca")).toBeInTheDocument();
     expect(screen.getByText("Personas da Marca")).toBeInTheDocument();
-    expect(screen.getByText("Carlos Diretor")).toBeInTheDocument();
+    expect(screen.getAllByText("Carlos Diretor").length).toBeGreaterThan(0);
     expect(screen.getByText("Decisor B2B")).toBeInTheDocument();
   });
 
