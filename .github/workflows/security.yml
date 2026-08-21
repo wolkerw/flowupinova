@@ -13,7 +13,7 @@ jobs:
     name: Run OWASP ZAP Baseline Scan
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # O OWASP ZAP Baseline scan requer um alvo público. 
       # Para testar UAT, configuramos o target para a URL de staging/UAT, se aplicável, ou rodamos num preview Vercel/Firebase.
