@@ -8,8 +8,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Permite que usuários autenticados acessem suas próprias subcoleções.
+    // Permite que o próprio usuário leia seu perfil principal
+    match /users/{userId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      // Impede que o cliente sobrescreva atributos protegidos de plano ou role
+      allow create, update: if isSignedIn() && isOwner(userId)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin', 'isSuperAdmin', 'tier', 'plan', 'status']));
+      allow delete: if false;
+    }
+
+    // Permite que usuários autenticados acessem suas próprias subcoleções autorizadas
     match /users/{userId}/{collection}/{docId} {
+      allow read, write: if isSignedIn() && isOwner(userId) && isAllowedCollection(collection);
+    }
+
+    // Suporte a subcoleções aninhadas de subcoleções autorizadas (ex: agendamentos, rascunhos)
+    match /users/{userId}/{collection}/{docId}/{subCollection}/{subDocId} {
       allow read, write: if isSignedIn() && isOwner(userId) && isAllowedCollection(collection);
     }
 
@@ -23,7 +37,8 @@ service cloud.firestore {
     }
     
     function isAllowedCollection(collection) {
-      return collection in ['posts', 'connections', 'business', 'appData', 'contacts', 'mediaGallery'];
+      return collection in ['posts', 'connections', 'business', 'appData', 'contacts', 'mediaGallery', 'history', 'campaigns'];
     }
   }
 }
+

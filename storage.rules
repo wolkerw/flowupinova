@@ -2,10 +2,30 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Permite que qualquer usuário leia e escreva em seus próprios arquivos.
-    // Ex: /users/USER_ID/profile.png
+    // Permite que qualquer usuário autenticado leia, escreva e delete seus próprios arquivos,
+    // com validação estrita de tamanho máximo (20MB) e tipos MIME autorizados.
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, delete: if isSignedIn() && isOwner(userId);
+      allow write: if isSignedIn() && isOwner(userId) && isValidUpload();
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidUpload() {
+      return request.resource.size < 20 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType.matches('video/.*') ||
+          request.resource.contentType == 'application/pdf' ||
+          request.resource.contentType == 'text/plain'
+        );
     }
   }
 }
+
