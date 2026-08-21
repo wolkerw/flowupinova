@@ -246,7 +246,27 @@ async function publishPostImmediately(
     if (failedResult) {
       console.log("[PUBLISH_ALL_PLATFORMS_RESULTS]", JSON.stringify(results, null, 2));
       const platName = failedResult._platform || failedResult.platform || "plataforma desconhecida";
-      const errMsg = failedResult.error || "Uma das plataformas falhou ao publicar.";
+      let errMsg = failedResult.error || "Uma das plataformas falhou ao publicar.";
+
+      // Mensagens amigáveis para limites de requisição e erros comuns da Meta
+      if (typeof errMsg === "string") {
+        if (
+          errMsg.toLowerCase().includes("application request limit reached") ||
+          errMsg.toLowerCase().includes("user request limit reached") ||
+          errMsg.toLowerCase().includes("rate limit")
+        ) {
+          errMsg =
+            "Limite temporário de publicações da Meta/Instagram atingido. A Meta restringe o envio frequente de posts em curto período de tempo. Aguarde cerca de 15 a 30 minutos para tentar novamente.";
+        } else if (
+          errMsg.toLowerCase().includes("session has expired") ||
+          errMsg.toLowerCase().includes("invalid oauth access token") ||
+          errMsg.toLowerCase().includes("error validating access token")
+        ) {
+          errMsg =
+            "A autorização da sua conta do Instagram/Facebook expirou. Por favor, reconecte sua conta em Relacionamento / Redes Sociais.";
+        }
+      }
+
       const details = failedResult.details
         ? `\n[Detalhes ${platName.toUpperCase()}]: ${typeof failedResult.details === "object" ? JSON.stringify(failedResult.details) : failedResult.details}`
         : "";
