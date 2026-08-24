@@ -1619,22 +1619,7 @@ export const Step1Idea = () => {
                             </AnimatePresence>
                           </div>
 
-                          {/* Seletor Visual de Presets Especializados de Produtos */}
-                          <div className="border-t pt-5">
-                            <ProductPresetSelector
-                              value={layoutStyle}
-                              onChange={(preset, hint) => {
-                                setLayoutStyle(preset as LayoutStyleId);
-                                if (hint && !referenceDescription.includes(hint)) {
-                                  onReferenceDescriptionChange(
-                                    referenceDescription ? `${referenceDescription.trim()}, ${hint}` : hint
-                                  );
-                                }
-                              }}
-                            />
-                          </div>
-
-                          {/* Inserção de Títulos e Textos Publicitários */}
+                          {/* Inserção de Títulos e Textos Publicitários (Acima dos Presets) */}
                           <div className="border-t pt-5 space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
                               <div>
@@ -1695,6 +1680,21 @@ export const Step1Idea = () => {
                                 </p>
                               </motion.div>
                             )}
+                          </div>
+
+                          {/* Seletor Visual de Presets Especializados de Produtos */}
+                          <div className="border-t pt-5">
+                            <ProductPresetSelector
+                              value={layoutStyle}
+                              onChange={(preset, hint) => {
+                                setLayoutStyle(preset as LayoutStyleId);
+                                if (hint && !referenceDescription.includes(hint)) {
+                                  onReferenceDescriptionChange(
+                                    referenceDescription ? `${referenceDescription.trim()}, ${hint}` : hint
+                                  );
+                                }
+                              }}
+                            />
                           </div>
                         </div>
                       )}
