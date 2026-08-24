@@ -1411,6 +1411,7 @@ ${yamlAnalysis}`;
       const userId = (formData.get("userId") as string) || "";
       const userStoragePath = await getUserStoragePathAdmin(userId);
       const caption = (formData.get("caption") as string) || null;
+      const layoutStyle = (formData.get("layoutStyle") as string) || "";
       const hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
 
       if (!file || !prompt || !postId || !userId) {
@@ -1420,7 +1421,9 @@ ${yamlAnalysis}`;
         );
       }
 
-      console.log(`[NANOBANANA_REF] Iniciando processamento para o post ${postId}...`);
+      console.log(
+        `[NANOBANANA_REF] Iniciando processamento para o post ${postId} (Preset: ${layoutStyle || "Padrão"})...`
+      );
 
       // Função auxiliar para processar, recortar 1:1 proporcional e redimensionar para 768px max
       const processImageBuffer = async (imgFile: File) => {
@@ -1736,7 +1739,91 @@ Cenário desejado e estilo: ${prompt}`;
       let imageBytes: string | null = null;
       let modelUsed = "";
 
-      for (const model of NANOBANANA_MODELS) {
+      // 5.1 Roteamento Inteligente: Se preset de produto for selecionado, aciona gpt-image-2 como motor primário!
+      const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
+      const openaiKey = process.env.OPENAI_API_KEY;
+
+      if (isProductPreset && openaiKey) {
+        const STYLE_LABELS: Record<string, string> = {
+          PRODUCT_METAAD:
+            "Meta Ads High-Conversion Product Advertising — 45-55% strategic negative space for copy/pricing, sharp rim light separation, true-to-life product texture",
+          PRODUCT_PREMIUM:
+            "Ultra-Luxury Product Showcase — geometric Carrara marble pedestal, caustic reflections, large overhead softbox 3-point lighting",
+          PRODUCT_LIFESTYLE:
+            "Aspirational Lifestyle Product in Use — natural window sunlight, authentic contemporary interior setting, soft depth of field",
+          PRODUCT_DYNAMIC:
+            "Dynamic High-Speed Commercial Splash — 1/8000s shutter freeze, suspended water droplets and energetic fluid dynamics",
+          PRODUCT_CATALOG:
+            "Clean Minimalist E-Commerce Catalog — seamless infinite pure studio backdrop, uniform shadowless light, f/11 edge-to-edge sharpness",
+          PRODUCT_COSMETICS:
+            "Luxury Cosmetics & Skincare — acrylic ripple tray, delicate organic floral petals, soft pastel backlighting, liquid textures",
+          PRODUCT_TECH:
+            "Futuristic Tech Hardware — levitating in zero gravity, glowing cyan and purple neon rim accents, sleek titanium finish",
+          PRODUCT_FLATLAY:
+            "90-Degree Flat Lay Knolling — top-down orthographic view, geometric prop organization, natural linen background",
+          PRODUCT_GOURMET:
+            "Commercial Food & Culinary — appetizing rich textures, gentle rising steam, warm restaurant ambient glow",
+          PRODUCT_RUSTIC:
+            "Rustic & Artisanal Botanical — raw organic wood slab, dried eucalyptus branches, warm morning window sunbeams",
+        };
+
+        const styleDirective = STYLE_LABELS[layoutStyle] || layoutStyle;
+        const openaiPrompt = `[VISUAL PRESET: ${styleDirective}] Commercial advertising photography: ${prompt}. Ultra high definition, hyper-realistic, photorealistic commercial product photography.`;
+
+        const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-3"];
+        for (const oModel of OPENAI_MODELS) {
+          try {
+            console.log(
+              `[NANOBANANA_REF] 🎯 Preset de Produto ativo (${layoutStyle})! Priorizando modelo OpenAI ${oModel}...`
+            );
+            const payload: any = {
+              model: oModel,
+              prompt: openaiPrompt,
+              n: 1,
+              size: "1024x1024",
+            };
+            if (oModel === "dall-e-3") payload.response_format = "b64_json";
+
+            const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${openaiKey}`,
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (openaiRes.ok) {
+              const resData = await openaiRes.json();
+              let b64 = resData?.data?.[0]?.b64_json;
+              if (!b64 && resData?.data?.[0]?.url) {
+                const imgRes = await fetch(resData.data[0].url);
+                if (imgRes.ok) {
+                  const ab = await imgRes.arrayBuffer();
+                  b64 = Buffer.from(ab).toString("base64");
+                }
+              }
+              if (b64) {
+                imageBytes = b64;
+                modelUsed = oModel;
+                console.log(
+                  `[NANOBANANA_REF] ✅ Sucesso absoluto com o modelo OpenAI ${oModel} para o preset ${layoutStyle}!`
+                );
+                break;
+              }
+            } else {
+              const errTxt = await openaiRes.text();
+              console.warn(`[NANOBANANA_REF] Modelo OpenAI ${oModel} falhou:`, errTxt);
+            }
+          } catch (openaiErr: any) {
+            console.warn(`[NANOBANANA_REF] Exceção no modelo OpenAI ${oModel}:`, openaiErr.message);
+          }
+        }
+      }
+
+      // Se não gerou via OpenAI (ou se for o fluxo padrão sem preset de produto), utiliza o Nano Banana Pro
+      if (!imageBytes) {
+        for (const model of NANOBANANA_MODELS) {
         let timeoutId: NodeJS.Timeout | null = null;
         try {
           console.log(`[NANOBANANA_REF] Tentando gerar com modelo ${model}...`);
@@ -1891,13 +1978,17 @@ Cenário desejado e estilo: ${prompt}`;
         });
         console.log(`[NANOBANANA_REF] Imagem gravada na galeria.`);
 
-        // Registrar log de consumo do Nano Banana (Gemini 3 Pro Image)
+        // Registrar log de consumo do modelo utilizado
+        const isOpAi =
+          modelUsed?.includes("gpt-image") ||
+          modelUsed?.includes("chatgpt-image") ||
+          modelUsed?.includes("dall-e");
         logApiUsage({
           userId,
           type: "image_generation",
-          provider: "google_gemini",
-          model: modelUsed || "imagen-3.0-generate-002",
-          costUsd: 0.03,
+          provider: isOpAi ? "openai" : "google_gemini",
+          model: modelUsed || "gemini-3-pro-image",
+          costUsd: isOpAi ? 0.04 : 0.03,
         });
       } catch (galleryErr) {
         console.error("[NANOBANANA_REF] Erro ao salvar na galeria:", galleryErr);

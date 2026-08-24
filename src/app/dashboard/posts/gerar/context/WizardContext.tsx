@@ -1065,6 +1065,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("postId", activePostId);
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
+            nanobananaFormData.append("layoutStyle", layoutStyle || "");
             nanobananaFormData.append(
               "hybridPriority",
               mode === "reference-photo" && productWorkflow === "packshot-hybrid"
