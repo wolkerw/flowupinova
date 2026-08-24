@@ -10,6 +10,7 @@ describe("ProductPresetSelector", () => {
 
     // Verifica se os presets principais foram renderizados
     expect(screen.getByText("Preset Visual de Fotografia do Produto")).toBeInTheDocument();
+    expect(screen.getByText("Outdoor 3D")).toBeInTheDocument();
     expect(screen.getByText("Anúncio Meta Ads")).toBeInTheDocument();
     expect(screen.getByText("Vitrine de Luxo")).toBeInTheDocument();
     expect(screen.getByText("Produto em Uso")).toBeInTheDocument();

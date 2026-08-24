@@ -1765,32 +1765,33 @@ Cenário desejado e estilo: ${prompt}`;
             "Commercial Food & Culinary — appetizing rich textures, gentle rising steam, warm restaurant ambient glow",
           PRODUCT_RUSTIC:
             "Rustic & Artisanal Botanical — raw organic wood slab, dried eucalyptus branches, warm morning window sunbeams",
+          PRODUCT_BILLBOARD:
+            "3D Outdoor Billboard — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product from the input image with ambient city glow and sharp brand fidelity",
         };
 
         const styleDirective = STYLE_LABELS[layoutStyle] || layoutStyle;
-        const openaiPrompt = `[VISUAL PRESET: ${styleDirective}] Commercial advertising photography: ${prompt}. Ultra high definition, hyper-realistic, photorealistic commercial product photography.`;
+        const openaiPrompt = `[VISUAL PRESET: ${styleDirective}] Professional commercial advertising composition featuring this exact product from the input image: ${prompt}. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
-        const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-3"];
+        const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-2"];
         for (const oModel of OPENAI_MODELS) {
           try {
             console.log(
-              `[NANOBANANA_REF] 🎯 Preset de Produto ativo (${layoutStyle})! Priorizando modelo OpenAI ${oModel}...`
+              `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando foto do produto para OpenAI /v1/images/edits (${oModel})...`
             );
-            const payload: any = {
-              model: oModel,
-              prompt: openaiPrompt,
-              n: 1,
-              size: "1024x1024",
-            };
-            if (oModel === "dall-e-3") payload.response_format = "b64_json";
+            const editsFormData = new FormData();
+            const productBlob = new Blob([buffer1], { type: mimeType1 });
+            editsFormData.append("image", productBlob, "product.png");
+            editsFormData.append("model", oModel);
+            editsFormData.append("prompt", openaiPrompt);
+            editsFormData.append("n", "1");
+            editsFormData.append("size", "1024x1024");
 
-            const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+            const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
               method: "POST",
               headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${openaiKey}`,
               },
-              body: JSON.stringify(payload),
+              body: editsFormData,
             });
 
             if (openaiRes.ok) {
@@ -1807,16 +1808,16 @@ Cenário desejado e estilo: ${prompt}`;
                 imageBytes = b64;
                 modelUsed = oModel;
                 console.log(
-                  `[NANOBANANA_REF] ✅ Sucesso absoluto com o modelo OpenAI ${oModel} para o preset ${layoutStyle}!`
+                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${oModel}) para o preset ${layoutStyle}!`
                 );
                 break;
               }
             } else {
               const errTxt = await openaiRes.text();
-              console.warn(`[NANOBANANA_REF] Modelo OpenAI ${oModel} falhou:`, errTxt);
+              console.warn(`[NANOBANANA_REF] OpenAI /v1/images/edits (${oModel}) falhou:`, errTxt);
             }
           } catch (openaiErr: any) {
-            console.warn(`[NANOBANANA_REF] Exceção no modelo OpenAI ${oModel}:`, openaiErr.message);
+            console.warn(`[NANOBANANA_REF] Exceção no Image-to-Image (${oModel}):`, openaiErr.message);
           }
         }
       }

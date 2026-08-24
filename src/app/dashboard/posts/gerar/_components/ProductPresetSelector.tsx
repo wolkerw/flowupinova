@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export type ProductPresetId =
   | ""
   | "AUTO"
+  | "PRODUCT_BILLBOARD"
   | "PRODUCT_METAAD"
   | "PRODUCT_PREMIUM"
   | "PRODUCT_LIFESTYLE"
@@ -38,6 +39,17 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     placeholderGradient: "from-slate-700 via-slate-500 to-slate-400",
     icon: "⚡",
     slashCommand: "/auto",
+  },
+  {
+    id: "PRODUCT_BILLBOARD",
+    label: "Outdoor 3D",
+    sublabel: "Campanha Urbana / /3dbillboard",
+    description: "Mega outdoor 3D hiper-realista ao entardecer, com o produto em escala monumental, respingos dinâmicos e iluminação noturna urbana.",
+    placeholderGradient: "from-emerald-800 via-teal-900 to-slate-900",
+    icon: "🏙️",
+    image: "/product-presets/3dbillboard.jpg",
+    slashCommand: "/3dbillboard",
+    suggestedPromptHint: "arte em mega painel de outdoor 3D em avenida urbana ao entardecer com iluminação cinematográfica",
   },
   {
     id: "PRODUCT_METAAD",
