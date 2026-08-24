@@ -144,14 +144,28 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // 2. Cadeia de modelos: GPT como oficial primário e Imagen 4.0 / Imagen como fallback
-    const MODELS_CHAIN = [
-      { provider: "openai", model: "gpt-image-2" },
-      { provider: "openai", model: "chatgpt-image-latest" },
-      { provider: "openai", model: "dall-e-3" },
-      { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-      { provider: "google", model: "imagen-3.0-generate-002" },
-    ];
+    // 2. Roteamento Inteligente de Modelos:
+    // Se o usuário selecionou um preset de produto (PRODUCT_*), usamos gpt-image-2 (OpenAI) como motor primário!
+    // Caso contrário (modo padrão/conceito), mantemos o Google Gemini Nano Banana Pro / Imagen como primário.
+    const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
+
+    const MODELS_CHAIN = isProductPreset
+      ? [
+          { provider: "openai", model: "gpt-image-2" },
+          { provider: "openai", model: "chatgpt-image-latest" },
+          { provider: "openai", model: "dall-e-3" },
+          { provider: "google", model: "gemini-3-pro-image" },
+          { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+          { provider: "google", model: "imagen-3.0-generate-002" },
+        ]
+      : [
+          { provider: "google", model: "gemini-3-pro-image" },
+          { provider: "google", model: "imagen-4.0-ultra-generate-001" },
+          { provider: "google", model: "imagen-3.0-generate-002" },
+          { provider: "openai", model: "gpt-image-2" },
+          { provider: "openai", model: "chatgpt-image-latest" },
+          { provider: "openai", model: "dall-e-3" },
+        ];
 
     let imageBytes: string | null = null;
     let modelUsed = "";
@@ -160,7 +174,7 @@ export async function POST(request: Request) {
 
     for (const config of MODELS_CHAIN) {
       console.log(
-        `[GENERATE_IMAGES_NATIVE] Tentando modelo ${config.model} (${config.provider}) para o post ${postId} (Slot: ${fileName})...`
+        `[GENERATE_IMAGES_NATIVE] Tentando modelo ${config.model} (${config.provider}) para o post ${postId} (Slot: ${fileName}, Preset: ${isProductPreset ? layoutStyle : "Padrão"})...`
       );
 
       try {
@@ -210,6 +224,34 @@ export async function POST(request: Request) {
           }
           const errText = await response.text().catch(() => `status ${response.status}`);
           lastError = `Modelo OpenAI ${config.model} falhou: ${errText.substring(0, 250)}`;
+          console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
+          throw new Error(lastError);
+        } else if (config.model.startsWith("gemini-")) {
+          // Google Gemini Image (Nano Banana)
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${apiKey}`;
+          const response = await fetchWithRetry(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: finalPrompt }] }],
+              generationConfig: {
+                responseModalities: ["IMAGE"],
+              },
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const bytes = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (bytes) {
+              imageBytes = bytes;
+              modelUsed = config.model;
+              console.log(`[GENERATE_IMAGES_NATIVE] ✅ Sucesso com o modelo ${config.model}!`);
+              break;
+            }
+          }
+          const errText = await response.text().catch(() => `status ${response.status}`);
+          lastError = `Modelo Google Gemini ${config.model} falhou: ${errText.substring(0, 250)}`;
           console.error(`[GENERATE_IMAGES_NATIVE] ${lastError}`);
           throw new Error(lastError);
         } else {
