@@ -1466,8 +1466,74 @@ ${yamlAnalysis}`;
       let mimeType2 = "";
       let garmentPublicUrl = "";
       let transparentGarmentUrl = "";
+      let displaySystemBlueprint = "";
 
       const openaiKey = process.env.OPENAI_API_KEY;
+
+      if (secondaryFile) {
+        console.log("[NANOBANANA_REF] Processando Foto 2 (Referência de Display/Cenário)...");
+        const { buffer: buffer2, mimeType: mimeType2Original } =
+          await processImageBuffer(secondaryFile);
+
+        base64Image2 = buffer2.toString("base64");
+        mimeType2 = mimeType2Original;
+
+        // Extração do Display System Blueprint da Foto de Referência via IA de Visão
+        if (apiKey || openaiKey) {
+          try {
+            console.log(
+              "[DISPLAY_SYSTEM] 🧠 Analisando Foto 2 com IA de Visão para extrair Display System Blueprint..."
+            );
+            const visionPrompt = `You are an elite Commercial Ad Art Director & Photography Engineer. Analyze this reference image and extract its complete Display System Blueprint for commercial product placement:
+1. Environment & Backdrop (exact surface materials, texture, architectural context, colors).
+2. Lighting & Reflections (key light direction, temperature, rim light, reflections, shadows).
+3. Camera Framing & Perspective (macro, eye-level, low angle, tilt, depth of field).
+4. Composition Grid & Props (product placement, dynamic elements like splashes or particles, negative space).
+
+Respond with a concise, rich 3-4 sentence photographic instruction to recreate this exact display setting.`;
+
+            if (apiKey) {
+              const visionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+              const visionRes = await fetch(visionUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        { text: visionPrompt },
+                        {
+                          inlineData: {
+                            mimeType: mimeType2Original || "image/jpeg",
+                            data: buffer2.toString("base64"),
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                }),
+              });
+
+              if (visionRes.ok) {
+                const vData = await visionRes.json();
+                const vText = vData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (vText) {
+                  displaySystemBlueprint = vText.trim();
+                  console.log(
+                    "[DISPLAY_SYSTEM] ✅ Blueprint extraído com sucesso:",
+                    displaySystemBlueprint.substring(0, 120)
+                  );
+                }
+              }
+            }
+          } catch (visErr: any) {
+            console.warn(
+              "[DISPLAY_SYSTEM] Falha ao extrair Display System Blueprint:",
+              visErr?.message
+            );
+          }
+        }
+      }
 
       // Se NÃO houver chave OpenAI (fallback para Gemini Nano Banana Pro puro), realiza processamento legado no Fal.ai/Bria
       if (!openaiKey) {
@@ -1498,61 +1564,6 @@ ${yamlAnalysis}`;
             );
           } catch (briaError) {
             console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
-          }
-        }
-
-        if (secondaryFile) {
-          console.log("[NANOBANANA_REF] Processando Foto 2 (Produto/Projeto)...");
-          const { buffer: buffer2, mimeType: mimeType2Original } =
-            await processImageBuffer(secondaryFile);
-
-          try {
-            const finalFile2 = new File(
-              [new Blob([buffer2], { type: mimeType2Original })],
-              secondaryFile.name,
-              { type: mimeType2Original }
-            );
-            secondaryGarmentPublicUrl = await fal.storage.upload(finalFile2);
-          } catch (uploadErr) {
-            console.error(
-              "[NANOBANANA_REF] Erro no upload da Foto 2 para o Fal.ai Storage:",
-              uploadErr
-            );
-          }
-
-          transparentProductUrl = secondaryGarmentPublicUrl;
-          if (
-            secondaryGarmentPublicUrl &&
-            hybridPriority !== "scenario" &&
-            hybridPriority !== "packshot"
-          ) {
-            try {
-              transparentProductUrl = await removeBackgroundWithCache(
-                buffer2,
-                secondaryGarmentPublicUrl,
-                rawFalKey,
-                userId
-              );
-            } catch (briaError) {
-              console.error("[NANOBANANA_REF] Erro ao remover fundo da Foto 2:", briaError);
-            }
-          }
-
-          base64Image2 = buffer2.toString("base64");
-          mimeType2 = mimeType2Original;
-        } else {
-          transparentGarmentUrl = garmentPublicUrl;
-          if (garmentPublicUrl) {
-            try {
-              transparentGarmentUrl = await removeBackgroundWithCache(
-                buffer1,
-                garmentPublicUrl,
-                rawFalKey,
-                userId
-              );
-            } catch (briaError) {
-              console.error("[NANOBANANA_REF] Erro no Bria (modo único):", briaError);
-            }
           }
         }
       } else {
@@ -1766,7 +1777,11 @@ Cenário desejado e estilo: ${prompt}`;
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
         }
 
-        const openaiPrompt = `${styleHeader}Commercial advertising photography featuring this exact product from the input image: ${prompt}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const displaySystemHeader = displaySystemBlueprint
+          ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
+          : "";
+
+        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${prompt}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-2"];
         for (const oModel of OPENAI_MODELS) {
