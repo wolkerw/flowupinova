@@ -510,7 +510,42 @@ BRAND KIT ALIGNMENT (MANDATORY):
       MINIMALIST: "LAYOUT STYLE — MINIMALIST: Minimalist design, spacious composition with generous negative space (50-60%), modern clean aesthetic, sophisticated and quiet luxury feel.",
       TECH_3D: "LAYOUT STYLE — TECH_3D: Premium 3D illustration, Octane Render / Redshift render style, vibrant colors, realistic material textures (glass, metallic, polished plastic), futuristic tech aesthetic.",
       MAGAZINE_3D: "LAYOUT STYLE — MAGAZINE_3D: High-fashion magazine cover style, integrated typography with 3D depth, subject partially overlaps and breaks through the title letters creating a dramatic 3D parallax effect.",
+      PRODUCT_METAAD: "LAYOUT STYLE — PRODUCT_METAAD (/metaad): High-conversion Meta/Instagram advertising composition (OpenAI DALL-E & GPT-4o standard). The primary product/subject is the hero, framed with deliberate 45-55% clean negative space (top or side area) reserved for ad copy, headlines, and call-to-actions. High-contrast commercial studio lighting with a soft key light and sharp edge separation rim light. True-to-life product proportions, textures, and vibrant commercial appeal.",
+      PRODUCT_PREMIUM: "LAYOUT STYLE — PRODUCT_PREMIUM (/premiumshowcase): Ultra-luxury commercial product showcase. The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble, frosted translucent glass, or brushed metal). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere. Shot on Phase One IQ4 150MP, 85mm f/1.4 lens.",
+      PRODUCT_LIFESTYLE: "LAYOUT STYLE — PRODUCT_LIFESTYLE (/lifestylecontext): Premium lifestyle product placement in an authentic, aspirational real-world setting (e.g. contemporary oak desk in a sunlit architectural studio, luxury spa marble counter, or designer kitchen). Warm natural side lighting from a nearby window, gentle soft-focus depth of field, and organic atmosphere that highlights how the product integrates into daily life.",
+      PRODUCT_DYNAMIC: "LAYOUT STYLE — PRODUCT_DYNAMIC (/dynamicaction): High-speed commercial advertising photography capturing dynamic action. The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic, and visually captivating hero visual.",
+      PRODUCT_CATALOG: "LAYOUT STYLE — PRODUCT_CATALOG (/minimalcatalog): Pure e-commerce clean catalog aesthetic. The product stands on a seamless infinite solid or subtle light-gray gradient background. Perfectly even diffused light box illumination with zero distracting reflections. Crisp edge-to-edge focus (f/11), hyper-accurate colors and textures, conveying pristine commercial catalog perfection.",
+      PRODUCT_COSMETICS: "LAYOUT STYLE — PRODUCT_COSMETICS (/luxurycosmetics): Luxury cosmetics and skincare advertising photography. Staged on a translucent acrylic ripple tray, delicate organic floral petals, golden texture droplets, and soft pastel studio backlighting. Refined beauty aesthetic.",
+      PRODUCT_TECH: "LAYOUT STYLE — PRODUCT_TECH (/techfuturistic): Futuristic tech hardware aesthetic. Levitating in zero gravity with glowing cyan and purple neon rim accents, clean titanium finish, and modern volumetric studio lighting.",
+      PRODUCT_FLATLAY: "LAYOUT STYLE — PRODUCT_FLATLAY (/flatlayknolling): Precise 90-degree top-down flat lay knolling photography. Geometrically aligned with complementary lifestyle props on textured linen or wooden surface, soft diffused overhead lighting.",
+      PRODUCT_GOURMET: "LAYOUT STYLE — PRODUCT_GOURMET (/gourmetculinary): Commercial culinary food photography. Appetizing rich textures, delicate rising steam, warm restaurant ambient light, and mouthwatering macro focus.",
+      PRODUCT_RUSTIC: "LAYOUT STYLE — PRODUCT_RUSTIC (/rusticorganic): Organic artisanal botanical setting. Resting on raw dark wood slab with dried eucalyptus, natural linen texture, and warm gentle sunbeams through a window.",
     };
+
+    // Detecção automática de Slash Commands (/metaad, /premiumshowcase, /dynamicaction, etc.)
+    const fullTextSearch = `${selContent?.titulo || ""} ${selContent?.subtitulo || ""}`.toLowerCase();
+    if (fullTextSearch.includes("/metaad") || fullTextSearch.includes("/ad")) {
+      layoutStyle = "PRODUCT_METAAD";
+    } else if (fullTextSearch.includes("/premiumshowcase") || fullTextSearch.includes("/showcase") || fullTextSearch.includes("/luxo")) {
+      layoutStyle = "PRODUCT_PREMIUM";
+    } else if (fullTextSearch.includes("/lifestylecontext") || fullTextSearch.includes("/lifestyle") || fullTextSearch.includes("/contexto")) {
+      layoutStyle = "PRODUCT_LIFESTYLE";
+    } else if (fullTextSearch.includes("/dynamicaction") || fullTextSearch.includes("/dynamic") || fullTextSearch.includes("/splash")) {
+      layoutStyle = "PRODUCT_DYNAMIC";
+    } else if (fullTextSearch.includes("/minimalcatalog") || fullTextSearch.includes("/catalog") || fullTextSearch.includes("/catalogo")) {
+      layoutStyle = "PRODUCT_CATALOG";
+    } else if (fullTextSearch.includes("/luxurycosmetics") || fullTextSearch.includes("/cosmetics") || fullTextSearch.includes("/skincare")) {
+      layoutStyle = "PRODUCT_COSMETICS";
+    } else if (fullTextSearch.includes("/techfuturistic") || fullTextSearch.includes("/tech") || fullTextSearch.includes("/hardware")) {
+      layoutStyle = "PRODUCT_TECH";
+    } else if (fullTextSearch.includes("/flatlayknolling") || fullTextSearch.includes("/flatlay") || fullTextSearch.includes("/knolling")) {
+      layoutStyle = "PRODUCT_FLATLAY";
+    } else if (fullTextSearch.includes("/gourmetculinary") || fullTextSearch.includes("/gourmet") || fullTextSearch.includes("/comida")) {
+      layoutStyle = "PRODUCT_GOURMET";
+    } else if (fullTextSearch.includes("/rusticorganic") || fullTextSearch.includes("/rustic") || fullTextSearch.includes("/organico")) {
+      layoutStyle = "PRODUCT_RUSTIC";
+    }
+
     // Sorteio de estilos aleatórios para garantir máxima variedade
     const allStyles = Object.keys(LAYOUT_TECHNICAL);
     const getRandomStyle = (exclude: string[] = []) => {
@@ -533,7 +568,7 @@ BRAND KIT ALIGNMENT (MANDATORY):
 
     // 2. Prompt do Diretor de Arte Otimizador de Prompts
     const systemInstructionText = `
-You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (Imagen, Flux, Midjourney, DALL-E).
+You are a world-class Advertising Art Director and expert in Prompt Engineering for AI image generators (OpenAI DALL-E 3, GPT-4o, Imagen, Flux, Midjourney).
 
 # MANDATORY LAYOUT STYLE DIRECTIVES (HIGHEST PRIORITY — OVERRIDES ALL OTHER COMPOSITION RULES)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

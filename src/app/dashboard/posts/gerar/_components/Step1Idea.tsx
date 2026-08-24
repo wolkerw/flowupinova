@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useWizard } from "../context/WizardContext";
 import { LayoutStyleSelector, LayoutStyleId } from "./LayoutStyleSelector";
+import { ProductPresetSelector, ProductPresetId } from "./ProductPresetSelector";
 
 
 const PackshotAnimationDemo = () => {
@@ -1564,23 +1565,69 @@ export const Step1Idea = () => {
                                 <div className="flex items-center gap-2">
                                   <MessageSquare className="h-4 w-4 text-primary" />
                                   <Label className="text-sm font-bold text-gray-800">
-                                    Escreva ideias de cenário{" "}
-                                    <span className="text-red-500">*</span>
+                                    Ideias de Cenário / Detalhes Adicionais (Opcional)
                                   </Label>
                                 </div>
                                 <p className="text-xs text-gray-500">
-                                  Explique como deseja ambientar o seu produto (ex: "sobre uma mesa
-                                  de mármore branco com flores ao fundo no pôr do sol").
+                                  Personalize o cenário do produto ou escolha um dos presets visuais abaixo.
                                 </p>
                                 <Textarea
-                                  placeholder="Ex: Frasco de perfume posicionado sobre uma mesa de madeira rústica, com iluminação quente de velas no fundo..."
-                                  className="h-24 text-sm"
+                                  placeholder="Ex: Frasco de perfume posicionado sobre mesa de mármore branco com iluminação suave de estúdio..."
+                                  className="h-24 text-sm bg-white"
                                   value={referenceDescription}
                                   onChange={(e) => onReferenceDescriptionChange(e.target.value)}
-                                  required
                                 />
+
+                                {/* Atalhos Rápidos de Fotografia de Produtos */}
+                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                  <span className="text-[11px] font-semibold text-slate-500">Atalhos:</span>
+                                  {[
+                                    { tag: "/metaad", label: "📢 Meta Ad", desc: "Espaço para preço/título", styleId: "PRODUCT_METAAD" },
+                                    { tag: "/premiumshowcase", label: "💎 Vitrine Luxo", desc: "Pedestal de mármore", styleId: "PRODUCT_PREMIUM" },
+                                    { tag: "/lifestylecontext", label: "🌿 Em Uso", desc: "Cenário real", styleId: "PRODUCT_LIFESTYLE" },
+                                    { tag: "/dynamicaction", label: "💧 Splash", desc: "Respingos e gotas", styleId: "PRODUCT_DYNAMIC" },
+                                    { tag: "/minimalcatalog", label: "🏷️ Catálogo", desc: "Fundo infinito", styleId: "PRODUCT_CATALOG" },
+                                  ].map((item) => (
+                                    <button
+                                      key={item.tag}
+                                      type="button"
+                                      title={item.desc}
+                                      onClick={() => {
+                                        setLayoutStyle(item.styleId as LayoutStyleId);
+                                        if (!referenceDescription.includes(item.tag)) {
+                                          onReferenceDescriptionChange(
+                                            referenceDescription ? `${referenceDescription.trim()} ${item.tag}` : item.tag
+                                          );
+                                        }
+                                      }}
+                                      className={cn(
+                                        "rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
+                                        layoutStyle === item.styleId || referenceDescription.includes(item.tag)
+                                          ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      {item.label}
+                                    </button>
+                                  ))}
+                                </div>
                               </motion.div>
                             </AnimatePresence>
+                          </div>
+
+                          {/* Seletor Visual de Presets Especializados de Produtos */}
+                          <div className="border-t pt-5 mt-2">
+                            <ProductPresetSelector
+                              value={layoutStyle}
+                              onChange={(preset, hint) => {
+                                setLayoutStyle(preset as LayoutStyleId);
+                                if (hint && !referenceDescription.includes(hint)) {
+                                  onReferenceDescriptionChange(
+                                    referenceDescription ? `${referenceDescription.trim()}, ${hint}` : hint
+                                  );
+                                }
+                              }}
+                            />
                           </div>
                         </div>
                       )}
