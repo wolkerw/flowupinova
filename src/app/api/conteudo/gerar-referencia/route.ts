@@ -1896,7 +1896,16 @@ Cenário desejado e estilo: ${prompt}`;
           `${process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c"}.firebasestorage.app`
         );
       const generatedBuffer = Buffer.from(imageBytes, "base64");
-      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/nanobanana_ref_generated.jpg`);
+      const isOpAi =
+        modelUsed?.includes("gpt-image") ||
+        modelUsed?.includes("chatgpt-image") ||
+        modelUsed?.includes("dall-e");
+
+      const storageFileName = isOpAi ? "gpt_product_preset_generated.jpg" : "nanobanana_ref_generated.jpg";
+      const sourceTag = isOpAi ? "gpt_product_preset" : "nanobanana_ref";
+      const docId = isOpAi ? `${postId}_gpt_product_preset` : `${postId}_nanobanana_ref`;
+
+      const fileRef = bucket.file(`${userStoragePath}/posts/${postId}/${storageFileName}`);
       const downloadToken = crypto.randomUUID();
 
       await fileRef.save(generatedBuffer, {
@@ -1908,7 +1917,7 @@ Cenário desejado e estilo: ${prompt}`;
 
       const firebaseDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${downloadToken}`;
       console.log(
-        `[NANOBANANA_REF] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
+        `[GERAR_REFERENCIA] Imagem salva no Firebase Storage (${modelUsed}): ${firebaseDownloadUrl}`
       );
 
       // 7. Salvar e carregar referências secundárias se houver
@@ -1931,12 +1940,12 @@ Cenário desejado e estilo: ${prompt}`;
             });
             firebaseSecondaryRefUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(refFileRef2.name)}?alt=media&token=${refDownloadToken2}`;
             console.log(
-              `[NANOBANANA_REF] Foto de referência secundária salva no Storage via Admin: ${firebaseSecondaryRefUrl}`
+              `[GERAR_REFERENCIA] Foto de referência secundária salva no Storage via Admin: ${firebaseSecondaryRefUrl}`
             );
           }
         } catch (saveRefErr) {
           console.error(
-            "[NANOBANANA_REF] Erro ao salvar referência secundária no Storage:",
+            "[GERAR_REFERENCIA] Erro ao salvar referência secundária no Storage:",
             saveRefErr
           );
         }
@@ -1954,30 +1963,31 @@ Cenário desejado e estilo: ${prompt}`;
               imageUrls: [firebaseDownloadUrl],
               referenceImageUrl: garmentPublicUrl || null,
               secondaryReferenceImageUrl: firebaseSecondaryRefUrl || null,
-              nanobananaModelUsed: modelUsed,
+              modelUsed: modelUsed,
+              layoutStyle: layoutStyle || null,
               status: "completed",
             },
             { merge: true }
           );
       } catch (fsErr) {
-        console.error("[NANOBANANA_REF] Erro ao atualizar Firestore:", fsErr);
+        console.error("[GERAR_REFERENCIA] Erro ao atualizar Firestore:", fsErr);
       }
 
       try {
         const galleryRef = adminDb.collection("users").doc(userId).collection("mediaGallery");
-        await galleryRef.doc(`${postId}_nanobanana_ref`).set({
-          id: `${postId}_nanobanana_ref`,
+        await galleryRef.doc(docId).set({
+          id: docId,
           url: firebaseDownloadUrl,
           storagePath: fileRef.name,
-          source: "nanobanana_ref",
+          source: sourceTag,
           prompt,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           usedInPostId: null,
-          fileName: "nanobanana_ref_generated.jpg",
+          fileName: storageFileName,
           modelUsed,
           caption,
         });
-        console.log(`[NANOBANANA_REF] Imagem gravada na galeria.`);
+        console.log(`[GERAR_REFERENCIA] Imagem gravada na galeria.`);
 
         // Registrar log de consumo do modelo utilizado
         const isOpAi =
