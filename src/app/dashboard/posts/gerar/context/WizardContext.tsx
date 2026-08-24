@@ -144,6 +144,8 @@ interface WizardContextType {
   setIsItalic: (italic: boolean) => void;
   insertTextOnImage: boolean | null;
   setInsertTextOnImage: (val: boolean | null) => void;
+  productHeadline: string;
+  setProductHeadline: (headline: string) => void;
   generateTextSuggestions: boolean;
   setGenerateTextSuggestions: (val: boolean) => void;
   layoutStyle: string;
@@ -279,6 +281,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [fontWeight, setFontWeight] = useState("bold");
   const [isItalic, setIsItalic] = useState(false);
   const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
+  const [productHeadline, setProductHeadline] = useState<string>("");
 
   const [selectedPersona, setSelectedPersona] = useState<OnboardingPersona | "all" | null>("all");
   const [isUploading, setIsUploading] = useState(false);
@@ -1066,6 +1069,13 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
             nanobananaFormData.append("layoutStyle", layoutStyle || "");
+            nanobananaFormData.append("insertTextOnImage", String(insertTextOnImage !== false));
+            if (productHeadline) {
+              nanobananaFormData.append("textHeadline", productHeadline.trim());
+            }
+            if (businessProfile) {
+              nanobananaFormData.append("businessProfile", JSON.stringify(businessProfile));
+            }
             nanobananaFormData.append(
               "hybridPriority",
               mode === "reference-photo" && productWorkflow === "packshot-hybrid"
@@ -2060,6 +2070,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setIsItalic,
         insertTextOnImage,
         setInsertTextOnImage,
+        productHeadline,
+        setProductHeadline,
         generateTextSuggestions,
         setGenerateTextSuggestions,
         layoutStyle,

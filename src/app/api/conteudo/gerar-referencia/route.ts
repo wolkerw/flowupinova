@@ -1702,6 +1702,27 @@ Cenário desejado e estilo: ${prompt}`;
 
       // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2 (Image-to-Image) como motor primário!
       const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
+      const insertTextOnImage = formData.get("insertTextOnImage") !== "false";
+      const textHeadline = (formData.get("textHeadline") as string) || "";
+      const businessProfileRaw = (formData.get("businessProfile") as string) || "";
+
+      let brandTypographyDirective = "";
+      let brandIdentityDirective = "";
+      if (businessProfileRaw) {
+        try {
+          const bp = JSON.parse(businessProfileRaw);
+          if (bp.businessName) {
+            brandIdentityDirective = `Brand: ${bp.businessName}. `;
+          }
+          if (bp.visualIdentity?.typography?.primaryFont) {
+            brandTypographyDirective = `with ${bp.visualIdentity.typography.primaryFont} typography style`;
+          } else if (bp.visualIdentity?.typography?.style) {
+            brandTypographyDirective = `with ${bp.visualIdentity.typography.style} typography style`;
+          }
+        } catch (bpErr) {
+          console.warn("[NANOBANANA_REF] Falha ao processar businessProfile:", bpErr);
+        }
+      }
 
       if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
@@ -1734,7 +1755,18 @@ Cenário desejado e estilo: ${prompt}`;
             ? `[VISUAL PRESET: ${STYLE_LABELS[layoutStyle]}] `
             : "";
 
-        const openaiPrompt = `${styleHeader}Professional commercial advertising composition featuring this exact product from the input image: ${prompt}. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const ugcDirectives =
+          "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
+
+        let typographyPrompt = "";
+        if (insertTextOnImage && textHeadline) {
+          typographyPrompt = `TYPOGRAPHY & HEADLINE OVERLAY: Render the exact headline text "${textHeadline}" prominently and beautifully integrated into the scene (e.g. billboard, magazine, or commercial ad overlay) ${brandTypographyDirective || "with clean, bold, high-contrast modern sans-serif typography"}. Ensure perfect spelling, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+        } else if (!insertTextOnImage) {
+          typographyPrompt =
+            "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
+        }
+
+        const openaiPrompt = `${styleHeader}Commercial advertising photography featuring this exact product from the input image: ${prompt}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-2"];
         for (const oModel of OPENAI_MODELS) {
