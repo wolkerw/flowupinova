@@ -859,16 +859,8 @@ export const Step1Idea = () => {
       onReferenceDescriptionChange(
         "Criar um post profissional mantendo fielmente o layout, as cores e a estrutura da referência de inspiração, integrando o meu produto ou pessoa de forma perfeitamente harmônica."
       );
-    } else if (
-      mode === "reference-photo" &&
-      productWorkflow === "packshot-hybrid" &&
-      !referenceDescription.trim()
-    ) {
-      onReferenceDescriptionChange(
-        "Substituir o produto principal da foto de referência profissional pelo meu produto de forma realista, integrando sombras, iluminação e reflexos do ambiente de fundo."
-      );
     }
-  }, [isLinkMode, mode, productWorkflow, referenceDescription, onReferenceDescriptionChange]);
+  }, [isLinkMode, mode, referenceDescription, onReferenceDescriptionChange]);
 
   React.useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
@@ -1619,44 +1611,10 @@ export const Step1Idea = () => {
                                 </p>
                                 <Textarea
                                   placeholder="Ex: Frasco de perfume posicionado sobre mesa de mármore branco com iluminação suave de estúdio..."
-                                  className="h-24 text-sm bg-white"
+                                  className="h-24 text-sm bg-white border-slate-200 focus:ring-2 focus:ring-[#0083C7] rounded-xl"
                                   value={referenceDescription}
                                   onChange={(e) => onReferenceDescriptionChange(e.target.value)}
                                 />
-
-                                {/* Atalhos Rápidos de Fotografia de Produtos */}
-                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                  <span className="text-[11px] font-semibold text-slate-500">Atalhos:</span>
-                                  {[
-                                    { tag: "/metaad", label: "📢 Meta Ad", desc: "Espaço para preço/título", styleId: "PRODUCT_METAAD" },
-                                    { tag: "/premiumshowcase", label: "💎 Vitrine Luxo", desc: "Pedestal de mármore", styleId: "PRODUCT_PREMIUM" },
-                                    { tag: "/lifestylecontext", label: "🌿 Em Uso", desc: "Cenário real", styleId: "PRODUCT_LIFESTYLE" },
-                                    { tag: "/dynamicaction", label: "💧 Splash", desc: "Respingos e gotas", styleId: "PRODUCT_DYNAMIC" },
-                                    { tag: "/minimalcatalog", label: "🏷️ Catálogo", desc: "Fundo infinito", styleId: "PRODUCT_CATALOG" },
-                                  ].map((item) => (
-                                    <button
-                                      key={item.tag}
-                                      type="button"
-                                      title={item.desc}
-                                      onClick={() => {
-                                        setLayoutStyle(item.styleId as LayoutStyleId);
-                                        if (!referenceDescription.includes(item.tag)) {
-                                          onReferenceDescriptionChange(
-                                            referenceDescription ? `${referenceDescription.trim()} ${item.tag}` : item.tag
-                                          );
-                                        }
-                                      }}
-                                      className={cn(
-                                        "rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
-                                        layoutStyle === item.styleId || referenceDescription.includes(item.tag)
-                                          ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
-                                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:bg-slate-50"
-                                      )}
-                                    >
-                                      {item.label}
-                                    </button>
-                                  ))}
-                                </div>
                               </motion.div>
                             </AnimatePresence>
                           </div>
