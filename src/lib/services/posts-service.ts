@@ -291,12 +291,28 @@ async function publishPostImmediately(
   }
 }
 
+function base64ToBlob(base64Data: string): Blob {
+  const parts = base64Data.split(";base64,");
+  const contentType = parts[0]?.split(":")[1] || "image/jpeg";
+  const raw = typeof window !== "undefined" ? window.atob(parts[1]) : Buffer.from(parts[1], "base64").toString("binary");
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  return new Blob([uInt8Array], { type: contentType });
+}
+
 export async function schedulePost(
   userId: string,
   postData: PostDataInput
 ): Promise<PostDataOutput> {
   if (!userId) {
     return { success: false, error: "User ID is required to schedule a post." };
+  }
+
+  if (!postData.platforms || postData.platforms.length === 0) {
+    return { success: false, error: "Selecione pelo menos uma plataforma para publicar." };
   }
 
   const hasFacebook = postData.platforms.includes("facebook");
@@ -357,22 +373,33 @@ export async function schedulePost(
         return mediaItem.publicUrl;
       }
 
-      if (
-        mediaItem.publicUrl &&
-        (mediaItem.publicUrl.startsWith("blob:") || mediaItem.publicUrl.startsWith("data:"))
-      ) {
-        console.log(`[POST_SERVICE] Item ${index}: Convertendo URL temporária (blob/base64)...`);
-        const response = await fetch(mediaItem.publicUrl);
-        const blob = await response.blob();
-        const isVideo = blob.type.startsWith("video") || mediaItem.type === "video";
-        const ext = isVideo ? "mp4" : "jpg";
-        const file = new File([blob], `generated_${Date.now()}.${ext}`, {
-          type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
-        });
-        console.log(
-          `[POST_SERVICE] Item ${index}: Mídia convertida com sucesso (${file.name}), fazendo upload permanente no Firebase Storage...`
-        );
+      // Conversão direta de Base64 em memória para evitar falhas de fetch()
+      if (mediaItem.publicUrl && mediaItem.publicUrl.startsWith("data:")) {
+        console.log(`[POST_SERVICE] Item ${index}: Convertendo Base64 em Blob em memória...`);
+        const blob = base64ToBlob(mediaItem.publicUrl);
+        const file = new File([blob], `generated_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
         return await uploadMediaAndGetURL(userId, file);
+      }
+
+      // Conversão de Blob URL
+      if (mediaItem.publicUrl && mediaItem.publicUrl.startsWith("blob:")) {
+        console.log(`[POST_SERVICE] Item ${index}: Convertendo Blob URL...`);
+        try {
+          const response = await fetch(mediaItem.publicUrl);
+          const blob = await response.blob();
+          const isVideo = blob.type.startsWith("video") || mediaItem.type === "video";
+          const ext = isVideo ? "mp4" : "jpg";
+          const file = new File([blob], `generated_${Date.now()}.${ext}`, {
+            type: blob.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          });
+          return await uploadMediaAndGetURL(userId, file);
+        } catch (blobFetchErr) {
+          console.warn("[POST_SERVICE] Falha ao fazer fetch do blob URL, tentando arquivo físico:", blobFetchErr);
+          if (mediaItem.file && mediaItem.file.size > 0) {
+            return await uploadMediaAndGetURL(userId, mediaItem.file);
+          }
+          throw new Error("Não foi possível processar a imagem temporária gerada. Tente gerar novamente.");
+        }
       }
 
       if (mediaItem.file && mediaItem.file.size > 0) {
@@ -474,7 +501,11 @@ export async function schedulePost(
     };
   } catch (error: any) {
     console.error(`Error in schedulePost for user ${userId}:`, error);
-    return { success: false, error: `Falha ao processar post. Motivo: ${error.message}` };
+    let userFriendlyError = error.message || "Erro desconhecido.";
+    if (userFriendlyError.includes("Failed to fetch")) {
+      userFriendlyError = "Falha de conexão com o servidor ao publicar. Verifique sua conexão com a internet ou se a sessão ainda está ativa e tente novamente.";
+    }
+    return { success: false, error: `Falha ao processar post. Motivo: ${userFriendlyError}` };
   }
 }
 
