@@ -1538,7 +1538,7 @@ export const Step1Idea = () => {
                           />
                         </div>
                       ) : (
-                        <div className="w-full space-y-4 pt-1">
+                        <div className="w-full space-y-6 pt-1">
                           <div className="flex flex-col items-start gap-6 md:flex-row">
                             <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-xl border shadow-sm">
                               <Image
@@ -1616,7 +1616,7 @@ export const Step1Idea = () => {
                           </div>
 
                           {/* Seletor Visual de Presets Especializados de Produtos */}
-                          <div className="border-t pt-5 mt-2">
+                          <div className="border-t pt-5">
                             <ProductPresetSelector
                               value={layoutStyle}
                               onChange={(preset, hint) => {
