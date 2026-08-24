@@ -1739,11 +1739,11 @@ Cenário desejado e estilo: ${prompt}`;
       let imageBytes: string | null = null;
       let modelUsed = "";
 
-      // 5.1 Roteamento Inteligente: Se preset de produto for selecionado, aciona gpt-image-2 como motor primário!
+      // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2 (Image-to-Image) como motor primário!
       const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
       const openaiKey = process.env.OPENAI_API_KEY;
 
-      if (isProductPreset && openaiKey) {
+      if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
           PRODUCT_METAAD:
             "Meta Ads High-Conversion Product Advertising — 45-55% strategic negative space for copy/pricing, sharp rim light separation, true-to-life product texture",
@@ -1769,8 +1769,12 @@ Cenário desejado e estilo: ${prompt}`;
             "3D Outdoor Billboard — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product from the input image with ambient city glow and sharp brand fidelity",
         };
 
-        const styleDirective = STYLE_LABELS[layoutStyle] || layoutStyle;
-        const openaiPrompt = `[VISUAL PRESET: ${styleDirective}] Professional commercial advertising composition featuring this exact product from the input image: ${prompt}. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const styleHeader =
+          isProductPreset && STYLE_LABELS[layoutStyle]
+            ? `[VISUAL PRESET: ${STYLE_LABELS[layoutStyle]}] `
+            : "";
+
+        const openaiPrompt = `${styleHeader}Professional commercial advertising composition featuring this exact product from the input image: ${prompt}. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-2"];
         for (const oModel of OPENAI_MODELS) {
@@ -1808,7 +1812,7 @@ Cenário desejado e estilo: ${prompt}`;
                 imageBytes = b64;
                 modelUsed = oModel;
                 console.log(
-                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${oModel}) para o preset ${layoutStyle}!`
+                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${oModel})!`
                 );
                 break;
               }
