@@ -999,46 +999,86 @@ export const Step1Idea = () => {
                 <button
                   type="button"
                   onClick={() => setProductWorkflow("text-ambientation")}
-                  className={`flex flex-col items-start rounded-[20px] border-2 p-5 text-left transition-all ${
+                  className={cn(
+                    "group relative flex flex-col items-start rounded-2xl border-2 p-5 text-left transition-all duration-200",
                     productWorkflow === "text-ambientation"
-                      ? "border-accent bg-accent/5 shadow-md shadow-accent/5"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
+                      ? "border-[#FA6305] bg-orange-50/40 shadow-md ring-2 ring-[#FA6305]/20"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                  )}
                 >
-                  <div className="mb-3 rounded-xl bg-accent/10 p-2 text-accent">
-                    <Sparkles className="h-6 w-6" />
+                  <div className="flex w-full items-center justify-between mb-3">
+                    <div
+                      className={cn(
+                        "rounded-xl p-2.5 transition-colors",
+                        productWorkflow === "text-ambientation"
+                          ? "bg-[#FA6305] text-white shadow-sm"
+                          : "bg-orange-100/80 text-[#FA6305]"
+                      )}
+                    >
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        productWorkflow === "text-ambientation"
+                          ? "bg-orange-200/80 text-orange-900"
+                          : "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      1 Foto + Descrição
+                    </span>
                   </div>
-                  <span className="text-base font-bold text-gray-800">
+                  <span className="text-base font-bold text-slate-900">
                     Opção A — Produto em Uso
                   </span>
-                  <span className="mt-1 text-xs leading-relaxed text-gray-500">
-                    Ideal para colocar o seu produto sendo usado por uma pessoa.
+                  <span className="mt-1 text-xs leading-relaxed text-slate-600">
+                    Ideal para colocar o seu produto em cenários fotográficos ou sendo usado por uma pessoa.
                   </span>
-                  <span className="mt-2 rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-600">
-                    Ex: Você envia seu produto e escreve "modelo segurando o produto sorrindo"
+                  <span className="mt-3 w-full rounded-lg bg-white/90 border border-slate-200/70 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-2xs">
+                    💡 Ex: Envie a foto da garrafa e escolha um preset ou digite o cenário
                   </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setProductWorkflow("packshot-hybrid")}
-                  className={`flex flex-col items-start rounded-[20px] border-2 p-5 text-left transition-all ${
+                  className={cn(
+                    "group relative flex flex-col items-start rounded-2xl border-2 p-5 text-left transition-all duration-200",
                     productWorkflow === "packshot-hybrid"
-                      ? "border-accent bg-accent/5 shadow-md shadow-accent/5"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
+                      ? "border-[#0083C7] bg-sky-50/40 shadow-md ring-2 ring-[#0083C7]/20"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                  )}
                 >
-                  <div className="mb-3 rounded-xl bg-blue-500/10 p-2 text-blue-500">
-                    <Box className="h-6 w-6" />
+                  <div className="flex w-full items-center justify-between mb-3">
+                    <div
+                      className={cn(
+                        "rounded-xl p-2.5 transition-colors",
+                        productWorkflow === "packshot-hybrid"
+                          ? "bg-[#0083C7] text-white shadow-sm"
+                          : "bg-sky-100/80 text-[#0083C7]"
+                      )}
+                    >
+                      <Box className="h-5 w-5" />
+                    </div>
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        productWorkflow === "packshot-hybrid"
+                          ? "bg-sky-200/80 text-sky-900"
+                          : "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      2 Fotos (Fusão Inteligente)
+                    </span>
                   </div>
-                  <span className="text-base font-bold text-gray-800">
-                    Opção B — Produto em Uso com Referência
+                  <span className="text-base font-bold text-slate-900">
+                    Opção B — Produto com Foto de Referência
                   </span>
-                  <span className="mt-1 text-xs leading-relaxed text-gray-500">
-                    Ideal para colocar o seu produto no cenário da referência enviada.
+                  <span className="mt-1 text-xs leading-relaxed text-slate-600">
+                    Clona o layout, iluminação ou estrutura gráfica exata da foto de referência enviada.
                   </span>
-                  <span className="mt-2 rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600">
-                    Ex: Você envia seu produto e uma foto profissional de referência
+                  <span className="mt-3 w-full rounded-lg bg-white/90 border border-slate-200/70 px-2.5 py-1.5 text-[11px] font-medium text-sky-800 shadow-2xs">
+                    ✨ Ex: Envie seu produto + foto de anúncio inspirador que deseja replicar
                   </span>
                 </button>
               </div>
@@ -1703,31 +1743,40 @@ export const Step1Idea = () => {
                     </div>
                   </div>
                 ) : (
-                  // Interface B: Upload Duplo para Packshot Híbrido
+                  // Interface B: Upload Duplo para Packshot Híbrido com Alta Hierarquia e Contraste
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* Grid de Uploads com Destaque Cromático */}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                       {/* 1. Foto do seu Produto Real */}
-                      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                        <div className="flex items-center gap-2 text-primary">
-                          <Box className="h-5 w-5 animate-pulse text-accent" />
-                          <Label className="text-base font-bold">1. Foto do seu Produto Real</Label>
+                      <div className="flex flex-col justify-between rounded-2xl border-2 border-orange-200/90 bg-gradient-to-b from-orange-50/50 via-white to-white p-5 shadow-xs transition-all">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FA6305] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs">
+                              <Box className="h-3.5 w-3.5" />
+                              Passo 1 • Seu Produto Real
+                            </span>
+                            <span className="text-[10px] font-semibold text-orange-800/80 bg-orange-100/70 px-2 py-0.5 rounded-md">
+                              Fidelidade 100%
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                            Foto simples (mesmo amadora) do seu produto real que será preservado e integrado.
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          Foto simples (mesmo amadora) do seu produto real que será recortado e
-                          colado.
-                        </p>
 
                         {!referenceImagePreview ? (
                           <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-accent hover:bg-accent/5"
+                            className="group flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-orange-300 bg-white p-4 text-center transition-all hover:border-[#FA6305] hover:bg-orange-50/30 hover:shadow-xs"
                           >
-                            <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                            <p className="text-center text-xs font-bold text-gray-700">
+                            <div className="mb-2.5 rounded-full bg-orange-100 p-3 text-[#FA6305] transition-transform group-hover:scale-110">
+                              <UploadCloud className="h-6 w-6" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-800">
                               Clique para carregar o seu produto
                             </p>
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              PNG, JPG de boa qualidade.
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              PNG ou JPG com boa iluminação
                             </p>
                             <input
                               type="file"
@@ -1738,8 +1787,8 @@ export const Step1Idea = () => {
                             />
                           </div>
                         ) : (
-                          <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                            <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                          <div className="relative flex h-48 flex-col items-center justify-center rounded-xl border border-orange-200 bg-white p-3 shadow-inner">
+                            <div className="relative h-32 w-32 overflow-hidden rounded-lg border border-slate-200 shadow-sm">
                               <Image
                                 src={referenceImagePreview}
                                 alt="Seu Produto"
@@ -1751,7 +1800,7 @@ export const Step1Idea = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              className="mt-2 h-7 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600"
                               onClick={() => onReferenceImageChange(null)}
                             >
                               Trocar imagem
@@ -1761,27 +1810,35 @@ export const Step1Idea = () => {
                       </div>
 
                       {/* 2. Foto de Referência */}
-                      <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-5 shadow-sm">
-                        <div className="flex items-center gap-2 text-primary">
-                          <Sparkles className="h-5 w-5 text-blue-500" />
-                          <Label className="text-base font-bold">2. Foto de Referência</Label>
+                      <div className="flex flex-col justify-between rounded-2xl border-2 border-sky-200/90 bg-gradient-to-b from-sky-50/50 via-white to-white p-5 shadow-xs transition-all">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#0083C7] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Passo 2 • Foto de Referência
+                            </span>
+                            <span className="text-[10px] font-semibold text-sky-800/80 bg-sky-100/70 px-2 py-0.5 rounded-md">
+                              Inspiração Visual
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                            Foto de inspiração profissional da qual copiaremos o cenário, iluminação e layout.
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          A foto de inspiração profissional da qual copiaremos o cenário e a
-                          iluminação.
-                        </p>
 
                         {!secondaryReferenceImagePreview ? (
                           <div
                             onClick={() => secondaryFileInputRef.current?.click()}
-                            className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition-all hover:border-blue-500 hover:bg-blue-50/20"
+                            className="group flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sky-300 bg-white p-4 text-center transition-all hover:border-[#0083C7] hover:bg-sky-50/30 hover:shadow-xs"
                           >
-                            <UploadCloud className="mb-2 h-8 w-8 text-gray-400" />
-                            <p className="text-center text-xs font-bold text-gray-700">
+                            <div className="mb-2.5 rounded-full bg-sky-100 p-3 text-[#0083C7] transition-transform group-hover:scale-110">
+                              <UploadCloud className="h-6 w-6" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-800">
                               Clique para carregar a referência
                             </p>
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              PNG, JPG do cenário comercial.
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              PNG ou JPG do post ou anúncio modelo
                             </p>
                             <input
                               type="file"
@@ -1797,8 +1854,8 @@ export const Step1Idea = () => {
                             />
                           </div>
                         ) : (
-                          <div className="relative flex h-44 flex-col items-center justify-center rounded-lg border bg-white p-3 shadow-inner">
-                            <div className="relative h-28 w-28 overflow-hidden rounded border shadow-sm">
+                          <div className="relative flex h-48 flex-col items-center justify-center rounded-xl border border-sky-200 bg-white p-3 shadow-inner">
+                            <div className="relative h-32 w-32 overflow-hidden rounded-lg border border-slate-200 shadow-sm">
                               <Image
                                 src={secondaryReferenceImagePreview}
                                 alt="Foto de Referência"
@@ -1810,7 +1867,7 @@ export const Step1Idea = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-2 h-7 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              className="mt-2 h-7 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600"
                               onClick={() => onSecondaryReferenceImageChange(null)}
                             >
                               Trocar imagem
@@ -1820,30 +1877,46 @@ export const Step1Idea = () => {
                       </div>
                     </div>
 
-                    {/* Modo de Replicação da Referência */}
-                    <div className="space-y-3 border-t pt-4">
-                      <Label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                        <span>🎯</span> O que deseja replicar da foto de referência?
-                      </Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Modo de Replicação da Referência com Display System */}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-xs space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                        <div>
+                          <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span>🎯</span> O que deseja replicar da foto de referência?
+                          </Label>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Escolha se deseja clonar todo o layout gráfico ou apenas a iluminação e cenário 3D.
+                          </p>
+                        </div>
+                        <span className="self-start sm:self-auto rounded-full bg-[#0083C7]/10 px-2.5 py-1 text-[10px] font-bold text-[#0083C7]">
+                          IA Display System Ativa
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <button
                           type="button"
                           onClick={() => setReferenceReplicationMode("full")}
                           className={cn(
-                            "flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all",
+                            "group relative flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all duration-200",
                             referenceReplicationMode === "full"
-                              ? "border-[#0083C7] bg-[#0083C7]/5 shadow-xs ring-1 ring-[#0083C7]/30"
-                              : "border-slate-200 bg-white hover:border-slate-300"
+                              ? "border-[#0083C7] bg-white shadow-md ring-2 ring-[#0083C7]/20"
+                              : "border-slate-200/90 bg-white/80 hover:border-slate-300 hover:bg-white"
                           )}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-base">📑</span>
-                            <span className="text-xs font-bold text-slate-800">
-                              Replicar Tudo (Layout + Textos + Gráficos)
-                            </span>
+                          <div className="flex w-full items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📑</span>
+                              <span className="text-xs font-bold text-slate-900">
+                                Replicar Tudo (Layout Completo)
+                              </span>
+                            </div>
+                            {referenceReplicationMode === "full" && (
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#0083C7] ring-4 ring-[#0083C7]/20" />
+                            )}
                           </div>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Copia o cenário, iluminação, e também a <strong>estrutura de textos, selos e cards gráficos</strong> da referência adaptados ao seu produto.
+                          <p className="text-[11px] text-slate-600 leading-snug">
+                            Copia o cenário, iluminação, e também a <strong>estrutura de textos, selos, cards e badges</strong> da referência adaptados ao seu produto.
                           </p>
                         </button>
 
@@ -1851,36 +1924,43 @@ export const Step1Idea = () => {
                           type="button"
                           onClick={() => setReferenceReplicationMode("scenario_only")}
                           className={cn(
-                            "flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all",
+                            "group relative flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all duration-200",
                             referenceReplicationMode === "scenario_only"
-                              ? "border-[#0083C7] bg-[#0083C7]/5 shadow-xs ring-1 ring-[#0083C7]/30"
-                              : "border-slate-200 bg-white hover:border-slate-300"
+                              ? "border-[#0083C7] bg-white shadow-md ring-2 ring-[#0083C7]/20"
+                              : "border-slate-200/90 bg-white/80 hover:border-slate-300 hover:bg-white"
                           )}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-base">🌿</span>
-                            <span className="text-xs font-bold text-slate-800">
-                              Apenas Cenário & Ambientação (Foto Limpa)
-                            </span>
+                          <div className="flex w-full items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">🌿</span>
+                              <span className="text-xs font-bold text-slate-900">
+                                Apenas Cenário & Ambientação (Foto Limpa)
+                              </span>
+                            </div>
+                            {referenceReplicationMode === "scenario_only" && (
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#0083C7] ring-4 ring-[#0083C7]/20" />
+                            )}
                           </div>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Copia apenas a <strong>iluminação, ângulo de câmera, materiais e fundo</strong>, sem replicar os textos da referência.
+                          <p className="text-[11px] text-slate-600 leading-snug">
+                            Copia apenas a <strong>iluminação, ângulo de câmera, materiais e fundo 3D</strong>, gerando uma foto limpa sem os textos da referência.
                           </p>
                         </button>
                       </div>
                     </div>
 
-                    <div className="space-y-2 border-t pt-2">
-                      <Label className="text-base font-semibold">
-                        Descrição do Cenário ou Ajustes (Opcional)
-                      </Label>
-                      <p className="text-sm text-gray-600">
-                        Explique se gostaria de fazer algum ajuste na combinação (ex: "coloque o meu
-                        produto no lugar da garrafa profissional e mantenha os respingos de água").
-                      </p>
+                    {/* Descrição e Instruções Adicionais */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
+                      <div>
+                        <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <span>✍️</span> Instruções Adicionais ou Ajustes (Opcional)
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Explique se gostaria de fazer algum ajuste na fusão (ex: "coloque o meu produto no lugar da garrafa profissional e mantenha os respingos de água").
+                        </p>
+                      </div>
                       <Textarea
-                        placeholder="Descreva detalhes ou instruções para a fusão..."
-                        className="h-24 bg-white text-sm"
+                        placeholder="Descreva detalhes específicos ou instruções para a fusão das imagens..."
+                        className="min-h-[90px] bg-slate-50/50 border-slate-200 text-sm focus:bg-white focus:ring-2 focus:ring-[#0083C7] rounded-xl transition-all"
                         value={referenceDescription}
                         onChange={(e) => onReferenceDescriptionChange(e.target.value)}
                       />
