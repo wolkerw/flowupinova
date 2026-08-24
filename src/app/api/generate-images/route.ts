@@ -117,6 +117,26 @@ export async function POST(request: Request) {
         "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
       MAGAZINE_3D:
         "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
+      PRODUCT_METAAD:
+        "Meta Ads High-Conversion Product Advertising — 45-55% strategic negative space for copy/pricing, sharp rim light separation, true-to-life product texture",
+      PRODUCT_PREMIUM:
+        "Ultra-Luxury Product Showcase — geometric Carrara marble pedestal, caustic reflections, large overhead softbox 3-point lighting",
+      PRODUCT_LIFESTYLE:
+        "Aspirational Lifestyle Product in Use — natural window sunlight, authentic contemporary interior setting, soft depth of field",
+      PRODUCT_DYNAMIC:
+        "Dynamic High-Speed Commercial Splash — 1/8000s shutter freeze, suspended water droplets and energetic fluid dynamics",
+      PRODUCT_CATALOG:
+        "Clean Minimalist E-Commerce Catalog — seamless infinite pure studio backdrop, uniform shadowless light, f/11 edge-to-edge sharpness",
+      PRODUCT_COSMETICS:
+        "Luxury Cosmetics & Skincare — acrylic ripple tray, delicate organic floral petals, soft pastel backlighting, liquid textures",
+      PRODUCT_TECH:
+        "Futuristic Tech Hardware — levitating in zero gravity, glowing cyan and purple neon rim accents, sleek titanium finish",
+      PRODUCT_FLATLAY:
+        "90-Degree Flat Lay Knolling — top-down orthographic view, geometric prop organization, natural linen background",
+      PRODUCT_GOURMET:
+        "Commercial Food & Culinary — appetizing rich textures, gentle rising steam, warm restaurant ambient glow",
+      PRODUCT_RUSTIC:
+        "Rustic & Artisanal Botanical — raw organic wood slab, dried eucalyptus branches, warm morning window sunbeams",
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
       const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;
