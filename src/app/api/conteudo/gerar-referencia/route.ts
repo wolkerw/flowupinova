@@ -1456,138 +1456,40 @@ ${yamlAnalysis}`;
         return { buffer: buf, mimeType: "image/jpeg" };
       };
 
-      // 1. Processar Foto 1 (Pessoa/Selfie)
+      // 1. Processar Foto 1 (Pessoa/Selfie/Produto)
       const { buffer: buffer1, mimeType: mimeType1 } = await processImageBuffer(file);
-
-      // Upload Foto 1 para CDN do Fal.ai
-      let garmentPublicUrl = "";
-      try {
-        const finalFile1 = new File([new Blob([buffer1], { type: mimeType1 })], file.name, {
-          type: mimeType1,
-        });
-        garmentPublicUrl = await fal.storage.upload(finalFile1);
-        console.log(`[NANOBANANA_REF] Foto 1 enviada para CDN do Fal.ai: ${garmentPublicUrl}`);
-      } catch (uploadErr) {
-        console.error(
-          "[NANOBANANA_REF] Erro no upload da Foto 1 para o Fal.ai Storage:",
-          uploadErr
-        );
-      }
 
       // Preparar variáveis do subject 2 (Produto/Projeto)
       let secondaryGarmentPublicUrl = "";
       let transparentProductUrl = "";
       let base64Image2 = "";
       let mimeType2 = "";
+      let garmentPublicUrl = "";
+      let transparentGarmentUrl = "";
 
-      let transparentGarmentUrl = garmentPublicUrl;
-      if (hybridPriority === "packshot" && garmentPublicUrl) {
+      const openaiKey = process.env.OPENAI_API_KEY;
+
+      // Se NÃO houver chave OpenAI (fallback para Gemini Nano Banana Pro puro), realiza processamento legado no Fal.ai/Bria
+      if (!openaiKey) {
         try {
-          console.log(
-            `[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`
-          );
-          transparentGarmentUrl = await removeBackgroundWithCache(
-            buffer1,
-            garmentPublicUrl,
-            rawFalKey,
-            userId
-          );
-        } catch (briaError) {
-          console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
-        }
-      }
-
-      if (secondaryFile) {
-        // 2. Processar Foto 2 (Produto/Projeto)
-        console.log("[NANOBANANA_REF] Processando Foto 2 (Produto/Projeto)...");
-        const { buffer: buffer2, mimeType: mimeType2Original } =
-          await processImageBuffer(secondaryFile);
-
-        // Upload Foto 2 para CDN do Fal.ai
-        try {
-          const finalFile2 = new File(
-            [new Blob([buffer2], { type: mimeType2Original })],
-            secondaryFile.name,
-            { type: mimeType2Original }
-          );
-          secondaryGarmentPublicUrl = await fal.storage.upload(finalFile2);
-          console.log(
-            `[NANOBANANA_REF] Foto 2 enviada para CDN do Fal.ai: ${secondaryGarmentPublicUrl}`
-          );
+          const finalFile1 = new File([new Blob([buffer1], { type: mimeType1 })], file.name, {
+            type: mimeType1,
+          });
+          garmentPublicUrl = await fal.storage.upload(finalFile1);
+          console.log(`[NANOBANANA_REF] Foto 1 enviada para CDN do Fal.ai: ${garmentPublicUrl}`);
         } catch (uploadErr) {
           console.error(
-            "[NANOBANANA_REF] Erro no upload da Foto 2 para o Fal.ai Storage:",
+            "[NANOBANANA_REF] Erro no upload da Foto 1 para o Fal.ai Storage:",
             uploadErr
           );
         }
 
-        // Remoção de fundo da Foto 2 (Produto) via Bria API (apenas se a prioridade NÃO for foco em cenário)
-        transparentProductUrl = secondaryGarmentPublicUrl;
-        if (
-          secondaryGarmentPublicUrl &&
-          hybridPriority !== "scenario" &&
-          hybridPriority !== "packshot"
-        ) {
-          try {
-            console.log(`[NANOBANANA_REF] Removendo fundo da Foto 2 (Produto) via Bria API...`);
-            transparentProductUrl = await removeBackgroundWithCache(
-              buffer2,
-              secondaryGarmentPublicUrl,
-              rawFalKey,
-              userId
-            );
-          } catch (briaError) {
-            console.error(
-              "[NANOBANANA_REF] Erro ao remover fundo da Foto 2 via Bria, usando original:",
-              briaError
-            );
-          }
-        }
-
-        // Baixar imagem recortada e transparente do produto para base64
-        base64Image2 = buffer2.toString("base64");
-        mimeType2 = mimeType2Original;
-
-        if (transparentProductUrl && transparentProductUrl !== secondaryGarmentPublicUrl) {
+        transparentGarmentUrl = garmentPublicUrl;
+        if (hybridPriority === "packshot" && garmentPublicUrl) {
           try {
             console.log(
-              `[NANOBANANA_REF] Baixando Foto 2 sem fundo de ${transparentProductUrl} para base64...`
+              `[NANOBANANA_REF] Removendo fundo da Foto 1 (Produto Amador) via Bria API (Packshot)...`
             );
-            const imgRes = await fetch(transparentProductUrl);
-            if (imgRes.ok) {
-              const imgArrayBuffer = await imgRes.arrayBuffer();
-              let imgBuffer = Buffer.from(imgArrayBuffer);
-              let mimeTypeDownloaded = imgRes.headers.get("content-type") || "image/png";
-
-              // Otimizar e redimensionar PNG com fundo transparente
-              try {
-                const jimpImg = await Jimp.read(imgBuffer);
-                if (jimpImg.width > 768 || jimpImg.height > 768) {
-                  jimpImg.resize({ w: 768, h: 768 });
-                }
-                imgBuffer = await jimpImg.getBuffer("image/png");
-                mimeTypeDownloaded = "image/png";
-              } catch (jimpError) {
-                console.warn("[NANOBANANA_REF] Falha ao re-processar Foto 2 com Jimp:", jimpError);
-              }
-
-              base64Image2 = imgBuffer.toString("base64");
-              mimeType2 = mimeTypeDownloaded;
-            }
-          } catch (fetchErr) {
-            console.error(
-              "[NANOBANANA_REF] Falha ao baixar Foto 2 do Bria, usando original:",
-              fetchErr
-            );
-          }
-        }
-      } else {
-        // Se NÃO houver secondaryFile, a Foto 1 (file) é tratada como o produto no fluxo original
-        // Então passamos ela pelo Bria se configurado
-        transparentGarmentUrl = garmentPublicUrl;
-        if (garmentPublicUrl) {
-          try {
-            console.log(`[NANOBANANA_REF] Removendo fundo da Foto única via Bria API...`);
             transparentGarmentUrl = await removeBackgroundWithCache(
               buffer1,
               garmentPublicUrl,
@@ -1595,9 +1497,68 @@ ${yamlAnalysis}`;
               userId
             );
           } catch (briaError) {
-            console.error("[NANOBANANA_REF] Erro no Bria (modo único):", briaError);
+            console.error("[NANOBANANA_REF] Erro no Bria para Foto 1 (Packshot):", briaError);
           }
         }
+
+        if (secondaryFile) {
+          console.log("[NANOBANANA_REF] Processando Foto 2 (Produto/Projeto)...");
+          const { buffer: buffer2, mimeType: mimeType2Original } =
+            await processImageBuffer(secondaryFile);
+
+          try {
+            const finalFile2 = new File(
+              [new Blob([buffer2], { type: mimeType2Original })],
+              secondaryFile.name,
+              { type: mimeType2Original }
+            );
+            secondaryGarmentPublicUrl = await fal.storage.upload(finalFile2);
+          } catch (uploadErr) {
+            console.error(
+              "[NANOBANANA_REF] Erro no upload da Foto 2 para o Fal.ai Storage:",
+              uploadErr
+            );
+          }
+
+          transparentProductUrl = secondaryGarmentPublicUrl;
+          if (
+            secondaryGarmentPublicUrl &&
+            hybridPriority !== "scenario" &&
+            hybridPriority !== "packshot"
+          ) {
+            try {
+              transparentProductUrl = await removeBackgroundWithCache(
+                buffer2,
+                secondaryGarmentPublicUrl,
+                rawFalKey,
+                userId
+              );
+            } catch (briaError) {
+              console.error("[NANOBANANA_REF] Erro ao remover fundo da Foto 2:", briaError);
+            }
+          }
+
+          base64Image2 = buffer2.toString("base64");
+          mimeType2 = mimeType2Original;
+        } else {
+          transparentGarmentUrl = garmentPublicUrl;
+          if (garmentPublicUrl) {
+            try {
+              transparentGarmentUrl = await removeBackgroundWithCache(
+                buffer1,
+                garmentPublicUrl,
+                rawFalKey,
+                userId
+              );
+            } catch (briaError) {
+              console.error("[NANOBANANA_REF] Erro no Bria (modo único):", briaError);
+            }
+          }
+        }
+      } else {
+        console.log(
+          "[NANOBANANA_REF] 🚀 gpt-image-2 ativo: pulando Fal.ai Bria (segmentação e ambientação nativas com custo R$ 0 de Fal.ai)."
+        );
       }
 
       // Preparar base64 da Foto 1
