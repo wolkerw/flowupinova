@@ -1702,7 +1702,6 @@ Cenário desejado e estilo: ${prompt}`;
 
       // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2 (Image-to-Image) como motor primário!
       const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
-      const openaiKey = process.env.OPENAI_API_KEY;
 
       if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
