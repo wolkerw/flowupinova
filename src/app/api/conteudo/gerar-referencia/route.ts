@@ -1468,10 +1468,13 @@ ${yamlAnalysis}`;
       let transparentGarmentUrl = "";
       let displaySystemBlueprint = "";
 
-      const openaiKey = process.env.OPENAI_API_KEY;
+      const referenceReplicationMode =
+        (formData.get("referenceReplicationMode") as string) || "full";
 
       if (secondaryFile) {
-        console.log("[NANOBANANA_REF] Processando Foto 2 (Referência de Display/Cenário)...");
+        console.log(
+          `[NANOBANANA_REF] Processando Foto 2 (Referência) — Modo: ${referenceReplicationMode}...`
+        );
         const { buffer: buffer2, mimeType: mimeType2Original } =
           await processImageBuffer(secondaryFile);
 
@@ -1482,15 +1485,25 @@ ${yamlAnalysis}`;
         if (apiKey || openaiKey) {
           try {
             console.log(
-              "[DISPLAY_SYSTEM] 🧠 Analisando Foto 2 com IA de Visão para extrair Display System Blueprint..."
+              `[DISPLAY_SYSTEM] 🧠 Analisando Foto 2 com IA de Visão (Modo: ${referenceReplicationMode})...`
             );
-            const visionPrompt = `You are an elite Commercial Ad Art Director & Photography Engineer. Analyze this reference image and extract its complete Display System Blueprint for commercial product placement:
-1. Environment & Backdrop (exact surface materials, texture, architectural context, colors).
-2. Lighting & Reflections (key light direction, temperature, rim light, reflections, shadows).
-3. Camera Framing & Perspective (macro, eye-level, low angle, tilt, depth of field).
-4. Composition Grid & Props (product placement, dynamic elements like splashes or particles, negative space).
 
-Respond with a concise, rich 3-4 sentence photographic instruction to recreate this exact display setting.`;
+            const visionPrompt =
+              referenceReplicationMode === "full"
+                ? `You are an elite Commercial Advertising Art Director & Design Engineer. Analyze this reference ad creative and extract its complete Display & Graphic Layout Blueprint:
+1. Graphic Layout & Architecture (badges, cards, discount containers, price pills, borders, overlay banners, CTA buttons).
+2. Typography & Text Placements (exact headline location, text hierarchy, typography font style, contrast colors, visual weight).
+3. Environment & Backdrop (surface materials, backdrop textures, lighting direction, rim lights, ambient atmosphere).
+4. Composition & Product Placement (where the hero product is anchored, negative space, surrounding splashes or particles).
+
+Respond with a precise 3-4 sentence instruction guiding how to replicate this exact complete advertising creative architecture around a new product.`
+                : `You are an elite Commercial Advertising Art Director & Photography Engineer. Analyze this reference image and extract ONLY its photographic environment and lighting setup (ignoring any graphic texts or logos):
+1. Environment & Backdrop (exact 3D surfaces, textures, architectural setting, color grading).
+2. Lighting & Reflections (key light direction, softbox/sunlight temperature, rim light, reflections, realistic shadows).
+3. Camera Perspective (macro, eye-level, low angle, tilt, depth of field).
+4. Physical Props & Effects (water splashes, pedestals, botanical elements, dynamic particles).
+
+Respond with a concise 3-4 sentence photographic instruction to recreate this clean 3D physical environment without copying any written text or graphics from the reference.`;
 
             if (apiKey) {
               const visionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;

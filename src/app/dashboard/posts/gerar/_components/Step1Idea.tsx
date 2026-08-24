@@ -838,6 +838,8 @@ export const Step1Idea = () => {
     setInsertTextOnImage,
     productHeadline,
     setProductHeadline,
+    referenceReplicationMode,
+    setReferenceReplicationMode,
   } = useWizard();
 
   const hideImageOption = mode === "concept";
@@ -1815,6 +1817,56 @@ export const Step1Idea = () => {
                             </Button>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Modo de Replicação da Referência */}
+                    <div className="space-y-3 border-t pt-4">
+                      <Label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>🎯</span> O que deseja replicar da foto de referência?
+                      </Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setReferenceReplicationMode("full")}
+                          className={cn(
+                            "flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all",
+                            referenceReplicationMode === "full"
+                              ? "border-[#0083C7] bg-[#0083C7]/5 shadow-xs ring-1 ring-[#0083C7]/30"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">📑</span>
+                            <span className="text-xs font-bold text-slate-800">
+                              Replicar Tudo (Layout + Textos + Gráficos)
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Copia o cenário, iluminação, e também a <strong>estrutura de textos, selos e cards gráficos</strong> da referência adaptados ao seu produto.
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setReferenceReplicationMode("scenario_only")}
+                          className={cn(
+                            "flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all",
+                            referenceReplicationMode === "scenario_only"
+                              ? "border-[#0083C7] bg-[#0083C7]/5 shadow-xs ring-1 ring-[#0083C7]/30"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">🌿</span>
+                            <span className="text-xs font-bold text-slate-800">
+                              Apenas Cenário & Ambientação (Foto Limpa)
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Copia apenas a <strong>iluminação, ângulo de câmera, materiais e fundo</strong>, sem replicar os textos da referência.
+                          </p>
+                        </button>
                       </div>
                     </div>
 

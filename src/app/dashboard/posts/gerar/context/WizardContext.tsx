@@ -146,6 +146,8 @@ interface WizardContextType {
   setInsertTextOnImage: (val: boolean | null) => void;
   productHeadline: string;
   setProductHeadline: (headline: string) => void;
+  referenceReplicationMode: "full" | "scenario_only";
+  setReferenceReplicationMode: (mode: "full" | "scenario_only") => void;
   generateTextSuggestions: boolean;
   setGenerateTextSuggestions: (val: boolean) => void;
   layoutStyle: string;
@@ -282,6 +284,9 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [isItalic, setIsItalic] = useState(false);
   const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
   const [productHeadline, setProductHeadline] = useState<string>("");
+  const [referenceReplicationMode, setReferenceReplicationMode] = useState<
+    "full" | "scenario_only"
+  >("full");
 
   const [selectedPersona, setSelectedPersona] = useState<OnboardingPersona | "all" | null>("all");
   const [isUploading, setIsUploading] = useState(false);
@@ -1070,6 +1075,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("caption", fullCaption);
             nanobananaFormData.append("layoutStyle", layoutStyle || "");
             nanobananaFormData.append("insertTextOnImage", String(insertTextOnImage !== false));
+            nanobananaFormData.append("referenceReplicationMode", referenceReplicationMode);
             if (productHeadline) {
               nanobananaFormData.append("textHeadline", productHeadline.trim());
             }
@@ -2072,6 +2078,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setInsertTextOnImage,
         productHeadline,
         setProductHeadline,
+        referenceReplicationMode,
+        setReferenceReplicationMode,
         generateTextSuggestions,
         setGenerateTextSuggestions,
         layoutStyle,
