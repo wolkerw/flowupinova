@@ -1872,9 +1872,10 @@ Cenário desejado e estilo: ${prompt}`;
               `[NANOBANANA_REF] Modelo ${model} retornou erro (${response.status}): ${errText.substring(0, 150)}`
             );
           }
-        } catch (modelErr: any) {
-          if (timeoutId) clearTimeout(timeoutId);
-          console.warn(`[NANOBANANA_REF] Exceção na chamada do modelo ${model}:`, modelErr.message);
+          } catch (modelErr: any) {
+            if (timeoutId) clearTimeout(timeoutId);
+            console.warn(`[NANOBANANA_REF] Exceção na chamada do modelo ${model}:`, modelErr.message);
+          }
         }
       }
 
