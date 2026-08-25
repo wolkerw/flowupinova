@@ -140,6 +140,18 @@ export async function POST(request: Request) {
         "FULL CREATIVE AGENCY POSTER — Organic & Artisanal Craft Advertisement: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted organic typography in Portuguese, eco-friendly certification seal, and bottom cards detailing sustainable materials and handmade quality. 20% safe margins.",
       PRODUCT_LIFESTYLE:
         "FULL CREATIVE AGENCY POSTER — Aspirational Lifestyle Campaign: Real-world aspirational environment with natural morning window lighting, storytelling headline in Portuguese, authentic organic integration, and subtle bottom brand value points. 20% safe margins.",
+      PRODUCT_TESTIMONIAL:
+        "FULL CREATIVE AGENCY POSTER — Customer Testimonial & 5-Star Review Ad: High-conversion social proof advertisement. The physical product is the prominent hero on an elegant studio surface, accompanied by a clean floating glassmorphism 5-star rating card and customer testimonial quote. 20% safe margins.",
+      PRODUCT_UGC:
+        "AUTHENTIC UGC PRODUCT PHOTOGRAPHY: Real-world smartphone-style aesthetic (iPhone photography). Tight macro close-up of a hand holding or interacting with the hero product in an authentic sunlit environment (cafe, office, or modern room), with soft background blur. Real-world authentic texture.",
+      PRODUCT_PACKAGING:
+        "FULL CREATIVE AGENCY POSTER — Luxury Product & Packaging Showcase: Staging of the hero product positioned directly next to its open premium rigid gift box and embossed brand packaging on a textured stone or wood pedestal. Studio rim lighting highlighting materials and embossing. 20% safe margins.",
+      PRODUCT_CUSTOMER_QUOTE:
+        "FULL CREATIVE AGENCY POSTER — Customer Photo & Quote Commercial Ad: Authentic customer moment with tight macro close-up on the product in use, paired with an elegant floating quotation bubble containing a heartfelt customer praise quote. Customer in soft background bokeh. 20% safe margins.",
+      PRODUCT_UNBOXING:
+        "FULL CREATIVE AGENCY POSTER — Aesthetic Unboxing Experience Ad: Top-down / angle unboxing presentation. An open luxury matte unboxing box with delicate tissue paper revealing the pristine hero product nestled inside, surrounded by branded ribbon and thank you card on a clean tabletop. 20% safe margins.",
+      PRODUCT_MOCKUP:
+        "FULL CREATIVE AGENCY POSTER — Ultra-Clean 3D Agency Product Mockup: Floating minimalist commercial 3D render of the hero product with soft directional contact shadow, translucent materials, studio softbox illumination, and aesthetic clean pastel gradient backdrop. 20% safe margins.",
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
       const heroProductRule = layoutStyle.startsWith("PRODUCT_")

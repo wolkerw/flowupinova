@@ -523,6 +523,12 @@ BRAND KIT ALIGNMENT (MANDATORY):
       PRODUCT_FLATLAY: "LAYOUT STYLE — PRODUCT_FLATLAY (/flatlayknolling): Precise 90-degree top-down flat lay knolling photography. Geometrically aligned with complementary lifestyle props on textured linen or wooden surface, soft diffused overhead lighting.",
       PRODUCT_GOURMET: "LAYOUT STYLE — PRODUCT_GOURMET (/gourmetculinary): Commercial culinary food advertising. Delicious rich textures, delicate rising steam, warm restaurant ambient glow, mouthwatering macro focus, and appetizing gourmet staging.",
       PRODUCT_RUSTIC: "LAYOUT STYLE — PRODUCT_RUSTIC (/rusticorganic): Organic artisanal botanical product staging. Resting on raw dark wood slab with dried eucalyptus, natural linen texture, and warm gentle sunbeams through a window.",
+      PRODUCT_TESTIMONIAL: "LAYOUT STYLE — PRODUCT_TESTIMONIAL (/testimonialAd): Customer testimonial and 5-star review advertising poster. The physical product is the prominent hero on a clean surface with a floating frosted-glass review badge, 5 golden stars, and customer satisfaction callout.",
+      PRODUCT_UGC: "LAYOUT STYLE — PRODUCT_UGC (/ugcProductPhoto): Authentic user-generated content (UGC) smartphone photography aesthetic. Macro close-up on the product in hand in a bright authentic real-world location (sunlit cafe or room), natural lighting, authentic organic texture.",
+      PRODUCT_PACKAGING: "LAYOUT STYLE — PRODUCT_PACKAGING (/ProductPackaging): Premium product and packaging unboxed showcase. Staged on a textured podium with the product proudly standing next to its open luxury packaging box, embossed branding, and refined materials.",
+      PRODUCT_CUSTOMER_QUOTE: "LAYOUT STYLE — PRODUCT_CUSTOMER_QUOTE (/CostumerPhoto+Quote): Customer quote and recommendation commercial layout. Close-up on the product interaction with a customer in soft background bokeh, accompanied by a stylized quote bubble with recommendation words.",
+      PRODUCT_UNBOXING: "LAYOUT STYLE — PRODUCT_UNBOXING (/UnboxingImageAd): Premium unboxing experience layout. Open matte cardboard unboxing box with delicate tissue paper, branded ribbon, thank you card, and the hero product cleanly presented from an inviting top-down/angle perspective.",
+      PRODUCT_MOCKUP: "LAYOUT STYLE — PRODUCT_MOCKUP (/ProductMockup): Ultra-clean 3D agency product mockup. Floating product with soft directional contact shadows, sleek studio softbox illumination, subtle translucent accents, and aesthetic soft gradient background.",
     };
 
     // Detecção automática de Slash Commands (/metaad, /premiumshowcase, /dynamicaction, etc.)
@@ -543,14 +549,24 @@ BRAND KIT ALIGNMENT (MANDATORY):
       layoutStyle = "PRODUCT_CATALOG";
     } else if (fullTextSearch.includes("/luxurycosmetics") || fullTextSearch.includes("/cosmetics") || fullTextSearch.includes("/skincare")) {
       layoutStyle = "PRODUCT_COSMETICS";
-    } else if (fullTextSearch.includes("/techfuturistic") || fullTextSearch.includes("/tech") || fullTextSearch.includes("/hardware")) {
-      layoutStyle = "PRODUCT_TECH";
     } else if (fullTextSearch.includes("/flatlayknolling") || fullTextSearch.includes("/flatlay") || fullTextSearch.includes("/knolling")) {
       layoutStyle = "PRODUCT_FLATLAY";
     } else if (fullTextSearch.includes("/gourmetculinary") || fullTextSearch.includes("/gourmet") || fullTextSearch.includes("/comida")) {
       layoutStyle = "PRODUCT_GOURMET";
     } else if (fullTextSearch.includes("/rusticorganic") || fullTextSearch.includes("/rustic") || fullTextSearch.includes("/organico")) {
       layoutStyle = "PRODUCT_RUSTIC";
+    } else if (fullTextSearch.includes("/testimonialad") || fullTextSearch.includes("/testimonial")) {
+      layoutStyle = "PRODUCT_TESTIMONIAL";
+    } else if (fullTextSearch.includes("/ugcproductphoto") || fullTextSearch.includes("/ugc")) {
+      layoutStyle = "PRODUCT_UGC";
+    } else if (fullTextSearch.includes("/productpackaging") || fullTextSearch.includes("/packaging")) {
+      layoutStyle = "PRODUCT_PACKAGING";
+    } else if (fullTextSearch.includes("/costumerphoto+quote") || fullTextSearch.includes("/customerphoto") || fullTextSearch.includes("/quote")) {
+      layoutStyle = "PRODUCT_CUSTOMER_QUOTE";
+    } else if (fullTextSearch.includes("/unboxingimagead") || fullTextSearch.includes("/unboxing")) {
+      layoutStyle = "PRODUCT_UNBOXING";
+    } else if (fullTextSearch.includes("/productmockup") || fullTextSearch.includes("/mockup")) {
+      layoutStyle = "PRODUCT_MOCKUP";
     }
 
     // Sorteio de estilos aleatórios para garantir máxima variedade

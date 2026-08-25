@@ -88,6 +88,12 @@ export async function POST(request: NextRequest) {
         PRODUCT_FLATLAY: "90-Degree Flat Lay Knolling Commercial Poster — Top-down orthographic view, geometric prop organization, tactile natural linen and wooden background, balanced studio lighting.",
         PRODUCT_GOURMET: "Commercial Food & Culinary Advertising — Appetizing rich textures, delicate rising steam, warm restaurant ambient glow, mouthwatering macro focus, and gourmet culinary staging.",
         PRODUCT_RUSTIC: "Rustic & Artisanal Botanical Product Staging — Raw dark wood slab, dried eucalyptus branches, natural linen texture, and warm gentle sunbeams through a window.",
+        PRODUCT_TESTIMONIAL: "Customer Testimonial & 5-Star Review Ad — The physical product is the prominent hero on a clean surface with a floating frosted-glass review badge, 5 golden stars, and customer satisfaction callout.",
+        PRODUCT_UGC: "Authentic UGC Product Photography — Real-world smartphone-style aesthetic (iPhone photography). Macro close-up on the product in hand in a bright authentic real-world location (sunlit cafe or room), natural lighting, authentic organic texture.",
+        PRODUCT_PACKAGING: "Luxury Product & Packaging Showcase — Staging of the hero product positioned directly next to its open premium rigid gift box and embossed brand packaging on a textured stone or wood pedestal.",
+        PRODUCT_CUSTOMER_QUOTE: "Customer Photo & Quote Commercial Ad — Authentic customer moment with tight macro close-up on the product in use, paired with an elegant floating quotation bubble containing a heartfelt customer praise quote.",
+        PRODUCT_UNBOXING: "Aesthetic Unboxing Experience Ad — Top-down / angle unboxing presentation. An open luxury matte unboxing box with delicate tissue paper revealing the pristine hero product nestled inside, surrounded by branded ribbon and thank you card on a clean tabletop.",
+        PRODUCT_MOCKUP: "Ultra-Clean 3D Agency Product Mockup — Floating minimalist commercial 3D render of the hero product with soft directional contact shadow, translucent materials, studio softbox illumination, and aesthetic clean pastel gradient backdrop.",
       };
       if (layoutStyle && STYLE_LABELS[layoutStyle]) {
         finalPrompt = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] ${finalPrompt}`;

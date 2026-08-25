@@ -1760,6 +1760,12 @@ Cenário desejado e estilo: ${prompt}`;
         else if (promptLower.includes("/flatlayknolling") || promptLower.includes("/flatlay")) effectiveLayoutStyle = "PRODUCT_FLATLAY";
         else if (promptLower.includes("/gourmetculinary") || promptLower.includes("/gourmet")) effectiveLayoutStyle = "PRODUCT_GOURMET";
         else if (promptLower.includes("/rusticorganic") || promptLower.includes("/rustic")) effectiveLayoutStyle = "PRODUCT_RUSTIC";
+        else if (promptLower.includes("/testimonialad") || promptLower.includes("/testimonial")) effectiveLayoutStyle = "PRODUCT_TESTIMONIAL";
+        else if (promptLower.includes("/ugcproductphoto") || promptLower.includes("/ugc")) effectiveLayoutStyle = "PRODUCT_UGC";
+        else if (promptLower.includes("/productpackaging") || promptLower.includes("/packaging")) effectiveLayoutStyle = "PRODUCT_PACKAGING";
+        else if (promptLower.includes("/costumerphoto+quote") || promptLower.includes("/customerphoto") || promptLower.includes("/quote")) effectiveLayoutStyle = "PRODUCT_CUSTOMER_QUOTE";
+        else if (promptLower.includes("/unboxingimagead") || promptLower.includes("/unboxing")) effectiveLayoutStyle = "PRODUCT_UNBOXING";
+        else if (promptLower.includes("/productmockup") || promptLower.includes("/mockup")) effectiveLayoutStyle = "PRODUCT_MOCKUP";
       }
 
       const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
@@ -1813,6 +1819,18 @@ Cenário desejado e estilo: ${prompt}`;
             "ORGANIC & ARTISANAL CRAFT PRODUCT HERO: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted natural atmosphere around the central product in close-up.",
           PRODUCT_LIFESTYLE:
             "ASPIRATIONAL LIFESTYLE PRODUCT HERO (TIGHT CLOSE-UP): Real-world aspirational environment with natural morning window lighting, close-up macro focus on the product in use, with hands or background softly blurred.",
+          PRODUCT_TESTIMONIAL:
+            "CUSTOMER TESTIMONIAL & 5-STAR REVIEW AD: High-conversion social proof advertisement. The physical product is the prominent hero on an elegant studio surface, accompanied by a clean floating glassmorphism 5-star rating card and customer testimonial quote. No full-body standing people. Macro product focus.",
+          PRODUCT_UGC:
+            "AUTHENTIC UGC PRODUCT PHOTOGRAPHY: Real-world smartphone-style aesthetic (iPhone photography). Tight macro close-up of a hand holding or interacting with the hero product in an authentic sunlit environment (cafe, office, or modern room), with soft background blur. Real-world authentic texture, zero artificial stiffness.",
+          PRODUCT_PACKAGING:
+            "LUXURY PRODUCT & PACKAGING SHOWCASE: Staging of the hero product positioned directly next to its open premium rigid gift box and embossed brand packaging on a textured stone or wood pedestal. Studio rim lighting highlighting materials, embossing, and craftsmanship.",
+          PRODUCT_CUSTOMER_QUOTE:
+            "CUSTOMER PHOTO & QUOTE COMMERCIAL AD: Authentic customer moment with tight macro close-up on the product in use, paired with an elegant floating quotation bubble containing a heartfelt customer praise quote. Customer in soft background bokeh.",
+          PRODUCT_UNBOXING:
+            "AESTHETIC UNBOXING EXPERIENCE AD: Top-down / angle unboxing presentation. An open luxury matte unboxing box with delicate tissue paper revealing the pristine hero product nestled inside, surrounded by branded ribbon and thank you card on a clean tabletop.",
+          PRODUCT_MOCKUP:
+            "ULTRA-CLEAN 3D AGENCY PRODUCT MOCKUP: Floating minimalist commercial 3D render of the hero product with soft directional contact shadow, translucent materials, studio softbox illumination, and aesthetic clean pastel gradient backdrop.",
         };
 
         const styleHeader =
@@ -1821,7 +1839,7 @@ Cenário desejado e estilo: ${prompt}`;
             : "";
 
         let cleanPrompt = (prompt || "")
-          .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto)/gi, "")
+          .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|testimonialad|ugcproductphoto|productpackaging|costumerphoto\+quote|customerphoto|quote|unboxingimagead|productmockup|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto|unboxing|mockup|packaging)/gi, "")
           .trim();
 
         if (isProductPreset) {

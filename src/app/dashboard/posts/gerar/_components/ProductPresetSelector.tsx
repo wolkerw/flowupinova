@@ -16,7 +16,13 @@ export type ProductPresetId =
   | "PRODUCT_TECH"
   | "PRODUCT_FLATLAY"
   | "PRODUCT_GOURMET"
-  | "PRODUCT_RUSTIC";
+  | "PRODUCT_RUSTIC"
+  | "PRODUCT_TESTIMONIAL"
+  | "PRODUCT_UGC"
+  | "PRODUCT_PACKAGING"
+  | "PRODUCT_CUSTOMER_QUOTE"
+  | "PRODUCT_UNBOXING"
+  | "PRODUCT_MOCKUP";
 
 export interface ProductPresetOption {
   id: ProductPresetId;
@@ -43,7 +49,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
   {
     id: "PRODUCT_BILLBOARD",
     label: "Outdoor 3D",
-    sublabel: "Campanha Urbana / /3dbillboard",
+    sublabel: "Campanha Urbana",
     description: "Mega outdoor 3D hiper-realista ao entardecer, com o produto em escala monumental, respingos dinâmicos e iluminação noturna urbana.",
     placeholderGradient: "from-emerald-800 via-teal-900 to-slate-900",
     icon: "🏙️",
@@ -161,6 +167,72 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     slashCommand: "/rusticorganic",
     suggestedPromptHint: "/rusticorganic",
   },
+  {
+    id: "PRODUCT_TESTIMONIAL",
+    label: "Depoimento / Review",
+    sublabel: "Prova Social & 5 Estrelas",
+    description: "Anúncio com o produto em destaque macro e elemento refinado de avaliação real de cliente com 5 estrelas.",
+    placeholderGradient: "from-amber-500 via-yellow-600 to-slate-900",
+    icon: "⭐",
+    image: "/product-presets/testimonialad.jpg",
+    slashCommand: "/testimonialAd",
+    suggestedPromptHint: "/testimonialAd",
+  },
+  {
+    id: "PRODUCT_UGC",
+    label: "Foto UGC Realista",
+    sublabel: "Autêntico & Smartphone",
+    description: "Estética autêntica de conteúdo gerado por usuário (UGC) com luz natural de ambiente real e produto nítido em primeiro plano.",
+    placeholderGradient: "from-teal-600 via-emerald-700 to-slate-900",
+    icon: "📱",
+    image: "/product-presets/ugcproductphoto.jpg",
+    slashCommand: "/ugcProductPhoto",
+    suggestedPromptHint: "/ugcProductPhoto",
+  },
+  {
+    id: "PRODUCT_PACKAGING",
+    label: "Embalagem & Caixa",
+    sublabel: "Design de Embalagem",
+    description: "Apresentação da caixa e embalagem de alta qualidade ao lado do produto, destacando o design, materiais nobres e acabamento premium.",
+    placeholderGradient: "from-blue-900 via-indigo-900 to-slate-950",
+    icon: "📦",
+    image: "/product-presets/productpackaging.jpg",
+    slashCommand: "/ProductPackaging",
+    suggestedPromptHint: "/ProductPackaging",
+  },
+  {
+    id: "PRODUCT_CUSTOMER_QUOTE",
+    label: "Cliente & Citação",
+    sublabel: "Aspas & Recomendação",
+    description: "Produto em close-up com interação próxima e citação marcante entre aspas do consumidor destacando a transformação do produto.",
+    placeholderGradient: "from-rose-600 via-orange-700 to-slate-900",
+    icon: "💬",
+    image: "/product-presets/costumerphotoquote.jpg",
+    slashCommand: "/CostumerPhoto+Quote",
+    suggestedPromptHint: "/CostumerPhoto+Quote",
+  },
+  {
+    id: "PRODUCT_UNBOXING",
+    label: "Unboxing Criativo",
+    sublabel: "Abertura de Caixa & Itens",
+    description: "Cena de unboxing com a caixa aberta revelando o produto em papel de seda, fita e itens inclusos com iluminação de estúdio elegante.",
+    placeholderGradient: "from-amber-700 via-stone-600 to-slate-800",
+    icon: "🎁",
+    image: "/product-presets/unboxingimagead.jpg",
+    slashCommand: "/UnboxingImageAd",
+    suggestedPromptHint: "/UnboxingImageAd",
+  },
+  {
+    id: "PRODUCT_MOCKUP",
+    label: "Mockup 3D Studio",
+    sublabel: "Render Clean & Moderno",
+    description: "Mockup de produto com renderização 3D de agência, sombras de contato suaves, materiais translúcidos e fundo em gradiente estético.",
+    placeholderGradient: "from-pink-400 via-purple-300 to-blue-200",
+    icon: "🎨",
+    image: "/product-presets/productmockup.jpg",
+    slashCommand: "/ProductMockup",
+    suggestedPromptHint: "/ProductMockup",
+  },
 ];
 
 export const PRODUCT_PRESET_TECHNICAL: Record<ProductPresetId, string> = {
@@ -188,6 +260,18 @@ export const PRODUCT_PRESET_TECHNICAL: Record<ProductPresetId, string> = {
     "LAYOUT STYLE — PRODUCT_GOURMET (/gourmetculinary): Commercial culinary food advertising. Appetizing rich textures, delicate rising steam, warm restaurant ambient light, and mouthwatering macro focus.",
   PRODUCT_RUSTIC:
     "LAYOUT STYLE — PRODUCT_RUSTIC (/rusticorganic): Organic artisanal botanical product staging. Resting on raw dark wood slab with dried eucalyptus, natural linen texture, and warm gentle sunbeams through a window.",
+  PRODUCT_TESTIMONIAL:
+    "LAYOUT STYLE — PRODUCT_TESTIMONIAL (/testimonialAd): Customer testimonial and 5-star review advertising poster. The physical product is the prominent hero on a clean surface with a floating frosted-glass review badge, 5 golden stars, and customer satisfaction callout.",
+  PRODUCT_UGC:
+    "LAYOUT STYLE — PRODUCT_UGC (/ugcProductPhoto): Authentic user-generated content (UGC) smartphone photography aesthetic. Macro close-up on the product in hand in a bright authentic real-world location (sunlit cafe or room), natural lighting, authentic organic texture.",
+  PRODUCT_PACKAGING:
+    "LAYOUT STYLE — PRODUCT_PACKAGING (/ProductPackaging): Premium product and packaging unboxed showcase. Staged on a textured podium with the product proudly standing next to its open luxury packaging box, embossed branding, and refined materials.",
+  PRODUCT_CUSTOMER_QUOTE:
+    "LAYOUT STYLE — PRODUCT_CUSTOMER_QUOTE (/CostumerPhoto+Quote): Customer quote and recommendation commercial layout. Close-up on the product interaction with a customer in soft background bokeh, accompanied by a stylized quote bubble with recommendation words.",
+  PRODUCT_UNBOXING:
+    "LAYOUT STYLE — PRODUCT_UNBOXING (/UnboxingImageAd): Premium unboxing experience layout. Open matte cardboard unboxing box with delicate tissue paper, branded ribbon, thank you card, and the hero product cleanly presented from an inviting top-down/angle perspective.",
+  PRODUCT_MOCKUP:
+    "LAYOUT STYLE — PRODUCT_MOCKUP (/ProductMockup): Ultra-clean 3D agency product mockup. Floating product with soft directional contact shadows, sleek studio softbox illumination, subtle translucent accents, and aesthetic soft gradient background.",
 };
 
 interface ProductPresetSelectorProps {
