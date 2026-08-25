@@ -143,10 +143,20 @@ export async function POST(request: Request) {
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
       const heroProductRule = layoutStyle.startsWith("PRODUCT_")
-        ? " [HERO PRODUCT MANDATORY RULE: The product itself MUST be the primary large-scale protagonist occupying 45-75% of the central frame in sharp macro/close-up detail. NEVER make background human models the main subject; if a person or hand is present, use a tight macro shot focused on the product interaction with the model softly blurred in the background.]"
+        ? " [CRITICAL FRAMING MANDATE — HERO PRODUCT MACRO CLOSE-UP (ABSOLUTE PROTAGONIST): The physical product MUST ALWAYS BE THE MASSIVE CENTRAL HERO occupying 55% to 80% of the entire image canvas in high-detail macro or close-up studio photography. STRICTLY FORBIDDEN: DO NOT generate full-body human models, standing people, or wide environmental room shots where the product appears small. If human interaction is depicted, the camera MUST BE A TIGHT MACRO CLOSE-UP focused solely on the product on the wrist/hand, with the human person completely out of focus or cropped out of frame.]"
         : "";
-      const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}]${heroProductRule} `;
+      const styleHeader = `${heroProductRule}[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;
       finalPrompt = styleHeader + finalPrompt;
+      if (layoutStyle.startsWith("PRODUCT_")) {
+        finalPrompt = finalPrompt
+          .replace(/full[- ]body (shot|portrait|fashion|photo)[^\.]*\.?/gi, "")
+          .replace(/entire person visible from head to feet[^\.]*\.?/gi, "")
+          .replace(/showing the model from the (very )?top of their head down to their feet[^\.]*\.?/gi, "")
+          .replace(/a (confident|fit|handsome|beautiful)? ?(male|female)? ?(model|athlete|man|woman|person) (is the central subject|stands in a relaxed[^\.]*|is standing[^\.]*|stands[^\.]*)\.?/gi, "")
+          .replace(/no cropping of head or hair[^\.]*\.?/gi, "")
+          .replace(/generous headroom above the head[^\.]*\.?/gi, "")
+          .trim();
+      }
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
