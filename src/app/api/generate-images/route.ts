@@ -145,28 +145,12 @@ export async function POST(request: Request) {
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
 
-    // 2. Roteamento Inteligente de Modelos:
-    // Se o usuário selecionou um preset de produto (PRODUCT_*), usamos gpt-image-2 (OpenAI) como motor primário!
-    // Caso contrário (modo padrão/conceito), mantemos o Google Gemini Nano Banana Pro / Imagen como primário.
-    const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
-
-    const MODELS_CHAIN = isProductPreset
-      ? [
-          { provider: "openai", model: "gpt-image-2" },
-          { provider: "openai", model: "chatgpt-image-latest" },
-          { provider: "openai", model: "dall-e-3" },
-          { provider: "google", model: "gemini-3-pro-image" },
-          { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-          { provider: "google", model: "imagen-3.0-generate-002" },
-        ]
-      : [
-          { provider: "google", model: "gemini-3-pro-image" },
-          { provider: "google", model: "imagen-4.0-ultra-generate-001" },
-          { provider: "google", model: "imagen-3.0-generate-002" },
-          { provider: "openai", model: "gpt-image-2" },
-          { provider: "openai", model: "chatgpt-image-latest" },
-          { provider: "openai", model: "dall-e-3" },
-        ];
+    // 2. Modelo Principal Estrito: gpt-image-2 (OpenAI) é SEMPRE o motor primário absoluto
+    const MODELS_CHAIN = [
+      { provider: "openai", model: "gpt-image-2" },
+      { provider: "openai", model: "dall-e-3" },
+      { provider: "google", model: "gemini-3-pro-image" },
+    ];
 
     let imageBytes: string | null = null;
     let modelUsed = "";
@@ -175,7 +159,7 @@ export async function POST(request: Request) {
 
     for (const config of MODELS_CHAIN) {
       console.log(
-        `[GENERATE_IMAGES_NATIVE] Tentando modelo ${config.model} (${config.provider}) para o post ${postId} (Slot: ${fileName}, Preset: ${isProductPreset ? layoutStyle : "Padrão"})...`
+        `[GENERATE_IMAGES_NATIVE] Tentando modelo principal ${config.model} (${config.provider}) para o post ${postId} (Slot: ${fileName})...`
       );
 
       try {
@@ -188,11 +172,6 @@ export async function POST(request: Request) {
             n: 1,
             size: "1024x1024",
           };
-
-          // Apenas envia response_format se o modelo explicitamente exigir
-          if (config.model === "dall-e-3" || config.model === "dall-e-2") {
-            payload.response_format = "b64_json";
-          }
 
           const response = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
             method: "POST",
