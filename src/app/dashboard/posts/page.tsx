@@ -1143,7 +1143,7 @@ export default function Conteudo() {
       "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights";
     const responseType = "code";
 
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=${responseType}&state=${state}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=${responseType}&state=${state}`;
     window.location.href = authUrl;
   };
 
