@@ -144,6 +144,8 @@ interface WizardContextType {
   setIsItalic: (italic: boolean) => void;
   insertTextOnImage: boolean | null;
   setInsertTextOnImage: (val: boolean | null) => void;
+  textOverlayMode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC";
+  setTextOverlayMode: (mode: "NONE" | "TITLE_ONLY" | "INFOGRAPHIC") => void;
   productHeadline: string;
   setProductHeadline: (headline: string) => void;
   referenceReplicationMode: "full" | "scenario_only";
@@ -283,6 +285,7 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
   const [fontWeight, setFontWeight] = useState("bold");
   const [isItalic, setIsItalic] = useState(false);
   const [insertTextOnImage, setInsertTextOnImage] = useState<boolean | null>(true);
+  const [textOverlayMode, setTextOverlayMode] = useState<"NONE" | "TITLE_ONLY" | "INFOGRAPHIC">("INFOGRAPHIC");
   const [productHeadline, setProductHeadline] = useState<string>("");
   const [referenceReplicationMode, setReferenceReplicationMode] = useState<
     "full" | "scenario_only"
@@ -1074,7 +1077,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             nanobananaFormData.append("userId", user.uid);
             nanobananaFormData.append("caption", fullCaption);
             nanobananaFormData.append("layoutStyle", layoutStyle || "");
-            nanobananaFormData.append("insertTextOnImage", String(insertTextOnImage !== false));
+            nanobananaFormData.append("insertTextOnImage", String(insertTextOnImage !== false && textOverlayMode !== "NONE"));
+            nanobananaFormData.append("textOverlayMode", textOverlayMode);
             nanobananaFormData.append("referenceReplicationMode", referenceReplicationMode);
             if (productHeadline) {
               nanobananaFormData.append("textHeadline", productHeadline.trim());
@@ -2078,6 +2082,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
         setIsItalic,
         insertTextOnImage,
         setInsertTextOnImage,
+        textOverlayMode,
+        setTextOverlayMode,
         productHeadline,
         setProductHeadline,
         referenceReplicationMode,

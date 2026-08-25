@@ -836,6 +836,8 @@ export const Step1Idea = () => {
     setLayoutStyle,
     insertTextOnImage,
     setInsertTextOnImage,
+    textOverlayMode,
+    setTextOverlayMode,
     productHeadline,
     setProductHeadline,
     referenceReplicationMode,
@@ -1619,46 +1621,67 @@ export const Step1Idea = () => {
                             </AnimatePresence>
                           </div>
 
-                          {/* Inserção de Títulos e Textos Publicitários (Acima dos Presets) */}
+                          {/* Inserção de Títulos e Diagramação Publicitária (Acima dos Presets) */}
                           <div className="border-t pt-5 space-y-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
                               <div>
                                 <Label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                  <span>✍️</span> Inserção de Texto / Título na Imagem
+                                  <span>✍️</span> Modo de Diagramação & Textos na Arte
                                 </Label>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                  Deseja incluir títulos publicitários, slogans ou valores desenhados na arte?
+                                  Escolha o nível de elementos gráficos e textos que deseja na arte.
                                 </p>
                               </div>
-                              <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                                 <Button
                                   type="button"
-                                  variant={insertTextOnImage === false ? "default" : "outline"}
+                                  variant={textOverlayMode === "NONE" ? "default" : "outline"}
                                   size="sm"
-                                  onClick={() => setInsertTextOnImage(false)}
+                                  onClick={() => {
+                                    setTextOverlayMode("NONE");
+                                    setInsertTextOnImage(false);
+                                  }}
                                   className={cn(
-                                    "text-xs h-8 px-3 rounded-lg font-medium",
-                                    insertTextOnImage === false && "bg-slate-800 hover:bg-slate-900 text-white"
+                                    "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
+                                    textOverlayMode === "NONE" && "bg-slate-800 hover:bg-slate-900 text-white"
                                   )}
                                 >
-                                  🖼️ Apenas Foto (Sem Texto)
+                                  🖼️ Fotografia Pura
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant={insertTextOnImage !== false ? "default" : "outline"}
+                                  variant={textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
                                   size="sm"
-                                  onClick={() => setInsertTextOnImage(true)}
+                                  onClick={() => {
+                                    setTextOverlayMode("TITLE_ONLY");
+                                    setInsertTextOnImage(true);
+                                  }}
                                   className={cn(
-                                    "text-xs h-8 px-3 rounded-lg font-bold",
-                                    insertTextOnImage !== false && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
+                                    "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                                    textOverlayMode === "TITLE_ONLY" && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
                                   )}
                                 >
-                                  ✨ Incluir Título na Arte
+                                  ✨ Apenas Título
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant={textOverlayMode === "INFOGRAPHIC" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => {
+                                    setTextOverlayMode("INFOGRAPHIC");
+                                    setInsertTextOnImage(true);
+                                  }}
+                                  className={cn(
+                                    "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                                    textOverlayMode === "INFOGRAPHIC" && "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                                  )}
+                                >
+                                  📊 Infográfico Completo
                                 </Button>
                               </div>
                             </div>
 
-                            {insertTextOnImage !== false && (
+                            {textOverlayMode !== "NONE" && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
@@ -1676,7 +1699,9 @@ export const Step1Idea = () => {
                                   className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0083C7]"
                                 />
                                 <p className="text-[11px] text-slate-400">
-                                  A IA renderizará este título com tipografia comercial profissional de alto impacto e contraste.
+                                  {textOverlayMode === "INFOGRAPHIC"
+                                    ? "A IA renderizará este título com o infográfico completo (selo de qualidade, 4 diferenciais técnicos com ícones e rodapé)."
+                                    : "A IA renderizará apenas este título com tipografia comercial limpa, sem cards de ícones ou selos no rodapé."}
                                 </p>
                               </motion.div>
                             )}
@@ -1904,44 +1929,65 @@ export const Step1Idea = () => {
 
                     {/* Inserção de Texto / Título na Imagem */}
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
                         <div>
                           <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                            <span>✍️</span> Inserção de Texto / Título na Arte
+                            <span>✍️</span> Modo de Diagramação & Textos na Arte
                           </Label>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Deseja incluir títulos publicitários, slogans ou frases desenhados na arte?
+                            Escolha o nível de elementos gráficos e textos que deseja na arte.
                           </p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                           <Button
                             type="button"
-                            variant={insertTextOnImage === false ? "default" : "outline"}
+                            variant={textOverlayMode === "NONE" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => setInsertTextOnImage(false)}
+                            onClick={() => {
+                              setTextOverlayMode("NONE");
+                              setInsertTextOnImage(false);
+                            }}
                             className={cn(
-                              "text-xs h-8 px-3 rounded-lg font-medium",
-                              insertTextOnImage === false && "bg-slate-800 hover:bg-slate-900 text-white"
+                              "text-xs h-8 px-2.5 rounded-lg font-medium transition-all",
+                              textOverlayMode === "NONE" && "bg-slate-800 hover:bg-slate-900 text-white"
                             )}
                           >
-                            🖼️ Apenas Foto (Sem Texto)
+                            🖼️ Fotografia Pura
                           </Button>
                           <Button
                             type="button"
-                            variant={insertTextOnImage !== false ? "default" : "outline"}
+                            variant={textOverlayMode === "TITLE_ONLY" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => setInsertTextOnImage(true)}
+                            onClick={() => {
+                              setTextOverlayMode("TITLE_ONLY");
+                              setInsertTextOnImage(true);
+                            }}
                             className={cn(
-                              "text-xs h-8 px-3 rounded-lg font-bold",
-                              insertTextOnImage !== false && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
+                              "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                              textOverlayMode === "TITLE_ONLY" && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
                             )}
                           >
-                            ✨ Incluir Título na Arte
+                            ✨ Apenas Título
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={textOverlayMode === "INFOGRAPHIC" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              setTextOverlayMode("INFOGRAPHIC");
+                              setInsertTextOnImage(true);
+                            }}
+                            className={cn(
+                              "text-xs h-8 px-2.5 rounded-lg font-bold transition-all",
+                              textOverlayMode === "INFOGRAPHIC" && "bg-[#FA6305] hover:bg-[#e05600] text-white shadow-xs"
+                            )}
+                          >
+                            📊 Infográfico Completo
                           </Button>
                         </div>
                       </div>
 
-                      {insertTextOnImage !== false && (
+                      {textOverlayMode !== "NONE" && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -1959,7 +2005,9 @@ export const Step1Idea = () => {
                             className="w-full h-10 px-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0083C7] transition-all"
                           />
                           <p className="text-[11px] text-slate-500">
-                            A IA desenhará este título na imagem respeitando o layout e estilo visual da referência.
+                            {textOverlayMode === "INFOGRAPHIC"
+                              ? "A IA desenhará este título acompanhado do infográfico completo de benefícios e selos."
+                              : "A IA desenhará apenas este título com tipografia comercial limpa, sem cards de ícones ou selos no rodapé."}
                           </p>
                         </motion.div>
                       )}

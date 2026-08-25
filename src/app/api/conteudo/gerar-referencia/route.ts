@@ -1775,8 +1775,11 @@ Cenário desejado e estilo: ${prompt}`;
         else if (promptLower.includes("/rusticorganic") || promptLower.includes("/rustic")) effectiveLayoutStyle = "PRODUCT_RUSTIC";
       }
 
-      const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
-      const insertTextOnImage = formData.get("insertTextOnImage") !== "false";
+      const textOverlayMode =
+        (formData.get("textOverlayMode") as string) ||
+        (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
+      const insertTextOnImage =
+        textOverlayMode !== "NONE" && formData.get("insertTextOnImage") !== "false";
       const textHeadline = (formData.get("textHeadline") as string) || "";
       const businessProfileRaw = (formData.get("businessProfile") as string) || "";
 
@@ -1837,11 +1840,18 @@ Cenário desejado e estilo: ${prompt}`;
           ? "HERO PRODUCT IS THE ABSOLUTE PROTAGONIST (MANDATORY FRAMING): The physical product itself MUST ALWAYS be the prominent, large-scale hero and main protagonist of the entire image (occupying 45% to 75% of the central visual area in sharp macro or medium close-up detail). NEVER generate full-body human figures or wide environmental shots where the product appears small or secondary. If a human model or hand is present (e.g. product in use / lifestyle), the framing MUST be a tight macro close-up on the product interaction (e.g. close-up of the wrist wearing the watch, hand holding the cosmetic bottle, hands holding the burger up close), with the human model softly blurred in shallow depth of field. The product's shape, textures, and branding must be the immediate focal point."
           : "";
 
-        const agencyDirective = isProductPreset && insertTextOnImage
-          ? `CREATIVE ADVERTISING AGENCY DIRECTIVE: Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`
-          : isProductPreset
-          ? "Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale."
-          : "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
+        let agencyDirective = "";
+        if (isProductPreset) {
+          if (textOverlayMode === "INFOGRAPHIC") {
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+          } else if (textOverlayMode === "TITLE_ONLY") {
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Act as an award-winning Creative Advertising Agency Art Director. Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR) or the user's custom title, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and clean atmospheric depth. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+          } else {
+            agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
+          }
+        } else {
+          agencyDirective = "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
+        }
 
         let typographyPrompt = "";
         if (insertTextOnImage && textHeadline) {
