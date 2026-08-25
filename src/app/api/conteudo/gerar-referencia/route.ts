@@ -1833,10 +1833,14 @@ Cenário desejado e estilo: ${prompt}`;
           .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto)/gi, "")
           .trim();
 
+        const heroProductRule = isProductPreset
+          ? "HERO PRODUCT IS THE ABSOLUTE PROTAGONIST (MANDATORY FRAMING): The physical product itself MUST ALWAYS be the prominent, large-scale hero and main protagonist of the entire image (occupying 45% to 75% of the central visual area in sharp macro or medium close-up detail). NEVER generate full-body human figures or wide environmental shots where the product appears small or secondary. If a human model or hand is present (e.g. product in use / lifestyle), the framing MUST be a tight macro close-up on the product interaction (e.g. close-up of the wrist wearing the watch, hand holding the cosmetic bottle, hands holding the burger up close), with the human model softly blurred in shallow depth of field. The product's shape, textures, and branding must be the immediate focal point."
+          : "";
+
         const agencyDirective = isProductPreset && insertTextOnImage
-          ? `CREATIVE ADVERTISING AGENCY DIRECTIVE: Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`
+          ? `CREATIVE ADVERTISING AGENCY DIRECTIVE: Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`
           : isProductPreset
-          ? "Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details."
+          ? "Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale."
           : "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
 
         let typographyPrompt = "";
@@ -1851,7 +1855,7 @@ Cenário desejado e estilo: ${prompt}`;
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const openaiPrompt = `${styleHeader}${displaySystemHeader}${heroProductRule} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {

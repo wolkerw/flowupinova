@@ -142,7 +142,10 @@ export async function POST(request: Request) {
         "FULL CREATIVE AGENCY POSTER — Aspirational Lifestyle Campaign: Real-world aspirational environment with natural morning window lighting, storytelling headline in Portuguese, authentic organic integration, and subtle bottom brand value points. 20% safe margins.",
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
-      const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;
+      const heroProductRule = layoutStyle.startsWith("PRODUCT_")
+        ? " [HERO PRODUCT MANDATORY RULE: The product itself MUST be the primary large-scale protagonist occupying 45-75% of the central frame in sharp macro/close-up detail. NEVER make background human models the main subject; if a person or hand is present, use a tight macro shot focused on the product interaction with the model softly blurred in the background.]"
+        : "";
+      const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}]${heroProductRule} `;
       finalPrompt = styleHeader + finalPrompt;
       console.log(`[GENERATE_IMAGES_NATIVE] Estilo '${layoutStyle}' injetado no início do prompt.`);
     }
