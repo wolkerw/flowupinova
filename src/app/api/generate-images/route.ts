@@ -166,11 +166,18 @@ export async function POST(request: Request) {
         if (config.provider === "openai") {
           if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
 
+          const nativeSize =
+            config.model === "gpt-image-2"
+              ? "1152x1536"
+              : config.model === "dall-e-3"
+                ? "1024x1792"
+                : "1024x1024";
+
           const payload: any = {
             model: config.model,
             prompt: finalPrompt,
             n: 1,
-            size: "1024x1024",
+            size: nativeSize,
           };
 
           const response = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
