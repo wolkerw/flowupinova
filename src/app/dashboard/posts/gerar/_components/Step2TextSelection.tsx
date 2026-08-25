@@ -198,7 +198,7 @@ export const Step2TextSelection = () => {
                       key={`img-${index}`}
                       onClick={() => onSelectedImageChange(imgSrc)}
                       className={cn(
-                        "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
+                        "group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
                         "ring-4 ring-offset-2",
                         selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
                       )}
@@ -257,7 +257,7 @@ export const Step2TextSelection = () => {
                 {instagramConnection?.instagramUsername || user?.displayName || "seu_usuario"}
               </span>
             </div>
-            <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-gray-100 text-gray-400">
+            <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-gray-100 text-gray-400">
               {selectedImage || generatedContent[0]?.url_da_imagem ? (
                 <img
                   src={selectedImage || generatedContent[0].url_da_imagem}

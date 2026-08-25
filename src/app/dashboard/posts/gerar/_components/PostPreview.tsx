@@ -84,7 +84,7 @@ export const PostPreview = ({
           {instagramConnection?.instagramUsername || "seu_usuario"}
         </span>
       </div>
-      <div className="group relative aspect-square bg-gray-200 overflow-hidden">
+      <div className="group relative aspect-[3/4] bg-gray-200 overflow-hidden">
         {imageUrl ? (
           <>
             <Image
@@ -150,7 +150,7 @@ export const PostPreview = ({
           )}
         </p>
       </div>
-      <div className="relative aspect-square bg-gray-200">
+      <div className="relative aspect-[3/4] bg-gray-200 overflow-hidden">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -199,13 +199,13 @@ export const PostPreview = ({
         </div>
         <MoreVertical className="h-5 w-5 cursor-pointer text-gray-500" />
       </div>
-      <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
+      <div className="relative flex aspect-[3/4] w-full items-center justify-center border-y border-gray-100 bg-black overflow-hidden">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt="Preview"
             layout="fill"
-            className="h-full w-full object-contain"
+            className="h-full w-full object-cover"
             unoptimized
           />
         ) : (
@@ -277,7 +277,7 @@ export const PostPreview = ({
             )}
           </p>
         </div>
-        <div className="relative aspect-square bg-gray-200">
+        <div className="relative aspect-[3/4] bg-gray-200 overflow-hidden">
           {imageUrl ? (
             <Image
               src={imageUrl}

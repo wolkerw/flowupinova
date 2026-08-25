@@ -107,7 +107,7 @@ export const Step3ImageSelection = () => {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={() => onSelectedImageChange(imgSrc)}
                 className={cn(
-                  "group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
+                  "group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg transition-all duration-300",
                   "ring-4 ring-offset-2",
                   selectedImage === imgSrc ? "ring-accent" : "ring-transparent"
                 )}
@@ -174,7 +174,7 @@ export const Step3ImageSelection = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: i * 0.1 }}
-                    className="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
+                    className="relative aspect-[3/4] overflow-hidden rounded-lg border-2 border-dashed border-accent/30 bg-gradient-to-br from-slate-50 to-slate-100"
                   >
                     {/* Shimmer animado de fundo */}
                     <motion.div
