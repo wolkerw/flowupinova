@@ -645,11 +645,16 @@ Since the primary engine may be gpt-image-2 (DALL-E 3), you can be slightly more
    - You MUST include a phrase like: "framed in a balanced shot showing the model, with a generous amount of empty space (clear headroom) above their head. The model's entire head, full hair, and face are completely visible and fully contained within the frame, with no cutoff or clipping by the borders of the image."
    - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face and leave no headroom. Always choose a spacious medium shot or a wide-angle composition.
 
+8. MANDATORY VERTICAL 3:4 PORTRAIT RATIO (1080x1440 PIXELS - ULTRA-CRITICAL):
+   - Every single generated prompt MUST describe a composition framed strictly in vertical 3:4 portrait aspect ratio (1080x1440 dimensions, Instagram vertical portrait post format).
+   - You MUST include in every prompt: "framed vertically in 3:4 aspect ratio (1080x1440 portrait format)".
+   - NEVER describe landscape, horizontal, banner, widescreen, 16:9, or 9:16 story compositions.
+
 # REQUIRED OUTPUT FORMAT (STRICT JSON — NO MARKDOWN, NO PREAMBLE)
 {
   "prompts": [
-    "[OPTION 1 — LIFESTYLE] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
-    "[OPTION 2 — LIFESTYLE HYBRID COLLAGE] Full English prompt here... with the literal text 'TITULO AQUI'... ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
+    "[OPTION 1 — LIFESTYLE] Full English prompt here... with the literal text 'TITULO AQUI'... framed vertically in 3:4 aspect ratio (1080x1440 portrait format), ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4.",
+    "[OPTION 2 — LIFESTYLE HYBRID COLLAGE] Full English prompt here... with the literal text 'TITULO AQUI'... framed vertically in 3:4 aspect ratio (1080x1440 portrait format), ultra-realistic, award-winning advertising photography, 8K resolution, hyper-detailed, professional color grading, shot on Phase One IQ4."
   ]
 }
 `;

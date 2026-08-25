@@ -3,6 +3,7 @@ import { admin, adminDb } from "@/lib/firebase-admin";
 import { getUserStoragePathAdmin } from "@/lib/services/storage-utils-admin";
 import crypto from "crypto";
 import { logApiUsage } from "@/lib/services/api-usage-service-admin";
+import { Jimp } from "jimp";
 
 export const maxDuration = 300;
 
@@ -233,7 +234,15 @@ export async function POST(request: Request) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: finalPrompt }] }],
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `[FORMAT: Vertical 3:4 portrait (1080x1440)] Framed vertically in 3:4 aspect ratio (1080x1440 portrait format). ${finalPrompt}`,
+                    },
+                  ],
+                },
+              ],
               generationConfig: {
                 responseModalities: ["IMAGE"],
               },
@@ -265,7 +274,7 @@ export async function POST(request: Request) {
               parameters: {
                 sampleCount: 1,
                 outputMimeType: "image/jpeg",
-                aspectRatio: "1:1",
+                aspectRatio: "3:4",
               },
             }),
           });
@@ -298,17 +307,39 @@ export async function POST(request: Request) {
       throw new Error(`Falha na geração de imagem. ${lastError}`);
     }
 
-    if (!imageBytes) {
-      console.error(
-        "[GENERATE_IMAGES_NATIVE] API do Google Imagen não retornou dados de imagem em Base64 no formato esperado."
-      );
-      throw new Error(
-        "A API do Google Imagen retornou uma resposta sem bytesBase64Encoded na estrutura."
-      );
-    }
+    // 2. Converter o base64 para Buffer binário e padronizar com precisão em 1080x1440 (3:4)
+    let buffer = Buffer.from(imageBytes, "base64");
+    try {
+      const image = await Jimp.read(buffer);
+      const targetWidth = 1080;
+      const targetHeight = 1440;
+      const targetRatio = targetWidth / targetHeight; // 0.75 (3:4)
+      const currentRatio = image.width / image.height;
 
-    // 2. Converter o base64 para Buffer binário
-    const buffer = Buffer.from(imageBytes, "base64");
+      if (Math.abs(currentRatio - targetRatio) > 0.01) {
+        let cropW = image.width;
+        let cropH = image.height;
+        if (currentRatio > targetRatio) {
+          // Imagem mais larga (ex: horizontal 16:9 ou 1:1)
+          cropW = Math.round(image.height * targetRatio);
+          const x = Math.max(0, Math.floor((image.width - cropW) / 2));
+          image.crop({ x, y: 0, w: cropW, h: cropH });
+        } else {
+          // Imagem mais alta (ex: vertical 9:16)
+          cropH = Math.round(image.width / targetRatio);
+          const y = Math.max(0, Math.floor((image.height - cropH) / 2));
+          image.crop({ x: 0, y, w: cropW, h: cropH });
+        }
+      }
+
+      image.resize({ w: targetWidth, h: targetHeight });
+      buffer = await image.getBuffer("image/jpeg");
+      console.log(
+        `[GENERATE_IMAGES_NATIVE] Imagem concept_${fileName} formatada com precisão para 1080x1440 (3:4).`
+      );
+    } catch (jimpErr) {
+      console.warn("[GENERATE_IMAGES_NATIVE] Falha ao ajustar proporção 3:4 com Jimp:", jimpErr);
+    }
 
     // 3. Fazer o upload do buffer diretamente para o Firebase Storage usando o Firebase Admin SDK no bucket correto
     const projectId = process.env.FIREBASE_PROJECT_ID || "studio-7502195980-3983c";

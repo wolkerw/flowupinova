@@ -881,7 +881,7 @@ This prompt MUST describe a realistic photorealistic scene, detailing the produc
    - Avoid tight face close-ups, macro portraits, or extreme crops that focus excessively on the face/garment and leave no headroom. Always choose a spacious full-body or medium-wide composition.
 4. TEXT RENDERING CONTROL (CRITICAL):
    ${textRenderingInstruction}
-5. FORMAT: Always end the prompt with the instruction: \"square format, optimized for Instagram feed\".
+5. FORMAT: Always end the prompt with the instruction: "framed vertically in 3:4 portrait format (1080x1440 pixels), optimized for Instagram portrait post".
 ${priorityInstruction}
 ${brandingInstruction}
 ${inspirationInstruction}
