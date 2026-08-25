@@ -1785,7 +1785,7 @@ Cenário desejado e estilo: ${prompt}`;
 
         let typographyPrompt = "";
         if (insertTextOnImage && textHeadline) {
-          typographyPrompt = `TYPOGRAPHY & HEADLINE OVERLAY: Render the exact headline text "${textHeadline}" prominently and beautifully integrated into the scene (e.g. billboard, magazine, or commercial ad overlay) ${brandTypographyDirective || "with clean, bold, high-contrast modern sans-serif typography"}. Ensure perfect spelling, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+          typographyPrompt = `TYPOGRAPHY & HEADLINE OVERLAY: Render the exact headline text "${textHeadline}" prominently and beautifully integrated into the scene ${brandTypographyDirective || "with clean, bold, high-contrast modern sans-serif typography"}. MANDATORY SAFE MARGINS: Place all text within the central safe area with at least 20% breathing room from borders (zero text touching canvas edges). If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
         } else if (!insertTextOnImage) {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";

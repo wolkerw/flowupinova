@@ -1906,6 +1906,69 @@ export const Step1Idea = () => {
                       </div>
                     </div>
 
+                    {/* Inserção de Texto / Título na Imagem */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                        <div>
+                          <Label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span>✍️</span> Inserção de Texto / Título na Arte
+                          </Label>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Deseja incluir títulos publicitários, slogans ou frases desenhados na arte?
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            variant={insertTextOnImage === false ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setInsertTextOnImage(false)}
+                            className={cn(
+                              "text-xs h-8 px-3 rounded-lg font-medium",
+                              insertTextOnImage === false && "bg-slate-800 hover:bg-slate-900 text-white"
+                            )}
+                          >
+                            🖼️ Apenas Foto (Sem Texto)
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={insertTextOnImage !== false ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setInsertTextOnImage(true)}
+                            className={cn(
+                              "text-xs h-8 px-3 rounded-lg font-bold",
+                              insertTextOnImage !== false && "bg-[#0083C7] hover:bg-[#0072ad] text-white shadow-xs"
+                            )}
+                          >
+                            ✨ Incluir Título na Arte
+                          </Button>
+                        </div>
+                      </div>
+
+                      {insertTextOnImage !== false && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-2"
+                        >
+                          <Label className="text-xs font-bold text-slate-700">
+                            Título, Slogan ou Frase Principal do Anúncio (Opcional)
+                          </Label>
+                          <input
+                            type="text"
+                            value={productHeadline}
+                            onChange={(e) => setProductHeadline(e.target.value)}
+                            placeholder="Ex: FEITA PARA CONECTAR ou 30% OFF NO SEGUNDO ITEM"
+                            className="w-full h-10 px-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0083C7] transition-all"
+                          />
+                          <p className="text-[11px] text-slate-500">
+                            A IA desenhará este título na imagem respeitando o layout e estilo visual da referência.
+                          </p>
+                        </motion.div>
+                      )}
+                    </div>
+
                     {/* Descrição e Instruções Adicionais */}
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
                       <div>
