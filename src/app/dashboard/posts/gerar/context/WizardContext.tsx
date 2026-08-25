@@ -1054,8 +1054,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
           setIsGeneratingImages(false);
 
           toast({
-            title: `✅ Imagen 4 concluído! (${img4Data.modelUsed?.replace("imagen-4.0-", "").replace("-generate-001", "").toUpperCase()})`,
-            description: "Imagem gerada pelo Google Imagen 4 pronta para comparação.",
+            title: "Arte criada com sucesso! ✨",
+            description: "Sua nova imagem publicitária está pronta e ficou incrível.",
           });
           return;
         }
@@ -1107,14 +1107,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (!finalUrl) throw new Error("Nano Banana não retornou URL da imagem.");
 
-            const engineLabel = nanobananaData.modelUsed?.includes("gpt-image")
-              ? "OpenAI (gpt-image-2)"
-              : nanobananaData.modelUsed?.includes("dall-e")
-                ? "OpenAI (DALL-E 3)"
-                : `Google Gemini (${nanobananaData.modelUsed || "Nano Banana Pro"})`;
-
             console.log(
-              `[WIZARD] ✅ Geração concluída com sucesso via ${engineLabel}: ${finalUrl}`
+              `[WIZARD] ✅ Geração concluída com sucesso: ${finalUrl}`
             );
             setGeneratedImages([finalUrl]);
             setSelectedImage(finalUrl);
@@ -1123,8 +1117,8 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             setIsGeneratingImages(false);
 
             toast({
-              title: `✅ Geração Concluída! (${nanobananaData.modelUsed || "IA"})`,
-              description: `Sua imagem publicitária foi criada com sucesso via ${engineLabel}.`,
+              title: "Arte criada com sucesso! ✨",
+              description: "Sua nova imagem publicitária está pronta e ficou incrível.",
             });
             return;
           } catch (nanobananaError: any) {
