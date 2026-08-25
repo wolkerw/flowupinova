@@ -1248,11 +1248,17 @@ ${yamlAnalysis}`;
 
           if (config.provider === "openai") {
             if (!openaiKey) throw new Error("OPENAI_API_KEY ausente no ambiente (.env.local)");
+            const nativeSize =
+              config.model === "gpt-image-2"
+                ? "1152x1536"
+                : config.model === "dall-e-3"
+                  ? "1024x1792"
+                  : "1024x1024";
             const payload: any = {
               model: config.model,
               prompt: prompt,
               n: 1,
-              size: "1024x1024",
+              size: nativeSize,
             };
             if (config.model === "dall-e-3" || config.model === "dall-e-2") {
               payload.response_format = "b64_json";
@@ -1291,7 +1297,7 @@ ${yamlAnalysis}`;
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 instances: [{ prompt }],
-                parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
+                parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "3:4" },
               }),
             });
 
@@ -1322,6 +1328,33 @@ ${yamlAnalysis}`;
           { error: `Falha na geração de imagem. ${lastError}` },
           { status: 500 }
         );
+      }
+
+      // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+      try {
+        const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
+        const targetWidth = 1080;
+        const targetHeight = 1440;
+        const targetRatio = targetWidth / targetHeight; // 0.75
+
+        const currentRatio = jimpImage.width / jimpImage.height;
+        if (Math.abs(currentRatio - targetRatio) > 0.01) {
+          let cropW = jimpImage.width;
+          let cropH = jimpImage.height;
+          if (currentRatio > targetRatio) {
+            cropW = Math.round(jimpImage.height * targetRatio);
+          } else {
+            cropH = Math.round(jimpImage.width / targetRatio);
+          }
+          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
+          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
+          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
+        }
+        jimpImage.resize({ w: targetWidth, h: targetHeight });
+        const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+        imageBytes = processedBuffer.toString("base64");
+      } catch (jimpErr) {
+        console.warn("[IMAGE_REF] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
       }
 
       // Salvar no Firebase Storage
@@ -1808,7 +1841,7 @@ Cenário desejado e estilo: ${prompt}`;
             editsFormData.append("model", "gpt-image-2");
             editsFormData.append("prompt", openaiPrompt);
             editsFormData.append("n", "1");
-            editsFormData.append("size", "1024x1024");
+            editsFormData.append("size", "1152x1536");
 
             const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
               method: "POST",
@@ -1924,6 +1957,33 @@ Cenário desejado e estilo: ${prompt}`;
           },
           { status: 500 }
         );
+      }
+
+      // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+      try {
+        const jimpImage = await Jimp.read(Buffer.from(imageBytes, "base64"));
+        const targetWidth = 1080;
+        const targetHeight = 1440;
+        const targetRatio = targetWidth / targetHeight; // 0.75
+
+        const currentRatio = jimpImage.width / jimpImage.height;
+        if (Math.abs(currentRatio - targetRatio) > 0.01) {
+          let cropW = jimpImage.width;
+          let cropH = jimpImage.height;
+          if (currentRatio > targetRatio) {
+            cropW = Math.round(jimpImage.height * targetRatio);
+          } else {
+            cropH = Math.round(jimpImage.width / targetRatio);
+          }
+          const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
+          const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
+          jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
+        }
+        jimpImage.resize({ w: targetWidth, h: targetHeight });
+        const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+        imageBytes = processedBuffer.toString("base64");
+      } catch (jimpErr) {
+        console.warn("[NANOBANANA_REF] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
       }
 
       // 6. Gravar a imagem gerada no Firebase Storage
@@ -2087,7 +2147,7 @@ Cenário desejado e estilo: ${prompt}`;
             model: "gpt-image-2",
             prompt: prompt,
             n: 1,
-            size: "1024x1024",
+            size: "1152x1536",
           }),
         });
 
@@ -2098,11 +2158,19 @@ Cenário desejado e estilo: ${prompt}`;
         }
 
         const resData = await response.json();
-        const b64Data = resData.data?.[0]?.b64_json;
+        let b64Data = resData.data?.[0]?.b64_json;
         const urlData = resData.data?.[0]?.url;
 
         if (!b64Data && !urlData) {
           throw new Error("Nenhum dado de imagem (url ou b64_json) retornado pela OpenAI.");
+        }
+
+        if (!b64Data && urlData) {
+          const urlRes = await fetch(urlData);
+          if (urlRes.ok) {
+            const ab = await urlRes.arrayBuffer();
+            b64Data = Buffer.from(ab).toString("base64");
+          }
         }
 
         let dalleImageUrl = urlData || "";
@@ -2112,6 +2180,33 @@ Cenário desejado e estilo: ${prompt}`;
             "[GERAR_REFERENCIA] Gravando imagem Base64 da OpenAI direto no Firebase Storage..."
           );
           try {
+            // Pós-processamento Jimp: Formatar para 1080 x 1440 (3:4 Vertical Feed)
+            try {
+              const jimpImage = await Jimp.read(Buffer.from(b64Data, "base64"));
+              const targetWidth = 1080;
+              const targetHeight = 1440;
+              const targetRatio = targetWidth / targetHeight; // 0.75
+
+              const currentRatio = jimpImage.width / jimpImage.height;
+              if (Math.abs(currentRatio - targetRatio) > 0.01) {
+                let cropW = jimpImage.width;
+                let cropH = jimpImage.height;
+                if (currentRatio > targetRatio) {
+                  cropW = Math.round(jimpImage.height * targetRatio);
+                } else {
+                  cropH = Math.round(jimpImage.width / targetRatio);
+                }
+                const cropX = Math.max(0, Math.floor((jimpImage.width - cropW) / 2));
+                const cropY = Math.max(0, Math.floor((jimpImage.height - cropH) / 2));
+                jimpImage.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
+              }
+              jimpImage.resize({ w: targetWidth, h: targetHeight });
+              const processedBuffer = await jimpImage.getBuffer("image/jpeg");
+              b64Data = processedBuffer.toString("base64");
+            } catch (jimpErr) {
+              console.warn("[SUBMIT_DALLE] Falha ao ajustar proporção 3:4 via Jimp:", jimpErr);
+            }
+
             const bucket = admin
               .storage()
               .bucket(

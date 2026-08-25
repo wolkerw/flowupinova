@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           model: model,
           prompt: finalPrompt,
           n: 1,
-          size: "1024x1024"
+          size: model === "gpt-image-2" ? "1152x1536" : "1024x1024"
         }),
       });
 
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instances: [{ prompt: finalImagenPrompt }],
-          parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "1:1" },
+          parameters: { sampleCount: 1, outputMimeType: "image/jpeg", aspectRatio: "3:4" },
         }),
       });
 
