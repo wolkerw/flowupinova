@@ -49,7 +49,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🏙️",
     image: "/product-presets/3dbillboard.jpg",
     slashCommand: "/3dbillboard",
-    suggestedPromptHint: "arte em mega painel de outdoor 3D em avenida urbana ao entardecer com iluminação cinematográfica",
+    suggestedPromptHint: "/3dbillboard",
   },
   {
     id: "PRODUCT_METAAD",
@@ -60,7 +60,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "📢",
     image: "/product-presets/metaad.jpg",
     slashCommand: "/metaad",
-    suggestedPromptHint: "com espaço limpo na lateral para texto e preço, iluminação de alto contraste comercial",
+    suggestedPromptHint: "/metaad",
   },
   {
     id: "PRODUCT_PREMIUM",
@@ -71,7 +71,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "💎",
     image: "/product-presets/premiumshowcase.jpg",
     slashCommand: "/premiumshowcase",
-    suggestedPromptHint: "posicionado sobre um pedestal cilíndrico de mármore branco flutuante, iluminação suave de estúdio",
+    suggestedPromptHint: "/premiumshowcase",
   },
   {
     id: "PRODUCT_LIFESTYLE",
@@ -82,7 +82,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🌿",
     image: "/product-presets/lifestylecontext.jpg",
     slashCommand: "/lifestylecontext",
-    suggestedPromptHint: "sobre uma mesa de madeira nobre em um ambiente moderno banhado por luz solar suave",
+    suggestedPromptHint: "/lifestylecontext",
   },
   {
     id: "PRODUCT_DYNAMIC",
@@ -93,7 +93,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "💧",
     image: "/product-presets/dynamicaction.jpg",
     slashCommand: "/dynamicaction",
-    suggestedPromptHint: "com respingos dinâmicos de água cristalina congelados em alta velocidade e iluminação dramática",
+    suggestedPromptHint: "/dynamicaction",
   },
   {
     id: "PRODUCT_CATALOG",
@@ -104,7 +104,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🏷️",
     image: "/product-presets/minimalcatalog.jpg",
     slashCommand: "/minimalcatalog",
-    suggestedPromptHint: "em estúdio com fundo infinito cinza claro neutro e iluminação suave de difusor",
+    suggestedPromptHint: "/minimalcatalog",
   },
   {
     id: "PRODUCT_COSMETICS",
@@ -115,7 +115,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🌸",
     image: "/product-presets/luxurycosmetics.jpg",
     slashCommand: "/luxurycosmetics",
-    suggestedPromptHint: "sobre bandeja de água ondulada translúcida com flores delicadas em fundo suave",
+    suggestedPromptHint: "/luxurycosmetics",
   },
   {
     id: "PRODUCT_TECH",
@@ -126,7 +126,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🔮",
     image: "/product-presets/techfuturistic.jpg",
     slashCommand: "/techfuturistic",
-    suggestedPromptHint: "levitando no ar com anéis de luz neon ciano e atmosfera futurista de alta tecnologia",
+    suggestedPromptHint: "/techfuturistic",
   },
   {
     id: "PRODUCT_FLATLAY",
@@ -137,7 +137,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "📐",
     image: "/product-presets/flatlayknolling.jpg",
     slashCommand: "/flatlayknolling",
-    suggestedPromptHint: "em foto vista de cima a 90 graus (flat lay) organizado harmonicamente com acessórios",
+    suggestedPromptHint: "/flatlayknolling",
   },
   {
     id: "PRODUCT_GOURMET",
@@ -148,7 +148,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🍔",
     image: "/product-presets/gourmetculinary.jpg",
     slashCommand: "/gourmetculinary",
-    suggestedPromptHint: "servido em tábua rústica com vapor suave e iluminação quente de restaurante gourmet",
+    suggestedPromptHint: "/gourmetculinary",
   },
   {
     id: "PRODUCT_RUSTIC",
@@ -159,7 +159,7 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
     icon: "🪵",
     image: "/product-presets/rusticorganic.jpg",
     slashCommand: "/rusticorganic",
-    suggestedPromptHint: "sobre base de madeira nobre com ramos naturais de eucalipto e luz solar suave",
+    suggestedPromptHint: "/rusticorganic",
   },
 ];
 

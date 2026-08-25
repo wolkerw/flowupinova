@@ -29,7 +29,7 @@ describe("ProductPresetSelector", () => {
       fireEvent.click(luxuryBtn);
       expect(handleChange).toHaveBeenCalledWith(
         "PRODUCT_PREMIUM",
-        expect.stringContaining("pedestal cilíndrico de mármore")
+        "/premiumshowcase"
       );
     }
   });

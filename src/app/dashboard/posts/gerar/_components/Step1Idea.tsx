@@ -1688,11 +1688,7 @@ export const Step1Idea = () => {
                               value={layoutStyle}
                               onChange={(preset, hint) => {
                                 setLayoutStyle(preset as LayoutStyleId);
-                                if (hint && !referenceDescription.includes(hint)) {
-                                  onReferenceDescriptionChange(
-                                    referenceDescription ? `${referenceDescription.trim()}, ${hint}` : hint
-                                  );
-                                }
+                                onReferenceDescriptionChange(hint || "");
                               }}
                             />
                           </div>
