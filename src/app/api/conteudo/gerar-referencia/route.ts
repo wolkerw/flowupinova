@@ -1775,6 +1775,7 @@ Cenário desejado e estilo: ${prompt}`;
         else if (promptLower.includes("/rusticorganic") || promptLower.includes("/rustic")) effectiveLayoutStyle = "PRODUCT_RUSTIC";
       }
 
+      const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
       const textOverlayMode =
         (formData.get("textOverlayMode") as string) ||
         (formData.get("insertTextOnImage") === "false" ? "NONE" : "INFOGRAPHIC");
