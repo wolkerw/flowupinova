@@ -1129,9 +1129,17 @@ export const WizardProvider = ({ children }: { children: React.ReactNode }) => {
             return;
           } catch (nanobananaError: any) {
             console.warn(
-              "[WIZARD] 🍌 Falha na geração via modelo principal, acionando modelo alternativo:",
+              "[WIZARD] 🍌 Falha na geração via modelo principal:",
               nanobananaError.message || nanobananaError
             );
+
+            if (mode === "reference-photo") {
+              // No fluxo de fotos de produto, não aciona Flux Kontext para não descaracterizar o produto
+              throw new Error(
+                nanobananaError.message ||
+                  "O motor de IA de produto (gpt-image-2) não conseguiu completar a geração. Por favor, tente novamente."
+              );
+            }
 
             toast({
               title: "🔄 Acionando Fallback Automático",

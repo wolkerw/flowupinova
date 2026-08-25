@@ -1449,11 +1449,11 @@ ${yamlAnalysis}`;
             image.resize({ w: maxDim, h: maxDim });
           }
 
-          buf = await image.getBuffer("image/jpeg");
+          buf = await image.getBuffer("image/png");
         } catch (e) {
           console.warn("[NANOBANANA_REF] Falha no crop/resize:", e);
         }
-        return { buffer: buf, mimeType: "image/jpeg" };
+        return { buffer: buf, mimeType: "image/png" };
       };
 
       // 1. Processar Foto 1 (Pessoa/Selfie/Produto)
@@ -1796,16 +1796,15 @@ Cenário desejado e estilo: ${prompt}`;
 
         const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${prompt}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
-        const OPENAI_MODELS = ["gpt-image-2", "chatgpt-image-latest", "dall-e-2"];
-        for (const oModel of OPENAI_MODELS) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
           try {
             console.log(
-              `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando foto do produto para OpenAI /v1/images/edits (${oModel})...`
+              `[NANOBANANA_REF] 🎯 Image-to-Image ativo! Enviando foto do produto para OpenAI /v1/images/edits (gpt-image-2 - Tentativa ${attempt}/3)...`
             );
             const editsFormData = new FormData();
-            const productBlob = new Blob([buffer1], { type: mimeType1 });
+            const productBlob = new Blob([buffer1], { type: "image/png" });
             editsFormData.append("image", productBlob, "product.png");
-            editsFormData.append("model", oModel);
+            editsFormData.append("model", "gpt-image-2");
             editsFormData.append("prompt", openaiPrompt);
             editsFormData.append("n", "1");
             editsFormData.append("size", "1024x1024");
@@ -1830,18 +1829,30 @@ Cenário desejado e estilo: ${prompt}`;
               }
               if (b64) {
                 imageBytes = b64;
-                modelUsed = oModel;
+                modelUsed = "gpt-image-2";
                 console.log(
-                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (${oModel})!`
+                  `[NANOBANANA_REF] ✅ Sucesso absoluto com Image-to-Image OpenAI (gpt-image-2) na tentativa ${attempt}!`
                 );
                 break;
               }
             } else {
               const errTxt = await openaiRes.text();
-              console.warn(`[NANOBANANA_REF] OpenAI /v1/images/edits (${oModel}) falhou:`, errTxt);
+              console.warn(
+                `[NANOBANANA_REF] OpenAI /v1/images/edits (gpt-image-2) tentativa ${attempt} falhou:`,
+                errTxt
+              );
+              if (attempt < 3) {
+                await new Promise((r) => setTimeout(r, attempt * 1500));
+              }
             }
           } catch (openaiErr: any) {
-            console.warn(`[NANOBANANA_REF] Exceção no Image-to-Image (${oModel}):`, openaiErr.message);
+            console.warn(
+              `[NANOBANANA_REF] Exceção no Image-to-Image (gpt-image-2 - Tentativa ${attempt}):`,
+              openaiErr.message
+            );
+            if (attempt < 3) {
+              await new Promise((r) => setTimeout(r, 1500));
+            }
           }
         }
       }
