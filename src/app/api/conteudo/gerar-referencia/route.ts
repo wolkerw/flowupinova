@@ -1413,6 +1413,7 @@ ${yamlAnalysis}`;
       const caption = (formData.get("caption") as string) || null;
       const layoutStyle = (formData.get("layoutStyle") as string) || "";
       const hybridPriority = (formData.get("hybridPriority") as string) || "balanced";
+      const openaiKey = process.env.OPENAI_API_KEY;
 
       if (!file || !prompt || !postId || !userId) {
         return NextResponse.json(
