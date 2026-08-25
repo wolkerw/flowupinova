@@ -1801,27 +1801,27 @@ Cenário desejado e estilo: ${prompt}`;
       if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
           PRODUCT_TECH:
-            "High-Conversion Sci-Fi Tech Commercial Infographic & Ad Poster — The product is the central hero resting on a futuristic glowing circular podium with ambient neon orange and cyan rim lighting. Sleek dark cyber-tech background with holographic HUD circular elements, benefit feature cards with glowing circular icons detailing specifications, bold high-contrast headline typography, and bottom specification badges. Professional e-commerce advertising grade.",
-          PRODUCT_METAAD:
-            "High-Conversion Meta/Instagram Ad Poster — The primary product is the central hero, framed with deliberate 45-55% clean negative space (top or side area) reserved for ad copy, headlines, and call-to-actions. High-contrast commercial studio lighting with a soft key light and sharp edge separation rim light. True-to-life product proportions, tactile textures, and vibrant commercial appeal.",
+            "FULL CREATIVE AGENCY POSTER — Futuristic Tech Infographic & Ad Card: Dark cyber-tech commercial poster. Central product resting on a glowing circular high-tech podium with cyan and orange neon rim lighting, floating sci-fi holographic HUD elements, a bold modern tech headline in Portuguese (pt-BR), a floating quality seal badge, and a bottom row of 4 distinct technical benefit cards with glowing line icons and Portuguese micro-descriptions. Sleek UI aesthetic, zero clipping, 20% safe margins.",
           PRODUCT_PREMIUM:
-            "Ultra-Luxury Commercial Product Showcase Poster — The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble or frosted translucent glass). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere.",
+            "FULL CREATIVE AGENCY POSTER — Ultra-Luxury Commercial Ad Poster: Opulent luxury advertising poster. Top headline with golden embossed serif typography in Portuguese (pt-BR) (e.g. 'SABOR QUE IMPRESSIONA' or 'EXCELÊNCIA QUE DEFINE') with a subtle crown or star icon, sub-headline, a circular golden quality seal badge on top-right, central hero product on an artisanal dark wood slab or polished Carrara marble pedestal with atmospheric warm studio glow and subtle embers/sparks, and at the bottom a row of 4 luxury benefit badges with minimalist golden line icons and Portuguese descriptors, finished with an elegant bottom slogan bar. 20% safe margins.",
+          PRODUCT_METAAD:
+            "FULL CREATIVE AGENCY POSTER — Meta Ads High-Conversion Creative: High-impact social media advertising poster. Dynamic hook headline in bold modern sans-serif, 45-55% strategic negative space for copy/pricing, promotional badge or offer tag, sharp rim-light separation on the hero product, and clean bottom value-proposition badges with crisp icons in Portuguese. 20% safe margins.",
           PRODUCT_BILLBOARD:
-            "3D Outdoor Billboard Campaign Poster — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product in monumental scale breaking through the billboard borders, with ambient city glow, dramatic volumetric spotlights, and sharp brand fidelity.",
+            "FULL CREATIVE AGENCY POSTER — 3D Outdoor Billboard Campaign: Giant anamorphic 3D billboard in a premier metropolitan avenue at dusk. The product breaks out of the billboard frame with 3D depth, dramatic volumetric spotlights, luminous urban city skyline in the background, bold campaign headline, and sponsor branding marks. 20% safe margins.",
           PRODUCT_DYNAMIC:
-            "High-Speed Commercial Advertising Action Poster — The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic hero visual.",
+            "FULL CREATIVE AGENCY POSTER — High-Speed Commercial Action: High-energy advertising poster with frozen water splashes, suspended ingredient slices or energy particles at 1/8000s shutter freeze. Dynamic slanted action headline in Portuguese, energy quality seal, and bottom performance badges with line icons. 20% safe margins.",
           PRODUCT_CATALOG:
-            "Clean Minimalist E-Commerce Catalog — Seamless infinite pure studio backdrop, perfectly uniform shadowless diffused light, f/11 edge-to-edge sharpness, hyper-accurate colors and textures.",
+            "FULL CREATIVE AGENCY POSTER — E-Commerce Clean Catalog Feature Sheet: Minimalist studio catalog presentation. Pure neutral studio backdrop, uniform shadowless illumination, clean modern headline, official product model subtitle, and bottom minimalist icon row detailing core technical dimensions and specs. 20% safe margins.",
           PRODUCT_COSMETICS:
-            "Luxury Cosmetics & Skincare Advertising Poster — Translucent acrylic ripple water tray, delicate organic floral petals, golden texture droplets, soft pastel studio backlighting, and ethereal beauty aesthetic.",
+            "FULL CREATIVE AGENCY POSTER — High-End Beauty & Skincare Editorial: Ethereal cosmetic advertising layout. Translucent acrylic ripple water tray, pastel studio backlighting, delicate organic floral petals and golden serum droplets. Refined luxury serif headline in Portuguese, dermatological/botanical trust badge, and bottom cards highlighting natural active ingredients and benefits. 20% safe margins.",
           PRODUCT_FLATLAY:
-            "90-Degree Flat Lay Knolling Commercial Poster — Top-down orthographic view, geometric prop organization, tactile natural linen and wooden background, balanced studio lighting.",
+            "FULL CREATIVE AGENCY POSTER — 90-Degree Flat Lay Knolling Layout: Top-down orthographic product arrangement. Tactile linen or wood surface, perfectly organized complementary lifestyle items, elegant callout badges, and clean aesthetic typography in Portuguese. 20% safe margins.",
           PRODUCT_GOURMET:
-            "Commercial Food & Culinary Advertising — Appetizing rich textures, delicate rising steam, warm restaurant ambient glow, mouthwatering macro focus, and gourmet culinary staging.",
+            "FULL CREATIVE AGENCY POSTER — Artisanal Food & Culinary Campaign: Mouthwatering gourmet food advertisement. Warm rustic restaurant setting, rising steam, appetizing macro textures, rustic gold/white culinary headline, freshness guarantee stamp, and bottom cards detailing fresh ingredients, preparation craft, and premium flavor. 20% safe margins.",
           PRODUCT_RUSTIC:
-            "Rustic & Artisanal Botanical Product Staging — Raw dark wood slab, dried eucalyptus branches, natural linen texture, and warm gentle sunbeams through a window.",
+            "FULL CREATIVE AGENCY POSTER — Organic & Artisanal Craft Advertisement: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted organic typography in Portuguese, eco-friendly certification seal, and bottom cards detailing sustainable materials and handmade quality. 20% safe margins.",
           PRODUCT_LIFESTYLE:
-            "Aspirational Lifestyle Product Placement — Authentic contemporary interior setting with natural window side lighting and gentle soft-focus depth of field.",
+            "FULL CREATIVE AGENCY POSTER — Aspirational Lifestyle Campaign: Real-world aspirational environment with natural morning window lighting, storytelling headline in Portuguese, authentic organic integration, and subtle bottom brand value points. 20% safe margins.",
         };
 
         const styleHeader =
@@ -1833,13 +1833,15 @@ Cenário desejado e estilo: ${prompt}`;
           .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto)/gi, "")
           .trim();
 
-        const ugcDirectives = isProductPreset
+        const agencyDirective = isProductPreset && insertTextOnImage
+          ? `CREATIVE ADVERTISING AGENCY DIRECTIVE: Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`
+          : isProductPreset
           ? "Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details."
           : "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
 
         let typographyPrompt = "";
         if (insertTextOnImage && textHeadline) {
-          typographyPrompt = `TYPOGRAPHY & HEADLINE OVERLAY: Render the exact headline text "${textHeadline}" prominently and beautifully integrated into the scene ${brandTypographyDirective || "with clean, bold, high-contrast modern sans-serif typography"}. MANDATORY SAFE MARGINS: Place all text within the central safe area with at least 20% breathing room from borders (zero text touching canvas edges). If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
+          typographyPrompt = `CUSTOM HEADLINE: Use the exact headline text "${textHeadline}" for the primary title ${brandTypographyDirective || "with clean, bold, high-contrast typography"}. Place all text within the central safe area with at least 20% breathing room from borders. If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling in Portuguese, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
         } else if (!insertTextOnImage && !isProductPreset) {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
@@ -1849,7 +1851,7 @@ Cenário desejado e estilo: ${prompt}`;
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
