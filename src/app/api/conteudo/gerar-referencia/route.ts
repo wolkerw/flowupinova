@@ -1805,32 +1805,32 @@ Cenário desejado e estilo: ${prompt}`;
       if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
           PRODUCT_TECH:
-            "FULL CREATIVE AGENCY POSTER — Futuristic Tech Infographic & Ad Card: Dark cyber-tech commercial poster. Central product resting on a glowing circular high-tech podium with cyan and orange neon rim lighting, floating sci-fi holographic HUD elements, a bold modern tech headline in Portuguese (pt-BR), a floating quality seal badge, and a bottom row of 4 distinct technical benefit cards with glowing line icons and Portuguese micro-descriptions. Sleek UI aesthetic, zero clipping, 20% safe margins.",
+            "FUTURISTIC TECH HERO CLOSE-UP: Dark cyber-tech commercial poster. The product is the massive central hero resting on a glowing circular high-tech podium with cyan and orange neon rim lighting, floating sci-fi holographic HUD elements. Sleek UI aesthetic, zero full-body people, macro focus.",
           PRODUCT_PREMIUM:
-            "FULL CREATIVE AGENCY POSTER — Ultra-Luxury Commercial Ad Poster: Opulent luxury advertising poster. Top headline with golden embossed serif typography in Portuguese (pt-BR) (e.g. 'SABOR QUE IMPRESSIONA' or 'EXCELÊNCIA QUE DEFINE') with a subtle crown or star icon, sub-headline, a circular golden quality seal badge on top-right, central hero product on an artisanal dark wood slab or polished Carrara marble pedestal with atmospheric warm studio glow and subtle embers/sparks, and at the bottom a row of 4 luxury benefit badges with minimalist golden line icons and Portuguese descriptors, finished with an elegant bottom slogan bar. 20% safe margins.",
+            "ULTRA-LUXURY COMMERCIAL HERO CLOSE-UP: Opulent luxury advertising poster. The product is the massive central hero resting on an artisanal dark wood slab or polished Carrara marble pedestal with atmospheric warm studio glow and subtle embers/sparks. Macro product details.",
           PRODUCT_METAAD:
-            "FULL CREATIVE AGENCY POSTER — Meta Ads High-Conversion Creative: High-impact social media advertising poster. Dynamic hook headline in bold modern sans-serif, 45-55% strategic negative space for copy/pricing, promotional badge or offer tag, sharp rim-light separation on the hero product, and clean bottom value-proposition badges with crisp icons in Portuguese. 20% safe margins.",
+            "META ADS HIGH-CONVERSION PRODUCT HERO CLOSE-UP: High-impact social media commercial poster. The physical product is the massive central hero staged on a high-contrast commercial surface with sharp rim-light separation, dramatic lighting, bold promotional headline, and clean advertising design. No full-body people.",
           PRODUCT_BILLBOARD:
-            "FULL CREATIVE AGENCY POSTER — 3D Outdoor Billboard Campaign: Giant anamorphic 3D billboard in a premier metropolitan avenue at dusk. The product breaks out of the billboard frame with 3D depth, dramatic volumetric spotlights, luminous urban city skyline in the background, bold campaign headline, and sponsor branding marks. 20% safe margins.",
+            "3D OUTDOOR BILLBOARD PRODUCT HERO: Giant anamorphic 3D billboard staging where the product breaks out of the billboard frame with massive 3D scale, dramatic volumetric spotlights, and urban city lights.",
           PRODUCT_DYNAMIC:
-            "FULL CREATIVE AGENCY POSTER — High-Speed Commercial Action: High-energy advertising poster with frozen water splashes, suspended ingredient slices or energy particles at 1/8000s shutter freeze. Dynamic slanted action headline in Portuguese, energy quality seal, and bottom performance badges with line icons. 20% safe margins.",
+            "HIGH-SPEED DYNAMIC ACTION PRODUCT HERO: High-energy advertising poster with frozen water splashes, suspended ingredient slices or energy particles at 1/8000s shutter freeze around the hero product in close-up.",
           PRODUCT_CATALOG:
-            "FULL CREATIVE AGENCY POSTER — E-Commerce Clean Catalog Feature Sheet: Minimalist studio catalog presentation. Pure neutral studio backdrop, uniform shadowless illumination, clean modern headline, official product model subtitle, and bottom minimalist icon row detailing core technical dimensions and specs. 20% safe margins.",
+            "E-COMMERCE CLEAN CATALOG PRODUCT HERO: Minimalist studio catalog presentation. Pure neutral studio backdrop, uniform shadowless illumination, clean modern headline, and sharp product macro focus.",
           PRODUCT_COSMETICS:
-            "FULL CREATIVE AGENCY POSTER — High-End Beauty & Skincare Editorial: Ethereal cosmetic advertising layout. Translucent acrylic ripple water tray, pastel studio backlighting, delicate organic floral petals and golden serum droplets. Refined luxury serif headline in Portuguese, dermatological/botanical trust badge, and bottom cards highlighting natural active ingredients and benefits. 20% safe margins.",
+            "HIGH-END BEAUTY & SKINCARE EDITORIAL PRODUCT HERO: Ethereal cosmetic advertising layout. Translucent acrylic ripple water tray, pastel studio backlighting, delicate organic floral petals and golden serum droplets around the hero bottle in close-up.",
           PRODUCT_FLATLAY:
-            "FULL CREATIVE AGENCY POSTER — 90-Degree Flat Lay Knolling Layout: Top-down orthographic product arrangement. Tactile linen or wood surface, perfectly organized complementary lifestyle items, elegant callout badges, and clean aesthetic typography in Portuguese. 20% safe margins.",
+            "90-DEGREE FLAT LAY KNOLLING PRODUCT HERO: Top-down orthographic product arrangement. Tactile linen or wood surface, perfectly organized complementary items around the central hero product.",
           PRODUCT_GOURMET:
-            "FULL CREATIVE AGENCY POSTER — Artisanal Food & Culinary Campaign: Mouthwatering gourmet food advertisement. Warm rustic restaurant setting, rising steam, appetizing macro textures, rustic gold/white culinary headline, freshness guarantee stamp, and bottom cards detailing fresh ingredients, preparation craft, and premium flavor. 20% safe margins.",
+            "ARTISANAL GOURMET CULINARY PRODUCT HERO: Mouthwatering gourmet food advertisement. Warm rustic restaurant setting, rising steam, appetizing macro textures and fresh ingredients around the hero item.",
           PRODUCT_RUSTIC:
-            "FULL CREATIVE AGENCY POSTER — Organic & Artisanal Craft Advertisement: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted organic typography in Portuguese, eco-friendly certification seal, and bottom cards detailing sustainable materials and handmade quality. 20% safe margins.",
+            "ORGANIC & ARTISANAL CRAFT PRODUCT HERO: Raw organic wood slab, dried eucalyptus branches, warm sunbeams, handcrafted natural atmosphere around the central product in close-up.",
           PRODUCT_LIFESTYLE:
-            "FULL CREATIVE AGENCY POSTER — Aspirational Lifestyle Campaign: Real-world aspirational environment with natural morning window lighting, storytelling headline in Portuguese, authentic organic integration, and subtle bottom brand value points. 20% safe margins.",
+            "ASPIRATIONAL LIFESTYLE PRODUCT HERO (TIGHT CLOSE-UP): Real-world aspirational environment with natural morning window lighting, close-up macro focus on the product in use, with hands or background softly blurred.",
         };
 
         const styleHeader =
           isProductPreset && STYLE_LABELS[effectiveLayoutStyle]
-            ? `[VISUAL PRESET: ${STYLE_LABELS[effectiveLayoutStyle]}] `
+            ? `[VISUAL THEME: ${STYLE_LABELS[effectiveLayoutStyle]}] `
             : "";
 
         const cleanPrompt = (prompt || "")
@@ -1838,15 +1838,15 @@ Cenário desejado e estilo: ${prompt}`;
           .trim();
 
         const heroProductRule = isProductPreset
-          ? "HERO PRODUCT IS THE ABSOLUTE PROTAGONIST (MANDATORY FRAMING): The physical product itself MUST ALWAYS be the prominent, large-scale hero and main protagonist of the entire image (occupying 45% to 75% of the central visual area in sharp macro or medium close-up detail). NEVER generate full-body human figures or wide environmental shots where the product appears small or secondary. If a human model or hand is present (e.g. product in use / lifestyle), the framing MUST be a tight macro close-up on the product interaction (e.g. close-up of the wrist wearing the watch, hand holding the cosmetic bottle, hands holding the burger up close), with the human model softly blurred in shallow depth of field. The product's shape, textures, and branding must be the immediate focal point."
+          ? "CRITICAL FRAMING MANDATE — HERO PRODUCT MACRO CLOSE-UP (ABSOLUTE PROTAGONIST): The physical product from the input image MUST ALWAYS BE THE MASSIVE CENTRAL HERO occupying 55% to 80% of the entire image canvas in high-detail macro or close-up studio photography. STRICTLY FORBIDDEN: DO NOT generate full-body human models, standing people, or wide environmental room shots where the product appears small. If human interaction is depicted (e.g. wearing a watch or holding a bottle), the camera MUST BE A TIGHT MACRO CLOSE-UP focused solely on the product on the wrist/hand, with the human person completely out of focus or cropped out of frame. The product itself must dominate the visual hierarchy."
           : "";
 
         let agencyDirective = "";
         if (isProductPreset) {
           if (textOverlayMode === "INFOGRAPHIC") {
-            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Act as an award-winning Creative Advertising Agency Art Director. Construct a complete, bespoke commercial advertising poster / infographic card dynamically tailored to the product niche and the chosen preset theme. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. DIVERSIFY CREATIVELY: Adapt color palette, typography style, and iconography uniquely to this specific product type. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (INFOGRAPHIC POSTER MODE): Construct a complete, bespoke commercial advertising poster / infographic card. Include: (1) An impactful headline at the top in Portuguese (pt-BR) with decorative badge/icon, (2) A floating quality/guarantee seal badge, (3) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting and atmospheric depth, (4) At the bottom, a row of 3-4 distinct benefit cards with minimalist line icons and short Portuguese descriptors tailored to the product's actual features, (5) An elegant bottom slogan bar. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
           } else if (textOverlayMode === "TITLE_ONLY") {
-            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Act as an award-winning Creative Advertising Agency Art Director. Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR) or the user's custom title, (2) The hero product prominently staged in the center in LARGE SCALE with thematic lighting and clean atmospheric depth. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
+            agencyDirective = `CREATIVE ADVERTISING AGENCY DIRECTIVE (CLEAN TITLE-ONLY POSTER MODE): Construct an ultra-clean, elegant commercial advertising poster. Include ONLY: (1) A clean, modern, high-impact headline at the top in Portuguese (pt-BR) or the user's custom title, (2) The hero product prominently staged in the center in LARGE MACRO SCALE with thematic lighting. STRICT CLEAN LAYOUT RULE: DO NOT generate any bottom benefit cards, DO NOT generate any icon rows, DO NOT generate technical subtext cards, DO NOT generate quality seal badges at the bottom. Keep the lower half of the image completely clean, uncluttered and focused purely on the large hero product photography. MANDATORY: 20% safe margin from all borders to prevent text clipping.`;
           } else {
             agencyDirective = `Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details in large macro hero scale. ABSOLUTE CLEAN PHOTOGRAPHY (NO TEXT OVERLAYS): Do NOT render any text, headlines, slogans, cards, icons, badges or graphic overlays.`;
           }
@@ -1866,7 +1866,7 @@ Cenário desejado e estilo: ${prompt}`;
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const openaiPrompt = `${styleHeader}${displaySystemHeader}${heroProductRule} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const openaiPrompt = `${heroProductRule} ${styleHeader}${displaySystemHeader} Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${agencyDirective} ${typographyPrompt} The product must be sharply in focus, large-scale, with tactile textures and authentic material details. Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
