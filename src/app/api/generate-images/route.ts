@@ -118,26 +118,28 @@ export async function POST(request: Request) {
         "Premium 3D Tech Illustration — Octane/Redshift render style, vibrant colors, glass and metallic textures",
       MAGAZINE_3D:
         "Magazine 3D Cover — high-fashion magazine cover style, integrated typography with 3D depth, subject overlaps title letters",
-      PRODUCT_METAAD:
-        "Meta Ads High-Conversion Product Advertising — 45-55% strategic negative space for copy/pricing, sharp rim light separation, true-to-life product texture",
-      PRODUCT_PREMIUM:
-        "Ultra-Luxury Product Showcase — geometric Carrara marble pedestal, caustic reflections, large overhead softbox 3-point lighting",
-      PRODUCT_LIFESTYLE:
-        "Aspirational Lifestyle Product in Use — natural window sunlight, authentic contemporary interior setting, soft depth of field",
-      PRODUCT_DYNAMIC:
-        "Dynamic High-Speed Commercial Splash — 1/8000s shutter freeze, suspended water droplets and energetic fluid dynamics",
-      PRODUCT_CATALOG:
-        "Clean Minimalist E-Commerce Catalog — seamless infinite pure studio backdrop, uniform shadowless light, f/11 edge-to-edge sharpness",
-      PRODUCT_COSMETICS:
-        "Luxury Cosmetics & Skincare — acrylic ripple tray, delicate organic floral petals, soft pastel backlighting, liquid textures",
       PRODUCT_TECH:
-        "Futuristic Tech Hardware — levitating in zero gravity, glowing cyan and purple neon rim accents, sleek titanium finish",
+        "High-Conversion Sci-Fi Tech Commercial Infographic & Ad Poster — The product is the central hero resting on a futuristic glowing circular podium with ambient neon orange and cyan rim lighting. Sleek dark cyber-tech background with holographic HUD circular elements, benefit feature cards with glowing circular icons detailing specifications, bold high-contrast headline typography, and bottom specification badges. Professional e-commerce advertising grade.",
+      PRODUCT_METAAD:
+        "High-Conversion Meta/Instagram Ad Poster — The primary product is the central hero, framed with deliberate 45-55% clean negative space (top or side area) reserved for ad copy, headlines, and call-to-actions. High-contrast commercial studio lighting with a soft key light and sharp edge separation rim light. True-to-life product proportions, tactile textures, and vibrant commercial appeal.",
+      PRODUCT_PREMIUM:
+        "Ultra-Luxury Commercial Product Showcase Poster — The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble or frosted translucent glass). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere.",
+      PRODUCT_BILLBOARD:
+        "3D Outdoor Billboard Campaign Poster — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product in monumental scale breaking through the billboard borders, with ambient city glow, dramatic volumetric spotlights, and sharp brand fidelity.",
+      PRODUCT_DYNAMIC:
+        "High-Speed Commercial Advertising Action Poster — The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic hero visual.",
+      PRODUCT_CATALOG:
+        "Clean Minimalist E-Commerce Catalog — Seamless infinite pure studio backdrop, perfectly uniform shadowless diffused light, f/11 edge-to-edge sharpness, hyper-accurate colors and textures.",
+      PRODUCT_COSMETICS:
+        "Luxury Cosmetics & Skincare Advertising Poster — Translucent acrylic ripple water tray, delicate organic floral petals, golden texture droplets, soft pastel studio backlighting, and ethereal beauty aesthetic.",
       PRODUCT_FLATLAY:
-        "90-Degree Flat Lay Knolling — top-down orthographic view, geometric prop organization, natural linen background",
+        "90-Degree Flat Lay Knolling Commercial Poster — Top-down orthographic view, geometric prop organization, tactile natural linen and wooden background, balanced studio lighting.",
       PRODUCT_GOURMET:
-        "Commercial Food & Culinary — appetizing rich textures, gentle rising steam, warm restaurant ambient glow",
+        "Commercial Food & Culinary Advertising — Appetizing rich textures, delicate rising steam, warm restaurant ambient glow, mouthwatering macro focus, and gourmet culinary staging.",
       PRODUCT_RUSTIC:
-        "Rustic & Artisanal Botanical — raw organic wood slab, dried eucalyptus branches, warm morning window sunbeams",
+        "Rustic & Artisanal Botanical Product Staging — Raw dark wood slab, dried eucalyptus branches, natural linen texture, and warm gentle sunbeams through a window.",
+      PRODUCT_LIFESTYLE:
+        "Aspirational Lifestyle Product Placement — Authentic contemporary interior setting with natural window side lighting and gentle soft-focus depth of field.",
     };
     if (layoutStyle && STYLE_LABELS[layoutStyle]) {
       const styleHeader = `[VISUAL STYLE: ${STYLE_LABELS[layoutStyle]}] `;

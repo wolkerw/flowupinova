@@ -166,26 +166,28 @@ export const PRODUCT_PRESETS: ProductPresetOption[] = [
 export const PRODUCT_PRESET_TECHNICAL: Record<ProductPresetId, string> = {
   "": "",
   AUTO: "",
+  PRODUCT_TECH:
+    "LAYOUT STYLE — PRODUCT_TECH (/techfuturistic): High-conversion sci-fi tech commercial advertising poster / infographic product card. The product is the central hero resting on a futuristic glowing circular podium with ambient neon orange and cyan rim lighting. Sleek dark cyber-tech background with holographic HUD circular elements, benefit feature cards with glowing circular icons detailing specifications, bold high-contrast headline typography, and bottom specification badges. Professional e-commerce advertising grade.",
   PRODUCT_METAAD:
     "LAYOUT STYLE — PRODUCT_METAAD (/metaad): High-conversion Meta/Instagram advertising composition (OpenAI DALL-E & GPT-4o standard). The primary product is the clear hero, framed with deliberate 45-55% clean negative space (top or side area) reserved for ad copy, headlines, and call-to-actions. High-contrast commercial studio lighting with a soft key light and sharp edge separation rim light. True-to-life product proportions, textures, and vibrant commercial appeal.",
   PRODUCT_PREMIUM:
-    "LAYOUT STYLE — PRODUCT_PREMIUM (/premiumshowcase): Ultra-luxury commercial product showcase. The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble, frosted translucent glass, or brushed metal). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere. Shot on Phase One IQ4 150MP, 85mm f/1.4 lens.",
+    "LAYOUT STYLE — PRODUCT_PREMIUM (/premiumshowcase): Ultra-luxury commercial product showcase poster. The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble, frosted translucent glass, or brushed metal). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere. Shot on Phase One IQ4 150MP, 85mm f/1.4 lens.",
+  PRODUCT_BILLBOARD:
+    "LAYOUT STYLE — PRODUCT_BILLBOARD (/3dbillboard): 3D Outdoor Billboard Campaign Poster. A hyper-realistic 3D outdoor billboard at dusk featuring this exact product in monumental scale breaking through the billboard borders, with ambient city glow, dramatic volumetric spotlights, and sharp brand fidelity.",
   PRODUCT_LIFESTYLE:
     "LAYOUT STYLE — PRODUCT_LIFESTYLE (/lifestylecontext): Premium lifestyle product placement in an authentic, aspirational real-world setting (e.g. contemporary oak desk in a sunlit architectural studio, luxury spa marble counter, or designer kitchen). Warm natural side lighting from a nearby window, gentle soft-focus depth of field, and organic atmosphere that highlights how the product integrates into daily life.",
   PRODUCT_DYNAMIC:
-    "LAYOUT STYLE — PRODUCT_DYNAMIC (/dynamicaction): High-speed commercial advertising photography capturing dynamic action. The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic, and visually captivating hero visual.",
+    "LAYOUT STYLE — PRODUCT_DYNAMIC (/dynamicaction): High-speed commercial advertising action poster. The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic, and visually captivating hero visual.",
   PRODUCT_CATALOG:
     "LAYOUT STYLE — PRODUCT_CATALOG (/minimalcatalog): Pure e-commerce clean catalog aesthetic. The product stands on a seamless infinite solid or subtle light-gray gradient background. Perfectly even diffused light box illumination with zero distracting reflections. Crisp edge-to-edge focus (f/11), hyper-accurate colors and textures, conveying pristine commercial catalog perfection.",
   PRODUCT_COSMETICS:
-    "LAYOUT STYLE — PRODUCT_COSMETICS (/luxurycosmetics): Luxury cosmetics and skincare advertising photography. Staged on a translucent acrylic ripple tray, delicate organic floral petals, golden texture droplets, and soft pastel studio backlighting. Refined beauty aesthetic.",
-  PRODUCT_TECH:
-    "LAYOUT STYLE — PRODUCT_TECH (/techfuturistic): Futuristic tech hardware aesthetic. Levitating in zero gravity with glowing cyan and purple neon rim accents, clean titanium finish, and modern volumetric studio lighting.",
+    "LAYOUT STYLE — PRODUCT_COSMETICS (/luxurycosmetics): Luxury cosmetics and skincare advertising poster. Staged on a translucent acrylic ripple tray, delicate organic floral petals, golden texture droplets, and soft pastel studio backlighting. Refined beauty aesthetic.",
   PRODUCT_FLATLAY:
     "LAYOUT STYLE — PRODUCT_FLATLAY (/flatlayknolling): Precise 90-degree top-down flat lay knolling photography. Geometrically aligned with complementary lifestyle props on textured linen or wooden surface, soft diffused overhead lighting.",
   PRODUCT_GOURMET:
-    "LAYOUT STYLE — PRODUCT_GOURMET (/gourmetculinary): Commercial culinary food photography. Appetizing rich textures, delicate rising steam, warm restaurant ambient light, and mouthwatering macro focus.",
+    "LAYOUT STYLE — PRODUCT_GOURMET (/gourmetculinary): Commercial culinary food advertising. Appetizing rich textures, delicate rising steam, warm restaurant ambient light, and mouthwatering macro focus.",
   PRODUCT_RUSTIC:
-    "LAYOUT STYLE — PRODUCT_RUSTIC (/rusticorganic): Organic artisanal botanical setting. Resting on raw dark wood slab with dried eucalyptus, natural linen texture, and warm gentle sunbeams through a window.",
+    "LAYOUT STYLE — PRODUCT_RUSTIC (/rusticorganic): Organic artisanal botanical product staging. Resting on raw dark wood slab with dried eucalyptus, natural linen texture, and warm gentle sunbeams through a window.",
 };
 
 interface ProductPresetSelectorProps {

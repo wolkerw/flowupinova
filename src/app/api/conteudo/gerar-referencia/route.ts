@@ -1759,7 +1759,23 @@ Cenário desejado e estilo: ${prompt}`;
       let modelUsed = "";
 
       // 5.1 Roteamento Inteligente: Para fotos de produto, aciona gpt-image-2 (Image-to-Image) como motor primário!
-      const isProductPreset = Boolean(layoutStyle && layoutStyle.startsWith("PRODUCT_"));
+      let effectiveLayoutStyle = layoutStyle;
+      const promptLower = (prompt || "").toLowerCase();
+      if (!effectiveLayoutStyle || effectiveLayoutStyle === "AUTO") {
+        if (promptLower.includes("/techfuturistic") || promptLower.includes("/tech")) effectiveLayoutStyle = "PRODUCT_TECH";
+        else if (promptLower.includes("/metaad") || promptLower.includes("/ad")) effectiveLayoutStyle = "PRODUCT_METAAD";
+        else if (promptLower.includes("/premiumshowcase") || promptLower.includes("/showcase") || promptLower.includes("/luxo")) effectiveLayoutStyle = "PRODUCT_PREMIUM";
+        else if (promptLower.includes("/3dbillboard") || promptLower.includes("/billboard")) effectiveLayoutStyle = "PRODUCT_BILLBOARD";
+        else if (promptLower.includes("/lifestylecontext") || promptLower.includes("/lifestyle")) effectiveLayoutStyle = "PRODUCT_LIFESTYLE";
+        else if (promptLower.includes("/dynamicaction") || promptLower.includes("/dynamic") || promptLower.includes("/splash")) effectiveLayoutStyle = "PRODUCT_DYNAMIC";
+        else if (promptLower.includes("/minimalcatalog") || promptLower.includes("/catalog")) effectiveLayoutStyle = "PRODUCT_CATALOG";
+        else if (promptLower.includes("/luxurycosmetics") || promptLower.includes("/cosmetics")) effectiveLayoutStyle = "PRODUCT_COSMETICS";
+        else if (promptLower.includes("/flatlayknolling") || promptLower.includes("/flatlay")) effectiveLayoutStyle = "PRODUCT_FLATLAY";
+        else if (promptLower.includes("/gourmetculinary") || promptLower.includes("/gourmet")) effectiveLayoutStyle = "PRODUCT_GOURMET";
+        else if (promptLower.includes("/rusticorganic") || promptLower.includes("/rustic")) effectiveLayoutStyle = "PRODUCT_RUSTIC";
+      }
+
+      const isProductPreset = Boolean(effectiveLayoutStyle && effectiveLayoutStyle.startsWith("PRODUCT_"));
       const insertTextOnImage = formData.get("insertTextOnImage") !== "false";
       const textHeadline = (formData.get("textHeadline") as string) || "";
       const businessProfileRaw = (formData.get("businessProfile") as string) || "";
@@ -1784,42 +1800,47 @@ Cenário desejado e estilo: ${prompt}`;
 
       if (openaiKey) {
         const STYLE_LABELS: Record<string, string> = {
-          PRODUCT_METAAD:
-            "Meta Ads High-Conversion Product Advertising — 45-55% strategic negative space for copy/pricing, sharp rim light separation, true-to-life product texture",
-          PRODUCT_PREMIUM:
-            "Ultra-Luxury Product Showcase — geometric Carrara marble pedestal, caustic reflections, large overhead softbox 3-point lighting",
-          PRODUCT_LIFESTYLE:
-            "Aspirational Lifestyle Product in Use — natural window sunlight, authentic contemporary interior setting, soft depth of field",
-          PRODUCT_DYNAMIC:
-            "Dynamic High-Speed Commercial Splash — 1/8000s shutter freeze, suspended water droplets and energetic fluid dynamics",
-          PRODUCT_CATALOG:
-            "Clean Minimalist E-Commerce Catalog — seamless infinite pure studio backdrop, uniform shadowless light, f/11 edge-to-edge sharpness",
-          PRODUCT_COSMETICS:
-            "Luxury Cosmetics & Skincare — acrylic ripple tray, delicate organic floral petals, soft pastel backlighting, liquid textures",
           PRODUCT_TECH:
-            "Futuristic Tech Hardware — levitating in zero gravity, glowing cyan and purple neon rim accents, sleek titanium finish",
-          PRODUCT_FLATLAY:
-            "90-Degree Flat Lay Knolling — top-down orthographic view, geometric prop organization, natural linen background",
-          PRODUCT_GOURMET:
-            "Commercial Food & Culinary — appetizing rich textures, gentle rising steam, warm restaurant ambient glow",
-          PRODUCT_RUSTIC:
-            "Rustic & Artisanal Botanical — raw organic wood slab, dried eucalyptus branches, warm morning window sunbeams",
+            "High-Conversion Sci-Fi Tech Commercial Infographic & Ad Poster — The product is the central hero resting on a futuristic glowing circular podium with ambient neon orange and cyan rim lighting. Sleek dark cyber-tech background with holographic HUD circular elements, benefit feature cards with glowing circular icons detailing specifications, bold high-contrast headline typography, and bottom specification badges. Professional e-commerce advertising grade.",
+          PRODUCT_METAAD:
+            "High-Conversion Meta/Instagram Ad Poster — The primary product is the central hero, framed with deliberate 45-55% clean negative space (top or side area) reserved for ad copy, headlines, and call-to-actions. High-contrast commercial studio lighting with a soft key light and sharp edge separation rim light. True-to-life product proportions, tactile textures, and vibrant commercial appeal.",
+          PRODUCT_PREMIUM:
+            "Ultra-Luxury Commercial Product Showcase Poster — The product is elegantly staged on a geometric architectural pedestal (such as polished white Carrara marble or frosted translucent glass). Three-point studio lighting with a large overhead softbox, subtle caustic reflections, soft contact shadows (ambient occlusion), and an ultra-clean minimalist luxury atmosphere.",
           PRODUCT_BILLBOARD:
-            "3D Outdoor Billboard — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product from the input image with ambient city glow and sharp brand fidelity",
+            "3D Outdoor Billboard Campaign Poster — A hyper-realistic 3D outdoor billboard at dusk featuring this exact product in monumental scale breaking through the billboard borders, with ambient city glow, dramatic volumetric spotlights, and sharp brand fidelity.",
+          PRODUCT_DYNAMIC:
+            "High-Speed Commercial Advertising Action Poster — The product is surrounded by suspended elements: crystal-clear high-speed frozen water droplets, dynamic liquid splashes, floating natural ingredients, or energetic light trails. Studio strobe lighting with 1/8000s shutter freeze effect, creating a fresh, energetic hero visual.",
+          PRODUCT_CATALOG:
+            "Clean Minimalist E-Commerce Catalog — Seamless infinite pure studio backdrop, perfectly uniform shadowless diffused light, f/11 edge-to-edge sharpness, hyper-accurate colors and textures.",
+          PRODUCT_COSMETICS:
+            "Luxury Cosmetics & Skincare Advertising Poster — Translucent acrylic ripple water tray, delicate organic floral petals, golden texture droplets, soft pastel studio backlighting, and ethereal beauty aesthetic.",
+          PRODUCT_FLATLAY:
+            "90-Degree Flat Lay Knolling Commercial Poster — Top-down orthographic view, geometric prop organization, tactile natural linen and wooden background, balanced studio lighting.",
+          PRODUCT_GOURMET:
+            "Commercial Food & Culinary Advertising — Appetizing rich textures, delicate rising steam, warm restaurant ambient glow, mouthwatering macro focus, and gourmet culinary staging.",
+          PRODUCT_RUSTIC:
+            "Rustic & Artisanal Botanical Product Staging — Raw dark wood slab, dried eucalyptus branches, natural linen texture, and warm gentle sunbeams through a window.",
+          PRODUCT_LIFESTYLE:
+            "Aspirational Lifestyle Product Placement — Authentic contemporary interior setting with natural window side lighting and gentle soft-focus depth of field.",
         };
 
         const styleHeader =
-          isProductPreset && STYLE_LABELS[layoutStyle]
-            ? `[VISUAL PRESET: ${STYLE_LABELS[layoutStyle]}] `
+          isProductPreset && STYLE_LABELS[effectiveLayoutStyle]
+            ? `[VISUAL PRESET: ${STYLE_LABELS[effectiveLayoutStyle]}] `
             : "";
 
-        const ugcDirectives =
-          "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
+        const cleanPrompt = (prompt || "")
+          .replace(/\/(techfuturistic|metaad|premiumshowcase|3dbillboard|lifestylecontext|dynamicaction|minimalcatalog|luxurycosmetics|flatlayknolling|gourmetculinary|rusticorganic|ad|showcase|splash|catalog|tech|flatlay|gourmet|rustic|luxo|contexto)/gi, "")
+          .trim();
+
+        const ugcDirectives = isProductPreset
+          ? "Professional commercial advertising grade, stunning visual hierarchy, tactile product texture, physical contact shadows and reflections, sharp focal clarity on product details."
+          : "UGC Photographic Directives: Hyper-realistic natural lighting, authentic depth of field, tactile real-world product texture, accurate physical shadows and reflections, professional commercial advertising grade.";
 
         let typographyPrompt = "";
         if (insertTextOnImage && textHeadline) {
           typographyPrompt = `TYPOGRAPHY & HEADLINE OVERLAY: Render the exact headline text "${textHeadline}" prominently and beautifully integrated into the scene ${brandTypographyDirective || "with clean, bold, high-contrast modern sans-serif typography"}. MANDATORY SAFE MARGINS: Place all text within the central safe area with at least 20% breathing room from borders (zero text touching canvas edges). If the text is long, break it into 2-3 short stacked lines. Ensure perfect spelling, sharp crisp characters, zero typos, and professional graphic design visual hierarchy.`;
-        } else if (!insertTextOnImage) {
+        } else if (!insertTextOnImage && !isProductPreset) {
           typographyPrompt =
             "ABSOLUTE CLEAN COMPOSITION (NO TEXT OVERLAY): Do NOT add any written headline text, slogans, letters, watermarks, or artificial graphic overlay. The composition must remain clean, authentic photographic product art.";
         }
@@ -1828,7 +1849,7 @@ Cenário desejado e estilo: ${prompt}`;
           ? `[DISPLAY SYSTEM REPLICATED FROM REFERENCE PHOTO: ${displaySystemBlueprint}] `
           : "";
 
-        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${prompt}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
+        const openaiPrompt = `${styleHeader}${displaySystemHeader}Commercial advertising photography featuring this exact product from the input image: ${cleanPrompt || "premium product showcase"}. ${brandIdentityDirective}${ugcDirectives} ${typographyPrompt} Preserve the exact product shape, brand labels, logo, typography and physical identity with maximum fidelity. Ultra high definition, hyper-realistic, photorealistic.`;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
