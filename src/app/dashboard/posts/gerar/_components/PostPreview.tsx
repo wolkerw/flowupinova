@@ -27,7 +27,7 @@ import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 import { LinkedInConnectionData } from "@/lib/services/linkedin-service";
 import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
-import { isVideoMedia } from "@/lib/services/publisher-service";
+import { isVideoMedia } from "@/lib/utils";
 
 interface PostPreviewProps {
   imageUrl: string | null;

@@ -70,7 +70,7 @@ import {
   type PostDataInput,
   type MediaFileInput,
 } from "@/lib/services/posts-service";
-import { isVideoMedia } from "@/lib/services/publisher-service";
+import { isVideoMedia } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";

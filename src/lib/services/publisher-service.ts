@@ -1,21 +1,8 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { getAuthenticatedGoogleClient } from "@/lib/services/google-service-admin";
+import { isVideoMedia } from "@/lib/utils";
 
-export function isVideoMedia(url: string, type?: string): boolean {
-  if (type && type.toLowerCase().startsWith("video/")) return true;
-  if (!url) return false;
-  const cleanUrl = url.split("?")[0].toLowerCase();
-  return (
-    cleanUrl.endsWith(".mp4") ||
-    cleanUrl.endsWith(".mov") ||
-    cleanUrl.endsWith(".webm") ||
-    cleanUrl.endsWith(".m4v") ||
-    cleanUrl.endsWith(".avi") ||
-    cleanUrl.endsWith(".mkv") ||
-    url.toLowerCase().includes("video") ||
-    url.toLowerCase().includes(".mp4")
-  );
-}
+export { isVideoMedia };
 
 /**
  * 1. FACEBOOK PUBLISHING

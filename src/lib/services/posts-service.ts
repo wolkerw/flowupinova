@@ -23,6 +23,7 @@ import type { InstagramConnectionData } from "./instagram-service";
 import type { GoogleConnectionData } from "./google-service";
 import type { LinkedInConnectionData } from "./linkedin-service";
 import { config } from "@/lib/config";
+import { isVideoMedia } from "@/lib/utils";
 
 // Interface for data stored in Firestore
 export interface PostData {
