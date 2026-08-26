@@ -51,6 +51,8 @@ import {
   Paintbrush,
   Play,
   Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -381,7 +383,7 @@ const VideoPreviewPlayer = ({
   src,
   className,
   objectFit = "cover",
-  showPlayToggle = false,
+  showPlayToggle = true,
 }: {
   src?: string;
   className?: string;
@@ -390,12 +392,14 @@ const VideoPreviewPlayer = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src || src.trim() === "") return;
 
+    setErrorMsg(null);
     video.defaultMuted = true;
     video.muted = true;
     video.playsInline = true;
@@ -408,7 +412,6 @@ const VideoPreviewPlayer = ({
         playPromise
           .then(() => {
             setIsPlaying(true);
-            setHasStarted(true);
           })
           .catch(() => {
             setIsPlaying(false);
@@ -439,23 +442,36 @@ const VideoPreviewPlayer = ({
     if (!video) return;
 
     if (video.paused) {
-      video.muted = true;
+      video.muted = isMuted;
       video
         .play()
         .then(() => {
           setIsPlaying(true);
-          setHasStarted(true);
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn("[PLAY_RETRY_MUTED]", err);
+          video.muted = true;
+          setIsMuted(true);
+          video.play().then(() => setIsPlaying(true)).catch(() => {});
+        });
     } else {
       video.pause();
       setIsPlaying(false);
     }
   };
 
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setIsMuted(nextMuted);
+  };
+
   return (
     <div
-      className="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden bg-black"
+      className="group/player relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden bg-black"
       onClick={togglePlay}
     >
       <video
@@ -475,13 +491,45 @@ const VideoPreviewPlayer = ({
         controls={false}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onError={(e) => {
+          const err = e.currentTarget.error;
+          console.error("[VIDEO_PLAYBACK_ERROR]", err);
+          setErrorMsg(
+            err?.code === 4
+              ? "Codec não suportado pelo navegador (ex: H.265/HEVC da Apple ou MOV incompatível). Use MP4 com codec H.264."
+              : "Erro ao carregar vídeo no navegador."
+          );
+        }}
       />
-      {showPlayToggle && (!isPlaying || !hasStarted) && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/30 transition-all">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-xl backdrop-blur-md transition-transform hover:scale-110">
-            <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
+
+      {errorMsg && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 p-4 text-center text-white">
+          <AlertTriangle className="mb-2 h-8 w-8 text-amber-400" />
+          <p className="text-xs font-semibold text-amber-200">{errorMsg}</p>
+          <p className="mt-1 text-[10px] text-gray-400">
+            Dica: Converta o vídeo para MP4 padrão (H.264).
+          </p>
+        </div>
+      )}
+
+      {showPlayToggle && !errorMsg && !isPlaying && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-all">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-transform hover:scale-110">
+            <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
           </div>
         </div>
+      )}
+
+      {/* Mini controle de áudio discreto no canto */}
+      {!errorMsg && (
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="absolute bottom-3 right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow backdrop-blur transition-all hover:scale-110 hover:bg-black/80"
+          title={isMuted ? "Ativar som" : "Desativar som"}
+        >
+          {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+        </button>
       )}
     </div>
   );
