@@ -76,6 +76,9 @@ export type PostDataInput = {
   linkedinConnection?: LinkedInConnectionData;
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
+  isStory?: boolean;
+  postType?: "feed" | "story" | "reel";
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
 };
 
 // Interface for data being sent to the client from the service
@@ -445,6 +448,19 @@ export async function schedulePost(
       instagramUsername: postData.instagramConnection?.instagramUsername || null,
     };
 
+    const isVideo =
+      postData.media.some(
+        (m) =>
+          m.type === "video" ||
+          (m.file && m.file.type.startsWith("video")) ||
+          (m.publicUrl && isVideoMedia(m.publicUrl))
+      ) || imageUrls.some((url) => isVideoMedia(url));
+
+    const isStory =
+      postData.isStory ||
+      postData.postType === "story" ||
+      (postData.text && postData.text.toLowerCase().includes("#story"));
+
     const postToSave: Omit<PostData, "id" | "imageUrl"> = {
       text: postData.text,
       imageUrls: imageUrls,
@@ -455,6 +471,13 @@ export async function schedulePost(
       connections: connectionsToSave,
       ...(postData.collaborators ? { collaborators: postData.collaborators } : {}),
       ...(postData.userTags ? { userTags: postData.userTags } : {}),
+      isStory: isStory,
+      postType: postData.postType || (isStory ? "story" : isVideo ? "reel" : "feed"),
+      mediaType: isStory ? "STORIES" : isVideo ? "REELS" : "IMAGE",
+      mediaFiles: imageUrls.map((url) => ({
+        url,
+        type: isVideoMedia(url) ? "video" : "image",
+      })),
     };
 
     const docRef = await addDoc(getPostsCollectionRef(userId), postToSave);

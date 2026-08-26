@@ -70,6 +70,7 @@ import {
   type PostDataInput,
   type MediaFileInput,
 } from "@/lib/services/posts-service";
+import { isVideoMedia } from "@/lib/services/publisher-service";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { getMetaConnection, type MetaConnectionData } from "@/lib/services/meta-service";
@@ -422,6 +423,11 @@ const InstagramPreview = ({
     setCurrentSlide((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
 
   if (contentType === "story") {
+    const isCurrentVideo =
+      currentMedia?.type === "video" ||
+      isVideoMedia(currentMedia?.publicUrl || currentMedia?.previewUrl || "");
+    const mediaSrc = currentMedia?.publicUrl || currentMedia?.previewUrl || "";
+
     return (
       <div className="flex w-full flex-col items-center justify-center">
         <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
@@ -432,9 +438,10 @@ const InstagramPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {currentMedia.type === "video" ? (
+                    {isCurrentVideo ? (
                       <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        key={`bg-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-cover"
                         autoPlay
                         muted
@@ -443,7 +450,7 @@ const InstagramPreview = ({
                       />
                     ) : (
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Fundo Desfocado"
                         layout="fill"
                         objectFit="cover"
@@ -451,11 +458,12 @@ const InstagramPreview = ({
                       />
                     )}
                   </div>
-                  {/* Imagem Principal Centralizada */}
+                  {/* Imagem/Vídeo Principal Centralizado */}
                   <div className="absolute inset-0 z-10 h-full w-full">
-                    {currentMedia.type === "video" ? (
+                    {isCurrentVideo ? (
                       <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        key={`main-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-contain"
                         autoPlay
                         muted
@@ -464,7 +472,7 @@ const InstagramPreview = ({
                       />
                     ) : (
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Principal"
                         layout="fill"
                         objectFit="contain"
@@ -476,9 +484,10 @@ const InstagramPreview = ({
               )}
 
               {storyAdaptationMode === "crop" && (
-                currentMedia.type === "video" ? (
+                isCurrentVideo ? (
                   <video
-                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    key={`crop-${mediaSrc}`}
+                    src={mediaSrc}
                     className="absolute inset-0 h-full w-full object-cover"
                     autoPlay
                     muted
@@ -487,7 +496,7 @@ const InstagramPreview = ({
                   />
                 ) : (
                   <Image
-                    src={currentMedia.publicUrl || currentMedia.previewUrl}
+                    src={mediaSrc}
                     alt="Imagem Cortada"
                     layout="fill"
                     objectFit="cover"
@@ -502,9 +511,10 @@ const InstagramPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative h-full w-full">
-                    {currentMedia.type === "video" ? (
+                    {isCurrentVideo ? (
                       <video
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        key={`solid-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-contain"
                         autoPlay
                         muted
@@ -513,7 +523,7 @@ const InstagramPreview = ({
                       />
                     ) : (
                       <Image
-                        src={currentMedia.publicUrl || currentMedia.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Centralizada"
                         layout="fill"
                         objectFit="contain"
@@ -731,6 +741,11 @@ const FacebookPreview = ({
   const isCarousel = mediaItems.length > 1;
 
   if (contentType === "story") {
+    const isSingleVideo =
+      singleItem?.type === "video" ||
+      isVideoMedia(singleItem?.publicUrl || singleItem?.previewUrl || "");
+    const mediaSrc = singleItem?.publicUrl || singleItem?.previewUrl || "";
+
     return (
       <div className="flex w-full flex-col items-center justify-center">
         <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-xl border border-gray-100 bg-black shadow-2xl">
@@ -741,9 +756,10 @@ const FacebookPreview = ({
                 <>
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {singleItem.type === "video" ? (
+                    {isSingleVideo ? (
                       <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        key={`fb-bg-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-cover"
                         autoPlay
                         muted
@@ -752,7 +768,7 @@ const FacebookPreview = ({
                       />
                     ) : (
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Fundo Desfocado"
                         layout="fill"
                         objectFit="cover"
@@ -762,9 +778,10 @@ const FacebookPreview = ({
                   </div>
                   {/* Imagem Centralizada Quadrada */}
                   <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
-                    {singleItem.type === "video" ? (
+                    {isSingleVideo ? (
                       <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        key={`fb-main-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-contain"
                         autoPlay
                         muted
@@ -773,7 +790,7 @@ const FacebookPreview = ({
                       />
                     ) : (
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Principal"
                         layout="fill"
                         objectFit="contain"
@@ -785,9 +802,10 @@ const FacebookPreview = ({
               )}
 
               {storyAdaptationMode === "crop" && (
-                singleItem.type === "video" ? (
+                isSingleVideo ? (
                   <video
-                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    key={`fb-crop-${mediaSrc}`}
+                    src={mediaSrc}
                     className="absolute inset-0 h-full w-full object-cover"
                     autoPlay
                     muted
@@ -796,7 +814,7 @@ const FacebookPreview = ({
                   />
                 ) : (
                   <Image
-                    src={singleItem.publicUrl || singleItem.previewUrl}
+                    src={mediaSrc}
                     alt="Imagem Cortada"
                     layout="fill"
                     objectFit="cover"
@@ -811,9 +829,10 @@ const FacebookPreview = ({
                   style={{ backgroundColor: brandKitPrimaryColor || "#000000" }}
                 >
                   <div className="relative aspect-square w-full">
-                    {singleItem.type === "video" ? (
+                    {isSingleVideo ? (
                       <video
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        key={`fb-solid-${mediaSrc}`}
+                        src={mediaSrc}
                         className="absolute inset-0 h-full w-full object-contain"
                         autoPlay
                         muted
@@ -822,7 +841,7 @@ const FacebookPreview = ({
                       />
                     ) : (
                       <Image
-                        src={singleItem.publicUrl || singleItem.previewUrl}
+                        src={mediaSrc}
                         alt="Imagem Centralizada"
                         layout="fill"
                         objectFit="contain"
@@ -1610,16 +1629,17 @@ export default function CriarConteudoPage() {
       const storedImage = sessionStorage.getItem("preloaded_gallery_image");
       if (storedImage) {
         const item = JSON.parse(storedImage);
+        const isVideo = isVideoMedia(item.url || item.storagePath || "");
 
         const newMediaItem: MediaItem = {
-          file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
+          file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
           previewUrl: item.url,
           publicUrl: item.url,
-          type: "image",
+          type: isVideo ? "video" : "image",
         };
 
         setMediaItems([newMediaItem]);
-        setSelectedType("single_post");
+        setSelectedType(isVideo ? "story" : "single_post");
         setStep(2);
 
         if (item.caption) {
@@ -1630,8 +1650,10 @@ export default function CriarConteudoPage() {
 
         toast({
           variant: "success",
-          title: "Imagem Importada!",
-          description: "Imagem do seu acervo de IA carregada com sucesso na sua área de trabalho.",
+          title: isVideo ? "Vídeo Importado!" : "Imagem Importada!",
+          description: isVideo
+            ? "Vídeo do seu acervo carregado com sucesso na sua área de trabalho."
+            : "Imagem do seu acervo de IA carregada com sucesso na sua área de trabalho.",
         });
       }
     } catch (e) {
@@ -1640,11 +1662,12 @@ export default function CriarConteudoPage() {
   }, [toast]);
 
   const handleImportFromGallery = (item: GalleryMediaItem) => {
+    const isVideo = isVideoMedia(item.url || item.storagePath || "");
     const newMediaItem: MediaItem = {
-      file: new File([], item.storagePath.split("/").pop() || "imagem.jpg"),
+      file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
       previewUrl: item.url,
       publicUrl: item.url,
-      type: "image",
+      type: isVideo ? "video" : "image",
     };
 
     if (selectedType === "carousel") {
@@ -1668,8 +1691,10 @@ export default function CriarConteudoPage() {
     setIsGalleryOpen(false);
     toast({
       variant: "success",
-      title: "Imagem Importada!",
-      description: "Imagem da galeria adicionada ao post com sucesso.",
+      title: isVideo ? "Vídeo Importado!" : "Mídia Importada!",
+      description: isVideo
+        ? "Vídeo adicionado ao seu post com sucesso."
+        : "Imagem adicionada ao seu post com sucesso.",
     });
   };
 
@@ -1972,14 +1997,18 @@ export default function CriarConteudoPage() {
       setIsUploading(true);
 
       if (selectedType === "story") {
-        toast({
-          title: "Processando Story...",
-          description: "Renderizando e adaptando a imagem localmente para proporção 9:16 vertical.",
-        });
-
         try {
           const item = mediaItems[0];
-          if (item.type === "image") {
+          const isVideo =
+            item.type === "video" ||
+            isVideoMedia(item.publicUrl || item.previewUrl || "");
+
+          if (!isVideo && item.type === "image") {
+            toast({
+              title: "Processando Story...",
+              description: "Renderizando e adaptando a imagem localmente para proporção 9:16 vertical.",
+            });
+
             // Fazer backup da mídia original quadrada 1:1
             setOriginalStoryMedia(item);
 
@@ -2011,20 +2040,27 @@ export default function CriarConteudoPage() {
                 publicUrl: adaptedUrl,
               },
             ]);
+
+            toast({
+              variant: "success",
+              title: "Story Adaptado!",
+              description: "A imagem foi redimensionada e ajustada com sucesso para Story.",
+            });
+          } else {
+            toast({
+              variant: "success",
+              title: "Vídeo Pronto!",
+              description: "Vídeo verificado para Story e pronto para publicação.",
+            });
           }
 
-          toast({
-            variant: "success",
-            title: "Story Adaptado!",
-            description: "A imagem foi redimensionada e ajustada com sucesso para Story.",
-          });
           setStep(3);
         } catch (error: any) {
           console.error("Erro ao adaptar Story localmente:", error);
           toast({
             variant: "destructive",
-            title: "Erro ao Adaptar Story",
-            description: error.message || "Ocorreu um erro ao processar a imagem do Story.",
+            title: "Erro ao Processar Story",
+            description: error.message || "Ocorreu um erro ao processar a mídia do Story.",
           });
         } finally {
           setIsUploading(false);
@@ -2294,6 +2330,8 @@ export default function CriarConteudoPage() {
         scheduleType === "schedule" && scheduleDate ? new Date(scheduleDate) : new Date(),
       collaborators: collaborators.length > 0 ? collaborators : undefined,
       userTags: userTags.length > 0 ? userTags : undefined,
+      isStory: selectedType === "story",
+      postType: selectedType === "story" ? "story" : selectedType === "reels" ? "reel" : "feed",
     };
 
     if (effectivePlatforms.includes("facebook") && metaConnection?.isConnected) {

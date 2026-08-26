@@ -27,6 +27,7 @@ import { MetaConnectionData } from "@/lib/services/meta-service";
 import { InstagramConnectionData } from "@/lib/services/instagram-service";
 import { LinkedInConnectionData } from "@/lib/services/linkedin-service";
 import { ImageZoomModal } from "@/components/ui/ImageZoomModal";
+import { isVideoMedia } from "@/lib/services/publisher-service";
 
 interface PostPreviewProps {
   imageUrl: string | null;
@@ -52,6 +53,7 @@ export const PostPreview = ({
   platforms,
 }: PostPreviewProps) => {
   const [zoomUrl, setZoomUrl] = React.useState<string | null>(null);
+  const isVideo = isVideoMedia(imageUrl || "");
 
   const getAvatarFallback = (type: "facebook" | "instagram" | "google" | "linkedin") => {
     if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
@@ -87,21 +89,35 @@ export const PostPreview = ({
       <div className="group relative aspect-[3/4] bg-gray-200 overflow-hidden">
         {imageUrl ? (
           <>
-            <Image
-              src={imageUrl}
-              alt="Preview"
-              layout="fill"
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-            <button
-              type="button"
-              onClick={() => setZoomUrl(imageUrl)}
-              title="Ampliar Imagem"
-              className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm hover:bg-black/90"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
+            {isVideo ? (
+              <video
+                key={`ig-prev-${imageUrl}`}
+                src={imageUrl}
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            ) : (
+              <Image
+                src={imageUrl}
+                alt="Preview"
+                layout="fill"
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            )}
+            {!isVideo && (
+              <button
+                type="button"
+                onClick={() => setZoomUrl(imageUrl)}
+                title="Ampliar Imagem"
+                className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm hover:bg-black/90"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            )}
           </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
@@ -152,13 +168,25 @@ export const PostPreview = ({
       </div>
       <div className="relative aspect-[3/4] bg-gray-200 overflow-hidden">
         {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt="Preview"
-            layout="fill"
-            className="h-full w-full object-cover"
-            unoptimized
-          />
+          isVideo ? (
+            <video
+              key={`fb-prev-${imageUrl}`}
+              src={imageUrl}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={imageUrl}
+              alt="Preview"
+              layout="fill"
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          )
         ) : (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
             <ImageIcon className="mb-4 h-16 w-16 text-gray-400" />
