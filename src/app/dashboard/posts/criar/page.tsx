@@ -493,7 +493,7 @@ const VideoPreviewPlayer = ({
         onPause={() => setIsPlaying(false)}
         onError={(e) => {
           const err = e.currentTarget.error;
-          console.error("[VIDEO_PLAYBACK_ERROR]", err);
+          console.warn("[VIDEO_PLAYBACK_INFO]", err?.code, err?.message);
           setErrorMsg(
             err?.code === 4
               ? "Codec não suportado pelo navegador (ex: H.265/HEVC da Apple ou MOV incompatível). Use MP4 com codec H.264."
