@@ -390,38 +390,57 @@ const VideoPreviewPlayer = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !src) return;
 
-    video.muted = true;
     video.defaultMuted = true;
+    video.muted = true;
     video.playsInline = true;
     video.loop = true;
 
-    const playVideo = () => {
+    const startPlay = () => {
       video.muted = true;
-      const promise = video.play();
-      if (promise !== undefined) {
-        promise
-          .then(() => setIsPlaying(true))
-          .catch(() => {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setHasStarted(true);
+          })
+          .catch((err) => {
+            console.warn("[VIDEO_AUTOPLAY_BLOCKED]", err);
             setIsPlaying(false);
           });
       }
     };
 
-    playVideo();
+    video.addEventListener("loadeddata", startPlay);
+    video.addEventListener("canplay", startPlay);
+    video.load();
+
+    return () => {
+      video.removeEventListener("loadeddata", startPlay);
+      video.removeEventListener("canplay", startPlay);
+    };
   }, [src]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
+
     if (video.paused) {
       video.muted = true;
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      video
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          setHasStarted(true);
+        })
+        .catch((err) => console.error("[PLAY_ERROR]", err));
     } else {
       video.pause();
       setIsPlaying(false);
@@ -429,13 +448,15 @@ const VideoPreviewPlayer = ({
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden" onClick={togglePlay}>
+    <div
+      className="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden bg-black"
+      onClick={togglePlay}
+    >
       <video
         ref={videoRef}
-        key={src}
         src={src}
         className={cn(
-          "h-full w-full",
+          "h-full w-full pointer-events-none",
           objectFit === "cover" ? "object-cover" : "object-contain",
           className
         )}
@@ -447,19 +468,11 @@ const VideoPreviewPlayer = ({
         controls={false}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onLoadedData={(e) => {
-          e.currentTarget.muted = true;
-          e.currentTarget.play().catch(() => {});
-        }}
-        onCanPlay={(e) => {
-          e.currentTarget.muted = true;
-          e.currentTarget.play().catch(() => {});
-        }}
       />
-      {showPlayToggle && !isPlaying && (
-        <div className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/25 transition-all">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-110">
-            <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+      {showPlayToggle && (!isPlaying || !hasStarted) && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/30 transition-all">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-xl backdrop-blur-md transition-transform hover:scale-110">
+            <Play className="h-6 w-6 fill-white text-white translate-x-0.5" />
           </div>
         </div>
       )}
@@ -530,16 +543,19 @@ const InstagramPreview = ({
           {currentMedia ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
-                <>
-                  {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {isCurrentVideo ? (
-                      <VideoPreviewPlayer
-                        src={mediaSrc}
-                        objectFit="cover"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    ) : (
+                isCurrentVideo ? (
+                  <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+                    <VideoPreviewPlayer
+                      src={mediaSrc}
+                      objectFit="contain"
+                      showPlayToggle={true}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/* Fundo Desfocado Ampliado */}
+                    <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                       <Image
                         src={mediaSrc}
                         alt="Fundo Desfocado"
@@ -547,18 +563,9 @@ const InstagramPreview = ({
                         objectFit="cover"
                         unoptimized
                       />
-                    )}
-                  </div>
-                  {/* Imagem/Vídeo Principal Centralizado */}
-                  <div className="absolute inset-0 z-10 h-full w-full">
-                    {isCurrentVideo ? (
-                      <VideoPreviewPlayer
-                        src={mediaSrc}
-                        objectFit="contain"
-                        showPlayToggle={true}
-                        className="absolute inset-0 h-full w-full object-contain"
-                      />
-                    ) : (
+                    </div>
+                    {/* Imagem Principal Centralizada */}
+                    <div className="absolute inset-0 z-10 h-full w-full">
                       <Image
                         src={mediaSrc}
                         alt="Imagem Principal"
@@ -566,9 +573,9 @@ const InstagramPreview = ({
                         objectFit="contain"
                         unoptimized
                       />
-                    )}
-                  </div>
-                </>
+                    </div>
+                  </>
+                )
               )}
 
               {storyAdaptationMode === "crop" && (
@@ -838,16 +845,19 @@ const FacebookPreview = ({
           {singleItem ? (
             <div className="absolute inset-0 z-0 h-full w-full">
               {storyAdaptationMode === "blur" && (
-                <>
-                  {/* Fundo Desfocado Ampliado */}
-                  <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
-                    {isSingleVideo ? (
-                      <VideoPreviewPlayer
-                        src={mediaSrc}
-                        objectFit="cover"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    ) : (
+                isSingleVideo ? (
+                  <div className="relative h-full w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black">
+                    <VideoPreviewPlayer
+                      src={mediaSrc}
+                      objectFit="contain"
+                      showPlayToggle={true}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/* Fundo Desfocado Ampliado */}
+                    <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                       <Image
                         src={mediaSrc}
                         alt="Fundo Desfocado"
@@ -855,18 +865,9 @@ const FacebookPreview = ({
                         objectFit="cover"
                         unoptimized
                       />
-                    )}
-                  </div>
-                  {/* Imagem Centralizada Quadrada */}
-                  <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
-                    {isSingleVideo ? (
-                      <VideoPreviewPlayer
-                        src={mediaSrc}
-                        objectFit="contain"
-                        showPlayToggle={true}
-                        className="absolute inset-0 h-full w-full object-contain"
-                      />
-                    ) : (
+                    </div>
+                    {/* Imagem Centralizada Quadrada */}
+                    <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
                       <Image
                         src={mediaSrc}
                         alt="Imagem Principal"
@@ -874,9 +875,9 @@ const FacebookPreview = ({
                         objectFit="contain"
                         unoptimized
                       />
-                    )}
-                  </div>
-                </>
+                    </div>
+                  </>
+                )
               )}
 
               {storyAdaptationMode === "crop" && (
@@ -2559,12 +2560,18 @@ export default function CriarConteudoPage() {
                           <div key={index} className="flex flex-col gap-2">
                             <div className="group relative aspect-square overflow-hidden rounded-md bg-slate-900">
                               {isVideo ? (
-                                <VideoPreviewPlayer
-                                  src={item.previewUrl}
-                                  objectFit="cover"
-                                  showPlayToggle={true}
-                                  className="h-full w-full rounded-md object-cover"
-                                />
+                                <div className="relative flex h-full w-full items-center justify-center bg-slate-950">
+                                  <video
+                                    src={item.previewUrl}
+                                    className="h-full w-full object-cover opacity-90"
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                  />
+                                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
+                                    <Video className="h-6 w-6 text-white/90 drop-shadow" />
+                                  </div>
+                                </div>
                               ) : (
                                 <Image
                                   src={item.previewUrl}
