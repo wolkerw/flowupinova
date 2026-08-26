@@ -49,6 +49,8 @@ import {
   Linkedin,
   ChevronDown,
   Paintbrush,
+  Play,
+  Pause,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -375,6 +377,96 @@ const adaptImageToStory = (
   });
 };
 
+const VideoPreviewPlayer = ({
+  src,
+  className,
+  objectFit = "cover",
+  showPlayToggle = false,
+}: {
+  src: string;
+  className?: string;
+  objectFit?: "cover" | "contain";
+  showPlayToggle?: boolean;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.loop = true;
+
+    const playVideo = () => {
+      video.muted = true;
+      const promise = video.play();
+      if (promise !== undefined) {
+        promise
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            setIsPlaying(false);
+          });
+      }
+    };
+
+    playVideo();
+  }, [src]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.muted = true;
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  return (
+    <div className="relative h-full w-full overflow-hidden" onClick={togglePlay}>
+      <video
+        ref={videoRef}
+        key={src}
+        src={src}
+        className={cn(
+          "h-full w-full",
+          objectFit === "cover" ? "object-cover" : "object-contain",
+          className
+        )}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        controls={false}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onLoadedData={(e) => {
+          e.currentTarget.muted = true;
+          e.currentTarget.play().catch(() => {});
+        }}
+        onCanPlay={(e) => {
+          e.currentTarget.muted = true;
+          e.currentTarget.play().catch(() => {});
+        }}
+      />
+      {showPlayToggle && !isPlaying && (
+        <div className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/25 transition-all">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-110">
+            <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const InstagramPreview = ({
   mediaItems,
   user,
@@ -442,19 +534,10 @@ const InstagramPreview = ({
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                     {isCurrentVideo ? (
-                      <video
-                        key={`bg-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="cover"
                         className="absolute inset-0 h-full w-full object-cover"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -469,19 +552,11 @@ const InstagramPreview = ({
                   {/* Imagem/Vídeo Principal Centralizado */}
                   <div className="absolute inset-0 z-10 h-full w-full">
                     {isCurrentVideo ? (
-                      <video
-                        key={`main-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -498,19 +573,11 @@ const InstagramPreview = ({
 
               {storyAdaptationMode === "crop" && (
                 isCurrentVideo ? (
-                  <video
-                    key={`crop-${mediaSrc}`}
+                  <VideoPreviewPlayer
                     src={mediaSrc}
+                    objectFit="cover"
+                    showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                    onLoadedData={(e) => {
-                      e.currentTarget.muted = true;
-                      e.currentTarget.play().catch(() => {});
-                    }}
                   />
                 ) : (
                   <Image
@@ -530,19 +597,11 @@ const InstagramPreview = ({
                 >
                   <div className="relative h-full w-full">
                     {isCurrentVideo ? (
-                      <video
-                        key={`solid-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -783,19 +842,10 @@ const FacebookPreview = ({
                   {/* Fundo Desfocado Ampliado */}
                   <div className="absolute inset-0 z-0 scale-125 overflow-hidden blur-xl brightness-75 filter">
                     {isSingleVideo ? (
-                      <video
-                        key={`fb-bg-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="cover"
                         className="absolute inset-0 h-full w-full object-cover"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -810,19 +860,11 @@ const FacebookPreview = ({
                   {/* Imagem Centralizada Quadrada */}
                   <div className="absolute inset-x-0 top-1/2 z-10 aspect-square -translate-y-1/2">
                     {isSingleVideo ? (
-                      <video
-                        key={`fb-main-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -839,19 +881,11 @@ const FacebookPreview = ({
 
               {storyAdaptationMode === "crop" && (
                 isSingleVideo ? (
-                  <video
-                    key={`fb-crop-${mediaSrc}`}
+                  <VideoPreviewPlayer
                     src={mediaSrc}
+                    objectFit="cover"
+                    showPlayToggle={true}
                     className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                    onLoadedData={(e) => {
-                      e.currentTarget.muted = true;
-                      e.currentTarget.play().catch(() => {});
-                    }}
                   />
                 ) : (
                   <Image
@@ -871,19 +905,11 @@ const FacebookPreview = ({
                 >
                   <div className="relative aspect-square w-full">
                     {isSingleVideo ? (
-                      <video
-                        key={`fb-solid-${mediaSrc}`}
+                      <VideoPreviewPlayer
                         src={mediaSrc}
+                        objectFit="contain"
+                        showPlayToggle={true}
                         className="absolute inset-0 h-full w-full object-contain"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadedData={(e) => {
-                          e.currentTarget.muted = true;
-                          e.currentTarget.play().catch(() => {});
-                        }}
                       />
                     ) : (
                       <Image
@@ -2533,19 +2559,11 @@ export default function CriarConteudoPage() {
                           <div key={index} className="flex flex-col gap-2">
                             <div className="group relative aspect-square overflow-hidden rounded-md bg-slate-900">
                               {isVideo ? (
-                                <video
-                                  key={item.previewUrl}
+                                <VideoPreviewPlayer
                                   src={item.previewUrl}
+                                  objectFit="cover"
+                                  showPlayToggle={true}
                                   className="h-full w-full rounded-md object-cover"
-                                  autoPlay
-                                  muted
-                                  loop
-                                  playsInline
-                                  preload="auto"
-                                  onLoadedData={(e) => {
-                                    e.currentTarget.muted = true;
-                                    e.currentTarget.play().catch(() => {});
-                                  }}
                                 />
                               ) : (
                                 <Image
@@ -2559,7 +2577,10 @@ export default function CriarConteudoPage() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => handleRemoveItem(index)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveItem(index);
+                                }}
                                 className="absolute right-1 top-1 z-20 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
                                 title="Remover mídia"
                               >
