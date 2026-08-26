@@ -51,6 +51,9 @@ export interface PostData {
   creationId?: string;
   collaborators?: string[];
   userTags?: { username: string; x: number; y: number }[];
+  mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
+  isStory?: boolean;
+  postType?: "feed" | "story" | "reel";
 }
 
 export interface MediaFileInput {
@@ -158,6 +161,10 @@ async function publishPostImmediately(
 
       if (platform === "instagram") {
         apiPath = "/api/instagram/v2/publish"; // Use the V2 route for Instagram
+        const isStory =
+          postData.isStory ||
+          postData.postType === "story" ||
+          (postData.text && postData.text.toLowerCase().includes("#story"));
         payload = {
           postData: {
             text: postData.text,
@@ -167,6 +174,8 @@ async function publishPostImmediately(
             instagramId: postData.connections.instagramId,
             collaborators: postData.collaborators,
             userTags: postData.userTags,
+            mediaType: postData.mediaType,
+            isStory,
           },
         };
       } else if (platform === "facebook") {

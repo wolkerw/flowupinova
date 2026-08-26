@@ -12,6 +12,8 @@ interface PublishRequestBody {
     instagramId: string;
     collaborators?: string[];
     userTags?: { username: string; x: number; y: number }[];
+    mediaType?: "IMAGE" | "VIDEO" | "REELS" | "STORIES";
+    isStory?: boolean;
   };
 }
 
@@ -39,7 +41,9 @@ export async function POST(request: NextRequest) {
       postData.isCarousel,
       postData.text,
       postData.collaborators,
-      postData.userTags
+      postData.userTags,
+      postData.mediaType,
+      postData.isStory
     );
 
     console.log(
