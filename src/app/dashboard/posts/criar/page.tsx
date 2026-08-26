@@ -425,6 +425,9 @@ const InstagramPreview = ({
   if (contentType === "story") {
     const isCurrentVideo =
       currentMedia?.type === "video" ||
+      (currentMedia?.file &&
+        (currentMedia.file.type?.startsWith("video") ||
+          isVideoMedia(currentMedia.file.name, currentMedia.file.type))) ||
       isVideoMedia(currentMedia?.publicUrl || currentMedia?.previewUrl || "");
     const mediaSrc = currentMedia?.publicUrl || currentMedia?.previewUrl || "";
 
@@ -447,6 +450,11 @@ const InstagramPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -469,6 +477,11 @@ const InstagramPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -493,6 +506,11 @@ const InstagramPreview = ({
                     muted
                     loop
                     playsInline
+                    preload="auto"
+                    onLoadedData={(e) => {
+                      e.currentTarget.muted = true;
+                      e.currentTarget.play().catch(() => {});
+                    }}
                   />
                 ) : (
                   <Image
@@ -520,6 +538,11 @@ const InstagramPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -743,6 +766,9 @@ const FacebookPreview = ({
   if (contentType === "story") {
     const isSingleVideo =
       singleItem?.type === "video" ||
+      (singleItem?.file &&
+        (singleItem.file.type?.startsWith("video") ||
+          isVideoMedia(singleItem.file.name, singleItem.file.type))) ||
       isVideoMedia(singleItem?.publicUrl || singleItem?.previewUrl || "");
     const mediaSrc = singleItem?.publicUrl || singleItem?.previewUrl || "";
 
@@ -765,6 +791,11 @@ const FacebookPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -787,6 +818,11 @@ const FacebookPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -811,6 +847,11 @@ const FacebookPreview = ({
                     muted
                     loop
                     playsInline
+                    preload="auto"
+                    onLoadedData={(e) => {
+                      e.currentTarget.muted = true;
+                      e.currentTarget.play().catch(() => {});
+                    }}
                   />
                 ) : (
                   <Image
@@ -838,6 +879,11 @@ const FacebookPreview = ({
                         muted
                         loop
                         playsInline
+                        preload="auto"
+                        onLoadedData={(e) => {
+                          e.currentTarget.muted = true;
+                          e.currentTarget.play().catch(() => {});
+                        }}
                       />
                     ) : (
                       <Image
@@ -2144,11 +2190,15 @@ export default function CriarConteudoPage() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const newMediaItems: MediaItem[] = Array.from(files).map((file) => ({
-        file: file,
-        previewUrl: URL.createObjectURL(file),
-        type: file.type.startsWith("video") ? "video" : "image",
-      }));
+      const newMediaItems: MediaItem[] = Array.from(files).map((file) => {
+        const isVideo =
+          file.type.startsWith("video") || isVideoMedia(file.name, file.type);
+        return {
+          file: file,
+          previewUrl: URL.createObjectURL(file),
+          type: isVideo ? "video" : "image",
+        };
+      });
 
       if (selectedType === "carousel") {
         if (mediaItems.length + newMediaItems.length > 10) {
@@ -2471,54 +2521,70 @@ export default function CriarConteudoPage() {
                   <Label className="font-semibold">Seu Acervo</Label>
                   {mediaItems.length > 0 ? (
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                      {mediaItems.map((item, index) => (
-                        <div key={index} className="flex flex-col gap-2">
-                          <div className="group relative aspect-square">
-                            {item.type === "video" ? (
-                              <video
-                                src={item.previewUrl}
-                                className="h-full w-full rounded-md object-cover"
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                              />
-                            ) : (
-                              <Image
-                                src={item.previewUrl}
-                                alt={`Preview ${index}`}
-                                layout="fill"
-                                objectFit="cover"
-                                className="rounded-md"
-                              />
+                      {mediaItems.map((item, index) => {
+                        const isVideo =
+                          item.type === "video" ||
+                          (item.file &&
+                            (item.file.type?.startsWith("video") ||
+                              isVideoMedia(item.file.name, item.file.type))) ||
+                          isVideoMedia(item.publicUrl || item.previewUrl);
+
+                        return (
+                          <div key={index} className="flex flex-col gap-2">
+                            <div className="group relative aspect-square overflow-hidden rounded-md bg-slate-900">
+                              {isVideo ? (
+                                <video
+                                  key={item.previewUrl}
+                                  src={item.previewUrl}
+                                  className="h-full w-full rounded-md object-cover"
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                  preload="auto"
+                                  onLoadedData={(e) => {
+                                    e.currentTarget.muted = true;
+                                    e.currentTarget.play().catch(() => {});
+                                  }}
+                                />
+                              ) : (
+                                <Image
+                                  src={item.previewUrl}
+                                  alt={`Preview ${index}`}
+                                  layout="fill"
+                                  objectFit="cover"
+                                  className="rounded-md"
+                                  unoptimized
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(index)}
+                                className="absolute right-1 top-1 z-20 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
+                                title="Remover mídia"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {!isVideo && (
+                              <Button
+                                variant="outline"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveImageToCorrect(item.previewUrl);
+                                  setActiveIndexToCorrect(index);
+                                  setIsCorrectionOpen(true);
+                                }}
+                                className="flex h-auto w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 px-2 py-1.5 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5"
+                              >
+                                <Paintbrush className="h-3.5 w-3.5 text-primary" />
+                                <span className="truncate">Editar Textos</span>
+                              </Button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(index)}
-                              className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white shadow-md transition-colors hover:bg-red-500"
-                              title="Remover imagem"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
                           </div>
-                          {item.type === "image" && (
-                            <Button
-                              variant="outline"
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveImageToCorrect(item.previewUrl);
-                                setActiveIndexToCorrect(index);
-                                setIsCorrectionOpen(true);
-                              }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-primary/40 py-1.5 px-2 text-xs font-medium text-slate-800 transition-all hover:border-primary hover:bg-primary/5 h-auto"
-                            >
-                              <Paintbrush className="h-3.5 w-3.5 text-primary" />
-                              <span className="truncate">Editar Textos</span>
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : null}
 
