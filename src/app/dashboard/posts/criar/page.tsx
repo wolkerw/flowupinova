@@ -1171,25 +1171,13 @@ const GooglePreview = ({
             </div>
           </div>
           <div>
-
-  return (
-    <div className="flex w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
-      {/* Top Header: Business Name & Logo */}
-      <div className="flex items-center justify-between p-4 pb-3">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 border border-gray-100 shadow-sm">
-            <AvatarImage src={user?.photoURL || undefined} />
-            <AvatarFallback className="bg-blue-50 font-bold text-blue-600">
-              {getAvatarFallback()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="block text-sm font-bold text-gray-900">
-              {googleConnection?.businessName || "Nome da Sua Empresa no Google"}
-            </span>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <Store className="h-3 w-3 text-gray-400" />
-              <span>Postagem no Google Perfil de Empresa</span>
+            <div className="flex items-center gap-1.5">
+              <span className="pb-0.5 text-sm font-medium leading-none text-gray-900">
+                {businessName}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-gray-500">há 2 minutos</p>
             </div>
           </div>
         </div>
