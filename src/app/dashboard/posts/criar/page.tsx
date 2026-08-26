@@ -383,7 +383,7 @@ const VideoPreviewPlayer = ({
   objectFit = "cover",
   showPlayToggle = false,
 }: {
-  src: string;
+  src?: string;
   className?: string;
   objectFit?: "cover" | "contain";
   showPlayToggle?: boolean;
@@ -394,7 +394,7 @@ const VideoPreviewPlayer = ({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
+    if (!video || !src || src.trim() === "") return;
 
     video.defaultMuted = true;
     video.muted = true;
@@ -410,8 +410,7 @@ const VideoPreviewPlayer = ({
             setIsPlaying(true);
             setHasStarted(true);
           })
-          .catch((err) => {
-            console.warn("[VIDEO_AUTOPLAY_BLOCKED]", err);
+          .catch(() => {
             setIsPlaying(false);
           });
       }
@@ -419,13 +418,20 @@ const VideoPreviewPlayer = ({
 
     video.addEventListener("loadeddata", startPlay);
     video.addEventListener("canplay", startPlay);
-    video.load();
+
+    if (video.readyState >= 2) {
+      startPlay();
+    }
 
     return () => {
       video.removeEventListener("loadeddata", startPlay);
       video.removeEventListener("canplay", startPlay);
     };
   }, [src]);
+
+  if (!src || src.trim() === "") {
+    return null;
+  }
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -440,7 +446,7 @@ const VideoPreviewPlayer = ({
           setIsPlaying(true);
           setHasStarted(true);
         })
-        .catch((err) => console.error("[PLAY_ERROR]", err));
+        .catch(() => {});
     } else {
       video.pause();
       setIsPlaying(false);
@@ -453,6 +459,7 @@ const VideoPreviewPlayer = ({
       onClick={togglePlay}
     >
       <video
+        key={src}
         ref={videoRef}
         src={src}
         className={cn(
@@ -706,13 +713,11 @@ const InstagramPreview = ({
       <div className="relative aspect-square bg-gray-200">
         {currentMedia ? (
           currentMedia.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={currentMedia.publicUrl || currentMedia.previewUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1032,13 +1037,11 @@ const FacebookPreview = ({
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1168,13 +1171,25 @@ const GooglePreview = ({
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="pb-0.5 text-sm font-medium leading-none text-gray-900">
-                {businessName}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <p className="text-xs text-gray-500">há 2 minutos</p>
+
+  return (
+    <div className="flex w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+      {/* Top Header: Business Name & Logo */}
+      <div className="flex items-center justify-between p-4 pb-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 border border-gray-100 shadow-sm">
+            <AvatarImage src={user?.photoURL || undefined} />
+            <AvatarFallback className="bg-blue-50 font-bold text-blue-600">
+              {getAvatarFallback()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="block text-sm font-bold text-gray-900">
+              {googleConnection?.businessName || "Nome da Sua Empresa no Google"}
+            </span>
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <Store className="h-3 w-3 text-gray-400" />
+              <span>Postagem no Google Perfil de Empresa</span>
             </div>
           </div>
         </div>
@@ -1185,13 +1200,11 @@ const GooglePreview = ({
       <div className="relative flex aspect-[4/3] w-full items-center justify-center border-y border-gray-100 bg-black">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              objectFit="contain"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-contain"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
@@ -1302,13 +1315,11 @@ const LinkedInPreview = ({
       <div className="relative aspect-square bg-gray-200">
         {singleItem ? (
           singleItem.type === "video" ? (
-            <video
+            <VideoPreviewPlayer
               src={singleItem.publicUrl || singleItem.previewUrl}
+              objectFit="cover"
+              showPlayToggle={true}
               className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
             />
           ) : (
             <Image
