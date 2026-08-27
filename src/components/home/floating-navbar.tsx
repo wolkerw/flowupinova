@@ -35,24 +35,30 @@ export const FloatingNavbar = () => {
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-7 md:flex">
           <Link
             href="#como-funciona"
-            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-[#0083C7]"
           >
             Como funciona
           </Link>
           <Link
             href="#recursos"
-            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-[#0083C7]"
           >
             Recursos
           </Link>
           <Link
             href="#planos"
-            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-[#0083C7]"
           >
             Planos
+          </Link>
+          <Link
+            href="#duvidas"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-[#0083C7]"
+          >
+            Dúvidas
           </Link>
         </div>
 
