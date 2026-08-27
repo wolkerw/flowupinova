@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const cleanAdAccountId = adAccountId.replace("act_", "");
-    const url = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}?fields=funding_source,funding_source_details,balance,currency,account_status,disable_reason,business&access_token=${token}`;
+    const url = `https://graph.facebook.com/v24.0/act_${cleanAdAccountId}?fields=funding_source,funding_source_details,balance,currency,account_status,disable_reason,business,amount_spent,is_prepay_account&access_token=${token}`;
 
     const res = await fetch(url);
     const resData: any = await res.json();
@@ -77,6 +77,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Process amount spent (Meta returns it as cents/units)
+    let parsedAmountSpent = 0;
+    if (resData.amount_spent) {
+      const spentVal = parseInt(resData.amount_spent, 10);
+      if (!isNaN(spentVal)) {
+        parsedAmountSpent = spentVal / 100;
+      }
+    }
+
     // Na API da Meta:
     // account_status: 1 = ACTIVE, 201 = ANY_ACTIVE, 3 = UNSETTLED, 8 = PENDING_SETTLEMENT
     // disable_reason: 0 = NONE, 3 = RISK_PAYMENT
@@ -88,13 +97,19 @@ export async function GET(request: NextRequest) {
       resData.account_status === 8 ||
       resData.disable_reason === 3;
 
-    // Se a conta está Ativa (status 1) e sem pendência de liquidação (disable_reason 0), a forma de pagamento é válida
-    const hasPaymentMethod =
-      !hasPaymentIssue &&
-      (isAccountHealthy ||
-        !!resData.funding_source ||
-        !!resData.funding_source_details ||
-        parsedBalance > 0);
+    // A conta possui forma de pagamento válida se:
+    // 1. Tem funding_source ou funding_source_details explícito informado pela Meta, OU
+    // 2. Tem saldo pré-pago ativo (balance > 0), OU
+    // 3. Já gastou no passado (amount_spent > 0) e a conta está ativa e saudável.
+    // Se for uma conta nova (amount_spent == 0, balance == 0, sem funding_source), ela AINDA NÃO possui forma de pagamento cadastrada.
+    const hasExplicitPaymentMethod = !!(
+      resData.funding_source ||
+      resData.funding_source_details ||
+      parsedBalance > 0 ||
+      (parsedAmountSpent > 0 && isAccountHealthy)
+    );
+
+    const hasPaymentMethod = !hasPaymentIssue && hasExplicitPaymentMethod;
 
     const businessId = resData.business?.id || "";
 
@@ -110,7 +125,7 @@ export async function GET(request: NextRequest) {
       fundingType === 2 ||
       fundingType === 3 ||
       fundingType === 20 ||
-      (isAccountHealthy && parsedBalance === 0)
+      (hasExplicitPaymentMethod && parsedBalance === 0)
     );
     const isPrepaid = !isPostpaid;
 

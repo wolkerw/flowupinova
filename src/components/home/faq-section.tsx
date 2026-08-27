@@ -36,7 +36,7 @@ export const FAQSection = () => {
   };
 
   return (
-    <section className="bg-[#FDFBF7] py-24">
+    <section id="duvidas" className="bg-[#FDFBF7] py-24 scroll-mt-20">
       <div className="container mx-auto max-w-4xl px-4 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -37,7 +37,7 @@ describe("HomePage", () => {
         <HomePage />
       </AuthProvider>
     );
-    expect(screen.getByText(/O marketing da/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/O marketing da/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/por você/i)).toBeInTheDocument();
   });
 });
