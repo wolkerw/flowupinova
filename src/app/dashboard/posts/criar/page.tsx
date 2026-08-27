@@ -138,7 +138,6 @@ export async function generateVideoThumbnail(fileOrUrl: File | string): Promise<
       video.preload = "metadata";
       video.muted = true;
       video.playsInline = true;
-      video.crossOrigin = "anonymous";
       video.src = url;
 
       let isResolved = false;
@@ -2217,7 +2216,13 @@ export default function CriarConteudoPage() {
       const newMediaItems: MediaItem[] = await Promise.all(
         Array.from(files).map(async (file) => {
           const type = file.type.startsWith("video") ? "video" : "image";
-          const previewUrl = URL.createObjectURL(file);
+          
+          // Forçar um tipo MIME válido para vídeos, prevenindo NotSupportedError
+          const blobToURL = type === "video" 
+            ? new Blob([file], { type: file.type || "video/mp4" }) 
+            : file;
+          
+          const previewUrl = URL.createObjectURL(blobToURL);
           let thumbnailUrl = undefined;
 
           if (type === "video") {
