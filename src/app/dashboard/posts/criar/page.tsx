@@ -139,63 +139,96 @@ const captureVideoFrame = (
 ): Promise<{ blob: Blob; dataUrl: string; duration: number }> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
+    if (
+      typeof videoSource === "string" &&
+      (videoSource.startsWith("http://") || videoSource.startsWith("https://"))
+    ) {
+      video.crossOrigin = "anonymous";
+    }
     video.muted = true;
+    video.defaultMuted = true;
     video.playsInline = true;
     video.preload = "auto";
 
-    const objectUrl =
-      typeof videoSource === "string" ? videoSource : URL.createObjectURL(videoSource);
-    video.src = objectUrl;
+    let objectUrl = "";
+    if (typeof videoSource === "string") {
+      video.src = videoSource;
+    } else {
+      objectUrl = URL.createObjectURL(videoSource);
+      video.src = objectUrl;
+    }
 
+    let isDone = false;
     const cleanup = () => {
-      if (typeof videoSource !== "string") {
+      if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
       video.remove();
     };
 
-    video.onloadedmetadata = () => {
-      const targetTime = Math.min(Math.max(timestamp, 0.001), (video.duration || 1) - 0.01);
-      video.currentTime = targetTime;
-    };
+    const timeout = setTimeout(() => {
+      if (!isDone) {
+        isDone = true;
+        cleanup();
+        reject(new Error("Timeout ao capturar frame"));
+      }
+    }, 8000);
 
-    video.onseeked = () => {
+    const finish = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimeout(timeout);
       try {
+        const w = video.videoWidth || 720;
+        const h = video.videoHeight || 1280;
         const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || 1080;
-        canvas.height = video.videoHeight || 1920;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
-        if (!ctx) {
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          canvas.toBlob(
+            (blob) => {
+              const dur = video.duration || 0;
+              cleanup();
+              resolve({
+                blob: blob || new Blob([]),
+                dataUrl,
+                duration: dur,
+              });
+            },
+            "image/jpeg",
+            0.9
+          );
+        } else {
           cleanup();
-          reject(new Error("Canvas context não disponível"));
-          return;
+          reject(new Error("Canvas context indisponível"));
         }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-        canvas.toBlob(
-          (blob) => {
-            const duration = video.duration || 0;
-            cleanup();
-            if (blob) {
-              resolve({ blob, dataUrl, duration });
-            } else {
-              reject(new Error("Falha ao gerar blob do frame"));
-            }
-          },
-          "image/jpeg",
-          0.92
-        );
       } catch (err) {
         cleanup();
         reject(err);
       }
     };
 
-    video.onerror = () => {
-      cleanup();
-      reject(new Error("Erro ao carregar vídeo para captura de frame"));
+    video.onseeked = finish;
+
+    video.onloadeddata = () => {
+      const dur = video.duration || 1;
+      const t = Math.min(Math.max(timestamp, 0.01), Math.max(dur - 0.05, 0.01));
+      video.currentTime = t;
     };
+
+    video.onerror = () => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error("Erro ao carregar vídeo"));
+      }
+    };
+
+    video.load();
   });
 };
 
@@ -486,29 +519,34 @@ const VideoPreviewPlayer = ({
           .then(() => {
             setIsPlaying(true);
           })
-          .catch(() => {
+          .catch((err) => {
+            console.warn("[AUTOPLAY_PAUSED]", err?.message);
             setIsPlaying(false);
           });
       }
     };
 
-    const handleLoadedMetadata = () => {
-      if (video.currentTime === 0) {
-        video.currentTime = 0.001;
-      }
-      startPlay();
-    };
+    const handleCanPlay = () => startPlay();
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handlePlaying = () => setIsPlaying(true);
 
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    video.addEventListener("canplay", startPlay);
+    video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("playing", handlePlaying);
+
+    video.load();
 
     if (video.readyState >= 2) {
       startPlay();
     }
 
     return () => {
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      video.removeEventListener("canplay", startPlay);
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("playing", handlePlaying);
     };
   }, [src]);
 
@@ -516,22 +554,27 @@ const VideoPreviewPlayer = ({
     return null;
   }
 
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
-    if (video.paused) {
+    if (video.paused || video.ended) {
       video.muted = isMuted;
+      video.defaultMuted = isMuted;
       video
         .play()
         .then(() => {
           setIsPlaying(true);
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn("[PLAY_MUTED_FALLBACK]", err);
           video.muted = true;
+          video.defaultMuted = true;
           setIsMuted(true);
-          video.play().then(() => setIsPlaying(true)).catch(() => {});
+          video.play().then(() => setIsPlaying(true)).catch((e2) => {
+            console.error("[VIDEO_PLAY_ERROR]", e2);
+          });
         });
     } else {
       video.pause();
@@ -545,6 +588,7 @@ const VideoPreviewPlayer = ({
     if (!video) return;
     const nextMuted = !video.muted;
     video.muted = nextMuted;
+    video.defaultMuted = nextMuted;
     setIsMuted(nextMuted);
   };
 
@@ -569,12 +613,13 @@ const VideoPreviewPlayer = ({
         playsInline
         preload="auto"
         controls={false}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       />
 
       {showPlayToggle && !isPlaying && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-all">
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition-all"
+          onClick={togglePlay}
+        >
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-transform hover:scale-110">
             <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
           </div>
@@ -1868,13 +1913,32 @@ export default function CriarConteudoPage() {
     }
   }, [toast]);
 
-  const handleImportFromGallery = (item: GalleryMediaItem) => {
+  const handleImportFromGallery = async (item: GalleryMediaItem) => {
     const isVideo = isVideoMedia(item.url || item.storagePath || "");
+    let thumbUrl = item.thumbnailUrl || (isVideo ? undefined : item.url);
+    let dur = 0;
+
+    if (isVideo) {
+      try {
+        const frame = await captureVideoFrame(item.url, 0.1);
+        thumbUrl = frame.dataUrl;
+        dur = frame.duration;
+        setVideoDuration(frame.duration);
+        setThumbnailTime(0.1);
+        setIsCustomCover(false);
+      } catch (err) {
+        console.warn("Falha ao gerar frame inicial do vídeo da galeria:", err);
+      }
+    }
+
     const newMediaItem: MediaItem = {
       file: new File([], item.storagePath?.split("/").pop() || (isVideo ? "video.mp4" : "imagem.jpg")),
       previewUrl: item.url,
       publicUrl: item.url,
       type: isVideo ? "video" : "image",
+      thumbnailUrl: thumbUrl,
+      videoDuration: dur,
+      thumbnailTime: 0.1,
     };
 
     if (selectedType === "carousel") {
